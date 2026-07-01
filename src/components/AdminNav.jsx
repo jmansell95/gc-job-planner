@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Truck, Briefcase, Calendar, Grid3x3, LogOut, Menu, X } from 'lucide-react';
+import { Users, Truck, Briefcase, Calendar, Grid3x3, LogOut, Menu, X, Settings } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
@@ -11,11 +11,10 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: Grid3x3 },
-    { id: 'staff', label: 'Staff', icon: Users },
-    { id: 'vehicles', label: 'Vehicles', icon: Truck },
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
     { id: 'teams', label: 'Teams', icon: Users },
     { id: 'rota', label: 'Weekly Rota', icon: Calendar },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   const handleNavClick = (id) => {

@@ -4,11 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Users, Truck, Briefcase, Calendar, Grid3x3 } from 'lucide-react';
 import AdminNav from '@/components/AdminNav';
 import PageHeader from '@/components/PageHeader';
-import StaffManager from '@/components/StaffManager';
-import VehicleManager from '@/components/VehicleManager';
 import JobManager from '@/components/JobManager';
 import TeamManager from '@/components/TeamManager';
 import WeeklyRotaBuilder from '@/components/WeeklyRotaBuilder';
+import SettingsPage from '@/components/SettingsPage';
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -84,28 +83,24 @@ export default function AdminDashboard() {
               <div className="bg-white rounded-lg p-4 md:p-6 border border-emerald-200 shadow-sm">
                 <h3 className="text-base md:text-lg font-semibold text-slate-900 mb-4">Quick Actions</h3>
                 <div className="space-y-2 md:space-y-3">
-                  <button onClick={() => setActiveSection('staff')} className="w-full px-4 py-2 md:py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm md:text-base font-medium active:scale-95">
-                    Manage Staff
-                  </button>
-                  <button onClick={() => setActiveSection('vehicles')} className="w-full px-4 py-2 md:py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm md:text-base font-medium active:scale-95">
-                    Manage Vehicles
-                  </button>
                   <button onClick={() => setActiveSection('jobs')} className="w-full px-4 py-2 md:py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm md:text-base font-medium active:scale-95">
                     Manage Jobs
                   </button>
                   <button onClick={() => setActiveSection('rota')} className="w-full px-4 py-2 md:py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm md:text-base font-medium active:scale-95">
                     Build Weekly Rota
                   </button>
+                  <button onClick={() => setActiveSection('settings')} className="w-full px-4 py-2 md:py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition text-sm md:text-base font-medium active:scale-95">
+                    Settings
+                  </button>
                 </div>
               </div>
             </div>
           )}
 
-          {activeSection === 'staff' && <StaffManager />}
-          {activeSection === 'vehicles' && <VehicleManager />}
           {activeSection === 'jobs' && <JobManager />}
           {activeSection === 'rota' && <WeeklyRotaBuilder />}
           {activeSection === 'teams' && <TeamManager />}
+          {activeSection === 'settings' && <SettingsPage />}
         </div>
       </main>
     </div>

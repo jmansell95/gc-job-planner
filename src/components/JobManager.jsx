@@ -15,6 +15,7 @@ export default function JobManager() {
     start_date: '',
     end_date: '',
     client_id: '',
+    contractor_id: '',
     notes: '',
     requisition_list_url: '',
     requisition_list_name: ''
@@ -30,6 +31,11 @@ export default function JobManager() {
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list()
+  });
+
+  const { data: contractors = [] } = useQuery({
+    queryKey: ['contractors'],
+    queryFn: () => base44.entities.Contractor.list()
   });
 
   const handleSubmit = async (e) => {
@@ -48,6 +54,7 @@ export default function JobManager() {
         start_date: '',
         end_date: '',
         client_id: '',
+        contractor_id: '',
         notes: '',
         requisition_list_url: '',
         requisition_list_name: ''
@@ -104,6 +111,7 @@ export default function JobManager() {
               start_date: '',
               end_date: '',
               client_id: '',
+              contractor_id: '',
               notes: '',
               requisition_list_url: '',
               requisition_list_name: ''
@@ -187,6 +195,20 @@ export default function JobManager() {
                 <option value="">Select Client (Optional)</option>
                 {clients.map(client => (
                   <option key={client.id} value={client.id}>{client.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Contractor</label>
+              <select
+                value={formData.contractor_id}
+                onChange={(e) => setFormData({ ...formData, contractor_id: e.target.value })}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              >
+                <option value="">Select Contractor (Optional)</option>
+                {contractors.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>

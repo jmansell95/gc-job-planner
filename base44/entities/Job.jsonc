@@ -35,6 +35,10 @@
       "type": "string",
       "description": "Associated client"
     },
+    "contractor_id": {
+      "type": "string",
+      "description": "Associated contractor"
+    },
     "notes": {
       "type": "string",
       "description": "Job notes and details"
