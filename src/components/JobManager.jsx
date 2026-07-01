@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Briefcase } from 'lucide-react';
+import { Plus, Trash2, Edit2, Briefcase, Upload, FileText, X } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 
 export default function JobManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -15,7 +16,8 @@ export default function JobManager() {
     end_date: '',
     client_id: '',
     notes: '',
-    equipment_needed: ''
+    requisition_list_url: '',
+    requisition_list_name: ''
   });
 
   const queryClient = useQueryClient();
@@ -47,7 +49,8 @@ export default function JobManager() {
         end_date: '',
         client_id: '',
         notes: '',
-        equipment_needed: ''
+        requisition_list_url: '',
+        requisition_list_name: ''
       });
       setShowForm(false);
       setEditingId(null);
@@ -60,6 +63,19 @@ export default function JobManager() {
     setFormData(job);
     setEditingId(job.id);
     setShowForm(true);
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingFile(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData(prev => ({ ...prev, requisition_list_url: file_url, requisition_list_name: file.name }));
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
+    setUploadingFile(false);
   };
 
   const handleDelete = async (id) => {
@@ -89,7 +105,8 @@ export default function JobManager() {
               end_date: '',
               client_id: '',
               notes: '',
-              equipment_needed: ''
+              requisition_list_url: '',
+              requisition_list_name: ''
             });
           }}
           className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
@@ -186,14 +203,39 @@ export default function JobManager() {
             </div>
 
             <div className="mt-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Equipment Needed</label>
-            <textarea
-              value={formData.equipment_needed}
-              onChange={(e) => setFormData({ ...formData, equipment_needed: e.target.value })}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
-              rows="2"
-            />
-
+            <label className="block text-sm font-medium text-slate-700 mb-2">Requisition List</label>
+            {formData.requisition_list_url ? (
+              <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <FileText className="w-5 h-5 text-emerald-700 flex-shrink-0" />
+                <a
+                  href={formData.requisition_list_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-emerald-700 font-medium hover:underline flex-1 truncate"
+                >
+                  {formData.requisition_list_name || 'Requisition List'}
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, requisition_list_url: '', requisition_list_name: '' }))}
+                  className="p-1 text-slate-400 hover:text-red-500 rounded transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-3 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-emerald-400 transition">
+                {uploadingFile ? (
+                  <span className="text-sm text-slate-500">Uploading...</span>
+                ) : (
+                  <>
+                    <Upload className="w-5 h-5 text-slate-400" />
+                    <span className="text-sm text-slate-500">Click to upload requisition list (PDF, Excel, Word, etc.)</span>
+                  </>
+                )}
+                <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploadingFile} />
+              </label>
+            )}
           </div>
 
           <div className="flex gap-3 mt-6">
@@ -222,6 +264,7 @@ export default function JobManager() {
               <th className="px-4 py-3 text-left font-semibold text-white">Location</th>
               <th className="px-4 py-3 text-left font-semibold text-white">Type</th>
               <th className="px-4 py-3 text-left font-semibold text-white">Dates</th>
+              <th className="px-4 py-3 text-left font-semibold text-white">Requisition</th>
               <th className="px-4 py-3 text-left font-semibold text-white">Actions</th>
             </tr>
           </thead>
@@ -232,6 +275,16 @@ export default function JobManager() {
                 <td className="px-4 py-3 text-slate-600">{job.location}</td>
                 <td className="px-4 py-3 text-slate-600 text-sm capitalize">{job.job_type.replace('_', ' ')}</td>
                 <td className="px-4 py-3 text-slate-600 text-sm">{job.start_date} to {job.end_date}</td>
+                <td className="px-4 py-3">
+                  {job.requisition_list_url ? (
+                    <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-emerald-700 hover:text-emerald-900 text-sm font-medium">
+                      <FileText className="w-4 h-4" />
+                      <span className="max-w-[120px] truncate">{job.requisition_list_name || 'View'}</span>
+                    </a>
+                  ) : (
+                    <span className="text-slate-400 text-sm">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button
@@ -286,6 +339,15 @@ export default function JobManager() {
                 <p className="text-xs text-slate-500 font-medium">Dates</p>
                 <p className="text-slate-900 text-xs">{job.start_date} to {job.end_date}</p>
               </div>
+              {job.requisition_list_url && (
+                <div className="col-span-2">
+                  <p className="text-xs text-slate-500 font-medium mb-1">Requisition List</p>
+                  <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-emerald-700 text-sm font-medium">
+                    <FileText className="w-4 h-4" />
+                    <span className="truncate">{job.requisition_list_name || 'View File'}</span>
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         ))}

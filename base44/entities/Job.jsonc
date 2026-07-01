@@ -39,9 +39,13 @@
       "type": "string",
       "description": "Job notes and details"
     },
-    "equipment_needed": {
+    "requisition_list_url": {
       "type": "string",
-      "description": "Equipment required for the job"
+      "description": "URL of the uploaded requisition/equipment list file"
+    },
+    "requisition_list_name": {
+      "type": "string",
+      "description": "Original filename of the requisition list"
     }
   },
   "required": [
