@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Briefcase } from 'lucide-react';
+import PageHeader from '@/components/PageHeader';
 
 export default function JobManager() {
   const [showForm, setShowForm] = useState(false);
@@ -75,7 +76,7 @@ export default function JobManager() {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-        <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Manage Jobs</h2>
+        <PageHeader title="Manage Jobs" icon={Briefcase} />
         <button
           onClick={() => {
             setShowForm(!showForm);
