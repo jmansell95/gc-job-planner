@@ -28,7 +28,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="hidden max-lg:fixed max-lg:top-4 max-lg:left-4 max-lg:z-50 max-lg:p-2 max-lg:bg-emerald-700 max-lg:text-white max-lg:rounded-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-emerald-700 text-white rounded-lg"
       >
         {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </button>
@@ -37,15 +37,14 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       {isOpen && (
         <div
           onClick={() => setIsOpen(false)}
-          className="hidden max-lg:fixed max-lg:inset-0 max-lg:bg-black max-lg:bg-opacity-50 max-lg:z-40"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
         />
       )}
 
       {/* Sidebar */}
       <nav className={`
-        fixed max-lg:z-40 max-lg:top-0 max-lg:left-0 max-lg:h-screen max-lg:transform max-lg:transition-transform max-lg:overflow-y-auto
-        ${isOpen ? 'max-lg:translate-x-0' : 'max-lg:-translate-x-full'}
-        lg:relative lg:translate-x-0
+        fixed lg:relative z-40 lg:z-auto top-0 left-0 h-screen lg:h-auto transform lg:transform-none transition-transform lg:transition-none overflow-y-auto
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         w-64 bg-white border-r border-slate-200 flex flex-col
       `}>
         <div className="p-6 border-b border-slate-200 bg-emerald-700">
