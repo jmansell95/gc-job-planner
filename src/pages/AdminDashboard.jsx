@@ -64,8 +64,13 @@ export default function AdminDashboard() {
             <div>
               {/* Header */}
               <div className="mb-8">
-                <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dashboard</h1>
-                <p className="text-slate-500 text-sm mt-1">Week of {format(weekStart, 'dd MMM yyyy')}</p>
+                <div className="flex items-center gap-3 md:gap-4 mb-1">
+                  <div className="p-2 md:p-3 bg-emerald-700 rounded-lg flex-shrink-0">
+                    <Grid3x3 className="w-6 md:w-8 h-6 md:h-8 text-white" />
+                  </div>
+                  <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dashboard</h1>
+                </div>
+                <p className="text-slate-500 text-sm mt-1 ml-14 md:ml-16">Week of {format(weekStart, 'dd MMM yyyy')}</p>
               </div>
 
               {/* Stats Row */}
