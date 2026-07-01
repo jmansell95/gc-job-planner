@@ -81,8 +81,8 @@ export default function WeeklyRotaBuilder() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">Weekly Rota Builder</h2>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+        <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Weekly Rota Builder</h2>
         <div className="flex gap-4">
           <div>
             <label className="text-sm font-medium text-slate-600">Week starting:</label>
@@ -112,8 +112,8 @@ export default function WeeklyRotaBuilder() {
       </div>
 
       {showAssignmentForm && (
-        <form onSubmit={handleAddAssignment} className="bg-white rounded-lg p-6 border border-green-200 mb-6 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleAddAssignment} className="bg-white rounded-lg p-4 md:p-6 border border-green-200 mb-6 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <select
               value={formData.job_id}
               onChange={(e) => setFormData({ ...formData, job_id: e.target.value })}

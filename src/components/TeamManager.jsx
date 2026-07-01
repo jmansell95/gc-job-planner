@@ -54,8 +54,8 @@ export default function TeamManager() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">Manage Teams</h2>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+        <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Manage Teams</h2>
         <button
           onClick={() => {
             setShowForm(!showForm);
@@ -70,8 +70,8 @@ export default function TeamManager() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-6 border border-green-200 mb-6 shadow-sm">
-          <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 md:p-6 border border-green-200 mb-6 shadow-sm">
+          <div className="space-y-3 md:space-y-4">
             <input
               type="text"
               placeholder="Team Name"
@@ -108,24 +108,24 @@ export default function TeamManager() {
         </form>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {teams.map((team) => (
-          <div key={team.id} className="bg-white rounded-lg p-6 border border-green-200 shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">{team.name}</h3>
+          <div key={team.id} className="bg-white rounded-lg p-4 md:p-6 border border-green-200 shadow-sm hover:shadow-md transition">
+            <div className="flex justify-between items-start mb-4 gap-2">
+              <div className="min-w-0">
+                <h3 className="text-base md:text-lg font-bold text-slate-900 break-words">{team.name}</h3>
                 <p className="text-slate-600 text-sm mt-1">{team.description || 'No description'}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1 md:gap-2 flex-shrink-0">
                 <button
                   onClick={() => handleEdit(team)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded transition"
+                  className="p-1.5 md:p-2 text-blue-600 hover:bg-blue-50 rounded transition"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(team.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded transition"
+                  className="p-1.5 md:p-2 text-red-600 hover:bg-red-50 rounded transition"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

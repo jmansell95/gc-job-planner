@@ -69,28 +69,28 @@ export default function PrintEmailSchedule({ weekStart, staffId, staffName }) {
         </div>
       )}
 
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
         <button
           onClick={handlePrint}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+          className="flex items-center justify-center md:justify-start gap-2 px-4 py-2 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 text-sm md:text-base font-medium active:scale-95 flex-1 sm:flex-none"
         >
-          <Printer className="w-4 h-4" />
-          Print {staffName ? `${staffName}'s Schedule` : 'Rota'}
+          <Printer className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+          <span className="hidden md:inline">Print</span>
         </button>
 
         <button
           onClick={() => setShowEmailForm(!showEmailForm)}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50"
+          className="flex items-center justify-center md:justify-start gap-2 px-4 py-2 md:py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 text-sm md:text-base font-medium active:scale-95 flex-1 sm:flex-none"
         >
-          <Mail className="w-4 h-4" />
-          Email {staffName ? `${staffName}'s Schedule` : 'Rota'}
+          <Mail className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0" />
+          <span className="hidden md:inline">Email</span>
         </button>
       </div>
 
       {showEmailForm && (
-        <form onSubmit={handleEmailSubmit} className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
+        <form onSubmit={handleEmailSubmit} className="bg-slate-50 border border-slate-200 rounded-lg p-3 md:p-4 space-y-3">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
             <input

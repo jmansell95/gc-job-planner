@@ -75,8 +75,8 @@ export default function StaffManager() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">Manage Staff</h2>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+        <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Manage Staff</h2>
         <button
           onClick={() => {
             setShowForm(!showForm);
@@ -98,8 +98,8 @@ export default function StaffManager() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-6 border border-green-200 mb-6 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 md:p-6 border border-green-200 mb-6 shadow-sm overflow-x-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <input
               type="text"
               placeholder="Name"
@@ -182,8 +182,8 @@ export default function StaffManager() {
         </form>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+      <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <table className="w-full border-collapse text-sm md:text-base">
           <thead>
             <tr className="bg-green-50 border-b-2 border-green-200">
               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Name</th>
