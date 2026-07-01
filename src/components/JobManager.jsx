@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Briefcase, Upload, FileText, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, Briefcase, Upload, FileText, X, Eye, Download, RefreshCw } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 
 export default function JobManager() {
@@ -205,23 +205,45 @@ export default function JobManager() {
             <div className="mt-4">
             <label className="block text-sm font-medium text-slate-700 mb-2">Requisition List</label>
             {formData.requisition_list_url ? (
-              <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-                <FileText className="w-5 h-5 text-emerald-700 flex-shrink-0" />
-                <a
-                  href={formData.requisition_list_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-emerald-700 font-medium hover:underline flex-1 truncate"
-                >
-                  {formData.requisition_list_name || 'Requisition List'}
-                </a>
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, requisition_list_url: '', requisition_list_name: '' }))}
-                  className="p-1 text-slate-400 hover:text-red-500 rounded transition"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+              <div className="border border-emerald-200 rounded-lg overflow-hidden">
+                <div className="flex items-center gap-3 p-3 bg-emerald-50">
+                  <FileText className="w-5 h-5 text-emerald-700 flex-shrink-0" />
+                  <span className="text-sm text-emerald-800 font-medium flex-1 truncate">
+                    {formData.requisition_list_name || 'Requisition List'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 bg-white border-t border-emerald-100">
+                  <a
+                    href={formData.requisition_list_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-md transition"
+                  >
+                    <Eye className="w-3.5 h-3.5" /> View
+                  </a>
+                  <a
+                    href={formData.requisition_list_url}
+                    download={formData.requisition_list_name || 'requisition-list'}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download
+                  </a>
+                  <label className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-md transition cursor-pointer">
+                    {uploadingFile ? (
+                      <span>Uploading...</span>
+                    ) : (
+                      <><RefreshCw className="w-3.5 h-3.5" /> Replace</>
+                    )}
+                    <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploadingFile} />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, requisition_list_url: '', requisition_list_name: '' }))}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition ml-auto"
+                  >
+                    <X className="w-3.5 h-3.5" /> Remove
+                  </button>
+                </div>
               </div>
             ) : (
               <label className="flex items-center gap-3 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-emerald-400 transition">
@@ -277,12 +299,36 @@ export default function JobManager() {
                 <td className="px-4 py-3 text-slate-600 text-sm">{job.start_date} to {job.end_date}</td>
                 <td className="px-4 py-3">
                   {job.requisition_list_url ? (
-                    <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-emerald-700 hover:text-emerald-900 text-sm font-medium">
-                      <FileText className="w-4 h-4" />
-                      <span className="max-w-[120px] truncate">{job.requisition_list_name || 'View'}</span>
-                    </a>
+                    <div className="flex items-center gap-1">
+                      <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer" title="View" className="p-1.5 text-emerald-700 hover:bg-emerald-100 rounded transition">
+                        <Eye className="w-4 h-4" />
+                      </a>
+                      <a href={job.requisition_list_url} download={job.requisition_list_name || 'requisition-list'} title="Download" className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition">
+                        <Download className="w-4 h-4" />
+                      </a>
+                      <label title="Replace" className="p-1.5 text-amber-600 hover:bg-amber-100 rounded transition cursor-pointer">
+                        <RefreshCw className="w-4 h-4" />
+                        <input type="file" className="hidden" onChange={async (e) => {
+                          const file = e.target.files[0];
+                          if (!file) return;
+                          const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                          await base44.entities.Job.update(job.id, { requisition_list_url: file_url, requisition_list_name: file.name });
+                          queryClient.invalidateQueries({ queryKey: ['jobs'] });
+                        }} />
+                      </label>
+                    </div>
                   ) : (
-                    <span className="text-slate-400 text-sm">—</span>
+                    <label title="Upload" className="flex items-center gap-1 text-slate-400 hover:text-emerald-700 cursor-pointer transition text-sm">
+                      <Upload className="w-4 h-4" />
+                      <span>Upload</span>
+                      <input type="file" className="hidden" onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                        await base44.entities.Job.update(job.id, { requisition_list_url: file_url, requisition_list_name: file.name });
+                        queryClient.invalidateQueries({ queryKey: ['jobs'] });
+                      }} />
+                    </label>
                   )}
                 </td>
                 <td className="px-4 py-3">
@@ -339,15 +385,40 @@ export default function JobManager() {
                 <p className="text-xs text-slate-500 font-medium">Dates</p>
                 <p className="text-slate-900 text-xs">{job.start_date} to {job.end_date}</p>
               </div>
-              {job.requisition_list_url && (
-                <div className="col-span-2">
-                  <p className="text-xs text-slate-500 font-medium mb-1">Requisition List</p>
-                  <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-emerald-700 text-sm font-medium">
-                    <FileText className="w-4 h-4" />
-                    <span className="truncate">{job.requisition_list_name || 'View File'}</span>
-                  </a>
-                </div>
-              )}
+              <div className="col-span-2">
+                <p className="text-xs text-slate-500 font-medium mb-1">Requisition List</p>
+                {job.requisition_list_url ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-md">
+                      <Eye className="w-3.5 h-3.5" /> View
+                    </a>
+                    <a href={job.requisition_list_url} download={job.requisition_list_name || 'requisition-list'} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 rounded-md">
+                      <Download className="w-3.5 h-3.5" /> Download
+                    </a>
+                    <label className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-700 bg-amber-50 rounded-md cursor-pointer">
+                      <RefreshCw className="w-3.5 h-3.5" /> Replace
+                      <input type="file" className="hidden" onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                        await base44.entities.Job.update(job.id, { requisition_list_url: file_url, requisition_list_name: file.name });
+                        queryClient.invalidateQueries({ queryKey: ['jobs'] });
+                      }} />
+                    </label>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-500 bg-slate-100 rounded-md cursor-pointer w-fit">
+                    <Upload className="w-3.5 h-3.5" /> Upload
+                    <input type="file" className="hidden" onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                      await base44.entities.Job.update(job.id, { requisition_list_url: file_url, requisition_list_name: file.name });
+                      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+                    }} />
+                  </label>
+                )}
+              </div>
             </div>
           </div>
         ))}
