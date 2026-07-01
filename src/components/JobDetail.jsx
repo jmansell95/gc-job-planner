@@ -6,6 +6,7 @@ import {
   Clock, Eye, Download, User, HardHat, Phone, Mail, Tag
 } from 'lucide-react';
 import { format } from 'date-fns';
+import PrintReportButton from '@/components/PrintReportButton';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500', border: 'border-green-200' },
@@ -32,6 +33,50 @@ const workerTypeBadge = {
 
 export default function JobDetail({ job, onBack }) {
   const colors = jobTypeColors[job.job_type] || jobTypeColors.depot;
+
+  const buildJobPrintHtml = () => {
+    const staffRows = assignedStaff.map(s => {
+      const shifts = rotas.filter(r => r.staff_id === s.id).length;
+      const vids = [...new Set(rotas.filter(r => r.staff_id === s.id).map(r => r.vehicle_id).filter(Boolean))];
+      const vehs = vids.map(id => vehicles.find(v => v.id === id)?.registration_number).filter(Boolean).join(', ');
+      return `<tr><td>${s.name}</td><td>${roleLabels[s.job_role] || s.job_role}</td><td>${s.worker_type?.replace(/_/g,' ')}</td><td>${shifts}</td><td>${vehs || '—'}</td></tr>`;
+    }).join('');
+    const scheduleRows = sortedDates.map(date => {
+      const dayRotas = rotasByDate[date];
+      const d = new Date(date + 'T00:00:00');
+      const names = dayRotas.map(r => {
+        const m = allStaff.find(s => s.id === r.staff_id);
+        const v = vehicles.find(v => v.id === r.vehicle_id);
+        return m ? `${m.name}${v ? ' ('+v.registration_number+')' : ''}` : '';
+      }).filter(Boolean).join(', ');
+      return `<tr><td>${format(d, 'EEEE, dd MMM yyyy')}</td><td>${names}</td></tr>`;
+    }).join('');
+    return `<!DOCTYPE html><html><head><title>Job Report – ${job.name}</title>
+    <style>
+      body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; color: #111; }
+      h1 { font-size: 18px; margin-bottom: 2px; }
+      h2 { font-size: 13px; margin: 16px 0 6px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+      .meta { color: #555; font-size: 11px; margin-bottom: 14px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+      th { background: #1a5c3a; color: white; padding: 5px 8px; text-align: left; font-size: 11px; }
+      td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; }
+      tr:nth-child(even) td { background: #f8fafb; }
+      @media print { body { margin: 10mm; } }
+    </style></head><body>
+    <h1>${job.name}</h1>
+    <div class="meta">
+      ${job.job_type.replace(/_/g,' ')} &nbsp;·&nbsp; ${job.location} &nbsp;·&nbsp; ${job.start_date} → ${job.end_date || 'TBC'}
+      &nbsp;·&nbsp; Printed ${format(new Date(), 'dd MMM yyyy HH:mm')}
+    </div>
+    ${assignedStaff.length > 0 ? `<h2>Assigned Staff (${assignedStaff.length})</h2>
+    <table><thead><tr><th>Name</th><th>Role</th><th>Type</th><th>Shifts</th><th>Vehicles</th></tr></thead>
+    <tbody>${staffRows}</tbody></table>` : ''}
+    ${sortedDates.length > 0 ? `<h2>Daily Schedule</h2>
+    <table><thead><tr><th>Date</th><th>Personnel</th></tr></thead>
+    <tbody>${scheduleRows}</tbody></table>` : ''}
+    ${job.notes ? `<h2>Notes</h2><p>${job.notes}</p>` : ''}
+    </body></html>`;
+  };
 
   const { data: allStaff = [] } = useQuery({
     queryKey: ['staff'],
@@ -84,13 +129,16 @@ export default function JobDetail({ job, onBack }) {
     <div>
       {/* Back + Header */}
       <div className="mb-6">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-900 font-medium mb-4 transition"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Jobs
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-900 font-medium transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Jobs
+          </button>
+          <PrintReportButton buildHtml={buildJobPrintHtml} label="Print Report" />
+        </div>
 
         <div className={`rounded-xl p-5 md:p-7 border ${colors.border} ${colors.bg}`}>
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">

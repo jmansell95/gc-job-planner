@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Users } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import PrintReportButton from '@/components/PrintReportButton';
 
 export default function StaffManager() {
   const [showForm, setShowForm] = useState(false);
@@ -74,28 +75,45 @@ export default function StaffManager() {
     }
   };
 
+  const buildStaffPrintHtml = () => {
+    const rows = staff.map(s =>
+      `<tr><td>${s.name}</td><td>${s.email}</td><td>${s.job_role?.replace(/_/g,' ')}</td><td>${s.worker_type?.replace(/_/g,' ')}</td><td>${teams.find(t => t.id === s.team_id)?.name || '—'}</td></tr>`
+    ).join('');
+    return `<!DOCTYPE html><html><head><title>Staff Report</title>
+    <style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#111}h1{font-size:16px;margin-bottom:4px}p{color:#555;font-size:11px;margin-bottom:12px}table{width:100%;border-collapse:collapse}th{background:#1a5c3a;color:white;padding:6px 8px;text-align:left;font-size:11px}td{padding:5px 8px;border-bottom:1px solid #e2e8f0}tr:nth-child(even) td{background:#f8fafb}@media print{body{margin:10mm}}</style>
+    </head><body>
+    <h1>Staff Report</h1>
+    <p>${staff.length} staff members &nbsp;&middot;&nbsp; Printed ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</p>
+    <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Type</th><th>Team</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    </body></html>`;
+  };
+
   return (
     <div>
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
         <PageHeader title="Manage Staff" icon={Users} />
-        <button
-          onClick={() => {
-            setShowForm(!showForm);
-            setEditingId(null);
-            setFormData({
-              name: '',
-              email: '',
-              worker_type: 'direct_employee',
-              job_role: 'groundworker',
-              team_id: '',
-              default_vehicle_id: ''
-            });
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-        >
-          <Plus className="w-4 h-4" />
-          Add Staff
-        </button>
+        <div className="flex items-center gap-2">
+          <PrintReportButton buildHtml={buildStaffPrintHtml} label="Print Staff List" />
+          <button
+            onClick={() => {
+              setShowForm(!showForm);
+              setEditingId(null);
+              setFormData({
+                name: '',
+                email: '',
+                worker_type: 'direct_employee',
+                job_role: 'groundworker',
+                team_id: '',
+                default_vehicle_id: ''
+              });
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+          >
+            <Plus className="w-4 h-4" />
+            Add Staff
+          </button>
+        </div>
       </div>
 
       {showForm && (

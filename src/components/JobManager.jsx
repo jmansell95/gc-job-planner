@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Briefcase, Upload, FileText, X, Eye, Download, RefreshCw, ChevronRight, MapPin, Calendar } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import JobDetail from '@/components/JobDetail';
+import PrintReportButton from '@/components/PrintReportButton';
 
 const jobTypeBadge = {
   groundworks: 'bg-green-100 text-green-700',
@@ -106,6 +107,20 @@ export default function JobManager() {
     }
   };
 
+  const buildJobsPrintHtml = () => {
+    const rows = jobs.map(j =>
+      `<tr><td>${j.name}</td><td>${j.location}</td><td>${j.job_type.replace(/_/g,' ')}</td><td>${j.start_date}</td><td>${j.end_date}</td></tr>`
+    ).join('');
+    return `<!DOCTYPE html><html><head><title>Jobs Report</title>
+    <style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#111}h1{font-size:16px;margin-bottom:4px}p{color:#555;font-size:11px;margin-bottom:12px}table{width:100%;border-collapse:collapse}th{background:#1a5c3a;color:white;padding:6px 8px;text-align:left;font-size:11px}td{padding:5px 8px;border-bottom:1px solid #e2e8f0}tr:nth-child(even) td{background:#f8fafb}@media print{body{margin:10mm}}</style>
+    </head><body>
+    <h1>Jobs Report</h1>
+    <p>${jobs.length} jobs &nbsp;&middot;&nbsp; Printed ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</p>
+    <table><thead><tr><th>Name</th><th>Location</th><th>Type</th><th>Start</th><th>End</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    </body></html>`;
+  };
+
   if (selectedJob) {
     return <JobDetail job={selectedJob} onBack={() => setSelectedJob(null)} />;
   }
@@ -114,28 +129,31 @@ export default function JobManager() {
     <div>
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
         <PageHeader title="Manage Jobs" icon={Briefcase} />
-        <button
-          onClick={() => {
-            setShowForm(!showForm);
-            setEditingId(null);
-            setFormData({
-              name: '',
-              location: '',
-              job_type: 'groundworks',
-              start_date: '',
-              end_date: '',
-              client_id: '',
-              contractor_id: '',
-              notes: '',
-              requisition_list_url: '',
-              requisition_list_name: ''
-            });
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-        >
-          <Plus className="w-4 h-4" />
-          Add Job
-        </button>
+        <div className="flex items-center gap-2">
+          <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Jobs List" />
+          <button
+            onClick={() => {
+              setShowForm(!showForm);
+              setEditingId(null);
+              setFormData({
+                name: '',
+                location: '',
+                job_type: 'groundworks',
+                start_date: '',
+                end_date: '',
+                client_id: '',
+                contractor_id: '',
+                notes: '',
+                requisition_list_url: '',
+                requisition_list_name: ''
+              });
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+          >
+            <Plus className="w-4 h-4" />
+            Add Job
+          </button>
+        </div>
       </div>
 
       {showForm && (
