@@ -71,30 +71,34 @@ export default function TeamManager() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 md:p-6 border border-green-200 mb-6 shadow-sm">
-          <div className="space-y-3 md:space-y-4">
-            <input
-              type="text"
-              placeholder="Team Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            />
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 md:p-6 border border-emerald-200 mb-6 shadow-sm">
+          <div className="space-y-4 md:space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Team Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              />
+            </div>
             
-            <textarea
-              placeholder="Team Description (Optional)"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-              rows="3"
-            />
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Team Description</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+                rows="3"
+              />
+            </div>
           </div>
 
-          <div className="flex gap-3 mt-4">
+          <div className="flex gap-3 mt-6">
             <button
               type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+              className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium"
             >
               {editingId ? 'Update Team' : 'Add Team'}
             </button>
@@ -111,7 +115,7 @@ export default function TeamManager() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {teams.map((team) => (
-          <div key={team.id} className="bg-white rounded-lg p-4 md:p-6 border border-green-200 shadow-sm hover:shadow-md transition">
+          <div key={team.id} className="bg-white rounded-lg p-4 md:p-6 border border-emerald-200 shadow-sm hover:shadow-md transition">
             <div className="flex justify-between items-start mb-4 gap-2">
               <div className="min-w-0">
                 <h3 className="text-base md:text-lg font-bold text-slate-900 break-words">{team.name}</h3>

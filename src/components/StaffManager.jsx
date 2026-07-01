@@ -99,76 +99,92 @@ export default function StaffManager() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 md:p-6 border border-green-200 mb-6 shadow-sm overflow-x-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-            <input
-              type="text"
-              placeholder="Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            />
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 md:p-6 border border-emerald-200 mb-6 shadow-sm overflow-x-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              />
+            </div>
             
-            <select
-              value={formData.worker_type}
-              onChange={(e) => setFormData({ ...formData, worker_type: e.target.value })}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            >
-              <option value="direct_employee">Direct Employee</option>
-              <option value="subcontractor">Subcontractor</option>
-              <option value="agency">Agency Worker</option>
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Worker Type</label>
+              <select
+                value={formData.worker_type}
+                onChange={(e) => setFormData({ ...formData, worker_type: e.target.value })}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              >
+                <option value="direct_employee">Direct Employee</option>
+                <option value="subcontractor">Subcontractor</option>
+                <option value="agency">Agency Worker</option>
+              </select>
+            </div>
 
-            <select
-              value={formData.job_role}
-              onChange={(e) => setFormData({ ...formData, job_role: e.target.value })}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            >
-              <option value="groundworker">Groundworker</option>
-              <option value="cp_driller">CP Driller</option>
-              <option value="rotary_driller">Rotary Driller</option>
-              <option value="enabling_crew">Enabling Crew</option>
-              <option value="depot">Depot</option>
-              <option value="supervisor">Supervisor</option>
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Job Role</label>
+              <select
+                value={formData.job_role}
+                onChange={(e) => setFormData({ ...formData, job_role: e.target.value })}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              >
+                <option value="groundworker">Groundworker</option>
+                <option value="cp_driller">CP Driller</option>
+                <option value="rotary_driller">Rotary Driller</option>
+                <option value="enabling_crew">Enabling Crew</option>
+                <option value="depot">Depot</option>
+                <option value="supervisor">Supervisor</option>
+              </select>
+            </div>
 
-            <select
-              value={formData.team_id}
-              onChange={(e) => setFormData({ ...formData, team_id: e.target.value })}
-              required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            >
-              <option value="">Select Team</option>
-              {teams.map(team => (
-                <option key={team.id} value={team.id}>{team.name}</option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Team *</label>
+              <select
+                value={formData.team_id}
+                onChange={(e) => setFormData({ ...formData, team_id: e.target.value })}
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              >
+                <option value="">Select Team</option>
+                {teams.map(team => (
+                  <option key={team.id} value={team.id}>{team.name}</option>
+                ))}
+              </select>
+            </div>
 
-            <select
-              value={formData.default_vehicle_id}
-              onChange={(e) => setFormData({ ...formData, default_vehicle_id: e.target.value })}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            >
-              <option value="">Select Default Vehicle (Optional)</option>
-              {vehicles.map(vehicle => (
-                <option key={vehicle.id} value={vehicle.id}>{vehicle.registration_number} - {vehicle.name}</option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Default Vehicle</label>
+              <select
+                value={formData.default_vehicle_id}
+                onChange={(e) => setFormData({ ...formData, default_vehicle_id: e.target.value })}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              >
+                <option value="">Select Vehicle (Optional)</option>
+                {vehicles.map(vehicle => (
+                  <option key={vehicle.id} value={vehicle.id}>{vehicle.registration_number} - {vehicle.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="flex gap-3 mt-4">
             <button
               type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+              className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium"
             >
               {editingId ? 'Update Staff' : 'Add Staff'}
             </button>

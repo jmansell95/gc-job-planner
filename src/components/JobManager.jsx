@@ -100,85 +100,106 @@ export default function JobManager() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 md:p-6 border border-green-200 mb-6 shadow-sm">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-            <input
-              type="text"
-              placeholder="Job Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            />
-            <input
-              type="text"
-              placeholder="Location/Site Address"
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            />
-            
-            <select
-              value={formData.job_type}
-              onChange={(e) => setFormData({ ...formData, job_type: e.target.value })}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            >
-              <option value="groundworks">Groundworks</option>
-              <option value="cp_drilling">CP Drilling</option>
-              <option value="rotary_drilling">Rotary Drilling</option>
-              <option value="enabling_works">Enabling Works</option>
-              <option value="depot">Depot</option>
-            </select>
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 md:p-6 border border-emerald-200 mb-6 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Job Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
+              <input
+                type="text"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              />
+            </div>
 
-            <input
-              type="date"
-              value={formData.start_date}
-              onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-              required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Job Type</label>
+              <select
+                value={formData.job_type}
+                onChange={(e) => setFormData({ ...formData, job_type: e.target.value })}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              >
+                <option value="groundworks">Groundworks</option>
+                <option value="cp_drilling">CP Drilling</option>
+                <option value="rotary_drilling">Rotary Drilling</option>
+                <option value="enabling_works">Enabling Works</option>
+                <option value="depot">Depot</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Start Date</label>
+              <input
+                type="date"
+                value={formData.start_date}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">End Date</label>
+              <input
+                type="date"
+                value={formData.end_date}
+                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Client</label>
+              <select
+                value={formData.client_id}
+                onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              >
+                <option value="">Select Client (Optional)</option>
+                {clients.map(client => (
+                  <option key={client.id} value={client.id}>{client.name}</option>
+                ))}
+              </select>
+            </div>
+            </div>
+
+            <div className="mt-4">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Notes</label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              rows="2"
+            />
+            </div>
+
+            <div className="mt-4">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Equipment Needed</label>
+            <textarea
+              value={formData.equipment_needed}
+              onChange={(e) => setFormData({ ...formData, equipment_needed: e.target.value })}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              rows="2"
             />
 
-            <input
-              type="date"
-              value={formData.end_date}
-              onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-              required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            />
-
-            <select
-              value={formData.client_id}
-              onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            >
-              <option value="">Select Client (Optional)</option>
-              {clients.map(client => (
-                <option key={client.id} value={client.id}>{client.name}</option>
-              ))}
-            </select>
           </div>
 
-          <textarea
-            placeholder="Notes"
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600 mt-4"
-            rows="2"
-          />
-
-          <textarea
-            placeholder="Equipment Needed"
-            value={formData.equipment_needed}
-            onChange={(e) => setFormData({ ...formData, equipment_needed: e.target.value })}
-            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600 mt-4"
-            rows="2"
-          />
-
-          <div className="flex gap-3 mt-4">
+          <div className="flex gap-3 mt-6">
             <button
               type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+              className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium"
             >
               {editingId ? 'Update Job' : 'Add Job'}
             </button>

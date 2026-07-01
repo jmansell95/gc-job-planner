@@ -83,52 +83,62 @@ export default function VehicleManager() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 md:p-6 border border-green-200 mb-6 shadow-sm">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-            <input
-              type="text"
-              placeholder="Vehicle Name/Description"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            />
-            <input
-              type="text"
-              placeholder="Registration Number"
-              value={formData.registration_number}
-              onChange={(e) => setFormData({ ...formData, registration_number: e.target.value })}
-              required
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            />
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 md:p-6 border border-emerald-200 mb-6 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Vehicle Name/Description</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Registration Number</label>
+              <input
+                type="text"
+                value={formData.registration_number}
+                onChange={(e) => setFormData({ ...formData, registration_number: e.target.value })}
+                required
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              />
+            </div>
             
-            <select
-              value={formData.team_id}
-              onChange={(e) => setFormData({ ...formData, team_id: e.target.value })}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            >
-              <option value="">Select Team (Optional)</option>
-              {teams.map(team => (
-                <option key={team.id} value={team.id}>{team.name}</option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Team</label>
+              <select
+                value={formData.team_id}
+                onChange={(e) => setFormData({ ...formData, team_id: e.target.value })}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              >
+                <option value="">Select Team (Optional)</option>
+                {teams.map(team => (
+                  <option key={team.id} value={team.id}>{team.name}</option>
+                ))}
+              </select>
+            </div>
 
-            <select
-              value={formData.assigned_staff_id}
-              onChange={(e) => setFormData({ ...formData, assigned_staff_id: e.target.value })}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-green-600"
-            >
-              <option value="">Assign to Staff (Optional)</option>
-              {staff.map(member => (
-                <option key={member.id} value={member.id}>{member.name}</option>
-              ))}
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Assign to Staff</label>
+              <select
+                value={formData.assigned_staff_id}
+                onChange={(e) => setFormData({ ...formData, assigned_staff_id: e.target.value })}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              >
+                <option value="">Select Staff (Optional)</option>
+                {staff.map(member => (
+                  <option key={member.id} value={member.id}>{member.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="flex gap-3 mt-4">
             <button
               type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+              className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium"
             >
               {editingId ? 'Update Vehicle' : 'Add Vehicle'}
             </button>
