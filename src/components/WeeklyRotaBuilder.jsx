@@ -202,8 +202,8 @@ export default function WeeklyRotaBuilder() {
         </form>
       )}
 
-      {/* Rota Grid */}
-      <div className="bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+      {/* Rota Grid — desktop */}
+      <div className="hidden lg:block bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse min-w-[700px]">
             <thead>
@@ -266,6 +266,51 @@ export default function WeeklyRotaBuilder() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Rota — mobile day cards */}
+      <div className="lg:hidden space-y-3">
+        {days.map((day, dayIdx) => {
+          const dayStr = format(day, 'yyyy-MM-dd');
+          const isToday = dayStr === format(new Date(), 'yyyy-MM-dd');
+          const dayAssignments = rotas.filter(r => r.assigned_date === dayStr);
+          return (
+            <div key={dayStr} className={`bg-white rounded-xl border shadow-sm overflow-hidden ${isToday ? 'border-emerald-400' : 'border-slate-200'}`}>
+              <div className={`px-4 py-2.5 flex items-center justify-between ${isToday ? 'bg-emerald-700 text-white' : 'bg-slate-50 border-b border-slate-100'}`}>
+                <span className={`font-semibold text-sm ${isToday ? 'text-white' : 'text-slate-800'}`}>{format(day, 'EEEE')}</span>
+                <span className={`text-xs ${isToday ? 'text-emerald-100' : 'text-slate-500'}`}>{format(day, 'dd MMM')}</span>
+              </div>
+              {dayAssignments.length === 0 ? (
+                <p className="px-4 py-3 text-xs text-slate-400">No assignments</p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {dayAssignments.map(assignment => {
+                    const member = staff.find(s => s.id === assignment.staff_id);
+                    const job = jobs.find(j => j.id === assignment.job_id);
+                    const vehicle = vehicles.find(v => v.id === assignment.vehicle_id);
+                    return (
+                      <div key={assignment.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                            <span className="text-emerald-700 font-bold text-xs">{member?.name?.charAt(0) || '?'}</span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-900 truncate">{member?.name || 'Unknown'}</p>
+                            {job && <p className="text-xs text-slate-500 truncate">{job.name}{vehicle ? ` · ${vehicle.registration_number}` : ''}</p>}
+                          </div>
+                        </div>
+                        <button onClick={() => handleDeleteAssignment(assignment.id)}
+                          className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition flex-shrink-0">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
