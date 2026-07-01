@@ -1,0 +1,54 @@
+{
+  "name": "Job",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Job name"
+    },
+    "location": {
+      "type": "string",
+      "description": "Site location/address"
+    },
+    "job_type": {
+      "type": "string",
+      "enum": [
+        "groundworks",
+        "cp_drilling",
+        "rotary_drilling",
+        "enabling_works",
+        "depot"
+      ],
+      "description": "Type of job"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Job start date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Job end date"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Associated client"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Job notes and details"
+    },
+    "equipment_needed": {
+      "type": "string",
+      "description": "Equipment required for the job"
+    }
+  },
+  "required": [
+    "name",
+    "location",
+    "job_type",
+    "start_date",
+    "end_date"
+  ]
+}

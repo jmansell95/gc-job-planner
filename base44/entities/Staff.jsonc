@@ -1,0 +1,59 @@
+{
+  "name": "Staff",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Staff member full name"
+    },
+    "email": {
+      "type": "string",
+      "description": "Staff member email address"
+    },
+    "worker_type": {
+      "type": "string",
+      "enum": [
+        "direct_employee",
+        "subcontractor",
+        "agency"
+      ],
+      "description": "Type of worker"
+    },
+    "job_role": {
+      "type": "string",
+      "enum": [
+        "groundworker",
+        "cp_driller",
+        "rotary_driller",
+        "enabling_crew",
+        "depot",
+        "supervisor"
+      ],
+      "description": "Job role/position"
+    },
+    "team_id": {
+      "type": "string",
+      "description": "Team/group assignment"
+    },
+    "default_vehicle_id": {
+      "type": "string",
+      "description": "Default vehicle assignment"
+    },
+    "drilling_crew_id": {
+      "type": "string",
+      "description": "Assigned drilling crew (if applicable)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether staff member is active"
+    }
+  },
+  "required": [
+    "name",
+    "email",
+    "worker_type",
+    "job_role",
+    "team_id"
+  ]
+}

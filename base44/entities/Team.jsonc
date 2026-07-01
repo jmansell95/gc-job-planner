@@ -1,0 +1,17 @@
+{
+  "name": "Team",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Team or group name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Team description"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

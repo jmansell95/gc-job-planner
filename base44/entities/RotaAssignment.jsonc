@@ -1,0 +1,34 @@
+{
+  "name": "RotaAssignment",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Assigned job"
+    },
+    "staff_id": {
+      "type": "string",
+      "description": "Assigned staff member"
+    },
+    "assigned_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of assignment (working date)"
+    },
+    "vehicle_id": {
+      "type": "string",
+      "description": "Vehicle assignment for this job"
+    },
+    "week_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Start of the week for this rota entry"
+    }
+  },
+  "required": [
+    "job_id",
+    "staff_id",
+    "assigned_date",
+    "week_start"
+  ]
+}

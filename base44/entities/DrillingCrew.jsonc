@@ -1,0 +1,32 @@
+{
+  "name": "DrillingCrew",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Drilling crew name"
+    },
+    "crew_type": {
+      "type": "string",
+      "enum": [
+        "cp",
+        "rotary"
+      ],
+      "description": "Type of drilling crew"
+    },
+    "supervisor_id": {
+      "type": "string",
+      "description": "Supervisor/team leader staff ID"
+    },
+    "team_id": {
+      "type": "string",
+      "description": "Team this crew belongs to"
+    }
+  },
+  "required": [
+    "name",
+    "crew_type",
+    "supervisor_id",
+    "team_id"
+  ]
+}

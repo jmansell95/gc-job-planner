@@ -1,0 +1,26 @@
+{
+  "name": "Vehicle",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Vehicle name or description"
+    },
+    "registration_number": {
+      "type": "string",
+      "description": "Vehicle registration/license plate"
+    },
+    "assigned_staff_id": {
+      "type": "string",
+      "description": "Staff member ID assigned to this vehicle"
+    },
+    "team_id": {
+      "type": "string",
+      "description": "Team this vehicle belongs to"
+    }
+  },
+  "required": [
+    "name",
+    "registration_number"
+  ]
+}
