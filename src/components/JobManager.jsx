@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Briefcase, Upload, FileText, X, Eye, Download, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Edit2, Briefcase, Upload, FileText, X, Eye, Download, RefreshCw, ChevronRight, MapPin, Calendar } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import JobDetail from '@/components/JobDetail';
+
+const jobTypeBadge = {
+  groundworks: 'bg-green-100 text-green-700',
+  cp_drilling: 'bg-amber-100 text-amber-700',
+  rotary_drilling: 'bg-blue-100 text-blue-700',
+  enabling_works: 'bg-purple-100 text-purple-700',
+  depot: 'bg-slate-100 text-slate-600',
+};
 
 export default function JobManager() {
+  const [selectedJob, setSelectedJob] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -95,6 +105,10 @@ export default function JobManager() {
       }
     }
   };
+
+  if (selectedJob) {
+    return <JobDetail job={selectedJob} onBack={() => setSelectedJob(null)} />;
+  }
 
   return (
     <div>
@@ -300,151 +314,54 @@ export default function JobManager() {
         </form>
       )}
 
-      <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-300 shadow-sm">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-emerald-700 border-b border-emerald-800">
-              <th className="px-4 py-3 text-left font-semibold text-white">Job Name</th>
-              <th className="px-4 py-3 text-left font-semibold text-white">Location</th>
-              <th className="px-4 py-3 text-left font-semibold text-white">Type</th>
-              <th className="px-4 py-3 text-left font-semibold text-white">Dates</th>
-              <th className="px-4 py-3 text-left font-semibold text-white">Requisition</th>
-              <th className="px-4 py-3 text-left font-semibold text-white">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {jobs.map((job) => (
-              <tr key={job.id} className="border-b border-slate-200 hover:bg-emerald-50 transition">
-                <td className="px-4 py-3 text-slate-900 font-medium">{job.name}</td>
-                <td className="px-4 py-3 text-slate-600">{job.location}</td>
-                <td className="px-4 py-3 text-slate-600 text-sm capitalize">{job.job_type.replace('_', ' ')}</td>
-                <td className="px-4 py-3 text-slate-600 text-sm">{job.start_date} to {job.end_date}</td>
-                <td className="px-4 py-3">
-                  {job.requisition_list_url ? (
-                    <div className="flex items-center gap-1">
-                      <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer" title="View" className="p-1.5 text-emerald-700 hover:bg-emerald-100 rounded transition">
-                        <Eye className="w-4 h-4" />
-                      </a>
-                      <a href={job.requisition_list_url} download={job.requisition_list_name || 'requisition-list'} title="Download" className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition">
-                        <Download className="w-4 h-4" />
-                      </a>
-                      <label title="Replace" className="p-1.5 text-amber-600 hover:bg-amber-100 rounded transition cursor-pointer">
-                        <RefreshCw className="w-4 h-4" />
-                        <input type="file" className="hidden" onChange={async (e) => {
-                          const file = e.target.files[0];
-                          if (!file) return;
-                          const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                          await base44.entities.Job.update(job.id, { requisition_list_url: file_url, requisition_list_name: file.name });
-                          queryClient.invalidateQueries({ queryKey: ['jobs'] });
-                        }} />
-                      </label>
-                    </div>
-                  ) : (
-                    <label title="Upload" className="flex items-center gap-1 text-slate-400 hover:text-emerald-700 cursor-pointer transition text-sm">
-                      <Upload className="w-4 h-4" />
-                      <span>Upload</span>
-                      <input type="file" className="hidden" onChange={async (e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
-                        const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                        await base44.entities.Job.update(job.id, { requisition_list_url: file_url, requisition_list_name: file.name });
-                        queryClient.invalidateQueries({ queryKey: ['jobs'] });
-                      }} />
-                    </label>
+      {/* Jobs Grid */}
+      {jobs.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400">
+          No jobs yet. Add your first job above.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {jobs.map((job) => (
+            <div key={job.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col">
+              <div className="p-5 flex-1">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${jobTypeBadge[job.job_type] || 'bg-slate-100 text-slate-600'}`}>
+                    {job.job_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  </span>
+                  {job.requisition_list_url && (
+                    <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" title="Has requisition list" />
                   )}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(job)}
-                      className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(job.id)}
-                      className="p-1.5 text-red-600 hover:bg-red-100 rounded transition"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="md:hidden space-y-3">
-        {jobs.map((job) => (
-          <div key={job.id} className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
-            <div className="flex justify-between items-start gap-2">
-              <div className="min-w-0 flex-1">
-                <h3 className="font-semibold text-slate-900 break-words">{job.name}</h3>
-                <p className="text-sm text-slate-600 mt-1 break-words">{job.location}</p>
+                </div>
+                <h3 className="font-bold text-slate-900 text-base mb-1">{job.name}</h3>
+                <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-1">
+                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="truncate">{job.location}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-slate-400 text-xs">
+                  <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{job.start_date} → {job.end_date}</span>
+                </div>
               </div>
-              <div className="flex gap-1 flex-shrink-0">
+              <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
                 <button
-                  onClick={() => handleEdit(job)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded transition"
+                  onClick={() => setSelectedJob(job)}
+                  className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:text-emerald-900 transition"
                 >
-                  <Edit2 className="w-4 h-4" />
+                  <Eye className="w-4 h-4" /> View Details
                 </button>
-                <button
-                  onClick={() => handleDelete(job.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded transition"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex gap-1">
+                  <button onClick={() => handleEdit(job)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleDelete(job.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <p className="text-xs text-slate-500 font-medium">Type</p>
-                <p className="text-slate-900 capitalize">{job.job_type.replace('_', ' ')}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 font-medium">Dates</p>
-                <p className="text-slate-900 text-xs">{job.start_date} to {job.end_date}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-xs text-slate-500 font-medium mb-1">Requisition List</p>
-                {job.requisition_list_url ? (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-md">
-                      <Eye className="w-3.5 h-3.5" /> View
-                    </a>
-                    <a href={job.requisition_list_url} download={job.requisition_list_name || 'requisition-list'} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 rounded-md">
-                      <Download className="w-3.5 h-3.5" /> Download
-                    </a>
-                    <label className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-amber-700 bg-amber-50 rounded-md cursor-pointer">
-                      <RefreshCw className="w-3.5 h-3.5" /> Replace
-                      <input type="file" className="hidden" onChange={async (e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
-                        const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                        await base44.entities.Job.update(job.id, { requisition_list_url: file_url, requisition_list_name: file.name });
-                        queryClient.invalidateQueries({ queryKey: ['jobs'] });
-                      }} />
-                    </label>
-                  </div>
-                ) : (
-                  <label className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-500 bg-slate-100 rounded-md cursor-pointer w-fit">
-                    <Upload className="w-3.5 h-3.5" /> Upload
-                    <input type="file" className="hidden" onChange={async (e) => {
-                      const file = e.target.files[0];
-                      if (!file) return;
-                      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-                      await base44.entities.Job.update(job.id, { requisition_list_url: file_url, requisition_list_name: file.name });
-                      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-                    }} />
-                  </label>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

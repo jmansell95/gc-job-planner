@@ -1,102 +1,251 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Truck, Briefcase, Calendar, Grid3x3 } from 'lucide-react';
+import { Users, Truck, Briefcase, Calendar, Grid3x3, MapPin, ChevronRight, Clock, HardHat } from 'lucide-react';
 import AdminNav from '@/components/AdminNav';
 import PageHeader from '@/components/PageHeader';
 import JobManager from '@/components/JobManager';
 import TeamManager from '@/components/TeamManager';
 import WeeklyRotaBuilder from '@/components/WeeklyRotaBuilder';
 import SettingsPage from '@/components/SettingsPage';
+import JobDetail from '@/components/JobDetail';
+import { format, startOfWeek, addDays } from 'date-fns';
+
+const jobTypeBadge = {
+  groundworks: 'bg-green-100 text-green-700',
+  cp_drilling: 'bg-amber-100 text-amber-700',
+  rotary_drilling: 'bg-blue-100 text-blue-700',
+  enabling_works: 'bg-purple-100 text-purple-700',
+  depot: 'bg-slate-100 text-slate-600',
+};
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
+  const [selectedJob, setSelectedJob] = useState(null);
 
-  const { data: staffCount } = useQuery({
-    queryKey: ['staff-count'],
+  const { data: staff = [] } = useQuery({
+    queryKey: ['staff'],
+    queryFn: () => base44.entities.Staff.list()
+  });
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: () => base44.entities.Vehicle.list()
+  });
+
+  const { data: jobs = [] } = useQuery({
+    queryKey: ['jobs'],
+    queryFn: () => base44.entities.Job.list()
+  });
+
+  const weekStart = startOfWeek(new Date());
+  const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+  const weekDays = Array.from({ length: 7 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'));
+
+  const { data: thisWeekRotas = [] } = useQuery({
+    queryKey: ['rotas-this-week', weekStartStr],
     queryFn: async () => {
-      const result = await base44.entities.Staff.list();
-      return result.length;
+      const all = await base44.entities.RotaAssignment.list();
+      return all.filter(r => r.week_start === weekStartStr);
     }
   });
 
-  const { data: vehicleCount } = useQuery({
-    queryKey: ['vehicle-count'],
-    queryFn: async () => {
-      const result = await base44.entities.Vehicle.list();
-      return result.length;
-    }
-  });
-
-  const { data: jobCount } = useQuery({
-    queryKey: ['job-count'],
-    queryFn: async () => {
-      const result = await base44.entities.Job.list();
-      return result.length;
-    }
-  });
+  // Unique staff on rota this week
+  const staffOnRota = [...new Set(thisWeekRotas.map(r => r.staff_id))].length;
+  const jobsOnRota = [...new Set(thisWeekRotas.map(r => r.job_id))].length;
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-white">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-slate-50/80">
       <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} />
       
       <main className="flex-1 overflow-auto pt-16 lg:pt-0">
         <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
           {activeSection === 'overview' && (
             <div>
-              <PageHeader title="Admin Dashboard" icon={Grid3x3} />
-              
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
-                <div className="bg-white rounded-lg p-4 md:p-6 border border-emerald-200 shadow-sm hover:shadow-md transition">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-slate-600 text-xs md:text-sm font-medium">Active Staff</p>
-                      <p className="text-2xl md:text-4xl font-bold text-emerald-700 mt-1 md:mt-2">{staffCount || 0}</p>
-                    </div>
-                    <Users className="w-8 md:w-12 h-8 md:h-12 text-emerald-700 opacity-20 flex-shrink-0" />
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg p-4 md:p-6 border border-emerald-200 shadow-sm hover:shadow-md transition">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-slate-600 text-xs md:text-sm font-medium">Vehicles</p>
-                      <p className="text-2xl md:text-4xl font-bold text-emerald-700 mt-1 md:mt-2">{vehicleCount || 0}</p>
-                    </div>
-                    <Truck className="w-8 md:w-12 h-8 md:h-12 text-emerald-700 opacity-20 flex-shrink-0" />
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg p-4 md:p-6 border border-emerald-200 shadow-sm hover:shadow-md transition">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="text-slate-600 text-xs md:text-sm font-medium">Active Jobs</p>
-                      <p className="text-2xl md:text-4xl font-bold text-emerald-700 mt-1 md:mt-2">{jobCount || 0}</p>
-                    </div>
-                    <Briefcase className="w-8 md:w-12 h-8 md:h-12 text-emerald-700 opacity-20 flex-shrink-0" />
-                  </div>
-                </div>
+              {/* Header */}
+              <div className="mb-8">
+                <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dashboard</h1>
+                <p className="text-slate-500 text-sm mt-1">Week of {format(weekStart, 'dd MMM yyyy')}</p>
               </div>
 
-              {/* Quick Actions */}
-              <div className="bg-white rounded-lg p-4 md:p-6 border border-emerald-200 shadow-sm">
-                <h3 className="text-base md:text-lg font-semibold text-slate-900 mb-4">Quick Actions</h3>
-                <div className="space-y-2 md:space-y-3">
-                  <button onClick={() => setActiveSection('jobs')} className="w-full px-4 py-2 md:py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm md:text-base font-medium active:scale-95">
-                    Manage Jobs
-                  </button>
-                  <button onClick={() => setActiveSection('rota')} className="w-full px-4 py-2 md:py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm md:text-base font-medium active:scale-95">
-                    Build Weekly Rota
-                  </button>
-                  <button onClick={() => setActiveSection('settings')} className="w-full px-4 py-2 md:py-3 bg-emerald-900 text-white rounded-lg hover:bg-emerald-950 transition text-sm md:text-base font-medium active:scale-95">
-                    Settings
-                  </button>
+              {/* Stats Row */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                {[
+                  { label: 'Total Staff', value: staff.length, icon: Users, color: 'text-emerald-700', bg: 'bg-emerald-50' },
+                  { label: 'Jobs', value: jobs.length, icon: Briefcase, color: 'text-blue-700', bg: 'bg-blue-50' },
+                  { label: 'Vehicles', value: vehicles.length, icon: Truck, color: 'text-amber-700', bg: 'bg-amber-50' },
+                  { label: 'Staff This Week', value: staffOnRota, icon: Calendar, color: 'text-purple-700', bg: 'bg-purple-50' },
+                ].map(stat => {
+                  const Icon = stat.icon;
+                  return (
+                    <div key={stat.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
+                      <div className={`w-11 h-11 rounded-xl ${stat.bg} flex items-center justify-center flex-shrink-0`}>
+                        <Icon className={`w-5 h-5 ${stat.color}`} />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+                        <p className="text-xs text-slate-500 font-medium">{stat.label}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Recent Jobs */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="w-5 h-5 text-emerald-700" />
+                      <h2 className="font-semibold text-slate-900">Jobs</h2>
+                    </div>
+                    <button onClick={() => setActiveSection('jobs')} className="text-xs text-emerald-700 hover:text-emerald-900 font-medium flex items-center gap-1">
+                      View all <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {jobs.length === 0 ? (
+                    <div className="px-5 py-8 text-center text-slate-400 text-sm">No jobs yet</div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {jobs.slice(0, 6).map(job => (
+                        <button
+                          key={job.id}
+                          onClick={() => { setSelectedJob(job); setActiveSection('job-detail'); }}
+                          className="w-full px-5 py-3.5 flex items-center gap-3 hover:bg-slate-50 transition text-left"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-slate-900 text-sm truncate">{job.name}</p>
+                            <div className="flex items-center gap-1.5 text-slate-400 text-xs mt-0.5">
+                              <MapPin className="w-3 h-3" /><span className="truncate">{job.location}</span>
+                            </div>
+                          </div>
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${jobTypeBadge[job.job_type] || 'bg-slate-100 text-slate-600'}`}>
+                            {job.job_type.replace(/_/g, ' ')}
+                          </span>
+                          <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* This Week's Rota Summary */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-emerald-700" />
+                      <h2 className="font-semibold text-slate-900">This Week's Rota</h2>
+                    </div>
+                    <button onClick={() => setActiveSection('rota')} className="text-xs text-emerald-700 hover:text-emerald-900 font-medium flex items-center gap-1">
+                      Manage <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {thisWeekRotas.length === 0 ? (
+                    <div className="px-5 py-8 text-center text-slate-400 text-sm">No assignments this week</div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {weekDays.filter(d => thisWeekRotas.some(r => r.assigned_date === d)).map(dayStr => {
+                        const dayRotas = thisWeekRotas.filter(r => r.assigned_date === dayStr);
+                        const d = new Date(dayStr + 'T00:00:00');
+                        return (
+                          <div key={dayStr} className="px-5 py-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-semibold text-slate-700">{format(d, 'EEEE dd MMM')}</span>
+                              <span className="text-xs text-slate-400">{dayRotas.length} assigned</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {dayRotas.slice(0, 4).map(r => {
+                                const s = staff.find(x => x.id === r.staff_id);
+                                return s ? (
+                                  <span key={r.id} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">{s.name}</span>
+                                ) : null;
+                              })}
+                              {dayRotas.length > 4 && (
+                                <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">+{dayRotas.length - 4} more</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Staff Overview */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-emerald-700" />
+                      <h2 className="font-semibold text-slate-900">Staff</h2>
+                    </div>
+                    <button onClick={() => setActiveSection('settings')} className="text-xs text-emerald-700 hover:text-emerald-900 font-medium flex items-center gap-1">
+                      Manage <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {staff.length === 0 ? (
+                    <div className="px-5 py-8 text-center text-slate-400 text-sm">No staff yet</div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {staff.slice(0, 6).map(member => (
+                        <div key={member.id} className="px-5 py-3 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                            <span className="text-emerald-700 font-bold text-xs">{member.name.charAt(0)}</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-slate-900 truncate">{member.name}</p>
+                            <p className="text-xs text-slate-400 capitalize">{member.job_role?.replace(/_/g, ' ')}</p>
+                          </div>
+                          <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full capitalize flex-shrink-0">
+                            {member.worker_type?.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                      ))}
+                      {staff.length > 6 && (
+                        <div className="px-5 py-3 text-xs text-slate-400 text-center">+{staff.length - 6} more staff</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Vehicles */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Truck className="w-5 h-5 text-emerald-700" />
+                      <h2 className="font-semibold text-slate-900">Vehicles</h2>
+                    </div>
+                    <button onClick={() => setActiveSection('settings')} className="text-xs text-emerald-700 hover:text-emerald-900 font-medium flex items-center gap-1">
+                      Manage <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {vehicles.length === 0 ? (
+                    <div className="px-5 py-8 text-center text-slate-400 text-sm">No vehicles yet</div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {vehicles.slice(0, 6).map(v => (
+                        <div key={v.id} className="px-5 py-3 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                            <Truck className="w-4 h-4 text-amber-600" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-mono font-bold text-slate-900">{v.registration_number}</p>
+                            <p className="text-xs text-slate-400 truncate">{v.name}</p>
+                          </div>
+                        </div>
+                      ))}
+                      {vehicles.length > 6 && (
+                        <div className="px-5 py-3 text-xs text-slate-400 text-center">+{vehicles.length - 6} more</div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
+          {activeSection === 'job-detail' && selectedJob && (
+            <JobDetail job={selectedJob} onBack={() => setActiveSection('overview')} />
+          )}
           {activeSection === 'jobs' && <JobManager />}
           {activeSection === 'rota' && <WeeklyRotaBuilder />}
           {activeSection === 'teams' && <TeamManager />}

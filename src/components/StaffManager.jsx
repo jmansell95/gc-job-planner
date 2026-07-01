@@ -218,7 +218,7 @@ export default function StaffManager() {
                 <td className="px-4 py-3 text-slate-600 text-sm">{member.email}</td>
                 <td className="px-4 py-3 text-slate-600 text-sm capitalize">{member.job_role.replace('_', ' ')}</td>
                 <td className="px-4 py-3 text-slate-600 text-sm capitalize">{member.worker_type.replace('_', ' ')}</td>
-                <td className="px-4 py-3 text-slate-600 text-sm">{member.team_id}</td>
+                <td className="px-4 py-3 text-slate-600 text-sm">{teams.find(t => t.id === member.team_id)?.name || '—'}</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button
@@ -275,7 +275,7 @@ export default function StaffManager() {
               </div>
               <div className="col-span-2">
                 <p className="text-xs text-slate-500 font-medium">Team</p>
-                <p className="text-slate-900">{member.team_id}</p>
+                <p className="text-slate-900">{teams.find(t => t.id === member.team_id)?.name || '—'}</p>
               </div>
             </div>
           </div>
