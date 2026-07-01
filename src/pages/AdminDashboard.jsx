@@ -37,7 +37,7 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-slate-50">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-white">
       <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} />
       
       <main className="flex-1 overflow-auto pt-16 lg:pt-0">
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
                   <button onClick={() => setActiveSection('rota')} className="w-full px-4 py-2 md:py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm md:text-base font-medium active:scale-95">
                     Build Weekly Rota
                   </button>
-                  <button onClick={() => setActiveSection('settings')} className="w-full px-4 py-2 md:py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition text-sm md:text-base font-medium active:scale-95">
+                  <button onClick={() => setActiveSection('settings')} className="w-full px-4 py-2 md:py-3 bg-emerald-900 text-white rounded-lg hover:bg-emerald-950 transition text-sm md:text-base font-medium active:scale-95">
                     Settings
                   </button>
                 </div>

@@ -200,13 +200,13 @@ export default function JobManager() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Contractor</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Client (Contractor)</label>
               <select
                 value={formData.contractor_id}
                 onChange={(e) => setFormData({ ...formData, contractor_id: e.target.value })}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
               >
-                <option value="">Select Contractor (Optional)</option>
+                <option value="">Select Client (Optional)</option>
                 {contractors.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}

@@ -42,12 +42,12 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
       {/* Sidebar */}
       <nav className={`
-        fixed lg:relative top-0 left-0 h-screen lg:h-auto w-64 transform lg:transform-none transition-transform lg:transition-none overflow-y-auto bg-white border-r border-slate-200 flex flex-col
+        fixed lg:relative top-0 left-0 h-screen lg:h-auto w-64 transform lg:transform-none transition-transform lg:transition-none overflow-y-auto bg-emerald-950 border-r border-emerald-900 flex flex-col
         ${isOpen ? 'translate-x-0 z-50' : '-translate-x-full lg:translate-x-0 lg:z-auto'}
       `}>
-        <div className="p-6 border-b border-slate-200 bg-emerald-700">
+        <div className="p-6 border-b border-emerald-800 bg-emerald-900">
           <h1 className="text-2xl font-bold text-white">GC Job Planner</h1>
-          <p className="text-xs text-emerald-100 mt-1">Admin Panel</p>
+          <p className="text-xs text-emerald-300 mt-1">Admin Panel</p>
         </div>
 
         <div className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -60,8 +60,8 @@ export default function AdminNav({ activeSection, setActiveSection }) {
                 onClick={() => handleNavClick(item.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${
                   isActive
-                    ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-700'
-                    : 'text-slate-600 hover:bg-slate-50'
+                    ? 'bg-emerald-700 text-white'
+                    : 'text-emerald-200 hover:bg-emerald-800 hover:text-white'
                 }`}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
@@ -71,10 +71,10 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           })}
         </div>
 
-        <div className="p-4 border-t border-slate-200">
+        <div className="p-4 border-t border-emerald-800">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-emerald-300 hover:bg-emerald-800 hover:text-white transition"
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span>Logout</span>

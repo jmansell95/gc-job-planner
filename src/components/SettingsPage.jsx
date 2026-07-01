@@ -11,7 +11,7 @@ const tabs = [
   { id: 'users', label: 'Users & Roles', icon: Shield },
   { id: 'staff', label: 'Staff', icon: Users },
   { id: 'vehicles', label: 'Vehicles', icon: Truck },
-  { id: 'contractors', label: 'Contractors', icon: HardHat },
+  { id: 'contractors', label: 'Clients', icon: HardHat },
 ];
 
 function UsersAndRoles() {

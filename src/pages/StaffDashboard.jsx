@@ -52,15 +52,15 @@ export default function StaffDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-green-600 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="w-8 h-8 border-4 border-emerald-100 border-t-emerald-700 rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (!staff) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+      <div className="flex items-center justify-center min-h-screen bg-white">
         <div className="text-center">
           <p className="text-slate-600">No staff profile found</p>
         </div>
@@ -85,12 +85,12 @@ export default function StaffDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-emerald-900 border-b border-emerald-800">
         <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-green-600">My Schedule</h1>
-          <p className="text-slate-600 text-sm md:text-base mt-1">Welcome, {staff.name}</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">My Schedule</h1>
+          <p className="text-emerald-200 text-sm md:text-base mt-1">Welcome, {staff.name}</p>
         </div>
       </div>
 

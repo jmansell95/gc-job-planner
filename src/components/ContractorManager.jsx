@@ -36,7 +36,7 @@ export default function ContractorManager() {
   };
 
   const handleDelete = async (id) => {
-    if (confirm('Delete this contractor?')) {
+    if (confirm('Delete this client?')) {
       await base44.entities.Contractor.delete(id);
       queryClient.invalidateQueries({ queryKey: ['contractors'] });
     }
@@ -45,12 +45,12 @@ export default function ContractorManager() {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-        <PageHeader title="Contractors" icon={HardHat} />
+        <PageHeader title="Clients" icon={HardHat} />
         <button
           onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ name: '', contact_name: '', contact_email: '', contact_phone: '', notes: '' }); }}
           className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition"
         >
-          <Plus className="w-4 h-4" /> Add Contractor
+          <Plus className="w-4 h-4" /> Add Client
         </button>
       </div>
 
@@ -58,7 +58,7 @@ export default function ContractorManager() {
         <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 md:p-6 border border-emerald-200 mb-6 shadow-sm">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Contractor Name *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Client Name *</label>
               <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600" />
             </div>
@@ -85,7 +85,7 @@ export default function ContractorManager() {
           </div>
           <div className="flex gap-3 mt-4">
             <button type="submit" className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium">
-              {editingId ? 'Update' : 'Add'} Contractor
+              {editingId ? 'Update' : 'Add'} Client
             </button>
             <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition font-medium">
               Cancel
