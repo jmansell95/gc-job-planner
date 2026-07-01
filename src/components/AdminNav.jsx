@@ -43,9 +43,8 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
       {/* Sidebar */}
       <nav className={`
-        fixed lg:relative z-40 lg:z-auto top-0 left-0 h-screen lg:h-auto transform lg:transform-none transition-transform lg:transition-none overflow-y-auto
-        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        w-64 bg-white border-r border-slate-200 flex flex-col
+        fixed lg:relative top-0 left-0 h-screen lg:h-auto w-64 transform lg:transform-none transition-transform lg:transition-none overflow-y-auto bg-white border-r border-slate-200 flex flex-col
+        ${isOpen ? 'translate-x-0 z-50' : '-translate-x-full lg:translate-x-0 lg:z-auto'}
       `}>
         <div className="p-6 border-b border-slate-200 bg-emerald-700">
           <h1 className="text-2xl font-bold text-white">WorkRota</h1>
