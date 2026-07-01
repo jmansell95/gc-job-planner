@@ -47,7 +47,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         ${isOpen ? 'translate-x-0 z-50' : '-translate-x-full lg:translate-x-0 lg:z-auto'}
       `}>
         <div className="p-6 border-b border-slate-200 bg-emerald-700">
-          <h1 className="text-2xl font-bold text-white">WorkRota</h1>
+          <h1 className="text-2xl font-bold text-white">GC Job Planner</h1>
           <p className="text-xs text-emerald-100 mt-1">Admin Panel</p>
         </div>
 
