@@ -183,37 +183,37 @@ export default function StaffManager() {
         </form>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
-        <table className="w-full border-collapse text-sm md:text-base">
+      <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-300 shadow-sm">
+        <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="bg-green-50 border-b-2 border-green-200">
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Name</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Email</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Role</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Type</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Team</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+            <tr className="bg-emerald-700 border-b border-emerald-800">
+              <th className="px-4 py-3 text-left font-semibold text-white">Name</th>
+              <th className="px-4 py-3 text-left font-semibold text-white">Email</th>
+              <th className="px-4 py-3 text-left font-semibold text-white">Role</th>
+              <th className="px-4 py-3 text-left font-semibold text-white">Type</th>
+              <th className="px-4 py-3 text-left font-semibold text-white">Team</th>
+              <th className="px-4 py-3 text-left font-semibold text-white">Actions</th>
             </tr>
           </thead>
           <tbody>
             {staff.map((member, idx) => (
-              <tr key={member.id} className={`border-b border-slate-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+              <tr key={member.id} className="border-b border-slate-200 hover:bg-emerald-50 transition">
                 <td className="px-4 py-3 text-slate-900 font-medium">{member.name}</td>
                 <td className="px-4 py-3 text-slate-600 text-sm">{member.email}</td>
                 <td className="px-4 py-3 text-slate-600 text-sm capitalize">{member.job_role.replace('_', ' ')}</td>
                 <td className="px-4 py-3 text-slate-600 text-sm capitalize">{member.worker_type.replace('_', ' ')}</td>
                 <td className="px-4 py-3 text-slate-600 text-sm">{member.team_id}</td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(member)}
-                      className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                      className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(member.id)}
-                      className="p-1 text-red-600 hover:bg-red-50 rounded transition"
+                      className="p-1.5 text-red-600 hover:bg-red-100 rounded transition"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -223,6 +223,47 @@ export default function StaffManager() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {staff.map((member) => (
+          <div key={member.id} className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+            <div className="flex justify-between items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-slate-900 break-words">{member.name}</h3>
+                <p className="text-xs text-slate-500 mt-1 break-words">{member.email}</p>
+              </div>
+              <div className="flex gap-1 flex-shrink-0">
+                <button
+                  onClick={() => handleEdit(member)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded transition"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(member.id)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded transition"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <p className="text-xs text-slate-500 font-medium">Role</p>
+                <p className="text-slate-900 capitalize">{member.job_role.replace('_', ' ')}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 font-medium">Type</p>
+                <p className="text-slate-900 capitalize">{member.worker_type.replace('_', ' ')}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs text-slate-500 font-medium">Team</p>
+                <p className="text-slate-900">{member.team_id}</p>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

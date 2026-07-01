@@ -193,35 +193,35 @@ export default function JobManager() {
         </form>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
-        <table className="w-full border-collapse text-sm md:text-base">
+      <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-300 shadow-sm">
+        <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="bg-green-50 border-b-2 border-green-200">
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Job Name</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Location</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Type</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Dates</th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+            <tr className="bg-emerald-700 border-b border-emerald-800">
+              <th className="px-4 py-3 text-left font-semibold text-white">Job Name</th>
+              <th className="px-4 py-3 text-left font-semibold text-white">Location</th>
+              <th className="px-4 py-3 text-left font-semibold text-white">Type</th>
+              <th className="px-4 py-3 text-left font-semibold text-white">Dates</th>
+              <th className="px-4 py-3 text-left font-semibold text-white">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {jobs.map((job, idx) => (
-              <tr key={job.id} className={`border-b border-slate-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+            {jobs.map((job) => (
+              <tr key={job.id} className="border-b border-slate-200 hover:bg-emerald-50 transition">
                 <td className="px-4 py-3 text-slate-900 font-medium">{job.name}</td>
                 <td className="px-4 py-3 text-slate-600">{job.location}</td>
                 <td className="px-4 py-3 text-slate-600 text-sm capitalize">{job.job_type.replace('_', ' ')}</td>
                 <td className="px-4 py-3 text-slate-600 text-sm">{job.start_date} to {job.end_date}</td>
-                <td className="px-4 py-3 text-sm">
+                <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(job)}
-                      className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                      className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(job.id)}
-                      className="p-1 text-red-600 hover:bg-red-50 rounded transition"
+                      className="p-1.5 text-red-600 hover:bg-red-100 rounded transition"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -231,6 +231,43 @@ export default function JobManager() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {jobs.map((job) => (
+          <div key={job.id} className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+            <div className="flex justify-between items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-slate-900 break-words">{job.name}</h3>
+                <p className="text-sm text-slate-600 mt-1 break-words">{job.location}</p>
+              </div>
+              <div className="flex gap-1 flex-shrink-0">
+                <button
+                  onClick={() => handleEdit(job)}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded transition"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(job.id)}
+                  className="p-2 text-red-600 hover:bg-red-50 rounded transition"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <p className="text-xs text-slate-500 font-medium">Type</p>
+                <p className="text-slate-900 capitalize">{job.job_type.replace('_', ' ')}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 font-medium">Dates</p>
+                <p className="text-slate-900 text-xs">{job.start_date} to {job.end_date}</p>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
