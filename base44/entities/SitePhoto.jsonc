@@ -1,0 +1,26 @@
+{
+  "name": "SitePhoto",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Associated job"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "URL of the uploaded photo"
+    },
+    "caption": {
+      "type": "string",
+      "description": "Photo caption/description"
+    },
+    "uploaded_by_name": {
+      "type": "string",
+      "description": "Name of staff member who uploaded"
+    }
+  },
+  "required": [
+    "job_id",
+    "photo_url"
+  ]
+}

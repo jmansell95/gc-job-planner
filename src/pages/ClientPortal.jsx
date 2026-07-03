@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Calendar, MapPin, CheckCircle2, Clock, PlayCircle, Briefcase, Building2, Activity, Ruler } from 'lucide-react';
+import { Calendar, MapPin, CheckCircle2, Clock, PlayCircle, Briefcase, Building2, Activity, Ruler, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 
 const jobTypeBadges = {
@@ -180,6 +180,31 @@ export default function ClientPortal() {
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6">
             <h2 className="font-semibold text-slate-900 mb-3">Project Notes</h2>
             <p className="text-sm text-slate-600 whitespace-pre-wrap">{job.notes}</p>
+          </div>
+        )}
+
+        {/* Site Photos */}
+        {data.photos && data.photos.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+              <Camera className="w-5 h-5 text-emerald-700" />
+              <h2 className="font-semibold text-slate-900">Site Photos</h2>
+              <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{data.photos.length}</span>
+            </div>
+            <div className="p-5 grid grid-cols-2 md:grid-cols-3 gap-3">
+              {data.photos.map((photo, i) => (
+                <div key={i}>
+                  <img src={photo.photo_url} alt={photo.caption || 'Site photo'}
+                    className="w-full h-32 md:h-40 object-cover rounded-lg border border-slate-200" />
+                  {photo.caption && (
+                    <p className="text-xs text-slate-500 mt-1 truncate">{photo.caption}</p>
+                  )}
+                  {photo.uploaded_by && (
+                    <p className="text-[10px] text-slate-400">by {photo.uploaded_by}</p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

@@ -11,6 +11,7 @@ import SettingsPage from '@/components/SettingsPage';
 import JobDetail from '@/components/JobDetail';
 import { JobStatusChart, WeeklyAssignmentsChart, StaffUtilizationChart } from '@/components/DashboardCharts';
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
+import DrillingPerformanceChart from '@/components/DrillingPerformanceChart';
 import { format, startOfWeek, addDays } from 'date-fns';
 
 const jobTypeBadge = {
@@ -114,6 +115,11 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <StaffUtilizationChart staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />
                 <VehicleMaintenanceAlerts vehicles={vehicles} />
+              </div>
+
+              {/* Drilling Performance */}
+              <div className="mb-6">
+                <DrillingPerformanceChart rotas={thisWeekRotas} staff={staff} />
               </div>
 
               {/* Active Jobs + Today's Field Crew */}

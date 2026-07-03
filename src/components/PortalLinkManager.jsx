@@ -6,10 +6,12 @@ import { Link2, Copy, Check, ExternalLink, Eye, EyeOff } from 'lucide-react';
 export default function PortalLinkManager({ job }) {
   const [copied, setCopied] = useState(false);
   const [toggling, setToggling] = useState(false);
+  const [portalToken, setPortalToken] = useState(job.portal_token || null);
+  const [portalEnabled, setPortalEnabled] = useState(job.portal_enabled || false);
   const queryClient = useQueryClient();
 
-  const portalUrl = job.portal_token
-    ? `${window.location.origin}/client-portal/${job.portal_token}`
+  const portalUrl = portalToken
+    ? `${window.location.origin}/client-portal/${portalToken}`
     : null;
 
   const generateToken = () => {
@@ -19,11 +21,13 @@ export default function PortalLinkManager({ job }) {
   const handleEnable = async () => {
     setToggling(true);
     try {
-      const token = job.portal_token || generateToken();
+      const token = portalToken || generateToken();
       await base44.entities.Job.update(job.id, {
         portal_token: token,
         portal_enabled: true
       });
+      setPortalToken(token);
+      setPortalEnabled(true);
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
     } catch (error) {
       console.error('Error enabling portal:', error);
@@ -35,6 +39,7 @@ export default function PortalLinkManager({ job }) {
     setToggling(true);
     try {
       await base44.entities.Job.update(job.id, { portal_enabled: false });
+      setPortalEnabled(false);
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
     } catch (error) {
       console.error('Error disabling portal:', error);
@@ -55,7 +60,7 @@ export default function PortalLinkManager({ job }) {
         <h2 className="font-semibold text-slate-900">Client Portal Access</h2>
       </div>
       <div className="px-5 py-4">
-        {portalUrl && job.portal_enabled ? (
+        {portalUrl && portalEnabled ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg p-3">
               <span className="text-xs text-slate-500 font-mono truncate flex-1">{portalUrl}</span>

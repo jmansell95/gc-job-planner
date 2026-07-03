@@ -15,6 +15,7 @@ Deno.serve(async (req) => {
 
     const assignments = await base44.asServiceRole.entities.RotaAssignment.filter({ job_id: job.id });
     const allStaff = await base44.asServiceRole.entities.Staff.list();
+    const photos = await base44.asServiceRole.entities.SitePhoto.filter({ job_id: job.id });
 
     let client = null;
     if (job.client_id) {
@@ -50,7 +51,12 @@ Deno.serve(async (req) => {
       },
       client: client ? { name: client.name, contact_name: client.contact_name } : null,
       schedule,
-      progress: { total, completed, started }
+      progress: { total, completed, started },
+      photos: photos.map(p => ({
+        photo_url: p.photo_url,
+        caption: p.caption || '',
+        uploaded_by: p.uploaded_by_name || ''
+      }))
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

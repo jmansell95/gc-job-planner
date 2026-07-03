@@ -15,7 +15,7 @@ import ClientPortal from './pages/ClientPortal';
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
-  const isClientPortalRoute = window.location.pathname.startsWith('/client-portal/');
+  const isClientPortalRoute = window.location.pathname.includes('/client-portal/');
 
   // Skip auth checks for public client portal routes
   if (!isClientPortalRoute && (isLoadingPublicSettings || isLoadingAuth)) {

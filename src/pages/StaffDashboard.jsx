@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDays, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, WifiOff } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
+import SitePhotoUpload from '@/components/SitePhotoUpload';
 
 const jobTypeBadgeColors = {
   groundworks: 'bg-green-100 text-green-700',
@@ -275,6 +276,13 @@ export default function StaffDashboard() {
             </button>
           )}
         </div>
+
+        {/* Site Photo Upload */}
+        {job && (
+          <div className="mt-4 pt-4 border-t border-slate-200/60">
+            <SitePhotoUpload jobId={job.id} staffName={staff.name} />
+          </div>
+        )}
       </div>
     );
   };
