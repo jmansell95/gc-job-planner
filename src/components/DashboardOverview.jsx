@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Truck, Briefcase, Calendar, Grid3x3, MapPin, ChevronRight, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Users, Truck, Briefcase, Calendar, Grid3x3, MapPin, ChevronRight, Clock, AlertTriangle } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { JobStatusChart, StaffUtilizationChart } from '@/components/DashboardCharts';
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
@@ -47,14 +47,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     const svcDays = inDays(v.service_due_date);
     return (motDays !== null && motDays <= 30) || (svcDays !== null && svcDays <= 30);
   }).length;
-
-  const quickActions = [
-    { label: 'Jobs', icon: Briefcase, section: 'jobs', color: 'bg-emerald-50 text-emerald-700' },
-    { label: 'Weekly Rota', icon: Calendar, section: 'rota', color: 'bg-blue-50 text-blue-700' },
-    { label: 'Calendar', icon: Calendar, section: 'calendar', color: 'bg-purple-50 text-purple-700' },
-    { label: 'Timesheets', icon: Clock, section: 'timesheets', color: 'bg-amber-50 text-amber-700' },
-    { label: 'Staff & Settings', icon: Users, section: 'settings', color: 'bg-teal-50 text-teal-700' },
-  ];
 
   return (
     <div>
@@ -153,22 +145,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         <VehicleMaintenanceAlerts vehicles={vehicles} />
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {quickActions.map(action => {
-          const Icon = action.icon;
-          return (
-            <button key={action.section} onClick={() => onNavigate(action.section)}
-              className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col items-center gap-3 hover:shadow-md hover:border-emerald-300 transition group">
-              <div className={`w-12 h-12 rounded-xl ${action.color} flex items-center justify-center`}>
-                <Icon className="w-6 h-6" />
-              </div>
-              <span className="text-sm font-medium text-slate-700">{action.label}</span>
-              <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 transition" />
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }
