@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
-import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDays, Clock } from 'lucide-react';
-import { format, startOfWeek, isWithinInterval, isToday, isFuture, isPast } from 'date-fns';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDays, Clock, CheckCircle2, PlayCircle, ClipboardCheck } from 'lucide-react';
+import { format, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 
 const jobTypeBadgeColors = {
@@ -13,9 +13,16 @@ const jobTypeBadgeColors = {
   depot: 'bg-slate-100 text-slate-700'
 };
 
+const statusConfig = {
+  assigned: { label: 'Assigned', icon: Clock, badge: 'bg-slate-100 text-slate-600' },
+  started: { label: 'In Progress', icon: PlayCircle, badge: 'bg-blue-100 text-blue-700' },
+  completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-100 text-emerald-700' }
+};
+
 export default function StaffDashboard() {
   const [staff, setStaff] = useState(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     async function loadStaff() {
@@ -44,26 +51,45 @@ export default function StaffDashboard() {
     enabled: !!staff?.id
   });
 
-  const { data: jobs = [] } = useQuery({
-    queryKey: ['jobs-for-assignments'],
-    queryFn: async () => {
-      return await base44.entities.Job.list();
-    }
-  });
+  const { data: jobs = [] } = useQuery({ queryKey: ['jobs-for-assignments'], queryFn: () => base44.entities.Job.list() });
+  const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
+  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
 
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ['vehicles'],
-    queryFn: async () => {
-      return await base44.entities.Vehicle.list();
+  const handleStartJob = async (assignmentId) => {
+    try {
+      await base44.entities.RotaAssignment.update(assignmentId, {
+        status: 'started',
+        started_at: new Date().toISOString()
+      });
+      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+    } catch (error) {
+      console.error('Error starting job:', error);
     }
-  });
+  };
 
-  const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: async () => {
-      return await base44.entities.Client.list();
+  const handleCompleteJob = async (assignmentId) => {
+    try {
+      await base44.entities.RotaAssignment.update(assignmentId, {
+        status: 'completed',
+        completed_at: new Date().toISOString()
+      });
+      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+    } catch (error) {
+      console.error('Error completing job:', error);
     }
-  });
+  };
+
+  const handleBriefingSign = async (assignmentId) => {
+    try {
+      await base44.entities.RotaAssignment.update(assignmentId, {
+        briefing_signed: true,
+        briefing_signed_at: new Date().toISOString()
+      });
+      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+    } catch (error) {
+      console.error('Error signing briefing:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -100,9 +126,36 @@ export default function StaffDashboard() {
     const job = jobs.find(j => j.id === assignment.job_id);
     const vehicle = vehicles.find(v => v.id === assignment.vehicle_id);
     const client = clients.find(c => c.id === job?.client_id);
+    const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
+    const StatusIcon = status.icon;
     if (!job) return null;
     return (
       <div key={assignment.id} className={`rounded-lg p-4 md:p-6 border-l-4 border ${jobTypeColors[job.job_type] || 'bg-slate-50 border-slate-200'}`}>
+        {/* Status + Check-in Bar */}
+        <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-200/60">
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${status.badge}`}>
+            <StatusIcon className="w-3.5 h-3.5" />
+            {status.label}
+            {assignment.status === 'started' && assignment.started_at && (
+              <span className="text-[10px] opacity-70 ml-1">since {format(new Date(assignment.started_at), 'HH:mm')}</span>
+            )}
+          </span>
+          <div className="flex gap-2">
+            {(assignment.status || 'assigned') === 'assigned' && (
+              <button onClick={() => handleStartJob(assignment.id)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs font-medium">
+                <PlayCircle className="w-3.5 h-3.5" /> Start Job
+              </button>
+            )}
+            {assignment.status === 'started' && (
+              <button onClick={() => handleCompleteJob(assignment.id)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-xs font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Complete Job
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <div>
             <div className="flex items-start justify-between mb-3 md:mb-4 gap-2">
@@ -160,6 +213,27 @@ export default function StaffDashboard() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Briefing Sign-off */}
+        <div className="mt-4 pt-4 border-t border-slate-200/60">
+          {assignment.briefing_signed ? (
+            <div className="flex items-center gap-2 text-sm text-emerald-700">
+              <ClipboardCheck className="w-4 h-4" />
+              <span className="font-medium">Briefing signed off</span>
+              {assignment.briefing_signed_at && (
+                <span className="text-xs text-slate-400">
+                  · {format(new Date(assignment.briefing_signed_at), 'dd MMM yyyy HH:mm')}
+                </span>
+              )}
+            </div>
+          ) : (
+            <button onClick={() => handleBriefingSign(assignment.id)}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition text-sm font-medium w-full sm:w-auto">
+              <ClipboardCheck className="w-4 h-4" />
+              Sign Off Job Briefing
+            </button>
+          )}
         </div>
       </div>
     );

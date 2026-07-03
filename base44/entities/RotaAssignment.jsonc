@@ -23,6 +23,37 @@
       "type": "string",
       "format": "date",
       "description": "Start of the week for this rota entry"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "assigned",
+        "started",
+        "completed"
+      ],
+      "default": "assigned",
+      "description": "Assignment check-in status"
+    },
+    "started_at": {
+      "type": "string",
+      "description": "Timestamp when staff started the job"
+    },
+    "completed_at": {
+      "type": "string",
+      "description": "Timestamp when staff completed the job"
+    },
+    "briefing_signed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether staff signed off on the job briefing"
+    },
+    "briefing_signed_at": {
+      "type": "string",
+      "description": "Timestamp when briefing was signed"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Staff notes for this assignment"
     }
   },
   "required": [

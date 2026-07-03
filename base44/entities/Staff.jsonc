@@ -47,6 +47,10 @@
       "type": "boolean",
       "default": true,
       "description": "Whether staff member is active"
+    },
+    "day_rate": {
+      "type": "number",
+      "description": "Daily rate in GBP for job cost calculations"
     }
   },
   "required": [

@@ -17,6 +17,21 @@
     "team_id": {
       "type": "string",
       "description": "Team this vehicle belongs to"
+    },
+    "mot_expiry": {
+      "type": "string",
+      "format": "date",
+      "description": "MOT expiry date"
+    },
+    "service_due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Next service due date"
+    },
+    "last_service_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of last service"
     }
   },
   "required": [

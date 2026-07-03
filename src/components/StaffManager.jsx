@@ -18,7 +18,7 @@ const workerBadge = {
 export default function StaffManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '' });
 
   const queryClient = useQueryClient();
 
@@ -120,6 +120,11 @@ export default function StaffManager() {
                 {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} — {v.name}</option>)}
               </select>
             </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Day Rate (GBP)</label>
+              <input type="number" min="0" step="0.01" value={formData.day_rate || ''} onChange={e => setFormData({ ...formData, day_rate: e.target.value ? parseFloat(e.target.value) : '' })}
+                placeholder="0.00" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+            </div>
           </div>
           <div className="flex gap-2 mt-5">
             <button type="submit" className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">
@@ -146,6 +151,7 @@ export default function StaffManager() {
                   <th className="px-4 py-3 text-left font-semibold">Type</th>
                   <th className="px-4 py-3 text-left font-semibold">Team</th>
                   <th className="px-4 py-3 text-left font-semibold">Email</th>
+                  <th className="px-4 py-3 text-left font-semibold">Day Rate</th>
                   <th className="px-4 py-3 text-left font-semibold w-20">Actions</th>
                 </tr>
               </thead>
@@ -161,6 +167,7 @@ export default function StaffManager() {
                     </td>
                     <td className="px-4 py-3 text-slate-600">{teams.find(t => t.id === member.team_id)?.name || '—'}</td>
                     <td className="px-4 py-3 text-slate-500 text-xs">{member.email}</td>
+                    <td className="px-4 py-3 text-slate-600 text-sm font-medium">{member.day_rate ? `£${member.day_rate}` : '—'}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
                         <button onClick={() => handleEdit(member)} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>

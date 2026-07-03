@@ -1,13 +1,35 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Truck } from 'lucide-react';
+import { Plus, Trash2, Edit2, Truck, Wrench } from 'lucide-react';
+import { format, differenceInDays } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
+
+const emptyForm = {
+  name: '', registration_number: '', assigned_staff_id: '', team_id: '',
+  mot_expiry: '', service_due_date: '', last_service_date: ''
+};
+
+function getMaintenanceStatus(vehicle) {
+  const today = new Date();
+  const issues = [];
+  if (vehicle.mot_expiry) {
+    const days = differenceInDays(new Date(vehicle.mot_expiry + 'T00:00:00'), today);
+    if (days < 0) issues.push({ label: 'MOT Expired', severity: 'expired', days });
+    else if (days <= 30) issues.push({ label: 'MOT Due', severity: 'warning', days });
+  }
+  if (vehicle.service_due_date) {
+    const days = differenceInDays(new Date(vehicle.service_due_date + 'T00:00:00'), today);
+    if (days < 0) issues.push({ label: 'Service Overdue', severity: 'expired', days });
+    else if (days <= 30) issues.push({ label: 'Service Due', severity: 'warning', days });
+  }
+  return issues;
+}
 
 export default function VehicleManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', registration_number: '', assigned_staff_id: '', team_id: '' });
+  const [formData, setFormData] = useState(emptyForm);
 
   const queryClient = useQueryClient();
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
@@ -19,11 +41,11 @@ export default function VehicleManager() {
     if (editingId) { await base44.entities.Vehicle.update(editingId, formData); }
     else { await base44.entities.Vehicle.create(formData); }
     queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-    setFormData({ name: '', registration_number: '', assigned_staff_id: '', team_id: '' });
+    setFormData(emptyForm);
     setShowForm(false); setEditingId(null);
   };
 
-  const handleEdit = (v) => { setFormData(v); setEditingId(v.id); setShowForm(true); };
+  const handleEdit = (v) => { setFormData({ ...emptyForm, ...v }); setEditingId(v.id); setShowForm(true); };
   const handleDelete = async (id) => {
     if (confirm('Delete this vehicle?')) {
       await base44.entities.Vehicle.delete(id);
@@ -35,7 +57,7 @@ export default function VehicleManager() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <PageHeader title="Manage Vehicles" icon={Truck} />
-        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ name: '', registration_number: '', assigned_staff_id: '', team_id: '' }); }}
+        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
           className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
           <Plus className="w-4 h-4" /> Add Vehicle
         </button>
@@ -57,7 +79,7 @@ export default function VehicleManager() {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Team</label>
-              <select value={formData.team_id} onChange={e => setFormData({ ...formData, team_id: e.target.value })}
+              <select value={formData.team_id || ''} onChange={e => setFormData({ ...formData, team_id: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
                 <option value="">Select Team (Optional)</option>
                 {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -65,11 +87,26 @@ export default function VehicleManager() {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Assign to Staff</label>
-              <select value={formData.assigned_staff_id} onChange={e => setFormData({ ...formData, assigned_staff_id: e.target.value })}
+              <select value={formData.assigned_staff_id || ''} onChange={e => setFormData({ ...formData, assigned_staff_id: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
                 <option value="">Unassigned (Optional)</option>
                 {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">MOT Expiry Date</label>
+              <input type="date" value={formData.mot_expiry || ''} onChange={e => setFormData({ ...formData, mot_expiry: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Service Due Date</label>
+              <input type="date" value={formData.service_due_date || ''} onChange={e => setFormData({ ...formData, service_due_date: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Last Service Date</label>
+              <input type="date" value={formData.last_service_date || ''} onChange={e => setFormData({ ...formData, last_service_date: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
             </div>
           </div>
           <div className="flex gap-2 mt-5">
@@ -96,6 +133,7 @@ export default function VehicleManager() {
                   <th className="px-4 py-3 text-left font-semibold">Description</th>
                   <th className="px-4 py-3 text-left font-semibold">Team</th>
                   <th className="px-4 py-3 text-left font-semibold">Assigned To</th>
+                  <th className="px-4 py-3 text-left font-semibold">Maintenance</th>
                   <th className="px-4 py-3 text-left font-semibold w-20">Actions</th>
                 </tr>
               </thead>
@@ -103,12 +141,26 @@ export default function VehicleManager() {
                 {vehicles.map((v, idx) => {
                   const assignedStaff = staff.find(s => s.id === v.assigned_staff_id);
                   const team = teams.find(t => t.id === v.team_id);
+                  const issues = getMaintenanceStatus(v);
                   return (
                     <tr key={v.id} className={`border-b border-slate-100 hover:bg-emerald-50 transition ${idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}`}>
                       <td className="px-4 py-3 font-mono font-bold text-slate-900">{v.registration_number}</td>
                       <td className="px-4 py-3 text-slate-700">{v.name}</td>
                       <td className="px-4 py-3 text-slate-600">{team?.name || '—'}</td>
                       <td className="px-4 py-3 text-slate-600">{assignedStaff?.name || '—'}</td>
+                      <td className="px-4 py-3">
+                        {issues.length === 0 ? (
+                          <span className="text-xs text-emerald-600 flex items-center gap-1"><Wrench className="w-3 h-3" /> Up to date</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {issues.map((issue, i) => (
+                              <span key={i} className={`text-xs px-2 py-0.5 rounded-full font-medium ${issue.severity === 'expired' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}`}>
+                                {issue.label}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
                           <button onClick={() => handleEdit(v)} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
@@ -127,6 +179,7 @@ export default function VehicleManager() {
             {vehicles.map(v => {
               const assignedStaff = staff.find(s => s.id === v.assigned_staff_id);
               const team = teams.find(t => t.id === v.team_id);
+              const issues = getMaintenanceStatus(v);
               return (
                 <div key={v.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
@@ -148,6 +201,12 @@ export default function VehicleManager() {
                     {team && <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">{team.name}</span>}
                     {assignedStaff && <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">{assignedStaff.name}</span>}
                     {!assignedStaff && <span className="bg-slate-100 text-slate-400 px-2.5 py-1 rounded-full">Unassigned</span>}
+                    {issues.map((issue, i) => (
+                      <span key={i} className={`px-2.5 py-1 rounded-full font-medium ${issue.severity === 'expired' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}`}>
+                        {issue.label}
+                      </span>
+                    ))}
+                    {issues.length === 0 && v.mot_expiry && <span className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full">MOT: {format(new Date(v.mot_expiry + 'T00:00:00'), 'dd MMM yy')}</span>}
                   </div>
                 </div>
               );

@@ -1,6 +1,6 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { Activity, BarChart3 } from 'lucide-react';
+import { Activity, BarChart3, Users } from 'lucide-react';
 
 const STATUS_COLORS = { planning: '#64748b', in_progress: '#059669', completed: '#0d9488', on_hold: '#d97706' };
 const STATUS_LABELS = { planning: 'Planning', in_progress: 'In Progress', completed: 'Completed', on_hold: 'On Hold' };
@@ -69,6 +69,35 @@ export function WeeklyAssignmentsChart({ days, rotas }) {
           <Bar dataKey="assignments" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={40} />
         </BarChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function StaffUtilizationChart({ staff, rotas, weekDays }) {
+  const data = staff.map(member => {
+    const count = rotas.filter(r => r.staff_id === member.id && weekDays.includes(r.assigned_date)).length;
+    return { name: member.name.split(' ')[0], fullName: member.name, assigned: count, total: weekDays.length };
+  }).sort((a, b) => b.assigned - a.assigned);
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Users className="w-5 h-5 text-emerald-700" />
+        <h2 className="font-semibold text-slate-900">Staff Utilization</h2>
+      </div>
+      {data.length === 0 ? (
+        <div className="h-[180px] flex items-center justify-center text-slate-400 text-sm">No staff yet</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={Math.max(180, data.length * 32)}>
+          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 15, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+            <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={70} />
+            <Tooltip cursor={{ fill: '#f0fdf4' }} contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} formatter={(value, name, props) => [`${value} / ${props.payload.total} days`, props.payload.fullName]} />
+            <Bar dataKey="assigned" fill="#059669" radius={[0, 4, 4, 0]} maxBarSize={24} />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }

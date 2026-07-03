@@ -9,7 +9,8 @@ import TeamManager from '@/components/TeamManager';
 import WeeklyRotaBuilder from '@/components/WeeklyRotaBuilder';
 import SettingsPage from '@/components/SettingsPage';
 import JobDetail from '@/components/JobDetail';
-import { JobStatusChart, WeeklyAssignmentsChart } from '@/components/DashboardCharts';
+import { JobStatusChart, WeeklyAssignmentsChart, StaffUtilizationChart } from '@/components/DashboardCharts';
+import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
 import { format, startOfWeek, addDays } from 'date-fns';
 
 const jobTypeBadge = {
@@ -107,6 +108,12 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <JobStatusChart jobs={jobs} />
                 <WeeklyAssignmentsChart days={weekDays} rotas={thisWeekRotas} />
+              </div>
+
+              {/* Utilization + Maintenance Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <StaffUtilizationChart staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />
+                <VehicleMaintenanceAlerts vehicles={vehicles} />
               </div>
 
               {/* Active Jobs + Today's Field Crew */}

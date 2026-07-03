@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, MapPin, Calendar, Users, Truck, FileText, Briefcase,
-  Clock, Eye, Download, User, HardHat, Phone, Mail, Tag
+  Clock, Eye, Download, User, HardHat, Phone, Mail, Tag, PoundSterling
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
@@ -132,6 +132,16 @@ export default function JobDetail({ job, onBack }) {
     rotasByDate[r.assigned_date].push(r);
   });
   const sortedDates = Object.keys(rotasByDate).sort();
+
+  // Job cost estimation
+  const staffCosts = assignedStaff.map(member => ({
+    name: member.name,
+    role: roleLabels[member.job_role] || member.job_role,
+    shifts: rotas.filter(r => r.staff_id === member.id).length,
+    dayRate: member.day_rate || 0,
+    cost: rotas.filter(r => r.staff_id === member.id).length * (member.day_rate || 0)
+  }));
+  const totalCost = staffCosts.reduce((sum, s) => sum + s.cost, 0);
 
   const startDate = job.start_date ? new Date(job.start_date + 'T00:00:00') : null;
   const endDate = job.end_date ? new Date(job.end_date + 'T00:00:00') : null;
@@ -320,6 +330,37 @@ export default function JobDetail({ job, onBack }) {
                   <p className="text-xs text-slate-400 uppercase font-medium mb-1">Notes</p>
                   <p className="text-sm text-slate-700 whitespace-pre-wrap">{job.notes}</p>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* Job Cost Summary */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+              <PoundSterling className="w-5 h-5 text-emerald-700" />
+              <h2 className="font-semibold text-slate-900">Estimated Cost</h2>
+            </div>
+            <div className="px-5 py-4">
+              {totalCost === 0 ? (
+                <p className="text-sm text-slate-400">No day rates set for assigned staff</p>
+              ) : (
+                <>
+                  <div className="space-y-2 mb-3">
+                    {staffCosts.map((sc, i) => (
+                      <div key={i} className="flex items-center justify-between text-sm">
+                        <div className="min-w-0">
+                          <span className="font-medium text-slate-900">{sc.name}</span>
+                          <span className="text-xs text-slate-400 ml-2">{sc.shifts} × £{sc.dayRate}</span>
+                        </div>
+                        <span className="font-semibold text-slate-700 flex-shrink-0">£{sc.cost.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                    <span className="font-semibold text-slate-900">Total</span>
+                    <span className="text-lg font-bold text-emerald-700">£{totalCost.toLocaleString()}</span>
+                  </div>
+                </>
               )}
             </div>
           </div>
