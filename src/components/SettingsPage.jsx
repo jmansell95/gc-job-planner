@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings, Users, Truck, HardHat, Shield, Building2, ChevronRight, CalendarX } from 'lucide-react';
+import { Settings, Users, Truck, HardHat, Shield, Building2, ChevronRight, CalendarX, Link2 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import StaffManager from '@/components/StaffManager';
 import VehicleManager from '@/components/VehicleManager';
@@ -24,6 +24,9 @@ function UsersAndRoles() {
     queryKey: ['users-list'],
     queryFn: () => base44.entities.User.list()
   });
+  const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
+
+  const getStaffForUser = (user) => staff.find(s => s.email?.toLowerCase() === user.email?.toLowerCase());
 
   const handleRoleChange = async (userId, newRole) => {
     await base44.entities.User.update(userId, { role: newRole });
@@ -46,6 +49,11 @@ function UsersAndRoles() {
               <div className="min-w-0">
                 <p className="font-semibold text-slate-900 truncate">{user.full_name || '—'}</p>
                 <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                {getStaffForUser(user) && (
+                  <p className="text-xs text-emerald-600 mt-0.5 flex items-center gap-1">
+                    <Link2 className="w-3 h-3" /> {getStaffForUser(user).name} · {getStaffForUser(user).job_role?.replace(/_/g, ' ')}
+                  </p>
+                )}
               </div>
             </div>
             <select value={user.role || 'user'} onChange={e => handleRoleChange(user.id, e.target.value)}

@@ -13,7 +13,6 @@ import { JobStatusChart, WeeklyAssignmentsChart, StaffUtilizationChart } from '@
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
 import DrillingPerformanceChart from '@/components/DrillingPerformanceChart';
 import TimesheetManager from '@/components/TimesheetManager';
-import EquipmentManager from '@/components/EquipmentManager';
 import { format, startOfWeek, addDays } from 'date-fns';
 
 const jobTypeBadge = {
@@ -69,7 +68,7 @@ export default function AdminDashboard() {
     <div className="flex flex-col lg:flex-row min-h-screen bg-slate-50/80">
       <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} />
       
-      <main className="flex-1 overflow-auto pt-16 lg:pt-0">
+      <main className="flex-1 overflow-auto pt-14 lg:pt-0">
         <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
           {activeSection === 'overview' && (
             <div>
@@ -94,9 +93,9 @@ export default function AdminDashboard() {
                 ].map(stat => {
                   const Icon = stat.icon;
                   return (
-                    <div key={stat.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
-                      <div className={`w-11 h-11 rounded-xl ${stat.bg} flex items-center justify-center flex-shrink-0`}>
-                        <Icon className={`w-5 h-5 ${stat.color}`} />
+                    <div key={stat.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition">
+                      <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center flex-shrink-0`}>
+                        <Icon className={`w-6 h-6 ${stat.color}`} />
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
@@ -350,7 +349,6 @@ export default function AdminDashboard() {
           {activeSection === 'jobs' && <JobManager />}
           {activeSection === 'rota' && <WeeklyRotaBuilder />}
           {activeSection === 'timesheets' && <TimesheetManager />}
-          {activeSection === 'equipment' && <EquipmentManager />}
           {activeSection === 'teams' && <TeamManager />}
           {activeSection === 'settings' && <SettingsPage />}
         </div>

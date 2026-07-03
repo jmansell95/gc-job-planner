@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Truck, Briefcase, Calendar, Grid3x3, LogOut, Menu, X, Settings, Clock, Wrench } from 'lucide-react';
+import { Users, Truck, Briefcase, Calendar, Grid3x3, LogOut, Menu, X, Settings, Clock } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
@@ -15,7 +15,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'teams', label: 'Teams', icon: Users },
     { id: 'rota', label: 'Weekly Rota', icon: Calendar },
     { id: 'timesheets', label: 'Timesheets', icon: Clock },
-    { id: 'equipment', label: 'Equipment', icon: Wrench },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -26,29 +25,27 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-emerald-700 text-white rounded-lg"
-      >
-        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-      </button>
+      {/* Mobile Top Bar */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-emerald-900 border-b border-emerald-800 h-14 flex items-center justify-between px-4 shadow-lg">
+        <button onClick={() => setIsOpen(!isOpen)} className="p-2 text-white hover:bg-emerald-800 rounded-lg transition">
+          {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+        <span className="text-white font-bold text-sm">GC Job Planner</span>
+        <div className="w-9" />
+      </header>
 
-      {/* Overlay on mobile */}
+      {/* Overlay */}
       {isOpen && (
-        <div
-          onClick={() => setIsOpen(false)}
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
-        />
+        <div onClick={() => setIsOpen(false)} className="lg:hidden fixed inset-0 bg-black/50 z-40 backdrop-blur-sm" />
       )}
 
       {/* Sidebar */}
       <nav className={`
-        fixed lg:relative top-0 left-0 h-screen lg:h-auto w-64 transform lg:transform-none transition-transform lg:transition-none overflow-y-auto bg-emerald-950 border-r border-emerald-900 flex flex-col
-        ${isOpen ? 'translate-x-0 z-50' : '-translate-x-full lg:translate-x-0 lg:z-auto'}
+        fixed lg:sticky top-0 left-0 h-screen lg:h-screen w-64 transform lg:transform-none transition-transform duration-300 ease-in-out overflow-y-auto bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex flex-col z-50 lg:z-auto
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="p-6 border-b border-emerald-800 bg-emerald-900">
-          <h1 className="text-2xl font-bold text-white">GC Job Planner</h1>
+        <div className="p-6 border-b border-emerald-800/50">
+          <h1 className="text-xl font-bold text-white">GC Job Planner</h1>
           <p className="text-xs text-emerald-300 mt-1">Admin Panel</p>
         </div>
 
@@ -60,23 +57,23 @@ export default function AdminNav({ activeSection, setActiveSection }) {
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition ${
                   isActive
-                    ? 'bg-emerald-700 text-white'
-                    : 'text-emerald-200 hover:bg-emerald-800 hover:text-white'
+                    ? 'bg-emerald-700 text-white shadow-sm'
+                    : 'text-emerald-200 hover:bg-emerald-800/50 hover:text-white'
                 }`}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
-                <span className="text-left">{item.label}</span>
+                <span>{item.label}</span>
               </button>
             );
           })}
         </div>
 
-        <div className="p-4 border-t border-emerald-800">
+        <div className="p-4 border-t border-emerald-800/50">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-emerald-300 hover:bg-emerald-800 hover:text-white transition"
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-emerald-300 hover:bg-emerald-800/50 hover:text-white transition"
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span>Logout</span>
