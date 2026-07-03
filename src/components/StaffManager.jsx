@@ -84,6 +84,15 @@ export default function StaffManager() {
     setInviteLoading(null);
   };
 
+  const handleRoleChange = async (userId, newRole) => {
+    try {
+      await base44.entities.User.update(userId, { role: newRole });
+      queryClient.invalidateQueries({ queryKey: ['users-list'] });
+    } catch (error) {
+      console.error('Error updating role:', error);
+    }
+  };
+
   const buildStaffPrintHtml = () => {
     const rows = staff.map(s =>
       `<tr><td>${s.name}</td><td>${s.email}</td><td>${roleLabels[s.job_role] || s.job_role}</td><td>${s.worker_type?.replace(/_/g,' ')}</td><td>${teams.find(t => t.id === s.team_id)?.name || '—'}</td><td>${getUserForStaff(s) ? 'Yes' : 'No'}</td></tr>`
@@ -238,11 +247,19 @@ export default function StaffManager() {
                   </div>
                 </div>
 
-                <div className="mb-3">
+                <div className="mb-3 flex items-center gap-2">
                   {linkedUser ? (
-                    <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200">
-                      <CheckCircle2 className="w-3 h-3" /> App access active
-                    </span>
+                    <>
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3" /> Active
+                      </span>
+                      <select value={linkedUser.role || 'user'} onChange={e => handleRoleChange(linkedUser.id, e.target.value)}
+                        className="text-xs px-2 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600">
+                        <option value="viewer">viewer</option>
+                        <option value="user">user</option>
+                        <option value="admin">admin</option>
+                      </select>
+                    </>
                   ) : (
                     <button onClick={() => handleInvite(member)} disabled={inviteLoading === member.id}
                       className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-medium border border-amber-200 hover:bg-amber-100 transition disabled:opacity-50">
