@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Calendar, MapPin, CheckCircle2, Clock, PlayCircle, Briefcase, Building2, Activity, Ruler, Camera, FileText, Target, Download, CheckCircle, Circle } from 'lucide-react';
 import { format } from 'date-fns';
 import PortalComments from '@/components/PortalComments';
+import { formatJobType } from '@/utils/format';
 
 const jobTypeBadges = {
   groundworks: 'bg-green-100 text-green-700',
@@ -83,7 +84,7 @@ export default function ClientPortal() {
           <h1 className="text-2xl md:text-4xl font-bold mb-2">{job.name}</h1>
           <div className="flex flex-wrap gap-2 mb-4">
             <span className={`text-xs font-semibold px-3 py-1 rounded-full ${jobTypeBadges[job.job_type] || 'bg-slate-100 text-slate-700'}`}>
-              {job.job_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+              {formatJobType(job.job_type)}
             </span>
             <span className={`text-xs font-semibold px-3 py-1 rounded-full ${statusColors[job.status] || statusColors.planning}`}>
               {statusLabels[job.status] || 'Planning'}

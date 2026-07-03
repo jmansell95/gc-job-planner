@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Calendar, ChevronLeft, ChevronRight, MapPin, Users as UsersIcon, Clock } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, addMonths, parseISO } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
+import { formatJobType } from '@/utils/format';
 
 const jobTypeColors = {
   groundworks: { dot: 'bg-green-500', bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
@@ -113,7 +114,7 @@ export default function CalendarView() {
               {Object.entries(jobTypeColors).map(([type, colors]) => (
                 <div key={type} className="flex items-center gap-1.5">
                   <span className={`w-2.5 h-2.5 rounded-full ${colors.dot}`}></span>
-                  <span className="text-xs text-slate-500 capitalize">{type.replace(/_/g, ' ')}</span>
+                  <span className="text-xs text-slate-500">{formatJobType(type)}</span>
                 </div>
               ))}
             </div>

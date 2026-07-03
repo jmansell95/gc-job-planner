@@ -5,6 +5,7 @@ import { Users, Truck, Briefcase, Calendar, Grid3x3, MapPin, ChevronRight, Clock
 import { format, startOfWeek, addDays } from 'date-fns';
 import { JobStatusChart, StaffUtilizationChart } from '@/components/DashboardCharts';
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
+import { formatJobType } from '@/utils/format';
 
 const jobTypeBadge = {
   groundworks: 'bg-green-100 text-green-700',
@@ -124,7 +125,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {vehicle && <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{vehicle.registration_number}</span>}
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${jobTypeBadge[job?.job_type] || 'bg-slate-100 text-slate-600'}`}>
-                      {job?.job_type?.replace(/_/g, ' ') || '—'}
+                      {formatJobType(job?.job_type) || '—'}
                     </span>
                   </div>
                 </button>

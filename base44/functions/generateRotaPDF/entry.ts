@@ -27,6 +27,10 @@ Deno.serve(async (req) => {
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       return days[date.getDay()] + ' ' + date.getDate() + ' ' + months[date.getMonth()];
     };
+    const jobTypeLabels = {groundworks:'Groundworks',cp_drilling:'CP Drilling',rotary_drilling:'Rotary Drilling',enabling_works:'Enabling Works',depot:'Depot'};
+    const roleLabels = {groundworker:'Groundworker',cp_driller:'CP Driller',rotary_driller:'Rotary Driller',enabling_crew:'Enabling Crew',depot:'Depot',supervisor:'Supervisor'};
+    const formatJobType = (t) => jobTypeLabels[t] || (t||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    const formatJobRole = (r) => roleLabels[r] || (r||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
 
     const genDate = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -38,14 +42,14 @@ Deno.serve(async (req) => {
         const vehicle = vehicles.find(v => v?.id === rota.vehicle_id);
         if (!job) return '';
         const times = (rota.start_time || rota.end_time) ? (rota.start_time || '—') + '–' + (rota.end_time || '—') : '—';
-        return `<tr><td>${fmtDate(rota.assigned_date)}</td><td class="job-name">${job.name}</td><td>${job.location}</td><td>${job.job_type.replace(/_/g,' ')}</td><td>${times}</td><td>${vehicle ? vehicle.registration_number : '—'}</td></tr>`;
+        return `<tr><td>${fmtDate(rota.assigned_date)}</td><td class="job-name">${job.name}</td><td>${job.location}</td><td>${formatJobType(job.job_type)}</td><td>${times}</td><td>${vehicle ? vehicle.registration_number : '—'}</td></tr>`;
       }).join('');
 
       bodyContent = `
         <div class="header">
           <div class="header-left">
             <h1>Weekly Schedule</h1>
-            <p>${staff.name} · ${staff.job_role.replace(/_/g,' ')} · ${staff.worker_type.replace(/_/g,' ')}</p>
+            <p>${staff.name} · ${formatJobRole(staff.job_role)} · ${staff.worker_type.replace(/_/g,' ')}</p>
           </div>
           <div class="header-right">
             <p class="week-label">Week of</p>
@@ -66,7 +70,7 @@ Deno.serve(async (req) => {
         const member = allStaff.find(s => s?.id === rota.staff_id);
         if (!job) return '';
         const times = (rota.start_time || rota.end_time) ? (rota.start_time || '—') + '–' + (rota.end_time || '—') : '—';
-        return `<tr><td class="job-name">${member?.name || 'Unknown'}</td><td>${member?.job_role?.replace(/_/g,' ') || '—'}</td><td>${fmtDate(rota.assigned_date)}</td><td class="job-name">${job.name}</td><td>${job.location}</td><td>${times}</td><td>${vehicle ? vehicle.registration_number : '—'}</td></tr>`;
+        return `<tr><td class="job-name">${member?.name || 'Unknown'}</td><td>${formatJobRole(member?.job_role) || '—'}</td><td>${fmtDate(rota.assigned_date)}</td><td class="job-name">${job.name}</td><td>${job.location}</td><td>${times}</td><td>${vehicle ? vehicle.registration_number : '—'}</td></tr>`;
       }).join('');
 
       bodyContent = `

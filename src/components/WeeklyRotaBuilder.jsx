@@ -11,6 +11,7 @@ import PageHeader from '@/components/PageHeader';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import PrintReportButton from '@/components/PrintReportButton';
 import AssignmentModal from '@/components/AssignmentModal';
+import { formatJobType, formatJobRole } from '@/utils/format';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-green-50', border: 'border-green-400', text: 'text-green-800', dot: 'bg-green-500', badge: 'bg-green-100 text-green-700' },
@@ -344,7 +345,7 @@ export default function WeeklyRotaBuilder() {
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium text-slate-900 text-sm whitespace-nowrap truncate">{member.name}</p>
-                        <p className="text-xs text-slate-400 capitalize">{member.job_role?.replace(/_/g, ' ')}</p>
+                        <p className="text-xs text-slate-400">{formatJobRole(member.job_role)}</p>
                       </div>
                     </div>
                   </td>
@@ -421,7 +422,7 @@ export default function WeeklyRotaBuilder() {
                           </button>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
-                          {job && <span className={`px-2 py-0.5 rounded-full font-medium ${colors.badge}`}>{job.job_type.replace(/_/g, ' ')}</span>}
+                          {job && <span className={`px-2 py-0.5 rounded-full font-medium ${colors.badge}`}>{formatJobType(job.job_type)}</span>}
                           {vehicle && <span className="flex items-center gap-0.5 text-slate-500"><Truck className="w-3 h-3" />{vehicle.registration_number}</span>}
                           {job?.location && <span className="flex items-center gap-0.5 text-slate-500"><MapPin className="w-3 h-3" />{job.location}</span>}
                           <span className={`inline-flex items-center gap-0.5 ${status.text}`}><StatusIcon className="w-3 h-3" />{status.label}</span>

@@ -5,6 +5,7 @@ import { Plus, Trash2, Edit2, Briefcase, Upload, FileText, X, Eye, Download, Ref
 import PageHeader from '@/components/PageHeader';
 import JobDetail from '@/components/JobDetail';
 import PrintReportButton from '@/components/PrintReportButton';
+import { formatJobType } from '@/utils/format';
 
 const jobTypeBadge = {
   groundworks: 'bg-green-100 text-green-700',
@@ -430,7 +431,7 @@ export default function JobManager() {
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex flex-wrap gap-1.5">
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${jobTypeBadge[job.job_type] || 'bg-slate-100 text-slate-600'}`}>
-                      {job.job_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                      {formatJobType(job.job_type)}
                     </span>
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[job.status || 'planning']}`}>
                       {statusLabels[job.status || 'planning']}

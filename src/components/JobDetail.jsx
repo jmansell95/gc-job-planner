@@ -12,6 +12,7 @@ import DocumentManager from '@/components/DocumentManager';
 import MilestoneManager from '@/components/MilestoneManager';
 import JobBudgetCard from '@/components/JobBudgetCard';
 import JobCommentsViewer from '@/components/JobCommentsViewer';
+import { formatJobType } from '@/utils/format';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500', border: 'border-green-200' },
@@ -184,7 +185,7 @@ export default function JobDetail({ job, onBack }) {
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
                   <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
-                  {job.job_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  {formatJobType(job.job_type)}
                 </span>
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']}`}>
                   {statusLabels[job.status || 'planning']}
@@ -326,7 +327,7 @@ export default function JobDetail({ job, onBack }) {
                 <p className="text-xs text-slate-400 uppercase font-medium mb-1">Job Type</p>
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`}></span>
-                  {job.job_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                  {formatJobType(job.job_type)}
                 </span>
               </div>
               <div>

@@ -7,6 +7,7 @@ import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import TimesheetEntry from '@/components/TimesheetEntry';
 import StaffTimesheets from '@/components/StaffTimesheets';
+import { formatJobType } from '@/utils/format';
 
 const jobTypeBadgeColors = {
   groundworks: 'bg-green-100 text-green-700',
@@ -197,7 +198,7 @@ export default function StaffDashboard() {
               <div className="min-w-0">
                 <h3 className="text-base md:text-lg font-bold text-slate-900 break-words">{job.name}</h3>
                 <span className={`inline-block px-2 py-1 rounded text-xs font-semibold mt-2 ${jobTypeBadgeColors[job.job_type]}`}>
-                  {job.job_type.replace(/_/g, ' ').toUpperCase()}
+                  {formatJobType(job.job_type)}
                 </span>
               </div>
             </div>
