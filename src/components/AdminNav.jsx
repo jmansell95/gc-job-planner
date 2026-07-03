@@ -28,8 +28,9 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     <>
       {/* Mobile Top Bar */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-emerald-900 border-b border-emerald-800 h-14 flex items-center justify-between px-4 shadow-lg">
-        <button onClick={() => setIsOpen(!isOpen)} className="p-2 text-white hover:bg-emerald-800 rounded-lg transition">
+        <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 pl-2.5 pr-3 py-1.5 text-white hover:bg-emerald-800 rounded-lg transition">
           {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          <span className="text-sm font-semibold">Menu</span>
         </button>
         <span className="text-white font-bold text-sm">GC Job Planner</span>
         <div className="w-9" />
