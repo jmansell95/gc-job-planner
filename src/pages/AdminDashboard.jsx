@@ -13,6 +13,7 @@ import { JobStatusChart, WeeklyAssignmentsChart, StaffUtilizationChart } from '@
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
 import DrillingPerformanceChart from '@/components/DrillingPerformanceChart';
 import TimesheetManager from '@/components/TimesheetManager';
+import CalendarView from '@/components/CalendarView';
 import { format, startOfWeek, addDays } from 'date-fns';
 
 const jobTypeBadge = {
@@ -349,6 +350,7 @@ export default function AdminDashboard() {
           {activeSection === 'jobs' && <JobManager />}
           {activeSection === 'rota' && <WeeklyRotaBuilder />}
           {activeSection === 'timesheets' && <TimesheetManager />}
+          {activeSection === 'calendar' && <CalendarView />}
           {activeSection === 'teams' && <TeamManager />}
           {activeSection === 'settings' && <SettingsPage />}
         </div>

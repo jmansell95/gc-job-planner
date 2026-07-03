@@ -6,6 +6,7 @@ import { format, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import TimesheetEntry from '@/components/TimesheetEntry';
+import StaffTimesheets from '@/components/StaffTimesheets';
 
 const jobTypeBadgeColors = {
   groundworks: 'bg-green-100 text-green-700',
@@ -393,6 +394,11 @@ export default function StaffDashboard() {
             )}
           </div>
         )}
+
+        {/* My Timesheets */}
+        <div className="mt-8">
+          <StaffTimesheets staffId={staff.id} staffName={staff.name} />
+        </div>
       </div>
     </div>
   );
