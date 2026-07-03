@@ -3,13 +3,14 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { startOfWeek, addDays, format, subWeeks } from 'date-fns';
 import {
-  Plus, Calendar, ChevronLeft, ChevronRight, Trash2, X, Copy,
-  AlertTriangle, MapPin, Truck, Clock, CheckCircle2, PlayCircle, ClipboardCheck,
-  Users, Briefcase
+  Plus, Calendar, ChevronLeft, ChevronRight, X, Copy,
+  MapPin, Truck, Clock, CheckCircle2, PlayCircle, ClipboardCheck,
+  Users, Briefcase, Search, Filter, StickyNote
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import PrintReportButton from '@/components/PrintReportButton';
+import AssignmentModal from '@/components/AssignmentModal';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-green-50', border: 'border-green-400', text: 'text-green-800', dot: 'bg-green-500', badge: 'bg-green-100 text-green-700' },
@@ -27,10 +28,10 @@ const statusConfig = {
 
 export default function WeeklyRotaBuilder() {
   const [selectedWeek, setSelectedWeek] = useState(new Date());
-  const [showAssignmentForm, setShowAssignmentForm] = useState(false);
-  const [conflictWarning, setConflictWarning] = useState(null);
   const [smartFillLoading, setSmartFillLoading] = useState(false);
-  const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '' });
+  const [modal, setModal] = useState({ isOpen: false, assignment: null, defaultStaffId: '', defaultDate: '' });
+  const [teamFilter, setTeamFilter] = useState('');
+  const [staffSearch, setStaffSearch] = useState('');
 
   const queryClient = useQueryClient();
   const weekStart = startOfWeek(selectedWeek);
@@ -41,6 +42,7 @@ export default function WeeklyRotaBuilder() {
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
   const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
+  const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
 
   const { data: rotas = [] } = useQuery({
     queryKey: ['rotas', weekStartStr],
@@ -52,8 +54,15 @@ export default function WeeklyRotaBuilder() {
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
+  // Filter staff by team and search
+  const filteredStaff = staff.filter(s => {
+    if (teamFilter && s.team_id !== teamFilter) return false;
+    if (staffSearch && !s.name.toLowerCase().includes(staffSearch.toLowerCase())) return false;
+    return true;
+  });
+
   const rotasByStaff = {};
-  staff.forEach(s => { rotasByStaff[s.id] = Array.from({ length: 7 }, () => []); });
+  filteredStaff.forEach(s => { rotasByStaff[s.id] = Array.from({ length: 7 }, () => []); });
   rotas.forEach(rota => {
     const dayIndex = days.findIndex(d => format(d, 'yyyy-MM-dd') === rota.assigned_date);
     if (dayIndex !== -1 && rotasByStaff[rota.staff_id]) {
@@ -65,52 +74,16 @@ export default function WeeklyRotaBuilder() {
     return absences.some(a => a.staff_id === staffId && a.status === 'approved' && a.start_date <= dateStr && a.end_date >= dateStr);
   };
 
-  const checkConflict = (staffId, date) => {
-    return rotas.some(r => r.staff_id === staffId && r.assigned_date === date);
-  };
-
-  const handleStaffChange = (staffId) => {
-    setFormData(prev => ({ ...prev, staff_id: staffId }));
-    if (staffId && formData.assigned_date) {
-      setConflictWarning(checkConflict(staffId, formData.assigned_date) ? 'This staff member is already assigned on this date.' : null);
-    } else setConflictWarning(null);
-  };
-
-  const handleDateChange = (date) => {
-    setFormData(prev => ({ ...prev, assigned_date: date }));
-    if (date && formData.staff_id) {
-      setConflictWarning(checkConflict(formData.staff_id, date) ? 'This staff member is already assigned on this date.' : null);
-    } else setConflictWarning(null);
-  };
-
   const handleCellClick = (staffId, dateStr) => {
-    setFormData({ job_id: '', staff_id: staffId, assigned_date: dateStr, vehicle_id: '', start_time: '', end_time: '' });
-    setConflictWarning(null);
-    setShowAssignmentForm(true);
+    setModal({ isOpen: true, assignment: null, defaultStaffId: staffId, defaultDate: dateStr });
   };
 
-  const handleAddAssignment = async (e) => {
-    e.preventDefault();
-    if (checkConflict(formData.staff_id, formData.assigned_date)) {
-      if (!confirm('This staff member is already assigned on this date. Add anyway?')) return;
-    }
-    try {
-      await base44.entities.RotaAssignment.create({
-        ...formData,
-        week_start: weekStartStr,
-        status: 'assigned'
-      });
-      queryClient.invalidateQueries({ queryKey: ['rotas'] });
-      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
-      setFormData({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '' });
-      setShowAssignmentForm(false);
-      setConflictWarning(null);
-    } catch (error) {
-      console.error('Error adding assignment:', error);
-    }
+  const handleEditAssignment = (assignment) => {
+    setModal({ isOpen: true, assignment, defaultStaffId: '', defaultDate: '' });
   };
 
   const handleDeleteAssignment = async (id) => {
+    if (!confirm('Delete this assignment?')) return;
     try {
       await base44.entities.RotaAssignment.delete(id);
       queryClient.invalidateQueries({ queryKey: ['rotas'] });
@@ -145,6 +118,7 @@ export default function WeeklyRotaBuilder() {
           vehicle_id: r.vehicle_id || '',
           start_time: r.start_time || '',
           end_time: r.end_time || '',
+          notes: r.notes || '',
           week_start: weekStartStr,
           status: 'assigned'
         };
@@ -162,7 +136,6 @@ export default function WeeklyRotaBuilder() {
   const goToPrevWeek = () => setSelectedWeek(prev => addDays(prev, -7));
   const goToNextWeek = () => setSelectedWeek(prev => addDays(prev, 7));
 
-  // Stats
   const totalAssignments = rotas.length;
   const staffWorking = [...new Set(rotas.map(r => r.staff_id))].length;
   const jobsActive = [...new Set(rotas.map(r => r.job_id))].length;
@@ -189,6 +162,68 @@ export default function WeeklyRotaBuilder() {
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
+  const renderAssignmentCard = (assignment) => {
+    const job = jobs.find(j => j.id === assignment.job_id);
+    const vehicle = vehicles.find(v => v.id === assignment.vehicle_id);
+    const client = clients.find(c => c.id === job?.client_id);
+    const colors = jobTypeColors[job?.job_type] || jobTypeColors.depot;
+    const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
+    const StatusIcon = status.icon;
+    return (
+      <div key={assignment.id} className={`group relative px-2.5 py-2 rounded-lg text-xs border-l-[3px] cursor-pointer hover:shadow-sm transition ${colors.bg} ${colors.border}`}
+        onClick={() => handleEditAssignment(assignment)}>
+        <div className="flex items-start justify-between gap-1 mb-1">
+          <span className="font-semibold text-slate-900 truncate flex-1">{job?.name || 'Unknown'}</span>
+          <button onClick={(e) => { e.stopPropagation(); handleDeleteAssignment(assignment.id); }}
+            className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-red-500 rounded transition">
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+        {job?.location && (
+          <div className="flex items-center gap-1 text-slate-500 mb-1">
+            <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+            <span className="truncate">{job.location}</span>
+          </div>
+        )}
+        {vehicle && (
+          <div className="flex items-center gap-1 text-slate-500 mb-1">
+            <Truck className="w-2.5 h-2.5 flex-shrink-0" />
+            <span className="font-mono truncate">{vehicle.registration_number}</span>
+          </div>
+        )}
+        {(assignment.start_time || assignment.end_time) && (
+          <div className="flex items-center gap-1 text-slate-500 mb-1">
+            <Clock className="w-2.5 h-2.5 flex-shrink-0" />
+            <span className="truncate">{assignment.start_time || '—'} - {assignment.end_time || '—'}</span>
+          </div>
+        )}
+        {assignment.notes && (
+          <div className="flex items-start gap-1 text-slate-500 mb-1">
+            <StickyNote className="w-2.5 h-2.5 flex-shrink-0 mt-0.5" />
+            <span className="truncate italic">{assignment.notes}</span>
+          </div>
+        )}
+        {client && (
+          <div className="text-slate-400 truncate mb-1">{client.name}</div>
+        )}
+        <div className="flex items-center gap-2 pt-1 border-t border-slate-200/50">
+          <span className={`inline-flex items-center gap-0.5 ${status.text}`}>
+            <StatusIcon className="w-2.5 h-2.5" />
+            <span className="text-[10px] font-medium">{status.label}</span>
+          </span>
+          {assignment.briefing_signed && (
+            <span className="inline-flex items-center gap-0.5 text-emerald-600">
+              <ClipboardCheck className="w-2.5 h-2.5" />
+            </span>
+          )}
+          {assignment.meterage > 0 && (
+            <span className="text-[10px] text-amber-600 font-medium">{assignment.meterage}m</span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div>
       {/* Header */}
@@ -201,7 +236,7 @@ export default function WeeklyRotaBuilder() {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50">
             <Copy className="w-4 h-4" /> {smartFillLoading ? 'Copying...' : 'Smart Fill'}
           </button>
-          <button onClick={() => { setShowAssignmentForm(!showAssignmentForm); setFormData({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '' }); setConflictWarning(null); }}
+          <button onClick={() => setModal({ isOpen: true, assignment: null, defaultStaffId: '', defaultDate: '' })}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
             <Plus className="w-4 h-4" /> Add Assignment
           </button>
@@ -209,7 +244,7 @@ export default function WeeklyRotaBuilder() {
       </div>
 
       {/* Week Navigator + Stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
         <div className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 w-fit">
           <button onClick={goToPrevWeek} className="p-1.5 hover:bg-slate-100 rounded-lg transition"><ChevronLeft className="w-4 h-4 text-slate-600" /></button>
           <div className="text-sm font-semibold text-slate-900 min-w-[180px] text-center">
@@ -239,63 +274,47 @@ export default function WeeklyRotaBuilder() {
         </div>
       </div>
 
-      {/* Assignment Form */}
-      {showAssignmentForm && (
-        <form onSubmit={handleAddAssignment} className="bg-white rounded-xl p-5 border border-emerald-200 mb-6 shadow-sm">
-          <h3 className="font-semibold text-slate-900 mb-4">New Assignment</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Job *</label>
-              <select value={formData.job_id} onChange={(e) => setFormData({ ...formData, job_id: e.target.value })} required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="">Select Job</option>
-                {jobs.map(job => <option key={job.id} value={job.id}>{job.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Staff Member *</label>
-              <select value={formData.staff_id} onChange={(e) => handleStaffChange(e.target.value)} required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="">Select Staff</option>
-                {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Date *</label>
-              <input type="date" value={formData.assigned_date} onChange={(e) => handleDateChange(e.target.value)} required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Vehicle</label>
-              <select value={formData.vehicle_id} onChange={(e) => setFormData({ ...formData, vehicle_id: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="">Select Vehicle (Optional)</option>
-                {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} — {v.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Start Time</label>
-              <input type="time" value={formData.start_time} onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">End Time</label>
-              <input type="time" value={formData.end_time} onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
-            </div>
-          </div>
-          {conflictWarning && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              {conflictWarning}
-            </div>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 px-3 py-2 shadow-sm flex-1 max-w-xs">
+          <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <input type="text" value={staffSearch} onChange={(e) => setStaffSearch(e.target.value)}
+            placeholder="Search staff..."
+            className="flex-1 text-sm focus:outline-none bg-transparent text-slate-700 placeholder:text-slate-400" />
+          {staffSearch && (
+            <button onClick={() => setStaffSearch('')} className="text-slate-400 hover:text-slate-600">
+              <X className="w-3.5 h-3.5" />
+            </button>
           )}
-          <div className="flex gap-3 mt-4">
-            <button type="submit" className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">Add Assignment</button>
-            <button type="button" onClick={() => setShowAssignmentForm(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm">Cancel</button>
-          </div>
-        </form>
-      )}
+        </div>
+        <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 px-3 py-2 shadow-sm">
+          <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
+          <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}
+            className="text-sm focus:outline-none bg-transparent text-slate-700 font-medium">
+            <option value="">All Teams</option>
+            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </div>
+        {(teamFilter || staffSearch) && (
+          <span className="text-xs text-slate-500 self-center">
+            Showing {filteredStaff.length} of {staff.length} staff
+          </span>
+        )}
+      </div>
+
+      {/* Assignment Modal */}
+      <AssignmentModal
+        isOpen={modal.isOpen}
+        onClose={() => setModal({ isOpen: false, assignment: null, defaultStaffId: '', defaultDate: '' })}
+        assignment={modal.assignment}
+        defaultStaffId={modal.defaultStaffId}
+        defaultDate={modal.defaultDate}
+        weekStartStr={weekStartStr}
+        staff={staff}
+        jobs={jobs}
+        vehicles={vehicles}
+        existingRotas={rotas}
+      />
 
       {/* Desktop Grid */}
       <div className="hidden lg:block bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm">
@@ -316,7 +335,7 @@ export default function WeeklyRotaBuilder() {
               </tr>
             </thead>
             <tbody>
-              {staff.map((member, idx) => (
+              {filteredStaff.map((member, idx) => (
                 <tr key={member.id} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
                   <td className="px-4 py-3 sticky left-0 z-10 bg-inherit border-r border-slate-100">
                     <div className="flex items-center gap-2">
@@ -339,61 +358,7 @@ export default function WeeklyRotaBuilder() {
                           {isOnLeave(member.id, dayStr) && (
                             <div className="px-2 py-1 bg-red-100 text-red-600 rounded text-[10px] font-bold text-center">ON LEAVE</div>
                           )}
-                          {dayAssignments.map(assignment => {
-                            const job = jobs.find(j => j.id === assignment.job_id);
-                            const vehicle = vehicles.find(v => v.id === assignment.vehicle_id);
-                            const client = clients.find(c => c.id === job?.client_id);
-                            const colors = jobTypeColors[job?.job_type] || jobTypeColors.depot;
-                            const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
-                            const StatusIcon = status.icon;
-                            const briefingSigned = assignment.briefing_signed;
-                            return (
-                              <div key={assignment.id} className={`group relative px-2.5 py-2 rounded-lg text-xs border-l-[3px] ${colors.bg} ${colors.border}`}>
-                                <div className="flex items-start justify-between gap-1 mb-1">
-                                  <span className="font-semibold text-slate-900 truncate flex-1">{job?.name || 'Unknown'}</span>
-                                  <button onClick={() => handleDeleteAssignment(assignment.id)}
-                                    className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-red-500 rounded transition">
-                                    <X className="w-3 h-3" />
-                                  </button>
-                                </div>
-                                {job?.location && (
-                                  <div className="flex items-center gap-1 text-slate-500 mb-1">
-                                    <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-                                    <span className="truncate">{job.location}</span>
-                                  </div>
-                                )}
-                                {vehicle && (
-                                  <div className="flex items-center gap-1 text-slate-500 mb-1">
-                                    <Truck className="w-2.5 h-2.5 flex-shrink-0" />
-                                    <span className="font-mono truncate">{vehicle.registration_number}</span>
-                                  </div>
-                                )}
-                                {(assignment.start_time || assignment.end_time) && (
-                                  <div className="flex items-center gap-1 text-slate-500 mb-1">
-                                    <Clock className="w-2.5 h-2.5 flex-shrink-0" />
-                                    <span className="truncate">{assignment.start_time || '—'} - {assignment.end_time || '—'}</span>
-                                  </div>
-                                )}
-                                {client && (
-                                  <div className="text-slate-400 truncate mb-1">{client.name}</div>
-                                )}
-                                <div className="flex items-center gap-2 pt-1 border-t border-slate-200/50">
-                                  <span className={`inline-flex items-center gap-0.5 ${status.text}`}>
-                                    <StatusIcon className="w-2.5 h-2.5" />
-                                    <span className="text-[10px] font-medium">{status.label}</span>
-                                  </span>
-                                  {briefingSigned && (
-                                    <span className="inline-flex items-center gap-0.5 text-emerald-600">
-                                      <ClipboardCheck className="w-2.5 h-2.5" />
-                                    </span>
-                                  )}
-                                  {assignment.meterage > 0 && (
-                                    <span className="text-[10px] text-amber-600 font-medium">{assignment.meterage}m</span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
+                          {dayAssignments.map(renderAssignmentCard)}
                           <button onClick={() => handleCellClick(member.id, dayStr)}
                             className="w-full py-1 text-[10px] text-slate-300 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition flex items-center justify-center gap-0.5 opacity-0 group-hover/cell:opacity-100">
                             <Plus className="w-2.5 h-2.5" /> Add
@@ -404,8 +369,10 @@ export default function WeeklyRotaBuilder() {
                   })}
                 </tr>
               ))}
-              {staff.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400 text-sm">No staff found. Add staff in Settings.</td></tr>
+              {filteredStaff.length === 0 && (
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400 text-sm">
+                  {staff.length === 0 ? 'No staff found. Add staff in Settings.' : 'No staff match your filters.'}
+                </td></tr>
               )}
             </tbody>
           </table>
@@ -414,10 +381,10 @@ export default function WeeklyRotaBuilder() {
 
       {/* Mobile Day Cards */}
       <div className="lg:hidden space-y-3">
-        {days.map((day, dayIdx) => {
+        {days.map((day) => {
           const dayStr = format(day, 'yyyy-MM-dd');
           const isToday = dayStr === todayStr;
-          const dayAssignments = rotas.filter(r => r.assigned_date === dayStr);
+          const dayAssignments = rotas.filter(r => r.assigned_date === dayStr && filteredStaff.some(s => s.id === r.staff_id));
           return (
             <div key={dayStr} className={`bg-white rounded-xl border shadow-sm overflow-hidden ${isToday ? 'border-emerald-400' : 'border-slate-200'}`}>
               <div className={`px-4 py-2.5 flex items-center justify-between ${isToday ? 'bg-emerald-700 text-white' : 'bg-slate-50 border-b border-slate-100'}`}>
@@ -437,7 +404,8 @@ export default function WeeklyRotaBuilder() {
                     const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
                     const StatusIcon = status.icon;
                     return (
-                      <div key={assignment.id} className="px-4 py-3">
+                      <div key={assignment.id} className="px-4 py-3 cursor-pointer hover:bg-slate-50 transition"
+                        onClick={() => handleEditAssignment(assignment)}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
@@ -448,7 +416,7 @@ export default function WeeklyRotaBuilder() {
                               <p className="text-xs text-slate-600 truncate">{job?.name || '—'}</p>
                             </div>
                           </div>
-                          <button onClick={() => handleDeleteAssignment(assignment.id)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition flex-shrink-0">
+                          <button onClick={(e) => { e.stopPropagation(); handleDeleteAssignment(assignment.id); }} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition flex-shrink-0">
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -460,6 +428,12 @@ export default function WeeklyRotaBuilder() {
                           {assignment.briefing_signed && <span className="inline-flex items-center text-emerald-600"><ClipboardCheck className="w-3 h-3" />Briefed</span>}
                           {assignment.meterage > 0 && <span className="text-amber-600 font-medium">{assignment.meterage}m</span>}
                         </div>
+                        {assignment.notes && (
+                          <div className="mt-1.5 flex items-start gap-1 text-xs text-slate-500">
+                            <StickyNote className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                            <span className="italic">{assignment.notes}</span>
+                          </div>
+                        )}
                         {client && <p className="text-xs text-slate-400 mt-1.5">{client.name}</p>}
                       </div>
                     );
