@@ -31,6 +31,17 @@ const workerTypeBadge = {
   agency: 'bg-blue-100 text-blue-700',
 };
 
+const statusBadge = {
+  planning: 'bg-slate-100 text-slate-600',
+  in_progress: 'bg-emerald-100 text-emerald-700',
+  completed: 'bg-teal-100 text-teal-700',
+  on_hold: 'bg-amber-100 text-amber-700',
+};
+
+const statusLabels = {
+  planning: 'Planning', in_progress: 'In Progress', completed: 'Completed', on_hold: 'On Hold',
+};
+
 export default function JobDetail({ job, onBack }) {
   const colors = jobTypeColors[job.job_type] || jobTypeColors.depot;
 
@@ -143,10 +154,13 @@ export default function JobDetail({ job, onBack }) {
         <div className={`rounded-xl p-5 md:p-7 border ${colors.border} ${colors.bg}`}>
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
                   <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
                   {job.job_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </span>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']}`}>
+                  {statusLabels[job.status || 'planning']}
                 </span>
               </div>
               <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{job.name}</h1>
@@ -286,6 +300,12 @@ export default function JobDetail({ job, onBack }) {
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`}></span>
                   {job.job_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </span>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 uppercase font-medium mb-1">Status</p>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']}`}>
+                  {statusLabels[job.status || 'planning']}
                 </span>
               </div>
               {startDate && (

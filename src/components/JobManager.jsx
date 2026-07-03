@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Briefcase, Upload, FileText, X, Eye, Download, RefreshCw, ChevronRight, MapPin, Calendar } from 'lucide-react';
+import { Plus, Trash2, Edit2, Briefcase, Upload, FileText, X, Eye, Download, RefreshCw, ChevronRight, MapPin, Calendar, Search } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import JobDetail from '@/components/JobDetail';
 import PrintReportButton from '@/components/PrintReportButton';
@@ -14,15 +14,29 @@ const jobTypeBadge = {
   depot: 'bg-slate-100 text-slate-600',
 };
 
+const statusBadge = {
+  planning: 'bg-slate-100 text-slate-600',
+  in_progress: 'bg-emerald-100 text-emerald-700',
+  completed: 'bg-teal-100 text-teal-700',
+  on_hold: 'bg-amber-100 text-amber-700',
+};
+
+const statusLabels = {
+  planning: 'Planning', in_progress: 'In Progress', completed: 'Completed', on_hold: 'On Hold',
+};
+
 export default function JobManager() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [formData, setFormData] = useState({
     name: '',
     location: '',
     job_type: 'groundworks',
+    status: 'planning',
     start_date: '',
     end_date: '',
     client_id: '',
@@ -109,17 +123,25 @@ export default function JobManager() {
 
   const buildJobsPrintHtml = () => {
     const rows = jobs.map(j =>
-      `<tr><td>${j.name}</td><td>${j.location}</td><td>${j.job_type.replace(/_/g,' ')}</td><td>${j.start_date}</td><td>${j.end_date}</td></tr>`
+      `<tr><td>${j.name}</td><td>${j.location}</td><td>${j.job_type.replace(/_/g,' ')}</td><td>${(statusLabels[j.status]||'Planning')}</td><td>${j.start_date}</td><td>${j.end_date}</td></tr>`
     ).join('');
     return `<!DOCTYPE html><html><head><title>Jobs Report</title>
     <style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#111}h1{font-size:16px;margin-bottom:4px}p{color:#555;font-size:11px;margin-bottom:12px}table{width:100%;border-collapse:collapse}th{background:#1a5c3a;color:white;padding:6px 8px;text-align:left;font-size:11px}td{padding:5px 8px;border-bottom:1px solid #e2e8f0}tr:nth-child(even) td{background:#f8fafb}@media print{body{margin:10mm}}</style>
     </head><body>
     <h1>Jobs Report</h1>
     <p>${jobs.length} jobs &nbsp;&middot;&nbsp; Printed ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</p>
-    <table><thead><tr><th>Name</th><th>Location</th><th>Type</th><th>Start</th><th>End</th></tr></thead>
+    <table><thead><tr><th>Name</th><th>Location</th><th>Type</th><th>Status</th><th>Start</th><th>End</th></tr></thead>
     <tbody>${rows}</tbody></table>
     </body></html>`;
   };
+
+  const filteredJobs = jobs.filter(job => {
+    const matchesSearch = !searchQuery ||
+      job.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.location.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || (job.status || 'planning') === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   if (selectedJob) {
     return <JobDetail job={selectedJob} onBack={() => setSelectedJob(null)} />;
@@ -192,6 +214,20 @@ export default function JobManager() {
                 <option value="rotary_drilling">Rotary Drilling</option>
                 <option value="enabling_works">Enabling Works</option>
                 <option value="depot">Depot</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
+              <select
+                value={formData.status || 'planning'}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              >
+                <option value="planning">Planning</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="on_hold">On Hold</option>
               </select>
             </div>
 
@@ -332,25 +368,66 @@ export default function JobManager() {
         </form>
       )}
 
+      {/* Search & Filter */}
+      {jobs.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search jobs by name or location..."
+              className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white"
+            />
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white"
+          >
+            <option value="all">All Statuses</option>
+            <option value="planning">Planning</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="on_hold">On Hold</option>
+          </select>
+        </div>
+      )}
+
       {/* Jobs Grid */}
       {jobs.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400">
           No jobs yet. Add your first job above.
         </div>
+      ) : filteredJobs.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400">
+          No jobs match your search.
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {jobs.map((job) => (
+          {filteredJobs.map((job) => {
+            const client = clients.find(c => c.id === job.client_id);
+            return (
             <div key={job.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col">
               <div className="p-5 flex-1">
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${jobTypeBadge[job.job_type] || 'bg-slate-100 text-slate-600'}`}>
-                    {job.job_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${jobTypeBadge[job.job_type] || 'bg-slate-100 text-slate-600'}`}>
+                      {job.job_type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                    </span>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[job.status || 'planning']}`}>
+                      {statusLabels[job.status || 'planning']}
+                    </span>
+                  </div>
                   {job.requisition_list_url && (
                     <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" title="Has requisition list" />
                   )}
                 </div>
                 <h3 className="font-bold text-slate-900 text-base mb-1">{job.name}</h3>
+                {client && (
+                  <p className="text-xs text-slate-400 mb-1.5 truncate">{client.name}</p>
+                )}
                 <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-1">
                   <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                   <span className="truncate">{job.location}</span>
@@ -377,7 +454,8 @@ export default function JobManager() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

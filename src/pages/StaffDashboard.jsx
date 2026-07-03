@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, MapPin, Briefcase, Truck } from 'lucide-react';
-import { format, startOfWeek, isWithinInterval } from 'date-fns';
+import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDays, Clock } from 'lucide-react';
+import { format, startOfWeek, isWithinInterval, isToday, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
+
+const jobTypeBadgeColors = {
+  groundworks: 'bg-green-100 text-green-700',
+  cp_drilling: 'bg-amber-100 text-amber-700',
+  rotary_drilling: 'bg-blue-100 text-blue-700',
+  enabling_works: 'bg-purple-100 text-purple-700',
+  depot: 'bg-slate-100 text-slate-700'
+};
 
 export default function StaffDashboard() {
   const [staff, setStaff] = useState(null);
@@ -50,6 +58,13 @@ export default function StaffDashboard() {
     }
   });
 
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      return await base44.entities.Client.list();
+    }
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white">
@@ -76,12 +91,78 @@ export default function StaffDashboard() {
     depot: 'bg-slate-50 border-slate-200'
   };
 
-  const jobTypeBadgeColors = {
-    groundworks: 'bg-green-100 text-green-700',
-    cp_drilling: 'bg-amber-100 text-amber-700',
-    rotary_drilling: 'bg-blue-100 text-blue-700',
-    enabling_works: 'bg-purple-100 text-purple-700',
-    depot: 'bg-slate-100 text-slate-700'
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todaysAssignments = assignments.filter(a => a.assigned_date === todayStr);
+  const upcomingAssignments = assignments.filter(a => isFuture(new Date(a.assigned_date + 'T00:00:00')) && a.assigned_date !== todayStr);
+  const pastAssignments = assignments.filter(a => isPast(new Date(a.assigned_date + 'T00:00:00')) && a.assigned_date !== todayStr);
+
+  const renderAssignment = (assignment) => {
+    const job = jobs.find(j => j.id === assignment.job_id);
+    const vehicle = vehicles.find(v => v.id === assignment.vehicle_id);
+    const client = clients.find(c => c.id === job?.client_id);
+    if (!job) return null;
+    return (
+      <div key={assignment.id} className={`rounded-lg p-4 md:p-6 border-l-4 border ${jobTypeColors[job.job_type] || 'bg-slate-50 border-slate-200'}`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <div>
+            <div className="flex items-start justify-between mb-3 md:mb-4 gap-2">
+              <div className="min-w-0">
+                <h3 className="text-base md:text-lg font-bold text-slate-900 break-words">{job.name}</h3>
+                <span className={`inline-block px-2 py-1 rounded text-xs font-semibold mt-2 ${jobTypeBadgeColors[job.job_type]}`}>
+                  {job.job_type.replace(/_/g, ' ').toUpperCase()}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2 text-xs md:text-sm text-slate-600">
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                {job.location}
+              </div>
+              <div className="flex items-start gap-2">
+                <Calendar className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                <span className="break-words">{format(new Date(assignment.assigned_date), 'EEEE, MMM d, yyyy')}</span>
+              </div>
+              {client && (
+                <div className="flex items-start gap-2">
+                  <Briefcase className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span>Client: <span className="font-medium text-slate-700">{client.name}</span></span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="space-y-3 md:space-y-4">
+            {vehicle && (
+              <div className="p-3 md:p-4 bg-white bg-opacity-50 rounded-lg border border-green-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Truck className="w-5 h-5 text-green-600" />
+                  <h4 className="font-semibold text-slate-900">Assigned Vehicle</h4>
+                </div>
+                <p className="text-slate-900 font-mono font-bold text-lg">{vehicle.registration_number}</p>
+                <p className="text-slate-600 text-sm">{vehicle.name}</p>
+              </div>
+            )}
+            {job.requisition_list_url && (
+              <div className="p-3 md:p-4 bg-white bg-opacity-50 rounded-lg border border-green-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-5 h-5 text-green-600" />
+                  <h4 className="font-semibold text-slate-900">Requisition List</h4>
+                </div>
+                <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-emerald-700 hover:text-emerald-900 font-medium">
+                  <ExternalLink className="w-3.5 h-3.5" /> {job.requisition_list_name || 'View document'}
+                </a>
+              </div>
+            )}
+            {job.notes && (
+              <div className="p-3 md:p-4 bg-white bg-opacity-50 rounded-lg border border-green-100">
+                <h4 className="font-semibold text-slate-900 mb-2">Notes</h4>
+                <p className="text-slate-600 text-sm whitespace-pre-wrap">{job.notes}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -118,6 +199,20 @@ export default function StaffDashboard() {
           </div>
         </div>
 
+        {/* Today's Assignment Highlight */}
+        {todaysAssignments.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-5 h-5 text-emerald-700" />
+              <h2 className="text-lg md:text-xl font-bold text-slate-900">Today</h2>
+              <span className="text-xs bg-emerald-700 text-white px-2 py-0.5 rounded-full font-medium">{todaysAssignments.length}</span>
+            </div>
+            <div className="space-y-4">
+              {todaysAssignments.map(renderAssignment)}
+            </div>
+          </div>
+        )}
+
         {/* Print/Email Controls */}
         <div className="mb-8">
           <PrintEmailSchedule 
@@ -128,87 +223,40 @@ export default function StaffDashboard() {
         </div>
 
         {/* Assignments List */}
-        <div>
-          <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-4">This Week & Next Week</h2>
-          
-          {assignments.length === 0 ? (
-            <div className="bg-white rounded-lg p-12 border border-green-200 text-center">
-              <p className="text-slate-600">No assignments scheduled</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {assignments.map(assignment => {
-                const job = jobs.find(j => j.id === assignment.job_id);
-                const vehicle = vehicles.find(v => v.id === assignment.vehicle_id);
-                
-                if (!job) return null;
-
-                return (
-                  <div key={assignment.id} className={`rounded-lg p-4 md:p-6 border-l-4 border ${jobTypeColors[job.job_type] || 'bg-slate-50 border-slate-200'}`}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                      {/* Job Details */}
-                      <div>
-                        <div className="flex items-start justify-between mb-3 md:mb-4 gap-2">
-                          <div className="min-w-0">
-                            <h3 className="text-base md:text-lg font-bold text-slate-900 break-words">{job.name}</h3>
-                            <span className={`inline-block px-2 py-1 rounded text-xs font-semibold mt-2 ${jobTypeBadgeColors[job.job_type]}`}>
-                              {job.job_type.replace('_', ' ').toUpperCase()}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2 text-xs md:text-sm text-slate-600">
-                          <div className="flex items-start gap-2">
-                            <MapPin className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                            {job.location}
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <Calendar className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                            <span className="break-words">{format(new Date(assignment.assigned_date), 'EEEE, MMM d, yyyy')}</span>
-                          </div>
-                          {job.client_id && (
-                            <div className="flex items-start gap-2">
-                              <Briefcase className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                              Client: {job.client_id}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Vehicle & Equipment */}
-                      <div className="space-y-3 md:space-y-4">
-                        {vehicle && (
-                          <div className="p-3 md:p-4 bg-white bg-opacity-50 rounded-lg border border-green-100">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Truck className="w-5 h-5 text-green-600" />
-                              <h4 className="font-semibold text-slate-900">Assigned Vehicle</h4>
-                            </div>
-                            <p className="text-slate-900 font-mono font-bold text-lg">{vehicle.registration_number}</p>
-                            <p className="text-slate-600 text-sm">{vehicle.name}</p>
-                          </div>
-                        )}
-
-                        {job.equipment_needed && (
-                          <div className="p-3 md:p-4 bg-white bg-opacity-50 rounded-lg border border-green-100">
-                            <h4 className="font-semibold text-slate-900 mb-2">Equipment</h4>
-                            <p className="text-slate-600 text-sm">{job.equipment_needed}</p>
-                          </div>
-                        )}
-
-                        {job.notes && (
-                          <div className="p-3 md:p-4 bg-white bg-opacity-50 rounded-lg border border-green-100">
-                            <h4 className="font-semibold text-slate-900 mb-2">Notes</h4>
-                            <p className="text-slate-600 text-sm">{job.notes}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        {assignments.length === 0 ? (
+          <div className="bg-white rounded-lg p-12 border border-green-200 text-center">
+            <CalendarDays className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <p className="text-slate-600 font-medium">No assignments scheduled</p>
+            <p className="text-slate-400 text-sm mt-1">Check back later for updates</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {upcomingAssignments.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Calendar className="w-5 h-5 text-emerald-700" />
+                  <h2 className="text-lg md:text-xl font-bold text-slate-900">Upcoming</h2>
+                  <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{upcomingAssignments.length}</span>
+                </div>
+                <div className="space-y-4">
+                  {upcomingAssignments.map(renderAssignment)}
+                </div>
+              </div>
+            )}
+            {pastAssignments.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="w-5 h-5 text-slate-400" />
+                  <h2 className="text-lg md:text-xl font-bold text-slate-500">Past Assignments</h2>
+                  <span className="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full font-medium">{pastAssignments.length}</span>
+                </div>
+                <div className="space-y-4 opacity-70">
+                  {pastAssignments.map(renderAssignment)}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

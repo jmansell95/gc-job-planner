@@ -21,6 +21,17 @@
       ],
       "description": "Type of job"
     },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planning",
+        "in_progress",
+        "completed",
+        "on_hold"
+      ],
+      "default": "planning",
+      "description": "Job status"
+    },
     "start_date": {
       "type": "string",
       "format": "date",
