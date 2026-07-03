@@ -10,12 +10,15 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import Home from './pages/Home';
 import AdminDashboard from './pages/AdminDashboard';
 import StaffDashboard from './pages/StaffDashboard';
+import ClientPortal from './pages/ClientPortal';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
-  // Show loading spinner while checking app public settings or auth
-  if (isLoadingPublicSettings || isLoadingAuth) {
+  const isClientPortalRoute = window.location.pathname.startsWith('/client-portal/');
+
+  // Skip auth checks for public client portal routes
+  if (!isClientPortalRoute && (isLoadingPublicSettings || isLoadingAuth)) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
@@ -23,8 +26,8 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors
-  if (authError) {
+  // Handle authentication errors (skip for public client portal)
+  if (!isClientPortalRoute && authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
@@ -42,6 +45,7 @@ const AuthenticatedApp = () => {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/staff-schedule" element={<StaffDashboard />} />
       </Route>
+      <Route path="/client-portal/:token" element={<ClientPortal />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

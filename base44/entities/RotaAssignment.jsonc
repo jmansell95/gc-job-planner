@@ -51,6 +51,10 @@
       "type": "string",
       "description": "Timestamp when briefing was signed"
     },
+    "meterage": {
+      "type": "number",
+      "description": "Meters drilled (for drilling crews, recorded at job completion)"
+    },
     "notes": {
       "type": "string",
       "description": "Staff notes for this assignment"

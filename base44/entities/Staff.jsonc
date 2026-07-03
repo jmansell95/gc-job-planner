@@ -51,6 +51,10 @@
     "day_rate": {
       "type": "number",
       "description": "Daily rate in GBP for job cost calculations"
+    },
+    "meterage_rate": {
+      "type": "number",
+      "description": "Rate per meter in GBP for drilling staff (replaces day rate for drillers)"
     }
   },
   "required": [

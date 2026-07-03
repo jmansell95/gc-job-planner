@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
+import PortalLinkManager from '@/components/PortalLinkManager';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500', border: 'border-green-200' },
@@ -133,15 +134,27 @@ export default function JobDetail({ job, onBack }) {
   });
   const sortedDates = Object.keys(rotasByDate).sort();
 
-  // Job cost estimation
-  const staffCosts = assignedStaff.map(member => ({
-    name: member.name,
-    role: roleLabels[member.job_role] || member.job_role,
-    shifts: rotas.filter(r => r.staff_id === member.id).length,
-    dayRate: member.day_rate || 0,
-    cost: rotas.filter(r => r.staff_id === member.id).length * (member.day_rate || 0)
-  }));
+  // Job cost estimation (meterage-based for drillers, day-rate for others)
+  const staffCosts = assignedStaff.map(member => {
+    const memberRotas = rotas.filter(r => r.staff_id === member.id);
+    const isDriller = member.job_role === 'cp_driller' || member.job_role === 'rotary_driller';
+    const totalMeterage = memberRotas.reduce((sum, r) => sum + (r.meterage || 0), 0);
+    const meterageRate = member.meterage_rate || 0;
+    const dayRate = member.day_rate || 0;
+    const usesMeterage = isDriller && meterageRate > 0;
+    return {
+      name: member.name,
+      role: roleLabels[member.job_role] || member.job_role,
+      shifts: memberRotas.length,
+      dayRate,
+      meterage: totalMeterage,
+      meterageRate,
+      costType: usesMeterage ? 'meterage' : 'day_rate',
+      cost: usesMeterage ? totalMeterage * meterageRate : memberRotas.length * dayRate
+    };
+  });
   const totalCost = staffCosts.reduce((sum, s) => sum + s.cost, 0);
+  const totalMeterage = staffCosts.reduce((sum, s) => sum + s.meterage, 0);
 
   const startDate = job.start_date ? new Date(job.start_date + 'T00:00:00') : null;
   const endDate = job.end_date ? new Date(job.end_date + 'T00:00:00') : null;
@@ -350,12 +363,22 @@ export default function JobDetail({ job, onBack }) {
                       <div key={i} className="flex items-center justify-between text-sm">
                         <div className="min-w-0">
                           <span className="font-medium text-slate-900">{sc.name}</span>
-                          <span className="text-xs text-slate-400 ml-2">{sc.shifts} × £{sc.dayRate}</span>
+                          {sc.costType === 'meterage' ? (
+                            <span className="text-xs text-slate-400 ml-2">{sc.meterage}m × £{sc.meterageRate}/m</span>
+                          ) : (
+                            <span className="text-xs text-slate-400 ml-2">{sc.shifts} × £{sc.dayRate}</span>
+                          )}
                         </div>
                         <span className="font-semibold text-slate-700 flex-shrink-0">£{sc.cost.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
+                  {totalMeterage > 0 && (
+                    <div className="flex items-center justify-between pt-2 pb-2 text-sm border-t border-slate-100">
+                      <span className="text-slate-500">Total Meterage</span>
+                      <span className="font-semibold text-amber-700">{totalMeterage}m</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                     <span className="font-semibold text-slate-900">Total</span>
                     <span className="text-lg font-bold text-emerald-700">£{totalCost.toLocaleString()}</span>
@@ -456,6 +479,9 @@ export default function JobDetail({ job, onBack }) {
               </div>
             </div>
           )}
+
+          {/* Client Portal */}
+          <PortalLinkManager job={job} />
         </div>
       </div>
     </div>

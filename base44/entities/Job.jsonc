@@ -61,6 +61,15 @@
     "requisition_list_name": {
       "type": "string",
       "description": "Original filename of the requisition list"
+    },
+    "portal_token": {
+      "type": "string",
+      "description": "Unique token for client portal access"
+    },
+    "portal_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether client portal access is enabled for this job"
     }
   },
   "required": [

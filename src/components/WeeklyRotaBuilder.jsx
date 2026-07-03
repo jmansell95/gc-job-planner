@@ -361,6 +361,9 @@ export default function WeeklyRotaBuilder() {
                                       <ClipboardCheck className="w-2.5 h-2.5" />
                                     </span>
                                   )}
+                                  {assignment.meterage > 0 && (
+                                    <span className="text-[10px] text-amber-600 font-medium">{assignment.meterage}m</span>
+                                  )}
                                 </div>
                               </div>
                             );
@@ -429,6 +432,7 @@ export default function WeeklyRotaBuilder() {
                           {job?.location && <span className="flex items-center gap-0.5 text-slate-500"><MapPin className="w-3 h-3" />{job.location}</span>}
                           <span className={`inline-flex items-center gap-0.5 ${status.text}`}><StatusIcon className="w-3 h-3" />{status.label}</span>
                           {assignment.briefing_signed && <span className="inline-flex items-center text-emerald-600"><ClipboardCheck className="w-3 h-3" />Briefed</span>}
+                          {assignment.meterage > 0 && <span className="text-amber-600 font-medium">{assignment.meterage}m</span>}
                         </div>
                         {client && <p className="text-xs text-slate-400 mt-1.5">{client.name}</p>}
                       </div>

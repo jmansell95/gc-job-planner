@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDays, Clock, CheckCircle2, PlayCircle, ClipboardCheck } from 'lucide-react';
+import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDays, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, WifiOff } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 
@@ -22,6 +22,8 @@ const statusConfig = {
 export default function StaffDashboard() {
   const [staff, setStaff] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [meterageInputs, setMeterageInputs] = useState({});
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -39,14 +41,30 @@ export default function StaffDashboard() {
       }
     }
     loadStaff();
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['staff-assignments', staff?.id],
     queryFn: async () => {
       if (!staff?.id) return [];
-      const rotas = await base44.entities.RotaAssignment.filter({ staff_id: staff.id });
-      return rotas.sort((a, b) => new Date(a.assigned_date) - new Date(b.assigned_date));
+      try {
+        const rotas = await base44.entities.RotaAssignment.filter({ staff_id: staff.id });
+        const sorted = rotas.sort((a, b) => new Date(a.assigned_date) - new Date(b.assigned_date));
+        localStorage.setItem('cached_assignments_' + staff.id, JSON.stringify(sorted));
+        return sorted;
+      } catch (err) {
+        const cached = localStorage.getItem('cached_assignments_' + staff.id);
+        if (cached) return JSON.parse(cached);
+        throw err;
+      }
     },
     enabled: !!staff?.id
   });
@@ -69,10 +87,15 @@ export default function StaffDashboard() {
 
   const handleCompleteJob = async (assignmentId) => {
     try {
-      await base44.entities.RotaAssignment.update(assignmentId, {
+      const updateData = {
         status: 'completed',
         completed_at: new Date().toISOString()
-      });
+      };
+      if (meterageInputs[assignmentId] !== undefined && meterageInputs[assignmentId] !== '') {
+        updateData.meterage = parseFloat(meterageInputs[assignmentId]) || 0;
+      }
+      await base44.entities.RotaAssignment.update(assignmentId, updateData);
+      setMeterageInputs(prev => { const next = { ...prev }; delete next[assignmentId]; return next; });
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
     } catch (error) {
       console.error('Error completing job:', error);
@@ -128,6 +151,7 @@ export default function StaffDashboard() {
     const client = clients.find(c => c.id === job?.client_id);
     const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
     const StatusIcon = status.icon;
+    const isDriller = staff.job_role === 'cp_driller' || staff.job_role === 'rotary_driller';
     if (!job) return null;
     return (
       <div key={assignment.id} className={`rounded-lg p-4 md:p-6 border-l-4 border ${jobTypeColors[job.job_type] || 'bg-slate-50 border-slate-200'}`}>
@@ -148,10 +172,18 @@ export default function StaffDashboard() {
               </button>
             )}
             {assignment.status === 'started' && (
-              <button onClick={() => handleCompleteJob(assignment.id)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-xs font-medium">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Complete Job
-              </button>
+              <div className="flex items-center gap-2">
+                {isDriller && (
+                  <input type="number" min="0" step="0.1" placeholder="Meterage (m)"
+                    value={meterageInputs[assignment.id] || ''}
+                    onChange={(e) => setMeterageInputs(prev => ({ ...prev, [assignment.id]: e.target.value }))}
+                    className="w-28 px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-emerald-600" />
+                )}
+                <button onClick={() => handleCompleteJob(assignment.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-xs font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Complete Job
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -215,6 +247,14 @@ export default function StaffDashboard() {
           </div>
         </div>
 
+        {/* Meterage Record */}
+        {assignment.meterage != null && assignment.meterage > 0 && (
+          <div className="flex items-center gap-2 text-sm text-slate-600 mb-3">
+            <Ruler className="w-4 h-4 text-amber-600" />
+            <span>Meterage recorded: <span className="font-semibold text-slate-900">{assignment.meterage}m</span></span>
+          </div>
+        )}
+
         {/* Briefing Sign-off */}
         <div className="mt-4 pt-4 border-t border-slate-200/60">
           {assignment.briefing_signed ? (
@@ -251,6 +291,12 @@ export default function StaffDashboard() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-8">
+        {!isOnline && (
+          <div className="mb-6 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-700">
+            <WifiOff className="w-4 h-4 flex-shrink-0" />
+            You're offline. Showing cached schedule. Changes will sync when you reconnect.
+          </div>
+        )}
         {/* Staff Info Card */}
         <div className="bg-white rounded-lg p-4 md:p-6 border border-green-200 shadow-sm mb-6 md:mb-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
