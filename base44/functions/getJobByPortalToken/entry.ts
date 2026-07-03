@@ -16,6 +16,8 @@ Deno.serve(async (req) => {
     const assignments = await base44.asServiceRole.entities.RotaAssignment.filter({ job_id: job.id });
     const allStaff = await base44.asServiceRole.entities.Staff.list();
     const photos = await base44.asServiceRole.entities.SitePhoto.filter({ job_id: job.id });
+    const documents = await base44.asServiceRole.entities.JobDocument.filter({ job_id: job.id });
+    const milestones = await base44.asServiceRole.entities.JobMilestone.filter({ job_id: job.id });
 
     let client = null;
     if (job.client_id) {
@@ -52,6 +54,17 @@ Deno.serve(async (req) => {
       client: client ? { name: client.name, contact_name: client.contact_name } : null,
       schedule,
       progress: { total, completed, started },
+      documents: documents.map(d => ({
+        document_url: d.document_url,
+        document_name: d.document_name,
+        category: d.category || 'other'
+      })),
+      milestones: milestones.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).map(m => ({
+        name: m.name,
+        completed: m.completed || false,
+        target_date: m.target_date || '',
+        completed_date: m.completed_date || ''
+      })),
       photos: photos.map(p => ({
         photo_url: p.photo_url,
         caption: p.caption || '',

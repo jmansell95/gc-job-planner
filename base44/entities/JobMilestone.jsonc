@@ -1,0 +1,42 @@
+{
+  "name": "JobMilestone",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Associated job"
+    },
+    "name": {
+      "type": "string",
+      "description": "Milestone name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Milestone description"
+    },
+    "target_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Target completion date"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether milestone is completed"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date completed"
+    },
+    "sort_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order"
+    }
+  },
+  "required": [
+    "job_id",
+    "name"
+  ]
+}

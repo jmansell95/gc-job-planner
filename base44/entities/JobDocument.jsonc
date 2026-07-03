@@ -1,0 +1,39 @@
+{
+  "name": "JobDocument",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Associated job"
+    },
+    "document_url": {
+      "type": "string",
+      "description": "URL of the uploaded document"
+    },
+    "document_name": {
+      "type": "string",
+      "description": "Original filename"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "rams",
+        "method_statement",
+        "risk_assessment",
+        "completion_cert",
+        "other"
+      ],
+      "default": "other",
+      "description": "Document category"
+    },
+    "uploaded_by_name": {
+      "type": "string",
+      "description": "Who uploaded this document"
+    }
+  },
+  "required": [
+    "job_id",
+    "document_url",
+    "document_name"
+  ]
+}

@@ -5,6 +5,7 @@ import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDay
 import { format, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
+import TimesheetEntry from '@/components/TimesheetEntry';
 
 const jobTypeBadgeColors = {
   groundworks: 'bg-green-100 text-green-700',
@@ -281,6 +282,13 @@ export default function StaffDashboard() {
         {job && (
           <div className="mt-4 pt-4 border-t border-slate-200/60">
             <SitePhotoUpload jobId={job.id} staffName={staff.name} />
+          </div>
+        )}
+
+        {/* Timesheet Entry */}
+        {job && assignment.status === 'completed' && (
+          <div className="mt-4 pt-4 border-t border-slate-200/60">
+            <TimesheetEntry assignment={assignment} jobId={job.id} staffId={staff.id} />
           </div>
         )}
       </div>

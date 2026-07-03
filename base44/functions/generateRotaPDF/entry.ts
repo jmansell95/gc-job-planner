@@ -8,16 +8,9 @@ Deno.serve(async (req) => {
 
     const { weekStart, staffId } = await req.json();
 
-    // Fetch data
-    const staff = staffId 
-      ? await base44.entities.Staff.get(staffId)
-      : null;
-    
+    const staff = staffId ? await base44.entities.Staff.get(staffId) : null;
     const rotas = await base44.entities.RotaAssignment.filter({ week_start: weekStart });
-    
-    const filteredRotas = staffId 
-      ? rotas.filter(r => r.staff_id === staffId)
-      : rotas;
+    const filteredRotas = staffId ? rotas.filter(r => r.staff_id === staffId) : rotas;
 
     const jobIds = [...new Set(filteredRotas.map(r => r.job_id))];
     const jobs = await Promise.all(jobIds.map(id => base44.entities.Job.get(id).catch(() => null)));
@@ -25,163 +18,107 @@ Deno.serve(async (req) => {
     const vehicleIds = [...new Set(filteredRotas.map(r => r.vehicle_id).filter(Boolean))];
     const vehicles = await Promise.all(vehicleIds.map(id => base44.entities.Vehicle.get(id).catch(() => null)));
 
-    // Generate simple HTML-based PDF content
-    let htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; color: #111827; }
-          .header { background-color: #16A34A; color: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; }
-          .header h1 { margin: 0; font-size: 28px; }
-          .header p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.9; }
-          .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
-          .info-box { background: #F0FDF4; border: 1px solid #BBF7D0; padding: 12px; border-radius: 6px; }
-          .info-box p { margin: 0; font-size: 12px; color: #6B7280; }
-          .info-box .value { font-weight: bold; color: #111827; font-size: 16px; margin-top: 4px; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          th { background-color: #16A34A; color: white; padding: 12px; text-align: left; font-weight: bold; font-size: 14px; }
-          td { padding: 12px; border-bottom: 1px solid #E5E7EB; }
-          tr:nth-child(even) { background-color: #F9FAFB; }
-          .job-name { font-weight: bold; color: #111827; }
-          .location { color: #6B7280; font-size: 13px; }
-          .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #E5E7EB; font-size: 12px; color: #6B7280; }
-          .page-break { page-break-after: always; }
-        </style>
-      </head>
-      <body>
-    `;
+    const allStaffIds = [...new Set(filteredRotas.map(r => r.staff_id))];
+    const allStaff = await Promise.all(allStaffIds.map(id => base44.entities.Staff.get(id).catch(() => null)));
+
+    const fmtDate = (d) => {
+      const date = new Date(d + 'T00:00:00');
+      const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return days[date.getDay()] + ' ' + date.getDate() + ' ' + months[date.getMonth()];
+    };
+
+    const genDate = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    let bodyContent = '';
 
     if (staffId && staff) {
-      // Individual schedule
-      htmlContent += `
-        <div class="header">
-          <h1>${staff.name}'s Weekly Schedule</h1>
-          <p>Week of ${weekStart}</p>
-        </div>
-        <div class="info-grid">
-          <div class="info-box">
-            <p>Job Role</p>
-            <div class="value">${staff.job_role.replace('_', ' ')}</div>
-          </div>
-          <div class="info-box">
-            <p>Worker Type</p>
-            <div class="value">${staff.worker_type.replace('_', ' ')}</div>
-          </div>
-          <div class="info-box">
-            <p>Contact</p>
-            <div class="value">${staff.email}</div>
-          </div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Job</th>
-              <th>Location</th>
-              <th>Type</th>
-              <th>Vehicle</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
-
-      for (const rota of filteredRotas) {
+      const rows = filteredRotas.map(rota => {
         const job = jobs.find(j => j?.id === rota.job_id);
         const vehicle = vehicles.find(v => v?.id === rota.vehicle_id);
-        if (job) {
-          htmlContent += `
-            <tr>
-              <td>${rota.assigned_date}</td>
-              <td class="job-name">${job.name}</td>
-              <td class="location">${job.location}</td>
-              <td>${job.job_type.replace('_', ' ')}</td>
-              <td>${vehicle ? vehicle.registration_number : '-'}</td>
-            </tr>
-          `;
-        }
-      }
+        if (!job) return '';
+        const times = (rota.start_time || rota.end_time) ? (rota.start_time || '—') + '–' + (rota.end_time || '—') : '—';
+        return `<tr><td>${fmtDate(rota.assigned_date)}</td><td class="job-name">${job.name}</td><td>${job.location}</td><td>${job.job_type.replace(/_/g,' ')}</td><td>${times}</td><td>${vehicle ? vehicle.registration_number : '—'}</td></tr>`;
+      }).join('');
 
-      htmlContent += `</tbody></table>`;
-    } else {
-      // Full rota
-      htmlContent += `
+      bodyContent = `
         <div class="header">
-          <h1>Weekly Rota Schedule</h1>
-          <p>Week of ${weekStart}</p>
-        </div>
-        <div class="info-grid">
-          <div class="info-box">
-            <p>Total Assignments</p>
-            <div class="value">${filteredRotas.length}</div>
+          <div class="header-left">
+            <h1>Weekly Schedule</h1>
+            <p>${staff.name} · ${staff.job_role.replace(/_/g,' ')} · ${staff.worker_type.replace(/_/g,' ')}</p>
           </div>
-          <div class="info-box">
-            <p>Active Jobs</p>
-            <div class="value">${jobIds.length}</div>
-          </div>
-          <div class="info-box">
-            <p>Vehicles</p>
-            <div class="value">${vehicleIds.length}</div>
+          <div class="header-right">
+            <p class="week-label">Week of</p>
+            <p class="week-date">${fmtDate(weekStart)}</p>
           </div>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Staff</th>
-              <th>Date</th>
-              <th>Job</th>
-              <th>Location</th>
-              <th>Type</th>
-              <th>Vehicle</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
+        <div class="summary-grid">
+          <div class="summary-card"><div class="summary-value">${filteredRotas.length}</div><div class="summary-label">Shifts</div></div>
+          <div class="summary-card"><div class="summary-value">${jobIds.length}</div><div class="summary-label">Jobs</div></div>
+          <div class="summary-card"><div class="summary-value">${vehicleIds.length}</div><div class="summary-label">Vehicles</div></div>
+        </div>
+        <table><thead><tr><th>Date</th><th>Job</th><th>Location</th><th>Type</th><th>Times</th><th>Vehicle</th></tr></thead>
+        <tbody>${rows}</tbody></table>`;
+    } else {
+      const rows = filteredRotas.map(rota => {
+        const job = jobs.find(j => j?.id === rota.job_id);
+        const vehicle = vehicles.find(v => v?.id === rota.vehicle_id);
+        const member = allStaff.find(s => s?.id === rota.staff_id);
+        if (!job) return '';
+        const times = (rota.start_time || rota.end_time) ? (rota.start_time || '—') + '–' + (rota.end_time || '—') : '—';
+        return `<tr><td class="job-name">${member?.name || 'Unknown'}</td><td>${member?.job_role?.replace(/_/g,' ') || '—'}</td><td>${fmtDate(rota.assigned_date)}</td><td class="job-name">${job.name}</td><td>${job.location}</td><td>${times}</td><td>${vehicle ? vehicle.registration_number : '—'}</td></tr>`;
+      }).join('');
 
-      // Group by staff for better readability
-      const staffMap = new Map();
-      for (const rota of filteredRotas) {
-        if (!staffMap.has(rota.staff_id)) {
-          staffMap.set(rota.staff_id, []);
-        }
-        staffMap.get(rota.staff_id).push(rota);
-      }
-
-      for (const [staffId, staffRotas] of staffMap) {
-        const staffMember = await base44.entities.Staff.get(staffId).catch(() => null);
-        for (const rota of staffRotas) {
-          const job = jobs.find(j => j?.id === rota.job_id);
-          const vehicle = vehicles.find(v => v?.id === rota.vehicle_id);
-          if (job) {
-            htmlContent += `
-              <tr>
-                <td class="job-name">${staffMember?.name || 'Unknown'}</td>
-                <td>${rota.assigned_date}</td>
-                <td class="job-name">${job.name}</td>
-                <td class="location">${job.location}</td>
-                <td>${job.job_type.replace('_', ' ')}</td>
-                <td>${vehicle ? vehicle.registration_number : '-'}</td>
-              </tr>
-            `;
-          }
-        }
-      }
-
-      htmlContent += `</tbody></table>`;
+      bodyContent = `
+        <div class="header">
+          <div class="header-left">
+            <h1>Weekly Rota</h1>
+            <p>All Staff Assignments</p>
+          </div>
+          <div class="header-right">
+            <p class="week-label">Week of</p>
+            <p class="week-date">${fmtDate(weekStart)}</p>
+          </div>
+        </div>
+        <div class="summary-grid">
+          <div class="summary-card"><div class="summary-value">${filteredRotas.length}</div><div class="summary-label">Assignments</div></div>
+          <div class="summary-card"><div class="summary-value">${allStaffIds.length}</div><div class="summary-label">Staff</div></div>
+          <div class="summary-card"><div class="summary-value">${jobIds.length}</div><div class="summary-label">Jobs</div></div>
+          <div class="summary-card"><div class="summary-value">${vehicleIds.length}</div><div class="summary-label">Vehicles</div></div>
+        </div>
+        <table><thead><tr><th>Staff</th><th>Role</th><th>Date</th><th>Job</th><th>Location</th><th>Times</th><th>Vehicle</th></tr></thead>
+        <tbody>${rows}</tbody></table>`;
     }
 
-    htmlContent += `
-      <div class="footer">
-        <p>Generated on ${new Date().toLocaleString()}</p>
-        <p>WorkRota Platform</p>
-      </div>
-      </body>
-      </html>
-    `;
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#1e293b;padding:24px;max-width:900px;margin:0 auto}
+      .header{background:linear-gradient(135deg,#064e3b 0%,#065f46 100%);color:white;border-radius:12px;padding:24px 28px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+      .header h1{font-size:22px;font-weight:700}
+      .header p{font-size:13px;opacity:0.85;margin-top:4px}
+      .header-right{text-align:right}
+      .week-label{font-size:11px;opacity:0.7;text-transform:uppercase;letter-spacing:0.05em}
+      .week-date{font-size:16px;font-weight:600}
+      .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+      .summary-card{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;text-align:center}
+      .summary-value{font-size:24px;font-weight:700;color:#065f46}
+      .summary-label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px}
+      table{width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+      th{background:#065f46;color:white;padding:10px 12px;text-align:left;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em}
+      td{padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:13px}
+      tr:nth-child(even) td{background:#f8fafb}
+      tr:last-child td{border-bottom:none}
+      .job-name{font-weight:600;color:#1e293b}
+      .footer{margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:11px;color:#94a3b8}
+      .footer-brand{font-weight:600;color:#065f46}
+      @media print{body{padding:12px}.header,.summary-card,th,tr:nth-child(even) td{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+    </style></head><body>
+    ${bodyContent}
+    <div class="footer"><span>Generated ${genDate}</span><span class="footer-brand">GC Job Planner</span></div>
+    </body></html>`;
 
-    // Return HTML (can be converted to PDF by frontend using libraries like html2pdf)
-    return Response.json({ 
+    return Response.json({
       html: htmlContent,
       fileName: staffId ? `${staff.name}_schedule_${weekStart}.html` : `rota_${weekStart}.html`
     });

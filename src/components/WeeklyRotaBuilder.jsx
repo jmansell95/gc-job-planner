@@ -30,7 +30,7 @@ export default function WeeklyRotaBuilder() {
   const [showAssignmentForm, setShowAssignmentForm] = useState(false);
   const [conflictWarning, setConflictWarning] = useState(null);
   const [smartFillLoading, setSmartFillLoading] = useState(false);
-  const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '' });
+  const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '' });
 
   const queryClient = useQueryClient();
   const weekStart = startOfWeek(selectedWeek);
@@ -79,7 +79,7 @@ export default function WeeklyRotaBuilder() {
   };
 
   const handleCellClick = (staffId, dateStr) => {
-    setFormData({ job_id: '', staff_id: staffId, assigned_date: dateStr, vehicle_id: '' });
+    setFormData({ job_id: '', staff_id: staffId, assigned_date: dateStr, vehicle_id: '', start_time: '', end_time: '' });
     setConflictWarning(null);
     setShowAssignmentForm(true);
   };
@@ -97,7 +97,7 @@ export default function WeeklyRotaBuilder() {
       });
       queryClient.invalidateQueries({ queryKey: ['rotas'] });
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
-      setFormData({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '' });
+      setFormData({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '' });
       setShowAssignmentForm(false);
       setConflictWarning(null);
     } catch (error) {
@@ -138,6 +138,8 @@ export default function WeeklyRotaBuilder() {
           staff_id: r.staff_id,
           assigned_date: format(addDays(prevDate, 7), 'yyyy-MM-dd'),
           vehicle_id: r.vehicle_id || '',
+          start_time: r.start_time || '',
+          end_time: r.end_time || '',
           week_start: weekStartStr,
           status: 'assigned'
         };
@@ -194,7 +196,7 @@ export default function WeeklyRotaBuilder() {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50">
             <Copy className="w-4 h-4" /> {smartFillLoading ? 'Copying...' : 'Smart Fill'}
           </button>
-          <button onClick={() => { setShowAssignmentForm(!showAssignmentForm); setFormData({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '' }); setConflictWarning(null); }}
+          <button onClick={() => { setShowAssignmentForm(!showAssignmentForm); setFormData({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '' }); setConflictWarning(null); }}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
             <Plus className="w-4 h-4" /> Add Assignment
           </button>
@@ -265,6 +267,16 @@ export default function WeeklyRotaBuilder() {
                 <option value="">Select Vehicle (Optional)</option>
                 {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} — {v.name}</option>)}
               </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Start Time</label>
+              <input type="time" value={formData.start_time} onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">End Time</label>
+              <input type="time" value={formData.end_time} onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
             </div>
           </div>
           {conflictWarning && (
@@ -346,6 +358,12 @@ export default function WeeklyRotaBuilder() {
                                   <div className="flex items-center gap-1 text-slate-500 mb-1">
                                     <Truck className="w-2.5 h-2.5 flex-shrink-0" />
                                     <span className="font-mono truncate">{vehicle.registration_number}</span>
+                                  </div>
+                                )}
+                                {(assignment.start_time || assignment.end_time) && (
+                                  <div className="flex items-center gap-1 text-slate-500 mb-1">
+                                    <Clock className="w-2.5 h-2.5 flex-shrink-0" />
+                                    <span className="truncate">{assignment.start_time || '—'} - {assignment.end_time || '—'}</span>
                                   </div>
                                 )}
                                 {client && (

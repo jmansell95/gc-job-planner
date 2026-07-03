@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Truck, Briefcase, Calendar, Grid3x3, LogOut, Menu, X, Settings } from 'lucide-react';
+import { Users, Truck, Briefcase, Calendar, Grid3x3, LogOut, Menu, X, Settings, Clock } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
@@ -14,6 +14,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
     { id: 'teams', label: 'Teams', icon: Users },
     { id: 'rota', label: 'Weekly Rota', icon: Calendar },
+    { id: 'timesheets', label: 'Timesheets', icon: Clock },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 

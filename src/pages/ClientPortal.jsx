@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Calendar, MapPin, CheckCircle2, Clock, PlayCircle, Briefcase, Building2, Activity, Ruler, Camera } from 'lucide-react';
+import { Calendar, MapPin, CheckCircle2, Clock, PlayCircle, Briefcase, Building2, Activity, Ruler, Camera, FileText, Target, Download, CheckCircle, Circle } from 'lucide-react';
 import { format } from 'date-fns';
 
 const jobTypeBadges = {
@@ -203,6 +203,70 @@ export default function ClientPortal() {
                     <p className="text-[10px] text-slate-400">by {photo.uploaded_by}</p>
                   )}
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Progress Timeline */}
+        {data.milestones && data.milestones.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+              <Target className="w-5 h-5 text-emerald-700" />
+              <h2 className="font-semibold text-slate-900">Project Milestones</h2>
+              <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
+                {data.milestones.filter(m => m.completed).length}/{data.milestones.length}
+              </span>
+            </div>
+            <div className="p-5">
+              <div className="space-y-1">
+                {data.milestones.map((m, i) => (
+                  <div key={i} className="flex items-start gap-3 relative">
+                    {i < data.milestones.length - 1 && (
+                      <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-slate-200" />
+                    )}
+                    <div className="flex-shrink-0 mt-0.5">
+                      {m.completed ? (
+                        <CheckCircle className="w-5 h-5 text-emerald-600 relative z-10" />
+                      ) : (
+                        <Circle className="w-5 h-5 text-slate-300 relative z-10" />
+                      )}
+                    </div>
+                    <div className="pb-4">
+                      <p className={`text-sm font-medium ${m.completed ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{m.name}</p>
+                      {m.target_date && (
+                        <p className="text-xs text-slate-400 mt-0.5">Target: {format(new Date(m.target_date + 'T00:00:00'), 'dd MMM yyyy')}</p>
+                      )}
+                      {m.completed && m.completed_date && (
+                        <p className="text-xs text-emerald-600 mt-0.5">Completed {format(new Date(m.completed_date + 'T00:00:00'), 'dd MMM yyyy')}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Document Vault */}
+        {data.documents && data.documents.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-emerald-700" />
+              <h2 className="font-semibold text-slate-900">Documents</h2>
+              <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{data.documents.length}</span>
+            </div>
+            <div className="p-5 space-y-2">
+              {data.documents.map((doc, i) => (
+                <a key={i} href={doc.document_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3 hover:border-emerald-300 transition">
+                  <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-4 h-4 text-slate-500" />
+                  </div>
+                  <span className="text-sm font-medium text-slate-900 truncate flex-1">{doc.document_name}</span>
+                  <span className="text-xs text-slate-400 capitalize flex-shrink-0">{(doc.category || 'other').replace(/_/g, ' ')}</span>
+                  <Download className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                </a>
               ))}
             </div>
           </div>

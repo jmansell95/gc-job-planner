@@ -1,0 +1,62 @@
+{
+  "name": "Timesheet",
+  "type": "object",
+  "properties": {
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job worked on"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date worked"
+    },
+    "start_time": {
+      "type": "string",
+      "description": "Start time (HH:MM)"
+    },
+    "end_time": {
+      "type": "string",
+      "description": "End time (HH:MM)"
+    },
+    "break_minutes": {
+      "type": "number",
+      "default": 30,
+      "description": "Break duration in minutes"
+    },
+    "total_hours": {
+      "type": "number",
+      "description": "Total hours worked (calculated)"
+    },
+    "meterage": {
+      "type": "number",
+      "description": "Meters drilled (if applicable)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Timesheet notes"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "approved",
+        "rejected"
+      ],
+      "default": "submitted",
+      "description": "Timesheet approval status"
+    }
+  },
+  "required": [
+    "staff_id",
+    "job_id",
+    "date",
+    "start_time",
+    "end_time"
+  ]
+}

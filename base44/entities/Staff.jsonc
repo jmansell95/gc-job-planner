@@ -55,6 +55,10 @@
     "meterage_rate": {
       "type": "number",
       "description": "Rate per meter in GBP for drilling staff (replaces day rate for drillers)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Linked user account ID for login access"
     }
   },
   "required": [

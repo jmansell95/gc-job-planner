@@ -51,6 +51,24 @@
       "type": "string",
       "description": "Timestamp when briefing was signed"
     },
+    "start_time": {
+      "type": "string",
+      "description": "Shift start time (HH:MM format)"
+    },
+    "end_time": {
+      "type": "string",
+      "description": "Shift end time (HH:MM format)"
+    },
+    "shift_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "declined"
+      ],
+      "default": "pending",
+      "description": "Staff confirmation status for this shift"
+    },
     "meterage": {
       "type": "number",
       "description": "Meters drilled (for drilling crews, recorded at job completion)"

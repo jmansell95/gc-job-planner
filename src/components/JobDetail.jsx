@@ -8,6 +8,8 @@ import {
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
 import PortalLinkManager from '@/components/PortalLinkManager';
+import DocumentManager from '@/components/DocumentManager';
+import MilestoneManager from '@/components/MilestoneManager';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500', border: 'border-green-200' },
@@ -479,6 +481,12 @@ export default function JobDetail({ job, onBack }) {
               </div>
             </div>
           )}
+
+          {/* Milestones */}
+          <MilestoneManager job={job} />
+
+          {/* Documents */}
+          <DocumentManager job={job} />
 
           {/* Client Portal */}
           <PortalLinkManager job={job} />
