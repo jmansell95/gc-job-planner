@@ -138,14 +138,14 @@ export default function JobDetail({ job, onBack }) {
   });
   const sortedDates = Object.keys(rotasByDate).sort();
 
-  // Job cost estimation (meterage-based for drillers, day-rate for others)
+  // Job cost estimation — meterage-based for drilling jobs, day-rate for others
+  const isDrillingJob = job.job_type === 'cp_drilling' || job.job_type === 'rotary_drilling';
   const staffCosts = assignedStaff.map(member => {
     const memberRotas = rotas.filter(r => r.staff_id === member.id);
-    const isDriller = member.job_role === 'cp_driller' || member.job_role === 'rotary_driller';
     const totalMeterage = memberRotas.reduce((sum, r) => sum + (r.meterage || 0), 0);
     const meterageRate = member.meterage_rate || 0;
     const dayRate = member.day_rate || 0;
-    const usesMeterage = isDriller && meterageRate > 0;
+    const usesMeterage = isDrillingJob && meterageRate > 0;
     return {
       name: member.name,
       role: roleLabels[member.job_role] || member.job_role,
@@ -359,10 +359,13 @@ export default function JobDetail({ job, onBack }) {
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
               <PoundSterling className="w-5 h-5 text-emerald-700" />
               <h2 className="font-semibold text-slate-900">Estimated Cost</h2>
+              <span className={`ml-auto text-xs px-2 py-0.5 rounded-full font-medium ${isDrillingJob ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                {isDrillingJob ? 'Meterage Rate' : 'Day Rate'}
+              </span>
             </div>
             <div className="px-5 py-4">
               {totalCost === 0 ? (
-                <p className="text-sm text-slate-400">No day rates set for assigned staff</p>
+                <p className="text-sm text-slate-400">{isDrillingJob ? 'No meterage rates set for assigned staff' : 'No day rates set for assigned staff'}</p>
               ) : (
                 <>
                   <div className="space-y-2 mb-3">
