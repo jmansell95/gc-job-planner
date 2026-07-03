@@ -83,7 +83,7 @@ export function StaffUtilizationChart({ staff, rotas, weekDays }) {
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
       <div className="flex items-center gap-2 mb-4">
         <Users className="w-5 h-5 text-emerald-700" />
-        <h2 className="font-semibold text-slate-900">Staff Utilization</h2>
+        <h2 className="font-semibold text-slate-900">Staff Utilisation</h2>
       </div>
       {data.length === 0 ? (
         <div className="h-[180px] flex items-center justify-center text-slate-400 text-sm">No staff yet</div>
