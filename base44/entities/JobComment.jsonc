@@ -1,0 +1,28 @@
+{
+  "name": "JobComment",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Associated job"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Name of commenter"
+    },
+    "message": {
+      "type": "string",
+      "description": "Comment text"
+    },
+    "is_client": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this comment is from the client portal"
+    }
+  },
+  "required": [
+    "job_id",
+    "author_name",
+    "message"
+  ]
+}

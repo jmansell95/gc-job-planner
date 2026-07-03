@@ -40,6 +40,7 @@ export default function WeeklyRotaBuilder() {
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
+  const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
 
   const { data: rotas = [] } = useQuery({
     queryKey: ['rotas', weekStartStr],
@@ -59,6 +60,10 @@ export default function WeeklyRotaBuilder() {
       rotasByStaff[rota.staff_id][dayIndex].push(rota);
     }
   });
+
+  const isOnLeave = (staffId, dateStr) => {
+    return absences.some(a => a.staff_id === staffId && a.status === 'approved' && a.start_date <= dateStr && a.end_date >= dateStr);
+  };
 
   const checkConflict = (staffId, date) => {
     return rotas.some(r => r.staff_id === staffId && r.assigned_date === date);
@@ -329,8 +334,11 @@ export default function WeeklyRotaBuilder() {
                     const dayAssignments = rotasByStaff[member.id]?.[dayIdx] || [];
                     const isToday = dayStr === todayStr;
                     return (
-                      <td key={`${member.id}-${dayIdx}`} className={`px-2 py-2 align-top min-w-[130px] ${isToday ? 'bg-emerald-50/40' : ''} group/cell`}>
+                      <td key={`${member.id}-${dayIdx}`} className={`px-2 py-2 align-top min-w-[130px] ${isToday ? 'bg-emerald-50/40' : ''} ${isOnLeave(member.id, dayStr) ? 'bg-red-50/60' : ''} group/cell`}>
                         <div className="space-y-1.5">
+                          {isOnLeave(member.id, dayStr) && (
+                            <div className="px-2 py-1 bg-red-100 text-red-600 rounded text-[10px] font-bold text-center">ON LEAVE</div>
+                          )}
                           {dayAssignments.map(assignment => {
                             const job = jobs.find(j => j.id === assignment.job_id);
                             const vehicle = vehicles.find(v => v.id === assignment.vehicle_id);

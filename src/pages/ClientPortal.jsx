@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Calendar, MapPin, CheckCircle2, Clock, PlayCircle, Briefcase, Building2, Activity, Ruler, Camera, FileText, Target, Download, CheckCircle, Circle } from 'lucide-react';
 import { format } from 'date-fns';
+import PortalComments from '@/components/PortalComments';
 
 const jobTypeBadges = {
   groundworks: 'bg-green-100 text-green-700',
@@ -271,6 +272,9 @@ export default function ClientPortal() {
             </div>
           </div>
         )}
+
+        {/* Comments */}
+        <PortalComments token={token} comments={data.comments} />
 
         <div className="text-center text-xs text-slate-400 py-4">
           Powered by GC Job Planner · Updated {format(new Date(), 'dd MMM yyyy HH:mm')}

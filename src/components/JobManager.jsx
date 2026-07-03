@@ -43,7 +43,8 @@ export default function JobManager() {
     contractor_id: '',
     notes: '',
     requisition_list_url: '',
-    requisition_list_name: ''
+    requisition_list_name: '',
+    budget_amount: ''
   });
 
   const queryClient = useQueryClient();
@@ -82,7 +83,8 @@ export default function JobManager() {
         contractor_id: '',
         notes: '',
         requisition_list_url: '',
-        requisition_list_name: ''
+        requisition_list_name: '',
+        budget_amount: ''
       });
       setShowForm(false);
       setEditingId(null);
@@ -167,7 +169,8 @@ export default function JobManager() {
                 contractor_id: '',
                 notes: '',
                 requisition_list_url: '',
-                requisition_list_name: ''
+                requisition_list_name: '',
+                budget_amount: ''
               });
             }}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
@@ -279,6 +282,19 @@ export default function JobManager() {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Budget (GBP)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.budget_amount || ''}
+                onChange={(e) => setFormData({ ...formData, budget_amount: e.target.value ? parseFloat(e.target.value) : '' })}
+                placeholder="0.00"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
+              />
             </div>
             </div>
 

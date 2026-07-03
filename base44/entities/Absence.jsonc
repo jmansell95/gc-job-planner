@@ -1,0 +1,51 @@
+{
+  "name": "Absence",
+  "type": "object",
+  "properties": {
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Absence start date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Absence end date"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "holiday",
+        "sick",
+        "personal",
+        "training",
+        "other"
+      ],
+      "description": "Reason for absence"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "Approval status"
+    }
+  },
+  "required": [
+    "staff_id",
+    "start_date",
+    "end_date",
+    "reason"
+  ]
+}

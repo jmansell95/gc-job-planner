@@ -17,6 +17,7 @@ Deno.serve(async (req) => {
     const allStaff = await base44.asServiceRole.entities.Staff.list();
     const photos = await base44.asServiceRole.entities.SitePhoto.filter({ job_id: job.id });
     const documents = await base44.asServiceRole.entities.JobDocument.filter({ job_id: job.id });
+    const comments = await base44.asServiceRole.entities.JobComment.filter({ job_id: job.id });
     const milestones = await base44.asServiceRole.entities.JobMilestone.filter({ job_id: job.id });
 
     let client = null;
@@ -64,6 +65,12 @@ Deno.serve(async (req) => {
         completed: m.completed || false,
         target_date: m.target_date || '',
         completed_date: m.completed_date || ''
+      })),
+      comments: comments.map(c => ({
+        author_name: c.author_name,
+        message: c.message,
+        is_client: c.is_client || false,
+        created_date: c.created_date || ''
       })),
       photos: photos.map(p => ({
         photo_url: p.photo_url,

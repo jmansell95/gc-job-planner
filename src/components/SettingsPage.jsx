@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings, Users, Truck, HardHat, Shield, Building2, ChevronRight } from 'lucide-react';
+import { Settings, Users, Truck, HardHat, Shield, Building2, ChevronRight, CalendarX } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import StaffManager from '@/components/StaffManager';
 import VehicleManager from '@/components/VehicleManager';
 import ContractorManager from '@/components/ContractorManager';
 import ClientManager from '@/components/ClientManager';
+import AbsenceManager from '@/components/AbsenceManager';
 
 const tabs = [
   { id: 'users', label: 'Users & Roles', icon: Shield },
@@ -14,6 +15,7 @@ const tabs = [
   { id: 'vehicles', label: 'Vehicles', icon: Truck },
   { id: 'clients', label: 'Clients', icon: Building2 },
   { id: 'contractors', label: 'Contractors', icon: HardHat },
+  { id: 'absences', label: 'Absences', icon: CalendarX },
 ];
 
 function UsersAndRoles() {
@@ -92,6 +94,7 @@ export default function SettingsPage() {
       {activeTab === 'vehicles' && <VehicleManager />}
       {activeTab === 'clients' && <ClientManager />}
       {activeTab === 'contractors' && <ContractorManager />}
+  {activeTab === 'absences' && <AbsenceManager />}
     </div>
   );
 }

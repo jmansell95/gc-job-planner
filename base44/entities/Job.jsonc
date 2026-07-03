@@ -70,6 +70,10 @@
       "type": "boolean",
       "default": false,
       "description": "Whether client portal access is enabled for this job"
+    },
+    "budget_amount": {
+      "type": "number",
+      "description": "Job budget in GBP for cost tracking"
     }
   },
   "required": [

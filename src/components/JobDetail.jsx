@@ -10,6 +10,8 @@ import PrintReportButton from '@/components/PrintReportButton';
 import PortalLinkManager from '@/components/PortalLinkManager';
 import DocumentManager from '@/components/DocumentManager';
 import MilestoneManager from '@/components/MilestoneManager';
+import JobBudgetCard from '@/components/JobBudgetCard';
+import JobCommentsViewer from '@/components/JobCommentsViewer';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500', border: 'border-green-200' },
@@ -349,6 +351,9 @@ export default function JobDetail({ job, onBack }) {
             </div>
           </div>
 
+          {/* Job Budget */}
+          <JobBudgetCard job={job} totalCost={totalCost} />
+
           {/* Job Cost Summary */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
@@ -487,6 +492,9 @@ export default function JobDetail({ job, onBack }) {
 
           {/* Documents */}
           <DocumentManager job={job} />
+
+          {/* Client Messages */}
+          <JobCommentsViewer job={job} />
 
           {/* Client Portal */}
           <PortalLinkManager job={job} />
