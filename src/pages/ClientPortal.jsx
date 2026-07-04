@@ -94,6 +94,9 @@ export default function ClientPortal() {
   const progressPct = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
   const totalMeterage = Object.values(schedule).flat().reduce((sum, e) => sum + (e.meterage || 0), 0);
 
+  const sec = data.job.portal_sections || {};
+  const visible = (k) => sec[k] !== false;
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -124,29 +127,14 @@ export default function ClientPortal() {
       <motion.div variants={portalContainer} initial="hidden" animate="show"
         className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
         {/* Progress Card */}
+        {visible('progress') && (
         <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Activity className="w-5 h-5 text-emerald-700" />
-            <h2 className="font-semibold text-slate-900">Project Progress</h2>
-          </div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-slate-600">{progress.completed} of {progress.total} shifts completed</span>
-            <span className="text-sm font-bold text-emerald-700">{progressPct}%</span>
-          </div>
-          <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-600 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
-          </div>
-          <div className="flex flex-wrap gap-4 mt-4 text-xs">
-            <div className="flex items-center gap-1.5"><PlayCircle className="w-3.5 h-3.5 text-blue-600" /><span className="text-slate-600">{progress.started} in progress</span></div>
-            <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-slate-400" /><span className="text-slate-600">{Math.max(0, progress.total - progress.completed - progress.started)} assigned</span></div>
-            {totalMeterage > 0 && (
-              <div className="flex items-center gap-1.5"><Ruler className="w-3.5 h-3.5 text-amber-600" /><span className="text-slate-600">{totalMeterage}m drilled</span></div>
-            )}
-          </div>
+...
         </motion.div>
+        )}
 
         {/* Client Info */}
-        {client && (
+        {visible('client_info') && client && (
           <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6">
             <div className="flex items-center gap-2 mb-3">
               <Briefcase className="w-5 h-5 text-emerald-700" />
@@ -158,6 +146,7 @@ export default function ClientPortal() {
         )}
 
         {/* Schedule */}
+        {visible('schedule') && (
         <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-emerald-700" />
@@ -199,9 +188,10 @@ export default function ClientPortal() {
             </div>
           )}
         </motion.div>
+        )}
 
         {/* Notes */}
-        {job.notes && (
+        {visible('notes') && job.notes && (
           <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6">
             <h2 className="font-semibold text-slate-900 mb-3">Project Notes</h2>
             <p className="text-sm text-slate-600 whitespace-pre-wrap">{job.notes}</p>
@@ -209,7 +199,7 @@ export default function ClientPortal() {
         )}
 
         {/* Site Photos */}
-        {data.photos && data.photos.length > 0 && (
+        {visible('photos') && data.photos && data.photos.length > 0 && (
           <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
               <Camera className="w-5 h-5 text-emerald-700" />
@@ -234,7 +224,7 @@ export default function ClientPortal() {
         )}
 
         {/* Progress Timeline */}
-        {data.milestones && data.milestones.length > 0 && (
+        {visible('milestones') && data.milestones && data.milestones.length > 0 && (
           <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
               <Target className="w-5 h-5 text-emerald-700" />
@@ -274,7 +264,7 @@ export default function ClientPortal() {
         )}
 
         {/* Document Vault */}
-        {data.documents && data.documents.length > 0 && (
+        {visible('documents') && data.documents && data.documents.length > 0 && (
           <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
               <FileText className="w-5 h-5 text-emerald-700" />
@@ -298,9 +288,11 @@ export default function ClientPortal() {
         )}
 
         {/* Comments */}
+        {visible('comments') && (
         <motion.div variants={portalItem}>
           <PortalComments token={token} comments={data.comments} />
         </motion.div>
+        )}
 
         <div className="text-center text-xs text-slate-400 py-4">
           Powered by GC Job Planner · Updated {format(new Date(), 'dd MMM yyyy HH:mm')}

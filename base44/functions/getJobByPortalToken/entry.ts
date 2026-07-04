@@ -50,7 +50,8 @@ Deno.serve(async (req) => {
         status: job.status,
         start_date: job.start_date,
         end_date: job.end_date,
-        notes: job.notes
+        notes: job.notes,
+        portal_sections: job.portal_sections || null
       },
       client: client ? { name: client.name, contact_name: client.contact_name } : null,
       schedule,

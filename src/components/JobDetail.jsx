@@ -3,14 +3,15 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, MapPin, Calendar, Users, Truck, FileText, Briefcase,
-  Clock, Eye, Download, User, HardHat, Phone, Mail, Tag, PoundSterling
+  Clock, Eye, Download, User, HardHat, Phone, Mail, Tag
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
 import PortalLinkManager from '@/components/PortalLinkManager';
+import PortalSectionManager from '@/components/PortalSectionManager';
 import DocumentManager from '@/components/DocumentManager';
 import MilestoneManager from '@/components/MilestoneManager';
-import JobBudgetCard from '@/components/JobBudgetCard';
+import JobCostManager from '@/components/JobCostManager';
 import JobCommentsViewer from '@/components/JobCommentsViewer';
 import { formatJobType } from '@/utils/format';
 
@@ -336,11 +337,37 @@ export default function JobDetail({ job, onBack }) {
                   {statusLabels[job.status || 'planning']}
                 </span>
               </div>
+              {job.job_reference && (
+                <div>
+                  <p className="text-xs text-slate-400 uppercase font-medium mb-1">Reference</p>
+                  <p className="text-sm text-slate-700">{job.job_reference}</p>
+                </div>
+              )}
               {startDate && (
                 <div>
                   <p className="text-xs text-slate-400 uppercase font-medium mb-1">Duration</p>
                   <p className="text-sm text-slate-700">{format(startDate, 'dd MMM yyyy')}</p>
                   <p className="text-xs text-slate-400">to {endDate ? format(endDate, 'dd MMM yyyy') : 'TBC'}</p>
+                </div>
+              )}
+              {job.project_manager && (
+                <div>
+                  <p className="text-xs text-slate-400 uppercase font-medium mb-1">Project Manager</p>
+                  <div className="flex items-center gap-1.5 text-sm text-slate-700">
+                    <User className="w-3.5 h-3.5 text-slate-400" />
+                    {job.project_manager}
+                  </div>
+                </div>
+              )}
+              {(job.site_contact_name || job.site_contact_phone) && (
+                <div>
+                  <p className="text-xs text-slate-400 uppercase font-medium mb-1">Site Contact</p>
+                  {job.site_contact_name && <p className="text-sm text-slate-700">{job.site_contact_name}</p>}
+                  {job.site_contact_phone && (
+                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500">
+                      <Phone className="w-3.5 h-3.5" />{job.site_contact_phone}
+                    </div>
+                  )}
                 </div>
               )}
               {job.notes && (
@@ -352,52 +379,8 @@ export default function JobDetail({ job, onBack }) {
             </div>
           </div>
 
-          {/* Job Budget */}
-          <JobBudgetCard job={job} totalCost={totalCost} />
-
-          {/* Job Cost Summary */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-              <PoundSterling className="w-5 h-5 text-emerald-700" />
-              <h2 className="font-semibold text-slate-900">Estimated Cost</h2>
-              <span className={`ml-auto text-xs px-2 py-0.5 rounded-full font-medium ${isDrillingJob ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                {isDrillingJob ? 'Meterage Rate' : 'Day Rate'}
-              </span>
-            </div>
-            <div className="px-5 py-4">
-              {totalCost === 0 ? (
-                <p className="text-sm text-slate-400">{isDrillingJob ? 'No meterage rates set for assigned staff' : 'No day rates set for assigned staff'}</p>
-              ) : (
-                <>
-                  <div className="space-y-2 mb-3">
-                    {staffCosts.map((sc, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
-                        <div className="min-w-0">
-                          <span className="font-medium text-slate-900">{sc.name}</span>
-                          {sc.costType === 'meterage' ? (
-                            <span className="text-xs text-slate-400 ml-2">{sc.meterage}m × £{sc.meterageRate}/m</span>
-                          ) : (
-                            <span className="text-xs text-slate-400 ml-2">{sc.shifts} × £{sc.dayRate}</span>
-                          )}
-                        </div>
-                        <span className="font-semibold text-slate-700 flex-shrink-0">£{sc.cost.toLocaleString()}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {totalMeterage > 0 && (
-                    <div className="flex items-center justify-between pt-2 pb-2 text-sm border-t border-slate-100">
-                      <span className="text-slate-500">Total Meterage</span>
-                      <span className="font-semibold text-amber-700">{totalMeterage}m</span>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                    <span className="font-semibold text-slate-900">Total</span>
-                    <span className="text-lg font-bold text-emerald-700">£{totalCost.toLocaleString()}</span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+          {/* Job Costing */}
+          <JobCostManager job={job} totalCost={totalCost} staffCosts={staffCosts} isDrillingJob={isDrillingJob} totalMeterage={totalMeterage} />
 
           {/* Client Info */}
           {(client || contractor) && (
@@ -502,6 +485,7 @@ export default function JobDetail({ job, onBack }) {
 
           {/* Client Portal */}
           <PortalLinkManager job={job} />
+          <PortalSectionManager job={job} />
         </div>
       </div>
     </div>

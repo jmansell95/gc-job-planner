@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Job name"
     },
+    "job_reference": {
+      "type": "string",
+      "description": "Internal job reference or PO number"
+    },
     "location": {
       "type": "string",
       "description": "Site location/address"
@@ -50,6 +54,18 @@
       "type": "string",
       "description": "Associated contractor"
     },
+    "project_manager": {
+      "type": "string",
+      "description": "Project manager responsible for the job"
+    },
+    "site_contact_name": {
+      "type": "string",
+      "description": "On-site contact name"
+    },
+    "site_contact_phone": {
+      "type": "string",
+      "description": "On-site contact phone number"
+    },
     "notes": {
       "type": "string",
       "description": "Job notes and details"
@@ -71,9 +87,51 @@
       "default": false,
       "description": "Whether client portal access is enabled for this job"
     },
+    "portal_sections": {
+      "type": "object",
+      "description": "Visibility flags for each section shown on the client portal",
+      "properties": {
+        "progress": {
+          "type": "boolean",
+          "default": true
+        },
+        "client_info": {
+          "type": "boolean",
+          "default": true
+        },
+        "schedule": {
+          "type": "boolean",
+          "default": true
+        },
+        "notes": {
+          "type": "boolean",
+          "default": true
+        },
+        "photos": {
+          "type": "boolean",
+          "default": true
+        },
+        "milestones": {
+          "type": "boolean",
+          "default": true
+        },
+        "documents": {
+          "type": "boolean",
+          "default": true
+        },
+        "comments": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
     "budget_amount": {
       "type": "number",
       "description": "Job budget in GBP for cost tracking"
+    },
+    "actual_cost": {
+      "type": "number",
+      "description": "Manually recorded actual cost in GBP; overrides the auto-calculated labour cost when set"
     }
   },
   "required": [

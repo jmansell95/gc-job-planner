@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Briefcase, Upload, FileText, X, Eye, Download, RefreshCw, ChevronRight, MapPin, Calendar, Search } from 'lucide-react';
+import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, Calendar } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { EmptyState, ErrorState, CardGridSkeleton } from '@/components/StateViews';
 import JobDetail from '@/components/JobDetail';
+import JobForm from '@/components/JobForm';
 import PrintReportButton from '@/components/PrintReportButton';
 import { formatJobType } from '@/utils/format';
 import { format, parseISO } from 'date-fns';
@@ -40,6 +41,14 @@ const statusLabels = {
   planning: 'Planning', in_progress: 'In Progress', completed: 'Completed', on_hold: 'On Hold',
 };
 
+const emptyForm = {
+  name: '', job_reference: '', location: '', job_type: 'groundworks', status: 'planning',
+  start_date: '', end_date: '', client_id: '', contractor_id: '',
+  project_manager: '', site_contact_name: '', site_contact_phone: '',
+  notes: '', requisition_list_url: '', requisition_list_name: '',
+  budget_amount: '', actual_cost: ''
+};
+
 export default function JobManager() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -47,20 +56,7 @@ export default function JobManager() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [formData, setFormData] = useState({
-    name: '',
-    location: '',
-    job_type: 'groundworks',
-    status: 'planning',
-    start_date: '',
-    end_date: '',
-    client_id: '',
-    contractor_id: '',
-    notes: '',
-    requisition_list_url: '',
-    requisition_list_name: '',
-    budget_amount: ''
-  });
+  const [formData, setFormData] = useState(emptyForm);
 
   const queryClient = useQueryClient();
 
@@ -69,15 +65,8 @@ export default function JobManager() {
     queryFn: () => base44.entities.Job.list()
   });
 
-  const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list()
-  });
-
-  const { data: contractors = [] } = useQuery({
-    queryKey: ['contractors'],
-    queryFn: () => base44.entities.Contractor.list()
-  });
+  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
+  const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list() });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,19 +77,7 @@ export default function JobManager() {
         await base44.entities.Job.create(formData);
       }
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      setFormData({
-        name: '',
-        location: '',
-        job_type: 'groundworks',
-        start_date: '',
-        end_date: '',
-        client_id: '',
-        contractor_id: '',
-        notes: '',
-        requisition_list_url: '',
-        requisition_list_name: '',
-        budget_amount: ''
-      });
+      setFormData(emptyForm);
       setShowForm(false);
       setEditingId(null);
     } catch (error) {
@@ -109,7 +86,7 @@ export default function JobManager() {
   };
 
   const handleEdit = (job) => {
-    setFormData(job);
+    setFormData({ ...emptyForm, ...job });
     setEditingId(job.id);
     setShowForm(true);
   };
@@ -171,232 +148,26 @@ export default function JobManager() {
         <div className="flex items-center gap-2">
           <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Jobs List" />
           <button
-            onClick={() => {
-              setShowForm(!showForm);
-              setEditingId(null);
-              setFormData({
-                name: '',
-                location: '',
-                job_type: 'groundworks',
-                start_date: '',
-                end_date: '',
-                client_id: '',
-                contractor_id: '',
-                notes: '',
-                requisition_list_url: '',
-                requisition_list_name: '',
-                budget_amount: ''
-              });
-            }}
+            onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
           >
-            <Plus className="w-4 h-4" />
-            Add Job
+            <Plus className="w-4 h-4" /> Add Job
           </button>
         </div>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg p-4 md:p-6 border border-emerald-200 mb-6 shadow-sm">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Job Name</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                required
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Job Type</label>
-              <select
-                value={formData.job_type}
-                onChange={(e) => setFormData({ ...formData, job_type: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
-              >
-                <option value="groundworks">Groundworks</option>
-                <option value="cp_drilling">CP Drilling</option>
-                <option value="rotary_drilling">Rotary Drilling</option>
-                <option value="enabling_works">Enabling Works</option>
-                <option value="depot">Depot</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
-              <select
-                value={formData.status || 'planning'}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
-              >
-                <option value="planning">Planning</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="on_hold">On Hold</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Start Date</label>
-              <input
-                type="date"
-                value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                required
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">End Date</label>
-              <input
-                type="date"
-                value={formData.end_date}
-                onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                required
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Client</label>
-              <select
-                value={formData.client_id}
-                onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
-              >
-                <option value="">Select Client (Optional)</option>
-                {clients.map(client => (
-                  <option key={client.id} value={client.id}>{client.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Client (Contractor)</label>
-              <select
-                value={formData.contractor_id}
-                onChange={(e) => setFormData({ ...formData, contractor_id: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
-              >
-                <option value="">Select Client (Optional)</option>
-                {contractors.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Budget (GBP)</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.budget_amount || ''}
-                onChange={(e) => setFormData({ ...formData, budget_amount: e.target.value ? parseFloat(e.target.value) : '' })}
-                placeholder="0.00"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
-              />
-            </div>
-            </div>
-
-            <div className="mt-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Notes</label>
-            <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600"
-              rows="2"
-            />
-            </div>
-
-            <div className="mt-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Requisition List</label>
-            {formData.requisition_list_url ? (
-              <div className="border border-emerald-200 rounded-lg overflow-hidden">
-                <div className="flex items-center gap-3 p-3 bg-emerald-50">
-                  <FileText className="w-5 h-5 text-emerald-700 flex-shrink-0" />
-                  <span className="text-sm text-emerald-800 font-medium flex-1 truncate">
-                    {formData.requisition_list_name || 'Requisition List'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-2 bg-white border-t border-emerald-100">
-                  <a
-                    href={formData.requisition_list_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-md transition"
-                  >
-                    <Eye className="w-3.5 h-3.5" /> View
-                  </a>
-                  <a
-                    href={formData.requisition_list_url}
-                    download={formData.requisition_list_name || 'requisition-list'}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition"
-                  >
-                    <Download className="w-3.5 h-3.5" /> Download
-                  </a>
-                  <label className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-md transition cursor-pointer">
-                    {uploadingFile ? (
-                      <span>Uploading...</span>
-                    ) : (
-                      <><RefreshCw className="w-3.5 h-3.5" /> Replace</>
-                    )}
-                    <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploadingFile} />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, requisition_list_url: '', requisition_list_name: '' }))}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition ml-auto"
-                  >
-                    <X className="w-3.5 h-3.5" /> Remove
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <label className="flex items-center gap-3 px-4 py-3 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-emerald-400 transition">
-                {uploadingFile ? (
-                  <span className="text-sm text-slate-500">Uploading...</span>
-                ) : (
-                  <>
-                    <Upload className="w-5 h-5 text-slate-400" />
-                    <span className="text-sm text-slate-500">Click to upload requisition list (PDF, Excel, Word, etc.)</span>
-                  </>
-                )}
-                <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploadingFile} />
-              </label>
-            )}
-          </div>
-
-          <div className="flex gap-3 mt-6">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium"
-            >
-              {editingId ? 'Update Job' : 'Add Job'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition font-medium"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+        <JobForm
+          formData={formData}
+          setFormData={setFormData}
+          onSubmit={handleSubmit}
+          onCancel={() => setShowForm(false)}
+          editingId={editingId}
+          clients={clients}
+          contractors={contractors}
+          onFileUpload={handleFileUpload}
+          uploadingFile={uploadingFile}
+        />
       )}
 
       {/* Search & Filter */}
@@ -404,19 +175,9 @@ export default function JobManager() {
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search jobs by name or location..."
-              className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white"
-            />
+            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search jobs by name or location..." className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white" />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white"
-          >
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white">
             <option value="all">All Statuses</option>
             <option value="planning">Planning</option>
             <option value="in_progress">In Progress</option>
@@ -445,21 +206,14 @@ export default function JobManager() {
               <div className="p-5 flex-1">
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex flex-wrap gap-1.5">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${jobTypeBadge[job.job_type] || 'bg-slate-100 text-slate-600'}`}>
-                      {formatJobType(job.job_type)}
-                    </span>
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[job.status || 'planning']}`}>
-                      {statusLabels[job.status || 'planning']}
-                    </span>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${jobTypeBadge[job.job_type] || 'bg-slate-100 text-slate-600'}`}>{formatJobType(job.job_type)}</span>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[job.status || 'planning']}`}>{statusLabels[job.status || 'planning']}</span>
                   </div>
-                  {job.requisition_list_url && (
-                    <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" title="Has requisition list" />
-                  )}
+                  {job.requisition_list_url && <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" title="Has requisition list" />}
                 </div>
                 <h3 className="font-bold text-slate-900 text-base mb-1">{job.name}</h3>
-                {client && (
-                  <p className="text-xs text-slate-400 mb-1.5 truncate">{client.name}</p>
-                )}
+                {job.job_reference && <p className="text-xs text-slate-400 mb-1 truncate">Ref: {job.job_reference}</p>}
+                {client && <p className="text-xs text-slate-400 mb-1.5 truncate">{client.name}</p>}
                 <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-1">
                   <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                   <span className="truncate">{job.location}</span>
@@ -470,19 +224,10 @@ export default function JobManager() {
                 </div>
               </div>
               <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <button
-                  onClick={() => setSelectedJob(job)}
-                  className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:text-emerald-900 transition"
-                >
-                  <Eye className="w-4 h-4" /> View Details
-                </button>
+                <button onClick={() => setSelectedJob(job)} className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:text-emerald-900 transition"><Eye className="w-4 h-4" /> View Details</button>
                 <div className="flex gap-1">
-                  <button onClick={() => handleEdit(job)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition">
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => handleDelete(job.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <button onClick={() => handleEdit(job)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
+                  <button onClick={() => handleDelete(job.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
             </div>
