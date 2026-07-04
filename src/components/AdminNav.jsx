@@ -95,7 +95,9 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         <div className="h-14 flex items-center justify-between gap-2 px-3 sm:px-4">
           <button onClick={() => setIsOpen(!isOpen)} aria-label="Toggle menu" type="button"
             className="flex items-center gap-2 h-14 px-4 -ml-1 text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition min-w-[56px] cursor-pointer touch-manipulation select-none">
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            <motion.span key={isOpen ? 'x' : 'm'} initial={{ opacity: 0, rotate: -90, scale: 0.6 }} animate={{ opacity: 1, rotate: 0, scale: 1 }} transition={{ duration: 0.18, ease: 'easeOut' }} className="flex items-center">
+              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </motion.span>
             <span className="text-sm font-semibold">Menu</span>
           </button>
           <span className="text-white font-bold text-sm truncate flex-1 text-center">GC Job Planner</span>
@@ -121,7 +123,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
-            className="lg:hidden fixed inset-0 bg-black/50 z-50"
+            className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
           />
         )}
         {isOpen && (
@@ -130,7 +132,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
-            transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+            transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
             className="lg:hidden fixed top-[calc(3.5rem+env(safe-area-inset-top))] left-0 h-[calc(100vh-3.5rem-env(safe-area-inset-top))] w-64 z-[60] overflow-hidden bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex flex-col"
           >
             {renderNavContent(() => setIsOpen(false))}
