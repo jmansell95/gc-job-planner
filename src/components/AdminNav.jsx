@@ -71,7 +71,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       {/* Mobile Top Header — title + notifications only */}
       <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-emerald-900 border-b border-emerald-800 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="h-14 flex items-center justify-between px-4">
-          <h1 className="text-white font-bold text-base truncate">{currentLabel}</h1>
+          <h1 className="text-white font-bold text-base truncate">GC Job Planner</h1>
           <button onClick={() => setNotifOpen(true)} aria-label="Notifications" type="button"
             className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition cursor-pointer touch-manipulation select-none">
             <Bell className="w-5 h-5" />
