@@ -14,7 +14,7 @@ export default function AdminDashboard() {
   const [selectedJob, setSelectedJob] = useState(null);
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-slate-50/80">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-100">
       <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} />
       <main className="flex-1 overflow-auto pt-14 lg:pt-0">
         <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">

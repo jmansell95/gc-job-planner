@@ -93,3 +93,31 @@
   ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
 }
+
+@layer components {
+  .glass {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 8px 32px -10px rgba(15, 42, 31, 0.14), 0 2px 8px -4px rgba(15, 42, 31, 0.06);
+  }
+  .glass-dark {
+    background: rgba(6, 78, 59, 0.65);
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .card-modern {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(226, 232, 240, 0.65);
+    box-shadow: 0 1px 3px rgba(15, 42, 31, 0.04), 0 10px 28px -14px rgba(15, 42, 31, 0.12);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  }
+  .card-modern:hover {
+    box-shadow: 0 4px 12px rgba(15, 42, 31, 0.06), 0 18px 44px -14px rgba(15, 42, 31, 0.2);
+    transform: translateY(-2px);
+  }
+}

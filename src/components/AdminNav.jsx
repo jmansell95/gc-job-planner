@@ -1,9 +1,24 @@
 import React, { useState } from 'react';
-import { Users, Truck, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Menu, X, Settings, Clock } from 'lucide-react';
+import { Users, Truck, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Menu, X, Settings, Clock, Bell } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
+import { differenceInDays } from 'date-fns';
+import NotificationCenter from '@/components/NotificationCenter';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
+  const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets'], queryFn: () => base44.entities.Timesheet.list() });
+  const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
+
+  const today = new Date();
+  const vehicleAlerts = vehicles.filter(v => {
+    const check = (d) => d && differenceInDays(new Date(d + 'T00:00:00'), today) <= 30;
+    return check(v.mot_expiry) || check(v.service_due_date);
+  }).length;
+  const notifCount = vehicleAlerts + timesheets.filter(t => t.status === 'submitted').length + absences.filter(a => a.status === 'pending').length;
 
   const handleLogout = async () => {
     await base44.auth.logout('/');
@@ -33,7 +48,10 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           <span className="text-sm font-semibold">Menu</span>
         </button>
         <span className="text-white font-bold text-sm">GC Job Planner</span>
-        <div className="w-9" />
+        <button onClick={() => setNotifOpen(true)} className="relative p-2 text-white hover:bg-emerald-800 rounded-lg transition">
+          <Bell className="w-5 h-5" />
+          {notifCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
+        </button>
       </header>
 
       {/* Overlay */}
@@ -46,9 +64,15 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         fixed lg:sticky top-0 left-0 h-screen lg:h-screen w-64 transform lg:transform-none transition-transform duration-300 ease-in-out overflow-y-auto bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex flex-col z-50 lg:z-auto
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="p-6 border-b border-emerald-800/50">
-          <h1 className="text-xl font-bold text-white">GC Job Planner</h1>
-          <p className="text-xs text-emerald-300 mt-1">Admin Panel</p>
+        <div className="p-6 border-b border-emerald-800/50 flex items-start justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-white">GC Job Planner</h1>
+            <p className="text-xs text-emerald-300 mt-1">Admin Panel</p>
+          </div>
+          <button onClick={() => setNotifOpen(true)} className="relative p-2 text-emerald-200 hover:bg-emerald-800/50 hover:text-white rounded-lg transition">
+            <Bell className="w-5 h-5" />
+            {notifCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
+          </button>
         </div>
 
         <div className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -82,6 +106,8 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           </button>
         </div>
       </nav>
+
+      <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} onNavigate={setActiveSection} />
     </>
   );
 }

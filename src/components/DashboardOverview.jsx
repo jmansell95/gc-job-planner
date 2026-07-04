@@ -1,10 +1,12 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Truck, Briefcase, Calendar, Grid3x3, MapPin, ChevronRight, Clock, AlertTriangle } from 'lucide-react';
+import { Users, Truck, Briefcase, Grid3x3, MapPin, ChevronRight, Clock, AlertTriangle } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { JobStatusChart, StaffUtilizationChart } from '@/components/DashboardCharts';
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
+import DashboardInsights from '@/components/DashboardInsights';
 import { formatJobType } from '@/utils/format';
 
 const jobTypeBadge = {
@@ -13,6 +15,11 @@ const jobTypeBadge = {
   rotary_drilling: 'bg-blue-100 text-blue-700',
   enabling_works: 'bg-purple-100 text-purple-700',
   depot: 'bg-slate-100 text-slate-600',
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 14 },
+  show: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.06, duration: 0.35 } })
 };
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
@@ -37,7 +44,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const todaysRotas = thisWeekRotas.filter(r => r.assigned_date === todayStr);
   const staffToday = [...new Set(todaysRotas.map(r => r.staff_id))].length;
 
-  // Maintenance alerts count
   const today = new Date();
   const inDays = (dateStr) => {
     if (!dateStr) return null;
@@ -49,12 +55,19 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     return (motDays !== null && motDays <= 30) || (svcDays !== null && svcDays <= 30);
   }).length;
 
+  const stats = [
+    { label: 'Active Jobs', value: activeJobs.length, icon: Briefcase, color: 'text-emerald-700', bg: 'bg-emerald-50' },
+    { label: 'Working Today', value: staffToday, icon: Users, color: 'text-blue-700', bg: 'bg-blue-50' },
+    { label: 'Vehicles', value: vehicles.length, icon: Truck, color: 'text-amber-700', bg: 'bg-amber-50' },
+    { label: 'Maint. Alerts', value: maintenanceAlerts, icon: AlertTriangle, color: maintenanceAlerts > 0 ? 'text-red-600' : 'text-slate-400', bg: maintenanceAlerts > 0 ? 'bg-red-50' : 'bg-slate-50' },
+  ];
+
   return (
     <div>
       {/* Header */}
-      <div className="mb-6">
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-6">
         <div className="flex items-center gap-3 md:gap-4">
-          <div className="p-2 md:p-3 bg-emerald-700 rounded-lg flex-shrink-0">
+          <div className="p-2 md:p-3 bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-xl flex-shrink-0 shadow-lg shadow-emerald-900/20">
             <Grid3x3 className="w-6 md:w-8 h-6 md:h-8 text-white" />
           </div>
           <div>
@@ -62,19 +75,15 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
             <p className="text-slate-500 text-sm mt-0.5">Week of {format(weekStart, 'dd MMM yyyy')}</p>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Key Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: 'Active Jobs', value: activeJobs.length, icon: Briefcase, color: 'text-emerald-700', bg: 'bg-emerald-50' },
-          { label: 'Working Today', value: staffToday, icon: Users, color: 'text-blue-700', bg: 'bg-blue-50' },
-          { label: 'Vehicles', value: vehicles.length, icon: Truck, color: 'text-amber-700', bg: 'bg-amber-50' },
-          { label: 'Maint. Alerts', value: maintenanceAlerts, icon: AlertTriangle, color: maintenanceAlerts > 0 ? 'text-red-600' : 'text-slate-400', bg: maintenanceAlerts > 0 ? 'bg-red-50' : 'bg-slate-50' },
-        ].map(stat => {
+        {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <div key={stat.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition">
+            <motion.div key={stat.label} custom={i} initial="hidden" animate="show" variants={cardVariants}
+              className="card-modern rounded-2xl p-5 flex items-center gap-4">
               <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center flex-shrink-0`}>
                 <Icon className={`w-6 h-6 ${stat.color}`} />
               </div>
@@ -82,14 +91,15 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                 <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
                 <p className="text-xs text-slate-500 font-medium">{stat.label}</p>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
 
       {/* Today's Field Crew */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.35 }}
+        className="card-modern rounded-2xl overflow-hidden mb-6">
+        <div className="px-5 py-4 border-b border-slate-100/70 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-emerald-700" />
             <h2 className="font-semibold text-slate-900">Today's Field Crew</h2>
@@ -104,15 +114,15 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         {todaysRotas.length === 0 ? (
           <div className="px-5 py-8 text-center text-slate-400 text-sm">No assignments today</div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100/70">
             {todaysRotas.map(r => {
               const member = staff.find(s => s.id === r.staff_id);
               const job = jobs.find(j => j.id === r.job_id);
               const vehicle = vehicles.find(v => v.id === r.vehicle_id);
               return (
                 <button key={r.id} onClick={() => job && onSelectJob(job)}
-                  className="w-full px-5 py-3 flex items-center gap-3 hover:bg-slate-50 transition text-left">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                  className="w-full px-5 py-3 flex items-center gap-3 hover:bg-emerald-50/40 transition text-left">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
                     <span className="text-white font-bold text-sm">{member?.name?.charAt(0) || '?'}</span>
                   </div>
                   <div className="min-w-0 flex-1">
@@ -133,7 +143,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
             })}
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -141,11 +151,15 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         <StaffUtilizationChart staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />
       </div>
 
+      {/* AI Insights */}
+      <div className="mb-6">
+        <DashboardInsights />
+      </div>
+
       {/* Vehicle Maintenance Alerts */}
       <div className="mb-6">
         <VehicleMaintenanceAlerts vehicles={vehicles} />
       </div>
-
     </div>
   );
 }
