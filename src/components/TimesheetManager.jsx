@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Ruler } from 'lucide-react';
 import { format } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/StateViews';
@@ -20,6 +20,9 @@ const fmtDur = (t) => {
   if (h) return `${h}h`;
   return m > 0 ? `${r}m` : '—';
 };
+
+const meterage = (t) => Number(t?.task_meterage) || 0;
+const isMeterageEntry = (t) => meterage(t) > 0;
 
 export default function TimesheetManager() {
   const [filter, setFilter] = useState('submitted');
@@ -45,6 +48,7 @@ export default function TimesheetManager() {
 
   const totalHours = timesheets.filter(t => t.status === 'approved').reduce((sum, t) => sum + (t.total_hours || 0), 0);
   const pendingCount = timesheets.filter(t => t.status === 'submitted').length;
+  const totalMeterage = timesheets.filter(t => t.status === 'approved').reduce((sum, t) => sum + meterage(t), 0);
 
   return (
     <div>
@@ -63,6 +67,12 @@ export default function TimesheetManager() {
           <p className="text-xs text-slate-500 font-medium">Total Timesheets</p>
           <p className="text-2xl font-bold text-slate-900 mt-1">{timesheets.length}</p>
         </div>
+        {totalMeterage > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:col-span-3">
+            <p className="text-xs text-slate-500 font-medium inline-flex items-center gap-1"><Ruler className="w-3 h-3" />Approved Meterage</p>
+            <p className="text-2xl font-bold text-amber-600 mt-1">{totalMeterage}m</p>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2 mb-4 flex-wrap">
@@ -92,7 +102,7 @@ export default function TimesheetManager() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Job</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Date</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Task</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Time</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Quantity</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Actions</th>
                 </tr>
@@ -108,7 +118,11 @@ export default function TimesheetManager() {
                       <td className="px-4 py-3 text-sm text-slate-600 truncate max-w-[180px]">{job?.name || '—'}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{format(new Date(ts.date + 'T00:00:00'), 'dd MMM')}</td>
                       <td className="px-4 py-3 text-sm text-slate-600 truncate max-w-[220px]">{ts.task_description || <span className="text-slate-400 italic">{ts.start_time ? `${ts.start_time}–${ts.end_time}` : '—'}</span>}</td>
-                      <td className="px-4 py-3 text-sm font-bold text-slate-900 text-center whitespace-nowrap">{fmtDur(ts)}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-slate-900 text-center whitespace-nowrap">
+                        {isMeterageEntry(ts)
+                          ? <span className="inline-flex items-center gap-1 text-amber-600"><Ruler className="w-3.5 h-3.5" />{meterage(ts)}m</span>
+                          : fmtDur(ts)}
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${status.badge}`}>{status.label}</span>
                       </td>
