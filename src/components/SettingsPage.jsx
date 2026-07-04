@@ -25,16 +25,16 @@ export default function SettingsPage() {
       <PageHeader title="Settings" icon={Settings} />
 
       {/* Tab Bar */}
-      <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-200 pb-2">
+      <div className="flex flex-nowrap gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 border-b border-slate-200 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {tabs.map(tab => {
           const Icon = tab.icon;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition flex-shrink-0 whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'bg-emerald-700 text-white'
+                  ? 'bg-emerald-700 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
             >

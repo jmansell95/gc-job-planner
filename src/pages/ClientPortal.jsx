@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Calendar, MapPin, CheckCircle2, Clock, PlayCircle, Briefcase, Building2, Activity, Ruler, Camera, FileText, Target, Download, CheckCircle, Circle } from 'lucide-react';
+import { Calendar, MapPin, CheckCircle2, Clock, PlayCircle, Briefcase, Building2, Activity, Ruler, Camera, FileText, Target, Download, CheckCircle, Circle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import PortalComments from '@/components/PortalComments';
 import { formatJobType } from '@/utils/format';
@@ -30,6 +30,7 @@ export default function ClientPortal() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     async function loadJob() {
@@ -43,7 +44,14 @@ export default function ClientPortal() {
       }
     }
     if (token) loadJob();
-  }, [token]);
+  }, [token, reloadKey]);
+
+  const handleRetry = () => {
+    setLoading(true);
+    setError(null);
+    setData(null);
+    setReloadKey(k => k + 1);
+  };
 
   if (loading) {
     return (
@@ -58,10 +66,14 @@ export default function ClientPortal() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Clock className="w-8 h-8 text-red-600" />
+            <AlertTriangle className="w-8 h-8 text-red-600" />
           </div>
           <h1 className="text-xl font-bold text-slate-900 mb-2">Access Unavailable</h1>
-          <p className="text-slate-500 text-sm">{error}</p>
+          <p className="text-slate-500 text-sm mb-5">{error}</p>
+          <button onClick={handleRetry}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 active:scale-95 transition">
+            <RefreshCw className="w-4 h-4" /> Try again
+          </button>
         </div>
       </div>
     );

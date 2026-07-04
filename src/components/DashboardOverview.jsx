@@ -34,10 +34,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   const { data: thisWeekRotas = [] } = useQuery({
     queryKey: ['rotas-this-week', weekStartStr],
-    queryFn: async () => {
-      const all = await base44.entities.RotaAssignment.list();
-      return all.filter(r => r.week_start === weekStartStr);
-    }
+    queryFn: () => base44.entities.RotaAssignment.filter({ week_start: weekStartStr })
   });
 
   const activeJobs = jobs.filter(j => (j.status || 'planning') === 'in_progress');
@@ -112,7 +109,13 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           </div>
         </div>
         {todaysRotas.length === 0 ? (
-          <div className="px-5 py-8 text-center text-slate-400 text-sm">No assignments today</div>
+          <div className="px-5 py-10 text-center">
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
+              <Users className="w-5 h-5 text-slate-300" />
+            </div>
+            <p className="text-slate-400 text-sm">No assignments scheduled today</p>
+            <button onClick={() => onNavigate('rota')} className="mt-2 text-xs text-emerald-700 hover:text-emerald-900 font-medium">Build this week's rota →</button>
+          </div>
         ) : (
           <div className="divide-y divide-slate-100/70">
             {todaysRotas.map(r => {

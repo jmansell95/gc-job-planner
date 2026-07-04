@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import AdminNav from '@/components/AdminNav';
 import DashboardOverview from '@/components/DashboardOverview';
 import JobManager from '@/components/JobManager';
@@ -18,21 +19,28 @@ export default function AdminDashboard() {
       <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} />
       <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top))] pb-16 lg:pt-0 lg:pb-0">
         <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-          {activeSection === 'overview' && (
-            <DashboardOverview
-              onNavigate={setActiveSection}
-              onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }}
-            />
-          )}
-          {activeSection === 'job-detail' && selectedJob && (
-            <JobDetail job={selectedJob} onBack={() => setActiveSection('overview')} />
-          )}
-          {activeSection === 'jobs' && <JobManager />}
-          {activeSection === 'rota' && <WeeklyRotaBuilder />}
-          {activeSection === 'timesheets' && <TimesheetManager />}
-          {activeSection === 'calendar' && <CalendarView />}
-          {activeSection === 'teams' && <TeamManager />}
-          {activeSection === 'settings' && <SettingsPage />}
+          <motion.div
+            key={activeSection}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
+            {activeSection === 'overview' && (
+              <DashboardOverview
+                onNavigate={setActiveSection}
+                onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }}
+              />
+            )}
+            {activeSection === 'job-detail' && selectedJob && (
+              <JobDetail job={selectedJob} onBack={() => setActiveSection('overview')} />
+            )}
+            {activeSection === 'jobs' && <JobManager />}
+            {activeSection === 'rota' && <WeeklyRotaBuilder />}
+            {activeSection === 'timesheets' && <TimesheetManager />}
+            {activeSection === 'calendar' && <CalendarView />}
+            {activeSection === 'teams' && <TeamManager />}
+            {activeSection === 'settings' && <SettingsPage />}
+          </motion.div>
         </div>
       </main>
     </div>
