@@ -9,6 +9,10 @@
     "description": {
       "type": "string",
       "description": "Team description"
+    },
+    "parent_team_id": {
+      "type": "string",
+      "description": "Parent team ID \u2014 set when this is a sub-team under a team group"
     }
   },
   "required": [
