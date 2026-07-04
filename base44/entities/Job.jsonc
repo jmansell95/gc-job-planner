@@ -132,6 +132,10 @@
     "actual_cost": {
       "type": "number",
       "description": "Manually recorded actual cost in GBP; overrides the auto-calculated labour cost when set"
+    },
+    "meterage": {
+      "type": "number",
+      "description": "Total meters drilled for drilling jobs (CP / rotary); overrides shift-level meterage for costing when set"
     }
   },
   "required": [

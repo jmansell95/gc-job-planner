@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { PoundSterling, TrendingUp, TrendingDown, Edit2, Check, X, Calculator, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { PoundSterling, TrendingUp, TrendingDown, Edit2, Check, X, Calculator, RefreshCw, ChevronDown, ChevronUp, Ruler } from 'lucide-react';
 
 const fmt = (n) => '£' + Math.round(n || 0).toLocaleString();
 
@@ -13,8 +13,11 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
   const [actualVal, setActualVal] = useState(job.actual_cost ?? '');
   const [saving, setSaving] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [editingMeterage, setEditingMeterage] = useState(false);
+  const [meterageVal, setMeterageVal] = useState(job.meterage || '');
 
   const usingManual = job.actual_cost != null && job.actual_cost !== '';
+  const usingJobMeterage = isDrillingJob && job.meterage != null && job.meterage !== '' && Number(job.meterage) > 0;
   const actualCost = usingManual ? Number(job.actual_cost) : totalCost;
   const budget = job.budget_amount || 0;
   const variance = budget - actualCost;
@@ -48,6 +51,27 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
       setActualVal('');
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       setEditingActual(false);
+    } catch (e) { console.error(e); }
+    setSaving(false);
+  };
+
+  const saveMeterage = async () => {
+    setSaving(true);
+    try {
+      await base44.entities.Job.update(job.id, { meterage: meterageVal === '' ? '' : parseFloat(meterageVal) });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      setEditingMeterage(false);
+    } catch (e) { console.error(e); }
+    setSaving(false);
+  };
+
+  const clearMeterage = async () => {
+    setSaving(true);
+    try {
+      await base44.entities.Job.update(job.id, { meterage: '' });
+      setMeterageVal('');
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      setEditingMeterage(false);
     } catch (e) { console.error(e); }
     setSaving(false);
   };
@@ -128,6 +152,34 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
             {usingManual ? 'Manual entry applied' : <span className="inline-flex items-center gap-1"><Calculator className="w-3.5 h-3.5" /> Calculated from staff rates & meterage</span>}
           </p>
         </div>
+
+        {/* Meterage entry (drilling jobs only) */}
+        {isDrillingJob && (
+          <div className="border-t border-slate-100 pt-3">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-sm font-medium text-slate-700 inline-flex items-center gap-1.5">
+                <Ruler className="w-4 h-4 text-amber-600" /> Total Meterage
+              </span>
+              {!editingMeterage ? (
+                <button onClick={() => { setMeterageVal(job.meterage || ''); setEditingMeterage(true); }} className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium"><Edit2 className="w-3.5 h-3.5" /> Edit</button>
+              ) : (
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                  <input type="number" min="0" step="0.1" value={meterageVal} onChange={(e) => setMeterageVal(e.target.value)} placeholder="0" className="w-28 px-2 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+                  <span className="text-xs text-slate-400">m</span>
+                  <button onClick={saveMeterage} disabled={saving} className="p-1.5 text-emerald-700 hover:bg-emerald-50 rounded-lg transition disabled:opacity-50"><Check className="w-4 h-4" /></button>
+                  {usingJobMeterage && <button onClick={clearMeterage} disabled={saving} title="Use shift meterage" className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition disabled:opacity-50"><Calculator className="w-4 h-4" /></button>}
+                  <button onClick={() => setEditingMeterage(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition"><X className="w-4 h-4" /></button>
+                </div>
+              )}
+            </div>
+            <p className="text-sm text-slate-500">
+              {totalMeterage}m recorded
+              <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full font-medium ${usingJobMeterage ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                {usingJobMeterage ? 'Job entry' : 'From shifts'}
+              </span>
+            </p>
+          </div>
+        )}
 
         {/* Breakdown toggle */}
         {staffCosts.length > 0 && (

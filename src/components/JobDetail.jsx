@@ -142,25 +142,28 @@ export default function JobDetail({ job, onBack }) {
 
   // Job cost estimation — meterage-based for drilling jobs, day-rate for others
   const isDrillingJob = job.job_type === 'cp_drilling' || job.job_type === 'rotary_drilling';
+  const jobMeterage = isDrillingJob && job.meterage != null && job.meterage !== '' ? Number(job.meterage) : 0;
+  const useJobMeterage = jobMeterage > 0;
   const staffCosts = assignedStaff.map(member => {
     const memberRotas = rotas.filter(r => r.staff_id === member.id);
-    const totalMeterage = memberRotas.reduce((sum, r) => sum + (r.meterage || 0), 0);
+    const memberMeterage = memberRotas.reduce((sum, r) => sum + (r.meterage || 0), 0);
     const meterageRate = member.meterage_rate || 0;
     const dayRate = member.day_rate || 0;
     const usesMeterage = isDrillingJob && meterageRate > 0;
+    const meterage = useJobMeterage ? jobMeterage : memberMeterage;
     return {
       name: member.name,
       role: roleLabels[member.job_role] || member.job_role,
       shifts: memberRotas.length,
       dayRate,
-      meterage: totalMeterage,
+      meterage,
       meterageRate,
       costType: usesMeterage ? 'meterage' : 'day_rate',
-      cost: usesMeterage ? totalMeterage * meterageRate : memberRotas.length * dayRate
+      cost: usesMeterage ? meterage * meterageRate : memberRotas.length * dayRate
     };
   });
   const totalCost = staffCosts.reduce((sum, s) => sum + s.cost, 0);
-  const totalMeterage = staffCosts.reduce((sum, s) => sum + s.meterage, 0);
+  const totalMeterage = useJobMeterage ? jobMeterage : staffCosts.reduce((sum, s) => sum + s.meterage, 0);
 
   const startDate = job.start_date ? new Date(job.start_date + 'T00:00:00') : null;
   const endDate = job.end_date ? new Date(job.end_date + 'T00:00:00') : null;
