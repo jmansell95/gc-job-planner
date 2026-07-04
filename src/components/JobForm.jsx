@@ -1,5 +1,5 @@
 import React from 'react';
-import { Briefcase, CalendarDays, Users, PoundSterling, StickyNote, FileText, Upload, Eye, Download, RefreshCw, X } from 'lucide-react';
+import { Briefcase, CalendarDays, Users, PoundSterling, StickyNote, FileText, Upload, Eye, Download, RefreshCw, X, Ruler } from 'lucide-react';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
@@ -110,6 +110,14 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
         <Field label="Actual Cost (GBP)" hint="Manual override">
           <input type="number" min="0" step="0.01" value={num('actual_cost')} onChange={(e) => setNum('actual_cost', e.target.value)} placeholder="Leave blank to auto-calculate" className={inputCls} />
         </Field>
+        {(formData.job_type === 'cp_drilling' || formData.job_type === 'rotary_drilling') && (
+          <Field label="Total Meterage (m)" hint="Overrides shift meterage for costing">
+            <div className="relative">
+              <Ruler className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500" />
+              <input type="number" min="0" step="0.1" value={num('meterage')} onChange={(e) => setNum('meterage', e.target.value)} placeholder="Leave blank to sum from shifts" className={`${inputCls} pl-9`} />
+            </div>
+          </Field>
+        )}
       </Section>
 
       {/* Notes */}

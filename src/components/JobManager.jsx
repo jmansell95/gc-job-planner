@@ -46,7 +46,7 @@ const emptyForm = {
   start_date: '', end_date: '', client_id: '', contractor_id: '',
   project_manager: '', site_contact_name: '', site_contact_phone: '',
   notes: '', requisition_list_url: '', requisition_list_name: '',
-  budget_amount: '', actual_cost: ''
+  budget_amount: '', actual_cost: '', meterage: ''
 };
 
 export default function JobManager() {
