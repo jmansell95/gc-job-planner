@@ -1,24 +1,15 @@
 import React, { useState } from 'react';
 import { Users, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Menu, X, Settings, Clock, Bell } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
-import { differenceInDays } from 'date-fns';
 import NotificationCenter from '@/components/NotificationCenter';
+import { useNotifications } from '@/hooks/useNotifications';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
-  const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
-  const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets'], queryFn: () => base44.entities.Timesheet.list() });
-  const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
-
-  const today = new Date();
-  const vehicleAlerts = vehicles.filter(v => {
-    const check = (d) => d && differenceInDays(new Date(d + 'T00:00:00'), today) <= 30;
-    return check(v.mot_expiry) || check(v.service_due_date);
-  }).length;
-  const notifCount = vehicleAlerts + timesheets.filter(t => t.status === 'submitted').length + absences.filter(a => a.status === 'pending').length;
+  const notifications = useNotifications();
+  const notifCount = notifications.count;
 
   const handleLogout = async () => {
     await base44.auth.logout('/');
@@ -129,7 +120,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         {renderNavContent(closeMenu)}
       </nav>
 
-      <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} onNavigate={setActiveSection} />
+      <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} onNavigate={setActiveSection} notifications={notifications} />
     </>
   );
 }
