@@ -25,7 +25,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: Grid3x3 },
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
-    { id: 'rota', label: 'Rota', icon: Calendar },
+    { id: 'rota', label: 'Rotas', icon: Calendar },
     { id: 'calendar', label: 'Calendar', icon: CalendarDays },
     { id: 'timesheets', label: 'Timesheets', icon: Clock },
     { id: 'teams', label: 'Teams', icon: Users },
