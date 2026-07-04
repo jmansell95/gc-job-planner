@@ -7,6 +7,7 @@ import { format, startOfWeek, addDays } from 'date-fns';
 import { JobStatusChart, StaffUtilizationChart, JobTypeBreakdownChart } from '@/components/DashboardCharts';
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
 import DashboardInsights from '@/components/DashboardInsights';
+import JobCostAnalytics from '@/components/JobCostAnalytics';
 import { formatJobType } from '@/utils/format';
 
 const jobTypeBadge = {
@@ -181,6 +182,11 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         <div className="lg:col-span-2">
           <StaffUtilizationChart staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />
         </div>
+      </div>
+
+      {/* Cost Analytics */}
+      <div className="mb-6">
+        <JobCostAnalytics />
       </div>
 
       {/* AI Insights */}
