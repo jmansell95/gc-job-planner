@@ -7,7 +7,6 @@ import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import TimesheetEntry from '@/components/TimesheetEntry';
 import StaffTimesheets from '@/components/StaffTimesheets';
-import StaffAssistantChat from '@/components/StaffAssistantChat';
 import { formatJobType } from '@/utils/format';
 
 const jobTypeBadgeColors = {
@@ -402,8 +401,6 @@ export default function StaffDashboard() {
           <StaffTimesheets staffId={staff.id} staffName={staff.name} />
         </div>
       </div>
-
-      <StaffAssistantChat staffName={staff.name} />
     </div>
   );
 }

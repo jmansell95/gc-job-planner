@@ -11,6 +11,7 @@ import Home from './pages/Home';
 import AdminDashboard from './pages/AdminDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import ClientPortal from './pages/ClientPortal';
+import StaffAssistantChat from '@/components/StaffAssistantChat';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -39,15 +40,18 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
-    <Routes>
-      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/staff-schedule" element={<StaffDashboard />} />
-      </Route>
-      <Route path="/client-portal/:token" element={<ClientPortal />} />
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/staff-schedule" element={<StaffDashboard />} />
+        </Route>
+        <Route path="/client-portal/:token" element={<ClientPortal />} />
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+      {!isClientPortalRoute && <StaffAssistantChat />}
+    </>
   );
 };
 
