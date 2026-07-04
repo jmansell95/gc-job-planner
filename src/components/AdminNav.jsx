@@ -42,16 +42,20 @@ export default function AdminNav({ activeSection, setActiveSection }) {
   return (
     <>
       {/* Mobile Top Bar */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-emerald-900 border-b border-emerald-800 h-14 flex items-center justify-between px-4 shadow-lg">
-        <button onClick={() => setIsOpen(!isOpen)} className="flex items-center gap-2 pl-2.5 pr-3 py-1.5 text-white hover:bg-emerald-800 rounded-lg transition">
-          {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          <span className="text-sm font-semibold">Menu</span>
-        </button>
-        <span className="text-white font-bold text-sm">GC Job Planner</span>
-        <button onClick={() => setNotifOpen(true)} className="relative p-2 text-white hover:bg-emerald-800 rounded-lg transition">
-          <Bell className="w-5 h-5" />
-          {notifCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
-        </button>
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-emerald-900 border-b border-emerald-800 shadow-lg" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="h-14 flex items-center justify-between gap-2 px-3 sm:px-4">
+          <button onClick={() => setIsOpen(!isOpen)} aria-label="Toggle menu"
+            className="flex items-center gap-2 pl-2 pr-3 py-2.5 text-white hover:bg-emerald-800 active:bg-emerald-700 rounded-lg transition min-w-[44px] min-h-[44px]">
+            {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <span className="text-sm font-semibold">Menu</span>
+          </button>
+          <span className="text-white font-bold text-sm truncate flex-1 text-center">GC Job Planner</span>
+          <button onClick={() => setNotifOpen(true)} aria-label="Notifications"
+            className="relative p-2.5 text-white hover:bg-emerald-800 active:bg-emerald-700 rounded-lg transition min-w-[44px] min-h-[44px] flex items-center justify-center">
+            <Bell className="w-5 h-5" />
+            {notifCount > 0 && <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
+          </button>
+        </div>
       </header>
 
       {/* Overlay */}
