@@ -13,11 +13,28 @@ import { motion } from 'framer-motion';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 
 const jobTypeBadgeColors = {
-  groundworks: 'bg-green-100 text-green-700',
-  cp_drilling: 'bg-amber-100 text-amber-700',
-  rotary_drilling: 'bg-blue-100 text-blue-700',
-  enabling_works: 'bg-purple-100 text-purple-700',
-  depot: 'bg-slate-100 text-slate-700'
+  groundworks: 'bg-green-100 text-green-700 ring-1 ring-green-200',
+  cp_drilling: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
+  rotary_drilling: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
+  enabling_works: 'bg-purple-100 text-purple-700 ring-1 ring-purple-200',
+  depot: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'
+};
+
+const jobTypeDot = {
+  groundworks: 'bg-green-500',
+  cp_drilling: 'bg-amber-500',
+  rotary_drilling: 'bg-blue-500',
+  enabling_works: 'bg-purple-500',
+  depot: 'bg-slate-400'
+};
+
+const roleBorder = {
+  groundworker: 'border-l-green-500',
+  cp_driller: 'border-l-amber-500',
+  rotary_driller: 'border-l-blue-500',
+  enabling_crew: 'border-l-purple-500',
+  depot: 'border-l-slate-500',
+  supervisor: 'border-l-teal-500'
 };
 
 const statusConfig = {
@@ -203,7 +220,10 @@ export default function StaffDashboard() {
           <div>
             <div className="flex items-start justify-between mb-3 md:mb-4 gap-2">
               <div className="min-w-0">
-                <h3 className="text-base md:text-lg font-bold text-slate-900 break-words">{job.name}</h3>
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${jobTypeDot[job.job_type] || 'bg-slate-400'}`} />
+                  <h3 className="text-base md:text-lg font-bold text-slate-900 break-words">{job.name}</h3>
+                </div>
                 <span className={`inline-block px-2 py-1 rounded text-xs font-semibold mt-2 ${jobTypeBadgeColors[job.job_type]}`}>
                   {formatJobType(job.job_type)}
                 </span>
@@ -307,8 +327,10 @@ export default function StaffDashboard() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="bg-emerald-900 border-b border-emerald-800">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-6 flex items-center justify-between gap-4">
+      <div className="hero-gradient border-b border-emerald-800/40 relative overflow-hidden">
+        <div className="absolute -top-12 -right-8 w-44 h-44 rounded-full bg-emerald-300/20 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-10 w-40 h-40 rounded-full bg-teal-300/10 blur-3xl pointer-events-none" />
+        <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm ring-1 ring-white/20 flex-shrink-0">
               <HardHat className="w-6 h-6 md:w-7 md:h-7 text-white" />
@@ -335,7 +357,7 @@ export default function StaffDashboard() {
           </div>
         )}
         {/* Staff Info Card */}
-        <div className="bg-white rounded-lg p-4 md:p-6 border border-green-200 shadow-sm mb-6 md:mb-8">
+        <div className={`bg-white rounded-lg p-4 md:p-6 border border-green-200 border-l-4 shadow-sm mb-6 md:mb-8 ${roleBorder[staff.job_role] || 'border-l-emerald-500'}`}>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
             <div className="col-span-1">
               <p className="text-xs font-medium text-slate-500 uppercase">Role</p>
