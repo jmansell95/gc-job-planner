@@ -80,7 +80,7 @@ export default function StaffAssistantChat({ staffName }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+            className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4"
           >
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
             <motion.div

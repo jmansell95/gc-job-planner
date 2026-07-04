@@ -42,16 +42,16 @@ export default function AdminNav({ activeSection, setActiveSection }) {
   return (
     <>
       {/* Mobile Top Bar */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-emerald-900 border-b border-emerald-800 shadow-lg" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-[60] bg-emerald-900 border-b border-emerald-800 shadow-lg" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="h-14 flex items-center justify-between gap-2 px-3 sm:px-4">
-          <button onClick={() => setIsOpen(!isOpen)} aria-label="Toggle menu"
-            className="flex items-center gap-2 pl-2 pr-3 py-2.5 text-white hover:bg-emerald-800 active:bg-emerald-700 rounded-lg transition min-w-[44px] min-h-[44px]">
+          <button onClick={() => setIsOpen(!isOpen)} aria-label="Toggle menu" type="button"
+            className="flex items-center gap-2 pl-2 pr-3 py-2.5 text-white hover:bg-emerald-800 active:bg-emerald-700 rounded-lg transition min-w-[44px] min-h-[44px] cursor-pointer touch-manipulation select-none">
             {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             <span className="text-sm font-semibold">Menu</span>
           </button>
           <span className="text-white font-bold text-sm truncate flex-1 text-center">GC Job Planner</span>
-          <button onClick={() => setNotifOpen(true)} aria-label="Notifications"
-            className="relative p-2.5 text-white hover:bg-emerald-800 active:bg-emerald-700 rounded-lg transition min-w-[44px] min-h-[44px] flex items-center justify-center">
+          <button onClick={() => setNotifOpen(true)} aria-label="Notifications" type="button"
+            className="relative p-2.5 text-white hover:bg-emerald-800 active:bg-emerald-700 rounded-lg transition min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer touch-manipulation select-none">
             <Bell className="w-5 h-5" />
             {notifCount > 0 && <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
           </button>
@@ -65,7 +65,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
       {/* Sidebar */}
       <nav className={`
-        fixed lg:sticky top-0 left-0 h-screen lg:h-screen w-64 transform lg:transform-none transition-transform duration-300 ease-in-out overflow-y-auto bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex flex-col z-50 lg:z-auto
+        fixed lg:sticky top-[calc(3.5rem+env(safe-area-inset-top))] lg:top-0 left-0 h-[calc(100vh-3.5rem-env(safe-area-inset-top))] lg:h-screen w-64 transform lg:transform-none transition-transform duration-300 ease-in-out overflow-y-auto bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex flex-col z-50 lg:z-auto
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6 border-b border-emerald-800/50 flex items-start justify-between">

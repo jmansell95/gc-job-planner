@@ -40,9 +40,9 @@ export default function NotificationCenter({ isOpen, onClose, onNavigate }) {
       {isOpen && (
         <>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose} className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-[60]" />
+            onClick={onClose} className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-[65]" />
           <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-            className="fixed top-0 right-0 h-screen w-full max-w-sm z-[70] glass border-l border-white/40 shadow-2xl flex flex-col">
+            className="fixed top-0 right-0 h-screen w-full max-w-sm z-[75] glass border-l border-white/40 shadow-2xl flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200/60">
               <div className="flex items-center gap-2">
                 <Bell className="w-5 h-5 text-emerald-700" />
