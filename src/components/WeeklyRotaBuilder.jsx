@@ -8,8 +8,6 @@ import {
   Users, Briefcase, Search, Filter, StickyNote
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import PrintEmailSchedule from '@/components/PrintEmailSchedule';
-import PrintReportButton from '@/components/PrintReportButton';
 import AssignmentModal from '@/components/AssignmentModal';
 import { EmptyState, ErrorState, RotaSkeleton, Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatJobType, formatJobRole } from '@/utils/format';
@@ -160,26 +158,6 @@ export default function WeeklyRotaBuilder() {
   const staffWorking = [...new Set(rotas.map(r => r.staff_id))].length;
   const jobsActive = [...new Set(rotas.map(r => r.job_id))].length;
 
-  const buildRotaPrintHtml = () => {
-    const dayLabels = days.map(d => format(d, 'EEE dd MMM'));
-    const rows = staff.map(member => {
-      const cells = days.map((_, i) => {
-        const cellRotas = rotasByStaff[member.id]?.[i] || [];
-        return cellRotas.map(a => {
-          const job = jobs.find(j => j.id === a.job_id);
-          const vehicle = vehicles.find(v => v.id === a.vehicle_id);
-          return job ? `${job.name}${vehicle ? ' (' + vehicle.registration_number + ')' : ''}` : '—';
-        }).join(', ') || '';
-      });
-      return { name: member.name, cells };
-    });
-    return `<!DOCTYPE html><html><head><title>Weekly Rota – ${format(weekStart, 'dd MMM yyyy')}</title>
-    <style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#111}h1{font-size:16px;margin-bottom:4px}p{color:#555;margin-bottom:12px;font-size:11px}table{width:100%;border-collapse:collapse}th{background:#1a5c3a;color:white;padding:6px 8px;text-align:left;font-size:11px}td{padding:6px 8px;border-bottom:1px solid #e2e8f0;vertical-align:top}tr:nth-child(even) td{background:#f8fafb}@media print{body{margin:10mm}}</style></head><body>
-    <h1>Weekly Rota</h1><p>Week of ${format(weekStart, 'dd MMM yyyy')} – ${format(addDays(weekStart, 6), 'dd MMM yyyy')} &nbsp;·&nbsp; ${totalAssignments} assignments &nbsp;·&nbsp; Printed ${format(new Date(), 'dd MMM yyyy HH:mm')}</p>
-    <table><thead><tr><th>Staff</th>${dayLabels.map(d => `<th>${d}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map(r => `<tr><td><strong>${r.name}</strong></td>${r.cells.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`;
-  };
-
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const renderAssignmentCard = (assignment) => {
@@ -250,8 +228,6 @@ export default function WeeklyRotaBuilder() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <PageHeader title="Weekly Rota Builder" icon={Calendar} />
         <div className="flex flex-wrap items-center gap-2">
-          <PrintReportButton buildHtml={buildRotaPrintHtml} label="Print Rota" />
-          <PrintEmailSchedule weekStart={weekStart} staffId={null} />
           <button onClick={handleSmartFill} disabled={smartFillLoading}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50">
             <Copy className="w-4 h-4" /> {smartFillLoading ? 'Copying...' : 'Smart Fill'}
