@@ -6,6 +6,11 @@ import PageHeader from '@/components/PageHeader';
 import JobDetail from '@/components/JobDetail';
 import PrintReportButton from '@/components/PrintReportButton';
 import { formatJobType } from '@/utils/format';
+import { format, parseISO } from 'date-fns';
+
+const fmtDate = (d) => {
+  try { return d ? format(parseISO(d), 'dd MMM yyyy') : '—'; } catch { return d || '—'; }
+};
 
 const jobTypeBadge = {
   groundworks: 'bg-green-100 text-green-700',
@@ -449,9 +454,9 @@ export default function JobManager() {
                   <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                   <span className="truncate">{job.location}</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-slate-400 text-xs">
-                  <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>{job.start_date} → {job.end_date}</span>
+                <div className="flex items-start gap-1.5 text-slate-400 text-xs">
+                  <Calendar className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                  <span className="min-w-0 break-words">{fmtDate(job.start_date)} → {fmtDate(job.end_date)}</span>
                 </div>
               </div>
               <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">

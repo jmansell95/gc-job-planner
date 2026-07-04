@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Menu, X, Settings, Clock, Bell } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -10,6 +10,14 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
   const notifications = useNotifications();
   const notifCount = notifications.count;
+
+  useEffect(() => {
+    const open = isOpen || notifOpen;
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [isOpen, notifOpen]);
 
   const handleLogout = async () => {
     await base44.auth.logout('/');
@@ -24,6 +32,8 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'timesheets', label: 'Timesheets', icon: Clock },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
+
+  const currentLabel = navItems.find(i => i.id === activeSection)?.label || 'Dashboard';
 
   const closeMenu = () => setIsOpen(false);
   const toggleMenu = () => setIsOpen(v => !v);
@@ -57,7 +67,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
               onClick={() => handleNavClick(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-lg text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
                 isActive
-                  ? 'bg-emerald-700 text-white shadow-sm'
+                  ? 'bg-emerald-700 text-white shadow-[inset_3px_0_0_0_rgb(110,231,183)]'
                   : 'text-emerald-200 hover:bg-emerald-800/50 hover:text-white active:bg-emerald-800/50'
               }`}
             >
@@ -93,7 +103,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             </span>
             <span className="text-sm font-semibold">Menu</span>
           </button>
-          <span className="text-white font-bold text-sm truncate flex-1 text-center">GC Job Planner</span>
+          <span className="text-white font-bold text-sm truncate flex-1 text-center">{currentLabel}</span>
           <button onClick={() => setNotifOpen(true)} aria-label="Notifications" type="button"
             className="relative h-14 w-14 text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition flex items-center justify-center cursor-pointer touch-manipulation select-none">
             <Bell className="w-5 h-5" />
@@ -115,7 +125,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
       {/* Mobile Drawer */}
       <nav
-        className={`lg:hidden fixed top-[calc(3.5rem+env(safe-area-inset-top))] left-0 h-[calc(100vh-3.5rem-env(safe-area-inset-top))] w-64 z-[60] overflow-hidden bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${isOpen ? 'translate-x-0 pointer-events-auto' : '-translate-x-full pointer-events-none'}`}
+        className={`lg:hidden fixed top-[calc(3.5rem+env(safe-area-inset-top))] left-0 h-[calc(100vh-3.5rem-env(safe-area-inset-top))] w-72 max-w-[85vw] z-[60] overflow-hidden bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${isOpen ? 'translate-x-0 pointer-events-auto shadow-2xl' : '-translate-x-full pointer-events-none'}`}
       >
         {renderNavContent(closeMenu)}
       </nav>
