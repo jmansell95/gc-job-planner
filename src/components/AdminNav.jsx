@@ -40,11 +40,19 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     setIsOpen(false);
   };
 
-  const renderNavContent = () => (
+  const renderNavContent = (onClose) => (
     <>
-      <div className="p-6 border-b border-emerald-800/50">
-        <h1 className="text-xl font-bold text-white">GC Job Planner</h1>
-        <p className="text-xs text-emerald-300 mt-1">Admin Panel</p>
+      <div className="p-6 border-b border-emerald-800/50 flex items-start justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-bold text-white">GC Job Planner</h1>
+          <p className="text-xs text-emerald-300 mt-1">Admin Panel</p>
+        </div>
+        {onClose && (
+          <button type="button" onClick={onClose} aria-label="Close menu"
+            className="p-2 -mr-2 text-emerald-200 hover:bg-emerald-800/50 hover:text-white active:scale-95 rounded-lg transition cursor-pointer touch-manipulation select-none">
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
       <div className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map(item => {
@@ -123,10 +131,9 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-            className="lg:hidden fixed top-0 left-0 h-screen w-64 z-[60] overflow-y-auto bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex flex-col"
-            style={{ paddingTop: 'env(safe-area-inset-top)' }}
+            className="lg:hidden fixed top-[calc(3.5rem+env(safe-area-inset-top))] left-0 h-[calc(100vh-3.5rem-env(safe-area-inset-top))] w-64 z-[60] overflow-hidden bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex flex-col"
           >
-            {renderNavContent()}
+            {renderNavContent(() => setIsOpen(false))}
           </motion.nav>
         )}
       </AnimatePresence>
