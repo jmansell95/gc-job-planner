@@ -1,6 +1,6 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { Activity, BarChart3, Users, Layers } from 'lucide-react';
+import { Activity, BarChart3, Users, Layers, UserCheck, UserX, Gauge } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const STATUS_COLORS = { planning: '#64748b', in_progress: '#059669', completed: '#0d9488', on_hold: '#d97706' };
@@ -101,35 +101,91 @@ export function WeeklyAssignmentsChart({ days, rotas }) {
 }
 
 export function StaffUtilizationChart({ staff, rotas, weekDays }) {
+  const workingDays = 5;
+
   const data = staff.map(member => {
     const count = rotas.filter(r => r.staff_id === member.id && weekDays.includes(r.assigned_date)).length;
-    return { name: member.name.split(' ')[0], fullName: member.name, assigned: count, total: weekDays.length };
+    const pct = Math.min(100, Math.round((count / workingDays) * 100));
+    let level = 'idle';
+    if (count > workingDays) level = 'overtime';
+    else if (count === workingDays) level = 'full';
+    else if (count >= 3) level = 'active';
+    else if (count >= 1) level = 'light';
+    return { name: member.name, assigned: count, pct, level };
   }).sort((a, b) => b.assigned - a.assigned);
+
+  const assignedCount = data.filter(d => d.assigned > 0).length;
+  const idleCount = data.filter(d => d.assigned === 0).length;
+  const avgPct = data.length ? Math.round(data.reduce((a, b) => a + b.pct, 0) / data.length) : 0;
+
+  const levelMeta = {
+    idle: { label: 'Idle', bar: 'bg-slate-300', chip: 'bg-slate-100 text-slate-500' },
+    light: { label: 'Light', bar: 'bg-amber-400', chip: 'bg-amber-100 text-amber-700' },
+    active: { label: 'Active', bar: 'bg-emerald-500', chip: 'bg-emerald-100 text-emerald-700' },
+    full: { label: 'Full week', bar: 'bg-emerald-600', chip: 'bg-emerald-600 text-white' },
+    overtime: { label: 'Overtime', bar: 'bg-blue-500', chip: 'bg-blue-100 text-blue-700' },
+  };
+
+  const summary = [
+    { label: 'Total staff', value: data.length, icon: Users, tint: 'bg-emerald-50 text-emerald-700' },
+    { label: 'Assigned', value: assignedCount, icon: UserCheck, tint: 'bg-blue-50 text-blue-600' },
+    { label: 'Idle', value: idleCount, icon: UserX, tint: 'bg-slate-100 text-slate-500' },
+    { label: 'Avg utilisation', value: avgPct + '%', icon: Gauge, tint: 'bg-emerald-100 text-emerald-700' },
+  ];
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className={cardCls}>
       <div className="flex items-center gap-2 mb-4">
         <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><Users className="w-4 h-4 text-emerald-700" /></div>
         <h2 className="font-semibold text-slate-900">Staff Utilisation</h2>
+        <span className="text-xs text-slate-400 ml-1 hidden sm:inline">This week · vs {workingDays}-day work week</span>
       </div>
       {data.length === 0 ? (
         <div className="h-[180px] flex items-center justify-center text-slate-400 text-sm">No staff yet</div>
       ) : (
-        <ResponsiveContainer width="100%" height={Math.max(180, data.length * 32)}>
-          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 15, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="barGradH" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#10b981" />
-                <stop offset="100%" stopColor="#047857" />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-            <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={70} />
-            <Tooltip cursor={{ fill: 'rgba(16,185,129,0.08)' }} contentStyle={tooltipStyle} formatter={(value, name, props) => [`${value} / ${props.payload.total} days`, props.payload.fullName]} />
-            <Bar dataKey="assigned" fill="url(#barGradH)" radius={[0, 6, 6, 0]} maxBarSize={24} />
-          </BarChart>
-        </ResponsiveContainer>
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+            {summary.map(s => {
+              const Icon = s.icon;
+              return (
+                <div key={s.label} className="rounded-xl border border-slate-100 p-3 flex items-center gap-2.5">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${s.tint}`}><Icon className="w-4 h-4" /></div>
+                  <div className="min-w-0">
+                    <p className="text-lg font-bold text-slate-900 leading-none">{s.value}</p>
+                    <p className="text-[11px] text-slate-500 font-medium mt-0.5 truncate">{s.label}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+            {data.map((d, i) => {
+              const m = levelMeta[d.level];
+              return (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-100 to-emerald-300 flex items-center justify-center flex-shrink-0">
+                    <span className="text-emerald-800 font-bold text-xs">{d.name.charAt(0)}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <p className="text-sm font-medium text-slate-800 truncate">{d.name}</p>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${m.chip}`}>{m.label}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div className={`h-full rounded-full ${m.bar}`} style={{ width: d.pct + '%' }} />
+                      </div>
+                      <span className="text-xs text-slate-500 font-medium tabular-nums whitespace-nowrap w-24 text-right">
+                        {d.assigned}/{workingDays} days · {d.pct}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </motion.div>
   );
