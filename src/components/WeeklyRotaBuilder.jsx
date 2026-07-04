@@ -12,6 +12,7 @@ import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import PrintReportButton from '@/components/PrintReportButton';
 import AssignmentModal from '@/components/AssignmentModal';
 import { formatJobType, formatJobRole } from '@/utils/format';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-green-50', border: 'border-green-400', text: 'text-green-800', dot: 'bg-green-500', badge: 'bg-green-100 text-green-700' },
@@ -91,6 +92,23 @@ export default function WeeklyRotaBuilder() {
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
     } catch (error) {
       console.error('Error deleting assignment:', error);
+    }
+  };
+
+  const onDragEnd = async (result) => {
+    const { source, destination, draggableId } = result;
+    if (!destination) return;
+    const [srcStaff, srcDate] = source.droppableId.split('|');
+    const [dstStaff, dstDate] = destination.droppableId.split('|');
+    if (srcStaff === dstStaff && srcDate === dstDate) return;
+    const assignment = rotas.find(r => r.id === draggableId);
+    if (!assignment) return;
+    try {
+      await base44.entities.RotaAssignment.update(assignment.id, { staff_id: dstStaff, assigned_date: dstDate });
+      queryClient.invalidateQueries({ queryKey: ['rotas'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+    } catch (error) {
+      console.error('Error moving assignment:', error);
     }
   };
 
@@ -320,7 +338,7 @@ export default function WeeklyRotaBuilder() {
       {/* Desktop Grid */}
       <div className="hidden lg:block bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse min-w-[800px]">
+          <DragDropContext onDragEnd={onDragEnd}><table className="w-full border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-emerald-800 text-white">
                 <th className="px-4 py-3 text-left font-semibold text-sm w-44 sticky left-0 z-10 bg-emerald-800">Staff</th>
@@ -355,16 +373,31 @@ export default function WeeklyRotaBuilder() {
                     const isToday = dayStr === todayStr;
                     return (
                       <td key={`${member.id}-${dayIdx}`} className={`px-2 py-2 align-top min-w-[130px] ${isToday ? 'bg-emerald-50/40' : ''} ${isOnLeave(member.id, dayStr) ? 'bg-red-50/60' : ''} group/cell`}>
-                        <div className="space-y-1.5">
-                          {isOnLeave(member.id, dayStr) && (
-                            <div className="px-2 py-1 bg-red-100 text-red-600 rounded text-[10px] font-bold text-center">ON LEAVE</div>
+                        <Droppable droppableId={`${member.id}|${dayStr}`}>
+                          {(provided, snapshot) => (
+                            <div ref={provided.innerRef} {...provided.droppableProps}
+                              className={`space-y-1.5 min-h-[44px] rounded-lg transition ${snapshot.isDraggingOver ? 'bg-emerald-50/70 ring-2 ring-emerald-300/60' : ''}`}>
+                              {isOnLeave(member.id, dayStr) && (
+                                <div className="px-2 py-1 bg-red-100 text-red-600 rounded text-[10px] font-bold text-center">ON LEAVE</div>
+                              )}
+                              {dayAssignments.map((assignment, aIdx) => (
+                                <Draggable draggableId={assignment.id} index={aIdx} key={assignment.id}>
+                                  {(p) => (
+                                    <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps}
+                                      className="active:cursor-grabbing">
+                                      {renderAssignmentCard(assignment)}
+                                    </div>
+                                  )}
+                                </Draggable>
+                              ))}
+                              {provided.placeholder}
+                              <button onClick={() => handleCellClick(member.id, dayStr)}
+                                className="w-full py-1 text-[10px] text-slate-300 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition flex items-center justify-center gap-0.5 opacity-0 group-hover/cell:opacity-100">
+                                <Plus className="w-2.5 h-2.5" /> Add
+                              </button>
+                            </div>
                           )}
-                          {dayAssignments.map(renderAssignmentCard)}
-                          <button onClick={() => handleCellClick(member.id, dayStr)}
-                            className="w-full py-1 text-[10px] text-slate-300 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition flex items-center justify-center gap-0.5 opacity-0 group-hover/cell:opacity-100">
-                            <Plus className="w-2.5 h-2.5" /> Add
-                          </button>
-                        </div>
+                        </Droppable>
                       </td>
                     );
                   })}
@@ -376,7 +409,7 @@ export default function WeeklyRotaBuilder() {
                 </td></tr>
               )}
             </tbody>
-          </table>
+          </table></DragDropContext>
         </div>
       </div>
 
