@@ -32,7 +32,7 @@ export default function ContractorManager() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <PageHeader title="Clients" icon={HardHat} />
+        <PageHeader title="Manage Contractors" icon={HardHat} />
         <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ name: '', contact_name: '', contact_email: '', contact_phone: '', notes: '' }); }}
           className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
           <Plus className="w-4 h-4" /> Add Client
