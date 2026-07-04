@@ -4,16 +4,29 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    const settings = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'vehicle_maintenance' });
+    const cfg = settings[0];
+    if (cfg && cfg.enabled === false) {
+      return Response.json({ skipped: true, reason: 'Alert disabled' });
+    }
+    const daysBefore = (cfg && cfg.days_before_warning) ? cfg.days_before_warning : 30;
+
     const vehicles = await base44.asServiceRole.entities.Vehicle.list();
     const users = await base44.asServiceRole.entities.User.list();
     const admins = users.filter(u => u.role === 'admin');
 
-    if (admins.length === 0) {
-      return Response.json({ skipped: true, reason: 'No admin users to notify' });
+    let recipients = [];
+    if (cfg && cfg.recipient_emails) {
+      recipients = cfg.recipient_emails.split(',').map(s => s.trim()).filter(Boolean);
+    } else {
+      recipients = admins.map(u => u.email);
+    }
+    if (recipients.length === 0) {
+      return Response.json({ skipped: true, reason: 'No recipients configured' });
     }
 
     const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysFromNow = new Date(now.getTime() + daysBefore * 24 * 60 * 60 * 1000);
 
     const alerts = [];
 
@@ -55,15 +68,18 @@ Deno.serve(async (req) => {
     });
     emailBody += 'Please schedule maintenance as soon as possible.\n\nGC Job Planner';
 
-    for (const admin of admins) {
+    const subject = (cfg && cfg.subject) ? cfg.subject : 'Vehicle Maintenance Alert - ' + alerts.length + ' vehicle(s) need attention';
+    const intro = (cfg && cfg.intro_message) ? cfg.intro_message + '\n\n' : '';
+    const finalBody = intro + emailBody;
+    for (const to of recipients) {
       await base44.asServiceRole.integrations.Core.SendEmail({
-        to: admin.email,
-        subject: 'Vehicle Maintenance Alert - ' + alerts.length + ' vehicle(s) need attention',
-        body: emailBody
+        to,
+        subject,
+        body: finalBody
       });
     }
 
-    return Response.json({ sent: true, alertCount: alerts.length, notifiedAdmins: admins.length, alerts });
+    return Response.json({ sent: true, alertCount: alerts.length, notifiedRecipients: recipients.length, alerts });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
