@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Clock, Bell } from 'lucide-react';
+import { Users, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Clock, Bell, HardHat, Sparkles } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useStaffAssistant } from '@/components/StaffAssistantChat';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifications = useNotifications();
   const notifCount = notifications.count;
+  const { openChat } = useStaffAssistant();
 
   useEffect(() => {
     if (!notifOpen) return;
@@ -36,8 +38,22 @@ export default function AdminNav({ activeSection, setActiveSection }) {
   const desktopNav = (
     <>
       <div className="p-6 border-b border-emerald-800/50">
-        <h1 className="text-xl font-bold text-white">GC Job Planner</h1>
-        <p className="text-xs text-emerald-300 mt-1">Admin Panel</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm ring-1 ring-white/20 flex-shrink-0">
+            <HardHat className="w-6 h-6 text-white" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-white leading-tight">GC Job Planner</h1>
+            <p className="text-xs text-emerald-300">Admin Panel</p>
+          </div>
+        </div>
+      </div>
+      <div className="px-4 pb-3">
+        <button onClick={openChat} type="button"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-sm font-medium hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-sm">
+          <Sparkles className="w-4 h-4" />
+          Ask Assistant
+        </button>
       </div>
       <div className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map(item => {
@@ -70,17 +86,28 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     <>
       {/* Mobile Top Header — title + notifications only */}
       <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-emerald-900 border-b border-emerald-800 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="h-14 flex items-center justify-between px-4">
-          <h1 className="text-white font-bold text-base truncate">GC Job Planner</h1>
-          <button onClick={() => setNotifOpen(true)} aria-label="Notifications" type="button"
-            className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition cursor-pointer touch-manipulation select-none">
-            <Bell className="w-5 h-5" />
-            {notifCount > 0 && (
-              <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full flex items-center justify-center">
-                {notifCount > 9 ? '9+' : notifCount}
-              </span>
-            )}
-          </button>
+        <div className="h-14 flex items-center justify-between gap-2 px-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm flex-shrink-0 ring-1 ring-white/20">
+              <HardHat className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-white font-bold text-base truncate">GC Job Planner</h1>
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button onClick={openChat} aria-label="Ask Assistant" type="button"
+              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition cursor-pointer touch-manipulation select-none">
+              <Sparkles className="w-5 h-5" />
+            </button>
+            <button onClick={() => setNotifOpen(true)} aria-label="Notifications" type="button"
+              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition cursor-pointer touch-manipulation select-none">
+              <Bell className="w-5 h-5" />
+              {notifCount > 0 && (
+                <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {notifCount > 9 ? '9+' : notifCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 

@@ -11,7 +11,7 @@ import Home from './pages/Home';
 import AdminDashboard from './pages/AdminDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import ClientPortal from './pages/ClientPortal';
-import StaffAssistantChat from '@/components/StaffAssistantChat';
+import { StaffAssistantProvider } from '@/components/StaffAssistantChat';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -40,7 +40,7 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
-    <>
+    <StaffAssistantProvider>
       <Routes>
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/" element={<Home />} />
@@ -50,8 +50,7 @@ const AuthenticatedApp = () => {
         <Route path="/client-portal/:token" element={<ClientPortal />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
-      {!isClientPortalRoute && <StaffAssistantChat />}
-    </>
+    </StaffAssistantProvider>
   );
 };
 

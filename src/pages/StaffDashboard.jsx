@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDays, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, WifiOff } from 'lucide-react';
+import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDays, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, WifiOff, HardHat, Sparkles } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import TimesheetEntry from '@/components/TimesheetEntry';
 import StaffTimesheets from '@/components/StaffTimesheets';
 import { formatJobType } from '@/utils/format';
+import { useStaffAssistant } from '@/components/StaffAssistantChat';
 
 const jobTypeBadgeColors = {
   groundworks: 'bg-green-100 text-green-700',
@@ -28,6 +29,7 @@ export default function StaffDashboard() {
   const [loading, setLoading] = useState(true);
   const [meterageInputs, setMeterageInputs] = useState({});
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const { openChat } = useStaffAssistant();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -301,9 +303,21 @@ export default function StaffDashboard() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <div className="bg-emerald-900 border-b border-emerald-800">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-white">My Schedule</h1>
-          <p className="text-emerald-200 text-sm md:text-base mt-1">Welcome, {staff.name}</p>
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm ring-1 ring-white/20 flex-shrink-0">
+              <HardHat className="w-6 h-6 md:w-7 md:h-7 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-2xl md:text-3xl font-bold text-white truncate">My Schedule</h1>
+              <p className="text-emerald-200 text-sm md:text-base mt-0.5 truncate">Welcome, {staff.name}</p>
+            </div>
+          </div>
+          <button onClick={openChat} type="button"
+            className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition cursor-pointer touch-manipulation select-none flex-shrink-0">
+            <Sparkles className="w-5 h-5" />
+            <span className="hidden sm:inline">Ask Assistant</span>
+          </button>
         </div>
       </div>
 

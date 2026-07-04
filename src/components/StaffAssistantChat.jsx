@@ -1,12 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Send, MessageSquare, Check, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 const AGENT_NAME = 'staff_assistant';
+const StaffAssistantContext = createContext({ openChat: () => {} });
 
-export default function StaffAssistantChat({ staffName }) {
+export function useStaffAssistant() {
+  return useContext(StaffAssistantContext);
+}
+
+export function StaffAssistantProvider({ children }) {
   const [open, setOpen] = useState(false);
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -28,7 +33,7 @@ export default function StaffAssistantChat({ staffName }) {
         } else {
           conv = await base44.agents.createConversation({
             agent_name: AGENT_NAME,
-            metadata: { name: staffName ? `Assistant - ${staffName}` : 'Staff Assistant' }
+            metadata: { name: 'Staff Assistant' }
           });
         }
         if (!mounted) return;
@@ -65,15 +70,8 @@ export default function StaffAssistantChat({ staffName }) {
   };
 
   return (
-    <>
-      <button
-        onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 px-4 py-3 bg-gradient-to-br from-emerald-500 to-emerald-700 text-white rounded-full shadow-lg shadow-emerald-900/30 hover:scale-105 active:scale-95 transition"
-      >
-        <Sparkles className="w-5 h-5" />
-        <span className="font-medium text-sm hidden sm:inline">Ask Assistant</span>
-      </button>
-
+    <StaffAssistantContext.Provider value={{ openChat: () => setOpen(true) }}>
+      {children}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -145,7 +143,7 @@ export default function StaffAssistantChat({ staffName }) {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </StaffAssistantContext.Provider>
   );
 }
 
