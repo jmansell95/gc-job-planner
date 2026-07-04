@@ -13,6 +13,14 @@ const statusConfig = {
   rejected: { label: 'Rejected', badge: 'bg-red-100 text-red-700' }
 };
 
+const fmtDur = (t) => {
+  const m = Math.round((Number(t?.task_duration_minutes) || (t?.total_hours ? t.total_hours * 60 : 0)) || 0);
+  const h = Math.floor(m / 60), r = m % 60;
+  if (h && r) return `${h}h ${r}m`;
+  if (h) return `${h}h`;
+  return m > 0 ? `${r}m` : '—';
+};
+
 export default function TimesheetManager() {
   const [filter, setFilter] = useState('submitted');
   const queryClient = useQueryClient();
@@ -83,9 +91,8 @@ export default function TimesheetManager() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Staff</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Job</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Date</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Start</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">End</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Hours</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Task</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Time</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Actions</th>
                 </tr>
@@ -100,9 +107,8 @@ export default function TimesheetManager() {
                       <td className="px-4 py-3 text-sm font-medium text-slate-900">{member?.name || 'Unknown'}</td>
                       <td className="px-4 py-3 text-sm text-slate-600 truncate max-w-[180px]">{job?.name || '—'}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{format(new Date(ts.date + 'T00:00:00'), 'dd MMM')}</td>
-                      <td className="px-4 py-3 text-sm text-slate-500 text-center">{ts.start_time || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-slate-500 text-center">{ts.end_time || '—'}</td>
-                      <td className="px-4 py-3 text-sm font-bold text-slate-900 text-center">{ts.total_hours || 0}h</td>
+                      <td className="px-4 py-3 text-sm text-slate-600 truncate max-w-[220px]">{ts.task_description || <span className="text-slate-400 italic">{ts.start_time ? `${ts.start_time}–${ts.end_time}` : '—'}</span>}</td>
+                      <td className="px-4 py-3 text-sm font-bold text-slate-900 text-center whitespace-nowrap">{fmtDur(ts)}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${status.badge}`}>{status.label}</span>
                       </td>

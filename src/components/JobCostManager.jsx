@@ -196,7 +196,9 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
                       <span className="font-medium text-slate-900">{sc.name}</span>
                       {sc.costType === 'meterage'
                         ? <span className="text-xs text-slate-400 ml-2">{sc.meterage}m × £{sc.meterageRate}/m</span>
-                        : <span className="text-xs text-slate-400 ml-2">{sc.shifts} × £{sc.dayRate}</span>}
+                        : sc.costType === 'timesheet'
+                        ? <span className="text-xs text-slate-400 ml-2">{(sc.timesheetMinutes / 60).toFixed(1)}h logged × £{sc.hourlyRate.toFixed(0)}/h</span>
+                        : <span className="text-xs text-slate-400 ml-2">{sc.shifts} shifts × £{sc.dayRate}</span>}
                     </div>
                     <span className="font-semibold text-slate-700 flex-shrink-0">{fmt(sc.cost)}</span>
                   </div>

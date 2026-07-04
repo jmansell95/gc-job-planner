@@ -13,6 +13,7 @@ import DocumentManager from '@/components/DocumentManager';
 import MilestoneManager from '@/components/MilestoneManager';
 import JobCostManager from '@/components/JobCostManager';
 import JobCommentsViewer from '@/components/JobCommentsViewer';
+import JobWorkLog from '@/components/JobWorkLog';
 import { formatJobType } from '@/utils/format';
 
 const jobTypeColors = {
@@ -121,6 +122,11 @@ export default function JobDetail({ job, onBack }) {
     queryFn: () => base44.entities.RotaAssignment.filter({ job_id: job.id })
   });
 
+  const { data: timesheets = [] } = useQuery({
+    queryKey: ['timesheets-for-job', job.id],
+    queryFn: () => base44.entities.Timesheet.filter({ job_id: job.id })
+  });
+
   // Unique staff assigned to this job
   const assignedStaffIds = [...new Set(rotas.map(r => r.staff_id))];
   const assignedStaff = assignedStaffIds.map(id => allStaff.find(s => s.id === id)).filter(Boolean);
@@ -140,10 +146,19 @@ export default function JobDetail({ job, onBack }) {
   });
   const sortedDates = Object.keys(rotasByDate).sort();
 
-  // Job cost estimation — meterage-based for drilling jobs, day-rate for others
+  // Job cost estimation — meterage-based for drilling jobs, day-rate for others,
+  // with task-based timesheet labour overriding day-rate cost where tasks are logged.
   const isDrillingJob = job.job_type === 'cp_drilling' || job.job_type === 'rotary_drilling';
   const jobMeterage = isDrillingJob && job.meterage != null && job.meterage !== '' ? Number(job.meterage) : 0;
   const useJobMeterage = jobMeterage > 0;
+  const validTimesheets = (timesheets || []).filter(t => t.status === 'submitted' || t.status === 'approved');
+  const timesheetByStaff = {};
+  validTimesheets.forEach(t => {
+    const mins = Number(t.task_duration_minutes) || (t.total_hours ? t.total_hours * 60 : 0);
+    if (!timesheetByStaff[t.staff_id]) timesheetByStaff[t.staff_id] = { minutes: 0, count: 0 };
+    timesheetByStaff[t.staff_id].minutes += mins;
+    timesheetByStaff[t.staff_id].count += 1;
+  });
   const staffCosts = assignedStaff.map(member => {
     const memberRotas = rotas.filter(r => r.staff_id === member.id);
     const memberMeterage = memberRotas.reduce((sum, r) => sum + (r.meterage || 0), 0);
@@ -151,6 +166,9 @@ export default function JobDetail({ job, onBack }) {
     const dayRate = member.day_rate || 0;
     const usesMeterage = isDrillingJob && meterageRate > 0;
     const meterage = useJobMeterage ? jobMeterage : memberMeterage;
+    const ts = timesheetByStaff[member.id];
+    const usesTimesheet = !usesMeterage && ts && ts.minutes > 0;
+    const hourlyRate = dayRate > 0 ? dayRate / 8 : 0;
     return {
       name: member.name,
       role: roleLabels[member.job_role] || member.job_role,
@@ -158,8 +176,13 @@ export default function JobDetail({ job, onBack }) {
       dayRate,
       meterage,
       meterageRate,
-      costType: usesMeterage ? 'meterage' : 'day_rate',
-      cost: usesMeterage ? meterage * meterageRate : memberRotas.length * dayRate
+      costType: usesMeterage ? 'meterage' : (usesTimesheet ? 'timesheet' : 'day_rate'),
+      timesheetMinutes: ts ? ts.minutes : 0,
+      timesheetCount: ts ? ts.count : 0,
+      hourlyRate,
+      cost: usesMeterage ? meterage * meterageRate
+        : usesTimesheet ? (ts.minutes / 60) * hourlyRate
+        : memberRotas.length * dayRate
     };
   });
   const totalCost = staffCosts.reduce((sum, s) => sum + s.cost, 0);
@@ -384,6 +407,8 @@ export default function JobDetail({ job, onBack }) {
 
           {/* Job Costing */}
           <JobCostManager job={job} totalCost={totalCost} staffCosts={staffCosts} isDrillingJob={isDrillingJob} totalMeterage={totalMeterage} />
+
+          <JobWorkLog job={job} />
 
           {/* Client Info */}
           {(client || contractor) && (
