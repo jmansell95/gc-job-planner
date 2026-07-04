@@ -102,8 +102,8 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
         </Field>
       </Section>
 
-      {/* Costing */}
-      <Section title="Costing" icon={PoundSterling}>
+      {/* Costing (internal) */}
+      <Section title="Costing (Internal)" icon={PoundSterling}>
         <Field label="Budget (GBP)" hint="Agreed job value">
           <input type="number" min="0" step="0.01" value={num('budget_amount')} onChange={(e) => setNum('budget_amount', e.target.value)} placeholder="0.00" className={inputCls} />
         </Field>
@@ -118,6 +118,16 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
             </div>
           </Field>
         )}
+      </Section>
+
+      {/* Client Billing (shown on portal if enabled) */}
+      <Section title="Client Billing (Portal)" icon={PoundSterling}>
+        <Field label="Client Charge (GBP)" hint="What the client pays">
+          <input type="number" min="0" step="0.01" value={num('client_charge')} onChange={(e) => setNum('client_charge', e.target.value)} placeholder="0.00" className={inputCls} />
+        </Field>
+        <Field label="Charge Label" hint="e.g. Agreed quote">
+          <input type="text" value={formData.client_charge_description || ''} onChange={(e) => setFormData({ ...formData, client_charge_description: e.target.value })} placeholder="Agreed quote" className={inputCls} />
+        </Field>
       </Section>
 
       {/* Notes */}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Activity, Briefcase, Calendar, StickyNote, Camera, Target, FileText, MessageSquare, ShieldCheck, Info } from 'lucide-react';
+import { Activity, Briefcase, Calendar, StickyNote, Camera, Target, FileText, MessageSquare, ShieldCheck, Info, Users, PoundSterling } from 'lucide-react';
 
 const DEFAULT_SECTIONS = {
   progress: true,
@@ -11,18 +11,22 @@ const DEFAULT_SECTIONS = {
   photos: true,
   milestones: true,
   documents: true,
-  comments: true
+  comments: true,
+  team: true,
+  client_charge: false
 };
 
 const SECTIONS = [
   { key: 'progress', label: 'Project Progress', desc: 'Completion bar and shift stats', icon: Activity },
-  { key: 'client_info', label: 'Client Info', desc: 'Client name and contact', icon: Briefcase },
+  { key: 'team', label: 'Project Team', desc: 'Who is on the job and their roles', icon: Users },
+  { key: 'client_info', label: 'Client & Contacts', desc: 'Client, PM and site contact', icon: Briefcase },
   { key: 'schedule', label: 'Work Schedule', desc: 'Daily crew breakdown', icon: Calendar },
   { key: 'notes', label: 'Project Notes', desc: 'Job notes text', icon: StickyNote },
   { key: 'photos', label: 'Site Photos', desc: 'Uploaded site photos', icon: Camera },
   { key: 'milestones', label: 'Milestones', desc: 'Project milestone timeline', icon: Target },
   { key: 'documents', label: 'Documents', desc: 'Downloadable job documents', icon: FileText },
   { key: 'comments', label: 'Comments', desc: 'Two-way client messaging', icon: MessageSquare },
+  { key: 'client_charge', label: 'Client Charge', desc: 'What the client is billed (your internal costs stay hidden)', icon: PoundSterling },
 ];
 
 export default function PortalSectionManager({ job }) {

@@ -122,6 +122,14 @@
         "comments": {
           "type": "boolean",
           "default": true
+        },
+        "team": {
+          "type": "boolean",
+          "default": true
+        },
+        "client_charge": {
+          "type": "boolean",
+          "default": false
         }
       }
     },
@@ -136,6 +144,14 @@
     "meterage": {
       "type": "number",
       "description": "Total meters drilled for drilling jobs (CP / rotary); overrides shift-level meterage for costing when set"
+    },
+    "client_charge": {
+      "type": "number",
+      "description": "Amount quoted to / billed to the client in GBP. Shown on the client portal when the client_charge section is enabled. Internal costs are never shown to the client."
+    },
+    "client_charge_description": {
+      "type": "string",
+      "description": "Short label or note shown alongside the client charge on the portal (e.g. 'Agreed quote', 'Invoiced to date')"
     }
   },
   "required": [

@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
     const documents = await base44.asServiceRole.entities.JobDocument.filter({ job_id: job.id });
     const comments = await base44.asServiceRole.entities.JobComment.filter({ job_id: job.id });
     const milestones = await base44.asServiceRole.entities.JobMilestone.filter({ job_id: job.id });
+    const timesheets = await base44.asServiceRole.entities.Timesheet.filter({ job_id: job.id });
 
     let client = null;
     if (job.client_id) {
@@ -26,17 +27,39 @@ Deno.serve(async (req) => {
       client = clients[0] || null;
     }
 
+    let contractor = null;
+    if (job.contractor_id) {
+      const contractors = await base44.asServiceRole.entities.Contractor.filter({ id: job.contractor_id });
+      contractor = contractors[0] || null;
+    }
+
     const schedule = {};
+    const teamMap = {};
     assignments.forEach(a => {
       if (!schedule[a.assigned_date]) schedule[a.assigned_date] = [];
       const staffMember = allStaff.find(s => s.id === a.staff_id);
+      const name = staffMember?.name || 'Unknown';
+      const role = staffMember?.job_role || '';
       schedule[a.assigned_date].push({
-        staff_name: staffMember?.name || 'Unknown',
-        role: staffMember?.job_role || '',
+        staff_name: name,
+        role,
         status: a.status || 'assigned',
         meterage: a.meterage || 0
       });
+      if (!teamMap[a.staff_id]) teamMap[a.staff_id] = { name, role, shifts: 0, meterage: 0 };
+      teamMap[a.staff_id].shifts += 1;
+      teamMap[a.staff_id].meterage += a.meterage || 0;
     });
+    const team = Object.values(teamMap).sort((a, b) => a.name.localeCompare(b.name));
+
+    const validTimesheets = timesheets.filter(t => t.status === 'submitted' || t.status === 'approved');
+    let totalMinutes = 0;
+    let totalMeterage = 0;
+    validTimesheets.forEach(t => {
+      totalMinutes += Number(t.task_duration_minutes) || (t.total_hours ? t.total_hours * 60 : 0);
+      totalMeterage += Number(t.meterage) || 0;
+    });
+    const totalHours = Math.round((totalMinutes / 60) * 10) / 10;
 
     const total = assignments.length;
     const completed = assignments.filter(a => a.status === 'completed').length;
@@ -51,11 +74,20 @@ Deno.serve(async (req) => {
         start_date: job.start_date,
         end_date: job.end_date,
         notes: job.notes,
+        job_reference: job.job_reference || '',
+        project_manager: job.project_manager || '',
+        site_contact_name: job.site_contact_name || '',
+        site_contact_phone: job.site_contact_phone || '',
+        client_charge: job.client_charge != null ? job.client_charge : null,
+        client_charge_description: job.client_charge_description || '',
         portal_sections: job.portal_sections || null
       },
       client: client ? { name: client.name, contact_name: client.contact_name } : null,
+      contractor: contractor ? { name: contractor.name, contact_name: contractor.contact_name || '' } : null,
       schedule,
       progress: { total, completed, started },
+      team,
+      totals: { staff: team.length, shifts: total, hours: totalHours, meterage: totalMeterage },
       documents: documents.map(d => ({
         document_url: d.document_url,
         document_name: d.document_name,
