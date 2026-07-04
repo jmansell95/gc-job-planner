@@ -16,7 +16,7 @@ export default function AdminDashboard() {
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-100">
       <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} />
-      <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0">
+      <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top))] pb-16 lg:pt-0 lg:pb-0">
         <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
           {activeSection === 'overview' && (
             <DashboardOverview

@@ -1,23 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Menu, X, Settings, Clock, Bell } from 'lucide-react';
+import { Users, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Clock, Bell } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
-  const [isOpen, setIsOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-
   const notifications = useNotifications();
   const notifCount = notifications.count;
 
   useEffect(() => {
-    const open = isOpen || notifOpen;
-    if (!open) return;
+    if (!notifOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
-  }, [isOpen, notifOpen]);
+  }, [notifOpen]);
 
   const handleLogout = async () => {
     await base44.auth.logout('/');
@@ -26,51 +23,33 @@ export default function AdminNav({ activeSection, setActiveSection }) {
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: Grid3x3 },
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
-    { id: 'teams', label: 'Teams', icon: Users },
-    { id: 'rota', label: 'Weekly Rota', icon: Calendar },
+    { id: 'rota', label: 'Rota', icon: Calendar },
     { id: 'calendar', label: 'Calendar', icon: CalendarDays },
     { id: 'timesheets', label: 'Timesheets', icon: Clock },
+    { id: 'teams', label: 'Teams', icon: Users },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   const currentLabel = navItems.find(i => i.id === activeSection)?.label || 'Dashboard';
+  const handleNavClick = (id) => setActiveSection(id);
 
-  const closeMenu = () => setIsOpen(false);
-  const toggleMenu = () => setIsOpen(v => !v);
-  const handleNavClick = (id) => {
-    setActiveSection(id);
-    closeMenu();
-  };
-
-  const renderNavContent = (onClose) => (
+  const desktopNav = (
     <>
-      <div className="p-6 border-b border-emerald-800/50 flex items-start justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-bold text-white">GC Job Planner</h1>
-          <p className="text-xs text-emerald-300 mt-1">Admin Panel</p>
-        </div>
-        {onClose && (
-          <button type="button" onClick={onClose} aria-label="Close menu"
-            className="p-2 -mr-2 text-emerald-200 hover:bg-emerald-800/50 hover:text-white active:scale-95 rounded-lg transition cursor-pointer touch-manipulation select-none">
-            <X className="w-5 h-5" />
-          </button>
-        )}
+      <div className="p-6 border-b border-emerald-800/50">
+        <h1 className="text-xl font-bold text-white">GC Job Planner</h1>
+        <p className="text-xs text-emerald-300 mt-1">Admin Panel</p>
       </div>
       <div className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map(item => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
           return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => handleNavClick(item.id)}
+            <button key={item.id} type="button" onClick={() => handleNavClick(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-lg text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
                 isActive
                   ? 'bg-emerald-700 text-white shadow-[inset_3px_0_0_0_rgb(110,231,183)]'
-                  : 'text-emerald-200 hover:bg-emerald-800/50 hover:text-white active:bg-emerald-800/50'
-              }`}
-            >
+                  : 'text-emerald-200 hover:bg-emerald-800/50 hover:text-white'
+              }`}>
               <Icon className="w-5 h-5 flex-shrink-0" />
               <span>{item.label}</span>
             </button>
@@ -78,11 +57,8 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         })}
       </div>
       <div className="p-4 border-t border-emerald-800/50">
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-lg text-sm font-medium text-emerald-300 hover:bg-emerald-800/50 hover:text-white transition cursor-pointer touch-manipulation select-none"
-        >
+        <button type="button" onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-lg text-sm font-medium text-emerald-300 hover:bg-emerald-800/50 hover:text-white transition cursor-pointer touch-manipulation select-none">
           <LogOut className="w-5 h-5 flex-shrink-0" />
           <span>Logout</span>
         </button>
@@ -92,42 +68,45 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
   return (
     <>
-      {/* Mobile Top Bar */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-[70] bg-emerald-900 border-b border-emerald-800 shadow-lg" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="h-14 flex items-center justify-between gap-2 px-3 sm:px-4">
-          <button onClick={toggleMenu} aria-label="Toggle menu" aria-expanded={isOpen} type="button"
-            className="relative h-14 w-14 -ml-1 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition cursor-pointer touch-manipulation select-none">
-            <span className="relative w-6 h-6 flex items-center justify-center">
-              <Menu className={`absolute w-6 h-6 transition-all duration-200 ease-out ${isOpen ? 'opacity-0 rotate-90 scale-50' : 'opacity-100 rotate-0 scale-100'}`} />
-              <X className={`absolute w-6 h-6 transition-all duration-200 ease-out ${isOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-50'}`} />
-            </span>
-          </button>
-          <span className="text-white font-bold text-sm truncate flex-1 text-center">{currentLabel}</span>
+      {/* Mobile Top Header — title + notifications only */}
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-emerald-900 border-b border-emerald-800 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="h-14 flex items-center justify-between px-4">
+          <h1 className="text-white font-bold text-base truncate">{currentLabel}</h1>
           <button onClick={() => setNotifOpen(true)} aria-label="Notifications" type="button"
-            className="relative h-14 w-14 text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition flex items-center justify-center cursor-pointer touch-manipulation select-none">
+            className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition cursor-pointer touch-manipulation select-none">
             <Bell className="w-5 h-5" />
-            {notifCount > 0 && <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full flex items-center justify-center">{notifCount > 9 ? '9+' : notifCount}</span>}
+            {notifCount > 0 && (
+              <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full flex items-center justify-center">
+                {notifCount > 9 ? '9+' : notifCount}
+              </span>
+            )}
           </button>
         </div>
       </header>
 
       {/* Desktop Sidebar */}
       <nav className="hidden lg:flex sticky top-0 h-screen w-64 bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex-col">
-        {renderNavContent()}
+        {desktopNav}
       </nav>
 
-      {/* Mobile Overlay */}
-      <div
-        onClick={closeMenu}
-        className={`lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-      />
-
-      {/* Mobile Drawer */}
-      <nav
-        className={`lg:hidden fixed top-0 bottom-0 left-0 w-72 max-w-[85vw] z-[60] overflow-hidden bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${isOpen ? 'translate-x-0 pointer-events-auto shadow-2xl' : '-translate-x-full pointer-events-none'}`}
-        style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top))' }}
-      >
-        {renderNavContent(closeMenu)}
+      {/* Mobile Bottom Tab Bar — persistent, no drawer */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 shadow-[0_-2px_12px_rgba(15,42,31,0.08)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="flex h-16">
+          {navItems.map(item => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            return (
+              <button key={item.id} type="button" onClick={() => handleNavClick(item.id)}
+                className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 pt-2 pb-1 transition cursor-pointer touch-manipulation select-none ${isActive ? 'text-emerald-700' : 'text-slate-500 active:scale-95'}`}>
+                <span className="relative">
+                  {isActive && <span className="absolute -top-2 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-emerald-600" />}
+                  <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+                </span>
+                <span className="text-[10px] font-medium leading-none truncate max-w-full px-0.5">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
       <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} onNavigate={setActiveSection} notifications={notifications} />
