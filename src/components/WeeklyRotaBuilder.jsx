@@ -265,15 +265,17 @@ export default function WeeklyRotaBuilder() {
 
       {/* Week Navigator + Stats */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-        <div className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 w-fit">
-          <button onClick={goToPrevWeek} className="p-1.5 hover:bg-slate-100 rounded-lg transition"><ChevronLeft className="w-4 h-4 text-slate-600" /></button>
-          <div className="text-sm font-semibold text-slate-900 min-w-[180px] text-center">
-            {format(weekStart, 'dd MMM')} — {format(addDays(weekStart, 6), 'dd MMM yyyy')}
+        <div className="flex items-center gap-2 sm:gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-3 sm:px-4 py-3 w-full sm:w-fit flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start">
+            <button onClick={goToPrevWeek} className="p-1.5 hover:bg-slate-100 rounded-lg transition"><ChevronLeft className="w-4 h-4 text-slate-600" /></button>
+            <div className="text-sm font-semibold text-slate-900 flex-1 sm:min-w-[180px] text-center">
+              {format(weekStart, 'dd MMM')} — {format(addDays(weekStart, 6), 'dd MMM yyyy')}
+            </div>
+            <button onClick={goToNextWeek} className="p-1.5 hover:bg-slate-100 rounded-lg transition"><ChevronRight className="w-4 h-4 text-slate-600" /></button>
           </div>
-          <button onClick={goToNextWeek} className="p-1.5 hover:bg-slate-100 rounded-lg transition"><ChevronRight className="w-4 h-4 text-slate-600" /></button>
-          <div className="h-4 w-px bg-slate-200 mx-1" />
+          <div className="hidden sm:block h-4 w-px bg-slate-200 mx-1" />
           <input type="date" value={weekStartStr} onChange={(e) => setSelectedWeek(new Date(e.target.value))}
-            className="text-xs px-2 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 text-slate-600" />
+            className="text-xs px-2 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 text-slate-600 w-full sm:w-auto" />
         </div>
         <div className="flex gap-3 flex-wrap">
           <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center gap-2 shadow-sm">
