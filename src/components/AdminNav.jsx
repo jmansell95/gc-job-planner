@@ -96,12 +96,11 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       <header className="lg:hidden fixed top-0 left-0 right-0 z-[70] bg-emerald-900 border-b border-emerald-800 shadow-lg" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="h-14 flex items-center justify-between gap-2 px-3 sm:px-4">
           <button onClick={toggleMenu} aria-label="Toggle menu" aria-expanded={isOpen} type="button"
-            className="flex items-center gap-2 h-14 px-4 -ml-1 text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition min-w-[56px] cursor-pointer touch-manipulation select-none">
+            className="relative h-14 w-14 -ml-1 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition cursor-pointer touch-manipulation select-none">
             <span className="relative w-6 h-6 flex items-center justify-center">
               <Menu className={`absolute w-6 h-6 transition-all duration-200 ease-out ${isOpen ? 'opacity-0 rotate-90 scale-50' : 'opacity-100 rotate-0 scale-100'}`} />
               <X className={`absolute w-6 h-6 transition-all duration-200 ease-out ${isOpen ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-50'}`} />
             </span>
-            <span className="text-sm font-semibold">Menu</span>
           </button>
           <span className="text-white font-bold text-sm truncate flex-1 text-center">{currentLabel}</span>
           <button onClick={() => setNotifOpen(true)} aria-label="Notifications" type="button"
@@ -125,7 +124,8 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
       {/* Mobile Drawer */}
       <nav
-        className={`lg:hidden fixed top-[calc(3.5rem+env(safe-area-inset-top))] left-0 h-[calc(100vh-3.5rem-env(safe-area-inset-top))] w-72 max-w-[85vw] z-[60] overflow-hidden bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${isOpen ? 'translate-x-0 pointer-events-auto shadow-2xl' : '-translate-x-full pointer-events-none'}`}
+        className={`lg:hidden fixed top-0 bottom-0 left-0 w-72 max-w-[85vw] z-[60] overflow-hidden bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${isOpen ? 'translate-x-0 pointer-events-auto shadow-2xl' : '-translate-x-full pointer-events-none'}`}
+        style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top))' }}
       >
         {renderNavContent(closeMenu)}
       </nav>
