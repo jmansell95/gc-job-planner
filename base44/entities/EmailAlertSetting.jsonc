@@ -34,6 +34,26 @@
     "template": {
       "type": "string",
       "description": "Full custom email body template with placeholders. Blank uses the default template."
+    },
+    "accent_color": {
+      "type": "string",
+      "default": "#0e7a4f",
+      "description": "Hex colour used for the email banner and accents"
+    },
+    "banner_title": {
+      "type": "string",
+      "default": "GC Job Planner",
+      "description": "Title shown in the email banner header"
+    },
+    "show_banner": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to show the coloured banner at the top of the email"
+    },
+    "footer_text": {
+      "type": "string",
+      "default": "GC Job Planner",
+      "description": "Text shown in the email footer"
     }
   },
   "required": [

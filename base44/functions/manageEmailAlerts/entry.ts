@@ -1,9 +1,30 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const DEFAULTS = [
-  { alert_key: 'vehicle_maintenance', enabled: true, recipient_emails: '', days_before_warning: 30, subject: '', intro_message: '', template: '' },
-  { alert_key: 'assignment_notification', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '' }
+  { alert_key: 'vehicle_maintenance', enabled: true, recipient_emails: '', days_before_warning: 30, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'assignment_notification', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
 ];
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function styledHtml(bodyText, cfg) {
+  const accent = (cfg && cfg.accent_color) || '#0e7a4f';
+  const bannerTitle = (cfg && cfg.banner_title) || 'GC Job Planner';
+  const showBanner = !(cfg && cfg.show_banner === false);
+  const footer = (cfg && cfg.footer_text) || 'GC Job Planner';
+  const safe = escapeHtml(bodyText).replace(/\n/g, '<br>');
+  const banner = showBanner
+    ? '<tr><td style="background:' + accent + ';padding:18px 24px"><h1 style="margin:0;color:#ffffff;font-size:18px;font-family:Arial,Helvetica,sans-serif;letter-spacing:0.3px">' + escapeHtml(bannerTitle) + '</h1></td></tr>'
+    : '';
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">' +
+    '<table align="center" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:100%;margin:24px auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 6px 24px rgba(15,42,31,0.08)">' +
+    banner +
+    '<tr><td style="padding:24px;color:#1e293b;font-size:14px;line-height:1.6">' + safe + '</td></tr>' +
+    '<tr><td style="padding:14px 24px;background:#f8fafc;color:#64748b;font-size:12px;border-top:1px solid #e2e8f0;text-align:center">' + escapeHtml(footer) + '</td></tr>' +
+    '</table></body></html>';
+}
 
 function renderTestTemplate(alert_key, template) {
   if (alert_key === 'vehicle_maintenance') {
@@ -48,7 +69,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'save') {
-      const { alert_key, enabled, recipient_emails, days_before_warning, subject, intro_message, template } = body;
+      const { alert_key, enabled, recipient_emails, days_before_warning, subject, intro_message, template, accent_color, banner_title, show_banner, footer_text } = body;
       if (!alert_key) return Response.json({ error: 'alert_key required' }, { status: 400 });
       const data = {
         alert_key,
@@ -57,7 +78,11 @@ Deno.serve(async (req) => {
         days_before_warning: days_before_warning != null ? Number(days_before_warning) : null,
         subject: subject || '',
         intro_message: intro_message || '',
-        template: template || ''
+        template: template || '',
+        accent_color: accent_color || '#0e7a4f',
+        banner_title: banner_title || 'GC Job Planner',
+        show_banner: show_banner !== false,
+        footer_text: footer_text || 'GC Job Planner'
       };
       const existing = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key });
       let saved;
@@ -67,6 +92,21 @@ Deno.serve(async (req) => {
         saved = await base44.asServiceRole.entities.EmailAlertSetting.create(data);
       }
       return Response.json({ saved: true, setting: saved });
+    }
+
+    if (action === 'preview') {
+      const { alert_key } = body;
+      if (!alert_key) return Response.json({ error: 'alert_key required' }, { status: 400 });
+      const existing = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key });
+      const cfg = existing[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+      let text;
+      if (cfg.template) {
+        text = renderTestTemplate(alert_key, cfg.template);
+      } else {
+        const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+        text = intro + 'This is a preview of your automated alert email.\n\nGC Job Planner';
+      }
+      return Response.json({ html: styledHtml(text, cfg) });
     }
 
     if (action === 'test') {
@@ -97,8 +137,9 @@ Deno.serve(async (req) => {
         const intro = (cfg && cfg.intro_message) ? cfg.intro_message + '\n\n' : '';
         text = intro + 'This is a test email to confirm your automated alert is configured correctly.\n\nGC Job Planner';
       }
+      const html = styledHtml(text, cfg);
       for (const to of recipients) {
-        await base44.asServiceRole.integrations.Core.SendEmail({ to, subject, body: text });
+        await base44.asServiceRole.integrations.Core.SendEmail({ to, subject, body: html });
       }
       return Response.json({ sent: true, recipients });
     }
