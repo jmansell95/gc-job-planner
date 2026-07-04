@@ -40,14 +40,26 @@ Deno.serve(async (req) => {
     });
 
     const subject = (cfg && cfg.subject) ? cfg.subject.replace(/\{job_name\}/g, job.name) : 'New Job Assignment: ' + job.name;
-    const intro = (cfg && cfg.intro_message) ? cfg.intro_message + '\n\n' : '';
-    const emailBody = 'Hello ' + staff.name + ',\n\n' + intro + 'You have been assigned to a new job:\n\n' +
-      'Job: ' + job.name + '\n' +
-      'Location: ' + job.location + '\n' +
-      'Date: ' + formattedDate + '\n' +
-      'Job Type: ' + job.job_type.replace(/_/g, ' ') + '\n' +
-      (job.notes ? '\nNotes: ' + job.notes + '\n' : '') +
-      '\nPlease check your schedule for full details.\n\nGC Job Planner';
+    let emailBody;
+    if (cfg && cfg.template) {
+      const notesLine = job.notes ? 'Notes: ' + job.notes : '';
+      emailBody = cfg.template
+        .replace(/\{staff_name\}/g, staff.name)
+        .replace(/\{job_name\}/g, job.name)
+        .replace(/\{location\}/g, job.location)
+        .replace(/\{date\}/g, formattedDate)
+        .replace(/\{job_type\}/g, job.job_type.replace(/_/g, ' '))
+        .replace(/\{notes\}/g, notesLine);
+    } else {
+      const intro = (cfg && cfg.intro_message) ? cfg.intro_message + '\n\n' : '';
+      emailBody = 'Hello ' + staff.name + ',\n\n' + intro + 'You have been assigned to a new job:\n\n' +
+        'Job: ' + job.name + '\n' +
+        'Location: ' + job.location + '\n' +
+        'Date: ' + formattedDate + '\n' +
+        'Job Type: ' + job.job_type.replace(/_/g, ' ') + '\n' +
+        (job.notes ? '\nNotes: ' + job.notes + '\n' : '') +
+        '\nPlease check your schedule for full details.\n\nGC Job Planner';
+    }
 
     await base44.asServiceRole.integrations.Core.SendEmail({
       to: staff.email,

@@ -29,7 +29,11 @@
     },
     "intro_message": {
       "type": "string",
-      "description": "Custom intro paragraph prepended to email body"
+      "description": "Custom intro paragraph prepended to the default email body"
+    },
+    "template": {
+      "type": "string",
+      "description": "Full custom email body template with placeholders. Blank uses the default template."
     }
   },
   "required": [

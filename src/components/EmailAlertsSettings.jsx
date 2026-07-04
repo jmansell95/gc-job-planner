@@ -174,6 +174,44 @@ export default function EmailAlertsSettings() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Email body template <span className="text-slate-400 font-normal">(optional)</span>
+                </label>
+                <textarea
+                  value={draft.template || ''}
+                  onChange={(e) => updateDraft(key, 'template', e.target.value)}
+                  rows="7"
+                  placeholder={key === 'vehicle_maintenance'
+                    ? `Vehicle Maintenance Report
+
+{alert_list}
+
+Please schedule maintenance as soon as possible.
+
+GC Job Planner`
+                    : `Hello {staff_name},
+
+You have been assigned to a new job:
+
+Job: {job_name}
+Location: {location}
+Date: {date}
+Job Type: {job_type}
+{notes}
+
+Please check your schedule for full details.
+
+GC Job Planner`}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 font-mono"
+                />
+                <p className="text-xs text-slate-400 mt-1">
+                  {key === 'vehicle_maintenance'
+                    ? 'Tokens: {alert_count}, {alert_list}. Leave blank to use the default template.'
+                    : 'Tokens: {staff_name}, {job_name}, {location}, {date}, {job_type}, {notes}. Leave blank to use the default template.'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Intro message <span className="text-slate-400 font-normal">(optional)</span>
                 </label>
                 <textarea

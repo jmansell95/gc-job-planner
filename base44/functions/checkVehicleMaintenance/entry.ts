@@ -69,8 +69,15 @@ Deno.serve(async (req) => {
     emailBody += 'Please schedule maintenance as soon as possible.\n\nGC Job Planner';
 
     const subject = (cfg && cfg.subject) ? cfg.subject : 'Vehicle Maintenance Alert - ' + alerts.length + ' vehicle(s) need attention';
-    const intro = (cfg && cfg.intro_message) ? cfg.intro_message + '\n\n' : '';
-    const finalBody = intro + emailBody;
+    let finalBody;
+    if (cfg && cfg.template) {
+      finalBody = cfg.template
+        .replace(/\{alert_count\}/g, String(alerts.length))
+        .replace(/\{alert_list\}/g, emailBody);
+    } else {
+      const intro = (cfg && cfg.intro_message) ? cfg.intro_message + '\n\n' : '';
+      finalBody = intro + emailBody;
+    }
     for (const to of recipients) {
       await base44.asServiceRole.integrations.Core.SendEmail({
         to,
