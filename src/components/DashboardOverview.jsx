@@ -4,17 +4,25 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Users, Truck, Briefcase, Grid3x3, MapPin, ChevronRight, Clock, AlertTriangle } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
-import { JobStatusChart, StaffUtilizationChart } from '@/components/DashboardCharts';
+import { JobStatusChart, StaffUtilizationChart, JobTypeBreakdownChart } from '@/components/DashboardCharts';
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
 import DashboardInsights from '@/components/DashboardInsights';
 import { formatJobType } from '@/utils/format';
 
 const jobTypeBadge = {
-  groundworks: 'bg-green-100 text-green-700',
-  cp_drilling: 'bg-amber-100 text-amber-700',
-  rotary_drilling: 'bg-blue-100 text-blue-700',
-  enabling_works: 'bg-purple-100 text-purple-700',
-  depot: 'bg-slate-100 text-slate-600',
+  groundworks: 'bg-green-100 text-green-700 ring-1 ring-green-200',
+  cp_drilling: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
+  rotary_drilling: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
+  enabling_works: 'bg-purple-100 text-purple-700 ring-1 ring-purple-200',
+  depot: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
+};
+
+const jobTypeDot = {
+  groundworks: 'bg-green-500',
+  cp_drilling: 'bg-amber-500',
+  rotary_drilling: 'bg-blue-500',
+  enabling_works: 'bg-purple-500',
+  depot: 'bg-slate-400',
 };
 
 const cardVariants = {
@@ -53,23 +61,40 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   }).length;
 
   const stats = [
-    { label: 'Active Jobs', value: activeJobs.length, icon: Briefcase, color: 'text-emerald-700', bg: 'bg-emerald-50' },
-    { label: 'Working Today', value: staffToday, icon: Users, color: 'text-blue-700', bg: 'bg-blue-50' },
-    { label: 'Vehicles', value: vehicles.length, icon: Truck, color: 'text-amber-700', bg: 'bg-amber-50' },
-    { label: 'Maint. Alerts', value: maintenanceAlerts, icon: AlertTriangle, color: maintenanceAlerts > 0 ? 'text-red-600' : 'text-slate-400', bg: maintenanceAlerts > 0 ? 'bg-red-50' : 'bg-slate-50' },
+    { label: 'Active Jobs', value: activeJobs.length, icon: Briefcase, gradient: 'stat-gradient-emerald' },
+    { label: 'Working Today', value: staffToday, icon: Users, gradient: 'stat-gradient-blue' },
+    { label: 'Vehicles', value: vehicles.length, icon: Truck, gradient: 'stat-gradient-amber' },
+    { label: 'Maint. Alerts', value: maintenanceAlerts, icon: AlertTriangle, gradient: maintenanceAlerts > 0 ? 'stat-gradient-rose' : 'stat-gradient-slate' },
   ];
 
   return (
     <div>
-      {/* Header */}
+      {/* Gradient Hero */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-6">
-        <div className="flex items-center gap-3 md:gap-4">
-          <div className="p-2 md:p-3 bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-xl flex-shrink-0 shadow-lg shadow-emerald-900/20">
-            <Grid3x3 className="w-6 md:w-8 h-6 md:h-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dashboard</h1>
-            <p className="text-slate-500 text-sm mt-0.5">Week of {format(weekStart, 'dd MMM yyyy')}</p>
+        <div className="hero-gradient rounded-2xl p-5 md:p-6 text-white shadow-lg shadow-emerald-900/20 overflow-hidden relative">
+          <div className="absolute -top-12 -right-8 w-44 h-44 rounded-full bg-emerald-300/20 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-16 -left-10 w-40 h-40 rounded-full bg-teal-300/10 blur-3xl pointer-events-none" />
+          <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-white/15 rounded-xl ring-1 ring-white/20 backdrop-blur-sm flex-shrink-0">
+                <Grid3x3 className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
+                <p className="text-emerald-100 text-sm mt-0.5">Week of {format(weekStart, 'dd MMM yyyy')}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/15 text-xs font-medium backdrop-blur-sm">
+                <Briefcase className="w-3.5 h-3.5" /> {activeJobs.length} Active
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/15 text-xs font-medium backdrop-blur-sm">
+                <Users className="w-3.5 h-3.5" /> {staffToday} Today
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/15 text-xs font-medium backdrop-blur-sm">
+                <Truck className="w-3.5 h-3.5" /> {vehicles.length} Vehicles
+              </span>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -81,8 +106,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           return (
             <motion.div key={stat.label} custom={i} initial="hidden" animate="show" variants={cardVariants}
               className="card-modern rounded-2xl p-5 flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center flex-shrink-0`}>
-                <Icon className={`w-6 h-6 ${stat.color}`} />
+              <div className={`w-12 h-12 rounded-xl ${stat.gradient} flex items-center justify-center flex-shrink-0 shadow-md`}>
+                <Icon className="w-6 h-6 text-white" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
@@ -137,6 +162,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {vehicle && <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{vehicle.registration_number}</span>}
+                    {job?.job_type && <span className={`w-2 h-2 rounded-full ${jobTypeDot[job.job_type]}`} />}
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${jobTypeBadge[job?.job_type] || 'bg-slate-100 text-slate-600'}`}>
                       {formatJobType(job?.job_type) || '—'}
                     </span>
@@ -151,7 +177,10 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <JobStatusChart jobs={jobs} />
-        <StaffUtilizationChart staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />
+        <JobTypeBreakdownChart jobs={jobs} />
+        <div className="lg:col-span-2">
+          <StaffUtilizationChart staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />
+        </div>
       </div>
 
       {/* AI Insights */}

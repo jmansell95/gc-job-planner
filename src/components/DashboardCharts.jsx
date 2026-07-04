@@ -1,10 +1,13 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { Activity, BarChart3, Users } from 'lucide-react';
+import { Activity, BarChart3, Users, Layers } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const STATUS_COLORS = { planning: '#64748b', in_progress: '#059669', completed: '#0d9488', on_hold: '#d97706' };
 const STATUS_LABELS = { planning: 'Planning', in_progress: 'In Progress', completed: 'Completed', on_hold: 'On Hold' };
+
+const JOB_TYPE_LABELS = { groundworks: 'Groundworks', cp_drilling: 'CP Drilling', rotary_drilling: 'Rotary Drilling', enabling_works: 'Enabling Works', depot: 'Depot' };
+const JOB_TYPE_COLORS = { groundworks: '#16a34a', cp_drilling: '#f59e0b', rotary_drilling: '#3b82f6', enabling_works: '#a855f7', depot: '#64748b' };
 
 const tooltipStyle = {
   borderRadius: 12,
@@ -127,6 +130,54 @@ export function StaffUtilizationChart({ staff, rotas, weekDays }) {
             <Bar dataKey="assigned" fill="url(#barGradH)" radius={[0, 6, 6, 0]} maxBarSize={24} />
           </BarChart>
         </ResponsiveContainer>
+      )}
+    </motion.div>
+  );
+}
+
+export function JobTypeBreakdownChart({ jobs }) {
+  const types = ['groundworks', 'cp_drilling', 'rotary_drilling', 'enabling_works', 'depot'];
+  const data = types
+    .map(t => ({ name: JOB_TYPE_LABELS[t], key: t, value: jobs.filter(j => j.job_type === t).length }))
+    .filter(d => d.value > 0);
+  const total = data.reduce((a, b) => a + b.value, 0);
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className={cardCls}>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><Layers className="w-4 h-4 text-emerald-700" /></div>
+        <h2 className="font-semibold text-slate-900">Job Type Breakdown</h2>
+      </div>
+      {data.length === 0 ? (
+        <div className="h-[180px] flex items-center justify-center text-slate-400 text-sm">No jobs yet</div>
+      ) : (
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="relative">
+            <ResponsiveContainer width={160} height={160}>
+              <PieChart>
+                <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={48} outerRadius={72} paddingAngle={3} stroke="none">
+                  {data.map(d => <Cell key={d.key} fill={JOB_TYPE_COLORS[d.key]} />)}
+                </Pie>
+                <Tooltip contentStyle={tooltipStyle} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-2xl font-bold text-slate-900">{total}</span>
+              <span className="text-[10px] text-slate-400 uppercase tracking-wide">Jobs</span>
+            </div>
+          </div>
+          <div className="space-y-2 w-full">
+            {data.map(d => (
+              <div key={d.key} className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: JOB_TYPE_COLORS[d.key] }}></span>
+                  <span className="text-sm text-slate-600">{d.name}</span>
+                </div>
+                <span className="text-sm font-bold text-slate-900">{d.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </motion.div>
   );
