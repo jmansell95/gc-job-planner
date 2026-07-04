@@ -9,6 +9,8 @@ import TimesheetEntry from '@/components/TimesheetEntry';
 import StaffTimesheets from '@/components/StaffTimesheets';
 import { formatJobType } from '@/utils/format';
 import { useStaffAssistant } from '@/components/StaffAssistantChat';
+import { motion } from 'framer-motion';
+import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 
 const jobTypeBadgeColors = {
   groundworks: 'bg-green-100 text-green-700',
@@ -23,6 +25,9 @@ const statusConfig = {
   started: { label: 'In Progress', icon: PlayCircle, badge: 'bg-blue-100 text-blue-700' },
   completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-100 text-emerald-700' }
 };
+
+const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
+const listItem = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
 
 export default function StaffDashboard() {
   const [staff, setStaff] = useState(null);
@@ -57,7 +62,7 @@ export default function StaffDashboard() {
     };
   }, []);
 
-  const { data: assignments = [] } = useQuery({
+  const { data: assignments = [], isLoading: assignmentsLoading } = useQuery({
     queryKey: ['staff-assignments', staff?.id],
     queryFn: async () => {
       if (!staff?.id) return [];
@@ -160,7 +165,7 @@ export default function StaffDashboard() {
     const isDriller = staff.job_role === 'cp_driller' || staff.job_role === 'rotary_driller';
     if (!job) return null;
     return (
-      <div key={assignment.id} className={`rounded-lg p-4 md:p-6 border-l-4 border ${jobTypeColors[job.job_type] || 'bg-slate-50 border-slate-200'}`}>
+      <motion.div key={assignment.id} variants={listItem} className={`rounded-lg p-4 md:p-6 border-l-4 border ${jobTypeColors[job.job_type] || 'bg-slate-50 border-slate-200'}`}>
         {/* Status + Check-in Bar */}
         <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-200/60">
           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${status.badge}`}>
@@ -295,7 +300,7 @@ export default function StaffDashboard() {
             <TimesheetEntry assignment={assignment} jobId={job.id} staffId={staff.id} />
           </div>
         )}
-      </div>
+      </motion.div>
     );
   };
 
@@ -359,9 +364,9 @@ export default function StaffDashboard() {
               <h2 className="text-lg md:text-xl font-bold text-slate-900">Today</h2>
               <span className="text-xs bg-emerald-700 text-white px-2 py-0.5 rounded-full font-medium">{todaysAssignments.length}</span>
             </div>
-            <div className="space-y-4">
+            <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-4">
               {todaysAssignments.map(renderAssignment)}
-            </div>
+            </motion.div>
           </div>
         )}
 
@@ -375,12 +380,17 @@ export default function StaffDashboard() {
         </div>
 
         {/* Assignments List */}
-        {assignments.length === 0 ? (
-          <div className="bg-white rounded-lg p-12 border border-green-200 text-center">
-            <CalendarDays className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-600 font-medium">No assignments scheduled</p>
-            <p className="text-slate-400 text-sm mt-1">Check back later for updates</p>
+        {assignmentsLoading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-lg border border-slate-200 p-5">
+                <Skeleton className="h-4 w-1/3 mb-3" />
+                <SkeletonText lines={3} />
+              </div>
+            ))}
           </div>
+        ) : assignments.length === 0 ? (
+          <EmptyState icon={CalendarDays} title="No assignments scheduled" message="Check back later — your supervisor will assign you to upcoming jobs." />
         ) : (
           <div className="space-y-8">
             {upcomingAssignments.length > 0 && (
@@ -390,9 +400,9 @@ export default function StaffDashboard() {
                   <h2 className="text-lg md:text-xl font-bold text-slate-900">Upcoming</h2>
                   <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{upcomingAssignments.length}</span>
                 </div>
-                <div className="space-y-4">
+                <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-4">
                   {upcomingAssignments.map(renderAssignment)}
-                </div>
+                </motion.div>
               </div>
             )}
             {pastAssignments.length > 0 && (
@@ -402,9 +412,9 @@ export default function StaffDashboard() {
                   <h2 className="text-lg md:text-xl font-bold text-slate-500">Past Assignments</h2>
                   <span className="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full font-medium">{pastAssignments.length}</span>
                 </div>
-                <div className="space-y-4 opacity-70">
+                <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-4 opacity-70">
                   {pastAssignments.map(renderAssignment)}
-                </div>
+                </motion.div>
               </div>
             )}
           </div>

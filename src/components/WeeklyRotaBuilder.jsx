@@ -11,6 +11,7 @@ import PageHeader from '@/components/PageHeader';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import PrintReportButton from '@/components/PrintReportButton';
 import AssignmentModal from '@/components/AssignmentModal';
+import { EmptyState, ErrorState, RotaSkeleton, Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatJobType, formatJobRole } from '@/utils/format';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
@@ -39,7 +40,7 @@ export default function WeeklyRotaBuilder() {
   const weekStart = startOfWeek(selectedWeek);
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
 
-  const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
+  const { data: staff = [], isLoading: staffLoading, isError: staffError, refetch: refetchStaff } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
@@ -337,6 +338,11 @@ export default function WeeklyRotaBuilder() {
 
       {/* Desktop Grid */}
       <div className="hidden lg:block bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+        {staffLoading ? (
+          <RotaSkeleton />
+        ) : staffError ? (
+          <ErrorState message="Couldn't load the rota" onRetry={refetchStaff} />
+        ) : (
         <div className="overflow-x-auto">
           <DragDropContext onDragEnd={onDragEnd}><table className="w-full border-collapse min-w-[800px]">
             <thead>
@@ -411,11 +417,23 @@ export default function WeeklyRotaBuilder() {
             </tbody>
           </table></DragDropContext>
         </div>
+        )}
       </div>
 
       {/* Mobile Day Cards */}
       <div className="lg:hidden space-y-3">
-        {days.map((day) => {
+        {staffLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                <Skeleton className="h-5 w-24 mb-3" />
+                <SkeletonText lines={3} />
+              </div>
+            ))}
+          </div>
+        ) : staffError ? (
+          <ErrorState message="Couldn't load the rota" onRetry={refetchStaff} />
+        ) : days.map((day) => {
           const dayStr = format(day, 'yyyy-MM-dd');
           const isToday = dayStr === todayStr;
           const dayAssignments = rotas.filter(r => r.assigned_date === dayStr && filteredStaff.some(s => s.id === r.staff_id));

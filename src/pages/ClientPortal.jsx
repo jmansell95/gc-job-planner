@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { Calendar, MapPin, CheckCircle2, Clock, PlayCircle, Briefcase, Building2, Activity, Ruler, Camera, FileText, Target, Download, CheckCircle, Circle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
@@ -23,6 +24,15 @@ const statusColors = {
   in_progress: 'bg-emerald-100 text-emerald-700',
   completed: 'bg-teal-100 text-teal-700',
   on_hold: 'bg-amber-100 text-amber-700'
+};
+
+const portalContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } }
+};
+const portalItem = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } }
 };
 
 export default function ClientPortal() {
@@ -111,9 +121,10 @@ export default function ClientPortal() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
+      <motion.div variants={portalContainer} initial="hidden" animate="show"
+        className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
         {/* Progress Card */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6">
+        <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6">
           <div className="flex items-center gap-2 mb-4">
             <Activity className="w-5 h-5 text-emerald-700" />
             <h2 className="font-semibold text-slate-900">Project Progress</h2>
@@ -132,22 +143,22 @@ export default function ClientPortal() {
               <div className="flex items-center gap-1.5"><Ruler className="w-3.5 h-3.5 text-amber-600" /><span className="text-slate-600">{totalMeterage}m drilled</span></div>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Client Info */}
         {client && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6">
+          <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6">
             <div className="flex items-center gap-2 mb-3">
               <Briefcase className="w-5 h-5 text-emerald-700" />
               <h2 className="font-semibold text-slate-900">Client</h2>
             </div>
             <p className="text-lg font-semibold text-slate-900">{client.name}</p>
             {client.contact_name && <p className="text-sm text-slate-500">{client.contact_name}</p>}
-          </div>
+          </motion.div>
         )}
 
         {/* Schedule */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
             <Calendar className="w-5 h-5 text-emerald-700" />
             <h2 className="font-semibold text-slate-900">Work Schedule</h2>
@@ -187,19 +198,19 @@ export default function ClientPortal() {
               })}
             </div>
           )}
-        </div>
+        </motion.div>
 
         {/* Notes */}
         {job.notes && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6">
+          <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6">
             <h2 className="font-semibold text-slate-900 mb-3">Project Notes</h2>
             <p className="text-sm text-slate-600 whitespace-pre-wrap">{job.notes}</p>
-          </div>
+          </motion.div>
         )}
 
         {/* Site Photos */}
         {data.photos && data.photos.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
               <Camera className="w-5 h-5 text-emerald-700" />
               <h2 className="font-semibold text-slate-900">Site Photos</h2>
@@ -219,12 +230,12 @@ export default function ClientPortal() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Progress Timeline */}
         {data.milestones && data.milestones.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
               <Target className="w-5 h-5 text-emerald-700" />
               <h2 className="font-semibold text-slate-900">Project Milestones</h2>
@@ -259,12 +270,12 @@ export default function ClientPortal() {
                 ))}
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Document Vault */}
         {data.documents && data.documents.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
               <FileText className="w-5 h-5 text-emerald-700" />
               <h2 className="font-semibold text-slate-900">Documents</h2>
@@ -283,16 +294,18 @@ export default function ClientPortal() {
                 </a>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Comments */}
-        <PortalComments token={token} comments={data.comments} />
+        <motion.div variants={portalItem}>
+          <PortalComments token={token} comments={data.comments} />
+        </motion.div>
 
         <div className="text-center text-xs text-slate-400 py-4">
           Powered by GC Job Planner · Updated {format(new Date(), 'dd MMM yyyy HH:mm')}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

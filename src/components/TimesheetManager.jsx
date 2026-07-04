@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
+import { EmptyState, ErrorState, TableSkeleton } from '@/components/StateViews';
 
 const statusConfig = {
   draft: { label: 'Draft', badge: 'bg-slate-100 text-slate-600' },
@@ -16,7 +17,7 @@ export default function TimesheetManager() {
   const [filter, setFilter] = useState('submitted');
   const queryClient = useQueryClient();
 
-  const { data: timesheets = [] } = useQuery({
+  const { data: timesheets = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['timesheets'],
     queryFn: () => base44.entities.Timesheet.list('-created_date', 100)
   });
@@ -68,8 +69,12 @@ export default function TimesheetManager() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        {filtered.length === 0 ? (
-          <div className="px-5 py-12 text-center text-slate-400 text-sm">No timesheets found</div>
+        {isLoading ? (
+          <TableSkeleton rows={5} cols={6} />
+        ) : isError ? (
+          <ErrorState message="Couldn't load timesheets" onRetry={refetch} />
+        ) : filtered.length === 0 ? (
+          <EmptyState icon={Clock} title="No timesheets found" message={filter === 'all' ? 'Timesheets will appear here once staff submit them.' : `No ${filter} timesheets.`} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">

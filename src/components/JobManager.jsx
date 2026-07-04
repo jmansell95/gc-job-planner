@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Briefcase, Upload, FileText, X, Eye, Download, RefreshCw, ChevronRight, MapPin, Calendar, Search } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import { EmptyState, ErrorState, CardGridSkeleton } from '@/components/StateViews';
 import JobDetail from '@/components/JobDetail';
 import PrintReportButton from '@/components/PrintReportButton';
 import { formatJobType } from '@/utils/format';
@@ -55,7 +56,7 @@ export default function JobManager() {
 
   const queryClient = useQueryClient();
 
-  const { data: jobs = [] } = useQuery({
+  const { data: jobs = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['jobs'],
     queryFn: () => base44.entities.Job.list()
   });
@@ -418,14 +419,14 @@ export default function JobManager() {
       )}
 
       {/* Jobs Grid */}
-      {jobs.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400">
-          No jobs yet. Add your first job above.
-        </div>
+      {isLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : isError ? (
+        <ErrorState message="Couldn't load jobs" onRetry={refetch} />
+      ) : jobs.length === 0 ? (
+        <EmptyState icon={Briefcase} title="No jobs yet" message="Add your first job to start scheduling work." actionLabel="Add Job" onAction={() => { setEditingId(null); setShowForm(true); }} />
       ) : filteredJobs.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center text-slate-400">
-          No jobs match your search.
-        </div>
+        <EmptyState icon={Search} title="No jobs match your search" message="Try a different name, location, or status filter." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredJobs.map((job) => {
