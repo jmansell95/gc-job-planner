@@ -14,18 +14,26 @@ const fmtDate = (d) => {
 };
 
 const jobTypeBadge = {
-  groundworks: 'bg-green-100 text-green-700',
-  cp_drilling: 'bg-amber-100 text-amber-700',
-  rotary_drilling: 'bg-blue-100 text-blue-700',
-  enabling_works: 'bg-purple-100 text-purple-700',
-  depot: 'bg-slate-100 text-slate-600',
+  groundworks: 'bg-green-100 text-green-700 ring-1 ring-green-200',
+  cp_drilling: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
+  rotary_drilling: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
+  enabling_works: 'bg-purple-100 text-purple-700 ring-1 ring-purple-200',
+  depot: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
+};
+
+const jobTypeBar = {
+  groundworks: 'bg-gradient-to-r from-green-400 to-emerald-600',
+  cp_drilling: 'bg-gradient-to-r from-amber-400 to-orange-500',
+  rotary_drilling: 'bg-gradient-to-r from-blue-400 to-indigo-500',
+  enabling_works: 'bg-gradient-to-r from-purple-400 to-fuchsia-500',
+  depot: 'bg-gradient-to-r from-slate-300 to-slate-500',
 };
 
 const statusBadge = {
-  planning: 'bg-slate-100 text-slate-600',
-  in_progress: 'bg-emerald-100 text-emerald-700',
-  completed: 'bg-teal-100 text-teal-700',
-  on_hold: 'bg-amber-100 text-amber-700',
+  planning: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
+  in_progress: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
+  completed: 'bg-teal-100 text-teal-700 ring-1 ring-teal-200',
+  on_hold: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
 };
 
 const statusLabels = {
@@ -432,7 +440,8 @@ export default function JobManager() {
           {filteredJobs.map((job) => {
             const client = clients.find(c => c.id === job.client_id);
             return (
-            <div key={job.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col">
+            <div key={job.id} className="card-modern rounded-xl overflow-hidden flex flex-col">
+              <div className={`h-1.5 ${jobTypeBar[job.job_type] || 'bg-slate-300'}`} />
               <div className="p-5 flex-1">
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex flex-wrap gap-1.5">

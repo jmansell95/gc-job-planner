@@ -278,18 +278,18 @@ export default function WeeklyRotaBuilder() {
             className="text-xs px-2 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 text-slate-600 w-full sm:w-auto" />
         </div>
         <div className="flex gap-3 flex-wrap">
-          <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center gap-2 shadow-sm">
-            <Calendar className="w-4 h-4 text-emerald-700" />
+          <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
+            <span className="w-7 h-7 rounded-lg stat-gradient-emerald flex items-center justify-center"><Calendar className="w-4 h-4 text-white" /></span>
             <span className="text-sm font-bold text-slate-900">{totalAssignments}</span>
             <span className="text-xs text-slate-500">assignments</span>
           </div>
-          <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center gap-2 shadow-sm">
-            <Users className="w-4 h-4 text-emerald-700" />
+          <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
+            <span className="w-7 h-7 rounded-lg stat-gradient-blue flex items-center justify-center"><Users className="w-4 h-4 text-white" /></span>
             <span className="text-sm font-bold text-slate-900">{staffWorking}</span>
             <span className="text-xs text-slate-500">staff working</span>
           </div>
-          <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center gap-2 shadow-sm">
-            <Briefcase className="w-4 h-4 text-emerald-700" />
+          <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
+            <span className="w-7 h-7 rounded-lg stat-gradient-amber flex items-center justify-center"><Briefcase className="w-4 h-4 text-white" /></span>
             <span className="text-sm font-bold text-slate-900">{jobsActive}</span>
             <span className="text-xs text-slate-500">jobs active</span>
           </div>
