@@ -17,7 +17,7 @@ const TASK_SUGGESTIONS = [
   'Dismantling the rig', 'Site clearance', 'Machine maintenance', 'Breakdown',
 ];
 
-const DURATION_CHIPS = [15, 30, 60, 90, 120, 240];
+const DURATION_CHIPS = [10, 15, 30, 60, 90, 120, 240];
 
 const minsFromEntry = (t) => Number(t?.task_duration_minutes) || (t?.total_hours ? t.total_hours * 60 : 0);
 
@@ -67,8 +67,7 @@ export default function StaffTimesheets({ staffId, staffName }) {
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs-for-assignments'], queryFn: () => base44.entities.Job.list() });
 
   const assignedJobIds = [...new Set(assignments.map(a => a.job_id))];
-  const assignedJobs = jobs.filter(j => assignedJobIds.includes(j.id));
-  const availableJobs = assignedJobs.length > 0 ? assignedJobs : jobs;
+  const availableJobs = jobs.filter(j => assignedJobIds.includes(j.id));
 
   const hourlyRate = staffRecord?.day_rate ? staffRecord.day_rate / 8 : 0;
   const durationMins = parseInt(form.task_duration_minutes) || 0;
@@ -231,7 +230,8 @@ export default function StaffTimesheets({ staffId, staffName }) {
             {staffRecord?.day_rate && <p className="text-xs text-slate-400">£{staffRecord.day_rate}/day · £{hourlyRate.toFixed(0)}/h</p>}
           </div>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-1.5 px-3 md:px-4 py-2.5 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-semibold touch-manipulation flex-shrink-0">
+        <button onClick={() => { resetForm(); if (availableJobs.length === 1) setForm(f => ({ ...f, job_id: availableJobs[0].id })); setShowForm(true); }} disabled={availableJobs.length === 0}
+          className="flex items-center gap-1.5 px-3 md:px-4 py-2.5 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-semibold touch-manipulation flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
           <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Entry</span><span className="sm:hidden">Add</span>
         </button>
       </div>
@@ -252,7 +252,7 @@ export default function StaffTimesheets({ staffId, staffName }) {
       {showForm && (
         <form onSubmit={(e) => { e.preventDefault(); handleSave('submitted'); }} className="mb-4 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
           {availableJobs.length === 0 && (
-            <p className="text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-100">No jobs available yet. Ask your manager to assign you to a job first.</p>
+            <p className="text-xs text-amber-700 bg-amber-50 px-3 py-2.5 rounded-lg border border-amber-100">You can only log time for jobs you've been assigned to. Ask your manager to assign you to a job first.</p>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">

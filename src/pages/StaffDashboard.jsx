@@ -5,7 +5,7 @@ import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDay
 import { format, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
-import TimesheetEntry from '@/components/TimesheetEntry';
+import QuickTaskLog from '@/components/QuickTaskLog';
 import StaffTimesheets from '@/components/StaffTimesheets';
 import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
 import { formatJobType } from '@/utils/format';
@@ -188,7 +188,7 @@ export default function StaffDashboard() {
     const client = clients.find(c => c.id === job?.client_id);
     const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
     const StatusIcon = status.icon;
-    const isDriller = staff.job_role === 'cp_driller' || staff.job_role === 'rotary_driller';
+    const isDriller = job?.job_type === 'cp_drilling' || job?.job_type === 'rotary_drilling';
     const accent = jobTypeAccent[job?.job_type] || jobTypeAccent.depot;
     if (!job) return null;
 
@@ -338,10 +338,10 @@ export default function StaffDashboard() {
             </div>
           )}
 
-          {/* Timesheet Entry */}
-          {job && assignment.status === 'completed' && (
+          {/* Quick Task Log */}
+          {job && (
             <div className="mt-4 pt-4 border-t border-slate-100">
-              <TimesheetEntry assignment={assignment} jobId={job.id} staffId={staff.id} />
+              <QuickTaskLog jobId={job.id} jobType={job.job_type} staffId={staff.id} date={assignment.assigned_date} />
             </div>
           )}
         </div>
