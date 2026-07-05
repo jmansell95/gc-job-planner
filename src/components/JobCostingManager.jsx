@@ -367,37 +367,79 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
             <div className="text-center py-6 text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">
               No equipment or hire items yet. Add hired equipment to track supplier costs.
             </div>
-          ) : visibleItems.length === 0 ? (
+          ) : hireFilter === 'off_hired' ? (
+            returnedItems.length === 0 ? (
+              <div className="text-center py-8 text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">
+                No equipment has been returned yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Returned to supplier · {returnedItems.length} {returnedItems.length === 1 ? 'item' : 'items'}</p>
+                {returnedItems.map(c => {
+                  const supplier = suppliers.find(s => s.id === c.supplier_id);
+                  const net = itemNet(c);
+                  return (
+                    <div key={c.id} className="border border-slate-200 bg-slate-50/70 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center flex-shrink-0">
+                        <FileCheck className="w-5 h-5 text-slate-500" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-slate-600 line-through truncate">{c.description}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                          <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full font-medium">Hired</span>
+                          {c.po_number && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium font-mono inline-flex items-center gap-1"><Package className="w-2.5 h-2.5" /> {c.po_number}</span>}
+                          {c.reference_number && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium font-mono">Ref: {c.reference_number}</span>}
+                          {supplier && <span className="text-[10px] text-slate-400">{supplier.name}</span>}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Returned{c.off_hire_date ? ` ${format(new Date(c.off_hire_date + 'T00:00:00'), 'dd MMM yyyy')}` : ''}{` · ${c.quantity} ${c.unit_label}${c.quantity > 1 ? 's' : ''}`}
+                        </p>
+                        {c.off_hire_note_url ? (
+                          <a href={c.off_hire_note_url} target="_blank" rel="noopener noreferrer"
+                            className="mt-2 inline-flex items-center gap-1.5 text-xs text-emerald-700 hover:text-emerald-900 font-medium bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg transition">
+                            <FileCheck className="w-3.5 h-3.5" /> View off-hire note{c.off_hire_note_name ? ` · ${c.off_hire_note_name}` : ''}
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        ) : (
+                          <p className="mt-2 text-xs text-amber-600 inline-flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> No off-hire note attached</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <p className="text-sm font-bold text-slate-400">{fmt(net)}</p>
+                        <button onClick={() => reinstate(c)} className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-emerald-700 font-medium px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-emerald-300 transition">
+                          <Undo2 className="w-3.5 h-3.5" /> Reinstate
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          ) : activeItems.length === 0 ? (
             <div className="text-center py-6 text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">
-              {hireFilter === 'active' ? 'No active equipment on site.' : 'No equipment has been returned yet.'}
+              No active equipment on site.
             </div>
           ) : (
             <div className="space-y-2">
-              {visibleItems.map(c => {
+              {activeItems.map(c => {
                 const supplier = suppliers.find(s => s.id === c.supplier_id);
                 const net = itemNet(c);
-                const isOffHired = c.hire_status === 'off_hired';
                 return (
-                  <div key={c.id} className={`border rounded-lg p-3 flex items-start gap-3 transition ${isOffHired ? 'border-slate-200 bg-slate-50/60' : 'border-slate-200 bg-white'}`}>
+                  <div key={c.id} className="border border-slate-200 bg-white rounded-lg p-3 flex items-start gap-3 transition">
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                       {c.category === 'hired_equipment'
-                        ? <div className="w-full h-full bg-amber-50 rounded-lg flex items-center justify-center"><Truck className={`w-4 h-4 ${isOffHired ? 'text-slate-400' : 'text-amber-600'}`} /></div>
+                        ? <div className="w-full h-full bg-amber-50 rounded-lg flex items-center justify-center"><Truck className="w-4 h-4 text-amber-600" /></div>
                         : c.category === 'purchased_equipment'
-                        ? <div className="w-full h-full bg-purple-50 rounded-lg flex items-center justify-center"><ShoppingCart className={`w-4 h-4 ${isOffHired ? 'text-slate-400' : 'text-purple-600'}`} /></div>
-                        : <div className="w-full h-full bg-blue-50 rounded-lg flex items-center justify-center"><Wrench className={`w-4 h-4 ${isOffHired ? 'text-slate-400' : 'text-blue-600'}`} /></div>}
+                        ? <div className="w-full h-full bg-purple-50 rounded-lg flex items-center justify-center"><ShoppingCart className="w-4 h-4 text-purple-600" /></div>
+                        : <div className="w-full h-full bg-blue-50 rounded-lg flex items-center justify-center"><Wrench className="w-4 h-4 text-blue-600" /></div>}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className={`text-sm font-semibold text-slate-900 truncate ${isOffHired ? 'line-through text-slate-500' : ''}`}>{c.description}</p>
+                        <p className="text-sm font-semibold text-slate-900 truncate">{c.description}</p>
                         {c.po_number && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium font-mono inline-flex items-center gap-1"><Package className="w-2.5 h-2.5" /> {c.po_number}</span>}
                         {c.reference_number && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium font-mono">Ref: {c.reference_number}</span>}
                         {c.vat_exempt && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">VAT exempt</span>}
                         <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">{c.category === 'hired_equipment' ? 'Hired' : c.category === 'purchased_equipment' ? 'Purchased' : 'Internal'}</span>
-                        {isOffHired && (
-                          <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
-                            <FileCheck className="w-2.5 h-2.5" /> Returned{c.off_hire_date ? ` ${format(new Date(c.off_hire_date + 'T00:00:00'), 'dd MMM')}` : ''}
-                          </span>
-                        )}
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5">
                         {c.start_date && c.end_date ? `${format(new Date(c.start_date + 'T00:00:00'), 'dd MMM')} → ${format(new Date(c.end_date + 'T00:00:00'), 'dd MMM')}` : ''}
@@ -420,25 +462,17 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                           )}
                         </div>
                       )}
-                      {isOffHired && c.off_hire_note_url && (
-                        <a href={c.off_hire_note_url} target="_blank" rel="noopener noreferrer"
-                          className="mt-1.5 inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg transition">
-                          <FileCheck className="w-3 h-3" /> View off-hire note{c.off_hire_note_name ? ` (${c.off_hire_note_name})` : ''}
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
+                      {c.category === 'hired_equipment' && (
+                        <button onClick={() => openOffHire(c)} className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-900 font-medium bg-amber-50 hover:bg-amber-100 px-2.5 py-1.5 rounded-lg transition">
+                          <FileCheck className="w-3.5 h-3.5" /> Return Item
+                        </button>
                       )}
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className={`text-sm font-bold ${isOffHired ? 'text-slate-500' : 'text-slate-900'}`}>{fmt(net)}</p>
+                      <p className="text-sm font-bold text-slate-900">{fmt(net)}</p>
                       <p className="text-[10px] text-slate-400">net</p>
                     </div>
                     <div className="flex flex-col gap-1 flex-shrink-0">
-                      {c.category === 'hired_equipment' && !isOffHired && (
-                        <button onClick={() => openOffHire(c)} className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition" title="Off-hire / return to supplier"><FileCheck className="w-3.5 h-3.5" /></button>
-                      )}
-                      {isOffHired && (
-                        <button onClick={() => reinstate(c)} className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded transition" title="Reinstate as active"><Undo2 className="w-3.5 h-3.5" /></button>
-                      )}
                       <button onClick={() => editItem(c)} className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded transition"><Edit2 className="w-3.5 h-3.5" /></button>
                       <button onClick={() => deleteItem(c.id)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
