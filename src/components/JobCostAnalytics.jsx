@@ -48,8 +48,8 @@ export default function JobCostAnalytics() {
   const totalVariance = totalBudget - totalSpend;
   const overBudget = rows.filter(r => r.variance < 0).length;
 
-  const chartData = [...rows].sort((a, b) => b.budget - a.budget).slice(0, 6).map(r => ({
-    name: r.name.length > 14 ? r.name.slice(0, 12) + '…' : r.name,
+  const chartData = [...rows].sort((a, b) => b.budget - a.budget).slice(0, 8).map(r => ({
+    name: r.name,
     Budget: Math.round(r.budget),
     Spend: Math.round(r.spend)
   }));
@@ -122,16 +122,16 @@ export default function JobCostAnalytics() {
             No budget or assignment data yet.
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={chartData} margin={{ top: 8, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} interval={0} angle={-12} textAnchor="end" height={50} />
-              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(v) => '£' + v} />
+          <ResponsiveContainer width="100%" height={Math.max(260, chartData.length * 48 + 40)}>
+            <BarChart data={chartData} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(v) => '£' + v} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: '#334155' }} axisLine={false} tickLine={false} width={140} interval={0} />
               <Tooltip contentStyle={tooltipStyle} formatter={(v) => fmtGBP(v)} cursor={{ fill: 'rgba(16,185,129,0.06)' }} />
-              <Bar dataKey="Budget" radius={[4, 4, 0, 0]} maxBarSize={28}>
+              <Bar dataKey="Budget" radius={[0, 4, 4, 0]} maxBarSize={16}>
                 {chartData.map((d, i) => <Cell key={i} fill="#10b981" />)}
               </Bar>
-              <Bar dataKey="Spend" radius={[4, 4, 0, 0]} maxBarSize={28}>
+              <Bar dataKey="Spend" radius={[0, 4, 4, 0]} maxBarSize={16}>
                 {chartData.map((d, i) => <Cell key={i} fill={d.Spend > d.Budget ? '#f43f5e' : '#3b82f6'} />)}
               </Bar>
             </BarChart>
