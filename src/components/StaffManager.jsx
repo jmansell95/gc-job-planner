@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import PrintReportButton from '@/components/PrintReportButton';
+import StaffShiftEditor from '@/components/StaffShiftEditor';
 import { formatWorkerType } from '@/utils/format';
 
 const workerBadge = {
@@ -20,6 +21,7 @@ export default function StaffManager() {
   const [submitting, setSubmitting] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(null);
   const [inviteOnCreate, setInviteOnCreate] = useState(true);
+  const [shiftOpenId, setShiftOpenId] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '' });
 
   const queryClient = useQueryClient();
@@ -331,9 +333,16 @@ export default function StaffManager() {
                 )}
 
                 <div className="flex gap-1 justify-end mt-auto">
+                  <button onClick={() => setShiftOpenId(shiftOpenId === member.id ? null : member.id)} className={`p-2 rounded-lg transition ${shiftOpenId === member.id ? 'text-emerald-600 bg-emerald-50' : 'text-slate-500 hover:bg-slate-100'}`} title="Shift times"><Clock className="w-4 h-4" /></button>
                   <button onClick={() => handleEdit(member)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
                   <button onClick={() => handleDelete(member)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
                 </div>
+                {shiftOpenId === member.id && (
+                  <div className="mt-3 pt-3 border-t border-slate-100">
+                    <p className="text-xs font-semibold text-slate-500 mb-1.5">Shift times</p>
+                    <StaffShiftEditor staffId={member.id} />
+                  </div>
+                )}
               </div>
             );
           })}

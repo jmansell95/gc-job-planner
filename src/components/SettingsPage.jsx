@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Settings, Users, Truck, HardHat, Building2, ChevronRight, CalendarX, Mail, PoundSterling, Package, Timer, Zap, Clock } from 'lucide-react';
+import { Settings, Users, Truck, HardHat, Building2, CalendarX, Mail, PoundSterling, Package, Timer, Zap } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import StaffShiftManager from '@/components/StaffShiftManager';
 import StaffManager from '@/components/StaffManager';
 import VehicleManager from '@/components/VehicleManager';
 import ContractorManager from '@/components/ContractorManager';
@@ -15,7 +14,6 @@ import AutomationCenter from '@/components/AutomationCenter';
 
 const tabs = [
   { id: 'staff', label: 'Staff', icon: Users },
-  { id: 'shifts', label: 'Shift Times', icon: Clock },
   { id: 'vehicles', label: 'Vehicles', icon: Truck },
   { id: 'clients', label: 'Clients', icon: Building2 },
   { id: 'contractors', label: 'Contractors', icon: HardHat },
@@ -27,36 +25,54 @@ const tabs = [
   { id: 'automations', label: 'Automations', icon: Zap },
 ];
 
+const tabDescriptions = {
+  staff: 'Manage staff, app access and shift times',
+  vehicles: 'Track vehicles, MOTs and service dates',
+  clients: 'Manage client contacts',
+  contractors: 'Manage contractor contacts',
+  suppliers: 'Manage hire & purchase suppliers',
+  absences: 'Approve leave and recurring days off',
+  costs: 'Overtime thresholds and markup defaults',
+  overtime: 'Overtime multipliers by day',
+  'email-alerts': 'Configure automated email alerts',
+  automations: 'View and toggle background automations',
+};
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('staff');
+  const active = tabs.find(t => t.id === activeTab);
 
   return (
     <div>
       <PageHeader title="Settings" icon={Settings} />
 
-      {/* Tab Bar */}
-      <div className="flex flex-nowrap gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 border-b border-slate-200 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        {tabs.map(tab => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition flex-shrink-0 whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          );
-        })}
+      {/* Polished navigation bar */}
+      <div className="sticky top-0 z-20 -mx-4 px-4 md:mx-0 md:px-0 mb-6 pt-1">
+        <div className="flex gap-1.5 overflow-x-auto pb-2.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap">
+          {tabs.map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition flex-shrink-0 whitespace-nowrap border ${
+                  isActive
+                    ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm shadow-emerald-200/60'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
+      <p className="text-sm text-slate-500 mb-5 -mt-2">{active?.description}</p>
+
       {activeTab === 'staff' && <StaffManager />}
-      {activeTab === 'shifts' && <StaffShiftManager />}
       {activeTab === 'vehicles' && <VehicleManager />}
       {activeTab === 'clients' && <ClientManager />}
       {activeTab === 'contractors' && <ContractorManager />}
