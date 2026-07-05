@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { X, AlertTriangle, Trash2 } from 'lucide-react';
 
-const JOB_TYPE_TO_ROLE = {
-  groundworks: 'groundworker',
-  cp_drilling: 'cp_driller',
-  rotary_drilling: 'rotary_driller',
-  enabling_works: 'enabling_crew',
-  depot: 'depot'
+const JOB_TYPE_LABELS = {
+  groundworks: 'Groundworks',
+  cp_drilling: 'CP Drilling',
+  rotary_drilling: 'Rotary Drilling',
+  enabling_works: 'Enabling Works',
+  depot: 'Depot'
 };
-const ROLE_TO_JOB_TYPE = Object.fromEntries(Object.entries(JOB_TYPE_TO_ROLE).map(([jt, r]) => [r, jt]));
 
 export default function AssignmentModal({ isOpen, onClose, assignment, defaultStaffId, defaultDate, weekStartStr, staff, jobs, vehicles, existingRotas }) {
   const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '', notes: '' });
   const [conflictWarning, setConflictWarning] = useState(null);
   const queryClient = useQueryClient();
+  const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
+
+  const teamJobType = (staffMember) => {
+    if (!staffMember?.team_id) return null;
+    return teams.find(t => t.id === staffMember.team_id)?.job_type || null;
+  };
 
   const isEditing = !!assignment;
 
@@ -52,13 +57,12 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
     return existingRotas.some(r => r.staff_id === staffId && r.assigned_date === date && r.id !== assignment?.id);
   };
 
-  const isSupervisor = (role) => role === 'supervisor';
-
   const handleStaffChange = (staffId) => {
     const s = staff.find(x => x.id === staffId);
     setFormData(prev => {
       const currentJob = jobs.find(j => j.id === prev.job_id);
-      const jobOk = currentJob && (isSupervisor(s?.job_role) || (s && currentJob.job_type === ROLE_TO_JOB_TYPE[s.job_role]));
+      const staffJobType = teamJobType(s);
+      const jobOk = currentJob && (!staffJobType || currentJob.job_type === staffJobType);
       return { ...prev, staff_id: staffId, job_id: jobOk ? prev.job_id : '' };
     });
     if (staffId && formData.assigned_date) {
@@ -70,18 +74,20 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
     const job = jobs.find(j => j.id === jobId);
     setFormData(prev => {
       const currentStaff = staff.find(s => s.id === prev.staff_id);
-      const staffOk = currentStaff && (isSupervisor(currentStaff.job_role) || (job && currentStaff.job_role === JOB_TYPE_TO_ROLE[job.job_type]));
+      const staffJobType = teamJobType(currentStaff);
+      const staffOk = currentStaff && (!staffJobType || (job && job.job_type === staffJobType));
       return { ...prev, job_id: jobId, staff_id: staffOk ? prev.staff_id : '' };
     });
   };
 
   const selectedJob = jobs.find(j => j.id === formData.job_id);
   const selectedStaff = staff.find(s => s.id === formData.staff_id);
+  const selectedStaffJobType = teamJobType(selectedStaff);
   const eligibleStaff = selectedJob
-    ? staff.filter(s => isSupervisor(s.job_role) || s.job_role === JOB_TYPE_TO_ROLE[selectedJob.job_type] || s.id === formData.staff_id)
+    ? staff.filter(s => { const tj = teamJobType(s); return !tj || tj === selectedJob.job_type || s.id === formData.staff_id; })
     : staff;
-  const eligibleJobs = selectedStaff && !isSupervisor(selectedStaff.job_role)
-    ? jobs.filter(j => j.job_type === ROLE_TO_JOB_TYPE[selectedStaff.job_role] || j.id === formData.job_id)
+  const eligibleJobs = selectedStaff && selectedStaffJobType
+    ? jobs.filter(j => j.job_type === selectedStaffJobType || j.id === formData.job_id)
     : jobs;
 
   const handleDateChange = (date) => {
@@ -145,8 +151,8 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 <option value="">Select Job</option>
                 {eligibleJobs.map(job => <option key={job.id} value={job.id}>{job.name}</option>)}
               </select>
-              {selectedStaff && !isSupervisor(selectedStaff.job_role) && (
-                <p className="text-[11px] text-slate-400 mt-1">Only {selectedStaff.job_role.replace(/_/g, ' ')} jobs are shown for this staff member.</p>
+              {selectedStaff && selectedStaffJobType && (
+                <p className="text-[11px] text-slate-400 mt-1">Only {JOB_TYPE_LABELS[selectedStaffJobType]} jobs are shown for this staff member's team.</p>
               )}
             </div>
             <div>
@@ -157,7 +163,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 {eligibleStaff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
               {selectedJob && (
-                <p className="text-[11px] text-slate-400 mt-1">Only {JOB_TYPE_TO_ROLE[selectedJob.job_type]?.replace(/_/g, ' ')}s and supervisors can be assigned.</p>
+                <p className="text-[11px] text-slate-400 mt-1">Only staff in teams handling {JOB_TYPE_LABELS[selectedJob.job_type]} jobs can be assigned.</p>
               )}
             </div>
             <div>

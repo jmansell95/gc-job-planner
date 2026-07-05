@@ -6,10 +6,6 @@ import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail } from 'lucide
 import PageHeader from '@/components/PageHeader';
 import PrintReportButton from '@/components/PrintReportButton';
 
-const roleLabels = {
-  groundworker: 'Groundworker', cp_driller: 'CP Driller', rotary_driller: 'Rotary Driller',
-  enabling_crew: 'Enabling Crew', depot: 'Depot', supervisor: 'Supervisor',
-};
 const workerBadge = {
   direct_employee: 'bg-emerald-100 text-emerald-700',
   subcontractor: 'bg-orange-100 text-orange-700',
@@ -23,7 +19,7 @@ export default function StaffManager() {
   const [submitting, setSubmitting] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(null);
   const [inviteOnCreate, setInviteOnCreate] = useState(true);
-  const [formData, setFormData] = useState({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '' });
 
   const queryClient = useQueryClient();
 
@@ -36,6 +32,7 @@ export default function StaffManager() {
     ['default_vehicle_id', 'manager_id', 'team_id'].forEach(k => {
       if (cleaned[k] === '') delete cleaned[k];
     });
+    delete cleaned.job_role;
     return cleaned;
   };
 
@@ -132,20 +129,20 @@ export default function StaffManager() {
 
   const buildStaffPrintHtml = () => {
     const rows = staff.map(s =>
-      `<tr><td>${s.name}</td><td>${s.email}</td><td>${roleLabels[s.job_role] || s.job_role}</td><td>${s.worker_type?.replace(/_/g,' ')}</td><td>${teams.find(t => t.id === s.team_id)?.name || '—'}</td><td>${getUserForStaff(s) ? 'Yes' : 'No'}</td></tr>`
+      `<tr><td>${s.name}</td><td>${s.email}</td><td>${s.worker_type?.replace(/_/g,' ')}</td><td>${teams.find(t => t.id === s.team_id)?.name || '—'}</td><td>${getUserForStaff(s) ? 'Yes' : 'No'}</td></tr>`
     ).join('');
     return `<!DOCTYPE html><html><head><title>Staff Report</title>
     <style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#111}h1{font-size:16px;margin-bottom:4px}p{color:#555;font-size:11px;margin-bottom:12px}table{width:100%;border-collapse:collapse}th{background:#1a5c3a;color:white;padding:6px 8px;text-align:left;font-size:11px}td{padding:5px 8px;border-bottom:1px solid #e2e8f0}tr:nth-child(even) td{background:#f8fafb}@media print{body{margin:10mm}}</style>
     </head><body><h1>Staff Report</h1>
     <p>${staff.length} staff members &nbsp;&middot;&nbsp; Printed ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</p>
-    <table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Type</th><th>Team</th><th>App Access</th></tr></thead>
+    <table><thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Team</th><th>App Access</th></tr></thead>
     <tbody>${rows}</tbody></table></body></html>`;
   };
 
   const resetForm = () => {
     setShowForm(!showForm);
     setEditingId(null);
-    setFormData({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '' });
+    setFormData({ name: '', email: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '' });
   };
 
   const activeCount = staff.filter(s => getUserForStaff(s)).length;
@@ -205,18 +202,6 @@ export default function StaffManager() {
                 <option value="direct_employee">Direct Employee</option>
                 <option value="subcontractor">Subcontractor</option>
                 <option value="agency">Agency Worker</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Job Role</label>
-              <select value={formData.job_role} onChange={e => setFormData({ ...formData, job_role: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="groundworker">Groundworker</option>
-                <option value="cp_driller">CP Driller</option>
-                <option value="rotary_driller">Rotary Driller</option>
-                <option value="enabling_crew">Enabling Crew</option>
-                <option value="depot">Depot</option>
-                <option value="supervisor">Supervisor</option>
               </select>
             </div>
             <div>
@@ -326,7 +311,6 @@ export default function StaffManager() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-3">
-                  <span className="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">{roleLabels[member.job_role] || member.job_role}</span>
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${workerBadge[member.worker_type] || 'bg-slate-100 text-slate-600'}`}>{member.worker_type?.replace(/_/g, ' ')}</span>
                   {teams.find(t => t.id === member.team_id) && (
                     <span className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">{teams.find(t => t.id === member.team_id).name}</span>

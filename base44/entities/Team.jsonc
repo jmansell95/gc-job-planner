@@ -13,6 +13,17 @@
     "parent_team_id": {
       "type": "string",
       "description": "Parent team ID \u2014 set when this is a sub-team under a team group"
+    },
+    "job_type": {
+      "type": "string",
+      "enum": [
+        "groundworks",
+        "cp_drilling",
+        "rotary_drilling",
+        "enabling_works",
+        "depot"
+      ],
+      "description": "Job type this team handles \u2014 staff in this team can only be assigned to matching jobs. Blank/absent = flexible (any job type, e.g. supervisors)."
     }
   },
   "required": [

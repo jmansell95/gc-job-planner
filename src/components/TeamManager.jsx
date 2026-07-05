@@ -4,10 +4,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Users, ChevronDown, ChevronRight, GitBranch, UserCircle2, UserMinus } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 
-const roleLabels = {
-  groundworker: 'Groundworker', cp_driller: 'CP Driller', rotary_driller: 'Rotary Driller',
-  enabling_crew: 'Enabling Crew', depot: 'Depot', supervisor: 'Supervisor',
-};
 const workerBadge = {
   direct_employee: 'bg-emerald-100 text-emerald-700',
   subcontractor: 'bg-orange-100 text-orange-700',
@@ -19,11 +15,15 @@ const statusDot = {
   invited: 'bg-blue-400',
   none: 'bg-slate-300',
 };
+const JOB_TYPE_LABELS = {
+  groundworks: 'Groundworks', cp_drilling: 'CP Drilling', rotary_drilling: 'Rotary Drilling',
+  enabling_works: 'Enabling Works', depot: 'Depot'
+};
 
 export default function TeamManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '', parent_team_id: '' });
+  const [formData, setFormData] = useState({ name: '', description: '', parent_team_id: '', job_type: '' });
   const [presetParent, setPresetParent] = useState(null);
   const [collapsed, setCollapsed] = useState({});
 
@@ -49,14 +49,14 @@ export default function TeamManager() {
 
   const openCreate = (parentId = null) => {
     setEditingId(null);
-    setFormData({ name: '', description: '', parent_team_id: parentId || '' });
+    setFormData({ name: '', description: '', parent_team_id: parentId || '', job_type: '' });
     setPresetParent(parentId);
     setShowForm(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const payload = { name: formData.name, description: formData.description, parent_team_id: formData.parent_team_id || '' };
+    const payload = { name: formData.name, description: formData.description, parent_team_id: formData.parent_team_id || '', job_type: formData.job_type || '' };
     try {
       if (editingId) {
         await base44.entities.Team.update(editingId, payload);
@@ -64,7 +64,7 @@ export default function TeamManager() {
         await base44.entities.Team.create(payload);
       }
       queryClient.invalidateQueries({ queryKey: ['teams'] });
-      setFormData({ name: '', description: '', parent_team_id: '' });
+      setFormData({ name: '', description: '', parent_team_id: '', job_type: '' });
       setShowForm(false);
       setEditingId(null);
       setPresetParent(null);
@@ -74,7 +74,7 @@ export default function TeamManager() {
   };
 
   const handleEdit = (team) => {
-    setFormData({ name: team.name, description: team.description || '', parent_team_id: team.parent_team_id || '' });
+    setFormData({ name: team.name, description: team.description || '', parent_team_id: team.parent_team_id || '', job_type: team.job_type || '' });
     setEditingId(team.id);
     setShowForm(true);
     setPresetParent(null);
@@ -107,7 +107,7 @@ export default function TeamManager() {
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-slate-900 truncate">{m.name}</p>
-        <p className="text-xs text-slate-500 truncate">{roleLabels[m.job_role] || m.job_role?.replace(/_/g, ' ')}</p>
+        <p className="text-xs text-slate-500 truncate">{(m.worker_type || '').replace(/_/g, ' ')}</p>
       </div>
       <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusDot[statusOf(m)]}`} title={statusOf(m)} />
       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${workerBadge[m.worker_type] || 'bg-slate-100 text-slate-600'}`}>
@@ -150,6 +150,9 @@ export default function TeamManager() {
                 )}
                 {!isSub && totalPeople > members.length && (
                   <span className="text-xs text-slate-400">{totalPeople} people total</span>
+                )}
+                {team.job_type && (
+                  <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium">{JOB_TYPE_LABELS[team.job_type] || team.job_type}</span>
                 )}
               </div>
             </div>
@@ -230,6 +233,19 @@ export default function TeamManager() {
                 {parentTeams.filter(t => t.id !== editingId).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}
               </select>
               <p className="text-xs text-slate-400 mt-1">Leave blank for a team group; pick a parent to create a sub-team under it.</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Job Type</label>
+              <select value={formData.job_type} onChange={(e) => setFormData({ ...formData, job_type: e.target.value })}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
+                <option value="">Flexible (any job type)</option>
+                <option value="groundworks">Groundworks</option>
+                <option value="cp_drilling">CP Drilling</option>
+                <option value="rotary_drilling">Rotary Drilling</option>
+                <option value="enabling_works">Enabling Works</option>
+                <option value="depot">Depot</option>
+              </select>
+              <p className="text-xs text-slate-400 mt-1">Staff in this team can only be assigned to matching job types. Leave flexible for supervisors/managers.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Team Description</label>

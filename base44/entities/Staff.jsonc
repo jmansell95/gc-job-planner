@@ -29,11 +29,11 @@
         "depot",
         "supervisor"
       ],
-      "description": "Job role/position"
+      "description": "Legacy job role \u2014 no longer used; team assignment drives job eligibility instead"
     },
     "team_id": {
       "type": "string",
-      "description": "Team/group assignment"
+      "description": "Team/group assignment \u2014 determines which jobs this staff member can be assigned to"
     },
     "default_vehicle_id": {
       "type": "string",
@@ -74,7 +74,6 @@
     "name",
     "email",
     "worker_type",
-    "job_role",
     "team_id"
   ]
 }

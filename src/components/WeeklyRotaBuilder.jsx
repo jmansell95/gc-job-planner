@@ -10,7 +10,7 @@ import {
 import PageHeader from '@/components/PageHeader';
 import AssignmentModal from '@/components/AssignmentModal';
 import { EmptyState, ErrorState, RotaSkeleton, Skeleton, SkeletonText } from '@/components/StateViews';
-import { formatJobType, formatJobRole } from '@/utils/format';
+import { formatJobType } from '@/utils/format';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const jobTypeColors = {
@@ -417,7 +417,7 @@ export default function WeeklyRotaBuilder() {
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium text-slate-900 text-sm whitespace-nowrap truncate">{member.name}</p>
-                        <p className="text-xs text-slate-400">{formatJobRole(member.job_role)}</p>
+                        <p className="text-xs text-slate-400">{teams.find(t => t.id === member.team_id)?.name || 'No team'}</p>
                       </div>
                     </div>
                   </td>
