@@ -81,15 +81,32 @@ export default function WithdrawnAcknowledgementPanel({ timesheets, staff, jobs,
       </div>
       <div className="divide-y divide-slate-100">
         {groupEntries.map(([key, items]) => (
-          <div key={key} className="px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-slate-900 truncate">{groupLabel(key)}</p>
-              <p className="text-xs text-slate-400">{items.length} withdrawal{items.length === 1 ? '' : 's'} · {items.filter(t => t.deletion_reason).length} with reason</p>
+          <div key={key} className="px-5 py-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-900 truncate">{groupLabel(key)}</p>
+                <p className="text-xs text-slate-400">{items.length} withdrawal{items.length === 1 ? '' : 's'}</p>
+              </div>
+              <button onClick={() => acknowledge(items)} disabled={busy}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 active:scale-95 transition disabled:opacity-50">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Acknowledge {items.length}
+              </button>
             </div>
-            <button onClick={() => acknowledge(items)} disabled={busy}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 active:scale-95 transition disabled:opacity-50">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Acknowledge {items.length}
-            </button>
+            <div className="mt-2 space-y-1.5">
+              {items.map(t => {
+                const member = staff.find(s => s.id === t.staff_id);
+                const job = jobs.find(j => j.id === t.job_id);
+                const who = mode === 'staff'
+                  ? (job?.name || '—')
+                  : `${member?.name || 'Unknown staff'}${mode === 'week' ? ` · ${format(new Date(t.date + 'T00:00:00'), 'dd MMM')}` : ''}`;
+                return (
+                  <div key={t.id} className="text-xs flex gap-2 items-start">
+                    <span className="font-medium text-slate-700 flex-shrink-0 min-w-[90px]">{who}</span>
+                    <span className="text-slate-500">{t.deletion_reason || <span className="italic text-slate-300">No reason given</span>}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>
