@@ -122,14 +122,17 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       {/* Today's Field Crew */}
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.35 }}
         className="card-modern rounded-2xl overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b border-slate-100/70 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-emerald-700" />
-            <h2 className="font-semibold text-slate-900">Field Crews On Site Today</h2>
+        <div className="px-5 py-4 border-b border-slate-100/70 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Clock className="w-5 h-5 text-emerald-700 flex-shrink-0" />
+            <h2 className="font-semibold text-slate-900 truncate">Field Crews On Site Today</h2>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{todaysRotas.length} assignments</span>
-            <button onClick={() => onNavigate('calendar')} className="text-xs text-emerald-700 hover:text-emerald-900 font-medium flex items-center gap-1">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full font-semibold ring-1 ring-emerald-200 whitespace-nowrap">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              {todaysRotas.length} {todaysRotas.length === 1 ? 'assignment' : 'assignments'}
+            </span>
+            <button onClick={() => onNavigate('calendar')} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2 py-1.5 rounded-lg hover:bg-emerald-50 transition">
               Calendar <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
