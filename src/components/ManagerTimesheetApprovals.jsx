@@ -85,7 +85,6 @@ export default function ManagerTimesheetApprovals({ staffId }) {
                     <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
                       <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{fmtDur(mins)}</span>
                       {b.isOvertime && <span className="inline-flex items-center gap-1 text-amber-600 font-medium"><TrendingUp className="w-3 h-3" />OT {fmtDur(b.otMins)} ×{b.multiplier}</span>}
-                      {b.cost > 0 && <span className="font-medium">{fmtCost(b.cost)}</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">

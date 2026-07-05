@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Settings, Users, Truck, HardHat, Building2, ChevronRight, CalendarX, Mail, PoundSterling, Package, Timer, Zap } from 'lucide-react';
+import { Settings, Users, Truck, HardHat, Building2, ChevronRight, CalendarX, Mail, PoundSterling, Package, Timer, Zap, Clock } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import StaffShiftManager from '@/components/StaffShiftManager';
 import StaffManager from '@/components/StaffManager';
 import VehicleManager from '@/components/VehicleManager';
 import ContractorManager from '@/components/ContractorManager';
@@ -14,6 +15,7 @@ import AutomationCenter from '@/components/AutomationCenter';
 
 const tabs = [
   { id: 'staff', label: 'Staff', icon: Users },
+  { id: 'shifts', label: 'Shift Times', icon: Clock },
   { id: 'vehicles', label: 'Vehicles', icon: Truck },
   { id: 'clients', label: 'Clients', icon: Building2 },
   { id: 'contractors', label: 'Contractors', icon: HardHat },
@@ -54,6 +56,7 @@ export default function SettingsPage() {
       </div>
 
       {activeTab === 'staff' && <StaffManager />}
+      {activeTab === 'shifts' && <StaffShiftManager />}
       {activeTab === 'vehicles' && <VehicleManager />}
       {activeTab === 'clients' && <ClientManager />}
       {activeTab === 'contractors' && <ContractorManager />}

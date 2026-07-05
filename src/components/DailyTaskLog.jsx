@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText } from 'lucide-react';
+import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer } from 'lucide-react';
 import { format } from 'date-fns';
 
 const TASK_SUGGESTIONS = [
   'Setting up the rig', 'Putting up heras fencing', 'Drilling',
   'Dismantling the rig', 'Site clearance', 'Machine maintenance', 'Breakdown',
 ];
-const DURATION_CHIPS = [10, 15, 30, 60, 90, 120, 240];
 
+const toMins = (t) => { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+const calcDur = (s, e) => {
+  const a = toMins(s), b = toMins(e);
+  if (a == null || b == null) return 0;
+  if (b <= a) return 0;
+  return b - a;
+};
 const fmtDur = (mins) => {
   const m = Math.round(Number(mins) || 0);
   const h = Math.floor(m / 60), r = m % 60;
@@ -20,9 +26,11 @@ const fmtDur = (mins) => {
 
 export default function DailyTaskLog({ staffId }) {
   const today = format(new Date(), 'yyyy-MM-dd');
+  const todayDow = new Date().getDay();
   const [jobId, setJobId] = useState('');
   const [task, setTask] = useState('');
-  const [mins, setMins] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [meterage, setMeterage] = useState('');
   const [notes, setNotes] = useState('');
   const [adding, setAdding] = useState(false);
@@ -32,15 +40,19 @@ export default function DailyTaskLog({ staffId }) {
   const { data: assignments = [] } = useQuery({ queryKey: ['staff-assignments', staffId], queryFn: () => base44.entities.RotaAssignment.filter({ staff_id: staffId }), enabled: !!staffId });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs-for-assignments'], queryFn: () => base44.entities.Job.list() });
   const { data: todayEntries = [] } = useQuery({ queryKey: ['daily-tasks', staffId, today], queryFn: () => base44.entities.Timesheet.filter({ staff_id: staffId, date: today }), enabled: !!staffId });
+  const { data: shifts = [] } = useQuery({ queryKey: ['staff-shifts', staffId], queryFn: () => base44.entities.StaffShift.filter({ staff_id: staffId }), enabled: !!staffId });
 
   const assignedJobIds = [...new Set(assignments.map(a => a.job_id))];
   const assignedJobs = jobs.filter(j => assignedJobIds.includes(j.id));
+  const todayShift = shifts.find(s => s.day_of_week === todayDow);
 
   useEffect(() => { if (!jobId && assignedJobs.length === 1) setJobId(assignedJobs[0].id); }, [assignedJobs, jobId]);
+  useEffect(() => { if (!startTime && todayShift?.start_time) setStartTime(todayShift.start_time); }, [todayShift]);
 
   const selectedJob = jobs.find(j => j.id === jobId);
   const isDriller = selectedJob?.job_type === 'cp_drilling' || selectedJob?.job_type === 'rotary_drilling';
-  const minsNum = parseInt(mins) || 0;
+  const durMins = calcDur(startTime, endTime);
+  const shiftMins = todayShift ? calcDur(todayShift.start_time, todayShift.end_time) : 0;
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });
@@ -50,17 +62,22 @@ export default function DailyTaskLog({ staffId }) {
     queryClient.invalidateQueries({ queryKey: ['timesheets-for-job'] });
   };
 
-  const resetForm = () => { setTask(''); setMins(''); setMeterage(''); setNotes(''); };
+  const resetForm = () => {
+    setTask(''); setEndTime(''); setMeterage(''); setNotes('');
+    setStartTime(todayShift?.start_time || '');
+  };
 
   const addTask = async (e) => {
     e.preventDefault();
-    if (!jobId || !task.trim() || !minsNum) return;
+    if (!jobId || !task.trim() || !startTime || !endTime || durMins <= 0) return;
     setAdding(true);
     try {
       await base44.entities.Timesheet.create({
         staff_id: staffId, job_id: jobId, date: today,
-        task_description: task.trim(), task_duration_minutes: minsNum,
-        total_hours: Math.round((minsNum / 60) * 100) / 100,
+        task_description: task.trim(),
+        start_time: startTime, end_time: endTime,
+        task_duration_minutes: durMins,
+        total_hours: Math.round((durMins / 60) * 100) / 100,
         meterage: isDriller ? (parseFloat(meterage) || 0) : 0,
         notes: notes.trim(), status: 'draft', is_break: false
       });
@@ -99,6 +116,8 @@ export default function DailyTaskLog({ staffId }) {
     return 'bg-slate-100 text-slate-500';
   };
 
+  const durInvalid = startTime && endTime && durMins <= 0;
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       {/* Header with running total */}
@@ -120,6 +139,16 @@ export default function DailyTaskLog({ staffId }) {
       </div>
 
       <div className="p-4 md:p-6 space-y-4">
+        {/* Shift reference */}
+        {todayShift && todayShift.start_time && todayShift.end_time && (
+          <div className="flex items-center gap-2 flex-wrap text-xs bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
+            <Timer className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span className="text-slate-600">Your shift today: <b className="text-slate-900">{todayShift.start_time} – {todayShift.end_time}</b> ({fmtDur(shiftMins)})</span>
+            <span className="text-slate-400">·</span>
+            <span className="text-slate-600">Worked <b className="text-slate-900">{fmtDur(totalMins)}</b>{shiftMins > 0 ? ` of ${fmtDur(shiftMins)}` : ''}</span>
+          </div>
+        )}
+
         {/* Add task form */}
         {assignedJobs.length === 0 ? (
           <p className="text-xs text-amber-700 bg-amber-50 px-3 py-2.5 rounded-lg border border-amber-100">
@@ -138,7 +167,7 @@ export default function DailyTaskLog({ staffId }) {
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">What did you do? *</label>
               <input type="text" value={task} onChange={e => setTask(e.target.value)} required
-                placeholder="e.g. Putting up heras fencing"
+                placeholder="e.g. Put up heras fencing around the compound"
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {TASK_SUGGESTIONS.map(s => (
@@ -148,19 +177,16 @@ export default function DailyTaskLog({ staffId }) {
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Time taken *</label>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {DURATION_CHIPS.map(d => (
-                  <button type="button" key={d} onClick={() => setMins(String(d))}
-                    className={`text-xs px-3 py-1.5 rounded-full border transition font-medium ${minsNum === d ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400'}`}>{fmtDur(d)}</button>
-                ))}
+              <label className="block text-xs font-medium text-slate-600 mb-1">Start – Finish time *</label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} required
+                  className="px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white" />
+                <span className="text-slate-400 text-sm">to</span>
+                <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} required
+                  className="px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white" />
+                {durMins > 0 && <span className="text-xs text-slate-500">= <b className="text-slate-700">{fmtDur(durMins)}</b></span>}
               </div>
-              <div className="flex items-center gap-2">
-                <input type="number" min="1" step="1" value={mins} onChange={e => setMins(e.target.value)} required
-                  placeholder="Custom minutes"
-                  className="w-36 px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
-                {minsNum > 0 && <span className="text-xs text-slate-500">= <b className="text-slate-700">{fmtDur(minsNum)}</b></span>}
-              </div>
+              {durInvalid && <p className="text-[11px] text-red-500 mt-1">Finish time must be after the start time.</p>}
             </div>
             {isDriller && (
               <div>
@@ -176,7 +202,7 @@ export default function DailyTaskLog({ staffId }) {
                 placeholder="Anything else worth noting"
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
             </div>
-            <button type="submit" disabled={adding || !jobId || !task.trim() || !minsNum}
+            <button type="submit" disabled={adding || !jobId || !task.trim() || !startTime || !endTime || durMins <= 0}
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-semibold disabled:opacity-50 touch-manipulation">
               <Plus className="w-4 h-4" /> {adding ? 'Adding…' : 'Add Task'}
             </button>
@@ -190,6 +216,7 @@ export default function DailyTaskLog({ staffId }) {
             <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 overflow-hidden">
               {[...tasks].reverse().map(t => {
                 const job = jobs.find(j => j.id === t.job_id);
+                const tMins = Number(t.task_duration_minutes) || 0;
                 return (
                   <div key={t.id} className="px-3.5 py-3 flex items-center justify-between gap-3 bg-white">
                     <div className="min-w-0 flex-1">
@@ -204,10 +231,12 @@ export default function DailyTaskLog({ staffId }) {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 truncate mt-0.5">{job?.name || '—'}{t.notes ? ` · ${t.notes}` : ''}</p>
+                      <p className="text-xs text-slate-400 truncate mt-0.5">
+                        {t.start_time && t.end_time ? `${t.start_time}–${t.end_time} · ` : ''}{job?.name || '—'}{t.notes ? ` · ${t.notes}` : ''}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-sm font-bold text-slate-900 tabular-nums">{fmtDur(t.task_duration_minutes)}</span>
+                      <span className="text-sm font-bold text-slate-900 tabular-nums">{fmtDur(tMins)}</span>
                       {t.status === 'draft' && (
                         <button onClick={() => deleteDraft(t.id)} className="p-1.5 text-slate-300 hover:text-red-500 rounded-lg transition" title="Remove">
                           <Trash2 className="w-4 h-4" />

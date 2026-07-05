@@ -200,7 +200,6 @@ export default function StaffTimesheets({ staffId, staffName }) {
             {t.task_description && !t.is_break && <p className="text-sm text-slate-700 mt-1">{t.task_description}</p>}
             <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
               <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{fmtDur(mins)}</span>
-              {hourlyRate > 0 && <span className="inline-flex items-center gap-1"><PoundSterling className="w-3 h-3" />{fmtCost(cost)}</span>}
               {isOT && <span className="inline-flex items-center gap-1 text-amber-600 font-medium"><TrendingUp className="w-3 h-3" />OT {fmtDur(ot.otMins)} ×{ot.multiplier}</span>}
               {t.notes && <span className="truncate">· {t.notes}</span>}
             </div>
@@ -233,7 +232,6 @@ export default function StaffTimesheets({ staffId, staffName }) {
           </div>
           <div className="min-w-0">
             <h2 className="text-lg font-bold text-slate-900">My Timesheets</h2>
-            {staffRecord?.day_rate && <p className="text-xs text-slate-400">£{staffRecord.day_rate}/day · £{hourlyRate.toFixed(0)}/h</p>}
           </div>
         </div>
         <button onClick={() => { resetForm(); if (availableJobs.length === 1) setForm(f => ({ ...f, job_id: availableJobs[0].id })); setShowForm(true); }} disabled={availableJobs.length === 0}
@@ -307,14 +305,9 @@ export default function StaffTimesheets({ staffId, staffName }) {
             </div>
           </div>
           {durationMins > 0 && (
-            <div className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm ${previewOT ? 'bg-amber-50 border border-amber-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+            <div className="flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm bg-emerald-50 border border-emerald-200">
               <span className="text-slate-600">Duration: <span className="font-semibold text-slate-900">{fmtDur(durationMins)}</span></span>
-              {hourlyRate > 0 && (
-                <span className="text-slate-600">
-                  {previewOT ? 'Overtime cost' : 'Calculated cost'}: <span className={`font-semibold ${previewOT ? 'text-amber-700' : 'text-emerald-700'}`}>{fmtCost(previewCost)}</span>
-                  {previewOT && <span className="ml-1 text-[10px] text-amber-600">×{previewResult.multiplier}</span>}
-                </span>
-              )}
+              {previewOT && <span className="text-amber-700 font-medium text-xs">Overtime · ×{previewResult.multiplier}</span>}
             </div>
           )}
           <div className="flex flex-wrap gap-2">

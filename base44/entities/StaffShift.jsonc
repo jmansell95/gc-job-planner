@@ -1,0 +1,26 @@
+{
+  "name": "StaffShift",
+  "type": "object",
+  "properties": {
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member"
+    },
+    "day_of_week": {
+      "type": "number",
+      "description": "Day of week this shift applies to (0 = Sunday \u2026 6 = Saturday)"
+    },
+    "start_time": {
+      "type": "string",
+      "description": "Shift start time (HH:MM)"
+    },
+    "end_time": {
+      "type": "string",
+      "description": "Shift end time (HH:MM)"
+    }
+  },
+  "required": [
+    "staff_id",
+    "day_of_week"
+  ]
+}
