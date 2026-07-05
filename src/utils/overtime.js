@@ -21,6 +21,7 @@ export function buildRateMap(rates) {
 }
 
 export function entryMinutes(t) {
+  if (t?.is_break) return 0;
   return Number(t.task_duration_minutes) || (t.total_hours ? t.total_hours * 60 : 0);
 }
 

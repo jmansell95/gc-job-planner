@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Clock, CheckCircle2, XCircle, FileText, Trash2, Edit2, Save, Send, PoundSterling, X, TrendingUp, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Plus, Clock, CheckCircle2, XCircle, FileText, Trash2, Edit2, Save, Send, PoundSterling, X, TrendingUp, RotateCcw, AlertTriangle, Coffee } from 'lucide-react';
 import { format } from 'date-fns';
 import { computeStaffOvertime, buildRateMap, weekKey, entryMinutes } from '@/utils/overtime';
 
@@ -186,12 +186,18 @@ export default function StaffTimesheets({ staffId, staffName }) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-medium text-sm text-slate-900 truncate">{job?.name || 'Unknown job'}</p>
-              <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${status.badge} flex-shrink-0`}>
-                <StatusIcon className="w-2.5 h-2.5" /> {status.label}
-              </span>
+              <p className="font-medium text-sm text-slate-900 truncate">{t.is_break ? 'Break' : (job?.name || 'Unknown job')}</p>
+              {t.is_break ? (
+                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700 flex-shrink-0">
+                  <Coffee className="w-2.5 h-2.5" /> Break
+                </span>
+              ) : (
+                <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${status.badge} flex-shrink-0`}>
+                  <StatusIcon className="w-2.5 h-2.5" /> {status.label}
+                </span>
+              )}
             </div>
-            {t.task_description && <p className="text-sm text-slate-700 mt-1">{t.task_description}</p>}
+            {t.task_description && !t.is_break && <p className="text-sm text-slate-700 mt-1">{t.task_description}</p>}
             <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
               <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{fmtDur(mins)}</span>
               {hourlyRate > 0 && <span className="inline-flex items-center gap-1"><PoundSterling className="w-3 h-3" />{fmtCost(cost)}</span>}

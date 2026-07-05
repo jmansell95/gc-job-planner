@@ -6,6 +6,7 @@ import { format, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import QuickTaskLog from '@/components/QuickTaskLog';
+import DailyTimeTracker from '@/components/DailyTimeTracker';
 import StaffTimesheets from '@/components/StaffTimesheets';
 import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
 import { formatJobType } from '@/utils/format';
@@ -400,6 +401,11 @@ export default function StaffDashboard() {
             You're offline. Showing cached schedule — changes will sync when you reconnect.
           </div>
         )}
+
+        {/* Daily Time Tracker */}
+        <div className="mb-8">
+          <DailyTimeTracker staffId={staff.id} />
+        </div>
 
         {/* Manager: Timesheet Approvals */}
         <ManagerTimesheetApprovals staffId={staff.id} />

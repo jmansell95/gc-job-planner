@@ -8,7 +8,7 @@
     },
     "job_id": {
       "type": "string",
-      "description": "Job worked on"
+      "description": "Job worked on. Empty for break entries."
     },
     "date": {
       "type": "string",
@@ -17,7 +17,7 @@
     },
     "task_description": {
       "type": "string",
-      "description": "What the staff member was doing (e.g. setting up the rig, putting up heras fencing)"
+      "description": "What the staff member was doing (e.g. setting up the rig, putting up heras fencing). 'Break' for break entries."
     },
     "task_duration_minutes": {
       "type": "number",
@@ -48,6 +48,11 @@
       "type": "string",
       "description": "Timesheet notes"
     },
+    "is_break": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for break entries. Breaks count toward the day total but NOT toward any job's time or cost."
+    },
     "status": {
       "type": "string",
       "enum": [
@@ -71,7 +76,6 @@
   },
   "required": [
     "staff_id",
-    "job_id",
     "date"
   ]
 }

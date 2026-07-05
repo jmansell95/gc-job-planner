@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, CheckCircle2, XCircle, Ruler, PoundSterling, TrendingUp, Users, Search, CalendarDays, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
+import TodayTimeBoard from '@/components/TodayTimeBoard';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/StateViews';
 import { computeStaffOvertime, buildRateMap } from '@/utils/overtime';
 
@@ -49,6 +50,7 @@ export default function TimesheetManager() {
     queryKey: ['timesheets'],
     queryFn: () => base44.entities.Timesheet.list('-created_date', 200)
   });
+  const workTimesheets = timesheets.filter(t => !t.is_break);
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: overtimeRates = [] } = useQuery({ queryKey: ['overtime-rates'], queryFn: () => base44.entities.OvertimeRate.list() });
@@ -66,12 +68,12 @@ export default function TimesheetManager() {
     otBreakdowns[s.id] = computeStaffOvertime(entries, otRateMap, otThreshold, hourlyRate);
   });
 
-  const approved = timesheets.filter(t => t.status === 'approved');
+  const approved = workTimesheets.filter(t => t.status === 'approved');
   const approvedMins = approved.reduce((s, t) => s + minsOf(t), 0);
   const approvedOtMins = approved.reduce((s, t) => s + (otBreakdowns[t.staff_id]?.[t.id]?.otMins || 0), 0);
   const approvedCost = approved.reduce((s, t) => s + (otBreakdowns[t.staff_id]?.[t.id]?.cost || 0), 0);
   const approvedMeterage = approved.reduce((s, t) => s + meterageOf(t), 0);
-  const pendingCount = timesheets.filter(t => t.status === 'submitted').length;
+  const pendingCount = workTimesheets.filter(t => t.status === 'submitted').length;
 
   // Per-staff summary (approved)
   const staffSummary = staff.map(s => {
@@ -87,7 +89,7 @@ export default function TimesheetManager() {
     return { id: s.id, name: s.name, role: s.job_role, shifts: entries.length, stdMins, otMins, cost, meterage: entries.reduce((x, t) => x + meterageOf(t), 0) };
   }).filter(Boolean).sort((a, b) => b.cost - a.cost);
 
-  const filtered = timesheets.filter(t => {
+  const filtered = workTimesheets.filter(t => {
     if (statusFilter !== 'all' && t.status !== statusFilter) return false;
     if (staffFilter !== 'all' && t.staff_id !== staffFilter) return false;
     if (search.trim()) {
@@ -112,13 +114,15 @@ export default function TimesheetManager() {
     <div>
       <PageHeader title="Timesheets" icon={Clock} />
 
+      <TodayTimeBoard />
+
       {/* Stat boxes */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <StatBox icon={Clock} label="Pending Approval" value={pendingCount} accent="bg-amber-100 text-amber-700" />
         <StatBox icon={CheckCircle2} label="Approved Hours" value={fmtMins(approvedMins)} accent="bg-emerald-100 text-emerald-700" />
         <StatBox icon={TrendingUp} label="Approved Overtime" value={fmtMins(approvedOtMins)} accent="bg-orange-100 text-orange-700" sub="across all staff" />
         <StatBox icon={PoundSterling} label="Approved Cost" value={fmtCost(approvedCost)} accent="bg-blue-100 text-blue-700" sub="incl. overtime" />
-        <StatBox icon={FileText} label="Total Timesheets" value={timesheets.length} accent="bg-slate-100 text-slate-600" />
+        <StatBox icon={FileText} label="Total Timesheets" value={workTimesheets.length} accent="bg-slate-100 text-slate-600" />
         {approvedMeterage > 0 && (
           <StatBox icon={Ruler} label="Approved Meterage" value={`${approvedMeterage}m`} accent="bg-purple-100 text-purple-700" />
         )}
