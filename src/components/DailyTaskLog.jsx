@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer } from 'lucide-react';
+import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee } from 'lucide-react';
 import { format } from 'date-fns';
 
 const TASK_SUGGESTIONS = [
   'Setting up the rig', 'Putting up heras fencing', 'Drilling',
-  'Dismantling the rig', 'Site clearance', 'Machine maintenance', 'Breakdown',
+  'Dismantling the rig', 'Site clearance',
 ];
 
 const toMins = (t) => { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + m; };
@@ -33,6 +33,7 @@ export default function DailyTaskLog({ staffId }) {
   const [endTime, setEndTime] = useState('');
   const [meterage, setMeterage] = useState('');
   const [notes, setNotes] = useState('');
+  const [isLunch, setIsLunch] = useState(false);
   const [adding, setAdding] = useState(false);
   const [submittingDay, setSubmittingDay] = useState(false);
   const queryClient = useQueryClient();
@@ -65,21 +66,24 @@ export default function DailyTaskLog({ staffId }) {
   const resetForm = () => {
     setTask(''); setEndTime(''); setMeterage(''); setNotes('');
     setStartTime(todayShift?.start_time || '');
+    setIsLunch(false);
   };
 
   const addTask = async (e) => {
     e.preventDefault();
-    if (!jobId || !task.trim() || !startTime || !endTime || durMins <= 0) return;
+    if (!startTime || !endTime || durMins <= 0) return;
+    if (!isLunch && (!jobId || !task.trim())) return;
     setAdding(true);
     try {
       await base44.entities.Timesheet.create({
-        staff_id: staffId, job_id: jobId, date: today,
-        task_description: task.trim(),
+        staff_id: staffId, date: today,
+        job_id: isLunch ? '' : jobId,
+        task_description: isLunch ? 'Lunch Break' : task.trim(),
         start_time: startTime, end_time: endTime,
         task_duration_minutes: durMins,
         total_hours: Math.round((durMins / 60) * 100) / 100,
-        meterage: isDriller ? (parseFloat(meterage) || 0) : 0,
-        notes: notes.trim(), status: 'draft', is_break: false
+        meterage: isLunch ? 0 : (isDriller ? (parseFloat(meterage) || 0) : 0),
+        notes: notes.trim(), status: 'draft', is_break: isLunch
       });
       resetForm();
       invalidateAll();
@@ -104,9 +108,10 @@ export default function DailyTaskLog({ staffId }) {
     setSubmittingDay(false);
   };
 
-  const tasks = todayEntries.filter(t => t.status !== 'deleted' && !t.is_break);
-  const drafts = tasks.filter(t => t.status === 'draft');
-  const totalMins = tasks.reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
+  const entries = todayEntries.filter(t => t.status !== 'deleted');
+  const tasks = entries.filter(t => !t.is_break);
+  const drafts = entries.filter(t => t.status === 'draft');
+  const totalMins = entries.reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
 
   const statusBadge = (status) => {
     if (status === 'draft') return 'bg-slate-100 text-slate-500';
@@ -156,24 +161,38 @@ export default function DailyTaskLog({ staffId }) {
           </p>
         ) : (
           <form onSubmit={addTask} className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
+            {!isLunch && (
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Job *</label>
+                <select value={jobId} onChange={e => setJobId(e.target.value)} required
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white">
+                  <option value="">Select job</option>
+                  {assignedJobs.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
+                </select>
+              </div>
+            )}
+            {isLunch && (
+              <div className="flex items-center gap-2 text-sm bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-amber-800">
+                <Coffee className="w-4 h-4 flex-shrink-0" />
+                <span className="font-medium">Lunch break — set the time below</span>
+              </div>
+            )}
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Job *</label>
-              <select value={jobId} onChange={e => setJobId(e.target.value)} required
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white">
-                <option value="">Select job</option>
-                {assignedJobs.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">What did you do? *</label>
-              <input type="text" value={task} onChange={e => setTask(e.target.value)} required
-                placeholder="e.g. Put up heras fencing around the compound"
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
+              <label className="block text-xs font-medium text-slate-600 mb-1">{isLunch ? 'Break type' : 'What did you do? *'}</label>
+              {!isLunch && (
+                <input type="text" value={task} onChange={e => setTask(e.target.value)} required={!isLunch}
+                  placeholder="e.g. Put up heras fencing around the compound"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
+              )}
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {TASK_SUGGESTIONS.map(s => (
-                  <button type="button" key={s} onClick={() => setTask(s)}
-                    className={`text-xs px-2.5 py-1 rounded-full border transition ${task === s ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700'}`}>{s}</button>
+                  <button type="button" key={s} onClick={() => { setTask(s); setIsLunch(false); }}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition ${!isLunch && task === s ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700'}`}>{s}</button>
                 ))}
+                <button type="button" onClick={() => { setIsLunch(true); setTask('Lunch Break'); }}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition inline-flex items-center gap-1 ${isLunch ? 'bg-amber-500 text-white border-amber-500' : 'bg-amber-50 border-amber-200 text-amber-700 hover:border-amber-400'}`}>
+                  <Coffee className="w-3 h-3" /> Lunch Break
+                </button>
               </div>
             </div>
             <div>
@@ -188,7 +207,7 @@ export default function DailyTaskLog({ staffId }) {
               </div>
               {durInvalid && <p className="text-[11px] text-red-500 mt-1">Finish time must be after the start time.</p>}
             </div>
-            {isDriller && (
+            {isDriller && !isLunch && (
               <div>
                 <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1"><Ruler className="w-3 h-3 text-amber-600" /> Meterage drilled (m)</label>
                 <input type="number" min="0" step="0.1" value={meterage} onChange={e => setMeterage(e.target.value)}
@@ -202,37 +221,38 @@ export default function DailyTaskLog({ staffId }) {
                 placeholder="Anything else worth noting"
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
             </div>
-            <button type="submit" disabled={adding || !jobId || !task.trim() || !startTime || !endTime || durMins <= 0}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-semibold disabled:opacity-50 touch-manipulation">
-              <Plus className="w-4 h-4" /> {adding ? 'Adding…' : 'Add Task'}
+            <button type="submit" disabled={adding || !startTime || !endTime || durMins <= 0 || (!isLunch && (!jobId || !task.trim()))}
+              className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl hover:opacity-90 active:scale-95 transition text-sm font-semibold disabled:opacity-50 touch-manipulation ${isLunch ? 'bg-amber-500' : 'bg-emerald-700'}`}>
+              <Plus className="w-4 h-4" /> {adding ? 'Adding…' : isLunch ? 'Add Lunch Break' : 'Add Task'}
             </button>
           </form>
         )}
 
         {/* Today's task list */}
-        {tasks.length > 0 ? (
+        {entries.length > 0 ? (
           <div className="space-y-2">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Today's log</p>
             <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 overflow-hidden">
-              {[...tasks].reverse().map(t => {
+              {[...entries].reverse().map(t => {
                 const job = jobs.find(j => j.id === t.job_id);
                 const tMins = Number(t.task_duration_minutes) || 0;
                 return (
-                  <div key={t.id} className="px-3.5 py-3 flex items-center justify-between gap-3 bg-white">
+                  <div key={t.id} className={`px-3.5 py-3 flex items-center justify-between gap-3 ${t.is_break ? 'bg-amber-50/40' : 'bg-white'}`}>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-sm text-slate-900 truncate">{t.task_description}</p>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusBadge(t.status)}`}>
-                          {t.status === 'draft' ? 'Draft' : t.status === 'submitted' ? 'Submitted' : t.status === 'approved' ? 'Approved' : 'Rejected'}
+                        {t.is_break && <Coffee className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />}
+                        <p className="font-medium text-sm text-slate-900 truncate">{t.is_break ? 'Lunch Break' : t.task_description}</p>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${t.is_break ? 'bg-amber-100 text-amber-700' : statusBadge(t.status)}`}>
+                          {t.is_break ? 'Break' : t.status === 'draft' ? 'Draft' : t.status === 'submitted' ? 'Submitted' : t.status === 'approved' ? 'Approved' : 'Rejected'}
                         </span>
-                        {t.meterage > 0 && (
+                        {!t.is_break && t.meterage > 0 && (
                           <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-50 text-amber-700">
                             <Ruler className="w-2.5 h-2.5" /> {t.meterage}m
                           </span>
                         )}
                       </div>
                       <p className="text-xs text-slate-400 truncate mt-0.5">
-                        {t.start_time && t.end_time ? `${t.start_time}–${t.end_time} · ` : ''}{job?.name || '—'}{t.notes ? ` · ${t.notes}` : ''}
+                        {t.start_time && t.end_time ? `${t.start_time}–${t.end_time}` : ''}{!t.is_break && <span>{` · ${job?.name || '—'}`}</span>}{t.notes ? ` · ${t.notes}` : ''}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
