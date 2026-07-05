@@ -6,7 +6,6 @@ import { Users, Truck, Briefcase, Grid3x3, MapPin, ChevronRight, Clock, AlertTri
 import { format, startOfWeek, addDays } from 'date-fns';
 import { JobStatusChart, StaffUtilizationChart, JobTypeBreakdownChart } from '@/components/DashboardCharts';
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
-import DashboardInsights from '@/components/DashboardInsights';
 import JobCostAnalytics from '@/components/JobCostAnalytics';
 import { formatJobType } from '@/utils/format';
 
@@ -190,11 +189,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       {/* Cost Analytics */}
       <div className="mb-6">
         <JobCostAnalytics />
-      </div>
-
-      {/* AI Insights */}
-      <div className="mb-6">
-        <DashboardInsights />
       </div>
 
       {/* Vehicle Maintenance Alerts */}
