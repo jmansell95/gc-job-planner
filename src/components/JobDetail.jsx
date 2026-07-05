@@ -205,61 +205,215 @@ export default function JobDetail({ job, onBack }) {
 
   return (
     <div>
-      {/* Back + Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-900 font-medium transition"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Jobs
-          </button>
-          <PrintReportButton buildHtml={buildJobPrintHtml} label="Print Report" />
-        </div>
+      {/* Top bar */}
+      <div className="mb-5 flex items-center justify-between">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-900 font-medium transition">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Jobs
+        </button>
+        <PrintReportButton buildHtml={buildJobPrintHtml} label="Print Report" />
+      </div>
 
-        <div className={`rounded-xl p-5 md:p-7 border ${colors.border} ${colors.bg}`}>
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
-                  <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
-                  {formatJobType(job.job_type)}
-                </span>
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']}`}>
-                  {statusLabels[job.status || 'planning']}
-                </span>
-              </div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{job.name}</h1>
-              <div className="flex items-center gap-2 mt-2 text-slate-600">
-                <MapPin className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm md:text-base">{job.location}</span>
-              </div>
+      {/* Hero header */}
+      <div className={`rounded-2xl p-5 md:p-6 border ${colors.border} ${colors.bg} mb-6`}>
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
+                <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
+                {formatJobType(job.job_type)}
+              </span>
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']}`}>
+                {statusLabels[job.status || 'planning']}
+              </span>
             </div>
-            <div className="flex flex-col gap-2 text-sm text-slate-600 md:text-right">
-              {startDate && (
-                <div className="flex items-center gap-2 md:justify-end">
-                  <Calendar className="w-4 h-4" />
-                  <span>{format(startDate, 'dd MMM yyyy')} → {endDate ? format(endDate, 'dd MMM yyyy') : 'TBC'}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2 md:justify-end">
-                <Users className="w-4 h-4" />
-                <span>{assignedStaff.length} staff assigned</span>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{job.name}</h1>
+            <div className="flex items-center gap-2 mt-2 text-slate-600">
+              <MapPin className="w-4 h-4 flex-shrink-0" />
+              <span className="text-sm md:text-base">{job.location}</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-slate-600 md:justify-end">
+            {startDate && (
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-4 h-4" />
+                <span>{format(startDate, 'dd MMM yyyy')} → {endDate ? format(endDate, 'dd MMM yyyy') : 'TBC'}</span>
               </div>
-              <div className="flex items-center gap-2 md:justify-end">
-                <Clock className="w-4 h-4" />
-                <span>{rotas.length} total shifts</span>
-              </div>
+            )}
+            <div className="flex items-center gap-1.5">
+              <Users className="w-4 h-4" />
+              <span>{assignedStaff.length} staff</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4" />
+              <span>{rotas.length} shifts</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* Quick info row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Job Info */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Briefcase className="w-4 h-4 text-emerald-700" />
+            <h3 className="font-semibold text-slate-900 text-sm">Job Info</h3>
+          </div>
+          <div className="space-y-2.5 text-sm">
+            <div>
+              <p className="text-[11px] text-slate-400 uppercase font-medium">Type</p>
+              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`}></span>
+                {formatJobType(job.job_type)}
+              </span>
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 uppercase font-medium">Status</p>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']}`}>
+                {statusLabels[job.status || 'planning']}
+              </span>
+            </div>
+            {job.job_reference && (
+              <div>
+                <p className="text-[11px] text-slate-400 uppercase font-medium">Reference</p>
+                <p className="text-slate-700">{job.job_reference}</p>
+              </div>
+            )}
+            {startDate && (
+              <div>
+                <p className="text-[11px] text-slate-400 uppercase font-medium">Duration</p>
+                <p className="text-slate-700">{format(startDate, 'dd MMM yyyy')} → {endDate ? format(endDate, 'dd MMM yyyy') : 'TBC'}</p>
+              </div>
+            )}
+          </div>
+        </div>
 
+        {/* Contacts */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <User className="w-4 h-4 text-emerald-700" />
+            <h3 className="font-semibold text-slate-900 text-sm">Contacts</h3>
+          </div>
+          <div className="space-y-2.5 text-sm">
+            {job.project_manager ? (
+              <div>
+                <p className="text-[11px] text-slate-400 uppercase font-medium">Project Manager</p>
+                <p className="text-slate-700">{job.project_manager}</p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-[11px] text-slate-400 uppercase font-medium">Project Manager</p>
+                <p className="text-xs text-slate-400">Not set</p>
+              </div>
+            )}
+            {(job.site_contact_name || job.site_contact_phone) ? (
+              <div>
+                <p className="text-[11px] text-slate-400 uppercase font-medium">Site Contact</p>
+                {job.site_contact_name && <p className="text-slate-700">{job.site_contact_name}</p>}
+                {job.site_contact_phone && (
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                    <Phone className="w-3 h-3" />{job.site_contact_phone}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div>
+                <p className="text-[11px] text-slate-400 uppercase font-medium">Site Contact</p>
+                <p className="text-xs text-slate-400">Not set</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Client / Contractor */}
+        {(client || contractor) ? (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <HardHat className="w-4 h-4 text-emerald-700" />
+              <h3 className="font-semibold text-slate-900 text-sm">Client</h3>
+            </div>
+            <div className="space-y-2.5 text-sm">
+              {client && (
+                <div>
+                  <p className="text-[11px] text-slate-400 uppercase font-medium">Client</p>
+                  <p className="font-semibold text-slate-900">{client.name}</p>
+                  {client.contact_phone && (
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+                      <Phone className="w-3 h-3" />{client.contact_phone}
+                    </div>
+                  )}
+                </div>
+              )}
+              {contractor && (
+                <div>
+                  <p className="text-[11px] text-slate-400 uppercase font-medium">Contractor</p>
+                  <p className="font-semibold text-slate-900">{contractor.name}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="w-4 h-4 text-emerald-700" />
+              <h3 className="font-semibold text-slate-900 text-sm">Notes</h3>
+            </div>
+            {job.notes ? (
+              <p className="text-sm text-slate-600 whitespace-pre-wrap line-clamp-4">{job.notes}</p>
+            ) : (
+              <p className="text-xs text-slate-400">No notes</p>
+            )}
+          </div>
+        )}
+
+        {/* Vehicles & Equipment */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Truck className="w-4 h-4 text-emerald-700" />
+            <h3 className="font-semibold text-slate-900 text-sm">Vehicles & Equipment</h3>
+          </div>
+          {assignedVehicles.length > 0 ? (
+            <div className="space-y-1.5">
+              {assignedVehicles.map(v => (
+                <div key={v.id} className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center flex-shrink-0">
+                    <Truck className="w-3 h-3 text-slate-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-mono font-bold text-slate-900">{v.registration_number}</p>
+                    <p className="text-[11px] text-slate-500 truncate">{v.name}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400">No vehicles assigned</p>
+          )}
+          {job.requisition_list_url && (
+            <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 mt-2.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-medium transition">
+              <FileText className="w-3 h-3" /> View Requisition
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Full notes (when client card is shown) */}
+      {job.notes && (client || contractor) && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="w-4 h-4 text-emerald-700" />
+            <h3 className="font-semibold text-slate-900 text-sm">Job Notes</h3>
+          </div>
+          <p className="text-sm text-slate-600 whitespace-pre-wrap">{job.notes}</p>
+        </div>
+      )}
+
+      {/* Main content - balanced */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main column */}
+        <div className="lg:col-span-2 space-y-6">
           {/* Assigned Staff */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
@@ -350,79 +504,26 @@ export default function JobDetail({ job, onBack }) {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-
-          {/* Job Info */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-emerald-700" />
-              <h2 className="font-semibold text-slate-900">Job Info</h2>
-            </div>
-            <div className="px-5 py-4 space-y-3">
-              <div>
-                <p className="text-xs text-slate-400 uppercase font-medium mb-1">Job Type</p>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`}></span>
-                  {formatJobType(job.job_type)}
-                </span>
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 uppercase font-medium mb-1">Status</p>
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']}`}>
-                  {statusLabels[job.status || 'planning']}
-                </span>
-              </div>
-              {job.job_reference && (
-                <div>
-                  <p className="text-xs text-slate-400 uppercase font-medium mb-1">Reference</p>
-                  <p className="text-sm text-slate-700">{job.job_reference}</p>
-                </div>
-              )}
-              {startDate && (
-                <div>
-                  <p className="text-xs text-slate-400 uppercase font-medium mb-1">Duration</p>
-                  <p className="text-sm text-slate-700">{format(startDate, 'dd MMM yyyy')}</p>
-                  <p className="text-xs text-slate-400">to {endDate ? format(endDate, 'dd MMM yyyy') : 'TBC'}</p>
-                </div>
-              )}
-              {job.project_manager && (
-                <div>
-                  <p className="text-xs text-slate-400 uppercase font-medium mb-1">Project Manager</p>
-                  <div className="flex items-center gap-1.5 text-sm text-slate-700">
-                    <User className="w-3.5 h-3.5 text-slate-400" />
-                    {job.project_manager}
-                  </div>
-                </div>
-              )}
-              {(job.site_contact_name || job.site_contact_phone) && (
-                <div>
-                  <p className="text-xs text-slate-400 uppercase font-medium mb-1">Site Contact</p>
-                  {job.site_contact_name && <p className="text-sm text-slate-700">{job.site_contact_name}</p>}
-                  {job.site_contact_phone && (
-                    <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500">
-                      <Phone className="w-3.5 h-3.5" />{job.site_contact_phone}
-                    </div>
-                  )}
-                </div>
-              )}
-              {job.notes && (
-                <div>
-                  <p className="text-xs text-slate-400 uppercase font-medium mb-1">Notes</p>
-                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{job.notes}</p>
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Job Costing & Billing */}
           <JobCostingManager job={job} totalCost={totalCost} staffCosts={staffCosts} isDrillingJob={isDrillingJob} totalMeterage={totalMeterage} />
 
+          {/* Work Log */}
           <JobWorkLog job={job} />
 
-          {/* Client Info */}
+          {/* Milestones */}
+          <MilestoneManager job={job} />
+
+          {/* Documents */}
+          <DocumentManager job={job} />
+
+          {/* Client Messages */}
+          <JobCommentsViewer job={job} />
+        </div>
+
+        {/* Side column */}
+        <div className="space-y-6">
+          {/* Client / Contractor full details */}
           {(client || contractor) && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
@@ -468,29 +569,6 @@ export default function JobDetail({ job, onBack }) {
             </div>
           )}
 
-          {/* Vehicles */}
-          {assignedVehicles.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-                <Truck className="w-5 h-5 text-emerald-700" />
-                <h2 className="font-semibold text-slate-900">Vehicles</h2>
-              </div>
-              <div className="divide-y divide-slate-100">
-                {assignedVehicles.map(v => (
-                  <div key={v.id} className="px-5 py-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                      <Truck className="w-4 h-4 text-slate-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-mono font-bold text-slate-900">{v.registration_number}</p>
-                      <p className="text-xs text-slate-500">{v.name}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Requisition */}
           {job.requisition_list_url && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -513,15 +591,6 @@ export default function JobDetail({ job, onBack }) {
               </div>
             </div>
           )}
-
-          {/* Milestones */}
-          <MilestoneManager job={job} />
-
-          {/* Documents */}
-          <DocumentManager job={job} />
-
-          {/* Client Messages */}
-          <JobCommentsViewer job={job} />
 
           {/* Client Portal */}
           <PortalLinkManager job={job} />
