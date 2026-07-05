@@ -3,7 +3,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 const DEFAULTS = [
   { alert_key: 'vehicle_maintenance', enabled: true, recipient_emails: '', days_before_warning: 30, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
   { alert_key: 'assignment_notification', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'staff_schedule', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
+  { alert_key: 'staff_schedule', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'staff_invitation', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
 ];
 
 function escapeHtml(s) {
@@ -39,6 +40,11 @@ function renderTestTemplate(alert_key, template) {
       .replace(/\{staff_name\}/g, 'John Smith')
       .replace(/\{week_start\}/g, 'Mon 6 Jul – Sun 12 Jul 2026')
       .replace(/\{assignment_count\}/g, '5');
+  }
+  if (alert_key === 'staff_invitation') {
+    return template
+      .replace(/\{staff_name\}/g, 'John Smith')
+      .replace(/\{email\}/g, 'john@example.com');
   }
   return template
     .replace(/\{staff_name\}/g, 'John Smith')
@@ -135,7 +141,7 @@ Deno.serve(async (req) => {
       if (recipients.length === 0) {
         return Response.json({ error: 'No recipients configured' }, { status: 400 });
       }
-      const defaultSubject = alert_key === 'vehicle_maintenance' ? 'Vehicle Maintenance Alert (Test)' : alert_key === 'staff_schedule' ? 'Weekly Schedule (Test)' : 'New Job Assignment (Test)';
+      const defaultSubject = alert_key === 'vehicle_maintenance' ? 'Vehicle Maintenance Alert (Test)' : alert_key === 'staff_schedule' ? 'Weekly Schedule (Test)' : alert_key === 'staff_invitation' ? 'App Invitation (Test)' : 'New Job Assignment (Test)';
       const subject = (cfg && cfg.subject) ? cfg.subject : defaultSubject;
       let text;
       if (cfg && cfg.template) {
@@ -149,6 +155,29 @@ Deno.serve(async (req) => {
         await base44.asServiceRole.integrations.Core.SendEmail({ to, subject, body: html });
       }
       return Response.json({ sent: true, recipients });
+    }
+
+    if (action === 'send_invitation') {
+      const { email, staff_name } = body;
+      if (!email) return Response.json({ error: 'email required' }, { status: 400 });
+      const existing = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'staff_invitation' });
+      const cfg = existing[0];
+      if (cfg && cfg.enabled === false) {
+        return Response.json({ error: 'Invitation email is disabled. Enable it in Email Alerts.' }, { status: 400 });
+      }
+      const name = staff_name || (email.split('@')[0] || 'there');
+      const defaultSubject = 'You are invited to GC Job Planner';
+      const subject = (cfg && cfg.subject) ? cfg.subject.replace(/\{staff_name\}/g, name).replace(/\{email\}/g, email) : defaultSubject;
+      let text;
+      if (cfg && cfg.template) {
+        text = cfg.template.replace(/\{staff_name\}/g, name).replace(/\{email\}/g, email);
+      } else {
+        const intro = (cfg && cfg.intro_message) ? cfg.intro_message + '\n\n' : '';
+        text = intro + 'Hi ' + name + ',\n\nYou have been invited to join the GC Job Planner app. Use the login link sent to your email to set up your account and start viewing your schedule and logging timesheets.\n\nGC Job Planner';
+      }
+      const html = styledHtml(text, cfg);
+      await base44.asServiceRole.integrations.Core.SendEmail({ to: email, subject, body: html });
+      return Response.json({ sent: true });
     }
 
     return Response.json({ error: 'Unknown action' }, { status: 400 });

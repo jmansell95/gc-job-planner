@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Mail, Save, Send, Loader2, Truck, UserCheck, Clock, Palette, RotateCcw, Eye, Sparkles, Type, Calendar } from 'lucide-react';
+import { Mail, Save, Send, Loader2, Truck, UserCheck, Clock, Palette, RotateCcw, Eye, Sparkles, Type, Calendar, UserPlus } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const ALERT_META = {
@@ -30,6 +30,15 @@ const ALERT_META = {
     showThreshold: false,
     showRecipients: false,
     tokens: ['{staff_name}', '{week_start}', '{assignment_count}'],
+  },
+  staff_invitation: {
+    title: 'App Invitation',
+    desc: 'Branded invitation email sent to a staff member when you give them app access.',
+    schedule: 'Sent when you invite a staff member from Staff Management',
+    icon: UserPlus,
+    showThreshold: false,
+    showRecipients: false,
+    tokens: ['{staff_name}', '{email}'],
   },
 };
 
@@ -80,6 +89,13 @@ function renderSampleBody(key, cfg) {
     }
     const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
     return intro + 'Hi John Smith, here is your schedule for the week of Mon 6 Jul – Sun 12 Jul 2026. You have 5 assignment(s).';
+  }
+  if (key === 'staff_invitation') {
+    if (cfg.template) {
+      return cfg.template.replace(/\{staff_name\}/g, 'John Smith').replace(/\{email\}/g, 'john@example.com');
+    }
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'Hi John Smith,\n\nYou have been invited to join the GC Job Planner app. Use the login link sent to your email (john@example.com) to set up your account and start viewing your schedule and logging timesheets.\n\nGC Job Planner';
   }
   const tok = { staff_name: 'John Smith', job_name: 'Sample Job', location: 'Sample Site, London', date: 'Monday, 6 July 2026', job_type: 'groundworks', notes: 'Notes: Sample note' };
   if (cfg.template) {
@@ -270,10 +286,11 @@ export default function EmailAlertsSettings() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">Email subject <span className="text-slate-400 font-normal">(optional)</span></label>
                   <input type="text" value={draft.subject || ''} onChange={(e) => updateDraft(key, 'subject', e.target.value)}
-                    placeholder={key === 'vehicle_maintenance' ? 'Vehicle Maintenance Alert' : key === 'staff_schedule' ? "John's Weekly Schedule" : 'New Job Assignment'}
+                    placeholder={key === 'vehicle_maintenance' ? 'Vehicle Maintenance Alert' : key === 'staff_schedule' ? "John's Weekly Schedule" : key === 'staff_invitation' ? "You're Invited to GC Job Planner" : 'New Job Assignment'}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
                   {key === 'assignment_notification' && <p className="text-xs text-slate-400 mt-1">Use {'{job_name}'} to insert the job name.</p>}
                   {key === 'staff_schedule' && <p className="text-xs text-slate-400 mt-1">Use {'{staff_name}'} or {'{week_start}'} in the subject.</p>}
+                  {key === 'staff_invitation' && <p className="text-xs text-slate-400 mt-1">Use {'{staff_name}'} or {'{email}'} in the subject.</p>}
                 </div>
 
                 {/* Template editor */}
@@ -295,7 +312,9 @@ export default function EmailAlertsSettings() {
                       ? `Vehicle Maintenance Report\n\n{alert_list}\n\nPlease schedule maintenance as soon as possible.\n\nGC Job Planner`
                       : key === 'staff_schedule'
                         ? `Hi {staff_name}, here is your schedule for the week of {week_start}. You have {assignment_count} assignment(s).`
-                        : `Hello {staff_name},\n\nYou have been assigned to a new job:\n\nJob: {job_name}\nLocation: {location}\nDate: {date}\nJob Type: {job_type}\n{notes}\n\nPlease check your schedule for full details.\n\nGC Job Planner`}
+                        : key === 'staff_invitation'
+                          ? `Hi {staff_name},\n\nYou have been invited to join the GC Job Planner app. Use the login link sent to {email} to set up your account and start viewing your schedule and logging timesheets.\n\nGC Job Planner`
+                          : `Hello {staff_name},\n\nYou have been assigned to a new job:\n\nJob: {job_name}\nLocation: {location}\nDate: {date}\nJob Type: {job_type}\n{notes}\n\nPlease check your schedule for full details.\n\nGC Job Planner`}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 font-mono" />
                   <p className="text-xs text-slate-400 mt-1">Click a token to insert it. Leave blank to use the default template.</p>
                 </div>

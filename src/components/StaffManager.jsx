@@ -111,6 +111,9 @@ export default function StaffManager() {
     try {
       await base44.users.inviteUser(member.email, 'user');
       await base44.entities.Staff.update(member.id, { invite_sent: true });
+      try {
+        await base44.functions.invoke('manageEmailAlerts', { action: 'send_invitation', email: member.email, staff_name: member.name });
+      } catch (e) { /* branded invite email is non-fatal */ }
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       toast({ title: 'Invite sent', description: member.email });
