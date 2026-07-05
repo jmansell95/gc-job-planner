@@ -56,10 +56,11 @@ export default function StaffManager() {
         await base44.entities.Staff.update(editingId, payload);
         toast({ title: 'Staff member updated' });
       } else {
-        await base44.entities.Staff.create(payload);
+        const created = await base44.entities.Staff.create(payload);
         if (inviteOnCreate && formData.email) {
           try {
             await base44.users.inviteUser(formData.email, 'user');
+            await base44.entities.Staff.update(created.id, { invite_sent: true });
             toast({ title: 'Staff added', description: `Invite sent to ${formData.email}` });
           } catch (err) {
             toast({ title: 'Staff added', description: 'App invite could not be sent — use the "Send app invite" button on the card.', variant: 'destructive' });
@@ -105,7 +106,9 @@ export default function StaffManager() {
     setInviteLoading(member.id);
     try {
       await base44.users.inviteUser(member.email, 'user');
+      await base44.entities.Staff.update(member.id, { invite_sent: true });
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
       toast({ title: 'Invite sent', description: member.email });
     } catch (error) {
       toast({ title: 'Could not send invite', description: error?.message || 'User may already have an account', variant: 'destructive' });
@@ -142,7 +145,8 @@ export default function StaffManager() {
   };
 
   const activeCount = staff.filter(s => getUserForStaff(s)).length;
-  const pendingCount = staff.length - activeCount;
+  const awaitingCount = staff.filter(s => !getUserForStaff(s) && s.invite_sent).length;
+  const pendingCount = staff.filter(s => !getUserForStaff(s) && !s.invite_sent).length;
 
   return (
     <div>
@@ -157,7 +161,7 @@ export default function StaffManager() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
           <p className="text-xs text-slate-500 font-medium">Total Staff</p>
           <p className="text-2xl font-bold text-slate-900 mt-1">{staff.length}</p>
@@ -165,6 +169,10 @@ export default function StaffManager() {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
           <p className="text-xs text-slate-500 font-medium">App Access</p>
           <p className="text-2xl font-bold text-emerald-700 mt-1">{activeCount}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <p className="text-xs text-slate-500 font-medium">Awaiting Confirmation</p>
+          <p className="text-2xl font-bold text-blue-600 mt-1">{awaitingCount}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
           <p className="text-xs text-slate-500 font-medium">Needs Invite</p>
@@ -298,6 +306,10 @@ export default function StaffManager() {
                         <option value="admin">admin</option>
                       </select>
                     </>
+                  ) : member.invite_sent ? (
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium border border-blue-200">
+                      <Mail className="w-3 h-3" /> Awaiting Confirmation
+                    </span>
                   ) : (
                     <button onClick={() => handleInvite(member)} disabled={inviteLoading === member.id}
                       className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-medium border border-amber-200 hover:bg-amber-100 transition disabled:opacity-50">

@@ -63,6 +63,11 @@
     "manager_id": {
       "type": "string",
       "description": "Staff member who approves this person's timesheets"
+    },
+    "invite_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether an app invite email has been sent to this staff member"
     }
   },
   "required": [
