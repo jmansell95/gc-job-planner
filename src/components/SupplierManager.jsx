@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Package, Plus, Edit2, Trash2, Check, X, Mail, Phone, User, Search } from 'lucide-react';
+import PageHeader from '@/components/PageHeader';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
@@ -48,12 +49,9 @@ export default function SupplierManager() {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">Suppliers</h2>
-          <p className="text-xs text-slate-500">Hire companies & equipment suppliers used on jobs</p>
-        </div>
-        <button onClick={startAdd} className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <PageHeader title="Suppliers" icon={Package} />
+        <button onClick={startAdd} className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition self-start sm:self-auto">
           <Plus className="w-4 h-4" /> Add Supplier
         </button>
       </div>
