@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee } from 'lucide-react';
+import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
 const TASK_SUGGESTIONS = [
@@ -71,7 +71,7 @@ export default function DailyTaskLog({ staffId }) {
 
   const addTask = async (e) => {
     e.preventDefault();
-    if (!startTime || !endTime || durMins <= 0) return;
+    if (!startTime || !endTime || durMins <= 0 || overlapEntry) return;
     if (!isLunch && (!jobId || !task.trim())) return;
     setAdding(true);
     try {
@@ -122,6 +122,14 @@ export default function DailyTaskLog({ staffId }) {
   };
 
   const durInvalid = startTime && endTime && durMins <= 0;
+  const overlapEntry = startTime && endTime && durMins > 0
+    ? entries.find(t => {
+        const es = toMins(t.start_time), ee = toMins(t.end_time);
+        if (es == null || ee == null) return false;
+        const ns = toMins(startTime), ne = toMins(endTime);
+        return ns < ee && es < ne;
+      })
+    : null;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -206,6 +214,11 @@ export default function DailyTaskLog({ staffId }) {
                 {durMins > 0 && <span className="text-xs text-slate-500">= <b className="text-slate-700">{fmtDur(durMins)}</b></span>}
               </div>
               {durInvalid && <p className="text-[11px] text-red-500 mt-1">Finish time must be after the start time.</p>}
+              {overlapEntry && (
+                <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 flex-shrink-0" /> Overlaps with another task ({overlapEntry.start_time}–{overlapEntry.end_time}). Pick a different time.
+                </p>
+              )}
             </div>
             {isDriller && !isLunch && (
               <div>
@@ -221,7 +234,7 @@ export default function DailyTaskLog({ staffId }) {
                 placeholder="Anything else worth noting"
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
             </div>
-            <button type="submit" disabled={adding || !startTime || !endTime || durMins <= 0 || (!isLunch && (!jobId || !task.trim()))}
+            <button type="submit" disabled={adding || !startTime || !endTime || durMins <= 0 || !!overlapEntry || (!isLunch && (!jobId || !task.trim()))}
               className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl hover:opacity-90 active:scale-95 transition text-sm font-semibold disabled:opacity-50 touch-manipulation ${isLunch ? 'bg-amber-500' : 'bg-emerald-700'}`}>
               <Plus className="w-4 h-4" /> {adding ? 'Adding…' : isLunch ? 'Add Lunch Break' : 'Add Task'}
             </button>
