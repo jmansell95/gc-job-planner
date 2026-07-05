@@ -5,8 +5,7 @@ import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDay
 import { format, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
-import QuickTaskLog from '@/components/QuickTaskLog';
-import DailyTimeTracker from '@/components/DailyTimeTracker';
+import DailyTaskLog from '@/components/DailyTaskLog';
 import StaffTimesheets from '@/components/StaffTimesheets';
 import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
 import { formatJobType } from '@/utils/format';
@@ -339,12 +338,6 @@ export default function StaffDashboard() {
             </div>
           )}
 
-          {/* Quick Task Log */}
-          {job && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <QuickTaskLog jobId={job.id} jobType={job.job_type} staffId={staff.id} date={assignment.assigned_date} />
-            </div>
-          )}
         </div>
       </motion.div>
     );
@@ -402,9 +395,9 @@ export default function StaffDashboard() {
           </div>
         )}
 
-        {/* Daily Time Tracker */}
+        {/* Daily Task Log */}
         <div className="mb-8">
-          <DailyTimeTracker staffId={staff.id} />
+          <DailyTaskLog staffId={staff.id} />
         </div>
 
         {/* Manager: Timesheet Approvals */}
