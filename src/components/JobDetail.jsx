@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, MapPin, Calendar, Users, Truck, FileText, Briefcase,
-  Clock, Eye, Download, User, HardHat, Phone, Mail, Tag
+  Clock, Eye, Download, User, HardHat, Phone, Mail, Tag, Edit2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
+import JobForm from '@/components/JobForm';
 import PortalLinkManager from '@/components/PortalLinkManager';
 import PortalSectionManager from '@/components/PortalSectionManager';
 import DocumentManager from '@/components/DocumentManager';
@@ -51,8 +52,42 @@ const statusLabels = {
   planning: 'Planning', in_progress: 'In Progress', completed: 'Completed', on_hold: 'On Hold',
 };
 
-export default function JobDetail({ job, onBack }) {
+export default function JobDetail({ job: initialJob, onBack }) {
+  const [job, setJob] = useState(initialJob);
   const colors = jobTypeColors[job.job_type] || jobTypeColors.depot;
+  const queryClient = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({});
+  const [editingId, setEditingId] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+
+  const handleEdit = () => {
+    setFormData({ ...job });
+    setEditingId(job.id);
+    setShowForm(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await base44.entities.Job.update(editingId, formData);
+      setJob(prev => ({ ...prev, ...formData }));
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      setShowForm(false);
+      setEditingId(null);
+    } catch (err) { console.error('Error saving job:', err); }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingFile(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData(prev => ({ ...prev, requisition_list_url: file_url, requisition_list_name: file.name }));
+    } catch (err) { console.error('Error uploading file:', err); }
+    setUploadingFile(false);
+  };
 
   const buildJobPrintHtml = () => {
     const staffRows = assignedStaff.map(s => {
@@ -203,6 +238,19 @@ export default function JobDetail({ job, onBack }) {
   const startDate = job.start_date ? new Date(job.start_date + 'T00:00:00') : null;
   const endDate = job.end_date ? new Date(job.end_date + 'T00:00:00') : null;
 
+  if (showForm) {
+    return (
+      <div>
+        <div className="mb-5">
+          <button onClick={() => setShowForm(false)} className="flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-900 font-medium transition">
+            <ArrowLeft className="w-4 h-4" /> Back to Job
+          </button>
+        </div>
+        <JobForm formData={formData} setFormData={setFormData} onSubmit={handleSubmit} onCancel={() => setShowForm(false)} editingId={editingId} clients={clients} contractors={contractors} onFileUpload={handleFileUpload} uploadingFile={uploadingFile} />
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Top bar */}
@@ -211,7 +259,12 @@ export default function JobDetail({ job, onBack }) {
           <ArrowLeft className="w-4 h-4" />
           Back to Jobs
         </button>
-        <PrintReportButton buildHtml={buildJobPrintHtml} label="Print Report" />
+        <div className="flex items-center gap-2">
+          <button onClick={handleEdit} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
+            <Edit2 className="w-4 h-4" /> Edit Job
+          </button>
+          <PrintReportButton buildHtml={buildJobPrintHtml} label="Print Report" />
+        </div>
       </div>
 
       {/* Hero header */}
