@@ -45,6 +45,7 @@ export default function WeeklyRotaBuilder() {
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
   const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
+  const { data: recurring = [] } = useQuery({ queryKey: ['recurring-absences'], queryFn: () => base44.entities.RecurringAbsence.list() });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
 
   const { data: rotas = [] } = useQuery({
@@ -79,8 +80,13 @@ export default function WeeklyRotaBuilder() {
     }
   });
 
-  const isOnLeave = (staffId, dateStr) => {
-    return absences.some(a => a.staff_id === staffId && a.status === 'approved' && a.start_date <= dateStr && a.end_date >= dateStr);
+  const leaveState = (staffId, dateStr) => {
+    const dow = new Date(dateStr + 'T00:00:00').getDay();
+    const rec = recurring.find(r => r.staff_id === staffId && r.is_active !== false && Array.isArray(r.days_of_week) && r.days_of_week.includes(dow));
+    if (rec) return { recurring: true, label: rec.label || 'Day Off' };
+    const leave = absences.some(a => a.staff_id === staffId && a.status === 'approved' && a.start_date <= dateStr && a.end_date >= dateStr);
+    if (leave) return { recurring: false, label: 'On Leave' };
+    return null;
   };
 
   const handleCellClick = (staffId, dateStr) => {
@@ -425,14 +431,17 @@ export default function WeeklyRotaBuilder() {
                     const dayStr = format(day, 'yyyy-MM-dd');
                     const dayAssignments = rotasByStaff[member.id]?.[dayIdx] || [];
                     const isToday = dayStr === todayStr;
+                    const ls = leaveState(member.id, dayStr);
                     return (
-                      <td key={`${member.id}-${dayIdx}`} className={`px-2 py-2 align-top min-w-[130px] ${isToday ? 'bg-emerald-50/40' : ''} ${isOnLeave(member.id, dayStr) ? 'bg-red-50/60' : ''} group/cell`}>
+                      <td key={`${member.id}-${dayIdx}`} className={`px-2 py-2 align-top min-w-[130px] ${isToday ? 'bg-emerald-50/40' : ''} ${ls ? (ls.recurring ? 'bg-slate-100/70' : 'bg-red-50/60') : ''} group/cell`}>
                         <Droppable droppableId={`${member.id}|${dayStr}`}>
                           {(provided, snapshot) => (
                             <div ref={provided.innerRef} {...provided.droppableProps}
                               className={`space-y-1.5 min-h-[44px] rounded-lg transition ${snapshot.isDraggingOver ? 'bg-emerald-50/70 ring-2 ring-emerald-300/60' : ''}`}>
-                              {isOnLeave(member.id, dayStr) && (
-                                <div className="px-2 py-1 bg-red-100 text-red-600 rounded text-[10px] font-bold text-center">ON LEAVE</div>
+                              {ls && (
+                                <div className={`px-2 py-1 rounded text-[10px] font-bold text-center ${ls.recurring ? 'bg-slate-200 text-slate-600' : 'bg-red-100 text-red-600'}`}>
+                                  {ls.recurring ? (ls.label || 'DAY OFF').toUpperCase() : 'ON LEAVE'}
+                                </div>
                               )}
                               {dayAssignments.map((assignment, aIdx) => (
                                 <Draggable draggableId={assignment.id} index={aIdx} key={assignment.id}>

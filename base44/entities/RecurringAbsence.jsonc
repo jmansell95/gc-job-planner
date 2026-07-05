@@ -1,0 +1,46 @@
+{
+  "name": "RecurringAbsence",
+  "type": "object",
+  "properties": {
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member"
+    },
+    "days_of_week": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "Days of week this staff is regularly off (0 = Sunday \u2026 6 = Saturday)"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "weekend",
+        "holiday",
+        "personal",
+        "training",
+        "other"
+      ],
+      "default": "weekend",
+      "description": "Reason / category for the recurring day off"
+    },
+    "label": {
+      "type": "string",
+      "description": "Short label e.g. Weekends, Regular Day Off"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this recurring day off is currently active"
+    }
+  },
+  "required": [
+    "staff_id",
+    "days_of_week"
+  ]
+}
