@@ -8,6 +8,7 @@ import { JobStatusChart, StaffUtilizationChart, JobTypeBreakdownChart } from '@/
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
 import JobCostAnalytics from '@/components/JobCostAnalytics';
 import { formatJobType } from '@/utils/format';
+import NeedsAttentionPanel from '@/components/NeedsAttentionPanel';
 
 const jobTypeBadge = {
   groundworks: 'bg-green-100 text-green-700 ring-1 ring-green-200',
@@ -117,6 +118,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           );
         })}
       </div>
+
+      {/* Needs Attention */}
+      <NeedsAttentionPanel onNavigate={onNavigate} />
 
       {/* Today's Field Crew */}
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.35 }}
