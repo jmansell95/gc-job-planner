@@ -1,0 +1,17 @@
+{
+  "name": "AppSetting",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Setting key (e.g. 'global')"
+    },
+    "app_base_url": {
+      "type": "string",
+      "description": "Public base URL of the app, used to build links inside automated email alerts"
+    }
+  },
+  "required": [
+    "key"
+  ]
+}

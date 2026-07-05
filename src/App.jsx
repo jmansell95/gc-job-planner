@@ -12,6 +12,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import ClientPortal from './pages/ClientPortal';
 import { StaffAssistantProvider } from '@/components/StaffAssistantChat';
+import AppBaseUrlSync from '@/components/AppBaseUrlSync';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -41,6 +42,7 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <StaffAssistantProvider>
+      <AppBaseUrlSync />
       <Routes>
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/" element={<Home />} />
