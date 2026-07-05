@@ -183,43 +183,33 @@ export default function StaffTimesheets({ staffId, staffName }) {
     const cost = ot.cost != null ? ot.cost : (mins / 60) * hourlyRate;
     const isOT = ot.isOvertime;
     return (
-      <div key={t.id} className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-medium text-sm text-slate-900 truncate">{t.is_break ? 'Break' : (job?.name || 'Unknown job')}</p>
-              {t.is_break ? (
-                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700 flex-shrink-0">
-                  <Coffee className="w-2.5 h-2.5" /> Break
-                </span>
-              ) : (
-                <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${status.badge} flex-shrink-0`}>
-                  <StatusIcon className="w-2.5 h-2.5" /> {status.label}
-                </span>
-              )}
-            </div>
-            {t.task_description && !t.is_break && <p className="text-sm text-slate-700 mt-1">{t.task_description}</p>}
-            <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
-              <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{fmtDur(mins)}</span>
-              {isOT && <span className="inline-flex items-center gap-1 text-amber-600 font-medium"><TrendingUp className="w-3 h-3" />OT {fmtDur(ot.otMins)} ×{ot.multiplier}</span>}
-              {t.notes && <span className="truncate">· {t.notes}</span>}
-            </div>
+      <div key={t.id} className="p-3 bg-white rounded-xl border border-slate-100 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center flex-shrink-0">
+          {t.is_break ? <Coffee className="w-4 h-4 text-amber-600" /> : <Clock className="w-4 h-4 text-emerald-600" />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-medium text-sm text-slate-900 truncate">{t.is_break ? 'Break' : (job?.name || 'Unknown job')}</p>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${t.is_break ? 'bg-amber-100 text-amber-700' : status.badge}`}>{t.is_break ? 'Break' : status.label}</span>
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {t.status === 'draft' && (
-              <>
-                <button onClick={() => handleSubmitDraft(t.id)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="Submit now"><Send className="w-4 h-4" /></button>
-                <button onClick={() => startEdit(t)} className="p-1.5 text-slate-500 hover:bg-slate-200 rounded-lg transition" title="Edit"><Edit2 className="w-4 h-4" /></button>
-                <button onClick={() => handleDeleteDraft(t.id)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition" title="Delete draft"><Trash2 className="w-4 h-4" /></button>
-              </>
-            )}
-            {t.status === 'submitted' && (
-              <button onClick={() => openWithdraw(t)} className="inline-flex items-center gap-1 text-[11px] px-2 py-1 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition font-medium" title="Withdraw with reason">
-                <RotateCcw className="w-3 h-3" /> Withdraw
-              </button>
-            )}
+          {t.task_description && !t.is_break && <p className="text-xs text-slate-500 truncate mt-0.5">{t.task_description}</p>}
+          <div className="flex items-center gap-2 mt-1 text-xs flex-wrap">
+            <span className="font-semibold text-slate-700">{fmtDur(mins)}</span>
+            {isOT && <span className="text-amber-600 font-medium">OT ×{ot.multiplier}</span>}
           </div>
         </div>
+        {t.status === 'draft' && (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button onClick={() => handleSubmitDraft(t.id)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="Submit now"><Send className="w-4 h-4" /></button>
+            <button onClick={() => startEdit(t)} className="p-1.5 text-slate-500 hover:bg-slate-200 rounded-lg transition" title="Edit"><Edit2 className="w-4 h-4" /></button>
+            <button onClick={() => handleDeleteDraft(t.id)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition" title="Delete draft"><Trash2 className="w-4 h-4" /></button>
+          </div>
+        )}
+        {t.status === 'submitted' && (
+          <button onClick={() => openWithdraw(t)} className="inline-flex items-center gap-1 text-[11px] px-2 py-1 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition font-medium flex-shrink-0" title="Withdraw with reason">
+            <RotateCcw className="w-3 h-3" /> Withdraw
+          </button>
+        )}
       </div>
     );
   };
