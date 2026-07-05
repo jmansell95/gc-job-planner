@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Users, Truck, HardHat, Building2, ChevronRight, CalendarX, Mail, PoundSterling, Package, Timer } from 'lucide-react';
+import { Settings, Users, Truck, HardHat, Building2, ChevronRight, CalendarX, Mail, PoundSterling, Package, Timer, Zap } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import StaffManager from '@/components/StaffManager';
 import VehicleManager from '@/components/VehicleManager';
@@ -10,6 +10,7 @@ import EmailAlertsSettings from '@/components/EmailAlertsSettings';
 import CostSettings from '@/components/CostSettings';
 import SupplierManager from '@/components/SupplierManager';
 import OvertimeRatesManager from '@/components/OvertimeRatesManager';
+import AutomationCenter from '@/components/AutomationCenter';
 
 const tabs = [
   { id: 'staff', label: 'Staff', icon: Users },
@@ -21,6 +22,7 @@ const tabs = [
   { id: 'costs', label: 'Costs', icon: PoundSterling },
   { id: 'overtime', label: 'Overtime', icon: Timer },
   { id: 'email-alerts', label: 'Email Alerts', icon: Mail },
+  { id: 'automations', label: 'Automations', icon: Zap },
 ];
 
 export default function SettingsPage() {
@@ -60,6 +62,7 @@ export default function SettingsPage() {
       {activeTab === 'costs' && <CostSettings />}
       {activeTab === 'overtime' && <OvertimeRatesManager />}
       {activeTab === 'email-alerts' && <EmailAlertsSettings />}
+      {activeTab === 'automations' && <AutomationCenter />}
     </div>
   );
 }

@@ -1,0 +1,57 @@
+{
+  "name": "AutomationControl",
+  "type": "object",
+  "properties": {
+    "automation_key": {
+      "type": "string",
+      "description": "Unique key identifying the automation"
+    },
+    "label": {
+      "type": "string",
+      "description": "Display name shown in settings"
+    },
+    "description": {
+      "type": "string",
+      "description": "What this automation does"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "entity"
+      ],
+      "description": "Trigger type"
+    },
+    "trigger_label": {
+      "type": "string",
+      "description": "Human-readable trigger e.g. On new job, Daily 05:00"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Master on/off toggle"
+    },
+    "managed_via": {
+      "type": "string",
+      "enum": [
+        "automation_control",
+        "email_alert"
+      ],
+      "default": "automation_control",
+      "description": "Where the toggle state is stored"
+    },
+    "last_run_at": {
+      "type": "string",
+      "description": "ISO timestamp of last successful execution"
+    },
+    "last_run_status": {
+      "type": "string",
+      "description": "success or error"
+    }
+  },
+  "required": [
+    "automation_key",
+    "label",
+    "enabled"
+  ]
+}

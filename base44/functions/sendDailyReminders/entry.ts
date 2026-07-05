@@ -4,6 +4,12 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    const ctrl = await base44.asServiceRole.entities.AutomationControl.filter({ automation_key: 'daily_reminders' });
+    const ac = ctrl[0];
+    if (ac && ac.enabled === false) {
+      return Response.json({ skipped: true, reason: 'Automation disabled' });
+    }
+
     const staff = await base44.asServiceRole.entities.Staff.list();
     const jobs = await base44.asServiceRole.entities.Job.list();
     const vehicles = await base44.asServiceRole.entities.Vehicle.list();
@@ -50,6 +56,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (ac) { try { await base44.asServiceRole.entities.AutomationControl.update(ac.id, { last_run_at: new Date().toISOString(), last_run_status: 'success' }); } catch (e) {} }
     return Response.json({ sent: true, date: todayStr, notified, totalAssignments: todaysRotas.length, skipped });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
