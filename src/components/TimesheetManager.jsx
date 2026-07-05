@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, CheckCircle2, XCircle, Ruler, PoundSterling, TrendingUp, Users, Search, CalendarDays, FileText, RotateCcw, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
+import WithdrawnTimesheetsPanel from '@/components/WithdrawnTimesheetsPanel';
 import TodayTimeBoard from '@/components/TodayTimeBoard';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/StateViews';
 import { computeStaffOvertime, buildRateMap } from '@/utils/overtime';
@@ -151,6 +152,8 @@ export default function TimesheetManager() {
           <StatBox icon={Ruler} label="Approved Meterage" value={`${approvedMeterage}m`} accent="bg-purple-100 text-purple-700" />
         )}
       </div>
+
+      <WithdrawnTimesheetsPanel timesheets={timesheets} staff={staff} jobs={jobs} />
 
       {/* Per-staff summary */}
       {staffSummary.length > 0 && (
