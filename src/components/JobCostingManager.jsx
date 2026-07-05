@@ -300,9 +300,9 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                 {(form.category === 'hired_equipment' || form.category === 'purchased_equipment') && (
                   <div>
                     <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
-                      <Package className="w-3 h-3 text-emerald-700" /> PO Number{form.category === 'purchased_equipment' ? ' *' : ''}
+                      <Package className="w-3 h-3 text-emerald-700" /> PO Number *
                     </label>
-                    <input value={form.po_number} onChange={(e) => setForm({ ...form, po_number: e.target.value })} required={form.category === 'purchased_equipment'} placeholder="e.g. PO-1042" className={`${inputCls} font-mono`} />
+                    <input value={form.po_number} onChange={(e) => setForm({ ...form, po_number: e.target.value })} required placeholder="e.g. PO-1042" className={`${inputCls} font-mono`} />
                   </div>
                 )}
                 <div>
