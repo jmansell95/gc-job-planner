@@ -9,7 +9,7 @@ import SettingsPage from '@/components/SettingsPage';
 import JobDetail from '@/components/JobDetail';
 import TimesheetManager from '@/components/TimesheetManager';
 import CalendarView from '@/components/CalendarView';
-import HeaderInsights from '@/components/HeaderInsights';
+import WeeklyInsightsPage from '@/components/WeeklyInsightsPage';
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -20,7 +20,6 @@ export default function AdminDashboard() {
       <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} />
       <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top))] pb-16 lg:pt-0 lg:pb-0">
         <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-          <HeaderInsights />
           <motion.div
             key={activeSection}
             initial={{ opacity: 0, y: 8 }}
@@ -41,6 +40,7 @@ export default function AdminDashboard() {
             {activeSection === 'timesheets' && <TimesheetManager />}
             {activeSection === 'calendar' && <CalendarView />}
             {activeSection === 'teams' && <TeamManager />}
+            {activeSection === 'insights' && <WeeklyInsightsPage />}
             {activeSection === 'settings' && <SettingsPage />}
           </motion.div>
         </div>
