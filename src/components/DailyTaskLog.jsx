@@ -37,6 +37,7 @@ export default function DailyTaskLog({ staffId }) {
   const [isOvertime, setIsOvertime] = useState(false);
   const [adding, setAdding] = useState(false);
   const [submittingDay, setSubmittingDay] = useState(false);
+  const [fixingGapId, setFixingGapId] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: assignments = [] } = useQuery({ queryKey: ['staff-assignments', staffId], queryFn: () => base44.entities.RotaAssignment.filter({ staff_id: staffId }), enabled: !!staffId });
@@ -98,6 +99,32 @@ export default function DailyTaskLog({ staffId }) {
     invalidateAll();
   };
 
+  const extendToFillGap = async (g) => {
+    setFixingGapId(g.prev.id);
+    try {
+      const newDur = calcDur(g.prev.start_time, g.to);
+      await base44.entities.Timesheet.update(g.prev.id, {
+        end_time: g.to,
+        task_duration_minutes: newDur,
+        total_hours: Math.round((newDur / 60) * 100) / 100,
+      });
+      invalidateAll();
+    } catch (err) { console.error(err); }
+    setFixingGapId(null);
+  };
+
+  const prefillGapTask = (g) => {
+    setStartTime(g.from);
+    setEndTime(g.to);
+    setIsLunch(false);
+    setIsOvertime(false);
+    setTask('');
+    setNotes('');
+    setMeterage('');
+    setJobId(assignedJobs.length === 1 ? assignedJobs[0].id : '');
+    document.getElementById('daily-task-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const submitDay = async () => {
     const drafts = todayEntries.filter(t => t.status === 'draft');
     if (drafts.length === 0 || !dayComplete) return;
@@ -140,15 +167,15 @@ export default function DailyTaskLog({ staffId }) {
   const nonOTTotal = nonOTEntries.reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
   const breakTotal = entries.filter(t => t.is_break).reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
   const sortedAll = [...entries].sort((a, b) => (toMins(a.start_time) ?? 0) - (toMins(b.start_time) ?? 0));
-  let gap = null;
+  const gaps = [];
   for (let i = 1; i < sortedAll.length; i++) {
     const prevEnd = toMins(sortedAll[i - 1].end_time);
     const curStart = toMins(sortedAll[i].start_time);
     if (prevEnd != null && curStart != null && curStart !== prevEnd) {
-      gap = { from: sortedAll[i - 1].end_time, to: sortedAll[i].start_time };
-      break;
+      gaps.push({ from: sortedAll[i - 1].end_time, to: sortedAll[i].start_time, prev: sortedAll[i - 1], next: sortedAll[i] });
     }
   }
+  const gap = gaps[0] || null;
   const otMins = totalMins - nonOTTotal;
   const dayComplete = entries.length > 0 && !gap && nonOTTotal === TARGET_MINS && breakTotal === BREAK_MINS;
   const checks = [
@@ -194,7 +221,7 @@ export default function DailyTaskLog({ staffId }) {
             You can only log time for jobs you've been assigned to. Ask your manager to assign you to a job first.
           </p>
         ) : (
-          <form onSubmit={addTask} className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
+          <form id="daily-task-form" onSubmit={addTask} className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
             {!isLunch && (
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Job *</label>
@@ -328,6 +355,39 @@ export default function DailyTaskLog({ staffId }) {
               <FileText className="w-5 h-5 text-slate-300" />
             </div>
             <p className="text-sm text-slate-400">No tasks logged yet. Add your first task above.</p>
+          </div>
+        )}
+
+        {/* Gap fixes */}
+        {gaps.length > 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 space-y-2.5">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <p className="text-xs font-semibold text-amber-800">Fix the gap{gaps.length > 1 ? 's' : ''} before submitting</p>
+            </div>
+            {gaps.map((g, idx) => {
+              const gapMins = (toMins(g.to) ?? 0) - (toMins(g.from) ?? 0);
+              const canExtend = g.prev.status === 'draft';
+              return (
+                <div key={idx} className="bg-white rounded-lg border border-amber-200 p-2.5">
+                  <p className="text-xs text-amber-800 mb-2">
+                    <b>{g.from}–{g.to}</b> <span className="text-amber-600">({fmtDur(gapMins)} uncovered)</span>
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button type="button" onClick={() => prefillGapTask(g)}
+                      className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 active:scale-95 transition font-semibold">
+                      <Plus className="w-3 h-3" /> Add task in gap
+                    </button>
+                    {canExtend && (
+                      <button type="button" onClick={() => extendToFillGap(g)} disabled={fixingGapId === g.prev.id}
+                        className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1.5 bg-white border border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 active:scale-95 transition font-semibold disabled:opacity-50">
+                        {fixingGapId === g.prev.id ? 'Extending…' : `Extend "${(g.prev.task_description || 'task').slice(0, 18)}" to ${g.to}`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
