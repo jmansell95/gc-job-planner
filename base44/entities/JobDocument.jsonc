@@ -29,6 +29,18 @@
     "uploaded_by_name": {
       "type": "string",
       "description": "Who uploaded this document"
+    },
+    "linked_cost_item_id": {
+      "type": "string",
+      "description": "Linked equipment/cost item for tracking delivery & collection"
+    },
+    "delivery_notes": {
+      "type": "string",
+      "description": "Notes for equipment delivery (address, contact, timing)"
+    },
+    "collection_notes": {
+      "type": "string",
+      "description": "Notes for equipment collection (date, contact, return condition)"
     }
   },
   "required": [
