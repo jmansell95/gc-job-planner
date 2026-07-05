@@ -53,6 +53,10 @@ export default function StaffManager() {
     try {
       const payload = cleanPayload(formData);
       if (editingId) {
+        const original = staff.find(s => s.id === editingId);
+        if (original && original.email && original.email.toLowerCase() !== (formData.email || '').toLowerCase()) {
+          payload.invite_sent = false;
+        }
         await base44.entities.Staff.update(editingId, payload);
         toast({ title: 'Staff member updated' });
       } else {
