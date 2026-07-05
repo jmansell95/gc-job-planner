@@ -85,17 +85,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                 <p className="text-emerald-100 text-sm mt-0.5">Week of {format(weekStart, 'dd MMM yyyy')}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/15 text-xs font-medium backdrop-blur-sm">
-                <Briefcase className="w-3.5 h-3.5" /> {activeJobs.length} Active
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/15 text-xs font-medium backdrop-blur-sm">
-                <Users className="w-3.5 h-3.5" /> {staffToday} Today
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 ring-1 ring-white/15 text-xs font-medium backdrop-blur-sm">
-                <Truck className="w-3.5 h-3.5" /> {vehicles.length} Vehicles
-              </span>
-            </div>
           </div>
         </div>
       </motion.div>
