@@ -7,6 +7,7 @@ import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import TimesheetEntry from '@/components/TimesheetEntry';
 import StaffTimesheets from '@/components/StaffTimesheets';
+import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
 import { formatJobType } from '@/utils/format';
 import { useStaffAssistant } from '@/components/StaffAssistantChat';
 import { motion } from 'framer-motion';
@@ -377,6 +378,9 @@ export default function StaffDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Manager: Timesheet Approvals */}
+        <ManagerTimesheetApprovals staffId={staff.id} />
 
         {/* Today's Assignment Highlight */}
         {todaysAssignments.length > 0 && (

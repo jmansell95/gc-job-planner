@@ -20,7 +20,7 @@ export default function StaffManager() {
   const [editingId, setEditingId] = useState(null);
   const [inviteLoading, setInviteLoading] = useState(null);
   const [inviteOnCreate, setInviteOnCreate] = useState(true);
-  const [formData, setFormData] = useState({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '' });
 
   const queryClient = useQueryClient();
 
@@ -47,7 +47,7 @@ export default function StaffManager() {
       }
     }
     queryClient.invalidateQueries({ queryKey: ['staff'] });
-    setFormData({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '' });
+    setFormData({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '' });
     setShowForm(false);
     setEditingId(null);
   };
@@ -203,6 +203,14 @@ export default function StaffManager() {
               <input type="number" min="0" step="0.01" value={formData.meterage_rate || ''} onChange={e => setFormData({ ...formData, meterage_rate: e.target.value ? parseFloat(e.target.value) : '' })}
                 placeholder="0.00" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
             </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Timesheet Manager</label>
+              <select value={formData.manager_id || ''} onChange={e => setFormData({ ...formData, manager_id: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
+                <option value="">None (Admin approves)</option>
+                {staff.filter(s => s.id !== editingId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
           </div>
 
           {!editingId && (
@@ -282,6 +290,10 @@ export default function StaffManager() {
                     {member.day_rate && member.meterage_rate && <span> · </span>}
                     {member.meterage_rate && <span>£{member.meterage_rate}/m</span>}
                   </div>
+                )}
+
+                {member.manager_id && staff.find(s => s.id === member.manager_id) && (
+                  <div className="text-xs text-slate-400 mb-3">Approves to: <span className="text-slate-600 font-medium">{staff.find(s => s.id === member.manager_id).name}</span></div>
                 )}
 
                 <div className="flex gap-1 justify-end mt-auto">

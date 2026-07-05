@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Timer, Save, Check, Info, TrendingUp } from 'lucide-react';
+import { Timer, Save, Check, Info, TrendingUp, Clock, PoundSterling, Users } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import { DAY_LABELS } from '@/utils/overtime';
+import { DAY_LABELS, buildRateMap, computeStaffOvertime } from '@/utils/overtime';
 
 export default function OvertimeRatesManager() {
   const queryClient = useQueryClient();
@@ -12,6 +12,8 @@ export default function OvertimeRatesManager() {
     queryKey: ['overtime-setting'],
     queryFn: async () => { const l = await base44.entities.OvertimeSetting.list(); return l[0] || null; }
   });
+  const { data: timesheets = [] } = useQuery({ queryKey: ['all-timesheets-ot-stats'], queryFn: () => base44.entities.Timesheet.list('-created_date', 500) });
+  const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
 
   const [multipliers, setMultipliers] = useState([2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.5]);
   const [threshold, setThreshold] = useState(40);
@@ -30,6 +32,31 @@ export default function OvertimeRatesManager() {
 
   const existingByDay = {};
   rates.forEach(r => { existingByDay[r.day_of_week] = r; });
+
+  // Overtime totals across approved timesheets
+  const approvedTs = timesheets.filter(t => t.status === 'approved');
+  const savedRateMap = buildRateMap(rates);
+  const savedThreshold = setting?.weekly_threshold_hours ?? 40;
+  const perPerson = staff.map(s => {
+    const entries = approvedTs.filter(t => t.staff_id === s.id);
+    if (entries.length === 0) return null;
+    const hourlyRate = s.day_rate ? s.day_rate / 8 : 0;
+    const bd = computeStaffOvertime(entries, savedRateMap, savedThreshold, hourlyRate);
+    let stdMins = 0, otMins = 0, otCost = 0;
+    entries.forEach(t => {
+      const b = bd[t.id] || {};
+      stdMins += b.regularMins || 0;
+      otMins += b.otMins || 0;
+      otCost += ((b.otMins || 0) / 60) * hourlyRate * (b.multiplier || 1);
+    });
+    return { name: s.name, role: s.job_role, stdMins, otMins, otCost };
+  }).filter(Boolean);
+  const totalStdMins = perPerson.reduce((s, p) => s + p.stdMins, 0);
+  const totalOtMins = perPerson.reduce((s, p) => s + p.otMins, 0);
+  const totalOtCost = perPerson.reduce((s, p) => s + p.otCost, 0);
+  const otStaffCount = perPerson.filter(p => p.otMins > 0).length;
+  const fmtH = (mins) => (mins / 60).toFixed(1) + 'h';
+  const fmtC = (n) => '£' + (n || 0).toLocaleString('en-GB', { maximumFractionDigits: 2 });
 
   const save = async () => {
     setSaving(true);
@@ -77,6 +104,50 @@ export default function OvertimeRatesManager() {
           </div>
         </div>
       </div>
+
+      {perPerson.length > 0 && (
+        <div className="mb-6 space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-emerald-700" /><p className="text-xs text-slate-500 font-medium">Standard time</p></div>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{fmtH(totalStdMins)}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-amber-600" /><p className="text-xs text-slate-500 font-medium">Overtime</p></div>
+              <p className="text-2xl font-bold text-amber-600 mt-1">{fmtH(totalOtMins)}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <div className="flex items-center gap-2"><PoundSterling className="w-4 h-4 text-emerald-700" /><p className="text-xs text-slate-500 font-medium">OT cost</p></div>
+              <p className="text-2xl font-bold text-emerald-700 mt-1">{fmtC(totalOtCost)}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <div className="flex items-center gap-2"><Users className="w-4 h-4 text-blue-700" /><p className="text-xs text-slate-500 font-medium">Staff with OT</p></div>
+              <p className="text-2xl font-bold text-blue-700 mt-1">{otStaffCount}</p>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-emerald-700" />
+              <h2 className="font-semibold text-slate-900">Overtime by person</h2>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {perPerson.map((p, i) => (
+                <div key={i} className="px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-slate-900 truncate">{p.name}</p>
+                    <p className="text-xs text-slate-400 capitalize">{p.role?.replace(/_/g, ' ')}</p>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm flex-shrink-0">
+                    <div className="text-right"><p className="text-xs text-slate-400">Standard</p><p className="font-semibold text-slate-900">{fmtH(p.stdMins)}</p></div>
+                    <div className="text-right"><p className="text-xs text-slate-400">Overtime</p><p className={`font-semibold ${p.otMins > 0 ? 'text-amber-600' : 'text-slate-300'}`}>{fmtH(p.otMins)}</p></div>
+                    <div className="text-right"><p className="text-xs text-slate-400">OT cost</p><p className={`font-semibold ${p.otCost > 0 ? 'text-emerald-700' : 'text-slate-300'}`}>{fmtC(p.otCost)}</p></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
         <div className="flex items-center justify-between gap-4">

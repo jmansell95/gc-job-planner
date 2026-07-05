@@ -59,6 +59,10 @@
     "user_id": {
       "type": "string",
       "description": "Linked user account ID for login access"
+    },
+    "manager_id": {
+      "type": "string",
+      "description": "Staff member who approves this person's timesheets"
     }
   },
   "required": [
