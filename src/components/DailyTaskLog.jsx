@@ -309,7 +309,7 @@ export default function DailyTaskLog({ staffId }) {
           <div className="space-y-2">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Today's log</p>
             <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 overflow-hidden">
-              {[...entries].reverse().map(t => {
+              {sortedAll.map(t => {
                 const job = jobs.find(j => j.id === t.job_id);
                 const tMins = Number(t.task_duration_minutes) || 0;
                 return (
