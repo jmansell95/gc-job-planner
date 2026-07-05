@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Upload, Trash2, Download, Eye, Truck, Link2 } from 'lucide-react';
+import { FileText, Upload, Trash2, Download, Eye, Truck, Link2, EyeOff, Eye as EyeIcon } from 'lucide-react';
 
 const categoryConfig = {
   rams: { label: 'RAMS', badge: 'bg-red-100 text-red-700' },
@@ -17,6 +17,7 @@ export default function DocumentManager({ job }) {
   const [linkedCostItemId, setLinkedCostItemId] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
   const [collectionNotes, setCollectionNotes] = useState('');
+  const [clientVisible, setClientVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
@@ -44,13 +45,15 @@ export default function DocumentManager({ job }) {
         category,
         linked_cost_item_id: linkedCostItemId || '',
         delivery_notes: deliveryNotes || '',
-        collection_notes: collectionNotes || ''
+        collection_notes: collectionNotes || '',
+        client_visible: clientVisible
       });
       queryClient.invalidateQueries({ queryKey: ['job-documents', job.id] });
       if (fileInputRef.current) fileInputRef.current.value = '';
       setLinkedCostItemId('');
       setDeliveryNotes('');
       setCollectionNotes('');
+      setClientVisible(false);
       setShowDetails(false);
     } catch (error) {
       console.error('Error uploading document:', error);
@@ -63,6 +66,13 @@ export default function DocumentManager({ job }) {
     queryClient.invalidateQueries({ queryKey: ['job-documents', job.id] });
   };
 
+  const toggleClientVisible = async (doc) => {
+    await base44.entities.JobDocument.update(doc.id, { client_visible: !doc.client_visible });
+    queryClient.invalidateQueries({ queryKey: ['job-documents', job.id] });
+  };
+
+  const clientVisibleCount = documents.filter(d => d.client_visible).length;
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
@@ -71,7 +81,7 @@ export default function DocumentManager({ job }) {
         <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{documents.length}</span>
       </div>
       <div className="px-5 py-4">
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="flex flex-wrap gap-2 mb-3 items-center">
           <select value={category} onChange={e => setCategory(e.target.value)}
             className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600">
             {Object.entries(categoryConfig).map(([key, cfg]) => (
@@ -85,7 +95,7 @@ export default function DocumentManager({ job }) {
           </button>
           <button onClick={() => setShowDetails(!showDetails)}
             className="flex items-center gap-1.5 px-3 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 transition text-sm font-medium ml-auto">
-            <Link2 className="w-4 h-4" /> {showDetails ? 'Hide' : 'Link & notes'}
+            <Link2 className="w-4 h-4" /> {showDetails ? 'Hide' : 'Link, notes & visibility'}
           </button>
         </div>
 
@@ -113,8 +123,21 @@ export default function DocumentManager({ job }) {
                 <textarea value={collectionNotes} onChange={e => setCollectionNotes(e.target.value)} rows="2" placeholder="Collection date, contact, return condition" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
               </div>
             </div>
+            <label className="flex items-center gap-2 cursor-pointer pt-1">
+              <input type="checkbox" checked={clientVisible} onChange={e => setClientVisible(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+              <span className="text-sm text-slate-600 inline-flex items-center gap-1.5">
+                <EyeIcon className="w-3.5 h-3.5 text-emerald-600" /> Visible to client on the client portal
+              </span>
+            </label>
             <p className="text-xs text-slate-400">These details are saved with the document and visible on its card below.</p>
           </div>
+        )}
+
+        {clientVisibleCount > 0 && (
+          <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-1.5 mb-3 inline-flex items-center gap-1.5">
+            <EyeIcon className="w-3.5 h-3.5" /> {clientVisibleCount} {clientVisibleCount === 1 ? 'document' : 'documents'} shared with the client
+          </p>
         )}
 
         {documents.length === 0 ? (
@@ -124,6 +147,7 @@ export default function DocumentManager({ job }) {
             {documents.map(doc => {
               const cfg = categoryConfig[doc.category] || categoryConfig.other;
               const linkedItem = costItems.find(c => c.id === doc.linked_cost_item_id);
+              const isClientVisible = doc.client_visible === true;
               return (
                 <div key={doc.id} className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
                   <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
@@ -136,6 +160,11 @@ export default function DocumentManager({ job }) {
                       {linkedItem && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-indigo-50 text-indigo-600 inline-flex items-center gap-1">
                           <Link2 className="w-2.5 h-2.5" /> {linkedItem.description}{linkedItem.reference_number ? ` · ${linkedItem.reference_number}` : ''}
+                        </span>
+                      )}
+                      {isClientVisible && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 inline-flex items-center gap-1">
+                          <EyeIcon className="w-2.5 h-2.5" /> Client
                         </span>
                       )}
                     </div>
@@ -156,7 +185,11 @@ export default function DocumentManager({ job }) {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-1 flex-shrink-0">
+                  <div className="flex gap-1 flex-shrink-0 items-center">
+                    <button onClick={() => toggleClientVisible(doc)} title={isClientVisible ? 'Hide from client' : 'Show to client'}
+                      className={`p-1.5 rounded-lg transition ${isClientVisible ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'}`}>
+                      {isClientVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                    </button>
                     <a href={doc.document_url} target="_blank" rel="noopener noreferrer"
                       className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition">
                       <Eye className="w-3.5 h-3.5" />

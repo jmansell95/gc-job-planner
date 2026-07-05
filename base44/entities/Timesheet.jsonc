@@ -54,10 +54,19 @@
         "draft",
         "submitted",
         "approved",
-        "rejected"
+        "rejected",
+        "deleted"
       ],
       "default": "submitted",
-      "description": "Timesheet approval status"
+      "description": "Timesheet approval status. 'deleted' = withdrawn by staff with a reason."
+    },
+    "deletion_reason": {
+      "type": "string",
+      "description": "Reason given by staff when withdrawing/deleting a submitted timesheet (visible to manager & admin)"
+    },
+    "deleted_at": {
+      "type": "string",
+      "description": "ISO timestamp when the timesheet was withdrawn"
     }
   },
   "required": [

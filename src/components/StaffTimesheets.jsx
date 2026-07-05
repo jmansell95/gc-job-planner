@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Clock, CheckCircle2, XCircle, FileText, Trash2, Edit2, Save, Send, PoundSterling, X, TrendingUp } from 'lucide-react';
+import { Plus, Clock, CheckCircle2, XCircle, FileText, Trash2, Edit2, Save, Send, PoundSterling, X, TrendingUp, RotateCcw, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { computeStaffOvertime, buildRateMap, weekKey, entryMinutes } from '@/utils/overtime';
 
@@ -13,13 +13,8 @@ const statusConfig = {
 };
 
 const TASK_SUGGESTIONS = [
-  'Setting up the rig',
-  'Putting up heras fencing',
-  'Drilling',
-  'Dismantling the rig',
-  'Site clearance',
-  'Machine maintenance',
-  'Breakdown',
+  'Setting up the rig', 'Putting up heras fencing', 'Drilling',
+  'Dismantling the rig', 'Site clearance', 'Machine maintenance', 'Breakdown',
 ];
 
 const DURATION_CHIPS = [15, 30, 60, 90, 120, 240];
@@ -28,8 +23,7 @@ const minsFromEntry = (t) => Number(t?.task_duration_minutes) || (t?.total_hours
 
 const fmtDur = (mins) => {
   const m = Math.round(Number(mins) || 0);
-  const h = Math.floor(m / 60);
-  const r = m % 60;
+  const h = Math.floor(m / 60), r = m % 60;
   if (h && r) return `${h}h ${r}m`;
   if (h) return `${h}h`;
   return m > 0 ? `${r}m` : '—';
@@ -42,6 +36,9 @@ export default function StaffTimesheets({ staffId, staffName }) {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({ job_id: '', date: format(new Date(), 'yyyy-MM-dd'), task_description: '', task_duration_minutes: '', notes: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [withdrawingId, setWithdrawingId] = useState(null);
+  const [withdrawReason, setWithdrawReason] = useState('');
+  const [withdrawing, setWithdrawing] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -77,14 +74,16 @@ export default function StaffTimesheets({ staffId, staffName }) {
   const durationMins = parseInt(form.task_duration_minutes) || 0;
   const otRateMap = buildRateMap(overtimeRates);
   const otThreshold = overtimeSetting?.weekly_threshold_hours ?? 40;
-  const otBreakdown = computeStaffOvertime(timesheets, otRateMap, otThreshold, hourlyRate);
+
+  const visibleTimesheets = timesheets.filter(t => t.status !== 'deleted');
+  const otBreakdown = computeStaffOvertime(visibleTimesheets, otRateMap, otThreshold, hourlyRate);
   const previewEntry = { id: '__preview__', date: form.date, task_duration_minutes: durationMins, created_date: new Date().toISOString() };
-  const previewBreakdown = computeStaffOvertime([...timesheets, previewEntry], otRateMap, otThreshold, hourlyRate);
+  const previewBreakdown = computeStaffOvertime([...visibleTimesheets, previewEntry], otRateMap, otThreshold, hourlyRate);
   const previewResult = previewBreakdown['__preview__'] || {};
   const previewCost = previewResult.cost != null ? previewResult.cost : (durationMins / 60) * hourlyRate;
   const previewOT = previewResult.isOvertime;
   const currentWeekKey = weekKey(format(new Date(), 'yyyy-MM-dd'));
-  const weekMins = timesheets.filter(t => weekKey(t.date) === currentWeekKey).reduce((s, t) => s + entryMinutes(t), 0);
+  const weekMins = visibleTimesheets.filter(t => weekKey(t.date) === currentWeekKey).reduce((s, t) => s + entryMinutes(t), 0);
 
   const resetForm = () => {
     setForm({ job_id: '', date: format(new Date(), 'yyyy-MM-dd'), task_description: '', task_duration_minutes: '', notes: '' });
@@ -127,23 +126,50 @@ export default function StaffTimesheets({ staffId, staffName }) {
       queryClient.invalidateQueries({ queryKey: ['staff-timesheets', staffId] });
       queryClient.invalidateQueries({ queryKey: ['timesheets-for-job'] });
       resetForm();
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
     setSubmitting(false);
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this timesheet entry?')) return;
-    await base44.entities.Timesheet.delete(id);
-    queryClient.invalidateQueries({ queryKey: ['staff-timesheets', staffId] });
-    queryClient.invalidateQueries({ queryKey: ['timesheets-for-job'] });
+  const handleSubmitDraft = async (id) => {
+    try {
+      await base44.entities.Timesheet.update(id, { status: 'submitted' });
+      queryClient.invalidateQueries({ queryKey: ['staff-timesheets', staffId] });
+      queryClient.invalidateQueries({ queryKey: ['timesheets-for-job'] });
+    } catch (e) { console.error(e); }
   };
 
-  const canEdit = (t) => t.status === 'draft' || t.status === 'submitted';
+  const handleDeleteDraft = async (id) => {
+    if (!confirm('Delete this draft entry?')) return;
+    await base44.entities.Timesheet.delete(id);
+    queryClient.invalidateQueries({ queryKey: ['staff-timesheets', staffId] });
+  };
 
-  const drafts = timesheets.filter(t => t.status === 'draft');
-  const submitted = timesheets.filter(t => t.status !== 'draft');
+  const openWithdraw = (t) => {
+    setWithdrawingId(t.id);
+    setWithdrawReason('');
+  };
+
+  const confirmWithdraw = async () => {
+    if (!withdrawReason.trim()) return;
+    setWithdrawing(true);
+    try {
+      await base44.entities.Timesheet.update(withdrawingId, {
+        status: 'deleted',
+        deletion_reason: withdrawReason.trim(),
+        deleted_at: new Date().toISOString()
+      });
+      queryClient.invalidateQueries({ queryKey: ['staff-timesheets', staffId] });
+      queryClient.invalidateQueries({ queryKey: ['timesheets-for-job'] });
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+      queryClient.invalidateQueries({ queryKey: ['all-timesheets-mgr'] });
+      setWithdrawingId(null);
+      setWithdrawReason('');
+    } catch (e) { console.error(e); }
+    setWithdrawing(false);
+  };
+
+  const drafts = visibleTimesheets.filter(t => t.status === 'draft');
+  const submitted = visibleTimesheets.filter(t => t.status !== 'draft');
   const byDate = {};
   submitted.forEach(t => { (byDate[t.date] = byDate[t.date] || []).push(t); });
   const sortedDates = Object.keys(byDate).sort().reverse();
@@ -174,12 +200,20 @@ export default function StaffTimesheets({ staffId, staffName }) {
               {t.notes && <span className="truncate">· {t.notes}</span>}
             </div>
           </div>
-          {canEdit(t) && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <button onClick={() => startEdit(t)} className="p-1.5 text-slate-500 hover:bg-slate-200 rounded-lg transition" title="Edit"><Edit2 className="w-4 h-4" /></button>
-              <button onClick={() => handleDelete(t.id)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition" title="Delete"><Trash2 className="w-4 h-4" /></button>
-            </div>
-          )}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {t.status === 'draft' && (
+              <>
+                <button onClick={() => handleSubmitDraft(t.id)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="Submit now"><Send className="w-4 h-4" /></button>
+                <button onClick={() => startEdit(t)} className="p-1.5 text-slate-500 hover:bg-slate-200 rounded-lg transition" title="Edit"><Edit2 className="w-4 h-4" /></button>
+                <button onClick={() => handleDeleteDraft(t.id)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition" title="Delete draft"><Trash2 className="w-4 h-4" /></button>
+              </>
+            )}
+            {t.status === 'submitted' && (
+              <button onClick={() => openWithdraw(t)} className="inline-flex items-center gap-1 text-[11px] px-2 py-1 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition font-medium" title="Withdraw with reason">
+                <RotateCcw className="w-3 h-3" /> Withdraw
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -291,7 +325,7 @@ export default function StaffTimesheets({ staffId, staffName }) {
         </form>
       )}
 
-      {timesheets.length === 0 ? (
+      {visibleTimesheets.length === 0 ? (
         <p className="text-sm text-slate-400 text-center py-8">No timesheets yet. Tap "Add Entry" to log your first task.</p>
       ) : (
         <div className="space-y-5">
@@ -307,6 +341,30 @@ export default function StaffTimesheets({ staffId, staffName }) {
               <div className="space-y-2">{byDate[date].map(renderEntry)}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Withdraw modal */}
+      {withdrawingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => !withdrawing && setWithdrawingId(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
+              <h3 className="font-bold text-slate-900">Withdraw timesheet?</h3>
+            </div>
+            <p className="text-sm text-slate-500 mb-3">This removes the entry from your manager's approval list. A reason is required so your manager understands why.</p>
+            <textarea value={withdrawReason} onChange={e => setWithdrawReason(e.target.value)} rows={3} autoFocus
+              placeholder="e.g. Submitted to the wrong job by mistake"
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100 resize-none" />
+            <div className="flex gap-2 mt-4">
+              <button onClick={confirmWithdraw} disabled={withdrawing || !withdrawReason.trim()}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition text-sm font-semibold disabled:opacity-50">
+                {withdrawing ? 'Withdrawing…' : 'Withdraw with reason'}
+              </button>
+              <button onClick={() => setWithdrawingId(null)} disabled={withdrawing}
+                className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">Cancel</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

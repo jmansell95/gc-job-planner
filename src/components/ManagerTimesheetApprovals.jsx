@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, CheckCircle2, XCircle, TrendingUp, ClipboardCheck } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, TrendingUp, ClipboardCheck, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { computeStaffOvertime, buildRateMap, entryMinutes } from '@/utils/overtime';
 
@@ -29,6 +29,10 @@ export default function ManagerTimesheetApprovals({ staffId }) {
   const reporters = allStaff.filter(s => s.manager_id === staffId);
   const reporterIds = reporters.map(s => s.id);
   const pending = timesheets.filter(t => reporterIds.includes(t.staff_id) && t.status === 'submitted');
+  const withdrawn = timesheets
+    .filter(t => reporterIds.includes(t.staff_id) && t.status === 'deleted')
+    .sort((a, b) => new Date(b.deleted_at || b.created_date || 0) - new Date(a.deleted_at || a.created_date || 0))
+    .slice(0, 8);
 
   if (reporters.length === 0) return null;
 
@@ -59,6 +63,7 @@ export default function ManagerTimesheetApprovals({ staffId }) {
         <h2 className="text-lg font-bold text-slate-900">Timesheet Approvals</h2>
         <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">{pending.length} pending</span>
       </div>
+
       {pending.length === 0 ? (
         <p className="text-sm text-slate-400 text-center py-4">No timesheets pending your approval right now.</p>
       ) : (
@@ -91,6 +96,34 @@ export default function ManagerTimesheetApprovals({ staffId }) {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {withdrawn.length > 0 && (
+        <div className="mt-5 pt-4 border-t border-slate-100">
+          <div className="flex items-center gap-2 mb-3">
+            <RotateCcw className="w-4 h-4 text-slate-400" />
+            <h3 className="text-sm font-semibold text-slate-700">Recently withdrawn by staff</h3>
+            <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">{withdrawn.length}</span>
+          </div>
+          <div className="space-y-2">
+            {withdrawn.map(t => {
+              const member = allStaff.find(s => s.id === t.staff_id);
+              const job = jobs.find(j => j.id === t.job_id);
+              return (
+                <div key={t.id} className="p-2.5 bg-slate-50/60 rounded-lg border border-slate-100">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs font-medium text-slate-700">{member?.name || 'Unknown'}</p>
+                    <span className="text-[10px] text-slate-400">{job?.name || '—'} · {format(new Date(t.date + 'T00:00:00'), 'dd MMM')}</span>
+                    {t.deleted_at && <span className="text-[10px] text-slate-400">{format(new Date(t.deleted_at), 'dd MMM HH:mm')}</span>}
+                  </div>
+                  {t.deletion_reason && (
+                    <p className="text-xs text-red-500 mt-1"><span className="font-medium">Reason:</span> {t.deletion_reason}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

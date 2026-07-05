@@ -41,6 +41,11 @@
     "collection_notes": {
       "type": "string",
       "description": "Notes for equipment collection (date, contact, return condition)"
+    },
+    "client_visible": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this document is shown to the client on the client portal"
     }
   },
   "required": [

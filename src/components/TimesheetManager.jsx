@@ -11,7 +11,8 @@ const statusConfig = {
   draft: { label: 'Draft', badge: 'bg-slate-100 text-slate-600' },
   submitted: { label: 'Submitted', badge: 'bg-amber-100 text-amber-700' },
   approved: { label: 'Approved', badge: 'bg-emerald-100 text-emerald-700' },
-  rejected: { label: 'Rejected', badge: 'bg-red-100 text-red-700' }
+  rejected: { label: 'Rejected', badge: 'bg-red-100 text-red-700' },
+  deleted: { label: 'Withdrawn', badge: 'bg-slate-200 text-slate-500 line-through' }
 };
 
 const minsOf = (t) => Number(t?.task_duration_minutes) || (t?.total_hours ? t.total_hours * 60 : 0);
@@ -157,7 +158,7 @@ export default function TimesheetManager() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-2 mb-4">
         <div className="flex gap-2 flex-wrap">
-          {['submitted', 'approved', 'rejected', 'all'].map(f => (
+          {['submitted', 'approved', 'rejected', 'deleted', 'all'].map(f => (
             <button key={f} onClick={() => setStatusFilter(f)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition capitalize ${statusFilter === f ? 'bg-emerald-700 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
               {f}
@@ -230,6 +231,7 @@ export default function TimesheetManager() {
                       <td className="px-4 py-3 text-sm text-slate-600 max-w-[220px]">
                         <p className="truncate">{ts.task_description || <span className="text-slate-400 italic">{ts.start_time ? `${ts.start_time}–${ts.end_time}` : '—'}</span>}</p>
                         {ts.notes && <p className="text-xs text-slate-400 truncate">· {ts.notes}</p>}
+                        {ts.status === 'deleted' && ts.deletion_reason && <p className="text-xs text-red-500 truncate mt-0.5">⊘ {ts.deletion_reason}</p>}
                       </td>
                       <td className="px-4 py-3 text-sm font-bold text-slate-900 text-center whitespace-nowrap">
                         {mtr > 0

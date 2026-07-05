@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
       team,
       totals: { staff: team.length, shifts: total, hours: totalHours, meterage: totalMeterage },
       billing: hasBilling ? billing : null,
-      documents: documents.map(d => ({
+      documents: documents.filter(d => d.client_visible === true).map(d => ({
         document_url: d.document_url,
         document_name: d.document_name,
         category: d.category || 'other'
