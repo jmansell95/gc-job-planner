@@ -6,7 +6,8 @@
       "type": "string",
       "enum": [
         "vehicle_maintenance",
-        "assignment_notification"
+        "assignment_notification",
+        "staff_schedule"
       ],
       "description": "Which automated alert this configures"
     },

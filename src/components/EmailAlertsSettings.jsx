@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Mail, Save, Send, Loader2, Truck, UserCheck, Clock, Palette, RotateCcw, Eye, Sparkles, Type } from 'lucide-react';
+import { Mail, Save, Send, Loader2, Truck, UserCheck, Clock, Palette, RotateCcw, Eye, Sparkles, Type, Calendar } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const ALERT_META = {
@@ -21,6 +21,15 @@ const ALERT_META = {
     showThreshold: false,
     showRecipients: false,
     tokens: ['{staff_name}', '{job_name}', '{location}', '{date}', '{job_type}', '{notes}'],
+  },
+  staff_schedule: {
+    title: 'Weekly Staff Schedule',
+    desc: 'Emails each staff member their personal schedule when you submit the weekly rota.',
+    schedule: 'Sent when you submit the rota from the Rota Builder',
+    icon: Calendar,
+    showThreshold: false,
+    showRecipients: false,
+    tokens: ['{staff_name}', '{week_start}', '{assignment_count}'],
   },
 };
 
@@ -61,6 +70,16 @@ function renderSampleBody(key, cfg) {
     if (cfg.template) return cfg.template.replace(/\{alert_count\}/g, '2').replace(/\{alert_list\}/g, sampleList);
     const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
     return intro + sampleList + 'Please schedule maintenance as soon as possible.\n\nGC Job Planner';
+  }
+  if (key === 'staff_schedule') {
+    if (cfg.template) {
+      return cfg.template
+        .replace(/\{staff_name\}/g, 'John Smith')
+        .replace(/\{week_start\}/g, 'Mon 6 Jul – Sun 12 Jul 2026')
+        .replace(/\{assignment_count\}/g, '5');
+    }
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'Hi John Smith, here is your schedule for the week of Mon 6 Jul – Sun 12 Jul 2026. You have 5 assignment(s).';
   }
   const tok = { staff_name: 'John Smith', job_name: 'Sample Job', location: 'Sample Site, London', date: 'Monday, 6 July 2026', job_type: 'groundworks', notes: 'Notes: Sample note' };
   if (cfg.template) {
@@ -251,9 +270,10 @@ export default function EmailAlertsSettings() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">Email subject <span className="text-slate-400 font-normal">(optional)</span></label>
                   <input type="text" value={draft.subject || ''} onChange={(e) => updateDraft(key, 'subject', e.target.value)}
-                    placeholder={key === 'vehicle_maintenance' ? 'Vehicle Maintenance Alert' : 'New Job Assignment'}
+                    placeholder={key === 'vehicle_maintenance' ? 'Vehicle Maintenance Alert' : key === 'staff_schedule' ? "John's Weekly Schedule" : 'New Job Assignment'}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
                   {key === 'assignment_notification' && <p className="text-xs text-slate-400 mt-1">Use {'{job_name}'} to insert the job name.</p>}
+                  {key === 'staff_schedule' && <p className="text-xs text-slate-400 mt-1">Use {'{staff_name}'} or {'{week_start}'} in the subject.</p>}
                 </div>
 
                 {/* Template editor */}
@@ -273,7 +293,9 @@ export default function EmailAlertsSettings() {
                     value={draft.template || ''} onChange={(e) => updateDraft(key, 'template', e.target.value)} rows="7"
                     placeholder={key === 'vehicle_maintenance'
                       ? `Vehicle Maintenance Report\n\n{alert_list}\n\nPlease schedule maintenance as soon as possible.\n\nGC Job Planner`
-                      : `Hello {staff_name},\n\nYou have been assigned to a new job:\n\nJob: {job_name}\nLocation: {location}\nDate: {date}\nJob Type: {job_type}\n{notes}\n\nPlease check your schedule for full details.\n\nGC Job Planner`}
+                      : key === 'staff_schedule'
+                        ? `Hi {staff_name}, here is your schedule for the week of {week_start}. You have {assignment_count} assignment(s).`
+                        : `Hello {staff_name},\n\nYou have been assigned to a new job:\n\nJob: {job_name}\nLocation: {location}\nDate: {date}\nJob Type: {job_type}\n{notes}\n\nPlease check your schedule for full details.\n\nGC Job Planner`}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 font-mono" />
                   <p className="text-xs text-slate-400 mt-1">Click a token to insert it. Leave blank to use the default template.</p>
                 </div>

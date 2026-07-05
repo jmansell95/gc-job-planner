@@ -2,7 +2,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const DEFAULTS = [
   { alert_key: 'vehicle_maintenance', enabled: true, recipient_emails: '', days_before_warning: 30, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'assignment_notification', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
+  { alert_key: 'assignment_notification', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'staff_schedule', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
 ];
 
 function escapeHtml(s) {
@@ -32,6 +33,12 @@ function renderTestTemplate(alert_key, template) {
     return template
       .replace(/\{alert_count\}/g, '2')
       .replace(/\{alert_list\}/g, sampleList);
+  }
+  if (alert_key === 'staff_schedule') {
+    return template
+      .replace(/\{staff_name\}/g, 'John Smith')
+      .replace(/\{week_start\}/g, 'Mon 6 Jul – Sun 12 Jul 2026')
+      .replace(/\{assignment_count\}/g, '5');
   }
   return template
     .replace(/\{staff_name\}/g, 'John Smith')
@@ -128,7 +135,7 @@ Deno.serve(async (req) => {
       if (recipients.length === 0) {
         return Response.json({ error: 'No recipients configured' }, { status: 400 });
       }
-      const defaultSubject = alert_key === 'vehicle_maintenance' ? 'Vehicle Maintenance Alert (Test)' : 'New Job Assignment (Test)';
+      const defaultSubject = alert_key === 'vehicle_maintenance' ? 'Vehicle Maintenance Alert (Test)' : alert_key === 'staff_schedule' ? 'Weekly Schedule (Test)' : 'New Job Assignment (Test)';
       const subject = (cfg && cfg.subject) ? cfg.subject : defaultSubject;
       let text;
       if (cfg && cfg.template) {

@@ -5,7 +5,7 @@ import { startOfWeek, addDays, format, subWeeks } from 'date-fns';
 import {
   Plus, Calendar, ChevronLeft, ChevronRight, X, Copy,
   MapPin, Truck, Clock, CheckCircle2, PlayCircle, ClipboardCheck,
-  Users, Briefcase, Search, Filter, StickyNote
+  Users, Briefcase, Search, Filter, StickyNote, Save, Send, Loader2
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import AssignmentModal from '@/components/AssignmentModal';
@@ -33,6 +33,8 @@ export default function WeeklyRotaBuilder() {
   const [modal, setModal] = useState({ isOpen: false, assignment: null, defaultStaffId: '', defaultDate: '' });
   const [teamFilter, setTeamFilter] = useState('');
   const [staffSearch, setStaffSearch] = useState('');
+  const [publishing, setPublishing] = useState(false);
+  const [notice, setNotice] = useState(null);
 
   const queryClient = useQueryClient();
   const weekStart = startOfWeek(selectedWeek);
@@ -52,6 +54,12 @@ export default function WeeklyRotaBuilder() {
       return all.filter(a => a.week_start === weekStartStr);
     }
   });
+
+  const { data: weekRecord } = useQuery({
+    queryKey: ['rota-week', weekStartStr],
+    queryFn: async () => { const list = await base44.entities.RotaWeek.filter({ week_start: weekStartStr }); return list[0] || null; }
+  });
+  const isPublished = weekRecord?.status === 'published';
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -151,6 +159,42 @@ export default function WeeklyRotaBuilder() {
     setSmartFillLoading(false);
   };
 
+  const handleSaveDraft = async () => {
+    try {
+      if (weekRecord) {
+        if (weekRecord.status !== 'published') {
+          await base44.entities.RotaWeek.update(weekRecord.id, { status: 'draft' });
+        }
+      } else {
+        await base44.entities.RotaWeek.create({ week_start: weekStartStr, status: 'draft' });
+      }
+      queryClient.invalidateQueries({ queryKey: ['rota-week'] });
+      setNotice({ type: 'success', msg: 'Draft saved. Come back any time to finish and submit.' });
+    } catch (e) {
+      setNotice({ type: 'error', msg: e.message || 'Failed to save draft' });
+    }
+  };
+
+  const handleSubmitWeek = async () => {
+    if (rotas.length === 0) { setNotice({ type: 'error', msg: 'No assignments to submit yet.' }); return; }
+    const label = `${format(weekStart, 'dd MMM')} – ${format(addDays(weekStart, 6), 'dd MMM yyyy')}`;
+    if (!confirm(`Submit the rota for ${label}?\n\nThis will email each assigned staff member their personal schedule.`)) return;
+    setPublishing(true);
+    try {
+      const res = await base44.functions.invoke('publishRotaWeek', { weekStart: weekStartStr });
+      const d = res.data || {};
+      queryClient.invalidateQueries({ queryKey: ['rota-week'] });
+      const parts = [`Rota published — ${d.emailed || 0} staff emailed`];
+      if (d.skipped) parts.push(`${d.skipped} without a valid email`);
+      if (d.disabled) parts.push('schedule email is disabled in Settings');
+      setNotice({ type: 'success', msg: parts.join(', ') + '.' });
+    } catch (e) {
+      setNotice({ type: 'error', msg: e.response?.data?.error || e.message || 'Failed to publish rota' });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const goToPrevWeek = () => setSelectedWeek(prev => addDays(prev, -7));
   const goToNextWeek = () => setSelectedWeek(prev => addDays(prev, 7));
 
@@ -236,8 +280,23 @@ export default function WeeklyRotaBuilder() {
             className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
             <Plus className="w-4 h-4" /> Add Assignment
           </button>
+          <button onClick={handleSaveDraft} disabled={isPublished}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition text-sm font-medium">
+            <Save className="w-4 h-4" /> Save Draft
+          </button>
+          <button onClick={handleSubmitWeek} disabled={publishing}
+            className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition text-sm font-medium disabled:opacity-50">
+            {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} {isPublished ? 'Resend Schedules' : 'Submit Week'}
+          </button>
         </div>
       </div>
+
+      {notice && (
+        <div className={`mb-4 rounded-xl border px-4 py-3 text-sm flex items-start gap-2 ${notice.type === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+          <span className="font-medium flex-1">{notice.msg}</span>
+          <button onClick={() => setNotice(null)} className="text-current opacity-60 hover:opacity-100"><X className="w-4 h-4" /></button>
+        </div>
+      )}
 
       {/* Week Navigator + Stats */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
@@ -269,6 +328,17 @@ export default function WeeklyRotaBuilder() {
             <span className="text-sm font-bold text-slate-900">{jobsActive}</span>
             <span className="text-xs text-slate-500">jobs active</span>
           </div>
+          {weekRecord && (
+            <div className={`bg-white rounded-lg border px-4 py-2.5 flex items-center gap-2.5 shadow-sm ${isPublished ? 'border-emerald-300' : 'border-amber-300'}`}>
+              <span className={`w-7 h-7 rounded-lg flex items-center justify-center ${isPublished ? 'stat-gradient-emerald' : 'bg-amber-100'}`}>
+                {isPublished ? <CheckCircle2 className="w-4 h-4 text-white" /> : <Clock className="w-4 h-4 text-amber-600" />}
+              </span>
+              <div>
+                <p className={`text-sm font-bold leading-tight ${isPublished ? 'text-emerald-700' : 'text-amber-700'}`}>{isPublished ? 'Published' : 'Draft'}</p>
+                <p className="text-xs text-slate-500 leading-tight">{isPublished ? (weekRecord.published_at ? format(new Date(weekRecord.published_at), 'dd MMM, HH:mm') : 'Sent') : 'In progress'}</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

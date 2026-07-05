@@ -1,0 +1,28 @@
+{
+  "name": "RotaWeek",
+  "type": "object",
+  "properties": {
+    "week_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Start of the week (Monday) this rota covers"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published"
+      ],
+      "default": "draft",
+      "description": "Whether the week is still being built or has been submitted to staff"
+    },
+    "published_at": {
+      "type": "string",
+      "description": "Timestamp when the rota was submitted/emailed to staff"
+    }
+  },
+  "required": [
+    "week_start",
+    "status"
+  ]
+}
