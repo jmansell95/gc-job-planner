@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDays, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, WifiOff, HardHat, Sparkles, ChevronRight } from 'lucide-react';
+import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDays, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, WifiOff, HardHat, Sparkles, ChevronRight, MessageCircle } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
@@ -388,6 +388,14 @@ export default function StaffDashboard() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-8">
+        {/* WhatsApp reminder */}
+        <div className="mb-5 flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3.5 text-sm text-emerald-900">
+          <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0">
+            <MessageCircle className="w-4 h-4 text-white" />
+          </div>
+          <p className="font-medium leading-relaxed">Please ensure that you check all WhatsApp groups for updates at the beginning of each working day.</p>
+        </div>
+
         {!isOnline && (
           <div className="mb-5 flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
             <WifiOff className="w-4 h-4 flex-shrink-0" />
