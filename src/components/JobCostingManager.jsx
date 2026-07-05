@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   PoundSterling, Plus, Trash2, Edit2, Check, X, TrendingUp, ChevronDown, ChevronUp,
-  Truck, Wrench, Percent, Calculator, Save, Package, FileCheck, Undo2, Upload, ExternalLink, AlertTriangle
+  Truck, Wrench, Percent, Calculator, Save, Package, FileCheck, Undo2, Upload, ExternalLink, AlertTriangle, ShoppingCart
 } from 'lucide-react';
 import { format, differenceInCalendarDays } from 'date-fns';
 
@@ -277,15 +277,19 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Category</label>
-                  <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value, unit_label: e.target.value === 'hired_equipment' ? 'day' : 'each' })} className={inputCls}>
+                  <select value={form.category} onChange={(e) => {
+                    const v = e.target.value;
+                    setForm({ ...form, category: v, unit_label: v === 'hired_equipment' ? 'day' : 'each', supplier_id: v === 'internal_equipment' ? '' : form.supplier_id });
+                  }} className={inputCls}>
                     <option value="hired_equipment">Hired Equipment</option>
+                    <option value="purchased_equipment">Purchased Equipment</option>
                     <option value="internal_equipment">Internal Equipment</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Supplier</label>
-                  <select value={form.supplier_id} onChange={(e) => setForm({ ...form, supplier_id: e.target.value })} className={inputCls} disabled={form.category !== 'hired_equipment'}>
-                    <option value="">{form.category === 'hired_equipment' ? 'Select supplier (optional)' : 'N/A'}</option>
+                  <select value={form.supplier_id} onChange={(e) => setForm({ ...form, supplier_id: e.target.value })} className={inputCls} disabled={form.category === 'internal_equipment'}>
+                    <option value="">{form.category === 'internal_equipment' ? 'N/A' : 'Select supplier (optional)'}</option>
                     {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
@@ -293,10 +297,14 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                   <label className="block text-xs font-medium text-slate-600 mb-1">Description *</label>
                   <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required placeholder="e.g. Transformer hire" className={inputCls} />
                 </div>
-                <div>
-                  <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1"><Package className="w-3 h-3 text-emerald-700" /> PO Number</label>
-                  <input value={form.po_number} onChange={(e) => setForm({ ...form, po_number: e.target.value })} placeholder="e.g. PO-1042" className={`${inputCls} font-mono`} />
-                </div>
+                {(form.category === 'hired_equipment' || form.category === 'purchased_equipment') && (
+                  <div>
+                    <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
+                      <Package className="w-3 h-3 text-emerald-700" /> PO Number{form.category === 'purchased_equipment' ? ' *' : ''}
+                    </label>
+                    <input value={form.po_number} onChange={(e) => setForm({ ...form, po_number: e.target.value })} required={form.category === 'purchased_equipment'} placeholder="e.g. PO-1042" className={`${inputCls} font-mono`} />
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Reference Number</label>
                   <input value={form.reference_number} onChange={(e) => setForm({ ...form, reference_number: e.target.value })} placeholder="Asset tag / serial no." className={inputCls} />
@@ -374,6 +382,8 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                       {c.category === 'hired_equipment'
                         ? <div className="w-full h-full bg-amber-50 rounded-lg flex items-center justify-center"><Truck className={`w-4 h-4 ${isOffHired ? 'text-slate-400' : 'text-amber-600'}`} /></div>
+                        : c.category === 'purchased_equipment'
+                        ? <div className="w-full h-full bg-purple-50 rounded-lg flex items-center justify-center"><ShoppingCart className={`w-4 h-4 ${isOffHired ? 'text-slate-400' : 'text-purple-600'}`} /></div>
                         : <div className="w-full h-full bg-blue-50 rounded-lg flex items-center justify-center"><Wrench className={`w-4 h-4 ${isOffHired ? 'text-slate-400' : 'text-blue-600'}`} /></div>}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -382,7 +392,7 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                         {c.po_number && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium font-mono inline-flex items-center gap-1"><Package className="w-2.5 h-2.5" /> {c.po_number}</span>}
                         {c.reference_number && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium font-mono">Ref: {c.reference_number}</span>}
                         {c.vat_exempt && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">VAT exempt</span>}
-                        <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">{c.category === 'hired_equipment' ? 'Hired' : 'Internal'}</span>
+                        <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">{c.category === 'hired_equipment' ? 'Hired' : c.category === 'purchased_equipment' ? 'Purchased' : 'Internal'}</span>
                         {isOffHired && (
                           <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
                             <FileCheck className="w-2.5 h-2.5" /> Returned{c.off_hire_date ? ` ${format(new Date(c.off_hire_date + 'T00:00:00'), 'dd MMM')}` : ''}

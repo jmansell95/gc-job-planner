@@ -10,14 +10,15 @@
       "type": "string",
       "enum": [
         "internal_equipment",
-        "hired_equipment"
+        "hired_equipment",
+        "purchased_equipment"
       ],
       "default": "hired_equipment",
-      "description": "Whether this is your own equipment or hired from a supplier"
+      "description": "Whether this is your own equipment, hired from a supplier, or purchased for the job"
     },
     "supplier_id": {
       "type": "string",
-      "description": "Supplier (for hired equipment)"
+      "description": "Supplier (for hired or purchased equipment)"
     },
     "description": {
       "type": "string",
