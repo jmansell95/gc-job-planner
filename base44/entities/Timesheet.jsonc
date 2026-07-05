@@ -81,6 +81,19 @@
     "deleted_at": {
       "type": "string",
       "description": "ISO timestamp when the timesheet was withdrawn"
+    },
+    "withdrawal_acknowledged": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the manager has acknowledged this staff withdrawal"
+    },
+    "withdrawal_acknowledged_by": {
+      "type": "string",
+      "description": "Name of the manager who acknowledged the withdrawal"
+    },
+    "withdrawal_acknowledged_at": {
+      "type": "string",
+      "description": "ISO timestamp when the withdrawal was acknowledged"
     }
   },
   "required": [

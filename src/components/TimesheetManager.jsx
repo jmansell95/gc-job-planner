@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, CheckCircle2, XCircle, Ruler, PoundSterling, TrendingUp, Users, Search, CalendarDays, FileText, RotateCcw, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
+import WithdrawnAcknowledgementPanel from '@/components/WithdrawnAcknowledgementPanel';
 import TodayTimeBoard from '@/components/TodayTimeBoard';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/StateViews';
 import { computeStaffOvertime, buildRateMap } from '@/utils/overtime';
@@ -157,6 +158,8 @@ export default function TimesheetManager() {
         )}
       </div>
 
+      <WithdrawnAcknowledgementPanel timesheets={timesheets} staff={staff} jobs={jobs} currentUser={currentUser} />
+
       {/* Per-staff summary */}
       {staffSummary.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
@@ -308,6 +311,9 @@ export default function TimesheetManager() {
                           {ts.status === 'approved' && ts.approved_by_name && (
                             <p className="text-[10px] text-slate-400 mt-1 truncate max-w-[110px]">by {ts.approved_by_name}</p>
                           )}
+                          {ts.status === 'deleted' && ts.withdrawal_acknowledged && (
+                            <p className="text-[10px] text-emerald-600 mt-1 inline-flex items-center gap-0.5"><CheckCircle2 className="w-3 h-3" /> Acknowledged{ts.withdrawal_acknowledged_by ? ` by ${ts.withdrawal_acknowledged_by}` : ''}</p>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-1">
@@ -386,6 +392,11 @@ export default function TimesheetManager() {
                       {ts.status === 'approved' && ts.approved_by_name && (
                         <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
                           <CheckCircle2 className="w-3 h-3" /> {ts.approved_by_name}
+                        </span>
+                      )}
+                      {ts.status === 'deleted' && ts.withdrawal_acknowledged && (
+                        <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+                          <CheckCircle2 className="w-3 h-3" /> Acknowledged
                         </span>
                       )}
                     </div>
