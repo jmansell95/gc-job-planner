@@ -190,6 +190,8 @@ export default function StaffDashboard() {
     const StatusIcon = status.icon;
     const isDriller = job?.job_type === 'cp_drilling' || job?.job_type === 'rotary_drilling';
     const accent = jobTypeAccent[job?.job_type] || jobTypeAccent.depot;
+    const scheduledStart = new Date(assignment.assigned_date + 'T' + (assignment.start_time || '00:00:00'));
+    const canStart = new Date() >= scheduledStart;
     if (!job) return null;
 
     return (
@@ -210,10 +212,16 @@ export default function StaffDashboard() {
             </span>
             <div className="flex flex-wrap gap-2 sm:justify-end">
               {(assignment.status || 'assigned') === 'assigned' && (
-                <button onClick={() => handleStartJob(assignment.id)}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
-                  <PlayCircle className="w-4 h-4" /> Start Job
-                </button>
+                canStart ? (
+                  <button onClick={() => handleStartJob(assignment.id)}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
+                    <PlayCircle className="w-4 h-4" /> Start Job
+                  </button>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 text-slate-500 rounded-xl text-xs font-semibold">
+                    <Clock className="w-3.5 h-3.5" /> Starts {format(new Date(assignment.assigned_date + 'T00:00:00'), 'dd MMM')}{assignment.start_time ? ` · ${assignment.start_time}` : ''}
+                  </span>
+                )
               )}
               {assignment.status === 'started' && (
                 <div className="flex items-center gap-2 flex-wrap">

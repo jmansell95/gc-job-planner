@@ -58,6 +58,7 @@ export default function TimesheetManager() {
     queryKey: ['overtime-setting'],
     queryFn: async () => { const list = await base44.entities.OvertimeSetting.list(); return list[0] || null; }
   });
+  const { data: currentUser } = useQuery({ queryKey: ['current-user'], queryFn: () => base44.auth.me() });
 
   const otRateMap = buildRateMap(overtimeRates);
   const otThreshold = overtimeSetting?.weekly_threshold_hours ?? 40;
@@ -86,7 +87,8 @@ export default function TimesheetManager() {
       otMins += b.otMins || 0;
       cost += b.cost || 0;
     });
-    return { id: s.id, name: s.name, role: s.job_role, shifts: entries.length, stdMins, otMins, cost, meterage: entries.reduce((x, t) => x + meterageOf(t), 0) };
+    const approvers = [...new Set(entries.map(t => t.approved_by_name).filter(Boolean))];
+    return { id: s.id, name: s.name, role: s.job_role, shifts: entries.length, stdMins, otMins, cost, meterage: entries.reduce((x, t) => x + meterageOf(t), 0), approvers };
   }).filter(Boolean).sort((a, b) => b.cost - a.cost);
 
   const filtered = workTimesheets.filter(t => {
@@ -102,7 +104,7 @@ export default function TimesheetManager() {
   });
 
   const handleApprove = async (id) => {
-    await base44.entities.Timesheet.update(id, { status: 'approved' });
+    await base44.entities.Timesheet.update(id, { status: 'approved', approved_by_name: currentUser?.full_name || '' });
     queryClient.invalidateQueries({ queryKey: ['timesheets'] });
   };
   const handleReject = async (id) => {
@@ -133,7 +135,7 @@ export default function TimesheetManager() {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
             <Users className="w-5 h-5 text-emerald-700" />
-            <h2 className="font-semibold text-slate-900">Approved by person</h2>
+            <h2 className="font-semibold text-slate-900">Approved</h2>
             <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{staffSummary.length} staff</span>
           </div>
           <div className="divide-y divide-slate-100">
@@ -146,6 +148,7 @@ export default function TimesheetManager() {
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-900 truncate">{p.name}</p>
                     <p className="text-xs text-slate-400 capitalize">{p.role?.replace(/_/g, ' ')} · {p.shifts} {p.shifts === 1 ? 'entry' : 'entries'}{p.meterage > 0 && ` · ${p.meterage}m`}</p>
+                    {p.approvers.length > 0 && <p className="text-[10px] text-emerald-600 font-medium">Approved by {p.approvers.join(', ')}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-sm flex-shrink-0">

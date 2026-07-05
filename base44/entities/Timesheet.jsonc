@@ -58,6 +58,10 @@
       "default": false,
       "description": "True when the staff member explicitly logged this task as overtime. The whole entry is paid at the overtime rate for its day, regardless of the weekly threshold."
     },
+    "approved_by_name": {
+      "type": "string",
+      "description": "Name of the manager who approved this timesheet"
+    },
     "status": {
       "type": "string",
       "enum": [
