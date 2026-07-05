@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, CheckCircle2, XCircle, Ruler, PoundSterling, TrendingUp, Users, Search, CalendarDays, FileText, RotateCcw } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Ruler, PoundSterling, TrendingUp, Users, Search, CalendarDays, FileText, RotateCcw, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
 import TodayTimeBoard from '@/components/TodayTimeBoard';
@@ -82,6 +82,8 @@ export default function TimesheetManager() {
     deleted: workTimesheets.filter(t => t.status === 'deleted').length,
     all: workTimesheets.length,
   };
+  const scopedApproved = timesheets.filter(t => t.status === 'approved' && (staffFilter === 'all' || t.staff_id === staffFilter)).length;
+  const scopedSubmitted = timesheets.filter(t => t.status === 'submitted' && (staffFilter === 'all' || t.staff_id === staffFilter)).length;
 
   // Per-staff summary (approved)
   const staffSummary = staff.map(s => {
@@ -120,6 +122,15 @@ export default function TimesheetManager() {
   };
   const handleUnreject = async (id) => {
     await base44.entities.Timesheet.update(id, { status: 'submitted' });
+    queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+  };
+  const handleBulkDelete = async (status) => {
+    const count = timesheets.filter(t => t.status === status && (staffFilter === 'all' || t.staff_id === staffFilter)).length;
+    if (count === 0) return;
+    const label = status === 'approved' ? 'approved' : 'submitted';
+    if (!confirm(`Delete ${count} ${label} timesheet(s)? This cannot be undone.`)) return;
+    const query = staffFilter === 'all' ? { status } : { status, staff_id: staffFilter };
+    await base44.entities.Timesheet.deleteMany(query);
     queryClient.invalidateQueries({ queryKey: ['timesheets'] });
   };
 
@@ -198,6 +209,24 @@ export default function TimesheetManager() {
         </div>
       </div>
 
+      {/* Bulk actions */}
+      {(scopedApproved > 0 || scopedSubmitted > 0) && (
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-xs text-slate-400 font-medium mr-1">Bulk delete:</span>
+          {scopedApproved > 0 && (
+            <button onClick={() => handleBulkDelete('approved')} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-red-200 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-50 transition">
+              <Trash2 className="w-3.5 h-3.5" /> All approved ({scopedApproved})
+            </button>
+          )}
+          {scopedSubmitted > 0 && (
+            <button onClick={() => handleBulkDelete('submitted')} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-red-200 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-50 transition">
+              <Trash2 className="w-3.5 h-3.5" /> All submitted ({scopedSubmitted})
+            </button>
+          )}
+          {staffFilter !== 'all' && <span className="text-[10px] text-slate-400">Scoped to selected staff</span>}
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         {isLoading ? (
@@ -271,6 +300,9 @@ export default function TimesheetManager() {
                         </td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${status.badge}`}>{status.label}</span>
+                          {ts.status === 'approved' && ts.approved_by_name && (
+                            <p className="text-[10px] text-slate-400 mt-1 truncate max-w-[110px]">by {ts.approved_by_name}</p>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-1">
@@ -341,6 +373,11 @@ export default function TimesheetManager() {
                       {member?.day_rate && (
                         <span className="inline-flex items-center gap-1 text-slate-600 font-medium">
                           <PoundSterling className="w-3 h-3" />{fmtCost(cost)}
+                        </span>
+                      )}
+                      {ts.status === 'approved' && ts.approved_by_name && (
+                        <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+                          <CheckCircle2 className="w-3 h-3" /> {ts.approved_by_name}
                         </span>
                       )}
                     </div>
