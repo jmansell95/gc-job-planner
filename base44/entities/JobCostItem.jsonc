@@ -23,6 +23,10 @@
       "type": "string",
       "description": "Item description e.g. Transformer, Excavator"
     },
+    "reference_number": {
+      "type": "string",
+      "description": "Reference / asset tag / PO / serial number for tracking"
+    },
     "start_date": {
       "type": "string",
       "format": "date",
@@ -51,6 +55,14 @@
       "type": "boolean",
       "default": false,
       "description": "Whether this item is exempt from VAT"
+    },
+    "delivery_notes": {
+      "type": "string",
+      "description": "Notes for equipment delivery (address, contact, timing)"
+    },
+    "collection_notes": {
+      "type": "string",
+      "description": "Notes for equipment collection (date, contact, return condition)"
     },
     "notes": {
       "type": "string",

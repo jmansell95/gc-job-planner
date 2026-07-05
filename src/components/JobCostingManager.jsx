@@ -17,8 +17,9 @@ const roleLabels = {
 
 const blankForm = () => ({
   category: 'hired_equipment', supplier_id: '', description: '',
-  start_date: '', end_date: '', unit_cost: '', quantity: '1',
-  unit_label: 'day', vat_exempt: false, notes: ''
+  reference_number: '', start_date: '', end_date: '', unit_cost: '', quantity: '1',
+  unit_label: 'day', vat_exempt: false, notes: '',
+  delivery_notes: '', collection_notes: ''
 });
 
 export default function JobCostingManager({ job, staffCosts, totalCost, isDrillingJob, totalMeterage }) {
@@ -90,12 +91,15 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
         category: form.category,
         supplier_id: form.supplier_id || '',
         description: form.description,
+        reference_number: form.reference_number || '',
         start_date: form.start_date || '',
         end_date: form.end_date || '',
         unit_cost: Number(form.unit_cost) || 0,
         quantity: effectiveQty,
         unit_label: form.unit_label,
         vat_exempt: !!form.vat_exempt,
+        delivery_notes: form.delivery_notes || '',
+        collection_notes: form.collection_notes || '',
         notes: form.notes || ''
       };
       if (editingId) {
@@ -113,9 +117,12 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
     setEditingId(c.id);
     setForm({
       category: c.category, supplier_id: c.supplier_id || '', description: c.description,
+      reference_number: c.reference_number || '',
       start_date: c.start_date || '', end_date: c.end_date || '',
       unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
-      unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt, notes: c.notes || ''
+      unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt,
+      delivery_notes: c.delivery_notes || '', collection_notes: c.collection_notes || '',
+      notes: c.notes || ''
     });
     setAdding(true);
   };
@@ -222,6 +229,10 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                   <label className="block text-xs font-medium text-slate-600 mb-1">Description *</label>
                   <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required placeholder="e.g. Transformer hire" className={inputCls} />
                 </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Reference Number</label>
+                  <input value={form.reference_number} onChange={(e) => setForm({ ...form, reference_number: e.target.value })} placeholder="Asset tag, PO no., serial no." className={inputCls} />
+                </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Start date</label>
                   <input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className={inputCls} />
@@ -258,6 +269,16 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                   <input type="checkbox" checked={form.vat_exempt} onChange={(e) => setForm({ ...form, vat_exempt: e.target.checked })} className="rounded border-slate-300 text-emerald-700 focus:ring-emerald-600" />
                   VAT exempt (zero-rated item)
                 </label>
+                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Delivery Notes</label>
+                    <textarea value={form.delivery_notes} onChange={(e) => setForm({ ...form, delivery_notes: e.target.value })} rows="2" placeholder="Delivery address, contact, timing" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Collection Notes</label>
+                    <textarea value={form.collection_notes} onChange={(e) => setForm({ ...form, collection_notes: e.target.value })} rows="2" placeholder="Collection date, contact, return condition" className={inputCls} />
+                  </div>
+                </div>
               </div>
               <div className="flex gap-2">
                 <button type="submit" disabled={savingItem} className="px-4 py-2 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition disabled:opacity-50">{editingId ? 'Update' : 'Add'} item</button>
@@ -285,6 +306,7 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold text-slate-900 truncate">{c.description}</p>
+                        {c.reference_number && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium font-mono">Ref: {c.reference_number}</span>}
                         {c.vat_exempt && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">VAT exempt</span>}
                         <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">{c.category === 'hired_equipment' ? 'Hired' : 'Internal'}</span>
                       </div>
@@ -293,6 +315,22 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                         {supplier && ` · ${supplier.name}`}
                         {` · ${c.quantity} ${c.unit_label}${c.quantity > 1 ? 's' : ''}`}
                       </p>
+                      {(c.delivery_notes || c.collection_notes) && (
+                        <div className="mt-1.5 space-y-1">
+                          {c.delivery_notes && (
+                            <div className="flex items-start gap-1.5 text-xs text-slate-500">
+                              <Truck className="w-3 h-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                              <span><span className="font-medium text-slate-600">Delivery:</span> {c.delivery_notes}</span>
+                            </div>
+                          )}
+                          {c.collection_notes && (
+                            <div className="flex items-start gap-1.5 text-xs text-slate-500">
+                              <Truck className="w-3 h-3 text-blue-500 mt-0.5 flex-shrink-0" />
+                              <span><span className="font-medium text-slate-600">Collection:</span> {c.collection_notes}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-bold text-slate-900">{fmt(net)}</p>
