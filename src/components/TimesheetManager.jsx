@@ -134,6 +134,11 @@ export default function TimesheetManager() {
     await base44.entities.Timesheet.deleteMany(query);
     queryClient.invalidateQueries({ queryKey: ['timesheets'] });
   };
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this timesheet? This cannot be undone.')) return;
+    await base44.entities.Timesheet.delete(id);
+    queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+  };
 
   return (
     <div>
@@ -317,6 +322,9 @@ export default function TimesheetManager() {
                                 <button onClick={() => handleReject(ts.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition" title="Reject">
                                   <XCircle className="w-4 h-4" />
                                 </button>
+                                <button onClick={() => handleDelete(ts.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               </>
                             )}
                             {ts.status === 'rejected' && (
@@ -391,6 +399,9 @@ export default function TimesheetManager() {
                         </button>
                         <button onClick={() => handleReject(ts.id)} className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-red-200 text-red-600 rounded-lg text-xs font-semibold active:scale-95 transition">
                           <XCircle className="w-3.5 h-3.5" /> Reject
+                        </button>
+                        <button onClick={() => handleDelete(ts.id)} className="inline-flex items-center justify-center px-3 py-2 bg-white border border-red-200 text-red-600 rounded-lg text-xs font-semibold active:scale-95 transition" title="Delete">
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     )}
