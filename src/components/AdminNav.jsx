@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Clock, Bell, HardHat, Sparkles, Lightbulb } from 'lucide-react';
+import { Users, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Clock, Bell, HardHat, Sparkles, Lightbulb, BarChart3 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -28,6 +28,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'rota', label: 'Rotas', icon: Calendar },
     { id: 'calendar', label: 'Calendar', icon: CalendarDays },
     { id: 'timesheets', label: 'Timesheets', icon: Clock },
+    { id: 'reports', label: 'Reports', icon: BarChart3 },
     { id: 'insights', label: 'Insights', icon: Lightbulb },
     { id: 'teams', label: 'Teams', icon: Users },
     { id: 'settings', label: 'Settings', icon: Settings },
