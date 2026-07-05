@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDays, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, WifiOff, HardHat, Sparkles } from 'lucide-react';
+import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDays, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, WifiOff, HardHat, Sparkles, ChevronRight } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
@@ -29,23 +29,35 @@ const jobTypeDot = {
   depot: 'bg-slate-400'
 };
 
-const roleBorder = {
-  groundworker: 'border-l-green-500',
-  cp_driller: 'border-l-amber-500',
-  rotary_driller: 'border-l-blue-500',
-  enabling_crew: 'border-l-purple-500',
-  depot: 'border-l-slate-500',
-  supervisor: 'border-l-teal-500'
+const jobTypeAccent = {
+  groundworks: { bar: 'bg-green-500', soft: 'bg-green-50', ring: 'ring-green-100', text: 'text-green-700' },
+  cp_drilling: { bar: 'bg-amber-500', soft: 'bg-amber-50', ring: 'ring-amber-100', text: 'text-amber-700' },
+  rotary_drilling: { bar: 'bg-blue-500', soft: 'bg-blue-50', ring: 'ring-blue-100', text: 'text-blue-700' },
+  enabling_works: { bar: 'bg-purple-500', soft: 'bg-purple-50', ring: 'ring-purple-100', text: 'text-purple-700' },
+  depot: { bar: 'bg-slate-400', soft: 'bg-slate-50', ring: 'ring-slate-100', text: 'text-slate-600' }
 };
 
 const statusConfig = {
-  assigned: { label: 'Assigned', icon: Clock, badge: 'bg-slate-100 text-slate-600' },
-  started: { label: 'In Progress', icon: PlayCircle, badge: 'bg-blue-100 text-blue-700' },
-  completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-100 text-emerald-700' }
+  assigned: { label: 'Assigned', icon: Clock, badge: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200' },
+  started: { label: 'In Progress', icon: PlayCircle, badge: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
+  completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' }
 };
 
-const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
-const listItem = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
+const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
+const listItem = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } } };
+
+function SectionHeader({ icon: Icon, title, count, tone = 'dark' }) {
+  const textTone = tone === 'muted' ? 'text-slate-400' : 'text-slate-900';
+  return (
+    <div className="flex items-center gap-2.5 mb-3 md:mb-4">
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tone === 'muted' ? 'bg-slate-100' : 'bg-emerald-50'}`}>
+        <Icon className={`w-4 h-4 ${tone === 'muted' ? 'text-slate-400' : 'text-emerald-700'}`} />
+      </div>
+      <h2 className={`text-lg md:text-xl font-bold ${textTone}`}>{title}</h2>
+      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${tone === 'muted' ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'}`}>{count}</span>
+    </div>
+  );
+}
 
 export default function StaffDashboard() {
   const [staff, setStaff] = useState(null);
@@ -145,29 +157,25 @@ export default function StaffDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="w-8 h-8 border-4 border-emerald-100 border-t-emerald-700 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="w-10 h-10 border-4 border-emerald-100 border-t-emerald-700 rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (!staff) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="text-center">
-          <p className="text-slate-600">No staff profile found</p>
+      <div className="flex items-center justify-center min-h-screen bg-slate-50 px-6">
+        <div className="text-center max-w-sm">
+          <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+            <HardHat className="w-7 h-7 text-slate-400" />
+          </div>
+          <p className="text-slate-700 font-semibold">No staff profile found</p>
+          <p className="text-slate-400 text-sm mt-1">Contact your supervisor to get set up.</p>
         </div>
       </div>
     );
   }
-
-  const jobTypeColors = {
-    groundworks: 'bg-green-50 border-green-200',
-    cp_drilling: 'bg-amber-50 border-amber-200',
-    rotary_drilling: 'bg-blue-50 border-blue-200',
-    enabling_works: 'bg-purple-50 border-purple-200',
-    depot: 'bg-slate-50 border-slate-200'
-  };
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const todaysAssignments = assignments.filter(a => a.assigned_date === todayStr);
@@ -181,203 +189,217 @@ export default function StaffDashboard() {
     const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
     const StatusIcon = status.icon;
     const isDriller = staff.job_role === 'cp_driller' || staff.job_role === 'rotary_driller';
+    const accent = jobTypeAccent[job?.job_type] || jobTypeAccent.depot;
     if (!job) return null;
-    return (
-      <motion.div key={assignment.id} variants={listItem} className={`rounded-lg p-4 md:p-6 border-l-4 border ${jobTypeColors[job.job_type] || 'bg-slate-50 border-slate-200'}`}>
-        {/* Status + Check-in Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-3 border-b border-slate-200/60">
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold self-start ${status.badge}`}>
-            <StatusIcon className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">{status.label}</span>
-            {assignment.status === 'started' && assignment.started_at && (
-              <span className="text-[10px] opacity-70 ml-1 whitespace-nowrap">since {format(new Date(assignment.started_at), 'HH:mm')}</span>
-            )}
-          </span>
-          <div className="flex flex-wrap gap-2 justify-end">
-            {(assignment.status || 'assigned') === 'assigned' && (
-              <button onClick={() => handleStartJob(assignment.id)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs font-medium">
-                <PlayCircle className="w-3.5 h-3.5" /> Start Job
-              </button>
-            )}
-            {assignment.status === 'started' && (
-              <div className="flex items-center gap-2">
-                {isDriller && (
-                  <input type="number" min="0" step="0.1" placeholder="Meterage (m)"
-                    value={meterageInputs[assignment.id] || ''}
-                    onChange={(e) => setMeterageInputs(prev => ({ ...prev, [assignment.id]: e.target.value }))}
-                    className="w-28 px-2 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-emerald-600" />
-                )}
-                <button onClick={() => handleCompleteJob(assignment.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition text-xs font-medium">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Complete Job
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          <div>
-            <div className="flex items-start justify-between mb-3 md:mb-4 gap-2">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${jobTypeDot[job.job_type] || 'bg-slate-400'}`} />
-                  <h3 className="text-base md:text-lg font-bold text-slate-900 break-words">{job.name}</h3>
+    return (
+      <motion.div key={assignment.id} variants={listItem}
+        className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+        {/* Top accent bar */}
+        <div className={`h-1.5 ${accent.bar}`} />
+
+        <div className="p-4 md:p-6">
+          {/* Status + Check-in Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-4 border-b border-slate-100">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold self-start ${status.badge}`}>
+              <StatusIcon className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{status.label}</span>
+              {assignment.status === 'started' && assignment.started_at && (
+                <span className="text-[10px] opacity-70 ml-1 whitespace-nowrap">since {format(new Date(assignment.started_at), 'HH:mm')}</span>
+              )}
+            </span>
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              {(assignment.status || 'assigned') === 'assigned' && (
+                <button onClick={() => handleStartJob(assignment.id)}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
+                  <PlayCircle className="w-4 h-4" /> Start Job
+                </button>
+              )}
+              {assignment.status === 'started' && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {isDriller && (
+                    <input type="number" min="0" step="0.1" placeholder="Meterage (m)"
+                      value={meterageInputs[assignment.id] || ''}
+                      onChange={(e) => setMeterageInputs(prev => ({ ...prev, [assignment.id]: e.target.value }))}
+                      className="w-32 px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
+                  )}
+                  <button onClick={() => handleCompleteJob(assignment.id)}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
+                    <CheckCircle2 className="w-4 h-4" /> Complete
+                  </button>
                 </div>
-                <span className={`inline-block px-2 py-1 rounded text-xs font-semibold mt-2 ${jobTypeBadgeColors[job.job_type]}`}>
+              )}
+            </div>
+          </div>
+
+          {/* Job Title */}
+          <div className="flex items-start gap-3 mb-4">
+            <span className={`w-3 h-3 rounded-full flex-shrink-0 mt-1.5 ${jobTypeDot[job.job_type] || 'bg-slate-400'}`} />
+            <div className="min-w-0 flex-1">
+              <h3 className="text-lg md:text-xl font-bold text-slate-900 leading-tight break-words">{job.name}</h3>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-semibold ${jobTypeBadgeColors[job.job_type]}`}>
                   {formatJobType(job.job_type)}
                 </span>
+                {assignment.meterage != null && assignment.meterage > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 ring-1 ring-amber-100">
+                    <Ruler className="w-3 h-3" /> {assignment.meterage}m
+                  </span>
+                )}
               </div>
             </div>
-            <div className="space-y-2 text-xs md:text-sm text-slate-600">
-              <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                {job.location}
+          </div>
+
+          {/* Job Details Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div className="space-y-2.5">
+              <div className="flex items-start gap-2.5 text-sm text-slate-600">
+                <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <span className="break-words">{job.location}</span>
               </div>
-              <div className="flex items-start gap-2">
-                <Calendar className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2.5 text-sm text-slate-600">
+                <Calendar className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                 <span className="break-words">{format(new Date(assignment.assigned_date), 'EEEE, MMM d, yyyy')}</span>
               </div>
               {client && (
-                <div className="flex items-start gap-2">
-                  <Briefcase className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2.5 text-sm text-slate-600">
+                  <Briefcase className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                   <span>Client: <span className="font-medium text-slate-700">{client.name}</span></span>
                 </div>
               )}
-            </div>
-          </div>
-          <div className="space-y-3 md:space-y-4">
-            {vehicle && (
-              <div className="p-3 md:p-4 bg-white bg-opacity-50 rounded-lg border border-green-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <Truck className="w-5 h-5 text-green-600" />
-                  <h4 className="font-semibold text-slate-900">Assigned Vehicle</h4>
+              {vehicle && (
+                <div className="flex items-start gap-2.5 text-sm text-slate-600 md:hidden">
+                  <Truck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  <span className="font-mono font-bold text-slate-900">{vehicle.registration_number}</span>
+                  <span className="text-slate-400">·</span>
+                  <span>{vehicle.name}</span>
                 </div>
-                <p className="text-slate-900 font-mono font-bold text-lg">{vehicle.registration_number}</p>
-                <p className="text-slate-600 text-sm">{vehicle.name}</p>
-              </div>
-            )}
-            {job.requisition_list_url && (
-              <div className="p-3 md:p-4 bg-white bg-opacity-50 rounded-lg border border-green-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <FileText className="w-5 h-5 text-green-600" />
-                  <h4 className="font-semibold text-slate-900">Requisition List</h4>
-                </div>
-                <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-emerald-700 hover:text-emerald-900 font-medium">
-                  <ExternalLink className="w-3.5 h-3.5" /> {job.requisition_list_name || 'View document'}
-                </a>
-              </div>
-            )}
-            {job.notes && (
-              <div className="p-3 md:p-4 bg-white bg-opacity-50 rounded-lg border border-green-100">
-                <h4 className="font-semibold text-slate-900 mb-2">Notes</h4>
-                <p className="text-slate-600 text-sm whitespace-pre-wrap">{job.notes}</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Meterage Record */}
-        {assignment.meterage != null && assignment.meterage > 0 && (
-          <div className="flex items-center gap-2 text-sm text-slate-600 mb-3">
-            <Ruler className="w-4 h-4 text-amber-600" />
-            <span>Meterage recorded: <span className="font-semibold text-slate-900">{assignment.meterage}m</span></span>
-          </div>
-        )}
-
-        {/* Briefing Sign-off */}
-        <div className="mt-4 pt-4 border-t border-slate-200/60">
-          {assignment.briefing_signed ? (
-            <div className="flex items-center gap-2 text-sm text-emerald-700">
-              <ClipboardCheck className="w-4 h-4" />
-              <span className="font-medium">Briefing signed off</span>
-              {assignment.briefing_signed_at && (
-                <span className="text-xs text-slate-400">
-                  · {format(new Date(assignment.briefing_signed_at), 'dd MMM yyyy HH:mm')}
-                </span>
               )}
             </div>
-          ) : (
-            <button onClick={() => handleBriefingSign(assignment.id)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition text-sm font-medium w-full sm:w-auto">
-              <ClipboardCheck className="w-4 h-4" />
-              Sign Off Job Briefing
-            </button>
+
+            <div className="space-y-3">
+              {vehicle && (
+                <div className="hidden md:block p-4 bg-slate-50 rounded-xl border border-slate-100">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Truck className="w-4 h-4 text-emerald-600" />
+                    <h4 className="font-semibold text-slate-900 text-sm">Assigned Vehicle</h4>
+                  </div>
+                  <p className="text-slate-900 font-mono font-bold text-lg">{vehicle.registration_number}</p>
+                  <p className="text-slate-500 text-xs">{vehicle.name}</p>
+                </div>
+              )}
+              {job.requisition_list_url && (
+                <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-2 p-3.5 bg-emerald-50 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition group">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-emerald-900 text-sm">Requisition List</p>
+                      <p className="text-emerald-700 text-xs truncate">{job.requisition_list_name || 'View document'}</p>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-emerald-600 flex-shrink-0 group-hover:translate-x-0.5 transition" />
+                </a>
+              )}
+              {job.notes && (
+                <div className="p-3.5 bg-amber-50/50 rounded-xl border border-amber-100">
+                  <h4 className="font-semibold text-slate-900 text-sm mb-1.5">Notes</h4>
+                  <p className="text-slate-600 text-sm whitespace-pre-wrap leading-relaxed">{job.notes}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Briefing Sign-off */}
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            {assignment.briefing_signed ? (
+              <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50/50 rounded-lg px-3 py-2">
+                <ClipboardCheck className="w-4 h-4 flex-shrink-0" />
+                <span className="font-medium">Briefing signed off</span>
+                {assignment.briefing_signed_at && (
+                  <span className="text-xs text-slate-400 ml-auto">
+                    {format(new Date(assignment.briefing_signed_at), 'dd MMM HH:mm')}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <button onClick={() => handleBriefingSign(assignment.id)}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 active:scale-95 transition text-sm font-medium w-full sm:w-auto touch-manipulation">
+                <ClipboardCheck className="w-4 h-4" />
+                Sign Off Job Briefing
+              </button>
+            )}
+          </div>
+
+          {/* Site Photo Upload */}
+          {job && (
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <SitePhotoUpload jobId={job.id} staffName={staff.name} />
+            </div>
+          )}
+
+          {/* Timesheet Entry */}
+          {job && assignment.status === 'completed' && (
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <TimesheetEntry assignment={assignment} jobId={job.id} staffId={staff.id} />
+            </div>
           )}
         </div>
-
-        {/* Site Photo Upload */}
-        {job && (
-          <div className="mt-4 pt-4 border-t border-slate-200/60">
-            <SitePhotoUpload jobId={job.id} staffName={staff.name} />
-          </div>
-        )}
-
-        {/* Timesheet Entry */}
-        {job && assignment.status === 'completed' && (
-          <div className="mt-4 pt-4 border-t border-slate-200/60">
-            <TimesheetEntry assignment={assignment} jobId={job.id} staffId={staff.id} />
-          </div>
-        )}
       </motion.div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="hero-gradient border-b border-emerald-800/40 relative overflow-hidden">
-        <div className="absolute -top-12 -right-8 w-44 h-44 rounded-full bg-emerald-300/20 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-10 w-40 h-40 rounded-full bg-teal-300/10 blur-3xl pointer-events-none" />
-        <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm ring-1 ring-white/20 flex-shrink-0">
-              <HardHat className="w-6 h-6 md:w-7 md:h-7 text-white" />
+      <div className="hero-gradient relative overflow-hidden">
+        <div className="absolute -top-12 -right-8 w-48 h-48 rounded-full bg-emerald-300/20 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-10 w-44 h-44 rounded-full bg-teal-300/10 blur-3xl pointer-events-none" />
+        <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-7">
+          <div className="flex items-center justify-between gap-4 mb-5">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg ring-1 ring-white/25 flex-shrink-0">
+                <HardHat className="w-6 h-6 md:w-7 md:h-7 text-white" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-2xl md:text-3xl font-bold text-white truncate tracking-tight">My Schedule</h1>
+                <p className="text-emerald-100 text-sm md:text-base mt-0.5 truncate">Welcome back, {staff.name.split(' ')[0]}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h1 className="text-2xl md:text-3xl font-bold text-white truncate">My Schedule</h1>
-              <p className="text-emerald-200 text-sm md:text-base mt-0.5 truncate">Welcome, {staff.name}</p>
-            </div>
+            <button onClick={openChat} type="button"
+              className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation flex-shrink-0">
+              <Sparkles className="w-5 h-5" />
+              <span className="hidden sm:inline">Ask Assistant</span>
+            </button>
           </div>
-          <button onClick={openChat} type="button"
-            className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition cursor-pointer touch-manipulation select-none flex-shrink-0">
-            <Sparkles className="w-5 h-5" />
-            <span className="hidden sm:inline">Ask Assistant</span>
-          </button>
+
+          {/* Quick stats strip */}
+          <div className="grid grid-cols-3 gap-2 md:gap-3">
+            {[
+              { label: 'Today', value: todaysAssignments.length, icon: Clock },
+              { label: 'Upcoming', value: upcomingAssignments.length, icon: Calendar },
+              { label: 'Total', value: assignments.length, icon: Briefcase }
+            ].map((stat) => (
+              <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2.5 ring-1 ring-white/15">
+                <div className="flex items-center gap-1.5">
+                  <stat.icon className="w-3.5 h-3.5 text-emerald-200" />
+                  <p className="text-[10px] md:text-xs font-medium text-emerald-100 uppercase tracking-wide">{stat.label}</p>
+                </div>
+                <p className="text-xl md:text-2xl font-bold text-white mt-0.5">{stat.value}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-8">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-8">
         {!isOnline && (
-          <div className="mb-6 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-700">
+          <div className="mb-5 flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
             <WifiOff className="w-4 h-4 flex-shrink-0" />
-            You're offline. Showing cached schedule. Changes will sync when you reconnect.
+            You're offline. Showing cached schedule — changes will sync when you reconnect.
           </div>
         )}
-        {/* Staff Info Card */}
-        <div className={`bg-white rounded-lg p-4 md:p-6 border border-green-200 border-l-4 shadow-sm mb-6 md:mb-8 ${roleBorder[staff.job_role] || 'border-l-emerald-500'}`}>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
-            <div className="col-span-1">
-              <p className="text-xs font-medium text-slate-500 uppercase">Role</p>
-              <p className="text-sm md:text-lg font-semibold text-slate-900 mt-1 capitalize">{staff.job_role.replace('_', ' ')}</p>
-            </div>
-            <div className="col-span-1">
-              <p className="text-xs font-medium text-slate-500 uppercase">Type</p>
-              <p className="text-sm md:text-lg font-semibold text-slate-900 mt-1 capitalize">{staff.worker_type.replace('_', ' ')}</p>
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <p className="text-xs font-medium text-slate-500 uppercase">Email</p>
-              <p className="text-sm font-semibold text-slate-900 mt-1 truncate">{staff.email}</p>
-            </div>
-            <div className="col-span-1">
-              <p className="text-xs font-medium text-slate-500 uppercase">Jobs</p>
-              <p className="text-sm md:text-lg font-semibold text-slate-900 mt-1">{assignments.length}</p>
-            </div>
-          </div>
-        </div>
 
         {/* Manager: Timesheet Approvals */}
         <ManagerTimesheetApprovals staffId={staff.id} />
@@ -385,11 +407,7 @@ export default function StaffDashboard() {
         {/* Today's Assignment Highlight */}
         {todaysAssignments.length > 0 && (
           <div className="mb-8">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="w-5 h-5 text-emerald-700" />
-              <h2 className="text-lg md:text-xl font-bold text-slate-900">Today</h2>
-              <span className="text-xs bg-emerald-700 text-white px-2 py-0.5 rounded-full font-medium">{todaysAssignments.length}</span>
-            </div>
+            <SectionHeader icon={Clock} title="Today" count={todaysAssignments.length} />
             <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-4">
               {todaysAssignments.map(renderAssignment)}
             </motion.div>
@@ -398,8 +416,8 @@ export default function StaffDashboard() {
 
         {/* Print/Email Controls */}
         <div className="mb-8">
-          <PrintEmailSchedule 
-            weekStart={new Date()} 
+          <PrintEmailSchedule
+            weekStart={new Date()}
             staffId={staff.id}
             staffName={staff.name}
           />
@@ -409,23 +427,22 @@ export default function StaffDashboard() {
         {assignmentsLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-lg border border-slate-200 p-5">
+              <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5">
+                <Skeleton className="h-1.5 w-full mb-4 rounded-full" />
                 <Skeleton className="h-4 w-1/3 mb-3" />
                 <SkeletonText lines={3} />
               </div>
             ))}
           </div>
         ) : assignments.length === 0 ? (
-          <EmptyState icon={CalendarDays} title="No assignments scheduled" message="Check back later — your supervisor will assign you to upcoming jobs." />
+          <div className="bg-white rounded-2xl border border-slate-200">
+            <EmptyState icon={CalendarDays} title="No assignments scheduled" message="Check back later — your supervisor will assign you to upcoming jobs." />
+          </div>
         ) : (
           <div className="space-y-8">
             {upcomingAssignments.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Calendar className="w-5 h-5 text-emerald-700" />
-                  <h2 className="text-lg md:text-xl font-bold text-slate-900">Upcoming</h2>
-                  <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{upcomingAssignments.length}</span>
-                </div>
+                <SectionHeader icon={Calendar} title="Upcoming" count={upcomingAssignments.length} />
                 <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-4">
                   {upcomingAssignments.map(renderAssignment)}
                 </motion.div>
@@ -433,11 +450,7 @@ export default function StaffDashboard() {
             )}
             {pastAssignments.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-5 h-5 text-slate-400" />
-                  <h2 className="text-lg md:text-xl font-bold text-slate-500">Past Assignments</h2>
-                  <span className="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full font-medium">{pastAssignments.length}</span>
-                </div>
+                <SectionHeader icon={Clock} title="Past Assignments" count={pastAssignments.length} tone="muted" />
                 <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-4 opacity-70">
                   {pastAssignments.map(renderAssignment)}
                 </motion.div>
@@ -447,7 +460,7 @@ export default function StaffDashboard() {
         )}
 
         {/* My Timesheets */}
-        <div className="mt-8">
+        <div className="mt-10">
           <StaffTimesheets staffId={staff.id} staffName={staff.name} />
         </div>
       </div>

@@ -186,41 +186,45 @@ export default function StaffTimesheets({ staffId, staffName }) {
   };
 
   return (
-    <div className="bg-white rounded-lg p-4 md:p-6 border border-green-200 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Clock className="w-5 h-5 text-emerald-700" />
-          <h2 className="text-lg font-bold text-slate-900">My Timesheets</h2>
-          {staffRecord?.day_rate ? <span className="text-xs text-slate-400">· £{staffRecord.day_rate}/day (£{hourlyRate.toFixed(0)}/h)</span> : null}
+    <div className="bg-white rounded-2xl p-4 md:p-6 border border-slate-200 shadow-sm">
+      <div className="flex items-center justify-between mb-4 gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <Clock className="w-4 h-4 text-emerald-700" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-slate-900">My Timesheets</h2>
+            {staffRecord?.day_rate && <p className="text-xs text-slate-400">£{staffRecord.day_rate}/day · £{hourlyRate.toFixed(0)}/h</p>}
+          </div>
         </div>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-          <Plus className="w-4 h-4" /> Add Entry
+        <button onClick={() => { resetForm(); setShowForm(true); }} className="flex items-center gap-1.5 px-3 md:px-4 py-2.5 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-semibold touch-manipulation flex-shrink-0">
+          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Entry</span><span className="sm:hidden">Add</span>
         </button>
       </div>
 
       {weekMins > 0 && (
-        <div className="mb-4 bg-slate-50 border border-slate-200 rounded-lg p-3">
-          <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="font-medium text-slate-600">This week's hours</span>
-            <span className="text-slate-500">{(weekMins / 60).toFixed(1)}h / {otThreshold}h</span>
+        <div className="mb-4 bg-slate-50 border border-slate-100 rounded-xl p-3.5">
+          <div className="flex items-center justify-between text-xs mb-2">
+            <span className="font-semibold text-slate-700">This week's hours</span>
+            <span className="text-slate-500 font-medium">{(weekMins / 60).toFixed(1)}h / {otThreshold}h</span>
           </div>
-          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
             <div className={`h-full rounded-full transition-all ${weekMins > otThreshold * 60 ? 'bg-amber-500' : 'bg-emerald-600'}`} style={{ width: `${Math.min(100, (weekMins / (otThreshold * 60)) * 100)}%` }} />
           </div>
-          {weekMins > otThreshold * 60 && <p className="text-[10px] text-amber-600 mt-1 font-medium">Overtime applies above {otThreshold}h/week</p>}
+          {weekMins > otThreshold * 60 && <p className="text-[10px] text-amber-600 mt-1.5 font-medium">Overtime applies above {otThreshold}h/week</p>}
         </div>
       )}
 
       {showForm && (
-        <form onSubmit={(e) => { e.preventDefault(); handleSave('submitted'); }} className="mb-4 p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
+        <form onSubmit={(e) => { e.preventDefault(); handleSave('submitted'); }} className="mb-4 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
           {availableJobs.length === 0 && (
-            <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">No jobs available yet. Ask your manager to assign you to a job first.</p>
+            <p className="text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-lg border border-amber-100">No jobs available yet. Ask your manager to assign you to a job first.</p>
           )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-slate-600 mb-1">Job *</label>
               <select value={form.job_id} onChange={e => setForm({ ...form, job_id: e.target.value })} required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600">
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white">
                 <option value="">Select job</option>
                 {availableJobs.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
               </select>
@@ -229,41 +233,41 @@ export default function StaffTimesheets({ staffId, staffName }) {
               <label className="block text-xs font-medium text-slate-600 mb-1">What were you doing? *</label>
               <input type="text" value={form.task_description} onChange={e => setForm({ ...form, task_description: e.target.value })} required
                 placeholder="e.g. Setting up the rig"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {TASK_SUGGESTIONS.map(s => (
                   <button type="button" key={s} onClick={() => setForm({ ...form, task_description: s })}
-                    className="text-xs px-2 py-1 bg-white border border-slate-200 rounded-full text-slate-600 hover:border-emerald-400 hover:text-emerald-700 transition">{s}</button>
+                    className="text-xs px-2.5 py-1 bg-white border border-slate-200 rounded-full text-slate-600 hover:border-emerald-400 hover:text-emerald-700 transition">{s}</button>
                 ))}
               </div>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Date *</label>
               <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Time taken (minutes) *</label>
               <input type="number" min="1" step="1" value={form.task_duration_minutes} onChange={e => setForm({ ...form, task_duration_minutes: e.target.value })} required
                 placeholder="e.g. 30"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
             </div>
             <div className="sm:col-span-2">
               <div className="flex flex-wrap gap-1.5">
                 {DURATION_CHIPS.map(d => (
                   <button type="button" key={d} onClick={() => setForm({ ...form, task_duration_minutes: String(d) })}
-                    className={`text-xs px-2.5 py-1 rounded-full border transition ${durationMins === d ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400'}`}>{fmtDur(d)}</button>
+                    className={`text-xs px-3 py-1.5 rounded-full border transition font-medium ${durationMins === d ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400'}`}>{fmtDur(d)}</button>
                 ))}
               </div>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-slate-600 mb-1">Notes (optional)</label>
               <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 resize-none" />
             </div>
           </div>
           {durationMins > 0 && (
-            <div className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${previewOT ? 'bg-amber-50 border border-amber-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+            <div className={`flex items-center justify-between rounded-xl px-3.5 py-2.5 text-sm ${previewOT ? 'bg-amber-50 border border-amber-200' : 'bg-emerald-50 border border-emerald-200'}`}>
               <span className="text-slate-600">Duration: <span className="font-semibold text-slate-900">{fmtDur(durationMins)}</span></span>
               {hourlyRate > 0 && (
                 <span className="text-slate-600">
@@ -274,13 +278,13 @@ export default function StaffTimesheets({ staffId, staffName }) {
             </div>
           )}
           <div className="flex flex-wrap gap-2">
-            <button type="submit" disabled={submitting} className="flex items-center gap-1.5 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium disabled:opacity-50">
+            <button type="submit" disabled={submitting} className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-semibold disabled:opacity-50 touch-manipulation">
               <Send className="w-3.5 h-3.5" /> {editingId ? 'Update & Submit' : 'Submit'}
             </button>
-            <button type="button" onClick={() => handleSave('draft')} disabled={submitting} className="flex items-center gap-1.5 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition text-sm font-medium disabled:opacity-50">
+            <button type="button" onClick={() => handleSave('draft')} disabled={submitting} className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-200 text-slate-700 rounded-xl hover:bg-slate-300 active:scale-95 transition text-sm font-semibold disabled:opacity-50 touch-manipulation">
               <Save className="w-3.5 h-3.5" /> {editingId ? 'Save as Draft' : 'Save for Later'}
             </button>
-            <button type="button" onClick={resetForm} className="flex items-center gap-1.5 px-4 py-2 text-slate-500 rounded-lg hover:bg-slate-100 transition text-sm font-medium">
+            <button type="button" onClick={resetForm} className="flex items-center gap-1.5 px-4 py-2.5 text-slate-500 rounded-xl hover:bg-slate-100 transition text-sm font-semibold touch-manipulation">
               <X className="w-3.5 h-3.5" /> Cancel
             </button>
           </div>
@@ -288,18 +292,18 @@ export default function StaffTimesheets({ staffId, staffName }) {
       )}
 
       {timesheets.length === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-6">No timesheets yet. Click "Add Entry" to log your first task.</p>
+        <p className="text-sm text-slate-400 text-center py-8">No timesheets yet. Tap "Add Entry" to log your first task.</p>
       ) : (
         <div className="space-y-5">
           {drafts.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Drafts ({drafts.length})</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Drafts ({drafts.length})</p>
               <div className="space-y-2">{drafts.map(renderEntry)}</div>
             </div>
           )}
           {sortedDates.map(date => (
             <div key={date}>
-              <p className="text-xs font-semibold text-slate-500 uppercase mb-2">{format(new Date(date + 'T00:00:00'), 'EEEE, dd MMM yyyy')}</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">{format(new Date(date + 'T00:00:00'), 'EEEE, dd MMM yyyy')}</p>
               <div className="space-y-2">{byDate[date].map(renderEntry)}</div>
             </div>
           ))}
