@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, CheckCircle2, XCircle, Ruler, PoundSterling, TrendingUp, Users, Search, CalendarDays, FileText } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Ruler, PoundSterling, TrendingUp, Users, Search, CalendarDays, FileText, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
 import TodayTimeBoard from '@/components/TodayTimeBoard';
@@ -75,6 +75,13 @@ export default function TimesheetManager() {
   const approvedCost = approved.reduce((s, t) => s + (otBreakdowns[t.staff_id]?.[t.id]?.cost || 0), 0);
   const approvedMeterage = approved.reduce((s, t) => s + meterageOf(t), 0);
   const pendingCount = workTimesheets.filter(t => t.status === 'submitted').length;
+  const statusCounts = {
+    submitted: pendingCount,
+    approved: workTimesheets.filter(t => t.status === 'approved').length,
+    rejected: workTimesheets.filter(t => t.status === 'rejected').length,
+    deleted: workTimesheets.filter(t => t.status === 'deleted').length,
+    all: workTimesheets.length,
+  };
 
   // Per-staff summary (approved)
   const staffSummary = staff.map(s => {
@@ -109,6 +116,10 @@ export default function TimesheetManager() {
   };
   const handleReject = async (id) => {
     await base44.entities.Timesheet.update(id, { status: 'rejected' });
+    queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+  };
+  const handleUnreject = async (id) => {
+    await base44.entities.Timesheet.update(id, { status: 'submitted' });
     queryClient.invalidateQueries({ queryKey: ['timesheets'] });
   };
 
@@ -167,8 +178,11 @@ export default function TimesheetManager() {
         <div className="flex gap-2 flex-wrap">
           {['submitted', 'approved', 'rejected', 'deleted', 'all'].map(f => (
             <button key={f} onClick={() => setStatusFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition capitalize ${statusFilter === f ? 'bg-emerald-700 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition capitalize inline-flex items-center gap-1.5 ${statusFilter === f ? 'bg-emerald-700 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
               {f}
+              {statusCounts[f] > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${statusFilter === f ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>{statusCounts[f]}</span>
+              )}
             </button>
           ))}
         </div>
@@ -270,6 +284,11 @@ export default function TimesheetManager() {
                                 </button>
                               </>
                             )}
+                            {ts.status === 'rejected' && (
+                              <button onClick={() => handleUnreject(ts.id)} className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg transition" title="Restore to submitted">
+                                <RotateCcw className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -334,6 +353,11 @@ export default function TimesheetManager() {
                           <XCircle className="w-3.5 h-3.5" /> Reject
                         </button>
                       </div>
+                    )}
+                    {ts.status === 'rejected' && (
+                      <button onClick={() => handleUnreject(ts.id)} className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-xs font-semibold active:scale-95 transition">
+                        <RotateCcw className="w-3.5 h-3.5" /> Restore to submitted
+                      </button>
                     )}
                   </div>
                 );
