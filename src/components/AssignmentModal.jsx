@@ -3,6 +3,15 @@ import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { X, AlertTriangle, Trash2 } from 'lucide-react';
 
+const JOB_TYPE_TO_ROLE = {
+  groundworks: 'groundworker',
+  cp_drilling: 'cp_driller',
+  rotary_drilling: 'rotary_driller',
+  enabling_works: 'enabling_crew',
+  depot: 'depot'
+};
+const ROLE_TO_JOB_TYPE = Object.fromEntries(Object.entries(JOB_TYPE_TO_ROLE).map(([jt, r]) => [r, jt]));
+
 export default function AssignmentModal({ isOpen, onClose, assignment, defaultStaffId, defaultDate, weekStartStr, staff, jobs, vehicles, existingRotas }) {
   const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '', notes: '' });
   const [conflictWarning, setConflictWarning] = useState(null);
@@ -43,12 +52,37 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
     return existingRotas.some(r => r.staff_id === staffId && r.assigned_date === date && r.id !== assignment?.id);
   };
 
+  const isSupervisor = (role) => role === 'supervisor';
+
   const handleStaffChange = (staffId) => {
-    setFormData(prev => ({ ...prev, staff_id: staffId }));
+    const s = staff.find(x => x.id === staffId);
+    setFormData(prev => {
+      const currentJob = jobs.find(j => j.id === prev.job_id);
+      const jobOk = currentJob && (isSupervisor(s?.job_role) || (s && currentJob.job_type === ROLE_TO_JOB_TYPE[s.job_role]));
+      return { ...prev, staff_id: staffId, job_id: jobOk ? prev.job_id : '' };
+    });
     if (staffId && formData.assigned_date) {
       setConflictWarning(checkConflict(staffId, formData.assigned_date) ? 'This staff member is already assigned on this date.' : null);
     } else setConflictWarning(null);
   };
+
+  const handleJobChange = (jobId) => {
+    const job = jobs.find(j => j.id === jobId);
+    setFormData(prev => {
+      const currentStaff = staff.find(s => s.id === prev.staff_id);
+      const staffOk = currentStaff && (isSupervisor(currentStaff.job_role) || (job && currentStaff.job_role === JOB_TYPE_TO_ROLE[job.job_type]));
+      return { ...prev, job_id: jobId, staff_id: staffOk ? prev.staff_id : '' };
+    });
+  };
+
+  const selectedJob = jobs.find(j => j.id === formData.job_id);
+  const selectedStaff = staff.find(s => s.id === formData.staff_id);
+  const eligibleStaff = selectedJob
+    ? staff.filter(s => isSupervisor(s.job_role) || s.job_role === JOB_TYPE_TO_ROLE[selectedJob.job_type] || s.id === formData.staff_id)
+    : staff;
+  const eligibleJobs = selectedStaff && !isSupervisor(selectedStaff.job_role)
+    ? jobs.filter(j => j.job_type === ROLE_TO_JOB_TYPE[selectedStaff.job_role] || j.id === formData.job_id)
+    : jobs;
 
   const handleDateChange = (date) => {
     setFormData(prev => ({ ...prev, assigned_date: date }));
@@ -106,19 +140,25 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-slate-600 mb-1">Job *</label>
-              <select value={formData.job_id} onChange={(e) => setFormData({ ...formData, job_id: e.target.value })} required
+              <select value={formData.job_id} onChange={(e) => handleJobChange(e.target.value)} required
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
                 <option value="">Select Job</option>
-                {jobs.map(job => <option key={job.id} value={job.id}>{job.name}</option>)}
+                {eligibleJobs.map(job => <option key={job.id} value={job.id}>{job.name}</option>)}
               </select>
+              {selectedStaff && !isSupervisor(selectedStaff.job_role) && (
+                <p className="text-[11px] text-slate-400 mt-1">Only {selectedStaff.job_role.replace(/_/g, ' ')} jobs are shown for this staff member.</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Staff Member *</label>
               <select value={formData.staff_id} onChange={(e) => handleStaffChange(e.target.value)} required
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
                 <option value="">Select Staff</option>
-                {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                {eligibleStaff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
+              {selectedJob && (
+                <p className="text-[11px] text-slate-400 mt-1">Only {JOB_TYPE_TO_ROLE[selectedJob.job_type]?.replace(/_/g, ' ')}s and supervisors can be assigned.</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Date *</label>
