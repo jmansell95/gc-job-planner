@@ -15,6 +15,7 @@ import MilestoneManager from '@/components/MilestoneManager';
 import JobCostingManager from '@/components/JobCostingManager';
 import JobCommentsViewer from '@/components/JobCommentsViewer';
 import JobWorkLog from '@/components/JobWorkLog';
+import JobPhotoGallery from '@/components/JobPhotoGallery';
 import { formatJobType } from '@/utils/format';
 import { computeStaffOvertime, buildRateMap } from '@/utils/overtime';
 
@@ -557,6 +558,9 @@ export default function JobDetail({ job: initialJob, onBack }) {
               </div>
             )}
           </div>
+
+          {/* Site Photos */}
+          <JobPhotoGallery job={job} />
 
           {/* Job Costing & Billing */}
           <JobCostingManager job={job} totalCost={totalCost} staffCosts={staffCosts} isDrillingJob={isDrillingJob} totalMeterage={totalMeterage} />
