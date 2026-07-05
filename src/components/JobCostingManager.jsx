@@ -1,24 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   PoundSterling, Plus, Trash2, Edit2, Check, X, TrendingUp, ChevronDown, ChevronUp,
-  Truck, Wrench, Ruler, Percent, Calculator, Save
+  Truck, Wrench, Percent, Calculator, Save, Package, FileCheck, Undo2, Upload, ExternalLink, AlertTriangle
 } from 'lucide-react';
 import { format, differenceInCalendarDays } from 'date-fns';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
-const roleLabels = {
-  groundworker: 'Groundworker', cp_driller: 'CP Driller', rotary_driller: 'Rotary Driller',
-  enabling_crew: 'Enabling Crew', depot: 'Depot', supervisor: 'Supervisor',
-};
-
 const blankForm = () => ({
   category: 'hired_equipment', supplier_id: '', description: '',
-  reference_number: '', start_date: '', end_date: '', unit_cost: '', quantity: '1',
-  unit_label: 'day', vat_exempt: false, notes: '',
+  reference_number: '', po_number: '', start_date: '', end_date: '',
+  unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: '',
   delivery_notes: '', collection_notes: ''
 });
 
@@ -33,6 +28,14 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(blankForm());
   const [savingItem, setSavingItem] = useState(false);
+  const [hireFilter, setHireFilter] = useState('active');
+
+  // Off-hire modal state
+  const [offHiringId, setOffHiringId] = useState(null);
+  const [offHireDate, setOffHireDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [offHireFile, setOffHireFile] = useState(null);
+  const [uploadingOffHire, setUploadingOffHire] = useState(false);
+  const offHireFileRef = useRef(null);
 
   const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: () => base44.entities.Supplier.list() });
   const { data: items = [] } = useQuery({
@@ -54,6 +57,10 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
   const clientNet = internalNet + markupAmount;
   const clientVat = clientNet * (Number(vatRate) / 100);
   const clientTotal = clientNet + clientVat;
+
+  const activeItems = items.filter(c => (c.hire_status || 'active') !== 'off_hired');
+  const returnedItems = items.filter(c => c.hire_status === 'off_hired');
+  const visibleItems = hireFilter === 'active' ? activeItems : returnedItems;
 
   const configDirty = (job.markup_percentage ?? 0) !== (Number(markup) || 0) || (job.vat_rate ?? 20) !== (Number(vatRate) || 0);
 
@@ -92,6 +99,7 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
         supplier_id: form.supplier_id || '',
         description: form.description,
         reference_number: form.reference_number || '',
+        po_number: form.po_number || '',
         start_date: form.start_date || '',
         end_date: form.end_date || '',
         unit_cost: Number(form.unit_cost) || 0,
@@ -117,7 +125,7 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
     setEditingId(c.id);
     setForm({
       category: c.category, supplier_id: c.supplier_id || '', description: c.description,
-      reference_number: c.reference_number || '',
+      reference_number: c.reference_number || '', po_number: c.po_number || '',
       start_date: c.start_date || '', end_date: c.end_date || '',
       unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
       unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt,
@@ -132,6 +140,48 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
     await base44.entities.JobCostItem.delete(id);
     queryClient.invalidateQueries({ queryKey: ['job-cost-items', job.id] });
   };
+
+  const openOffHire = (c) => {
+    setOffHiringId(c.id);
+    setOffHireDate(format(new Date(), 'yyyy-MM-dd'));
+    setOffHireFile(null);
+    if (offHireFileRef.current) offHireFileRef.current.value = '';
+  };
+
+  const confirmOffHire = async () => {
+    setUploadingOffHire(true);
+    try {
+      let noteUrl = '';
+      let noteName = '';
+      if (offHireFile) {
+        const res = await base44.integrations.Core.UploadFile({ file: offHireFile });
+        noteUrl = res.file_url;
+        noteName = offHireFile.name;
+      }
+      await base44.entities.JobCostItem.update(offHiringId, {
+        hire_status: 'off_hired',
+        off_hire_date: offHireDate,
+        off_hire_note_url: noteUrl,
+        off_hire_note_name: noteName
+      });
+      queryClient.invalidateQueries({ queryKey: ['job-cost-items', job.id] });
+      setOffHiringId(null);
+      setOffHireFile(null);
+    } catch (err) { console.error(err); }
+    setUploadingOffHire(false);
+  };
+
+  const reinstate = async (c) => {
+    await base44.entities.JobCostItem.update(c.id, {
+      hire_status: 'active',
+      off_hire_date: '',
+      off_hire_note_url: '',
+      off_hire_note_name: ''
+    });
+    queryClient.invalidateQueries({ queryKey: ['job-cost-items', job.id] });
+  };
+
+  const offHiringItem = items.find(c => c.id === offHiringId);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -199,7 +249,7 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
 
         {/* Equipment & Hire items */}
         <div>
-          <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
             <h3 className="text-sm font-semibold text-slate-800 inline-flex items-center gap-1.5"><Truck className="w-4 h-4 text-emerald-700" /> Equipment & Hire</h3>
             {!adding && (
               <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition">
@@ -207,6 +257,20 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
               </button>
             )}
           </div>
+
+          {/* Active / Returned toggle */}
+          {(activeItems.length > 0 || returnedItems.length > 0) && (
+            <div className="flex gap-1 mb-3 bg-slate-100 p-1 rounded-lg w-full sm:w-auto sm:inline-flex">
+              <button onClick={() => setHireFilter('active')}
+                className={`flex-1 sm:flex-none inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${hireFilter === 'active' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
+                <Truck className="w-3.5 h-3.5" /> Active ({activeItems.length})
+              </button>
+              <button onClick={() => setHireFilter('off_hired')}
+                className={`flex-1 sm:flex-none inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${hireFilter === 'off_hired' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
+                <FileCheck className="w-3.5 h-3.5" /> Returned ({returnedItems.length})
+              </button>
+            </div>
+          )}
 
           {adding && (
             <form onSubmit={submitItem} className="border border-emerald-200 rounded-lg p-4 mb-3 space-y-3 bg-emerald-50/30">
@@ -229,9 +293,13 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                   <label className="block text-xs font-medium text-slate-600 mb-1">Description *</label>
                   <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required placeholder="e.g. Transformer hire" className={inputCls} />
                 </div>
-                <div className="sm:col-span-2">
+                <div>
+                  <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1"><Package className="w-3 h-3 text-emerald-700" /> PO Number</label>
+                  <input value={form.po_number} onChange={(e) => setForm({ ...form, po_number: e.target.value })} placeholder="e.g. PO-1042" className={`${inputCls} font-mono`} />
+                </div>
+                <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Reference Number</label>
-                  <input value={form.reference_number} onChange={(e) => setForm({ ...form, reference_number: e.target.value })} placeholder="Asset tag, PO no., serial no." className={inputCls} />
+                  <input value={form.reference_number} onChange={(e) => setForm({ ...form, reference_number: e.target.value })} placeholder="Asset tag / serial no." className={inputCls} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Start date</label>
@@ -291,24 +359,35 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
             <div className="text-center py-6 text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">
               No equipment or hire items yet. Add hired equipment to track supplier costs.
             </div>
+          ) : visibleItems.length === 0 ? (
+            <div className="text-center py-6 text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">
+              {hireFilter === 'active' ? 'No active equipment on site.' : 'No equipment has been returned yet.'}
+            </div>
           ) : (
             <div className="space-y-2">
-              {items.map(c => {
+              {visibleItems.map(c => {
                 const supplier = suppliers.find(s => s.id === c.supplier_id);
                 const net = itemNet(c);
+                const isOffHired = c.hire_status === 'off_hired';
                 return (
-                  <div key={c.id} className="border border-slate-200 rounded-lg p-3 flex items-start gap-3">
+                  <div key={c.id} className={`border rounded-lg p-3 flex items-start gap-3 transition ${isOffHired ? 'border-slate-200 bg-slate-50/60' : 'border-slate-200 bg-white'}`}>
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                       {c.category === 'hired_equipment'
-                        ? <div className="w-full h-full bg-amber-50 rounded-lg flex items-center justify-center"><Truck className="w-4 h-4 text-amber-600" /></div>
-                        : <div className="w-full h-full bg-blue-50 rounded-lg flex items-center justify-center"><Wrench className="w-4 h-4 text-blue-600" /></div>}
+                        ? <div className="w-full h-full bg-amber-50 rounded-lg flex items-center justify-center"><Truck className={`w-4 h-4 ${isOffHired ? 'text-slate-400' : 'text-amber-600'}`} /></div>
+                        : <div className="w-full h-full bg-blue-50 rounded-lg flex items-center justify-center"><Wrench className={`w-4 h-4 ${isOffHired ? 'text-slate-400' : 'text-blue-600'}`} /></div>}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{c.description}</p>
+                        <p className={`text-sm font-semibold text-slate-900 truncate ${isOffHired ? 'line-through text-slate-500' : ''}`}>{c.description}</p>
+                        {c.po_number && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium font-mono inline-flex items-center gap-1"><Package className="w-2.5 h-2.5" /> {c.po_number}</span>}
                         {c.reference_number && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium font-mono">Ref: {c.reference_number}</span>}
                         {c.vat_exempt && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">VAT exempt</span>}
                         <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">{c.category === 'hired_equipment' ? 'Hired' : 'Internal'}</span>
+                        {isOffHired && (
+                          <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
+                            <FileCheck className="w-2.5 h-2.5" /> Returned{c.off_hire_date ? ` ${format(new Date(c.off_hire_date + 'T00:00:00'), 'dd MMM')}` : ''}
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5">
                         {c.start_date && c.end_date ? `${format(new Date(c.start_date + 'T00:00:00'), 'dd MMM')} → ${format(new Date(c.end_date + 'T00:00:00'), 'dd MMM')}` : ''}
@@ -331,12 +410,25 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                           )}
                         </div>
                       )}
+                      {isOffHired && c.off_hire_note_url && (
+                        <a href={c.off_hire_note_url} target="_blank" rel="noopener noreferrer"
+                          className="mt-1.5 inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg transition">
+                          <FileCheck className="w-3 h-3" /> View off-hire note{c.off_hire_note_name ? ` (${c.off_hire_note_name})` : ''}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-bold text-slate-900">{fmt(net)}</p>
+                      <p className={`text-sm font-bold ${isOffHired ? 'text-slate-500' : 'text-slate-900'}`}>{fmt(net)}</p>
                       <p className="text-[10px] text-slate-400">net</p>
                     </div>
                     <div className="flex flex-col gap-1 flex-shrink-0">
+                      {c.category === 'hired_equipment' && !isOffHired && (
+                        <button onClick={() => openOffHire(c)} className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition" title="Off-hire / return to supplier"><FileCheck className="w-3.5 h-3.5" /></button>
+                      )}
+                      {isOffHired && (
+                        <button onClick={() => reinstate(c)} className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded transition" title="Reinstate as active"><Undo2 className="w-3.5 h-3.5" /></button>
+                      )}
                       <button onClick={() => editItem(c)} className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded transition"><Edit2 className="w-3.5 h-3.5" /></button>
                       <button onClick={() => deleteItem(c.id)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
@@ -378,6 +470,41 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
           </div>
         )}
       </div>
+
+      {/* Off-hire modal */}
+      {offHiringId && offHiringItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => !uploadingOffHire && setOffHiringId(null)}>
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center"><FileCheck className="w-5 h-5 text-slate-700" /></div>
+              <div>
+                <h3 className="font-bold text-slate-900">Off-hire equipment</h3>
+                <p className="text-xs text-slate-400 truncate">{offHiringItem.description}</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-500 mb-3">Mark this as returned to the supplier and attach the off-hire note for your records.</p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Return / off-hire date</label>
+                <input type="date" value={offHireDate} onChange={e => setOffHireDate(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Off-hire note (PDF / photo)</label>
+                <input ref={offHireFileRef} type="file" accept=".pdf,image/*,.doc,.docx" onChange={e => setOffHireFile(e.target.files[0])} className="block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-medium hover:file:bg-emerald-100 cursor-pointer" />
+                {offHireFile && <p className="text-xs text-emerald-700 mt-1.5 inline-flex items-center gap-1"><FileCheck className="w-3 h-3" /> {offHireFile.name}</p>}
+              </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={confirmOffHire} disabled={uploadingOffHire}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 transition text-sm font-semibold disabled:opacity-50">
+                {uploadingOffHire ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Uploading…</> : <><FileCheck className="w-3.5 h-3.5" /> Confirm off-hire</>}
+              </button>
+              <button onClick={() => setOffHiringId(null)} disabled={uploadingOffHire}
+                className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

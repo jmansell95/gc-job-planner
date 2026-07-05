@@ -25,7 +25,11 @@
     },
     "reference_number": {
       "type": "string",
-      "description": "Reference / asset tag / PO / serial number for tracking"
+      "description": "Reference / asset tag / serial number for tracking"
+    },
+    "po_number": {
+      "type": "string",
+      "description": "Purchase order number for this hire or purchase"
     },
     "start_date": {
       "type": "string",
@@ -55,6 +59,28 @@
       "type": "boolean",
       "default": false,
       "description": "Whether this item is exempt from VAT"
+    },
+    "hire_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "off_hired"
+      ],
+      "default": "active",
+      "description": "Whether hired equipment is still on site or returned to supplier"
+    },
+    "off_hire_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the equipment was returned / off-hired"
+    },
+    "off_hire_note_url": {
+      "type": "string",
+      "description": "URL of the uploaded off-hire / return note document"
+    },
+    "off_hire_note_name": {
+      "type": "string",
+      "description": "Original filename of the off-hire note"
     },
     "delivery_notes": {
       "type": "string",
