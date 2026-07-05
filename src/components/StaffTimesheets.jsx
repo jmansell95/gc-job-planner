@@ -39,6 +39,7 @@ export default function StaffTimesheets({ staffId, staffName }) {
   const [withdrawingId, setWithdrawingId] = useState(null);
   const [withdrawReason, setWithdrawReason] = useState('');
   const [withdrawing, setWithdrawing] = useState(false);
+  const [activeTab, setActiveTab] = useState('pending');
 
   const queryClient = useQueryClient();
 
@@ -170,8 +171,26 @@ export default function StaffTimesheets({ staffId, staffName }) {
 
   const drafts = visibleTimesheets.filter(t => t.status === 'draft');
   const submitted = visibleTimesheets.filter(t => t.status !== 'draft');
+
+  const tabs = [
+    { key: 'pending', label: 'Pending' },
+    { key: 'approved', label: 'Approved' },
+    { key: 'rejected', label: 'Rejected' },
+    { key: 'overtime', label: 'Overtime' },
+    { key: 'breaks', label: 'Breaks' },
+  ];
+  const tabFilter = {
+    pending: t => t.status === 'submitted',
+    approved: t => t.status === 'approved',
+    rejected: t => t.status === 'rejected',
+    overtime: t => !!t.is_overtime || !!otBreakdown[t.id]?.isOvertime,
+    breaks: t => !!t.is_break,
+  };
+  const tabCounts = {};
+  tabs.forEach(tb => { tabCounts[tb.key] = submitted.filter(tabFilter[tb.key]).length; });
+  const activeList = submitted.filter(tabFilter[activeTab]);
   const byDate = {};
-  submitted.forEach(t => { (byDate[t.date] = byDate[t.date] || []).push(t); });
+  activeList.forEach(t => { (byDate[t.date] = byDate[t.date] || []).push(t); });
   const sortedDates = Object.keys(byDate).sort().reverse();
 
   const renderEntry = (t) => {
@@ -325,12 +344,36 @@ export default function StaffTimesheets({ staffId, staffName }) {
               <div className="space-y-2">{drafts.map(renderEntry)}</div>
             </div>
           )}
-          {sortedDates.map(date => (
-            <div key={date}>
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">{format(new Date(date + 'T00:00:00'), 'EEEE, dd MMM yyyy')}</p>
-              <div className="space-y-2">{byDate[date].map(renderEntry)}</div>
+          {submitted.length > 0 && (
+            <div>
+              <div className="border-b border-slate-200 mb-4">
+                <div className="flex gap-1 overflow-x-auto -mb-px">
+                  {tabs.map(tb => (
+                    <button key={tb.key} onClick={() => setActiveTab(tb.key)}
+                      className={`px-3 py-2.5 text-xs font-semibold whitespace-nowrap border-b-2 transition flex items-center gap-1.5 ${activeTab === tb.key ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+                      {tb.label}
+                      {tabCounts[tb.key] > 0 && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${activeTab === tb.key ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{tabCounts[tb.key]}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {activeList.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-6">No {tabs.find(t => t.key === activeTab).label.toLowerCase()} timesheets.</p>
+              ) : (
+                <div className="space-y-4">
+                  {sortedDates.map(date => (
+                    <div key={date}>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">{format(new Date(date + 'T00:00:00'), 'EEEE, dd MMM yyyy')}</p>
+                      <div className="space-y-2">{byDate[date].map(renderEntry)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
+          )}
         </div>
       )}
 
