@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Users, Truck, HardHat, Building2, ChevronRight, CalendarX, Mail, PoundSterling, Package } from 'lucide-react';
+import { Settings, Users, Truck, HardHat, Building2, ChevronRight, CalendarX, Mail, PoundSterling, Package, Timer } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import StaffManager from '@/components/StaffManager';
 import VehicleManager from '@/components/VehicleManager';
@@ -9,6 +9,7 @@ import AbsenceManager from '@/components/AbsenceManager';
 import EmailAlertsSettings from '@/components/EmailAlertsSettings';
 import CostSettings from '@/components/CostSettings';
 import SupplierManager from '@/components/SupplierManager';
+import OvertimeRatesManager from '@/components/OvertimeRatesManager';
 
 const tabs = [
   { id: 'staff', label: 'Staff', icon: Users },
@@ -18,6 +19,7 @@ const tabs = [
   { id: 'suppliers', label: 'Suppliers', icon: Package },
   { id: 'absences', label: 'Absences', icon: CalendarX },
   { id: 'costs', label: 'Costs', icon: PoundSterling },
+  { id: 'overtime', label: 'Overtime', icon: Timer },
   { id: 'email-alerts', label: 'Email Alerts', icon: Mail },
 ];
 
@@ -56,6 +58,7 @@ export default function SettingsPage() {
       {activeTab === 'suppliers' && <SupplierManager />}
       {activeTab === 'absences' && <AbsenceManager />}
       {activeTab === 'costs' && <CostSettings />}
+      {activeTab === 'overtime' && <OvertimeRatesManager />}
       {activeTab === 'email-alerts' && <EmailAlertsSettings />}
     </div>
   );

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Clock, CheckCircle2, XCircle, FileText, Trash2, Edit2, Save, Send, PoundSterling, X } from 'lucide-react';
+import { Plus, Clock, CheckCircle2, XCircle, FileText, Trash2, Edit2, Save, Send, PoundSterling, X, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
+import { computeStaffOvertime, buildRateMap, weekKey, entryMinutes } from '@/utils/overtime';
 
 const statusConfig = {
   draft: { label: 'Draft', icon: FileText, badge: 'bg-slate-100 text-slate-600' },
@@ -55,6 +56,11 @@ export default function StaffTimesheets({ staffId, staffName }) {
     queryFn: () => base44.entities.Staff.get(staffId),
     enabled: !!staffId
   });
+  const { data: overtimeRates = [] } = useQuery({ queryKey: ['overtime-rates'], queryFn: () => base44.entities.OvertimeRate.list() });
+  const { data: overtimeSetting } = useQuery({
+    queryKey: ['overtime-setting'],
+    queryFn: async () => { const list = await base44.entities.OvertimeSetting.list(); return list[0] || null; }
+  });
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['staff-assignments', staffId],
@@ -69,7 +75,16 @@ export default function StaffTimesheets({ staffId, staffName }) {
 
   const hourlyRate = staffRecord?.day_rate ? staffRecord.day_rate / 8 : 0;
   const durationMins = parseInt(form.task_duration_minutes) || 0;
-  const previewCost = (durationMins / 60) * hourlyRate;
+  const otRateMap = buildRateMap(overtimeRates);
+  const otThreshold = overtimeSetting?.weekly_threshold_hours ?? 40;
+  const otBreakdown = computeStaffOvertime(timesheets, otRateMap, otThreshold, hourlyRate);
+  const previewEntry = { id: '__preview__', date: form.date, task_duration_minutes: durationMins, created_date: new Date().toISOString() };
+  const previewBreakdown = computeStaffOvertime([...timesheets, previewEntry], otRateMap, otThreshold, hourlyRate);
+  const previewResult = previewBreakdown['__preview__'] || {};
+  const previewCost = previewResult.cost != null ? previewResult.cost : (durationMins / 60) * hourlyRate;
+  const previewOT = previewResult.isOvertime;
+  const currentWeekKey = weekKey(format(new Date(), 'yyyy-MM-dd'));
+  const weekMins = timesheets.filter(t => weekKey(t.date) === currentWeekKey).reduce((s, t) => s + entryMinutes(t), 0);
 
   const resetForm = () => {
     setForm({ job_id: '', date: format(new Date(), 'yyyy-MM-dd'), task_description: '', task_duration_minutes: '', notes: '' });
@@ -138,7 +153,9 @@ export default function StaffTimesheets({ staffId, staffName }) {
     const status = statusConfig[t.status] || statusConfig.submitted;
     const StatusIcon = status.icon;
     const mins = minsFromEntry(t);
-    const cost = (mins / 60) * hourlyRate;
+    const ot = otBreakdown[t.id] || {};
+    const cost = ot.cost != null ? ot.cost : (mins / 60) * hourlyRate;
+    const isOT = ot.isOvertime;
     return (
       <div key={t.id} className="p-3 bg-slate-50 rounded-lg border border-slate-100">
         <div className="flex items-start justify-between gap-3">
@@ -153,6 +170,7 @@ export default function StaffTimesheets({ staffId, staffName }) {
             <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
               <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{fmtDur(mins)}</span>
               {hourlyRate > 0 && <span className="inline-flex items-center gap-1"><PoundSterling className="w-3 h-3" />{fmtCost(cost)}</span>}
+              {isOT && <span className="inline-flex items-center gap-1 text-amber-600 font-medium"><TrendingUp className="w-3 h-3" />OT {fmtDur(ot.otMins)} ×{ot.multiplier}</span>}
               {t.notes && <span className="truncate">· {t.notes}</span>}
             </div>
           </div>
@@ -179,6 +197,19 @@ export default function StaffTimesheets({ staffId, staffName }) {
           <Plus className="w-4 h-4" /> Add Entry
         </button>
       </div>
+
+      {weekMins > 0 && (
+        <div className="mb-4 bg-slate-50 border border-slate-200 rounded-lg p-3">
+          <div className="flex items-center justify-between text-xs mb-1.5">
+            <span className="font-medium text-slate-600">This week's hours</span>
+            <span className="text-slate-500">{(weekMins / 60).toFixed(1)}h / {otThreshold}h</span>
+          </div>
+          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full transition-all ${weekMins > otThreshold * 60 ? 'bg-amber-500' : 'bg-emerald-600'}`} style={{ width: `${Math.min(100, (weekMins / (otThreshold * 60)) * 100)}%` }} />
+          </div>
+          {weekMins > otThreshold * 60 && <p className="text-[10px] text-amber-600 mt-1 font-medium">Overtime applies above {otThreshold}h/week</p>}
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={(e) => { e.preventDefault(); handleSave('submitted'); }} className="mb-4 p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
@@ -232,9 +263,14 @@ export default function StaffTimesheets({ staffId, staffName }) {
             </div>
           </div>
           {durationMins > 0 && (
-            <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-sm">
+            <div className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${previewOT ? 'bg-amber-50 border border-amber-200' : 'bg-emerald-50 border border-emerald-200'}`}>
               <span className="text-slate-600">Duration: <span className="font-semibold text-slate-900">{fmtDur(durationMins)}</span></span>
-              {hourlyRate > 0 && <span className="text-slate-600">Calculated cost: <span className="font-semibold text-emerald-700">{fmtCost(previewCost)}</span></span>}
+              {hourlyRate > 0 && (
+                <span className="text-slate-600">
+                  {previewOT ? 'Overtime cost' : 'Calculated cost'}: <span className={`font-semibold ${previewOT ? 'text-amber-700' : 'text-emerald-700'}`}>{fmtCost(previewCost)}</span>
+                  {previewOT && <span className="ml-1 text-[10px] text-amber-600">×{previewResult.multiplier}</span>}
+                </span>
+              )}
             </div>
           )}
           <div className="flex flex-wrap gap-2">

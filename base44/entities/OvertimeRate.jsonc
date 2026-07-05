@@ -1,0 +1,23 @@
+{
+  "name": "OvertimeRate",
+  "type": "object",
+  "properties": {
+    "day_of_week": {
+      "type": "number",
+      "description": "Day of week (0 = Sunday, 6 = Saturday)"
+    },
+    "multiplier": {
+      "type": "number",
+      "default": 1.0,
+      "description": "Overtime pay multiplier for this day (1.0 = normal, 1.5 = time-and-a-half, 2.0 = double time)"
+    },
+    "label": {
+      "type": "string",
+      "description": "Day label e.g. Monday"
+    }
+  },
+  "required": [
+    "day_of_week",
+    "multiplier"
+  ]
+}

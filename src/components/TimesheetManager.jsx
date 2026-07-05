@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, CheckCircle2, XCircle, Ruler } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Ruler, PoundSterling, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
+import { computeStaffOvertime, buildRateMap } from '@/utils/overtime';
 import PageHeader from '@/components/PageHeader';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/StateViews';
 
@@ -34,8 +35,22 @@ export default function TimesheetManager() {
   });
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
+  const { data: overtimeRates = [] } = useQuery({ queryKey: ['overtime-rates'], queryFn: () => base44.entities.OvertimeRate.list() });
+  const { data: overtimeSetting } = useQuery({
+    queryKey: ['overtime-setting'],
+    queryFn: async () => { const list = await base44.entities.OvertimeSetting.list(); return list[0] || null; }
+  });
 
   const filtered = filter === 'all' ? timesheets : timesheets.filter(t => t.status === filter);
+
+  const otRateMap = buildRateMap(overtimeRates);
+  const otThreshold = overtimeSetting?.weekly_threshold_hours ?? 40;
+  const otBreakdowns = {};
+  staff.forEach(s => {
+    const entries = timesheets.filter(t => t.staff_id === s.id && (t.status === 'submitted' || t.status === 'approved'));
+    const hourlyRate = s.day_rate ? s.day_rate / 8 : 0;
+    otBreakdowns[s.id] = computeStaffOvertime(entries, otRateMap, otThreshold, hourlyRate);
+  });
 
   const handleApprove = async (id) => {
     await base44.entities.Timesheet.update(id, { status: 'approved' });
@@ -104,6 +119,7 @@ export default function TimesheetManager() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Task</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600">Quantity</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600">Status</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Cost</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600">Actions</th>
                 </tr>
               </thead>
@@ -125,6 +141,20 @@ export default function TimesheetManager() {
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${status.badge}`}>{status.label}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right whitespace-nowrap">
+                        {(() => {
+                          const member = staff.find(s => s.id === ts.staff_id);
+                          if (!member?.day_rate) return <span className="text-slate-300">—</span>;
+                          const b = otBreakdowns[ts.staff_id]?.[ts.id] || {};
+                          const cost = b.cost != null ? b.cost : 0;
+                          return (
+                            <div className="flex flex-col items-end">
+                              <span className="font-medium text-slate-900">£{cost.toFixed(2)}</span>
+                              {b.isOvertime && <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600 font-medium"><TrendingUp className="w-2.5 h-2.5" />OT ×{b.multiplier}</span>}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">

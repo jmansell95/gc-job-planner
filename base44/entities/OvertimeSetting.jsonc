@@ -1,0 +1,14 @@
+{
+  "name": "OvertimeSetting",
+  "type": "object",
+  "properties": {
+    "weekly_threshold_hours": {
+      "type": "number",
+      "default": 40,
+      "description": "Regular hours per week before overtime applies"
+    }
+  },
+  "required": [
+    "weekly_threshold_hours"
+  ]
+}

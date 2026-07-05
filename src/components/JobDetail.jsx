@@ -15,6 +15,7 @@ import JobCostingManager from '@/components/JobCostingManager';
 import JobCommentsViewer from '@/components/JobCommentsViewer';
 import JobWorkLog from '@/components/JobWorkLog';
 import { formatJobType } from '@/utils/format';
+import { computeStaffOvertime, buildRateMap } from '@/utils/overtime';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500', border: 'border-green-200' },
@@ -126,6 +127,12 @@ export default function JobDetail({ job, onBack }) {
     queryKey: ['timesheets-for-job', job.id],
     queryFn: () => base44.entities.Timesheet.filter({ job_id: job.id })
   });
+  const { data: allTimesheets = [] } = useQuery({ queryKey: ['all-timesheets-ot'], queryFn: () => base44.entities.Timesheet.list('-created_date', 500) });
+  const { data: overtimeRates = [] } = useQuery({ queryKey: ['overtime-rates'], queryFn: () => base44.entities.OvertimeRate.list() });
+  const { data: overtimeSetting } = useQuery({
+    queryKey: ['overtime-setting'],
+    queryFn: async () => { const list = await base44.entities.OvertimeSetting.list(); return list[0] || null; }
+  });
 
   // Unique staff assigned to this job
   const assignedStaffIds = [...new Set(rotas.map(r => r.staff_id))];
@@ -159,6 +166,8 @@ export default function JobDetail({ job, onBack }) {
     timesheetByStaff[t.staff_id].minutes += mins;
     timesheetByStaff[t.staff_id].count += 1;
   });
+  const otRateMap = buildRateMap(overtimeRates);
+  const otThreshold = overtimeSetting?.weekly_threshold_hours ?? 40;
   const staffCosts = assignedStaff.map(member => {
     const memberRotas = rotas.filter(r => r.staff_id === member.id);
     const memberMeterage = memberRotas.reduce((sum, r) => sum + (r.meterage || 0), 0);
@@ -167,8 +176,11 @@ export default function JobDetail({ job, onBack }) {
     const usesMeterage = isDrillingJob && meterageRate > 0;
     const meterage = useJobMeterage ? jobMeterage : memberMeterage;
     const ts = timesheetByStaff[member.id];
-    const usesTimesheet = !usesMeterage && ts && ts.minutes > 0;
     const hourlyRate = dayRate > 0 ? dayRate / 8 : 0;
+    const staffAllEntries = (allTimesheets || []).filter(t => t.staff_id === member.id && (t.status === 'submitted' || t.status === 'approved'));
+    const otBreakdown = computeStaffOvertime(staffAllEntries, otRateMap, otThreshold, hourlyRate);
+    const jobEntryCost = validTimesheets.filter(t => t.staff_id === member.id).reduce((sum, t) => sum + (otBreakdown[t.id]?.cost || 0), 0);
+    const usesTimesheet = !usesMeterage && jobEntryCost > 0;
     return {
       name: member.name,
       role: roleLabels[member.job_role] || member.job_role,
@@ -181,7 +193,7 @@ export default function JobDetail({ job, onBack }) {
       timesheetCount: ts ? ts.count : 0,
       hourlyRate,
       cost: usesMeterage ? meterage * meterageRate
-        : usesTimesheet ? (ts.minutes / 60) * hourlyRate
+        : usesTimesheet ? jobEntryCost
         : memberRotas.length * dayRate
     };
   });
