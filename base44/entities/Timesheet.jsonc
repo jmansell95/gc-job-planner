@@ -53,6 +53,11 @@
       "default": false,
       "description": "True for break entries. Breaks count toward the day total but NOT toward any job's time or cost."
     },
+    "is_overtime": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the staff member explicitly logged this task as overtime. The whole entry is paid at the overtime rate for its day, regardless of the weekly threshold."
+    },
     "status": {
       "type": "string",
       "enum": [

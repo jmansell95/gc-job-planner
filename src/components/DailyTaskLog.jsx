@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle } from 'lucide-react';
+import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 
 const TASK_SUGGESTIONS = [
@@ -34,6 +34,7 @@ export default function DailyTaskLog({ staffId }) {
   const [meterage, setMeterage] = useState('');
   const [notes, setNotes] = useState('');
   const [isLunch, setIsLunch] = useState(false);
+  const [isOvertime, setIsOvertime] = useState(false);
   const [adding, setAdding] = useState(false);
   const [submittingDay, setSubmittingDay] = useState(false);
   const queryClient = useQueryClient();
@@ -67,6 +68,7 @@ export default function DailyTaskLog({ staffId }) {
     setTask(''); setEndTime(''); setMeterage(''); setNotes('');
     setStartTime(todayShift?.start_time || '');
     setIsLunch(false);
+    setIsOvertime(false);
   };
 
   const addTask = async (e) => {
@@ -83,7 +85,7 @@ export default function DailyTaskLog({ staffId }) {
         task_duration_minutes: durMins,
         total_hours: Math.round((durMins / 60) * 100) / 100,
         meterage: isLunch ? 0 : (isDriller ? (parseFloat(meterage) || 0) : 0),
-        notes: notes.trim(), status: 'draft', is_break: isLunch
+        notes: notes.trim(), status: 'draft', is_break: isLunch, is_overtime: isOvertime
       });
       resetForm();
       invalidateAll();
@@ -185,6 +187,12 @@ export default function DailyTaskLog({ staffId }) {
                 <span className="font-medium">Lunch break — set the time below</span>
               </div>
             )}
+            {isOvertime && (
+              <div className="flex items-center gap-2 text-sm bg-orange-50 border border-orange-200 rounded-xl px-3 py-2.5 text-orange-800">
+                <TrendingUp className="w-4 h-4 flex-shrink-0" />
+                <span className="font-medium">Overtime task — paid at the overtime rate for this day.</span>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">{isLunch ? 'Break type' : 'What did you do? *'}</label>
               {!isLunch && (
@@ -194,12 +202,16 @@ export default function DailyTaskLog({ staffId }) {
               )}
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {TASK_SUGGESTIONS.map(s => (
-                  <button type="button" key={s} onClick={() => { setTask(s); setIsLunch(false); }}
-                    className={`text-xs px-2.5 py-1 rounded-full border transition ${!isLunch && task === s ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700'}`}>{s}</button>
+                  <button type="button" key={s} onClick={() => { setTask(s); setIsLunch(false); setIsOvertime(false); }}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition ${!isLunch && !isOvertime && task === s ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700'}`}>{s}</button>
                 ))}
-                <button type="button" onClick={() => { setIsLunch(true); setTask('Lunch Break'); }}
+                <button type="button" onClick={() => { setIsLunch(true); setTask('Lunch Break'); setIsOvertime(false); }}
                   className={`text-xs px-2.5 py-1 rounded-full border transition inline-flex items-center gap-1 ${isLunch ? 'bg-amber-500 text-white border-amber-500' : 'bg-amber-50 border-amber-200 text-amber-700 hover:border-amber-400'}`}>
                   <Coffee className="w-3 h-3" /> Lunch Break
+                </button>
+                <button type="button" onClick={() => { setIsOvertime(true); setIsLunch(false); }}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition inline-flex items-center gap-1 ${isOvertime ? 'bg-orange-600 text-white border-orange-600' : 'bg-orange-50 border-orange-200 text-orange-700 hover:border-orange-400'}`}>
+                  <TrendingUp className="w-3 h-3" /> Overtime
                 </button>
               </div>
             </div>
@@ -235,8 +247,8 @@ export default function DailyTaskLog({ staffId }) {
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
             </div>
             <button type="submit" disabled={adding || !startTime || !endTime || durMins <= 0 || !!overlapEntry || (!isLunch && (!jobId || !task.trim()))}
-              className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl hover:opacity-90 active:scale-95 transition text-sm font-semibold disabled:opacity-50 touch-manipulation ${isLunch ? 'bg-amber-500' : 'bg-emerald-700'}`}>
-              <Plus className="w-4 h-4" /> {adding ? 'Adding…' : isLunch ? 'Add Lunch Break' : 'Add Task'}
+              className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl hover:opacity-90 active:scale-95 transition text-sm font-semibold disabled:opacity-50 touch-manipulation ${isLunch ? 'bg-amber-500' : isOvertime ? 'bg-orange-600' : 'bg-emerald-700'}`}>
+              <Plus className="w-4 h-4" /> {adding ? 'Adding…' : isLunch ? 'Add Lunch Break' : isOvertime ? 'Add Overtime Task' : 'Add Task'}
             </button>
           </form>
         )}
@@ -258,6 +270,11 @@ export default function DailyTaskLog({ staffId }) {
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${t.is_break ? 'bg-amber-100 text-amber-700' : statusBadge(t.status)}`}>
                           {t.is_break ? 'Break' : t.status === 'draft' ? 'Draft' : t.status === 'submitted' ? 'Submitted' : t.status === 'approved' ? 'Approved' : 'Rejected'}
                         </span>
+                        {t.is_overtime && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700">
+                            <TrendingUp className="w-2.5 h-2.5" /> OT
+                          </span>
+                        )}
                         {!t.is_break && t.meterage > 0 && (
                           <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-50 text-amber-700">
                             <Ruler className="w-2.5 h-2.5" /> {t.meterage}m

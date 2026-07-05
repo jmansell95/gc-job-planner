@@ -60,8 +60,9 @@ export function computeStaffOvertime(allStaffEntries, rateMap, thresholdHours, h
     sorted.forEach(t => {
       const mins = entryMinutes(t);
       const prior = cumulative;
-      const regularMins = Math.max(0, Math.min(mins, thresholdMins - prior));
-      const otMins = mins - regularMins;
+      const explicitOT = !!t.is_overtime;
+      const regularMins = explicitOT ? 0 : Math.max(0, Math.min(mins, thresholdMins - prior));
+      const otMins = explicitOT ? mins : mins - regularMins;
       cumulative += mins;
       const day = new Date(t.date + 'T00:00:00').getDay();
       const mult = rateMap[day] ?? 1.0;
