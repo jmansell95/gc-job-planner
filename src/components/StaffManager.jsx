@@ -224,7 +224,10 @@ export default function StaffManager() {
               <select value={formData.team_id} onChange={e => setFormData({ ...formData, team_id: e.target.value })} required
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
                 <option value="">Select Team</option>
-                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                {teams.map(t => {
+                  const parent = teams.find(p => p.id === t.parent_team_id);
+                  return <option key={t.id} value={t.id}>{parent ? `${parent.name} — ${t.name}` : t.name}</option>;
+                })}
               </select>
             </div>
             <div>
