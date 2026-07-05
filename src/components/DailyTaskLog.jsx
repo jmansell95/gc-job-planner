@@ -108,7 +108,7 @@ export default function DailyTaskLog({ staffId }) {
     setSubmittingDay(false);
   };
 
-  const entries = todayEntries.filter(t => t.status !== 'deleted');
+  const entries = todayEntries.filter(t => t.status !== 'deleted' && t.status !== 'rejected');
   const tasks = entries.filter(t => !t.is_break);
   const drafts = entries.filter(t => t.status === 'draft');
   const totalMins = entries.reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);

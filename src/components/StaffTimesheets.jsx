@@ -75,14 +75,15 @@ export default function StaffTimesheets({ staffId, staffName }) {
   const otThreshold = overtimeSetting?.weekly_threshold_hours ?? 40;
 
   const visibleTimesheets = timesheets.filter(t => t.status !== 'deleted');
-  const otBreakdown = computeStaffOvertime(visibleTimesheets, otRateMap, otThreshold, hourlyRate);
+  const countedTimesheets = visibleTimesheets.filter(t => t.status !== 'rejected');
+  const otBreakdown = computeStaffOvertime(countedTimesheets, otRateMap, otThreshold, hourlyRate);
   const previewEntry = { id: '__preview__', date: form.date, task_duration_minutes: durationMins, created_date: new Date().toISOString() };
-  const previewBreakdown = computeStaffOvertime([...visibleTimesheets, previewEntry], otRateMap, otThreshold, hourlyRate);
+  const previewBreakdown = computeStaffOvertime([...countedTimesheets, previewEntry], otRateMap, otThreshold, hourlyRate);
   const previewResult = previewBreakdown['__preview__'] || {};
   const previewCost = previewResult.cost != null ? previewResult.cost : (durationMins / 60) * hourlyRate;
   const previewOT = previewResult.isOvertime;
   const currentWeekKey = weekKey(format(new Date(), 'yyyy-MM-dd'));
-  const weekMins = visibleTimesheets.filter(t => weekKey(t.date) === currentWeekKey).reduce((s, t) => s + entryMinutes(t), 0);
+  const weekMins = countedTimesheets.filter(t => weekKey(t.date) === currentWeekKey).reduce((s, t) => s + entryMinutes(t), 0);
 
   const resetForm = () => {
     setForm({ job_id: '', date: format(new Date(), 'yyyy-MM-dd'), task_description: '', task_duration_minutes: '', notes: '' });

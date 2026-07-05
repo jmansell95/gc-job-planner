@@ -19,7 +19,7 @@ export default function TodayTimeBoard() {
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
 
   const rows = staff.map(s => {
-    const entries = timesheets.filter(t => t.staff_id === s.id && t.status !== 'deleted');
+    const entries = timesheets.filter(t => t.staff_id === s.id && t.status !== 'deleted' && t.status !== 'rejected');
     if (!entries.length) return null;
     const jobMins = entries.filter(t => !t.is_break).reduce((a, t) => a + (Number(t.task_duration_minutes) || 0), 0);
     const breakMins = entries.filter(t => t.is_break).reduce((a, t) => a + (Number(t.task_duration_minutes) || 0), 0);
