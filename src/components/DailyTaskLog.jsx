@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 const TASK_SUGGESTIONS = [
@@ -100,8 +100,8 @@ export default function DailyTaskLog({ staffId }) {
 
   const submitDay = async () => {
     const drafts = todayEntries.filter(t => t.status === 'draft');
-    if (drafts.length === 0) return;
-    if (!confirm(`Submit ${drafts.length} task${drafts.length === 1 ? '' : 's'} for today (${fmtDur(totalMins)}) to your manager?`)) return;
+    if (drafts.length === 0 || !dayComplete) return;
+    if (!confirm(`Submit ${drafts.length} task${drafts.length === 1 ? '' : 's'} for today (${fmtDur(nonOTTotal)} standard${otMins > 0 ? ` + ${fmtDur(otMins)} overtime` : ''}) to your manager?`)) return;
     setSubmittingDay(true);
     try {
       await base44.entities.Timesheet.bulkUpdate(drafts.map(d => ({ id: d.id, status: 'submitted' })));
@@ -132,6 +132,30 @@ export default function DailyTaskLog({ staffId }) {
         return ns < ee && es < ne;
       })
     : null;
+
+  // Day completion: no gaps, 9 hours total (incl. 1h break), overtime excluded.
+  const TARGET_MINS = 9 * 60;
+  const BREAK_MINS = 60;
+  const nonOTEntries = entries.filter(t => !t.is_overtime);
+  const nonOTTotal = nonOTEntries.reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
+  const breakTotal = entries.filter(t => t.is_break).reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
+  const sortedAll = [...entries].sort((a, b) => (toMins(a.start_time) ?? 0) - (toMins(b.start_time) ?? 0));
+  let gap = null;
+  for (let i = 1; i < sortedAll.length; i++) {
+    const prevEnd = toMins(sortedAll[i - 1].end_time);
+    const curStart = toMins(sortedAll[i].start_time);
+    if (prevEnd != null && curStart != null && curStart !== prevEnd) {
+      gap = { from: sortedAll[i - 1].end_time, to: sortedAll[i].start_time };
+      break;
+    }
+  }
+  const otMins = totalMins - nonOTTotal;
+  const dayComplete = entries.length > 0 && !gap && nonOTTotal === TARGET_MINS && breakTotal === BREAK_MINS;
+  const checks = [
+    { ok: entries.length > 0 && !gap, label: 'No gaps in your schedule', detail: gap ? `Gap ${gap.from}–${gap.to}` : null },
+    { ok: nonOTTotal === TARGET_MINS, label: '9 hours total (incl. break)', detail: `${fmtDur(nonOTTotal)} of ${fmtDur(TARGET_MINS)}` },
+    { ok: breakTotal === BREAK_MINS, label: '1 hour lunch break', detail: `${fmtDur(breakTotal)} of ${fmtDur(BREAK_MINS)}` },
+  ];
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -309,21 +333,24 @@ export default function DailyTaskLog({ staffId }) {
 
         {/* Submit day */}
         {drafts.length > 0 && (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5">
-            <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                <p className="text-sm text-slate-700">
-                  <b className="text-slate-900">{drafts.length}</b> draft {drafts.length === 1 ? 'task' : 'tasks'} ready ·{' '}
-                  <b className="text-slate-900">{fmtDur(drafts.reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0))}</b> to submit
-                </p>
-              </div>
-            </div>
-            <button onClick={submitDay} disabled={submittingDay}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-bold disabled:opacity-50 touch-manipulation">
-              <Send className="w-4 h-4" /> {submittingDay ? 'Submitting…' : `Submit Day (${drafts.length})`}
+          <div className={`rounded-xl border p-3.5 ${dayComplete ? 'border-emerald-200 bg-emerald-50/60' : 'border-slate-200 bg-slate-50/80'}`}>
+            <ul className="space-y-1.5 mb-3">
+              {checks.map((c, i) => (
+                <li key={i} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="flex items-center gap-2 min-w-0">
+                    {c.ok ? <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                          : <X className="w-4 h-4 text-red-400 flex-shrink-0" />}
+                    <span className={`${c.ok ? 'text-slate-500' : 'text-slate-700 font-medium'} truncate`}>{c.label}</span>
+                  </span>
+                  {!c.ok && c.detail && <span className="text-[10px] text-slate-400 flex-shrink-0">{c.detail}</span>}
+                </li>
+              ))}
+            </ul>
+            <button onClick={submitDay} disabled={submittingDay || !dayComplete}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation">
+              <Send className="w-4 h-4" /> {submittingDay ? 'Submitting…' : dayComplete ? `Submit Day (${drafts.length})` : 'Complete the day to submit'}
             </button>
-            <p className="text-[11px] text-slate-400 text-center mt-2">Submitted tasks go to your manager for approval.</p>
+            <p className="text-[11px] text-slate-400 text-center mt-2">Overtime tasks are extra and don't count toward the 9 hours.</p>
           </div>
         )}
       </div>
