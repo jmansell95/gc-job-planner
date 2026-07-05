@@ -17,7 +17,18 @@ const TASK_SUGGESTIONS = [
   'Dismantling the rig', 'Site clearance', 'Machine maintenance', 'Breakdown',
 ];
 
-const DURATION_CHIPS = [10, 15, 30, 60, 90, 120, 240];
+const TIME_SLOTS = (() => {
+  const slots = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      const period = h < 12 ? 'AM' : 'PM';
+      const dispH = h % 12 === 0 ? 12 : h % 12;
+      slots.push({ value, label: `${dispH}:${String(m).padStart(2, '0')} ${period}` });
+    }
+  }
+  return slots;
+})();
 
 const minsFromEntry = (t) => Number(t?.task_duration_minutes) || (t?.total_hours ? t.total_hours * 60 : 0);
 
@@ -34,7 +45,7 @@ const fmtCost = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString(
 export default function StaffTimesheets({ staffId, staffName }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ job_id: '', date: format(new Date(), 'yyyy-MM-dd'), task_description: '', task_duration_minutes: '', notes: '' });
+  const [form, setForm] = useState({ job_id: '', date: format(new Date(), 'yyyy-MM-dd'), task_description: '', start_time: '', end_time: '', notes: '' });
   const [submitting, setSubmitting] = useState(false);
   const [withdrawingId, setWithdrawingId] = useState(null);
   const [withdrawReason, setWithdrawReason] = useState('');
@@ -71,7 +82,13 @@ export default function StaffTimesheets({ staffId, staffName }) {
   const availableJobs = jobs.filter(j => assignedJobIds.includes(j.id));
 
   const hourlyRate = staffRecord?.day_rate ? staffRecord.day_rate / 8 : 0;
-  const durationMins = parseInt(form.task_duration_minutes) || 0;
+  const durationMins = (() => {
+    if (!form.start_time || !form.end_time) return 0;
+    const [sh, sm] = form.start_time.split(':').map(Number);
+    const [eh, em] = form.end_time.split(':').map(Number);
+    const diff = (eh * 60 + em) - (sh * 60 + sm);
+    return diff > 0 ? diff : 0;
+  })();
   const otRateMap = buildRateMap(overtimeRates);
   const otThreshold = overtimeSetting?.weekly_threshold_hours ?? 40;
 
@@ -87,7 +104,7 @@ export default function StaffTimesheets({ staffId, staffName }) {
   const weekMins = countedTimesheets.filter(t => weekKey(t.date) === currentWeekKey).reduce((s, t) => s + entryMinutes(t), 0);
 
   const resetForm = () => {
-    setForm({ job_id: '', date: format(new Date(), 'yyyy-MM-dd'), task_description: '', task_duration_minutes: '', notes: '' });
+    setForm({ job_id: '', date: format(new Date(), 'yyyy-MM-dd'), task_description: '', start_time: '', end_time: '', notes: '' });
     setEditingId(null);
     setShowForm(false);
   };
@@ -98,7 +115,8 @@ export default function StaffTimesheets({ staffId, staffName }) {
       job_id: t.job_id || '',
       date: t.date || format(new Date(), 'yyyy-MM-dd'),
       task_description: t.task_description || '',
-      task_duration_minutes: t.task_duration_minutes ? String(t.task_duration_minutes) : '',
+      start_time: t.start_time || '',
+      end_time: t.end_time || '',
       notes: t.notes || ''
     });
     setShowForm(true);
@@ -109,6 +127,8 @@ export default function StaffTimesheets({ staffId, staffName }) {
     job_id: form.job_id,
     date: form.date,
     task_description: form.task_description.trim(),
+    start_time: form.start_time,
+    end_time: form.end_time,
     task_duration_minutes: durationMins || 0,
     total_hours: Math.round((durationMins / 60) * 100) / 100,
     notes: form.notes.trim(),
@@ -294,18 +314,22 @@ export default function StaffTimesheets({ staffId, staffName }) {
               <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} required
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Time taken (minutes) *</label>
-              <input type="number" min="1" step="1" value={form.task_duration_minutes} onChange={e => setForm({ ...form, task_duration_minutes: e.target.value })} required
-                placeholder="e.g. 30"
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
-            </div>
-            <div className="sm:col-span-2">
-              <div className="flex flex-wrap gap-1.5">
-                {DURATION_CHIPS.map(d => (
-                  <button type="button" key={d} onClick={() => setForm({ ...form, task_duration_minutes: String(d) })}
-                    className={`text-xs px-3 py-1.5 rounded-full border transition font-medium ${durationMins === d ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400'}`}>{fmtDur(d)}</button>
-                ))}
+            <div className="sm:col-span-2 grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Start time *</label>
+                <select value={form.start_time} onChange={e => setForm({ ...form, start_time: e.target.value, end_time: form.end_time && e.target.value >= form.end_time ? '' : form.end_time })} required
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white">
+                  <option value="">Select start</option>
+                  {TIME_SLOTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">End time *</label>
+                <select value={form.end_time} onChange={e => setForm({ ...form, end_time: e.target.value })} required
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white">
+                  <option value="">Select end</option>
+                  {TIME_SLOTS.filter(s => !form.start_time || s.value > form.start_time).map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
               </div>
             </div>
             <div className="sm:col-span-2">
