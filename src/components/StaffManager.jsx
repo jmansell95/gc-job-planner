@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/components/ui/use-toast';
 import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import PrintReportButton from '@/components/PrintReportButton';
@@ -16,13 +17,27 @@ const workerBadge = {
 };
 
 export default function StaffManager() {
+  const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(null);
   const [inviteOnCreate, setInviteOnCreate] = useState(true);
   const [formData, setFormData] = useState({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '' });
 
   const queryClient = useQueryClient();
+
+  const cleanPayload = (data) => {
+    const cleaned = { ...data };
+    ['day_rate', 'meterage_rate'].forEach(k => {
+      if (cleaned[k] === '' || cleaned[k] == null) delete cleaned[k];
+      else cleaned[k] = Number(cleaned[k]);
+    });
+    ['default_vehicle_id', 'manager_id', 'team_id'].forEach(k => {
+      if (cleaned[k] === '') delete cleaned[k];
+    });
+    return cleaned;
+  };
 
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
@@ -33,23 +48,36 @@ export default function StaffManager() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editingId) {
-      await base44.entities.Staff.update(editingId, formData);
-    } else {
-      await base44.entities.Staff.create(formData);
-      if (inviteOnCreate && formData.email) {
-        try {
-          await base44.users.inviteUser(formData.email, 'user');
-          queryClient.invalidateQueries({ queryKey: ['users-list'] });
-        } catch (err) {
-          console.error('Invite failed:', err);
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const payload = cleanPayload(formData);
+      if (editingId) {
+        await base44.entities.Staff.update(editingId, payload);
+        toast({ title: 'Staff member updated' });
+      } else {
+        await base44.entities.Staff.create(payload);
+        if (inviteOnCreate && formData.email) {
+          try {
+            await base44.users.inviteUser(formData.email, 'user');
+            toast({ title: 'Staff added', description: `Invite sent to ${formData.email}` });
+          } catch (err) {
+            toast({ title: 'Staff added', description: 'App invite could not be sent — use the "Send app invite" button on the card.', variant: 'destructive' });
+          }
+        } else {
+          toast({ title: 'Staff member added' });
         }
       }
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ['users-list'] });
+      setFormData({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '' });
+      setShowForm(false);
+      setEditingId(null);
+    } catch (error) {
+      toast({ title: 'Could not save staff member', description: error?.message || 'Please check all fields and try again.', variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
     }
-    queryClient.invalidateQueries({ queryKey: ['staff'] });
-    setFormData({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '' });
-    setShowForm(false);
-    setEditingId(null);
   };
 
   const handleEdit = (m) => { setFormData(m); setEditingId(m.id); setShowForm(true); };
@@ -67,8 +95,9 @@ export default function StaffManager() {
       }
       await base44.entities.Staff.delete(member.id);
       queryClient.invalidateQueries({ queryKey: ['staff'] });
+      toast({ title: `${member.name} deleted` });
     } catch (error) {
-      console.error('Error deleting:', error);
+      toast({ title: 'Could not delete staff member', description: error?.message, variant: 'destructive' });
     }
   };
 
@@ -77,9 +106,9 @@ export default function StaffManager() {
     try {
       await base44.users.inviteUser(member.email, 'user');
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
+      toast({ title: 'Invite sent', description: member.email });
     } catch (error) {
-      console.error('Error inviting:', error);
-      alert(error.message || 'Failed to send invite — user may already have an account');
+      toast({ title: 'Could not send invite', description: error?.message || 'User may already have an account', variant: 'destructive' });
     }
     setInviteLoading(null);
   };
@@ -88,8 +117,9 @@ export default function StaffManager() {
     try {
       await base44.entities.User.update(userId, { role: newRole });
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
+      toast({ title: 'Role updated' });
     } catch (error) {
-      console.error('Error updating role:', error);
+      toast({ title: 'Could not update role', description: error?.message, variant: 'destructive' });
     }
   };
 
@@ -225,8 +255,8 @@ export default function StaffManager() {
           )}
 
           <div className="flex gap-2 mt-5">
-            <button type="submit" className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">
-              {editingId ? 'Update' : 'Add'} Staff Member
+            <button type="submit" disabled={submitting} className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm disabled:opacity-50">
+              {submitting ? 'Saving...' : editingId ? 'Update' : 'Add'} Staff Member
             </button>
             <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm">
               Cancel
