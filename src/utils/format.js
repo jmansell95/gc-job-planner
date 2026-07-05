@@ -24,3 +24,19 @@ export function formatJobRole(role) {
   if (!role) return '';
   return jobRoleLabels[role] || role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
+
+const workerTypeLabels = {
+  direct_employee: 'Direct Employee',
+  subcontractor: 'Subcontractor',
+  agency: 'Agency Worker',
+};
+
+export function formatWorkerType(type) {
+  if (!type) return '';
+  return workerTypeLabels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+export function titleCase(str) {
+  if (!str) return '';
+  return str.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}

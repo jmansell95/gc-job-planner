@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Users, ChevronDown, ChevronRight, GitBranch, UserCircle2, UserMinus } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import { formatWorkerType } from '@/utils/format';
 
 const workerBadge = {
   direct_employee: 'bg-emerald-100 text-emerald-700',
@@ -107,11 +108,11 @@ export default function TeamManager() {
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-slate-900 truncate">{m.name}</p>
-        <p className="text-xs text-slate-500 truncate">{(m.worker_type || '').replace(/_/g, ' ')}</p>
+        <p className="text-xs text-slate-500 truncate">{formatWorkerType(m.worker_type)}</p>
       </div>
       <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusDot[statusOf(m)]}`} title={statusOf(m)} />
       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${workerBadge[m.worker_type] || 'bg-slate-100 text-slate-600'}`}>
-        {(m.worker_type || '').replace(/_/g, ' ')}
+        {formatWorkerType(m.worker_type)}
       </span>
     </div>
   );

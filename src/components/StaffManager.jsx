@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import PrintReportButton from '@/components/PrintReportButton';
+import { formatWorkerType } from '@/utils/format';
 
 const workerBadge = {
   direct_employee: 'bg-emerald-100 text-emerald-700',
@@ -129,7 +130,7 @@ export default function StaffManager() {
 
   const buildStaffPrintHtml = () => {
     const rows = staff.map(s =>
-      `<tr><td>${s.name}</td><td>${s.email}</td><td>${s.worker_type?.replace(/_/g,' ')}</td><td>${teams.find(t => t.id === s.team_id)?.name || '—'}</td><td>${getUserForStaff(s) ? 'Yes' : 'No'}</td></tr>`
+      `<tr><td>${s.name}</td><td>${s.email}</td><td>${formatWorkerType(s.worker_type)}</td><td>${teams.find(t => t.id === s.team_id)?.name || '—'}</td><td>${getUserForStaff(s) ? 'Yes' : 'No'}</td></tr>`
     ).join('');
     return `<!DOCTYPE html><html><head><title>Staff Report</title>
     <style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#111}h1{font-size:16px;margin-bottom:4px}p{color:#555;font-size:11px;margin-bottom:12px}table{width:100%;border-collapse:collapse}th{background:#1a5c3a;color:white;padding:6px 8px;text-align:left;font-size:11px}td{padding:5px 8px;border-bottom:1px solid #e2e8f0}tr:nth-child(even) td{background:#f8fafb}@media print{body{margin:10mm}}</style>
@@ -293,9 +294,9 @@ export default function StaffManager() {
                       </span>
                       <select value={linkedUser.role || 'user'} onChange={e => handleRoleChange(linkedUser.id, e.target.value)}
                         className="text-xs px-2 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600">
-                        <option value="viewer">viewer</option>
-                        <option value="user">user</option>
-                        <option value="admin">admin</option>
+                        <option value="viewer">Viewer</option>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
                       </select>
                     </>
                   ) : member.invite_sent ? (
@@ -311,7 +312,7 @@ export default function StaffManager() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-3">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${workerBadge[member.worker_type] || 'bg-slate-100 text-slate-600'}`}>{member.worker_type?.replace(/_/g, ' ')}</span>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${workerBadge[member.worker_type] || 'bg-slate-100 text-slate-600'}`}>{formatWorkerType(member.worker_type)}</span>
                   {teams.find(t => t.id === member.team_id) && (
                     <span className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">{teams.find(t => t.id === member.team_id).name}</span>
                   )}
