@@ -184,15 +184,15 @@ export default function StaffDashboard() {
     return (
       <motion.div key={assignment.id} variants={listItem} className={`rounded-lg p-4 md:p-6 border-l-4 border ${jobTypeColors[job.job_type] || 'bg-slate-50 border-slate-200'}`}>
         {/* Status + Check-in Bar */}
-        <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-200/60">
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${status.badge}`}>
-            <StatusIcon className="w-3.5 h-3.5" />
-            {status.label}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-3 border-b border-slate-200/60">
+          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold self-start ${status.badge}`}>
+            <StatusIcon className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">{status.label}</span>
             {assignment.status === 'started' && assignment.started_at && (
-              <span className="text-[10px] opacity-70 ml-1">since {format(new Date(assignment.started_at), 'HH:mm')}</span>
+              <span className="text-[10px] opacity-70 ml-1 whitespace-nowrap">since {format(new Date(assignment.started_at), 'HH:mm')}</span>
             )}
           </span>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 justify-end">
             {(assignment.status || 'assigned') === 'assigned' && (
               <button onClick={() => handleStartJob(assignment.id)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs font-medium">
