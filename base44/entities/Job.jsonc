@@ -145,13 +145,23 @@
       "type": "number",
       "description": "Total meters drilled for drilling jobs (CP / rotary); overrides shift-level meterage for costing when set"
     },
+    "markup_percentage": {
+      "type": "number",
+      "default": 0,
+      "description": "Markup percentage applied to total internal net cost to derive the client price"
+    },
+    "vat_rate": {
+      "type": "number",
+      "default": 20,
+      "description": "VAT rate (%) applied for billing calculations. UK standard rate is 20."
+    },
     "client_charge": {
       "type": "number",
-      "description": "Amount quoted to / billed to the client in GBP. Shown on the client portal when the client_charge section is enabled. Internal costs are never shown to the client."
+      "description": "Legacy manual client charge. Superseded by the calculated billing when cost items/markup are used."
     },
     "client_charge_description": {
       "type": "string",
-      "description": "Short label or note shown alongside the client charge on the portal (e.g. 'Agreed quote', 'Invoiced to date')"
+      "description": "Label shown alongside the client billing total on the portal (e.g. 'Agreed quote', 'Project Investment')"
     }
   },
   "required": [

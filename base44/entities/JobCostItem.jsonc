@@ -1,0 +1,66 @@
+{
+  "name": "JobCostItem",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Associated job"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "internal_equipment",
+        "hired_equipment"
+      ],
+      "default": "hired_equipment",
+      "description": "Whether this is your own equipment or hired from a supplier"
+    },
+    "supplier_id": {
+      "type": "string",
+      "description": "Supplier (for hired equipment)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Item description e.g. Transformer, Excavator"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Hire start date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Hire end date"
+    },
+    "unit_cost": {
+      "type": "number",
+      "description": "Net cost per unit (excluding VAT)"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "description": "Number of units / days"
+    },
+    "unit_label": {
+      "type": "string",
+      "default": "day",
+      "description": "Unit label e.g. day, each, m, hour"
+    },
+    "vat_exempt": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this item is exempt from VAT"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes"
+    }
+  },
+  "required": [
+    "job_id",
+    "category",
+    "description",
+    "unit_cost"
+  ]
+}

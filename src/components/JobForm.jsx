@@ -120,16 +120,6 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
         )}
       </Section>
 
-      {/* Client Billing (shown on portal if enabled) */}
-      <Section title="Client Billing (Portal)" icon={PoundSterling}>
-        <Field label="Client Charge (GBP)" hint="What the client pays">
-          <input type="number" min="0" step="0.01" value={num('client_charge')} onChange={(e) => setNum('client_charge', e.target.value)} placeholder="0.00" className={inputCls} />
-        </Field>
-        <Field label="Charge Label" hint="e.g. Agreed quote">
-          <input type="text" value={formData.client_charge_description || ''} onChange={(e) => setFormData({ ...formData, client_charge_description: e.target.value })} placeholder="Agreed quote" className={inputCls} />
-        </Field>
-      </Section>
-
       {/* Notes */}
       <Section title="Notes" icon={StickyNote} className="border-t pt-5 border-slate-100">
         <Field label="Job Notes" full>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Users, Truck, HardHat, Building2, ChevronRight, CalendarX, Mail, PoundSterling } from 'lucide-react';
+import { Settings, Users, Truck, HardHat, Building2, ChevronRight, CalendarX, Mail, PoundSterling, Package } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import StaffManager from '@/components/StaffManager';
 import VehicleManager from '@/components/VehicleManager';
@@ -8,12 +8,14 @@ import ClientManager from '@/components/ClientManager';
 import AbsenceManager from '@/components/AbsenceManager';
 import EmailAlertsSettings from '@/components/EmailAlertsSettings';
 import CostSettings from '@/components/CostSettings';
+import SupplierManager from '@/components/SupplierManager';
 
 const tabs = [
   { id: 'staff', label: 'Staff', icon: Users },
   { id: 'vehicles', label: 'Vehicles', icon: Truck },
   { id: 'clients', label: 'Clients', icon: Building2 },
   { id: 'contractors', label: 'Contractors', icon: HardHat },
+  { id: 'suppliers', label: 'Suppliers', icon: Package },
   { id: 'absences', label: 'Absences', icon: CalendarX },
   { id: 'costs', label: 'Costs', icon: PoundSterling },
   { id: 'email-alerts', label: 'Email Alerts', icon: Mail },
@@ -51,6 +53,7 @@ export default function SettingsPage() {
       {activeTab === 'vehicles' && <VehicleManager />}
       {activeTab === 'clients' && <ClientManager />}
       {activeTab === 'contractors' && <ContractorManager />}
+      {activeTab === 'suppliers' && <SupplierManager />}
       {activeTab === 'absences' && <AbsenceManager />}
       {activeTab === 'costs' && <CostSettings />}
       {activeTab === 'email-alerts' && <EmailAlertsSettings />}

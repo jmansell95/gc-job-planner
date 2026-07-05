@@ -11,7 +11,7 @@ import PortalLinkManager from '@/components/PortalLinkManager';
 import PortalSectionManager from '@/components/PortalSectionManager';
 import DocumentManager from '@/components/DocumentManager';
 import MilestoneManager from '@/components/MilestoneManager';
-import JobCostManager from '@/components/JobCostManager';
+import JobCostingManager from '@/components/JobCostingManager';
 import JobCommentsViewer from '@/components/JobCommentsViewer';
 import JobWorkLog from '@/components/JobWorkLog';
 import { formatJobType } from '@/utils/format';
@@ -405,8 +405,8 @@ export default function JobDetail({ job, onBack }) {
             </div>
           </div>
 
-          {/* Job Costing */}
-          <JobCostManager job={job} totalCost={totalCost} staffCosts={staffCosts} isDrillingJob={isDrillingJob} totalMeterage={totalMeterage} />
+          {/* Job Costing & Billing */}
+          <JobCostingManager job={job} totalCost={totalCost} staffCosts={staffCosts} isDrillingJob={isDrillingJob} totalMeterage={totalMeterage} />
 
           <JobWorkLog job={job} />
 

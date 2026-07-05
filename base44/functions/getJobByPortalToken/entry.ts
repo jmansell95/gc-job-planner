@@ -20,6 +20,7 @@ Deno.serve(async (req) => {
     const comments = await base44.asServiceRole.entities.JobComment.filter({ job_id: job.id });
     const milestones = await base44.asServiceRole.entities.JobMilestone.filter({ job_id: job.id });
     const timesheets = await base44.asServiceRole.entities.Timesheet.filter({ job_id: job.id });
+    const costItems = await base44.asServiceRole.entities.JobCostItem.filter({ job_id: job.id });
 
     let client = null;
     if (job.client_id) {
@@ -65,6 +66,76 @@ Deno.serve(async (req) => {
     const completed = assignments.filter(a => a.status === 'completed').length;
     const started = assignments.filter(a => a.status === 'started').length;
 
+    // ---- Billing calculation (client-facing, internal costs never exposed) ----
+    const vatRate = job.vat_rate != null ? Number(job.vat_rate) : 20;
+    const markup = job.markup_percentage != null ? Number(job.markup_percentage) : 0;
+
+    const isDrillingJob = job.job_type === 'cp_drilling' || job.job_type === 'rotary_drilling';
+    const jobMeterage = isDrillingJob && job.meterage != null && job.meterage !== '' ? Number(job.meterage) : 0;
+    const useJobMeterage = jobMeterage > 0;
+
+    const tsByStaff = {};
+    validTimesheets.forEach(t => {
+      const mins = Number(t.task_duration_minutes) || (t.total_hours ? t.total_hours * 60 : 0);
+      if (!tsByStaff[t.staff_id]) tsByStaff[t.staff_id] = { minutes: 0 };
+      tsByStaff[t.staff_id].minutes += mins;
+    });
+
+    const assignedStaffIds = [...new Set(assignments.map(a => a.staff_id))];
+    let labourNet = 0;
+    assignedStaffIds.forEach(sid => {
+      const m = allStaff.find(s => s.id === sid);
+      if (!m) return;
+      const memberRotas = assignments.filter(a => a.staff_id === sid);
+      const memberMeterage = memberRotas.reduce((s, a) => s + (a.meterage || 0), 0);
+      const meterageRate = m.meterage_rate || 0;
+      const dayRate = m.day_rate || 0;
+      const usesMeterage = isDrillingJob && meterageRate > 0;
+      const meterage = useJobMeterage ? jobMeterage : memberMeterage;
+      const ts = tsByStaff[sid];
+      const usesTimesheet = !usesMeterage && ts && ts.minutes > 0;
+      const hourlyRate = dayRate > 0 ? dayRate / 8 : 0;
+      const cost = usesMeterage ? meterage * meterageRate
+        : usesTimesheet ? (ts.minutes / 60) * hourlyRate
+        : memberRotas.length * dayRate;
+      labourNet += cost;
+    });
+
+    if (job.actual_cost != null && job.actual_cost !== '') labourNet = Number(job.actual_cost);
+
+    let itemNet = 0;
+    const lineItems = [];
+    costItems.forEach(c => {
+      const qty = Number(c.quantity) || 1;
+      const unit = Number(c.unit_cost) || 0;
+      itemNet += qty * unit;
+      lineItems.push({ description: c.description, category: c.category });
+    });
+
+    const internalNet = labourNet + itemNet;
+    const markupAmount = internalNet * (markup / 100);
+    const clientNet = internalNet + markupAmount;
+    const clientVat = clientNet * (vatRate / 100);
+    const clientTotal = clientNet + clientVat;
+
+    const hasBilling = costItems.length > 0 || labourNet > 0 || job.client_charge != null;
+    const billing = {
+      quote_label: job.client_charge_description || 'Project Investment',
+      line_items: lineItems,
+      subtotal: Math.round(clientNet * 100) / 100,
+      vat_rate: vatRate,
+      vat_amount: Math.round(clientVat * 100) / 100,
+      total: Math.round(clientTotal * 100) / 100,
+      has_items: costItems.length > 0 || labourNet > 0
+    };
+    // Fallback to legacy manual client_charge when no calculated billing exists
+    if (!billing.has_items && job.client_charge != null) {
+      billing.subtotal = Number(job.client_charge);
+      billing.vat_amount = 0;
+      billing.total = Number(job.client_charge);
+      billing.legacy = true;
+    }
+
     return Response.json({
       job: {
         name: job.name,
@@ -78,7 +149,6 @@ Deno.serve(async (req) => {
         project_manager: job.project_manager || '',
         site_contact_name: job.site_contact_name || '',
         site_contact_phone: job.site_contact_phone || '',
-        client_charge: job.client_charge != null ? job.client_charge : null,
         client_charge_description: job.client_charge_description || '',
         portal_sections: job.portal_sections || null
       },
@@ -88,6 +158,7 @@ Deno.serve(async (req) => {
       progress: { total, completed, started },
       team,
       totals: { staff: team.length, shifts: total, hours: totalHours, meterage: totalMeterage },
+      billing: hasBilling ? billing : null,
       documents: documents.map(d => ({
         document_url: d.document_url,
         document_name: d.document_name,

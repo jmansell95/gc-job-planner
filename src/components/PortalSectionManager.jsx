@@ -26,7 +26,7 @@ const SECTIONS = [
   { key: 'milestones', label: 'Milestones', desc: 'Project milestone timeline', icon: Target },
   { key: 'documents', label: 'Documents', desc: 'Downloadable job documents', icon: FileText },
   { key: 'comments', label: 'Comments', desc: 'Two-way client messaging', icon: MessageSquare },
-  { key: 'client_charge', label: 'Client Charge', desc: 'What the client is billed (your internal costs stay hidden)', icon: PoundSterling },
+  { key: 'client_charge', label: 'Project Investment', desc: 'Client billing total with markup & VAT (internal costs stay hidden)', icon: PoundSterling },
 ];
 
 export default function PortalSectionManager({ job }) {

@@ -374,15 +374,46 @@ export default function ClientPortal() {
           </motion.div>
         )}
 
-        {/* Client charge */}
-        {visible('client_charge') && job.client_charge != null && fmtMoney(job.client_charge) && (
-          <motion.div variants={portalItem} className="bg-gradient-to-br from-emerald-700 to-emerald-900 text-white rounded-xl shadow-sm p-5 md:p-6">
-            <div className="flex items-center gap-2 mb-1">
-              <PoundSterling className="w-5 h-5 text-emerald-200" />
-              <h2 className="font-semibold">{job.client_charge_description || 'Agreed Quote'}</h2>
+        {/* Project investment / billing */}
+        {visible('client_charge') && data.billing && data.billing.total > 0 && (
+          <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+              <PoundSterling className="w-5 h-5 text-emerald-700" />
+              <h2 className="font-semibold text-slate-900">{data.billing.quote_label || 'Project Investment'}</h2>
             </div>
-            <p className="text-3xl md:text-4xl font-bold mt-2">{fmtMoney(job.client_charge)}</p>
-            <p className="text-emerald-100 text-xs mt-2">This is the amount agreed for this project. For any billing queries, please contact your project manager.</p>
+            <div className="px-5 py-4">
+              {data.billing.line_items && data.billing.line_items.length > 0 && (
+                <div className="mb-4 space-y-1.5">
+                  {data.billing.line_items.map((li, i) => (
+                    <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+                      {li.description}
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2 text-sm text-slate-600 pt-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+                    Labour & Crew
+                  </div>
+                </div>
+              )}
+              <div className="space-y-2 border-t border-slate-100 pt-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500">Subtotal</span>
+                  <span className="font-medium text-slate-900">{fmtMoney(data.billing.subtotal)}</span>
+                </div>
+                {!data.billing.legacy && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">VAT ({data.billing.vat_rate}%)</span>
+                    <span className="font-medium text-slate-900">{fmtMoney(data.billing.vat_amount)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span className="font-semibold text-slate-900">Total</span>
+                  <span className="text-xl font-bold text-emerald-700">{fmtMoney(data.billing.total)}</span>
+                </div>
+              </div>
+              <p className="text-xs text-slate-400 mt-3">For any billing queries, please contact your project manager.</p>
+            </div>
           </motion.div>
         )}
 
