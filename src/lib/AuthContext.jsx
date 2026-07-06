@@ -1,7 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { appParams } from '@/lib/app-params';
-import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
 
 const AuthContext = createContext();
 
@@ -25,27 +24,31 @@ export const AuthProvider = ({ children }) => {
       
       // First, check app public settings (with token if available)
       // This will tell us if auth is required, user not registered, etc.
-      const appClient = createAxiosClient({
-        baseURL: `/api/apps/public`,
-        headers: {
-          'X-App-Id': appParams.appId
-        },
-        token: appParams.token, // Include token if available
-        interceptResponses: true
-      });
-      
       try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
+        const headers = { 'X-App-Id': appParams.appId };
+        if (appParams.token) {
+          headers['Authorization'] = `Bearer ${appParams.token}`;
+        }
+        
+        const response = await fetch(`/api/apps/public/prod/public-settings/by-id/${appParams.appId}`, {
+          headers,
+          credentials: 'include'
+        });
+        
+        let publicSettings = null;
+        try { publicSettings = await response.json(); } catch {}
+        
+        if (!response.ok) {
+          const error = new Error(publicSettings?.message || `Request failed with status ${response.status}`);
+          error.status = response.status;
+          error.data = publicSettings;
+          throw error;
+        }
+        
         setAppPublicSettings(publicSettings);
         
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          await checkUserAuth();
-        } else {
-          setIsLoadingAuth(false);
-          setIsAuthenticated(false);
-          setAuthChecked(true);
-        }
+        // Always check user auth — the SDK manages its own token storage internally
+        await checkUserAuth();
         setIsLoadingPublicSettings(false);
       } catch (appError) {
         console.error('App state check failed:', appError);
@@ -96,6 +99,7 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
+      setAuthError(null);
       setIsLoadingAuth(false);
       setAuthChecked(true);
     } catch (error) {
