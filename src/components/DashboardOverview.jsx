@@ -9,7 +9,7 @@ import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
 import JobCostAnalytics from '@/components/JobCostAnalytics';
 import DashboardInsights from '@/components/DashboardInsights';
 import { formatJobType } from '@/utils/format';
-import NeedsAttentionPanel from '@/components/NeedsAttentionPanel';
+
 
 const jobTypeBadge = {
   groundworks: 'bg-green-100 text-green-700 ring-1 ring-green-200',
@@ -108,9 +108,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           );
         })}
       </div>
-
-      {/* Needs Attention */}
-      <NeedsAttentionPanel onNavigate={onNavigate} />
 
       {/* Field Crews + AI Insights side by side on desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">

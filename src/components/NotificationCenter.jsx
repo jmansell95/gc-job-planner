@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, X, Wrench, Clock, CalendarOff, CheckCircle2, AlertTriangle, CheckCheck } from 'lucide-react';
+import { Bell, X, Wrench, Clock, CalendarOff, CheckCircle2, AlertTriangle, CheckCheck, RotateCcw, PauseCircle, CalendarClock } from 'lucide-react';
 
 export default function NotificationCenter({ isOpen, onClose, onNavigate, notifications }) {
-  const { items, vehicleAlerts, pendingTimesheets, pendingAbsences, count, dismiss, clearAll } = notifications;
+  const { items, vehicleAlerts, pendingTimesheets, withdrawnTimesheets, pendingAbsences, onHoldJobs, rotaAlerts, count, dismiss, clearAll } = notifications;
 
   return (
     <AnimatePresence>
@@ -49,6 +49,18 @@ export default function NotificationCenter({ isOpen, onClose, onNavigate, notifi
             {pendingTimesheets.length > 0 && (
               <NotifGroup label="Timesheet Approvals" icon={Clock} color="text-blue-600" items={pendingTimesheets}
                 onNavigate={() => { onNavigate?.('timesheets'); onClose(); }} onDismiss={dismiss} />
+            )}
+            {withdrawnTimesheets.length > 0 && (
+              <NotifGroup label="Withdrawn to Review" icon={RotateCcw} color="text-slate-600" items={withdrawnTimesheets}
+                onNavigate={() => { onNavigate?.('timesheets'); onClose(); }} onDismiss={dismiss} />
+            )}
+            {onHoldJobs.length > 0 && (
+              <NotifGroup label="Jobs On Hold" icon={PauseCircle} color="text-rose-600" items={onHoldJobs}
+                onNavigate={() => { onNavigate?.('jobs'); onClose(); }} onDismiss={dismiss} />
+            )}
+            {rotaAlerts.length > 0 && (
+              <NotifGroup label="Rota" icon={CalendarClock} color="text-blue-600" items={rotaAlerts}
+                onNavigate={() => { onNavigate?.('rota'); onClose(); }} onDismiss={dismiss} />
             )}
             {pendingAbsences.length > 0 && (
               <NotifGroup label="Absence Requests" icon={CalendarOff} color="text-purple-600" items={pendingAbsences}

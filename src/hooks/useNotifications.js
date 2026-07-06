@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, format, startOfWeek } from 'date-fns';
 
 const STORAGE_KEY = 'gc_dismissed_notifications';
 
@@ -10,6 +10,8 @@ export function useNotifications() {
   const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets'], queryFn: () => base44.entities.Timesheet.list() });
   const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
+  const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
+  const { data: rotaWeeks = [] } = useQuery({ queryKey: ['rota-week'], queryFn: () => base44.entities.RotaWeek.list() });
 
   const [dismissed, setDismissed] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')); } catch { return new Set(); }
@@ -45,6 +47,13 @@ export function useNotifications() {
       return { id: t.id, kind: 'timesheet', title: s?.name || 'Unknown', subtitle: 'Timesheet awaiting approval', severity: 'info', meta: t.date };
     });
 
+  const withdrawnTimesheets = timesheets
+    .filter(t => t.status === 'deleted' && !t.withdrawal_acknowledged)
+    .map(t => {
+      const s = staff.find(x => x.id === t.staff_id);
+      return { id: 'wd_' + t.id, kind: 'withdrawn', title: s?.name || 'Unknown', subtitle: 'Withdrawn timesheet to review', severity: 'info', meta: t.date };
+    });
+
   const pendingAbsences = absences
     .filter(a => a.status === 'pending')
     .map(a => {
@@ -52,7 +61,17 @@ export function useNotifications() {
       return { id: a.id, kind: 'absence', title: s?.name || 'Unknown', subtitle: `${a.reason} request`, severity: 'info', meta: `${a.start_date} → ${a.end_date}` };
     });
 
-  const all = [...vehicleAlerts, ...pendingTimesheets, ...pendingAbsences];
+  const onHoldJobs = jobs
+    .filter(j => j.status === 'on_hold')
+    .map(j => ({ id: 'hold_' + j.id, kind: 'on_hold', title: j.name, subtitle: 'Job is on hold', severity: 'warning', meta: j.location || '' }));
+
+  const weekStartStr = format(startOfWeek(today), 'yyyy-MM-dd');
+  const thisWeekRota = rotaWeeks.find(w => w.week_start === weekStartStr);
+  const rotaUnpublished = (!thisWeekRota || thisWeekRota.status !== 'published')
+    ? [{ id: 'rota_unpublished', kind: 'rota', title: "This week's rota", subtitle: 'Not published yet', severity: 'warning', meta: format(startOfWeek(today), 'dd MMM') }]
+    : [];
+
+  const all = [...vehicleAlerts, ...pendingTimesheets, ...withdrawnTimesheets, ...pendingAbsences, ...onHoldJobs, ...rotaUnpublished];
   const visible = all.filter(n => !dismissed.has(n.id));
 
   const dismiss = useCallback((id) => {
@@ -67,7 +86,10 @@ export function useNotifications() {
     items: visible,
     vehicleAlerts: visible.filter(n => n.kind === 'vehicle'),
     pendingTimesheets: visible.filter(n => n.kind === 'timesheet'),
+    withdrawnTimesheets: visible.filter(n => n.kind === 'withdrawn'),
     pendingAbsences: visible.filter(n => n.kind === 'absence'),
+    onHoldJobs: visible.filter(n => n.kind === 'on_hold'),
+    rotaAlerts: visible.filter(n => n.kind === 'rota'),
     count: visible.length,
     dismiss,
     clearAll,
