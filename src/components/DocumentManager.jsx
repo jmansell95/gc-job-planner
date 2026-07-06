@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Upload, Trash2, Download, Eye, Truck, Link2, EyeOff, Eye as EyeIcon } from 'lucide-react';
+import { FileText, Upload, Trash2, Download, Eye, Truck, Link2, EyeOff, Eye as EyeIcon, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 
 const categoryConfig = {
   rams: { label: 'RAMS', badge: 'bg-red-100 text-red-700' },
@@ -72,6 +73,7 @@ export default function DocumentManager({ job }) {
   };
 
   const clientVisibleCount = documents.filter(d => d.client_visible).length;
+  const acknowledgedCount = documents.filter(d => d.client_visible && d.client_approved).length;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -135,9 +137,16 @@ export default function DocumentManager({ job }) {
         )}
 
         {clientVisibleCount > 0 && (
-          <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-1.5 mb-3 inline-flex items-center gap-1.5">
-            <EyeIcon className="w-3.5 h-3.5" /> {clientVisibleCount} {clientVisibleCount === 1 ? 'document' : 'documents'} shared with the client
-          </p>
+          <div className="flex flex-wrap gap-2 mb-3">
+            <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-1.5 inline-flex items-center gap-1.5">
+              <EyeIcon className="w-3.5 h-3.5" /> {clientVisibleCount} {clientVisibleCount === 1 ? 'document' : 'documents'} shared with the client
+            </p>
+            {acknowledgedCount > 0 && (
+              <p className="text-xs text-emerald-700 bg-white border border-emerald-200 rounded-lg px-3 py-1.5 inline-flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5" /> {acknowledgedCount} acknowledged by client
+              </p>
+            )}
+          </div>
         )}
 
         {documents.length === 0 ? (
@@ -165,6 +174,11 @@ export default function DocumentManager({ job }) {
                       {isClientVisible && (
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 inline-flex items-center gap-1">
                           <EyeIcon className="w-2.5 h-2.5" /> Client
+                        </span>
+                      )}
+                      {isClientVisible && doc.client_approved && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-teal-50 text-teal-700 inline-flex items-center gap-1" title={doc.client_approved_by_name ? `Acknowledged by ${doc.client_approved_by_name}${doc.client_approved_at ? ' on ' + format(parseISO(doc.client_approved_at), 'dd MMM yyyy') : ''}` : 'Acknowledged'}>
+                          <CheckCircle2 className="w-2.5 h-2.5" /> Acknowledged{doc.client_approved_by_name ? ` · ${doc.client_approved_by_name}` : ''}
                         </span>
                       )}
                     </div>
