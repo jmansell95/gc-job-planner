@@ -17,6 +17,69 @@ const blankForm = () => ({
   delivery_notes: '', collection_notes: ''
 });
 
+function BudgetMarginTracker({ budget, actualNet, clientNet, markup }) {
+  const hasBudget = budget > 0;
+  const profit = clientNet - actualNet;
+  const marginPct = clientNet > 0 ? (profit / clientNet) * 100 : 0;
+  const variance = hasBudget ? budget - actualNet : 0;
+  const overBudget = hasBudget && actualNet > budget;
+  const budgetPct = hasBudget ? Math.min((actualNet / budget) * 100, 100) : 0;
+
+  if (!hasBudget && actualNet === 0) return null;
+
+  return (
+    <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/40">
+      <div className="flex items-center gap-2 mb-3">
+        <Calculator className="w-4 h-4 text-emerald-700" />
+        <h3 className="text-sm font-semibold text-slate-800">Budget & Margin</h3>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-white rounded-lg p-3 border border-slate-100">
+          <p className="text-xs text-slate-400">Budget</p>
+          <p className="text-base font-bold text-slate-900 truncate">{hasBudget ? fmt(budget) : 'Not set'}</p>
+        </div>
+        <div className="bg-white rounded-lg p-3 border border-slate-100">
+          <p className="text-xs text-slate-400">Actual cost (net)</p>
+          <p className={`text-base font-bold truncate ${overBudget ? 'text-red-600' : 'text-slate-900'}`}>{fmt(actualNet)}</p>
+        </div>
+        <div className="bg-white rounded-lg p-3 border border-slate-100">
+          <p className="text-xs text-slate-400">{hasBudget ? 'Variance' : 'Profit'}</p>
+          <p className={`text-base font-bold truncate ${hasBudget ? (overBudget ? 'text-red-600' : 'text-emerald-700') : 'text-emerald-700'}`}>
+            {hasBudget ? `${variance >= 0 ? '+' : ''}${fmt(variance)}` : fmt(profit)}
+          </p>
+        </div>
+        <div className="bg-white rounded-lg p-3 border border-slate-100">
+          <p className="text-xs text-slate-400">Margin</p>
+          <p className="text-base font-bold text-emerald-700 truncate">{marginPct.toFixed(1)}%</p>
+        </div>
+      </div>
+
+      {hasBudget && (
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-xs mb-1">
+            <span className="text-slate-500 font-medium">Budget used</span>
+            <span className={overBudget ? 'text-red-600 font-semibold' : 'text-slate-600'}>
+              {budgetPct.toFixed(0)}%{overBudget && ` · ${fmt(actualNet - budget)} over`}
+            </span>
+          </div>
+          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full transition-all ${overBudget ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${budgetPct}%` }} />
+          </div>
+          {overBudget && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+              This job is over budget by {fmt(actualNet - budget)}.
+            </div>
+          )}
+        </div>
+      )}
+      {!hasBudget && (
+        <p className="text-xs text-slate-400 mt-2">Set a job budget in the job details to track spend against it.</p>
+      )}
+    </div>
+  );
+}
+
 export default function JobCostingManager({ job, staffCosts, totalCost, isDrillingJob, totalMeterage }) {
   const queryClient = useQueryClient();
   const [markup, setMarkup] = useState(job.markup_percentage ?? 0);
@@ -205,6 +268,14 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
             <span>Markup: {Number(markup) || 0}%</span>
           </div>
         </div>
+
+        {/* Budget & Margin tracker */}
+        <BudgetMarginTracker
+          budget={Number(job.budget_amount) || 0}
+          actualNet={internalNet}
+          clientNet={clientNet}
+          markup={Number(markup) || 0}
+        />
 
         {/* Internal cost summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

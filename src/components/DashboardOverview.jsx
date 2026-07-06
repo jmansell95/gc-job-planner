@@ -2,11 +2,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Truck, Briefcase, Grid3x3, MapPin, ChevronRight, Clock, AlertTriangle } from 'lucide-react';
+import { Users, Truck, Briefcase, Grid3x3, MapPin, ChevronRight, Clock, ClipboardCheck, Plus, Calendar, ArrowRight } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { JobStatusChart, StaffUtilizationChart, JobTypeBreakdownChart } from '@/components/DashboardCharts';
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
 import JobCostAnalytics from '@/components/JobCostAnalytics';
+import DashboardInsights from '@/components/DashboardInsights';
 import { formatJobType } from '@/utils/format';
 import NeedsAttentionPanel from '@/components/NeedsAttentionPanel';
 
@@ -35,6 +36,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
+  const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets'], queryFn: () => base44.entities.Timesheet.list('-created_date', 100) });
 
   const weekStart = startOfWeek(new Date());
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
@@ -47,57 +49,62 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   });
 
   const activeJobs = jobs.filter(j => (j.status || 'planning') === 'in_progress');
+  const onHoldJobs = jobs.filter(j => j.status === 'on_hold');
   const todaysRotas = thisWeekRotas.filter(r => r.assigned_date === todayStr);
   const staffToday = [...new Set(todaysRotas.map(r => r.staff_id))].length;
-
-  const today = new Date();
-  const inDays = (dateStr) => {
-    if (!dateStr) return null;
-    return Math.ceil((new Date(dateStr + 'T00:00:00') - today) / (1000 * 60 * 60 * 24));
-  };
-  const maintenanceAlerts = vehicles.filter(v => {
-    const motDays = inDays(v.mot_expiry);
-    const svcDays = inDays(v.service_due_date);
-    return (motDays !== null && motDays <= 30) || (svcDays !== null && svcDays <= 30);
-  }).length;
+  const pendingTs = timesheets.filter(t => t.status === 'submitted').length;
+  const activeStaff = staff.filter(s => s.is_active !== false).length;
 
   const stats = [
-    { label: 'Active Jobs', value: activeJobs.length, icon: Briefcase, gradient: 'stat-gradient-emerald' },
-    { label: 'Working Today', value: staffToday, icon: Users, gradient: 'stat-gradient-blue' },
-    { label: 'Vehicles', value: vehicles.length, icon: Truck, gradient: 'stat-gradient-amber' },
-    { label: 'Maint. Alerts', value: maintenanceAlerts, icon: AlertTriangle, gradient: maintenanceAlerts > 0 ? 'stat-gradient-rose' : 'stat-gradient-slate' },
+    { label: 'Active Jobs', value: activeJobs.length, sub: onHoldJobs.length ? `${onHoldJobs.length} on hold` : `${jobs.length} total`, icon: Briefcase, gradient: 'stat-gradient-emerald', nav: 'jobs' },
+    { label: 'Working Today', value: staffToday, sub: `${activeStaff} active staff`, icon: Users, gradient: 'stat-gradient-blue', nav: 'rota' },
+    { label: 'Pending Approval', value: pendingTs, sub: 'timesheets', icon: ClipboardCheck, gradient: pendingTs > 0 ? 'stat-gradient-amber' : 'stat-gradient-slate', nav: 'timesheets' },
+    { label: 'Vehicles', value: vehicles.length, sub: 'in fleet', icon: Truck, gradient: 'stat-gradient-amber', nav: 'settings' },
   ];
 
   return (
     <div>
-      {/* Header */}
+      {/* Hero header */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-emerald-100 rounded-xl flex-shrink-0">
-            <Grid3x3 className="w-7 h-7 text-emerald-700" />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-emerald-100 rounded-xl flex-shrink-0">
+              <Grid3x3 className="w-7 h-7 text-emerald-700" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dashboard</h1>
+              <p className="text-slate-500 text-sm mt-0.5">Week of {format(weekStart, 'dd MMM yyyy')}</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dashboard</h1>
-            <p className="text-slate-500 text-sm mt-0.5">Week of {format(weekStart, 'dd MMM yyyy')}</p>
+          <div className="flex items-center gap-2">
+            <button onClick={() => onNavigate('jobs')} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
+              <Plus className="w-4 h-4 text-emerald-700" /> Add Job
+            </button>
+            <button onClick={() => onNavigate('rota')} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
+              <Calendar className="w-4 h-4" /> Build Rota
+            </button>
           </div>
         </div>
       </motion.div>
 
-      {/* Key Stats */}
+      {/* KPI Stats — clickable */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <motion.div key={stat.label} custom={i} initial="hidden" animate="show" variants={cardVariants}
-              className="card-modern rounded-2xl p-5 flex items-center gap-4">
+            <motion.button key={stat.label} custom={i} initial="hidden" animate="show" variants={cardVariants}
+              onClick={() => onNavigate(stat.nav)}
+              className="card-modern rounded-2xl p-5 flex items-center gap-4 text-left group">
               <div className={`w-12 h-12 rounded-xl ${stat.gradient} flex items-center justify-center flex-shrink-0 shadow-md`}>
                 <Icon className="w-6 h-6 text-white" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
                 <p className="text-xs text-slate-500 font-medium">{stat.label}</p>
+                <p className="text-[11px] text-slate-400 truncate">{stat.sub}</p>
               </div>
-            </motion.div>
+              <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition ml-auto flex-shrink-0" />
+            </motion.button>
           );
         })}
       </div>
@@ -105,64 +112,72 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       {/* Needs Attention */}
       <NeedsAttentionPanel onNavigate={onNavigate} />
 
-      {/* Today's Field Crew */}
-      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.35 }}
-        className="card-modern rounded-2xl overflow-hidden mb-6">
-        <div className="px-5 py-4 border-b border-slate-100/70 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <Clock className="w-5 h-5 text-emerald-700 flex-shrink-0" />
-            <h2 className="font-semibold text-slate-900 truncate">Field Crews On Site Today</h2>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full font-semibold ring-1 ring-emerald-200 whitespace-nowrap">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              {todaysRotas.length} {todaysRotas.length === 1 ? 'assignment' : 'assignments'}
-            </span>
-            <button onClick={() => onNavigate('calendar')} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2 py-1.5 rounded-lg hover:bg-emerald-50 transition">
-              Calendar <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-        {todaysRotas.length === 0 ? (
-          <div className="px-5 py-10 text-center">
-            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
-              <Users className="w-5 h-5 text-slate-300" />
+      {/* Field Crews + AI Insights side by side on desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Today's Field Crew */}
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.35 }}
+          className="card-modern rounded-2xl overflow-hidden lg:col-span-2">
+          <div className="px-5 py-4 border-b border-slate-100/70 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <Clock className="w-5 h-5 text-emerald-700 flex-shrink-0" />
+              <h2 className="font-semibold text-slate-900 truncate">Field Crews On Site Today</h2>
             </div>
-            <p className="text-slate-400 text-sm">No assignments scheduled today</p>
-            <button onClick={() => onNavigate('rota')} className="mt-2 text-xs text-emerald-700 hover:text-emerald-900 font-medium">Build this week's rota →</button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full font-semibold ring-1 ring-emerald-200 whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                {todaysRotas.length} {todaysRotas.length === 1 ? 'assignment' : 'assignments'}
+              </span>
+              <button onClick={() => onNavigate('calendar')} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2 py-1.5 rounded-lg hover:bg-emerald-50 transition">
+                Calendar <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-        ) : (
-          <div className="divide-y divide-slate-100/70">
-            {todaysRotas.map(r => {
-              const member = staff.find(s => s.id === r.staff_id);
-              const job = jobs.find(j => j.id === r.job_id);
-              const vehicle = vehicles.find(v => v.id === r.vehicle_id);
-              return (
-                <button key={r.id} onClick={() => job && onSelectJob(job)}
-                  className="w-full px-5 py-3 flex items-center gap-3 hover:bg-emerald-50/40 transition text-left">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <span className="text-white font-bold text-sm">{member?.name?.charAt(0) || '?'}</span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-900 truncate">{member?.name || 'Unknown'}</p>
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400 truncate">
-                      <MapPin className="w-3 h-3 flex-shrink-0" />
-                      <span className="truncate">{job?.name || '—'}</span>
+          {todaysRotas.length === 0 ? (
+            <div className="px-5 py-10 text-center">
+              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
+                <Users className="w-5 h-5 text-slate-300" />
+              </div>
+              <p className="text-slate-400 text-sm">No assignments scheduled today</p>
+              <button onClick={() => onNavigate('rota')} className="mt-2 text-xs text-emerald-700 hover:text-emerald-900 font-medium">Build this week's rota →</button>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100/70 max-h-[340px] overflow-y-auto">
+              {todaysRotas.map(r => {
+                const member = staff.find(s => s.id === r.staff_id);
+                const job = jobs.find(j => j.id === r.job_id);
+                const vehicle = vehicles.find(v => v.id === r.vehicle_id);
+                return (
+                  <button key={r.id} onClick={() => job && onSelectJob(job)}
+                    className="w-full px-5 py-3 flex items-center gap-3 hover:bg-emerald-50/40 transition text-left">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <span className="text-white font-bold text-sm">{member?.name?.charAt(0) || '?'}</span>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {vehicle && <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{vehicle.registration_number}</span>}
-                    {job?.job_type && <span className={`w-2 h-2 rounded-full ${jobTypeDot[job.job_type]}`} />}
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${jobTypeBadge[job?.job_type] || 'bg-slate-100 text-slate-600'}`}>
-                      {formatJobType(job?.job_type) || '—'}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </motion.div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-slate-900 truncate">{member?.name || 'Unknown'}</p>
+                      <div className="flex items-center gap-1.5 text-xs text-slate-400 truncate">
+                        <MapPin className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{job?.name || '—'}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {vehicle && <span className="text-xs font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{vehicle.registration_number}</span>}
+                      {job?.job_type && <span className={`w-2 h-2 rounded-full ${jobTypeDot[job.job_type]}`} />}
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${jobTypeBadge[job?.job_type] || 'bg-slate-100 text-slate-600'}`}>
+                        {formatJobType(job?.job_type) || '—'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </motion.div>
+
+        {/* AI Weekly Insights (inline, no longer a separate orphan) */}
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18, duration: 0.35 }}>
+          <DashboardInsights />
+        </motion.div>
+      </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

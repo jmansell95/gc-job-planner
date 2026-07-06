@@ -13,9 +13,11 @@ const JOB_TYPE_LABELS = {
 
 export default function AssignmentModal({ isOpen, onClose, assignment, defaultStaffId, defaultDate, weekStartStr, staff, jobs, vehicles, existingRotas }) {
   const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '', notes: '' });
-  const [conflictWarning, setConflictWarning] = useState(null);
+  const [conflictWarnings, setConflictWarnings] = useState([]);
   const queryClient = useQueryClient();
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
+  const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
+  const { data: recurring = [] } = useQuery({ queryKey: ['recurring-absences'], queryFn: () => base44.entities.RecurringAbsence.list() });
 
   const teamJobType = (staffMember) => {
     if (!staffMember?.team_id) return null;
@@ -47,14 +49,28 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           notes: ''
         });
       }
-      setConflictWarning(null);
+      setConflictWarnings([]);
     }
   }, [isOpen, assignment, defaultStaffId, defaultDate]);
 
   if (!isOpen) return null;
 
-  const checkConflict = (staffId, date) => {
-    return existingRotas.some(r => r.staff_id === staffId && r.assigned_date === date && r.id !== assignment?.id);
+  const checkConflicts = (staffId, date, vehicleId) => {
+    const warnings = [];
+    if (staffId && date) {
+      const dup = existingRotas.some(r => r.staff_id === staffId && r.assigned_date === date && r.id !== assignment?.id);
+      if (dup) warnings.push('This staff member is already assigned on this date.');
+      const dow = new Date(date + 'T00:00:00').getDay();
+      const rec = recurring.find(r => r.staff_id === staffId && r.is_active !== false && Array.isArray(r.days_of_week) && r.days_of_week.includes(dow));
+      if (rec) warnings.push(`Staff is regularly off (${rec.label || 'Day Off'}) on this day.`);
+      const onLeave = absences.some(a => a.staff_id === staffId && a.status === 'approved' && a.start_date <= date && a.end_date >= date);
+      if (onLeave) warnings.push('Staff has an approved absence (leave) on this date.');
+    }
+    if (vehicleId && date) {
+      const vehClash = existingRotas.some(r => r.vehicle_id === vehicleId && r.assigned_date === date && r.id !== assignment?.id && r.staff_id !== staffId);
+      if (vehClash) warnings.push('This vehicle is already assigned to another staff member on this date.');
+    }
+    return warnings;
   };
 
   const handleStaffChange = (staffId) => {
@@ -66,8 +82,8 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
       return { ...prev, staff_id: staffId, job_id: jobOk ? prev.job_id : '' };
     });
     if (staffId && formData.assigned_date) {
-      setConflictWarning(checkConflict(staffId, formData.assigned_date) ? 'This staff member is already assigned on this date.' : null);
-    } else setConflictWarning(null);
+      setConflictWarnings(checkConflicts(staffId, formData.assigned_date, formData.vehicle_id));
+    } else setConflictWarnings([]);
   };
 
   const handleJobChange = (jobId) => {
@@ -92,15 +108,18 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
 
   const handleDateChange = (date) => {
     setFormData(prev => ({ ...prev, assigned_date: date }));
-    if (date && formData.staff_id) {
-      setConflictWarning(checkConflict(formData.staff_id, date) ? 'This staff member is already assigned on this date.' : null);
-    } else setConflictWarning(null);
+    setConflictWarnings(date && formData.staff_id ? checkConflicts(formData.staff_id, date, formData.vehicle_id) : []);
+  };
+
+  const handleVehicleChange = (vehicleId) => {
+    setFormData(prev => ({ ...prev, vehicle_id: vehicleId }));
+    setConflictWarnings(formData.staff_id && formData.assigned_date ? checkConflicts(formData.staff_id, formData.assigned_date, vehicleId) : []);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (checkConflict(formData.staff_id, formData.assigned_date)) {
-      if (!confirm('This staff member is already assigned on this date. Add anyway?')) return;
+    if (conflictWarnings.length > 0) {
+      if (!confirm('There are scheduling conflicts:\n\n' + conflictWarnings.map(w => '• ' + w).join('\n') + '\n\nAdd anyway?')) return;
     }
     try {
       if (isEditing) {
@@ -165,6 +184,22 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
               {selectedJob && (
                 <p className="text-[11px] text-slate-400 mt-1">Only staff in teams handling {JOB_TYPE_LABELS[selectedJob.job_type]} jobs can be assigned.</p>
               )}
+              {formData.assigned_date && eligibleStaff.length > 0 && (() => {
+                const date = formData.assigned_date;
+                const dow = new Date(date + 'T00:00:00').getDay();
+                const free = eligibleStaff.filter(s => {
+                  if (existingRotas.some(r => r.staff_id === s.id && r.assigned_date === date && r.id !== assignment?.id)) return false;
+                  if (recurring.some(r => r.staff_id === s.id && r.is_active !== false && Array.isArray(r.days_of_week) && r.days_of_week.includes(dow))) return false;
+                  if (absences.some(a => a.staff_id === s.id && a.status === 'approved' && a.start_date <= date && a.end_date >= date)) return false;
+                  return true;
+                });
+                return (
+                  <p className="text-[11px] mt-1">
+                    <span className="text-emerald-700 font-medium">{free.length} available</span>
+                    <span className="text-slate-400"> · {eligibleStaff.length - free.length} busy/off</span>
+                  </p>
+                );
+              })()}
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Date *</label>
@@ -173,7 +208,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Vehicle</label>
-              <select value={formData.vehicle_id} onChange={(e) => setFormData({ ...formData, vehicle_id: e.target.value })}
+              <select value={formData.vehicle_id} onChange={(e) => handleVehicleChange(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
                 <option value="">Select Vehicle (Optional)</option>
                 {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} — {v.name}</option>)}
@@ -198,10 +233,14 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm resize-none" />
             </div>
           </div>
-          {conflictWarning && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-              {conflictWarning}
+          {conflictWarnings.length > 0 && (
+            <div className="mt-3 space-y-1.5">
+              {conflictWarnings.map((w, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  {w}
+                </div>
+              ))}
             </div>
           )}
           <div className="flex gap-3 mt-5">
