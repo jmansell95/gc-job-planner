@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp, X } from 'lucide-react';
+import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp, X, Car } from 'lucide-react';
 import { format } from 'date-fns';
 
 const TASK_SUGGESTIONS = [
@@ -35,6 +35,8 @@ export default function DailyTaskLog({ staffId }) {
   const [notes, setNotes] = useState('');
   const [isLunch, setIsLunch] = useState(false);
   const [isOvertime, setIsOvertime] = useState(false);
+  const [isTravel, setIsTravel] = useState(false);
+  const [travelDirection, setTravelDirection] = useState('to');
   const [adding, setAdding] = useState(false);
   const [submittingDay, setSubmittingDay] = useState(false);
   const [fixingGapId, setFixingGapId] = useState(null);
@@ -71,23 +73,28 @@ export default function DailyTaskLog({ staffId }) {
     setStartTime(todayShift?.start_time || '');
     setIsLunch(false);
     setIsOvertime(false);
+    setIsTravel(false);
+    setTravelDirection('to');
   };
 
   const addTask = async (e) => {
     e.preventDefault();
     if (!startTime || !endTime || durMins <= 0 || overlapEntry) return;
-    if (!isLunch && (!jobId || !task.trim())) return;
+    if (!isLunch && !isTravel && (!jobId || !task.trim())) return;
+    if (isTravel && !jobId) return;
     setAdding(true);
     try {
+      const taskType = isTravel ? (travelDirection === 'to' ? 'travel_to' : 'travel_from') : 'on_site';
       await base44.entities.Timesheet.create({
         staff_id: staffId, date: today,
         job_id: isLunch ? '' : jobId,
-        task_description: isLunch ? 'Lunch Break' : task.trim(),
+        task_description: isTravel ? (travelDirection === 'to' ? 'Travel to site' : 'Travel from site') : (isLunch ? 'Lunch Break' : task.trim()),
         start_time: startTime, end_time: endTime,
         task_duration_minutes: durMins,
         total_hours: Math.round((durMins / 60) * 100) / 100,
         meterage: isLunch ? 0 : (isDriller ? (parseFloat(meterage) || 0) : 0),
-        notes: notes.trim(), status: 'draft', is_break: isLunch, is_overtime: isOvertime
+        notes: notes.trim(), status: 'draft', is_break: isLunch, is_overtime: isOvertime,
+        task_type: taskType
       });
       resetForm();
       invalidateAll();
@@ -129,16 +136,16 @@ export default function DailyTaskLog({ staffId }) {
   const submitDay = async () => {
     const drafts = todayEntries.filter(t => t.status === 'draft');
     if (drafts.length === 0 || !dayComplete) return;
-    if (!confirm(`Submit ${drafts.length} task${drafts.length === 1 ? '' : 's'} for today (${fmtDur(nonOTTotal)} standard${otMins > 0 ? ` + ${fmtDur(otMins)} overtime` : ''}) to your manager?`)) return;
+    if (!confirm(`Submit your timesheet for today (${fmtDur(nonOTTotal)} on-site${otMins > 0 ? ` + ${fmtDur(otMins)} overtime` : ''}) to your manager?`)) return;
     setSubmittingDay(true);
     try {
-      await base44.entities.Timesheet.bulkUpdate(drafts.map(d => ({ id: d.id, status: 'submitted' })));
+      await base44.functions.invoke('submitDailyTimesheet', { staff_id: staffId, date: today });
       invalidateAll();
     } catch (err) { console.error(err); }
     setSubmittingDay(false);
   };
 
-  const entries = todayEntries.filter(t => t.status !== 'deleted' && t.status !== 'rejected');
+  const entries = todayEntries.filter(t => t.status !== 'deleted' && t.status !== 'rejected' && t.status !== 'merged');
   const tasks = entries.filter(t => !t.is_break);
   const drafts = entries.filter(t => t.status === 'draft');
   const totalMins = entries.reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
@@ -164,10 +171,10 @@ export default function DailyTaskLog({ staffId }) {
   // Day completion: no gaps, 9 hours total (incl. 1h break), overtime excluded.
   const TARGET_MINS = 9 * 60;
   const BREAK_MINS = 60;
-  const nonOTEntries = entries.filter(t => !t.is_overtime);
+  const nonOTEntries = entries.filter(t => !t.is_overtime && t.task_type !== 'travel_to' && t.task_type !== 'travel_from');
   const nonOTTotal = nonOTEntries.reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
   const breakTotal = entries.filter(t => t.is_break).reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
-  const sortedAll = [...entries].sort((a, b) => (toMins(a.start_time) ?? 0) - (toMins(b.start_time) ?? 0));
+  const sortedAll = [...nonOTEntries].sort((a, b) => (toMins(a.start_time) ?? 0) - (toMins(b.start_time) ?? 0));
   const gaps = [];
   for (let i = 1; i < sortedAll.length; i++) {
     const prevEnd = toMins(sortedAll[i - 1].end_time);
@@ -245,25 +252,40 @@ export default function DailyTaskLog({ staffId }) {
                 <span className="font-medium">Overtime task — paid at the overtime rate for this day.</span>
               </div>
             )}
+            {isTravel && (
+              <div className="flex items-center gap-2 text-sm bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 text-blue-800 flex-wrap">
+                <Car className="w-4 h-4 flex-shrink-0" />
+                <span className="font-medium">Travel:</span>
+                <button type="button" onClick={() => setTravelDirection('to')}
+                  className={`text-xs px-2.5 py-1 rounded-full font-medium ${travelDirection === 'to' ? 'bg-blue-600 text-white' : 'bg-white border border-blue-200 text-blue-700'}`}>To Site</button>
+                <button type="button" onClick={() => setTravelDirection('from')}
+                  className={`text-xs px-2.5 py-1 rounded-full font-medium ${travelDirection === 'from' ? 'bg-blue-600 text-white' : 'bg-white border border-blue-200 text-blue-700'}`}>From Site</button>
+                <span className="text-[11px] text-blue-600 ml-1">First 1.5h unpaid (non-depot teams)</span>
+              </div>
+            )}
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">{isLunch ? 'Break type' : 'What did you do? *'}</label>
-              {!isLunch && (
-                <input type="text" value={task} onChange={e => setTask(e.target.value)} required={!isLunch}
+              <label className="block text-xs font-medium text-slate-600 mb-1">{isLunch ? 'Break type' : isTravel ? 'Travel time' : 'What did you do? *'}</label>
+              {!isLunch && !isTravel && (
+                <input type="text" value={task} onChange={e => setTask(e.target.value)} required={!isLunch && !isTravel}
                   placeholder="e.g. Put up heras fencing around the compound"
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
               )}
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {TASK_SUGGESTIONS.map(s => (
-                  <button type="button" key={s} onClick={() => { setTask(s); setIsLunch(false); setIsOvertime(false); }}
+                  <button type="button" key={s} onClick={() => { setTask(s); setIsLunch(false); setIsOvertime(false); setIsTravel(false); }}
                     className={`text-xs px-2.5 py-1 rounded-full border transition ${!isLunch && !isOvertime && task === s ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700'}`}>{s}</button>
                 ))}
-                <button type="button" onClick={() => { setIsLunch(true); setTask('Lunch Break'); setIsOvertime(false); }}
+                <button type="button" onClick={() => { setIsLunch(true); setTask('Lunch Break'); setIsOvertime(false); setIsTravel(false); }}
                   className={`text-xs px-2.5 py-1 rounded-full border transition inline-flex items-center gap-1 ${isLunch ? 'bg-amber-500 text-white border-amber-500' : 'bg-amber-50 border-amber-200 text-amber-700 hover:border-amber-400'}`}>
                   <Coffee className="w-3 h-3" /> Lunch Break
                 </button>
-                <button type="button" onClick={() => { setIsOvertime(true); setIsLunch(false); }}
+                <button type="button" onClick={() => { setIsOvertime(true); setIsLunch(false); setIsTravel(false); }}
                   className={`text-xs px-2.5 py-1 rounded-full border transition inline-flex items-center gap-1 ${isOvertime ? 'bg-orange-600 text-white border-orange-600' : 'bg-orange-50 border-orange-200 text-orange-700 hover:border-orange-400'}`}>
                   <TrendingUp className="w-3 h-3" /> Overtime
+                </button>
+                <button type="button" onClick={() => { setIsTravel(true); setIsLunch(false); setIsOvertime(false); }}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition inline-flex items-center gap-1 ${isTravel ? 'bg-blue-600 text-white border-blue-600' : 'bg-blue-50 border-blue-200 text-blue-700 hover:border-blue-400'}`}>
+                  <Car className="w-3 h-3" /> Travel
                 </button>
               </div>
             </div>
@@ -299,8 +321,8 @@ export default function DailyTaskLog({ staffId }) {
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
             </div>
             <button type="submit" disabled={adding || !startTime || !endTime || durMins <= 0 || !!overlapEntry || (!isLunch && (!jobId || !task.trim()))}
-              className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl hover:opacity-90 active:scale-95 transition text-sm font-semibold disabled:opacity-50 touch-manipulation ${isLunch ? 'bg-amber-500' : isOvertime ? 'bg-orange-600' : 'bg-emerald-700'}`}>
-              <Plus className="w-4 h-4" /> {adding ? 'Adding…' : isLunch ? 'Add Lunch Break' : isOvertime ? 'Add Overtime Task' : 'Add Task'}
+              className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl hover:opacity-90 active:scale-95 transition text-sm font-semibold disabled:opacity-50 touch-manipulation ${isLunch ? 'bg-amber-500' : isOvertime ? 'bg-orange-600' : isTravel ? 'bg-blue-600' : 'bg-emerald-700'}`}>
+              <Plus className="w-4 h-4" /> {adding ? 'Adding…' : isLunch ? 'Add Lunch Break' : isOvertime ? 'Add Overtime Task' : isTravel ? (travelDirection === 'to' ? 'Add Travel To Site' : 'Add Travel From Site') : 'Add Task'}
             </button>
           </form>
         )}
@@ -314,10 +336,11 @@ export default function DailyTaskLog({ staffId }) {
                 const job = jobs.find(j => j.id === t.job_id);
                 const tMins = Number(t.task_duration_minutes) || 0;
                 return (
-                  <div key={t.id} className={`px-3.5 py-3 flex items-center justify-between gap-3 ${t.is_break ? 'bg-amber-50/40' : 'bg-white'}`}>
+                  <div key={t.id} className={`px-3.5 py-3 flex items-center justify-between gap-3 ${t.is_break ? 'bg-amber-50/40' : (t.task_type === 'travel_to' || t.task_type === 'travel_from') ? 'bg-blue-50/40' : 'bg-white'}`}>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         {t.is_break && <Coffee className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />}
+                        {(t.task_type === 'travel_to' || t.task_type === 'travel_from') && <Car className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />}
                         <p className="font-medium text-sm text-slate-900 truncate">{t.is_break ? 'Lunch Break' : t.task_description}</p>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${t.is_break ? 'bg-amber-100 text-amber-700' : statusBadge(t.status)}`}>
                           {t.is_break ? 'Break' : t.status === 'draft' ? 'Draft' : t.status === 'submitted' ? 'Submitted' : t.status === 'approved' ? 'Approved' : 'Rejected'}
@@ -326,6 +349,9 @@ export default function DailyTaskLog({ staffId }) {
                           <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-orange-100 text-orange-700">
                             <TrendingUp className="w-2.5 h-2.5" /> OT
                           </span>
+                        )}
+                        {(t.task_type === 'travel_to' || t.task_type === 'travel_from') && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">Travel</span>
                         )}
                         {!t.is_break && t.meterage > 0 && (
                           <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-50 text-amber-700">
@@ -409,7 +435,7 @@ export default function DailyTaskLog({ staffId }) {
             </ul>
             <button onClick={submitDay} disabled={submittingDay || !dayComplete}
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation">
-              <Send className="w-4 h-4" /> {submittingDay ? 'Submitting…' : dayComplete ? `Submit Day (${drafts.length})` : 'Complete the day to submit'}
+              <Send className="w-4 h-4" /> {submittingDay ? 'Submitting…' : dayComplete ? 'Submit Timesheet' : 'Complete the day to submit'}
             </button>
             <p className="text-[11px] text-slate-400 text-center mt-2">Overtime tasks are extra and don't count toward the 9 hours.</p>
           </div>

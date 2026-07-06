@@ -14,7 +14,8 @@ const statusConfig = {
   submitted: { label: 'Submitted', badge: 'bg-amber-100 text-amber-700' },
   approved: { label: 'Approved', badge: 'bg-emerald-100 text-emerald-700' },
   rejected: { label: 'Rejected', badge: 'bg-red-100 text-red-700' },
-  deleted: { label: 'Withdrawn', badge: 'bg-slate-200 text-slate-500 line-through' }
+  deleted: { label: 'Withdrawn', badge: 'bg-slate-200 text-slate-500 line-through' },
+  merged: { label: 'Merged', badge: 'bg-slate-100 text-slate-400' }
 };
 
 const minsOf = (t) => Number(t?.task_duration_minutes) || (t?.total_hours ? t.total_hours * 60 : 0);
@@ -51,7 +52,7 @@ export default function TimesheetManager() {
     queryKey: ['timesheets'],
     queryFn: () => base44.entities.Timesheet.list('-created_date', 200)
   });
-  const workTimesheets = timesheets.filter(t => !t.is_break);
+  const workTimesheets = timesheets.filter(t => !t.is_break && t.status !== 'merged');
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: overtimeRates = [] } = useQuery({ queryKey: ['overtime-rates'], queryFn: () => base44.entities.OvertimeRate.list() });

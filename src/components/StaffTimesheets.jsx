@@ -92,7 +92,7 @@ export default function StaffTimesheets({ staffId, staffName }) {
   const otRateMap = buildRateMap(overtimeRates);
   const otThreshold = overtimeSetting?.weekly_threshold_hours ?? 40;
 
-  const visibleTimesheets = timesheets.filter(t => t.status !== 'deleted');
+  const visibleTimesheets = timesheets.filter(t => t.status !== 'deleted' && t.status !== 'merged');
   const countedTimesheets = visibleTimesheets.filter(t => t.status !== 'rejected');
   const otBreakdown = computeStaffOvertime(countedTimesheets, otRateMap, otThreshold, hourlyRate);
   const previewEntry = { id: '__preview__', date: form.date, task_duration_minutes: durationMins, created_date: new Date().toISOString() };

@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, CheckCircle2, XCircle, TrendingUp, ClipboardCheck, ShieldCheck } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, TrendingUp, ClipboardCheck, ShieldCheck, Car } from 'lucide-react';
 import { format } from 'date-fns';
 import { computeStaffOvertime, buildRateMap, entryMinutes } from '@/utils/overtime';
 
@@ -78,7 +78,15 @@ export default function ManagerTimesheetApprovals({ staffId }) {
                       <p className="font-medium text-sm text-slate-900 truncate">{member?.name || 'Unknown'}</p>
                       <span className="text-[10px] text-slate-400">{format(new Date(t.date + 'T00:00:00'), 'dd MMM yyyy')}</span>
                     </div>
-                    <p className="text-sm text-slate-700 mt-0.5 truncate">{job?.name || '—'} · {t.task_description}</p>
+                    <p className="text-sm text-slate-700 mt-0.5 truncate">{job?.name || '—'} · {t.is_summary ? 'Daily Summary' : t.task_description}</p>
+                    {t.is_summary && (t.on_site_minutes > 0 || (t.travel_to_minutes > 0 || t.travel_from_minutes > 0)) && (
+                      <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400 flex-wrap">
+                        {t.on_site_minutes > 0 && <span>On-site: {fmtDur(t.on_site_minutes)}</span>}
+                        {(t.travel_to_minutes > 0 || t.travel_from_minutes > 0) && (
+                          <span className="inline-flex items-center gap-0.5"><Car className="w-2.5 h-2.5" />Travel: {fmtDur((t.travel_to_minutes || 0) + (t.travel_from_minutes || 0))}{t.payable_travel_minutes > 0 ? ` (${fmtDur(t.payable_travel_minutes)} paid)` : ' (unpaid)'}</span>
+                        )}
+                      </div>
+                    )}
                     <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
                       <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{fmtDur(mins)}</span>
                       {b.isOvertime && <span className="inline-flex items-center gap-1 text-amber-600 font-medium"><TrendingUp className="w-3 h-3" />OT {fmtDur(b.otMins)} ×{b.multiplier}</span>}

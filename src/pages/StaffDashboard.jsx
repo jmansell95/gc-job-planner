@@ -13,6 +13,7 @@ import AssignmentCard from '@/components/staff/AssignmentCard';
 import JobBriefingModal from '@/components/staff/JobBriefingModal';
 import EndOfDayCard from '@/components/staff/EndOfDayCard';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useToast } from '@/components/ui/use-toast';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -31,6 +32,7 @@ function SectionHeader({ icon: Icon, title, count, tone = 'dark' }) {
 
 export default function StaffDashboard() {
   const [staff, setStaff] = useState(null);
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [meterageInputs, setMeterageInputs] = useState({});
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -111,6 +113,10 @@ export default function StaffDashboard() {
 
   const handleCompleteJob = async (assignmentId, extraData = {}) => {
     try {
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      try {
+        await base44.functions.invoke('submitDailyTimesheet', { staff_id: staff.id, date: todayStr });
+      } catch (e) { console.error('Timesheet submit error:', e); }
       const updateData = {
         status: 'completed',
         completed_at: new Date().toISOString(),
@@ -122,6 +128,10 @@ export default function StaffDashboard() {
       await base44.entities.RotaAssignment.update(assignmentId, updateData);
       setMeterageInputs(prev => { const next = { ...prev }; delete next[assignmentId]; return next; });
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-timesheets'] });
+      queryClient.invalidateQueries({ queryKey: ['all-timesheets-mgr'] });
+      toast({ title: 'Shift completed', description: 'Your timesheet has been submitted for approval.' });
     } catch (error) {
       console.error('Error completing job:', error);
     }

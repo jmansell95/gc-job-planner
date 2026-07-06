@@ -22,6 +22,8 @@ export function buildRateMap(rates) {
 
 export function entryMinutes(t) {
   if (t?.is_break) return 0;
+  if (t?.status === 'merged') return 0;
+  if (t?.task_type === 'travel_to' || t?.task_type === 'travel_from') return 0;
   return Number(t.task_duration_minutes) || (t.total_hours ? t.total_hours * 60 : 0);
 }
 

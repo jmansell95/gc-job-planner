@@ -1,0 +1,125 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body = await req.json();
+    const { staff_id, date } = body;
+    if (!staff_id || !date) return Response.json({ error: 'staff_id and date required' }, { status: 400 });
+
+    // Verify the caller is the staff member or an admin
+    const staffList = await base44.asServiceRole.entities.Staff.filter({ id: staff_id });
+    const staff = staffList[0];
+    if (!staff) return Response.json({ error: 'Staff not found' }, { status: 404 });
+    if (staff.user_id !== user.id && user.role !== 'admin') {
+      return Response.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Check if staff is in a depot team (depot teams don't get the 1.5h travel deduction)
+    let isDepot = false;
+    if (staff.team_id) {
+      const teamList = await base44.asServiceRole.entities.Team.filter({ id: staff.team_id });
+      if (teamList[0] && teamList[0].job_type === 'depot') isDepot = true;
+    }
+
+    // Fetch all draft entries for this staff+date
+    const drafts = await base44.asServiceRole.entities.Timesheet.filter({ staff_id, date, status: 'draft' });
+
+    if (drafts.length === 0) {
+      return Response.json({ success: true, summaries: [], message: 'No drafts to submit' });
+    }
+
+    // Separate by type
+    const onSiteTasks = drafts.filter(t => !t.is_break && (!t.task_type || t.task_type === 'on_site'));
+    const travelTo = drafts.find(t => t.task_type === 'travel_to');
+    const travelFrom = drafts.find(t => t.task_type === 'travel_from');
+
+    if (onSiteTasks.length === 0 && !travelTo && !travelFrom) {
+      return Response.json({ success: true, summaries: [], message: 'No tasks to submit' });
+    }
+
+    // Calculate travel times
+    const TRAVEL_DEDUCTIBLE = 90; // 1.5 hours per leg
+    const travelToMins = travelTo ? (Number(travelTo.task_duration_minutes) || 0) : 0;
+    const travelFromMins = travelFrom ? (Number(travelFrom.task_duration_minutes) || 0) : 0;
+    const payableTravelTo = isDepot ? travelToMins : Math.max(0, travelToMins - TRAVEL_DEDUCTIBLE);
+    const payableTravelFrom = isDepot ? travelFromMins : Math.max(0, travelFromMins - TRAVEL_DEDUCTIBLE);
+    const payableTravelTotal = payableTravelTo + payableTravelFrom;
+
+    // Group on-site tasks by job
+    const byJob = {};
+    onSiteTasks.forEach(t => {
+      const jid = t.job_id || 'no_job';
+      if (!byJob[jid]) byJob[jid] = [];
+      byJob[jid].push(t);
+    });
+
+    const jobIds = Object.keys(byJob);
+    const summaries = [];
+
+    for (let i = 0; i < jobIds.length; i++) {
+      const jid = jobIds[i];
+      const jobTasks = byJob[jid];
+      const onSiteMins = jobTasks.reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
+      const meterage = jobTasks.reduce((s, t) => s + (Number(t.meterage) || 0), 0);
+      const entryIds = jobTasks.map(t => t.id);
+      const hasTravel = i === 0 && (travelTo || travelFrom);
+
+      const totalMins = onSiteMins + (hasTravel ? payableTravelTotal : 0);
+
+      const summaryData = {
+        staff_id,
+        job_id: jid === 'no_job' ? '' : jid,
+        date,
+        task_description: 'Daily Summary',
+        task_duration_minutes: totalMins,
+        total_hours: Math.round((totalMins / 60) * 100) / 100,
+        on_site_minutes: onSiteMins,
+        status: 'submitted',
+        is_summary: true,
+        summary_entry_ids: entryIds.join(','),
+        meterage: meterage || 0,
+        notes: jobTasks.map(t => t.task_description).filter(Boolean).join('; ')
+      };
+
+      if (hasTravel) {
+        summaryData.travel_to_minutes = travelToMins;
+        summaryData.travel_from_minutes = travelFromMins;
+        summaryData.payable_travel_minutes = payableTravelTotal;
+        if (travelTo) {
+          summaryData.travel_depart_home = travelTo.start_time;
+          summaryData.travel_arrive_site = travelTo.end_time;
+        }
+        if (travelFrom) {
+          summaryData.travel_depart_site = travelFrom.start_time;
+          summaryData.travel_arrive_home = travelFrom.end_time;
+        }
+      }
+
+      const summary = await base44.asServiceRole.entities.Timesheet.create(summaryData);
+      summaries.push(summary);
+    }
+
+    // Mark ALL drafts (on-site, breaks, travel) as merged
+    const allDraftIds = drafts.map(t => t.id);
+    if (allDraftIds.length > 0) {
+      await base44.asServiceRole.entities.Timesheet.bulkUpdate(
+        allDraftIds.map(id => ({ id, status: 'merged' }))
+      );
+    }
+
+    // Notify manager for each summary
+    try {
+      for (const summary of summaries) {
+        await base44.asServiceRole.functions.invoke('notifyTimesheetSubmitted', { data: summary });
+      }
+    } catch (e) { /* notification failure shouldn't block submission */ }
+
+    return Response.json({ success: true, summaries, merged_count: allDraftIds.length });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});

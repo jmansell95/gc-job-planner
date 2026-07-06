@@ -58,6 +58,57 @@
       "default": false,
       "description": "True when the staff member explicitly logged this task as overtime. The whole entry is paid at the overtime rate for its day, regardless of the weekly threshold."
     },
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "on_site",
+        "travel_to",
+        "travel_from"
+      ],
+      "default": "on_site",
+      "description": "Type of work entry. 'on_site' = normal task, 'travel_to' = travelling to site, 'travel_from' = travelling home from site."
+    },
+    "is_summary": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for merged daily summary entries created by submitDailyTimesheet. These are what managers approve."
+    },
+    "summary_entry_ids": {
+      "type": "string",
+      "description": "Comma-separated IDs of the granular entries merged into this summary"
+    },
+    "on_site_minutes": {
+      "type": "number",
+      "description": "For summary entries: total on-site work minutes (excludes breaks and travel)"
+    },
+    "travel_to_minutes": {
+      "type": "number",
+      "description": "For summary entries: total travel-to-site minutes"
+    },
+    "travel_from_minutes": {
+      "type": "number",
+      "description": "For summary entries: total travel-from-site minutes"
+    },
+    "payable_travel_minutes": {
+      "type": "number",
+      "description": "For summary entries: travel minutes payable after the 1.5h deductible (0 for depot teams or travel under 1.5h)"
+    },
+    "travel_depart_home": {
+      "type": "string",
+      "description": "Time departed home (HH:MM) \u2014 from the travel_to entry"
+    },
+    "travel_arrive_site": {
+      "type": "string",
+      "description": "Time arrived on site (HH:MM) \u2014 from the travel_to entry"
+    },
+    "travel_depart_site": {
+      "type": "string",
+      "description": "Time departed site (HH:MM) \u2014 from the travel_from entry"
+    },
+    "travel_arrive_home": {
+      "type": "string",
+      "description": "Time arrived home (HH:MM) \u2014 from the travel_from entry"
+    },
     "approved_by_name": {
       "type": "string",
       "description": "Name of the manager who approved this timesheet"
@@ -69,10 +120,11 @@
         "submitted",
         "approved",
         "rejected",
-        "deleted"
+        "deleted",
+        "merged"
       ],
       "default": "submitted",
-      "description": "Timesheet approval status. 'deleted' = withdrawn by staff with a reason."
+      "description": "Timesheet approval status. 'draft' = still being edited, 'submitted' = awaiting approval, 'approved'/'rejected' = manager decision, 'deleted' = withdrawn by staff, 'merged' = granular entry merged into a daily summary (no longer individually approvable)."
     },
     "deletion_reason": {
       "type": "string",
