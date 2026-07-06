@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Clock, Truck, PlayCircle, Briefcase, ChevronRight } from 'lucide-react';
+import { MapPin, Calendar, Clock, Truck, PlayCircle, Briefcase, ChevronRight, CheckCircle2, Ruler } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatJobType } from '@/utils/format';
 
@@ -12,9 +12,10 @@ const jobTypeAccent = {
   depot: 'from-slate-500 to-slate-600'
 };
 
-export default function NextJobCard({ assignment, job, vehicle, client, onStart, canStart }) {
+export default function NextJobCard({ assignment, job, vehicle, client, onStart, onComplete, canStart, meterage, onMeterageChange }) {
   if (!job) return null;
   const accent = jobTypeAccent[job.job_type] || jobTypeAccent.depot;
+  const isDriller = job.job_type === 'cp_drilling' || job.job_type === 'rotary_drilling';
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -52,7 +53,7 @@ export default function NextJobCard({ assignment, job, vehicle, client, onStart,
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {(assignment.status || 'assigned') === 'assigned' && canStart && (
             <button onClick={() => onStart(assignment.id)}
               className="flex items-center gap-2 px-5 py-3 bg-white text-slate-900 rounded-xl font-bold text-sm hover:bg-white/90 active:scale-95 transition touch-manipulation shadow-md">
@@ -65,12 +66,26 @@ export default function NextJobCard({ assignment, job, vehicle, client, onStart,
             </span>
           )}
           {assignment.status === 'started' && (
-            <span className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 rounded-xl text-sm font-semibold">
-              <PlayCircle className="w-4 h-4" /> In progress since {assignment.started_at ? format(new Date(assignment.started_at), 'HH:mm') : ''}
-            </span>
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 rounded-xl text-sm font-semibold">
+                <PlayCircle className="w-4 h-4" /> In progress since {assignment.started_at ? format(new Date(assignment.started_at), 'HH:mm') : ''}
+              </span>
+              {isDriller && (
+                <input type="number" min="0" step="0.1" placeholder="Meterage (m)"
+                  value={meterage || ''}
+                  onChange={e => onMeterageChange(assignment.id, e.target.value)}
+                  className="w-32 px-3 py-2.5 bg-white/90 text-slate-900 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-white/50 placeholder:text-slate-400" />
+              )}
+              <button onClick={() => onComplete(assignment.id)}
+                className="flex items-center gap-2 px-5 py-3 bg-white text-slate-900 rounded-xl font-bold text-sm hover:bg-white/90 active:scale-95 transition touch-manipulation shadow-md">
+                <CheckCircle2 className="w-5 h-5" /> Complete Job
+              </button>
+            </div>
           )}
           {assignment.status === 'completed' && (
-            <span className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 rounded-xl text-sm font-semibold">Completed</span>
+            <span className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/15 rounded-xl text-sm font-semibold">
+              <CheckCircle2 className="w-4 h-4" /> Completed
+            </span>
           )}
         </div>
       </div>

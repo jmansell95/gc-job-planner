@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 import AssignmentCard from '@/components/staff/AssignmentCard';
 import NextJobCard from '@/components/staff/NextJobCard';
+import EndOfDayCard from '@/components/staff/EndOfDayCard';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -153,8 +154,10 @@ export default function StaffDashboard() {
   const pastAssignments = assignments.filter(a => isPast(new Date(a.assigned_date + 'T00:00:00')) && a.assigned_date !== todayStr)
     .sort((a, b) => new Date(b.assigned_date) - new Date(a.assigned_date));
 
-  const nextAssignment = todaysAssignments.find(a => (a.status || 'assigned') !== 'completed')
-    || upcomingAssignments[0];
+  const nextTodayAssignment = todaysAssignments.find(a => (a.status || 'assigned') !== 'completed');
+  const todaysAllDone = todaysAssignments.length > 0 && !nextTodayAssignment;
+  const heroAssignment = nextTodayAssignment || upcomingAssignments[0];
+  const isHeroStarted = heroAssignment?.status === 'started' && heroAssignment?.assigned_date === todayStr;
 
   const cardProps = (assignment) => ({
     assignment,
@@ -229,11 +232,6 @@ export default function StaffDashboard() {
           </div>
         )}
 
-        {/* Daily Task Log */}
-        <div className="mb-8">
-          <DailyTaskLog staffId={staff.id} />
-        </div>
-
         {/* Manager: Timesheet Approvals */}
         <ManagerTimesheetApprovals staffId={staff.id} />
 
@@ -263,18 +261,26 @@ export default function StaffDashboard() {
           </div>
         ) : (
           <div className="space-y-8">
-            {/* Next job hero card */}
-            {nextAssignment && (() => {
-              const job = jobs.find(j => j.id === nextAssignment.job_id);
+            {/* Current/Next job hero card */}
+            {heroAssignment && (() => {
+              const job = jobs.find(j => j.id === heroAssignment.job_id);
               if (!job) return null;
-              const scheduledStart = new Date(nextAssignment.assigned_date + 'T' + (nextAssignment.start_time || '00:00:00'));
+              const scheduledStart = new Date(heroAssignment.assigned_date + 'T' + (heroAssignment.start_time || '00:00:00'));
               return (
                 <NextJobCard
-                  {...cardProps(nextAssignment)}
+                  {...cardProps(heroAssignment)}
                   canStart={new Date() >= scheduledStart}
                 />
               );
             })()}
+
+            {/* Daily task log — appears once the current job is started */}
+            {isHeroStarted && (
+              <DailyTaskLog staffId={staff.id} />
+            )}
+
+            {/* End of day — all today's jobs complete */}
+            {todaysAllDone && <EndOfDayCard />}
 
             {/* Today's jobs (excluding the hero next one) */}
             {todaysAssignments.length > 0 && (
@@ -282,7 +288,7 @@ export default function StaffDashboard() {
                 <SectionHeader icon={Clock} title="Today" count={todaysAssignments.length} />
                 <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-3">
                   {todaysAssignments.map(a => (
-                    <AssignmentCard key={a.id} {...cardProps(a)} defaultExpanded={a.id === nextAssignment?.id} />
+                    <AssignmentCard key={a.id} {...cardProps(a)} defaultExpanded={a.id === heroAssignment?.id} />
                   ))}
                 </motion.div>
               </div>
@@ -294,7 +300,7 @@ export default function StaffDashboard() {
                 <SectionHeader icon={Calendar} title="Upcoming" count={upcomingAssignments.length} />
                 <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-3">
                   {upcomingAssignments.map(a => (
-                    <AssignmentCard key={a.id} {...cardProps(a)} defaultExpanded={a.id === nextAssignment?.id} />
+                    <AssignmentCard key={a.id} {...cardProps(a)} defaultExpanded={a.id === heroAssignment?.id} />
                   ))}
                 </motion.div>
               </div>
