@@ -70,21 +70,15 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   return (
     <div>
-      {/* Gradient Hero */}
+      {/* Header */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-6">
-        <div className="hero-gradient rounded-2xl p-5 md:p-6 text-white shadow-lg shadow-emerald-900/20 overflow-hidden relative">
-          <div className="absolute -top-12 -right-8 w-44 h-44 rounded-full bg-emerald-300/20 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-16 -left-10 w-40 h-40 rounded-full bg-teal-300/10 blur-3xl pointer-events-none" />
-          <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-white/15 rounded-xl ring-1 ring-white/20 backdrop-blur-sm flex-shrink-0">
-                <Grid3x3 className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
-                <p className="text-emerald-100 text-sm mt-0.5">Week of {format(weekStart, 'dd MMM yyyy')}</p>
-              </div>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-emerald-100 rounded-xl flex-shrink-0">
+            <Grid3x3 className="w-7 h-7 text-emerald-700" />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dashboard</h1>
+            <p className="text-slate-500 text-sm mt-0.5">Week of {format(weekStart, 'dd MMM yyyy')}</p>
           </div>
         </div>
       </motion.div>
