@@ -33,6 +33,7 @@ export default function StaffDashboard() {
   const [loading, setLoading] = useState(true);
   const [meterageInputs, setMeterageInputs] = useState({});
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [showHistory, setShowHistory] = useState(false);
   const { openChat } = useStaffAssistant();
   const queryClient = useQueryClient();
 
