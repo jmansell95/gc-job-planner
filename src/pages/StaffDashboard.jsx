@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, CalendarDays, Clock, Briefcase, WifiOff, HardHat, Sparkles, MessageCircle, History, ChevronDown, ClipboardCheck } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, Sparkles, MessageCircle, History, ChevronDown, ClipboardCheck } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import DailyTaskLog from '@/components/DailyTaskLog';
 import StaffTimesheets from '@/components/StaffTimesheets';
@@ -70,10 +70,13 @@ export default function StaffDashboard() {
   // Real-time sync: reflect assignment changes (including deletions) immediately
   useEffect(() => {
     if (!staff?.id) return;
-    const unsubscribe = base44.entities.RotaAssignment.subscribe(() => {
+    const unsub1 = base44.entities.RotaAssignment.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
     });
-    return () => { if (unsubscribe) unsubscribe(); };
+    const unsub2 = base44.entities.RotaWeek.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['rota-weeks'] });
+    });
+    return () => { if (unsub1) unsub1(); if (unsub2) unsub2(); };
   }, [staff?.id, queryClient]);
 
   const { data: assignments = [], isLoading: assignmentsLoading } = useQuery({
@@ -111,6 +114,7 @@ export default function StaffDashboard() {
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
   const { data: allStaff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: mgrTimesheets = [] } = useQuery({ queryKey: ['all-timesheets-mgr'], queryFn: () => base44.entities.Timesheet.list('-created_date', 500) });
+  const { data: rotaWeeks = [] } = useQuery({ queryKey: ['rota-weeks'], queryFn: () => base44.entities.RotaWeek.list() });
 
   const handleStartJob = async (assignmentId) => {
     try {
@@ -218,10 +222,18 @@ export default function StaffDashboard() {
     );
   }
 
+  // Staff only see assignments from the latest published (non-superseded) rota week.
+  // When a new draft is created, old weeks are superseded and staff see nothing until
+  // the new rota is published/sent to them.
+  const visibleWeekStarts = rotaWeeks.filter(w => w.status === 'published' && !w.superseded).map(w => w.week_start);
+  const hasAnyRotaWeeks = rotaWeeks.length > 0;
+  const visibleAssignments = hasAnyRotaWeeks ? assignments.filter(a => visibleWeekStarts.includes(a.week_start)) : assignments;
+  const scheduleLocked = hasAnyRotaWeeks && visibleWeekStarts.length === 0;
+
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const todaysAssignments = assignments.filter(a => a.assigned_date === todayStr);
-  const upcomingAssignments = assignments.filter(a => isFuture(new Date(a.assigned_date + 'T00:00:00')) && a.assigned_date !== todayStr);
-  const pastAssignments = assignments.filter(a => isPast(new Date(a.assigned_date + 'T00:00:00')) && a.assigned_date !== todayStr)
+  const todaysAssignments = visibleAssignments.filter(a => a.assigned_date === todayStr);
+  const upcomingAssignments = visibleAssignments.filter(a => isFuture(new Date(a.assigned_date + 'T00:00:00')) && a.assigned_date !== todayStr);
+  const pastAssignments = visibleAssignments.filter(a => isPast(new Date(a.assigned_date + 'T00:00:00')) && a.assigned_date !== todayStr)
     .sort((a, b) => new Date(b.assigned_date) - new Date(a.assigned_date));
 
   const nextTodayAssignment = todaysAssignments.find(a => (a.status || 'assigned') !== 'completed');
@@ -246,8 +258,8 @@ export default function StaffDashboard() {
     meterage: meterageInputs[assignment.id],
     onMeterageChange: (id, val) => setMeterageInputs(prev => ({ ...prev, [id]: val })),
     tasksSubmitted: mgrTimesheets.some(t => t.job_id === assignment.job_id && t.date === todayStr && (t.status === 'submitted' || t.status === 'approved')),
-    needsBriefing: !assignment.briefing_signed && !assignments.some(a => a.job_id === assignment.job_id && a.briefing_signed && a.id !== assignment.id),
-    previousProgress: assignments
+    needsBriefing: !assignment.briefing_signed && !visibleAssignments.some(a => a.job_id === assignment.job_id && a.briefing_signed && a.id !== assignment.id),
+    previousProgress: visibleAssignments
       .filter(a => a.job_id === assignment.job_id && a.progress_notes && a.assigned_date < assignment.assigned_date)
       .sort((a, b) => new Date(b.assigned_date) - new Date(a.assigned_date))
       .map(a => ({ date: a.assigned_date, notes: a.progress_notes, staffName: allStaff.find(s => s.id === a.staff_id)?.name || staff.name }))
@@ -297,7 +309,7 @@ export default function StaffDashboard() {
             {[
               { label: 'Today', value: todaysAssignments.length, icon: Clock },
               { label: 'Upcoming', value: upcomingAssignments.length, icon: Calendar },
-              { label: 'Total', value: assignments.length, icon: Briefcase }
+              { label: 'Total', value: visibleAssignments.length, icon: Briefcase }
             ].map((stat) => (
               <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2.5 ring-1 ring-white/15">
                 <div className="flex items-center gap-1.5">
@@ -337,7 +349,11 @@ export default function StaffDashboard() {
               </div>
             ))}
           </div>
-        ) : assignments.length === 0 ? (
+        ) : scheduleLocked ? (
+          <div className="bg-white rounded-2xl border border-slate-200">
+            <EmptyState icon={CalendarClock} title="New schedule on the way" message="Your manager is preparing your new rota. You'll receive it by email once it's ready." />
+          </div>
+        ) : visibleAssignments.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200">
             <EmptyState icon={CalendarDays} title="No assignments scheduled" message="Check back later — your supervisor will assign you to upcoming jobs." />
           </div>

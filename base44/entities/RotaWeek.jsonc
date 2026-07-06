@@ -19,6 +19,11 @@
     "published_at": {
       "type": "string",
       "description": "Timestamp when the rota was submitted/emailed to staff"
+    },
+    "superseded": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when a newer rota week has been created \u2014 hides this week from staff so they only see the latest schedule"
     }
   },
   "required": [

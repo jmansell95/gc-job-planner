@@ -90,10 +90,16 @@ Deno.serve(async (req) => {
     const existing = await base44.asServiceRole.entities.RotaWeek.filter({ week_start: weekStart });
     const now = new Date().toISOString();
     if (existing[0]) {
-      await base44.asServiceRole.entities.RotaWeek.update(existing[0].id, { status: 'published', published_at: now });
+      await base44.asServiceRole.entities.RotaWeek.update(existing[0].id, { status: 'published', published_at: now, superseded: false });
     } else {
       await base44.asServiceRole.entities.RotaWeek.create({ week_start: weekStart, status: 'published', published_at: now });
     }
+
+    // Supersede all other published weeks so staff only see this one
+    await base44.asServiceRole.entities.RotaWeek.updateMany(
+      { status: 'published', week_start: { $ne: weekStart } },
+      { $set: { superseded: true } }
+    );
 
     const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'staff_schedule' });
     const cfg = cfgList[0];

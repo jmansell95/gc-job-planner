@@ -173,9 +173,15 @@ export default function WeeklyRotaBuilder() {
         }
       } else {
         await base44.entities.RotaWeek.create({ week_start: weekStartStr, status: 'draft' });
+        // Supersede all previously published weeks so staff can't see old schedules
+        await base44.entities.RotaWeek.updateMany(
+          { status: 'published', superseded: { $ne: true } },
+          { $set: { superseded: true } }
+        );
       }
       queryClient.invalidateQueries({ queryKey: ['rota-week'] });
-      setNotice({ type: 'success', msg: 'Draft saved. Come back any time to finish and submit.' });
+      queryClient.invalidateQueries({ queryKey: ['rota-weeks'] });
+      setNotice({ type: 'success', msg: 'Draft saved. Staff will see the new schedule once you submit it.' });
     } catch (e) {
       setNotice({ type: 'error', msg: e.message || 'Failed to save draft' });
     }
@@ -190,6 +196,7 @@ export default function WeeklyRotaBuilder() {
       const res = await base44.functions.invoke('publishRotaWeek', { weekStart: weekStartStr });
       const d = res.data || {};
       queryClient.invalidateQueries({ queryKey: ['rota-week'] });
+      queryClient.invalidateQueries({ queryKey: ['rota-weeks'] });
       const parts = [`Rota published — ${d.emailed || 0} staff emailed`];
       if (d.skipped) parts.push(`${d.skipped} without a valid email`);
       if (d.disabled) parts.push('schedule email is disabled in Settings');
