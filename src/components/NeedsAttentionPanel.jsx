@@ -21,10 +21,11 @@ export default function NeedsAttentionPanel({ onNavigate }) {
   monday.setDate(now.getDate() + diff);
   const weekStartStr = format(monday, 'yyyy-MM-dd');
 
-  const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets-attention'], queryFn: () => base44.entities.Timesheet.list('-created_date', 200) });
-  const { data: absences = [] } = useQuery({ queryKey: ['absences-attention'], queryFn: () => base44.entities.Absence.list('-created_date', 100) });
-  const { data: jobs = [] } = useQuery({ queryKey: ['jobs-attention'], queryFn: () => base44.entities.Job.list() });
-  const { data: rotaWeeks = [] } = useQuery({ queryKey: ['rota-weeks-attention'], queryFn: () => base44.entities.RotaWeek.list() });
+  const refreshOpts = { staleTime: 0, refetchOnMount: true, refetchOnWindowFocus: true, refetchInterval: 60000 };
+  const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets', 'attention'], queryFn: () => base44.entities.Timesheet.list('-created_date', 200), ...refreshOpts });
+  const { data: absences = [] } = useQuery({ queryKey: ['absences', 'attention'], queryFn: () => base44.entities.Absence.list('-created_date', 100), ...refreshOpts });
+  const { data: jobs = [] } = useQuery({ queryKey: ['jobs', 'attention'], queryFn: () => base44.entities.Job.list(), ...refreshOpts });
+  const { data: rotaWeeks = [] } = useQuery({ queryKey: ['rota-week', 'attention'], queryFn: () => base44.entities.RotaWeek.list(), ...refreshOpts });
 
   const pendingTs = timesheets.filter(t => t.status === 'submitted').length;
   const withdrawnTs = timesheets.filter(t => t.status === 'deleted').length;
@@ -63,14 +64,14 @@ export default function NeedsAttentionPanel({ onNavigate }) {
           </div>
         </motion.div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-x-auto sm:overflow-visible snap-x snap-mandatory pb-2 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {items.map(it => {
             const Icon = it.icon;
             const t = toneStyles[it.tone];
             return (
               <motion.button key={it.key} variants={itemAnim}
                 onClick={() => onNavigate(it.nav)}
-                className={`card-modern rounded-2xl p-4 flex items-center gap-3 text-left hover:shadow-lg transition group`}>
+                className={`card-modern rounded-2xl p-4 flex items-center gap-3 text-left hover:shadow-lg transition group min-w-[78%] sm:min-w-0 snap-start flex-shrink-0 sm:flex-shrink`}>
                 <div className={`w-10 h-10 rounded-xl ${t.iconBg} flex items-center justify-center flex-shrink-0`}>
                   <Icon className={`w-5 h-5 ${t.iconText}`} />
                 </div>
