@@ -1,50 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, MapPin, Briefcase, Truck, FileText, ExternalLink, CalendarDays, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, WifiOff, HardHat, Sparkles, ChevronRight, MessageCircle } from 'lucide-react';
+import { Calendar, CalendarDays, Clock, Briefcase, WifiOff, HardHat, Sparkles, MessageCircle, History, ChevronDown } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
-import SitePhotoUpload from '@/components/SitePhotoUpload';
 import DailyTaskLog from '@/components/DailyTaskLog';
 import StaffTimesheets from '@/components/StaffTimesheets';
 import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
-import { formatJobType } from '@/utils/format';
 import { useStaffAssistant } from '@/components/StaffAssistantChat';
 import { motion } from 'framer-motion';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
-
-const jobTypeBadgeColors = {
-  groundworks: 'bg-green-100 text-green-700 ring-1 ring-green-200',
-  cp_drilling: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
-  rotary_drilling: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
-  enabling_works: 'bg-purple-100 text-purple-700 ring-1 ring-purple-200',
-  depot: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'
-};
-
-const jobTypeDot = {
-  groundworks: 'bg-green-500',
-  cp_drilling: 'bg-amber-500',
-  rotary_drilling: 'bg-blue-500',
-  enabling_works: 'bg-purple-500',
-  depot: 'bg-slate-400'
-};
-
-const jobTypeAccent = {
-  groundworks: { bar: 'bg-green-500', soft: 'bg-green-50', ring: 'ring-green-100', text: 'text-green-700' },
-  cp_drilling: { bar: 'bg-amber-500', soft: 'bg-amber-50', ring: 'ring-amber-100', text: 'text-amber-700' },
-  rotary_drilling: { bar: 'bg-blue-500', soft: 'bg-blue-50', ring: 'ring-blue-100', text: 'text-blue-700' },
-  enabling_works: { bar: 'bg-purple-500', soft: 'bg-purple-50', ring: 'ring-purple-100', text: 'text-purple-700' },
-  depot: { bar: 'bg-slate-400', soft: 'bg-slate-50', ring: 'ring-slate-100', text: 'text-slate-600' }
-};
-
-const statusConfig = {
-  assigned: { label: 'Assigned', icon: Clock, badge: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200' },
-  started: { label: 'In Progress', icon: PlayCircle, badge: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
-  completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' }
-};
+import AssignmentCard from '@/components/staff/AssignmentCard';
+import NextJobCard from '@/components/staff/NextJobCard';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
-const listItem = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } } };
 
 function SectionHeader({ icon: Icon, title, count, tone = 'dark' }) {
   const textTone = tone === 'muted' ? 'text-slate-400' : 'text-slate-900';
@@ -180,176 +149,24 @@ export default function StaffDashboard() {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const todaysAssignments = assignments.filter(a => a.assigned_date === todayStr);
   const upcomingAssignments = assignments.filter(a => isFuture(new Date(a.assigned_date + 'T00:00:00')) && a.assigned_date !== todayStr);
-  const pastAssignments = assignments.filter(a => isPast(new Date(a.assigned_date + 'T00:00:00')) && a.assigned_date !== todayStr);
+  const pastAssignments = assignments.filter(a => isPast(new Date(a.assigned_date + 'T00:00:00')) && a.assigned_date !== todayStr)
+    .sort((a, b) => new Date(b.assigned_date) - new Date(a.assigned_date));
 
-  const renderAssignment = (assignment) => {
-    const job = jobs.find(j => j.id === assignment.job_id);
-    const vehicle = vehicles.find(v => v.id === assignment.vehicle_id);
-    const client = clients.find(c => c.id === job?.client_id);
-    const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
-    const StatusIcon = status.icon;
-    const isDriller = job?.job_type === 'cp_drilling' || job?.job_type === 'rotary_drilling';
-    const accent = jobTypeAccent[job?.job_type] || jobTypeAccent.depot;
-    const scheduledStart = new Date(assignment.assigned_date + 'T' + (assignment.start_time || '00:00:00'));
-    const canStart = new Date() >= scheduledStart;
-    if (!job) return null;
+  const nextAssignment = todaysAssignments.find(a => (a.status || 'assigned') !== 'completed')
+    || upcomingAssignments[0];
 
-    return (
-      <motion.div key={assignment.id} variants={listItem}
-        className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-        {/* Top accent bar */}
-        <div className={`h-1.5 ${accent.bar}`} />
-
-        <div className="p-4 md:p-6">
-          {/* Status + Check-in Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-4 border-b border-slate-100">
-            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold self-start ${status.badge}`}>
-              <StatusIcon className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>{status.label}</span>
-              {assignment.status === 'started' && assignment.started_at && (
-                <span className="text-[10px] opacity-70 ml-1 whitespace-nowrap">since {format(new Date(assignment.started_at), 'HH:mm')}</span>
-              )}
-            </span>
-            <div className="flex flex-wrap gap-2 sm:justify-end">
-              {(assignment.status || 'assigned') === 'assigned' && (
-                canStart ? (
-                  <button onClick={() => handleStartJob(assignment.id)}
-                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
-                    <PlayCircle className="w-4 h-4" /> Start Job
-                  </button>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 text-slate-500 rounded-xl text-xs font-semibold">
-                    <Clock className="w-3.5 h-3.5" /> Starts {format(new Date(assignment.assigned_date + 'T00:00:00'), 'dd MMM')}{assignment.start_time ? ` · ${assignment.start_time}` : ''}
-                  </span>
-                )
-              )}
-              {assignment.status === 'started' && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  {isDriller && (
-                    <input type="number" min="0" step="0.1" placeholder="Meterage (m)"
-                      value={meterageInputs[assignment.id] || ''}
-                      onChange={(e) => setMeterageInputs(prev => ({ ...prev, [assignment.id]: e.target.value }))}
-                      className="w-32 px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
-                  )}
-                  <button onClick={() => handleCompleteJob(assignment.id)}
-                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
-                    <CheckCircle2 className="w-4 h-4" /> Complete
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Job Title */}
-          <div className="flex items-start gap-3 mb-4">
-            <span className={`w-3 h-3 rounded-full flex-shrink-0 mt-1.5 ${jobTypeDot[job.job_type] || 'bg-slate-400'}`} />
-            <div className="min-w-0 flex-1">
-              <h3 className="text-lg md:text-xl font-bold text-slate-900 leading-tight break-words">{job.name}</h3>
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <span className={`inline-block px-2.5 py-1 rounded-lg text-xs font-semibold ${jobTypeBadgeColors[job.job_type]}`}>
-                  {formatJobType(job.job_type)}
-                </span>
-                {assignment.meterage != null && assignment.meterage > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 ring-1 ring-amber-100">
-                    <Ruler className="w-3 h-3" /> {assignment.meterage}m
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Job Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-            <div className="space-y-2.5">
-              <div className="flex items-start gap-2.5 text-sm text-slate-600">
-                <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span className="break-words">{job.location}</span>
-              </div>
-              <div className="flex items-start gap-2.5 text-sm text-slate-600">
-                <Calendar className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                <span className="break-words">{format(new Date(assignment.assigned_date), 'EEEE, MMM d, yyyy')}</span>
-              </div>
-              {client && (
-                <div className="flex items-start gap-2.5 text-sm text-slate-600">
-                  <Briefcase className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  <span>Client: <span className="font-medium text-slate-700">{client.name}</span></span>
-                </div>
-              )}
-              {vehicle && (
-                <div className="flex items-start gap-2.5 text-sm text-slate-600 md:hidden">
-                  <Truck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  <span className="font-mono font-bold text-slate-900">{vehicle.registration_number}</span>
-                  <span className="text-slate-400">·</span>
-                  <span>{vehicle.name}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              {vehicle && (
-                <div className="hidden md:block p-4 bg-slate-50 rounded-xl border border-slate-100">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Truck className="w-4 h-4 text-emerald-600" />
-                    <h4 className="font-semibold text-slate-900 text-sm">Assigned Vehicle</h4>
-                  </div>
-                  <p className="text-slate-900 font-mono font-bold text-lg">{vehicle.registration_number}</p>
-                  <p className="text-slate-500 text-xs">{vehicle.name}</p>
-                </div>
-              )}
-              {job.requisition_list_url && (
-                <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center justify-between gap-2 p-3.5 bg-emerald-50 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition group">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-emerald-900 text-sm">Requisition List</p>
-                      <p className="text-emerald-700 text-xs truncate">{job.requisition_list_name || 'View document'}</p>
-                    </div>
-                  </div>
-                  <ExternalLink className="w-4 h-4 text-emerald-600 flex-shrink-0 group-hover:translate-x-0.5 transition" />
-                </a>
-              )}
-              {job.notes && (
-                <div className="p-3.5 bg-amber-50/50 rounded-xl border border-amber-100">
-                  <h4 className="font-semibold text-slate-900 text-sm mb-1.5">Notes</h4>
-                  <p className="text-slate-600 text-sm whitespace-pre-wrap leading-relaxed">{job.notes}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Briefing Sign-off */}
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            {assignment.briefing_signed ? (
-              <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50/50 rounded-lg px-3 py-2">
-                <ClipboardCheck className="w-4 h-4 flex-shrink-0" />
-                <span className="font-medium">Briefing signed off</span>
-                {assignment.briefing_signed_at && (
-                  <span className="text-xs text-slate-400 ml-auto">
-                    {format(new Date(assignment.briefing_signed_at), 'dd MMM HH:mm')}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <button onClick={() => handleBriefingSign(assignment.id)}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 active:scale-95 transition text-sm font-medium w-full sm:w-auto touch-manipulation">
-                <ClipboardCheck className="w-4 h-4" />
-                Sign Off Job Briefing
-              </button>
-            )}
-          </div>
-
-          {/* Site Photo Upload */}
-          {job && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <SitePhotoUpload jobId={job.id} staffName={staff.name} />
-            </div>
-          )}
-
-        </div>
-      </motion.div>
-    );
-  };
+  const cardProps = (assignment) => ({
+    assignment,
+    job: jobs.find(j => j.id === assignment.job_id),
+    vehicle: vehicles.find(v => v.id === assignment.vehicle_id),
+    client: clients.find(c => c.id === jobs.find(j => j.id === assignment.job_id)?.client_id),
+    staff,
+    onStart: handleStartJob,
+    onComplete: handleCompleteJob,
+    onSign: handleBriefingSign,
+    meterage: meterageInputs[assignment.id],
+    onMeterageChange: (id, val) => setMeterageInputs(prev => ({ ...prev, [id]: val }))
+  });
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -419,16 +236,6 @@ export default function StaffDashboard() {
         {/* Manager: Timesheet Approvals */}
         <ManagerTimesheetApprovals staffId={staff.id} />
 
-        {/* Today's Assignment Highlight */}
-        {todaysAssignments.length > 0 && (
-          <div className="mb-8">
-            <SectionHeader icon={Clock} title="Today" count={todaysAssignments.length} />
-            <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-4">
-              {todaysAssignments.map(renderAssignment)}
-            </motion.div>
-          </div>
-        )}
-
         {/* Print/Email Controls */}
         <div className="mb-8">
           <PrintEmailSchedule
@@ -455,20 +262,65 @@ export default function StaffDashboard() {
           </div>
         ) : (
           <div className="space-y-8">
-            {upcomingAssignments.length > 0 && (
+            {/* Next job hero card */}
+            {nextAssignment && (() => {
+              const job = jobs.find(j => j.id === nextAssignment.job_id);
+              if (!job) return null;
+              const scheduledStart = new Date(nextAssignment.assigned_date + 'T' + (nextAssignment.start_time || '00:00:00'));
+              return (
+                <NextJobCard
+                  {...cardProps(nextAssignment)}
+                  canStart={new Date() >= scheduledStart}
+                />
+              );
+            })()}
+
+            {/* Today's jobs (excluding the hero next one) */}
+            {todaysAssignments.length > 0 && (
               <div>
-                <SectionHeader icon={Calendar} title="Upcoming" count={upcomingAssignments.length} />
-                <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-4">
-                  {upcomingAssignments.map(renderAssignment)}
+                <SectionHeader icon={Clock} title="Today" count={todaysAssignments.length} />
+                <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-3">
+                  {todaysAssignments.map(a => (
+                    <AssignmentCard key={a.id} {...cardProps(a)} defaultExpanded={a.id === nextAssignment?.id} />
+                  ))}
                 </motion.div>
               </div>
             )}
+
+            {/* Upcoming */}
+            {upcomingAssignments.length > 0 && (
+              <div>
+                <SectionHeader icon={Calendar} title="Upcoming" count={upcomingAssignments.length} />
+                <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-3">
+                  {upcomingAssignments.map(a => (
+                    <AssignmentCard key={a.id} {...cardProps(a)} defaultExpanded={a.id === nextAssignment?.id} />
+                  ))}
+                </motion.div>
+              </div>
+            )}
+
+            {/* Past jobs — collapsed by default */}
             {pastAssignments.length > 0 && (
               <div>
-                <SectionHeader icon={Clock} title="Past Assignments" count={pastAssignments.length} tone="muted" />
-                <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-4 opacity-70">
-                  {pastAssignments.map(renderAssignment)}
-                </motion.div>
+                <button onClick={() => setShowHistory(s => !s)}
+                  className="w-full flex items-center gap-2.5 mb-3 px-1 group">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                    <History className="w-4 h-4 text-slate-400" />
+                  </div>
+                  <h2 className="text-lg font-bold text-slate-500">Past Jobs</h2>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-400">{pastAssignments.length}</span>
+                  <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-slate-400 group-hover:text-slate-600">
+                    {showHistory ? 'Hide' : 'Show'}
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
+                  </span>
+                </button>
+                {showHistory && (
+                  <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-3">
+                    {pastAssignments.map(a => (
+                      <AssignmentCard key={a.id} {...cardProps(a)} />
+                    ))}
+                  </motion.div>
+                )}
               </div>
             )}
           </div>
