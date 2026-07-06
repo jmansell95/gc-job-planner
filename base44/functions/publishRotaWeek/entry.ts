@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+const DEFAULT_SCHEDULE_TEMPLATE = "Hi {staff_name},\n\nHere is your weekly schedule for {week_start}. You have {assignment_count} assignment(s) this week. Please review the details below.";
+
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -95,13 +97,14 @@ Deno.serve(async (req) => {
 
     const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'staff_schedule' });
     const cfg = cfgList[0];
-    if (!cfg || cfg.enabled === false) {
+    // Only skip emails when the alert has been explicitly disabled.
+    if (cfg && cfg.enabled === false) {
       return Response.json({ success: true, published: true, emailed: 0, skipped: 0, disabled: true });
     }
-    // Only the configured template is sent — no default fallback.
-    if (!cfg.template) {
-      return Response.json({ success: true, published: true, emailed: 0, skipped: 0, reason: 'No template configured for staff schedule' });
-    }
+    // Fall back to a default template so staff always receive their schedule.
+    const effectiveCfg = Object.assign({}, cfg || {}, {
+      template: (cfg && cfg.template) || DEFAULT_SCHEDULE_TEMPLATE
+    });
 
     const rotas = await base44.asServiceRole.entities.RotaAssignment.filter({ week_start: weekStart });
     const staffIds = [...new Set(rotas.map((r) => r.staff_id))];
@@ -119,7 +122,7 @@ Deno.serve(async (req) => {
       if (!s || !s.email) { skipped++; continue; }
       const myRotas = rotas.filter((r) => r.staff_id === s.id && jobs.find((j) => j && j.id === r.job_id));
       if (myRotas.length === 0) continue;
-      const { html, subject } = buildEmail(s, myRotas, jobs, vehicles, cfg, weekStart, baseUrl);
+      const { html, subject } = buildEmail(s, myRotas, jobs, vehicles, effectiveCfg, weekStart, baseUrl);
       try {
         await base44.asServiceRole.integrations.Core.SendEmail({ to: s.email, subject, body: html, from_name: 'GC Job Planner' });
         emailed++;

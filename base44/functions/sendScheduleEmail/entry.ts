@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+const DEFAULT_SCHEDULE_TEMPLATE = "Hi {staff_name},\n\nHere is your weekly schedule for {week_start}. You have {assignment_count} assignment(s) this week. Please review the details below.";
+
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -49,12 +51,10 @@ Deno.serve(async (req) => {
     // Only the configured staff_schedule template is sent — no default fallback.
     const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'staff_schedule' });
     const cfg = cfgList[0];
-    if (!cfg || cfg.enabled === false) {
+    if (cfg && cfg.enabled === false) {
       return Response.json({ skipped: true, reason: 'Schedule alert disabled' });
     }
-    if (!cfg.template) {
-      return Response.json({ skipped: true, reason: 'No template configured for staff schedule' });
-    }
+    const template = (cfg && cfg.template) || DEFAULT_SCHEDULE_TEMPLATE;
 
     const staff = staffId ? await base44.asServiceRole.entities.Staff.get(staffId).catch(() => null) : null;
     const rotas = await base44.asServiceRole.entities.RotaAssignment.filter({ week_start: weekStart });
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
     const weekLabel = fmtWeek(weekStart);
     const assignmentCount = filteredRotas.length;
-    const intro = cfg.template
+    const intro = template
       .replace(/\{staff_name\}/g, staff ? staff.name : '')
       .replace(/\{week_start\}/g, weekLabel)
       .replace(/\{assignment_count\}/g, String(assignmentCount));
