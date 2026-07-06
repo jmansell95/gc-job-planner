@@ -33,8 +33,8 @@ export default function StaffDashboard() {
   const [loading, setLoading] = useState(true);
   const [meterageInputs, setMeterageInputs] = useState({});
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [showHistory, setShowHistory] = useState(false);
   const [showApprovals, setShowApprovals] = useState(false);
+  const [showTimesheets, setShowTimesheets] = useState(false);
   const { openChat } = useStaffAssistant();
   const queryClient = useQueryClient();
 
@@ -174,7 +174,8 @@ export default function StaffDashboard() {
     onComplete: handleCompleteJob,
     onSign: handleBriefingSign,
     meterage: meterageInputs[assignment.id],
-    onMeterageChange: (id, val) => setMeterageInputs(prev => ({ ...prev, [id]: val }))
+    onMeterageChange: (id, val) => setMeterageInputs(prev => ({ ...prev, [id]: val })),
+    tasksSubmitted: mgrTimesheets.some(t => t.job_id === assignment.job_id && t.date === todayStr && (t.status === 'submitted' || t.status === 'approved'))
   });
 
   return (
@@ -203,6 +204,11 @@ export default function StaffDashboard() {
                   )}
                 </button>
               )}
+              <button onClick={() => setShowTimesheets(true)} type="button"
+                className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+                <Clock className="w-5 h-5" />
+                <span className="hidden sm:inline">My Timesheets</span>
+              </button>
               <button onClick={openChat} type="button"
                 className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
                 <Sparkles className="w-5 h-5" />
@@ -261,70 +267,23 @@ export default function StaffDashboard() {
             <EmptyState icon={CalendarDays} title="No assignments scheduled" message="Check back later — your supervisor will assign you to upcoming jobs." />
           </div>
         ) : (
-          <div className="space-y-8">
-            {/* Daily task log — appears once the current job is started */}
-            {isHeroStarted && (
-              <DailyTaskLog staffId={staff.id} />
-            )}
-
-            {/* End of day — all today's jobs complete */}
-            {todaysAllDone && <EndOfDayCard />}
-
-            {/* Today's jobs (excluding the hero next one) */}
-            {todaysAssignments.length > 0 && (
-              <div>
-                <SectionHeader icon={Clock} title="Today" count={todaysAssignments.length} />
-                <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-3">
-                  {todaysAssignments.map(a => (
-                    <AssignmentCard key={a.id} {...cardProps(a)} defaultExpanded={a.id === heroAssignment?.id} />
-                  ))}
-                </motion.div>
-              </div>
-            )}
-
-            {/* Upcoming */}
-            {upcomingAssignments.length > 0 && (
-              <div>
-                <SectionHeader icon={Calendar} title="Upcoming" count={upcomingAssignments.length} />
-                <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-3">
-                  {upcomingAssignments.map(a => (
-                    <AssignmentCard key={a.id} {...cardProps(a)} defaultExpanded={a.id === heroAssignment?.id} />
-                  ))}
-                </motion.div>
-              </div>
-            )}
-
-            {/* Past jobs — collapsed by default */}
-            {pastAssignments.length > 0 && (
-              <div>
-                <button onClick={() => setShowHistory(s => !s)}
-                  className="w-full flex items-center gap-2.5 mb-3 px-1 group">
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                    <History className="w-4 h-4 text-slate-400" />
-                  </div>
-                  <h2 className="text-lg font-bold text-slate-500">Past Jobs</h2>
-                  <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-400">{pastAssignments.length}</span>
-                  <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-slate-400 group-hover:text-slate-600">
-                    {showHistory ? 'Hide' : 'Show'}
-                    <ChevronDown className={`w-4 h-4 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
-                  </span>
-                </button>
-                {showHistory && (
-                  <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-3">
-                    {pastAssignments.map(a => (
-                      <AssignmentCard key={a.id} {...cardProps(a)} />
-                    ))}
-                  </motion.div>
-                )}
+          <div className="space-y-6">
+            {/* Current/next job — one at a time */}
+            {heroAssignment ? (
+              <>
+                <AssignmentCard {...cardProps(heroAssignment)} defaultExpanded />
+                {isHeroStarted && <DailyTaskLog staffId={staff.id} />}
+              </>
+            ) : todaysAllDone ? (
+              <EndOfDayCard />
+            ) : (
+              <div className="bg-white rounded-2xl border border-slate-200">
+                <EmptyState icon={CalendarDays} title="No jobs scheduled" message="You have no assignments for today. Check back later or contact your supervisor." />
               </div>
             )}
           </div>
         )}
 
-        {/* My Timesheets */}
-        <div className="mt-10">
-          <StaffTimesheets staffId={staff.id} staffName={staff.name} />
-        </div>
       </div>
 
       {/* Timesheet Approvals pop-out */}
@@ -337,6 +296,19 @@ export default function StaffDashboard() {
             </SheetTitle>
           </SheetHeader>
           <ManagerTimesheetApprovals staffId={staff.id} />
+        </SheetContent>
+      </Sheet>
+
+      {/* My Timesheets pop-out */}
+      <Sheet open={showTimesheets} onOpenChange={setShowTimesheets}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-emerald-700" />
+              My Timesheets
+            </SheetTitle>
+          </SheetHeader>
+          <StaffTimesheets staffId={staff.id} staffName={staff.name} />
         </SheetContent>
       </Sheet>
     </div>

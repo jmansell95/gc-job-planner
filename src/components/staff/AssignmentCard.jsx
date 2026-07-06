@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown } from 'lucide-react';
+import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import { formatJobType } from '@/utils/format';
@@ -32,7 +32,7 @@ const statusConfig = {
   completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' }
 };
 
-export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange }) {
+export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange, tasksSubmitted = false }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
   const StatusIcon = status.icon;
@@ -168,7 +168,14 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
                 <ClipboardCheck className="w-4 h-4" /> Sign Off Job Briefing
               </button>
             )}
-            <SitePhotoUpload jobId={job.id} staffName={staff.name} />
+            {tasksSubmitted ? (
+              <SitePhotoUpload jobId={job.id} staffName={staff.name} />
+            ) : (
+              <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 rounded-lg px-3 py-2.5">
+                <Camera className="w-4 h-4 flex-shrink-0" />
+                <span>Site photos unlock after you submit your daily tasks.</span>
+              </div>
+            )}
           </div>
         </div>
       )}

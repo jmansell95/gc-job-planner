@@ -63,6 +63,7 @@ export default function DailyTaskLog({ staffId }) {
     queryClient.invalidateQueries({ queryKey: ['timesheets'] });
     queryClient.invalidateQueries({ queryKey: ['today-board'] });
     queryClient.invalidateQueries({ queryKey: ['timesheets-for-job'] });
+    queryClient.invalidateQueries({ queryKey: ['all-timesheets-mgr'] });
   };
 
   const resetForm = () => {
