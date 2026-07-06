@@ -13,7 +13,15 @@ Deno.serve(async (req) => {
     const job = jobs[0];
     if (!job.portal_enabled) return Response.json({ error: 'Portal access is disabled for this job' }, { status: 403 });
 
-    const assignments = await base44.asServiceRole.entities.RotaAssignment.filter({ job_id: job.id });
+    const _rawAssignments = await base44.asServiceRole.entities.RotaAssignment.filter({ job_id: job.id });
+    // Deduplicate: one assignment per staff per date (keep most advanced status)
+    const _dedup = {};
+    _rawAssignments.forEach(a => {
+      const k = `${a.staff_id}|${a.assigned_date}`;
+      const order = { completed: 3, started: 2, assigned: 1 };
+      if (!_dedup[k] || (order[a.status] || 0) > (order[_dedup[k].status] || 0)) _dedup[k] = a;
+    });
+    const assignments = Object.values(_dedup);
     const allStaff = await base44.asServiceRole.entities.Staff.list();
     const photos = await base44.asServiceRole.entities.SitePhoto.filter({ job_id: job.id });
     const documents = await base44.asServiceRole.entities.JobDocument.filter({ job_id: job.id });

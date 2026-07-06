@@ -34,7 +34,15 @@ export default function CalendarView() {
     return eachDayOfInterval({ start, end });
   }, [currentMonth]);
 
-  const getAssignmentsForDate = (dateStr) => assignments.filter(a => a.assigned_date === dateStr);
+  const getAssignmentsForDate = (dateStr) => {
+    const _seen = {};
+    return assignments.filter(a => a.assigned_date === dateStr).filter(a => {
+      const k = `${a.staff_id}|${a.job_id}`;
+      if (_seen[k]) return false;
+      _seen[k] = true;
+      return true;
+    });
+  };
   const selectedAssignments = getAssignmentsForDate(selectedDate);
   const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 

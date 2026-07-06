@@ -526,7 +526,13 @@ export default function JobDetail({ job: initialJob, onBack }) {
             ) : (
               <div className="divide-y divide-slate-100">
                 {sortedDates.map(date => {
-                  const dayRotas = rotasByDate[date];
+                  const _rawDayRotas = rotasByDate[date];
+                  const _seenStaff = {};
+                  const dayRotas = _rawDayRotas.filter(r => {
+                    if (_seenStaff[r.staff_id]) return false;
+                    _seenStaff[r.staff_id] = true;
+                    return true;
+                  });
                   const d = new Date(date + 'T00:00:00');
                   return (
                     <div key={date} className="px-5 py-4">

@@ -70,7 +70,15 @@ export default function StaffDashboard() {
     queryFn: async () => {
       if (!staff?.id) return [];
       try {
-        const rotas = await base44.entities.RotaAssignment.filter({ staff_id: staff.id });
+        const rawRotas = await base44.entities.RotaAssignment.filter({ staff_id: staff.id });
+        // Deduplicate: one assignment per job per date
+        const _seen = {};
+        const rotas = rawRotas.filter(a => {
+          const k = `${a.job_id}|${a.assigned_date}`;
+          if (_seen[k]) return false;
+          _seen[k] = true;
+          return true;
+        });
         const sorted = rotas.sort((a, b) => new Date(a.assigned_date) - new Date(b.assigned_date));
         localStorage.setItem('cached_assignments_' + staff.id, JSON.stringify(sorted));
         return sorted;

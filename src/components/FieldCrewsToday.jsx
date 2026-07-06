@@ -25,7 +25,15 @@ const statusConfig = {
   completed: { label: 'Done', icon: CheckCircle2, cls: 'bg-emerald-100 text-emerald-700' },
 };
 
-export default function FieldCrewsToday({ todaysRotas, staff, jobs, vehicles, onSelectJob, onNavigate }) {
+export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jobs, vehicles, onSelectJob, onNavigate }) {
+  // Deduplicate: one entry per staff per job
+  const _seen = {};
+  const todaysRotas = rawTodaysRotas.filter(r => {
+    const k = `${r.staff_id}|${r.job_id}`;
+    if (_seen[k]) return false;
+    _seen[k] = true;
+    return true;
+  });
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.35 }}
       className="card-modern rounded-2xl overflow-hidden lg:col-span-2">
