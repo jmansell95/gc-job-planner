@@ -70,10 +70,10 @@ export default function StaffDashboard() {
   useEffect(() => {
     async function loadStaff() {
       try {
-        const user = await base44.auth.me();
-        const staffList = await base44.entities.Staff.filter({ email: user.email });
-        if (staffList.length > 0) {
-          setStaff(staffList[0]);
+        const res = await base44.functions.invoke('getMyStaffProfile');
+        const profile = res.data;
+        if (profile && profile.id && !profile.no_staff_profile) {
+          setStaff(profile);
         }
       } catch (error) {
         console.error('Error loading staff:', error);
