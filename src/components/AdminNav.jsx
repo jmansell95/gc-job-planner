@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Clock, Bell, HardHat, Sparkles, Lightbulb, BarChart3 } from 'lucide-react';
+import { Users, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Clock, Bell, HardHat, Sparkles, Lightbulb, BarChart3, Menu } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useStaffAssistant } from '@/components/StaffAssistantChat';
+import MobileNavDrawer from '@/components/MobileNavDrawer';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
   const [notifOpen, setNotifOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const notifications = useNotifications();
   const notifCount = notifications.count;
   const { openChat } = useStaffAssistant();
 
   useEffect(() => {
-    if (!notifOpen) return;
+    if (!notifOpen && !drawerOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
-  }, [notifOpen]);
+  }, [notifOpen, drawerOpen]);
 
   const handleLogout = async () => {
     await base44.auth.logout('/');
@@ -33,9 +35,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'teams', label: 'Teams', icon: Users },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
-
-  const currentLabel = navItems.find(i => i.id === activeSection)?.label || 'Dashboard';
-  const handleNavClick = (id) => setActiveSection(id);
 
   const desktopNav = (
     <>
@@ -62,7 +61,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
           return (
-            <button key={item.id} type="button" onClick={() => handleNavClick(item.id)}
+            <button key={item.id} type="button" onClick={() => setActiveSection(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-lg text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
                 isActive
                   ? 'bg-emerald-700 text-white shadow-[inset_3px_0_0_0_rgb(110,231,183)]'
@@ -86,22 +85,28 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
   return (
     <>
-      {/* Mobile Top Header — title + notifications only */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-emerald-900 border-b border-emerald-800 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      {/* Mobile Top Header — hamburger + brand + actions */}
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-gradient-to-r from-emerald-950 to-emerald-900 border-b border-emerald-800/60 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="h-14 flex items-center justify-between gap-2 px-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm flex-shrink-0 ring-1 ring-white/20">
-              <HardHat className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-1 min-w-0">
+            <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" type="button"
+              className="h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm flex-shrink-0 ring-1 ring-white/20">
+                <HardHat className="w-4 h-4 text-white" />
+              </div>
+              <h1 className="text-white font-bold text-base truncate">GC Job Planner</h1>
             </div>
-            <h1 className="text-white font-bold text-base truncate">GC Job Planner</h1>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             <button onClick={openChat} aria-label="Ask Assistant" type="button"
-              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition cursor-pointer touch-manipulation select-none">
+              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <Sparkles className="w-5 h-5" />
             </button>
             <button onClick={() => setNotifOpen(true)} aria-label="Notifications" type="button"
-              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition cursor-pointer touch-manipulation select-none">
+              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <Bell className="w-5 h-5" />
               {notifCount > 0 && (
                 <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full flex items-center justify-center">
@@ -118,25 +123,15 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         {desktopNav}
       </nav>
 
-      {/* Mobile Bottom Tab Bar — persistent, no drawer */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 shadow-[0_-2px_12px_rgba(15,42,31,0.08)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="flex h-16">
-          {navItems.map(item => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
-            return (
-              <button key={item.id} type="button" onClick={() => handleNavClick(item.id)}
-                className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 pt-2 pb-1 transition cursor-pointer touch-manipulation select-none ${isActive ? 'text-emerald-700' : 'text-slate-500 active:scale-95'}`}>
-                <span className="relative">
-                  {isActive && <span className="absolute -top-2 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-emerald-600" />}
-                  <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
-                </span>
-                <span className="text-[10px] font-medium leading-none truncate max-w-full px-0.5">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+      <MobileNavDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        navItems={navItems}
+        activeSection={activeSection}
+        onNavigate={setActiveSection}
+        onLogout={handleLogout}
+        onAssistant={openChat}
+      />
 
       <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} onNavigate={setActiveSection} notifications={notifications} />
     </>
