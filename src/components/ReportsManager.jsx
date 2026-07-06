@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Users, CalendarRange, Briefcase, FileText, Printer, Mail, BarChart3, X, Send, Clock, TrendingUp, PoundSterling } from 'lucide-react';
 import { format, subWeeks } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
+import PillTabs from '@/components/PillTabs';
 import ReportTable from '@/components/reports/ReportTable';
 import { REPORT_TYPES, buildReport, reportPrintDocument, reportHtmlFragment } from '@/utils/reports';
 import { computeStaffOvertime, buildRateMap, entryMinutes } from '@/utils/overtime';
@@ -94,30 +95,13 @@ export default function ReportsManager() {
   };
 
   const activeType = REPORT_TYPES.find(t => t.key === reportType);
+  const reportTabs = REPORT_TYPES.map(t => ({ id: t.key, label: t.label, icon: ICONS[t.icon] }));
 
   return (
     <div>
       <PageHeader title="Reports" icon={BarChart3} />
 
-      {/* Report type tabs */}
-      <div className="mb-5">
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {REPORT_TYPES.map(t => {
-            const Icon = ICONS[t.icon];
-            const isActive = reportType === t.key;
-            return (
-              <button key={t.key} onClick={() => setReportType(t.key)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition flex-shrink-0 whitespace-nowrap border ${
-                  isActive
-                    ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm shadow-emerald-200/60'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700 active:scale-[0.97]'
-                }`}>
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} /> {t.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <PillTabs tabs={reportTabs} activeId={reportType} onChange={setReportType} />
 
       {/* Filters + actions */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-5 flex flex-col lg:flex-row gap-3 lg:items-end">
