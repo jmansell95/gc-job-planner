@@ -94,8 +94,12 @@ export default function StaffDashboard() {
         localStorage.setItem('cached_assignments_' + staff.id, JSON.stringify(sorted));
         return sorted;
       } catch (err) {
-        const cached = localStorage.getItem('cached_assignments_' + staff.id);
-        if (cached) return JSON.parse(cached);
+        // Only fall back to cached data when genuinely offline — otherwise stale
+        // cache causes deleted assignments to reappear on transient API errors
+        if (!navigator.onLine) {
+          const cached = localStorage.getItem('cached_assignments_' + staff.id);
+          if (cached) return JSON.parse(cached);
+        }
         throw err;
       }
     },
