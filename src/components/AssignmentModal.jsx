@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, AlertTriangle, Trash2 } from 'lucide-react';
+import { X, AlertTriangle, Trash2, RotateCcw, Loader2 } from 'lucide-react';
 
 const JOB_TYPE_LABELS = {
   groundworks: 'Groundworks',
@@ -14,6 +14,7 @@ const JOB_TYPE_LABELS = {
 export default function AssignmentModal({ isOpen, onClose, assignment, defaultStaffId, defaultDate, weekStartStr, staff, jobs, vehicles, existingRotas }) {
   const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '', notes: '' });
   const [conflictWarnings, setConflictWarnings] = useState([]);
+  const [resetting, setResetting] = useState(false);
   const queryClient = useQueryClient();
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
@@ -139,6 +140,20 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
     }
   };
 
+  const handleResetBriefing = async () => {
+    if (!confirm('Reset the briefing for this assignment?\n\nThe staff member will need to complete the site briefing again before they can start work.')) return;
+    setResetting(true);
+    try {
+      await base44.functions.invoke('resetAssignmentBriefing', { assignment_id: assignment.id });
+      queryClient.invalidateQueries({ queryKey: ['rotas'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+      onClose();
+    } catch (error) {
+      console.error('Error resetting briefing:', error);
+      setResetting(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!confirm('Delete this assignment?')) return;
     try {
@@ -247,6 +262,12 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
             <button type="submit" className="flex-1 px-4 py-2.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">
               {isEditing ? 'Update Assignment' : 'Add Assignment'}
             </button>
+            {isEditing && assignment.briefing_signed && (
+              <button type="button" onClick={handleResetBriefing} disabled={resetting}
+                className="px-4 py-2.5 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition font-medium text-sm flex items-center gap-1.5 disabled:opacity-50">
+                {resetting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />} Reset Briefing
+              </button>
+            )}
             {isEditing && (
               <button type="button" onClick={handleDelete} className="px-4 py-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium text-sm flex items-center gap-1.5">
                 <Trash2 className="w-4 h-4" /> Delete
