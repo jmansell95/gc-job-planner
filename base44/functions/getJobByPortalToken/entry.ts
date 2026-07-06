@@ -216,9 +216,13 @@ Deno.serve(async (req) => {
       totals: { staff: team.length, shifts: total, hours: totalHours, meterage: totalMeterage },
       billing: hasBilling ? billing : null,
       documents: documents.filter(d => d.client_visible === true).map(d => ({
+        id: d.id,
         document_url: d.document_url,
         document_name: d.document_name,
-        category: d.category || 'other'
+        category: d.category || 'other',
+        client_approved: d.client_approved === true,
+        client_approved_at: d.client_approved_at || '',
+        client_approved_by_name: d.client_approved_by_name || ''
       })),
       milestones: milestones.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).map(m => ({
         name: m.name,

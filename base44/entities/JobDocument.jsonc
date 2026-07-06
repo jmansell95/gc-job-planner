@@ -46,6 +46,19 @@
       "type": "boolean",
       "default": false,
       "description": "Whether this document is shown to the client on the client portal"
+    },
+    "client_approved": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the client has acknowledged/approved this document via the portal"
+    },
+    "client_approved_at": {
+      "type": "string",
+      "description": "ISO timestamp when the client approved this document"
+    },
+    "client_approved_by_name": {
+      "type": "string",
+      "description": "Name of the client representative who approved this document"
     }
   },
   "required": [

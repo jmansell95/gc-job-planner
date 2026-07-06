@@ -4,11 +4,13 @@ import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import {
   Calendar, MapPin, CheckCircle2, Clock, PlayCircle, Briefcase, Building2,
-  Activity, Ruler, Camera, FileText, Target, Download, CheckCircle, Circle,
+  Activity, Ruler, Camera, FileText, Target, CheckCircle, Circle,
   AlertTriangle, RefreshCw, Users, User, Phone, HardHat, PoundSterling, UserCircle
 } from 'lucide-react';
 import { format, isToday, parseISO } from 'date-fns';
 import PortalComments from '@/components/PortalComments';
+import PortalTimeline from '@/components/PortalTimeline';
+import PortalDocuments from '@/components/PortalDocuments';
 import { formatJobType } from '@/utils/format';
 
 const jobTypeBadges = {
@@ -225,6 +227,18 @@ export default function ClientPortal() {
             </div>
           </motion.div>
         )}
+
+        {/* Activity timeline */}
+        {(() => {
+          const hasShifts = sortedDates.some(d => schedule[d].some(e => e.status === 'completed'));
+          const hasMilestones = data.milestones && data.milestones.some(m => m.completed && m.completed_date);
+          if (!hasShifts && !hasMilestones) return null;
+          return (
+            <motion.div variants={portalItem}>
+              <PortalTimeline data={data} />
+            </motion.div>
+          );
+        })()}
 
         {/* On site today */}
         {visible('schedule') && todayEntry && (
@@ -478,27 +492,10 @@ export default function ClientPortal() {
           </motion.div>
         )}
 
-        {/* Documents */}
+        {/* Documents (with client acknowledgement) */}
         {visible('documents') && data.documents && data.documents.length > 0 && (
-          <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-emerald-700" />
-              <h2 className="font-semibold text-slate-900">Documents</h2>
-              <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{data.documents.length}</span>
-            </div>
-            <div className="p-5 space-y-2">
-              {data.documents.map((doc, i) => (
-                <a key={i} href={doc.document_url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3 hover:border-emerald-300 transition">
-                  <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-4 h-4 text-slate-500" />
-                  </div>
-                  <span className="text-sm font-medium text-slate-900 truncate flex-1">{doc.document_name}</span>
-                  <span className="text-xs text-slate-400 capitalize flex-shrink-0">{(doc.category || 'other').replace(/_/g, ' ')}</span>
-                  <Download className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                </a>
-              ))}
-            </div>
+          <motion.div variants={portalItem}>
+            <PortalDocuments token={token} documents={data.documents} />
           </motion.div>
         )}
 
