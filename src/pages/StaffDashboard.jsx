@@ -3,7 +3,6 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calendar, CalendarDays, Clock, Briefcase, WifiOff, HardHat, Sparkles, MessageCircle, History, ChevronDown, ClipboardCheck } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
-import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import DailyTaskLog from '@/components/DailyTaskLog';
 import StaffTimesheets from '@/components/StaffTimesheets';
 import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
@@ -11,7 +10,6 @@ import { useStaffAssistant } from '@/components/StaffAssistantChat';
 import { motion } from 'framer-motion';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 import AssignmentCard from '@/components/staff/AssignmentCard';
-import NextJobCard from '@/components/staff/NextJobCard';
 import EndOfDayCard from '@/components/staff/EndOfDayCard';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
@@ -183,8 +181,6 @@ export default function StaffDashboard() {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="hero-gradient relative overflow-hidden">
-        <div className="absolute -top-12 -right-8 w-48 h-48 rounded-full bg-emerald-300/20 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-10 w-44 h-44 rounded-full bg-teal-300/10 blur-3xl pointer-events-none" />
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-7">
           <div className="flex items-center justify-between gap-4 mb-5">
             <div className="flex items-center gap-3 min-w-0">
@@ -237,11 +233,9 @@ export default function StaffDashboard() {
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-8">
         {/* WhatsApp reminder */}
-        <div className="mb-5 flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3.5 text-sm text-emerald-900">
-          <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0">
-            <MessageCircle className="w-4 h-4 text-white" />
-          </div>
-          <p className="font-medium leading-relaxed">Please ensure that you check all WhatsApp groups for updates at the beginning of each working day.</p>
+        <div className="mb-5 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 text-sm text-emerald-900">
+          <MessageCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <p className="font-medium">Check WhatsApp groups for updates at the start of each working day.</p>
         </div>
 
         {!isOnline && (
@@ -250,15 +244,6 @@ export default function StaffDashboard() {
             You're offline. Showing cached schedule — changes will sync when you reconnect.
           </div>
         )}
-
-        {/* Print/Email Controls */}
-        <div className="mb-8">
-          <PrintEmailSchedule
-            weekStart={new Date()}
-            staffId={staff.id}
-            staffName={staff.name}
-          />
-        </div>
 
         {/* Assignments List */}
         {assignmentsLoading ? (
@@ -277,19 +262,6 @@ export default function StaffDashboard() {
           </div>
         ) : (
           <div className="space-y-8">
-            {/* Current/Next job hero card */}
-            {heroAssignment && (() => {
-              const job = jobs.find(j => j.id === heroAssignment.job_id);
-              if (!job) return null;
-              const scheduledStart = new Date(heroAssignment.assigned_date + 'T' + (heroAssignment.start_time || '00:00:00'));
-              return (
-                <NextJobCard
-                  {...cardProps(heroAssignment)}
-                  canStart={new Date() >= scheduledStart}
-                />
-              );
-            })()}
-
             {/* Daily task log — appears once the current job is started */}
             {isHeroStarted && (
               <DailyTaskLog staffId={staff.id} />
