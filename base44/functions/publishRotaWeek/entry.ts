@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
     let emailed = 0, skipped = 0;
     for (const s of staffList) {
       if (!s || !s.email) { skipped++; continue; }
-      const myRotas = rotas.filter((r) => r.staff_id === s.id);
+      const myRotas = rotas.filter((r) => r.staff_id === s.id && jobs.find((j) => j && j.id === r.job_id));
       if (myRotas.length === 0) continue;
       const { html, subject } = buildEmail(s, myRotas, jobs, vehicles, cfg, weekStart, baseUrl);
       try {
