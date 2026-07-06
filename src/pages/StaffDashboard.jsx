@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, CalendarDays, Clock, Briefcase, WifiOff, HardHat, Sparkles, MessageCircle, History, ChevronDown } from 'lucide-react';
+import { Calendar, CalendarDays, Clock, Briefcase, WifiOff, HardHat, Sparkles, MessageCircle, History, ChevronDown, ClipboardCheck } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import PrintEmailSchedule from '@/components/PrintEmailSchedule';
 import DailyTaskLog from '@/components/DailyTaskLog';
@@ -13,6 +13,7 @@ import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 import AssignmentCard from '@/components/staff/AssignmentCard';
 import NextJobCard from '@/components/staff/NextJobCard';
 import EndOfDayCard from '@/components/staff/EndOfDayCard';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -35,6 +36,7 @@ export default function StaffDashboard() {
   const [meterageInputs, setMeterageInputs] = useState({});
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showHistory, setShowHistory] = useState(false);
+  const [showApprovals, setShowApprovals] = useState(false);
   const { openChat } = useStaffAssistant();
   const queryClient = useQueryClient();
 
@@ -84,6 +86,8 @@ export default function StaffDashboard() {
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs-for-assignments'], queryFn: () => base44.entities.Job.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
+  const { data: allStaff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
+  const { data: mgrTimesheets = [] } = useQuery({ queryKey: ['all-timesheets-mgr'], queryFn: () => base44.entities.Timesheet.list('-created_date', 500) });
 
   const handleStartJob = async (assignmentId) => {
     try {
@@ -159,6 +163,9 @@ export default function StaffDashboard() {
   const heroAssignment = nextTodayAssignment || upcomingAssignments[0];
   const isHeroStarted = heroAssignment?.status === 'started' && heroAssignment?.assigned_date === todayStr;
 
+  const reporters = allStaff.filter(s => s.manager_id === staff.id);
+  const pendingCount = mgrTimesheets.filter(t => reporters.some(r => r.id === t.staff_id) && t.status === 'submitted').length;
+
   const cardProps = (assignment) => ({
     assignment,
     job: jobs.find(j => j.id === assignment.job_id),
@@ -189,11 +196,23 @@ export default function StaffDashboard() {
                 <p className="text-emerald-100 text-sm md:text-base mt-0.5 truncate">Welcome back, {staff.name.split(' ')[0]}</p>
               </div>
             </div>
-            <button onClick={openChat} type="button"
-              className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation flex-shrink-0">
-              <Sparkles className="w-5 h-5" />
-              <span className="hidden sm:inline">Ask Assistant</span>
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {reporters.length > 0 && (
+                <button onClick={() => setShowApprovals(true)} type="button"
+                  className="relative flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+                  <ClipboardCheck className="w-5 h-5" />
+                  <span className="hidden sm:inline">Approvals</span>
+                  {pendingCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center ring-2 ring-emerald-800">{pendingCount}</span>
+                  )}
+                </button>
+              )}
+              <button onClick={openChat} type="button"
+                className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+                <Sparkles className="w-5 h-5" />
+                <span className="hidden sm:inline">Ask Assistant</span>
+              </button>
+            </div>
           </div>
 
           {/* Quick stats strip */}
@@ -231,9 +250,6 @@ export default function StaffDashboard() {
             You're offline. Showing cached schedule — changes will sync when you reconnect.
           </div>
         )}
-
-        {/* Manager: Timesheet Approvals */}
-        <ManagerTimesheetApprovals staffId={staff.id} />
 
         {/* Print/Email Controls */}
         <div className="mb-8">
@@ -338,6 +354,19 @@ export default function StaffDashboard() {
           <StaffTimesheets staffId={staff.id} staffName={staff.name} />
         </div>
       </div>
+
+      {/* Timesheet Approvals pop-out */}
+      <Sheet open={showApprovals} onOpenChange={setShowApprovals}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="flex items-center gap-2">
+              <ClipboardCheck className="w-5 h-5 text-amber-600" />
+              Timesheet Approvals
+            </SheetTitle>
+          </SheetHeader>
+          <ManagerTimesheetApprovals staffId={staff.id} />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
