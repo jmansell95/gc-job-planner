@@ -25,11 +25,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Assignment not found' }, { status: 404 });
     }
 
-    // Reset briefing fields
+    // Reset briefing fields and shift confirmation (assignment context changed)
     const resetData = {
       briefing_signed: false,
       briefing_signed_at: null,
-      briefing_start_at: null
+      briefing_start_at: null,
+      shift_status: 'pending'
     };
 
     // If the job was started via briefing, reset status so staff re-brief and re-start

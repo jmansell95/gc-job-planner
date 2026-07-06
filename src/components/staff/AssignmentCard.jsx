@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare } from 'lucide-react';
+import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import { formatJobType } from '@/utils/format';
@@ -32,7 +32,7 @@ const statusConfig = {
   completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' }
 };
 
-export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange, tasksSubmitted = false, needsBriefing = false, previousProgress = [] }) {
+export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange, tasksSubmitted = false, needsBriefing = false, previousProgress = [], onConfirmShift, onDeclineShift }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [progressNote, setProgressNote] = useState(assignment.progress_notes || '');
   const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
@@ -74,6 +74,16 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${status.badge}`}>
             <StatusIcon className="w-3 h-3" /> <span className="hidden sm:inline">{status.label}</span>
           </span>
+          {assignment.shift_status === 'confirmed' && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium ring-1 ring-emerald-200">
+              <CheckCircle2 className="w-3 h-3" /> Confirmed
+            </span>
+          )}
+          {assignment.shift_status === 'declined' && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 font-medium ring-1 ring-red-200">
+              <XCircle className="w-3 h-3" /> Declined
+            </span>
+          )}
           {assignment.status === 'started' && assignment.started_at && (
             <span className="text-[10px] text-slate-400 hidden md:inline">since {format(new Date(assignment.started_at), 'HH:mm')}</span>
           )}
@@ -84,6 +94,21 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
       {/* Expanded details */}
       {expanded && (
         <div className="px-4 pb-4 border-t border-slate-100 pt-4">
+          {/* Shift confirmation */}
+          {(assignment.status || 'assigned') === 'assigned' && (!assignment.shift_status || assignment.shift_status === 'pending') && (
+            <div className="flex items-center gap-2 mb-4 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-200">
+              <span className="text-xs text-slate-500 font-medium flex-1">Can you make this shift?</span>
+              <button onClick={() => onConfirmShift?.(assignment.id)}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 active:scale-95 transition touch-manipulation">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Confirm
+              </button>
+              <button onClick={() => onDeclineShift?.(assignment.id)}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 active:scale-95 transition touch-manipulation">
+                <XCircle className="w-3.5 h-3.5" /> Decline
+              </button>
+            </div>
+          )}
+
           {/* Quick actions row */}
           <div className="flex flex-wrap gap-2 mb-4">
             {(assignment.status || 'assigned') === 'assigned' && (

@@ -67,6 +67,15 @@ export default function StaffDashboard() {
     };
   }, []);
 
+  // Real-time sync: reflect assignment changes (including deletions) immediately
+  useEffect(() => {
+    if (!staff?.id) return;
+    const unsubscribe = base44.entities.RotaAssignment.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+    });
+    return () => { if (unsubscribe) unsubscribe(); };
+  }, [staff?.id, queryClient]);
+
   const { data: assignments = [], isLoading: assignmentsLoading } = useQuery({
     queryKey: ['staff-assignments', staff?.id],
     queryFn: async () => {
@@ -149,6 +158,24 @@ export default function StaffDashboard() {
     }
   };
 
+  const handleConfirmShift = async (assignmentId) => {
+    try {
+      await base44.entities.RotaAssignment.update(assignmentId, { shift_status: 'confirmed' });
+      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+    } catch (error) {
+      console.error('Error confirming shift:', error);
+    }
+  };
+
+  const handleDeclineShift = async (assignmentId) => {
+    try {
+      await base44.entities.RotaAssignment.update(assignmentId, { shift_status: 'declined' });
+      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+    } catch (error) {
+      console.error('Error declining shift:', error);
+    }
+  };
+
   const handleStartAttempt = (assignmentId) => {
     const assignment = assignments.find(a => a.id === assignmentId);
     if (!assignment) return;
@@ -210,6 +237,8 @@ export default function StaffDashboard() {
     onStart: handleStartAttempt,
     onComplete: handleCompleteJob,
     onSign: handleBriefingSign,
+    onConfirmShift: handleConfirmShift,
+    onDeclineShift: handleDeclineShift,
     meterage: meterageInputs[assignment.id],
     onMeterageChange: (id, val) => setMeterageInputs(prev => ({ ...prev, [id]: val })),
     tasksSubmitted: mgrTimesheets.some(t => t.job_id === assignment.job_id && t.date === todayStr && (t.status === 'submitted' || t.status === 'approved')),

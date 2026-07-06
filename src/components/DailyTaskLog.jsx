@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp, X, Car } from 'lucide-react';
+import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp, X, Car, Briefcase } from 'lucide-react';
 import { format } from 'date-fns';
 
 const TASK_SUGGESTIONS = [
@@ -47,11 +47,15 @@ export default function DailyTaskLog({ staffId }) {
   const { data: todayEntries = [] } = useQuery({ queryKey: ['daily-tasks', staffId, today], queryFn: () => base44.entities.Timesheet.filter({ staff_id: staffId, date: today }), enabled: !!staffId });
   const { data: shifts = [] } = useQuery({ queryKey: ['staff-shifts', staffId], queryFn: () => base44.entities.StaffShift.filter({ staff_id: staffId }), enabled: !!staffId });
 
-  const assignedJobIds = [...new Set(assignments.map(a => a.job_id))];
-  const assignedJobs = jobs.filter(j => assignedJobIds.includes(j.id));
+  const todayAssignments = assignments.filter(a => a.assigned_date === today);
+  const todayJobIds = [...new Set(todayAssignments.map(a => a.job_id))];
+  const todayJobs = jobs.filter(j => todayJobIds.includes(j.id));
+  const otherJobIds = [...new Set(assignments.filter(a => a.assigned_date !== today).map(a => a.job_id))];
+  const otherJobs = jobs.filter(j => otherJobIds.includes(j.id) && !todayJobIds.includes(j.id));
+  const assignedJobs = [...todayJobs, ...otherJobs];
   const todayShift = shifts.find(s => s.day_of_week === todayDow);
 
-  useEffect(() => { if (!jobId && assignedJobs.length === 1) setJobId(assignedJobs[0].id); }, [assignedJobs, jobId]);
+  useEffect(() => { if (!jobId && todayJobs.length === 1) setJobId(todayJobs[0].id); else if (!jobId && todayJobs.length === 0 && assignedJobs.length === 1) setJobId(assignedJobs[0].id); }, [todayJobs, assignedJobs, jobId]);
   useEffect(() => { if (!startTime && todayShift?.start_time) setStartTime(todayShift.start_time); }, [todayShift]);
 
   const selectedJob = jobs.find(j => j.id === jobId);
@@ -220,6 +224,14 @@ export default function DailyTaskLog({ staffId }) {
             <span className="text-slate-600">Your shift today: <b className="text-slate-900">{todayShift.start_time} – {todayShift.end_time}</b> ({fmtDur(shiftMins)})</span>
             <span className="text-slate-400">·</span>
             <span className="text-slate-600">Worked <b className="text-slate-900">{fmtDur(totalMins)}</b>{shiftMins > 0 ? ` of ${fmtDur(shiftMins)}` : ''}</span>
+          </div>
+        )}
+
+        {/* Today's assignment context */}
+        {todayJobs.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap text-xs bg-emerald-50 border border-emerald-200 rounded-xl px-3.5 py-2.5">
+            <Briefcase className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <span className="text-slate-600">Assigned to <b className="text-slate-900">{todayJobs.map(j => j.name).join(', ')}</b> today</span>
           </div>
         )}
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, CheckCircle2, XCircle, TrendingUp, ClipboardCheck, ShieldCheck, Car } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, TrendingUp, ClipboardCheck, ShieldCheck, Car, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { computeStaffOvertime, buildRateMap, entryMinutes } from '@/utils/overtime';
 
@@ -92,6 +92,25 @@ export default function ManagerTimesheetApprovals({ staffId }) {
                       {b.isOvertime && <span className="inline-flex items-center gap-1 text-amber-600 font-medium"><TrendingUp className="w-3 h-3" />OT {fmtDur(b.otMins)} ×{b.multiplier}</span>}
                       {(() => { const ra = allAssignments.find(a => a.staff_id === t.staff_id && a.job_id === t.job_id && a.assigned_date === t.date); return ra?.briefing_signed ? <span className="inline-flex items-center gap-1 text-emerald-600 font-medium"><ShieldCheck className="w-3 h-3" />Briefing {ra.briefing_signed_at ? format(new Date(ra.briefing_signed_at), 'HH:mm') : ''}</span> : null; })()}
                     </div>
+                    {(() => {
+                      const alerts = [];
+                      const totalMins = t.is_summary ? (t.on_site_minutes || 0) + (t.travel_to_minutes || 0) + (t.travel_from_minutes || 0) + (t.break_minutes || 0) : mins;
+                      const travelMins = (t.travel_to_minutes || 0) + (t.travel_from_minutes || 0);
+                      if (totalMins > 600) alerts.push({ label: `${fmtDur(totalMins)} — long day`, cls: 'bg-amber-50 text-amber-700 ring-amber-200' });
+                      if (travelMins > 90) alerts.push({ label: `Travel ${fmtDur(travelMins)}`, cls: 'bg-blue-50 text-blue-700 ring-blue-200' });
+                      const ra = allAssignments.find(a => a.staff_id === t.staff_id && a.job_id === t.job_id && a.assigned_date === t.date);
+                      if (ra && !ra.briefing_signed && !t.is_break) alerts.push({ label: 'No briefing signed', cls: 'bg-red-50 text-red-600 ring-red-200' });
+                      if (alerts.length === 0) return null;
+                      return (
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                          {alerts.map((a, i) => (
+                            <span key={i} className={`inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium ring-1 ${a.cls}`}>
+                              <AlertTriangle className="w-2.5 h-2.5" /> {a.label}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button onClick={() => handleApprove(t.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="Approve"><CheckCircle2 className="w-5 h-5" /></button>

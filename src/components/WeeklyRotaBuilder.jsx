@@ -264,6 +264,12 @@ export default function WeeklyRotaBuilder() {
               <ClipboardCheck className="w-2.5 h-2.5" />
             </span>
           )}
+          {assignment.shift_status === 'confirmed' && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">✓ Confirmed</span>
+          )}
+          {assignment.shift_status === 'declined' && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">✗ Declined</span>
+          )}
           {assignment.meterage > 0 && (
             <span className="text-[10px] text-amber-600 font-medium">{assignment.meterage}m</span>
           )}
@@ -535,6 +541,8 @@ export default function WeeklyRotaBuilder() {
                           {job?.location && <span className="flex items-center gap-0.5 text-slate-500"><MapPin className="w-3 h-3" />{job.location}</span>}
                           <span className={`inline-flex items-center gap-0.5 ${status.text}`}><StatusIcon className="w-3 h-3" />{status.label}</span>
                           {assignment.briefing_signed && <span className="inline-flex items-center text-emerald-600"><ClipboardCheck className="w-3 h-3" />Briefed</span>}
+                          {assignment.shift_status === 'confirmed' && <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium text-[10px]">✓ Confirmed</span>}
+                          {assignment.shift_status === 'declined' && <span className="px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-medium text-[10px]">✗ Declined</span>}
                           {assignment.meterage > 0 && <span className="text-amber-600 font-medium">{assignment.meterage}m</span>}
                         </div>
                         {assignment.notes && (
