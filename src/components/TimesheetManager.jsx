@@ -170,7 +170,7 @@ export default function TimesheetManager() {
           </div>
           <div className="divide-y divide-slate-100">
             {staffSummary.map(p => (
-              <div key={p.id} className="px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
+              <div key={p.id} className="px-4 sm:px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
                     <span className="text-emerald-700 font-bold text-sm">{p.name.charAt(0)}</span>
@@ -181,7 +181,7 @@ export default function TimesheetManager() {
                     {p.approvers.length > 0 && <p className="text-[10px] text-emerald-600 font-medium">Approved by {p.approvers.join(', ')}</p>}
                   </div>
                 </div>
-                <div className="flex items-center gap-4 text-sm flex-shrink-0">
+                <div className="flex items-center gap-3 sm:gap-4 text-sm flex-wrap justify-end">
                   <div className="text-right"><p className="text-[10px] text-slate-400 uppercase">Standard</p><p className="font-semibold text-slate-900">{fmtMins(p.stdMins)}</p></div>
                   <div className="text-right"><p className="text-[10px] text-slate-400 uppercase">Overtime</p><p className={`font-semibold ${p.otMins > 0 ? 'text-amber-600' : 'text-slate-300'}`}>{fmtMins(p.otMins)}</p></div>
                   <div className="text-right"><p className="text-[10px] text-slate-400 uppercase">Cost</p><p className="font-semibold text-emerald-700">{fmtCost(p.cost)}</p></div>

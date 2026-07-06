@@ -88,18 +88,18 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       </motion.div>
 
       {/* KPI Stats — clickable */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (
             <motion.button key={stat.label} custom={i} initial="hidden" animate="show" variants={cardVariants}
               onClick={() => onNavigate(stat.nav)}
-              className="card-modern rounded-2xl p-5 flex items-center gap-4 text-left group">
-              <div className={`w-12 h-12 rounded-xl ${stat.gradient} flex items-center justify-center flex-shrink-0 shadow-md`}>
-                <Icon className="w-6 h-6 text-white" />
+              className="card-modern rounded-2xl p-4 sm:p-5 flex items-center gap-3 sm:gap-4 text-left group">
+              <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl ${stat.gradient} flex items-center justify-center flex-shrink-0 shadow-md`}>
+                <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div className="min-w-0">
-                <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+                <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">{stat.value}</p>
                 <p className="text-xs text-slate-500 font-medium">{stat.label}</p>
                 <p className="text-[11px] text-slate-400 truncate">{stat.sub}</p>
               </div>

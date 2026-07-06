@@ -195,7 +195,7 @@ export default function JobCostAnalytics() {
             </ResponsiveContainer>
           )}
           {/* Legend */}
-          <div className="flex items-center gap-4 mt-3 text-[11px] text-slate-500">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-[11px] text-slate-500">
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />Budget</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500" />On-track spend</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-rose-500" />Over-budget spend</span>

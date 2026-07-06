@@ -279,20 +279,20 @@ export default function WeeklyRotaBuilder() {
         <PageHeader title="Weekly Rota Builder" icon={Calendar} />
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={handleSmartFill} disabled={smartFillLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50">
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50">
             <Copy className="w-4 h-4" /> {smartFillLoading ? 'Copying...' : 'Smart Fill'}
           </button>
           <button onClick={() => setModal({ isOpen: true, assignment: null, defaultStaffId: '', defaultDate: '' })}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
             <Plus className="w-4 h-4" /> Add Assignment
           </button>
           <button onClick={handleSaveDraft} disabled={isPublished}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition text-sm font-medium">
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition text-sm font-medium">
             <Save className="w-4 h-4" /> Save Draft
           </button>
           <button onClick={handleSubmitWeek} disabled={publishing}
-            className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition text-sm font-medium disabled:opacity-50">
-            {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} {isPublished ? 'Resend Schedules' : 'Submit Week'}
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition text-sm font-medium disabled:opacity-50">
+            {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} {isPublished ? 'Resend' : 'Submit Week'}
           </button>
         </div>
       </div>
