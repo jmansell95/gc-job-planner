@@ -1,0 +1,69 @@
+{
+  "name": "ComplianceItem",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "enum": [
+        "staff",
+        "vehicle",
+        "job",
+        "company",
+        "equipment"
+      ],
+      "description": "What this compliance item relates to"
+    },
+    "title": {
+      "type": "string",
+      "description": "Name of the compliance item (e.g. CPCS Card, Vehicle MOT, Public Liability Insurance, RAMS)"
+    },
+    "reference_name": {
+      "type": "string",
+      "description": "Name of the person, vehicle, job or entity this item belongs to"
+    },
+    "reference_id": {
+      "type": "string",
+      "description": "Optional linked entity ID (staff, vehicle, job)"
+    },
+    "issue_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date issued or last renewed"
+    },
+    "expiry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When this compliance item expires"
+    },
+    "document_url": {
+      "type": "string",
+      "description": "URL of the uploaded certificate or document"
+    },
+    "document_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded document"
+    },
+    "responsible_person": {
+      "type": "string",
+      "description": "Who is responsible for maintaining this compliance item"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes"
+    },
+    "status_override": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "missing",
+        "not_required"
+      ],
+      "default": "auto",
+      "description": "Override the auto-calculated status. 'auto' derives from expiry_date, 'missing' marks it as not yet provided, 'not_required' exempts it."
+    }
+  },
+  "required": [
+    "category",
+    "title"
+  ]
+}

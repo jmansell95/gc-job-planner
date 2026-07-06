@@ -3,7 +3,6 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Users, CalendarRange, Briefcase, FileText, Printer, Mail, BarChart3, X, Send, Clock, TrendingUp, PoundSterling } from 'lucide-react';
 import { format, subWeeks } from 'date-fns';
-import PageHeader from '@/components/PageHeader';
 import PillTabs from '@/components/PillTabs';
 import ReportTable from '@/components/reports/ReportTable';
 import { REPORT_TYPES, buildReport, reportPrintDocument, reportHtmlFragment } from '@/utils/reports';
@@ -14,7 +13,7 @@ const ICONS = { Users, CalendarRange, Briefcase, FileText };
 const fmtHours = (m) => { const mm = Math.round(Number(m) || 0); return (mm / 60).toFixed(1) + 'h'; };
 const fmtCost = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
-export default function ReportsManager() {
+export default function ComplianceReports() {
   const [reportType, setReportType] = useState('staff');
   const [dateFrom, setDateFrom] = useState(format(subWeeks(new Date(), 8), 'yyyy-MM-dd'));
   const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -99,11 +98,8 @@ export default function ReportsManager() {
 
   return (
     <div>
-      <PageHeader title="Reports" icon={BarChart3} />
-
       <PillTabs tabs={reportTabs} activeId={reportType} onChange={setReportType} />
 
-      {/* Filters + actions */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-5 flex flex-col lg:flex-row gap-3 lg:items-end">
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-slate-500">From</label>
@@ -135,7 +131,6 @@ export default function ReportsManager() {
         </div>
       </div>
 
-      {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {[
           { icon: FileText, label: 'Entries', value: summary.entries, accent: 'bg-slate-100 text-slate-600' },
@@ -156,7 +151,6 @@ export default function ReportsManager() {
         })}
       </div>
 
-      {/* Report table */}
       <div className="mb-2 flex items-center gap-2">
         <h2 className="font-semibold text-slate-900">{activeType?.label}</h2>
         <span className="text-xs text-slate-400">{format(new Date(dateFrom + 'T00:00:00'), 'dd MMM')} – {format(new Date(dateTo + 'T00:00:00'), 'dd MMM yyyy')}</span>
@@ -167,7 +161,6 @@ export default function ReportsManager() {
         <ReportTable report={report} emptyIcon={BarChart3} />
       )}
 
-      {/* Email modal */}
       {emailOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => !sending && setEmailOpen(false)}>
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
