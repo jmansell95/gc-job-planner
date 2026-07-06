@@ -28,7 +28,7 @@ export default function NeedsAttentionPanel({ onNavigate }) {
   const { data: rotaWeeks = [] } = useQuery({ queryKey: ['rota-week', 'attention'], queryFn: () => base44.entities.RotaWeek.list(), ...refreshOpts });
 
   const pendingTs = timesheets.filter(t => t.status === 'submitted').length;
-  const withdrawnTs = timesheets.filter(t => t.status === 'deleted').length;
+  const withdrawnTs = timesheets.filter(t => t.status === 'deleted' && !t.withdrawal_acknowledged).length;
   const pendingAbs = absences.filter(a => a.status === 'pending').length;
   const onHoldJobs = jobs.filter(j => j.status === 'on_hold').length;
   const thisWeekRota = rotaWeeks.find(w => w.week_start === weekStartStr);
