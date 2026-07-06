@@ -48,25 +48,27 @@ export default function SettingsPage() {
 
       {/* Polished navigation bar */}
       <div className="sticky top-0 z-20 -mx-4 px-4 md:mx-0 md:px-0 mb-6 pt-1">
-        <div className="flex gap-1.5 overflow-x-auto pb-2.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap">
-          {tabs.map(tab => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition flex-shrink-0 whitespace-nowrap border ${
-                  isActive
-                    ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm shadow-emerald-200/60'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-slate-200/70 shadow-sm p-1.5">
+          <div className="flex gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] md:flex-wrap">
+            {tabs.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition flex-shrink-0 whitespace-nowrap border active:scale-[0.97] ${
+                    isActive
+                      ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm shadow-emerald-200/60'
+                      : 'bg-transparent text-slate-600 border-transparent hover:border-emerald-300 hover:text-emerald-700'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

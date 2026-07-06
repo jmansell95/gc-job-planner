@@ -100,16 +100,23 @@ export default function ReportsManager() {
       <PageHeader title="Reports" icon={BarChart3} />
 
       {/* Report type tabs */}
-      <div className="flex flex-wrap gap-2 mb-5">
-        {REPORT_TYPES.map(t => {
-          const Icon = ICONS[t.icon];
-          return (
-            <button key={t.key} onClick={() => setReportType(t.key)}
-              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition ${reportType === t.key ? 'bg-emerald-700 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-              <Icon className="w-4 h-4" /> {t.label}
-            </button>
-          );
-        })}
+      <div className="mb-5">
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {REPORT_TYPES.map(t => {
+            const Icon = ICONS[t.icon];
+            const isActive = reportType === t.key;
+            return (
+              <button key={t.key} onClick={() => setReportType(t.key)}
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition flex-shrink-0 whitespace-nowrap border ${
+                  isActive
+                    ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm shadow-emerald-200/60'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:text-emerald-700 active:scale-[0.97]'
+                }`}>
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} /> {t.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Filters + actions */}
