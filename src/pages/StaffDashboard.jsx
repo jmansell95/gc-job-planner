@@ -10,6 +10,7 @@ import { useStaffAssistant } from '@/components/StaffAssistantChat';
 import { motion } from 'framer-motion';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 import AssignmentCard from '@/components/staff/AssignmentCard';
+import JobBriefingModal from '@/components/staff/JobBriefingModal';
 import EndOfDayCard from '@/components/staff/EndOfDayCard';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
@@ -35,6 +36,7 @@ export default function StaffDashboard() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showApprovals, setShowApprovals] = useState(false);
   const [showTimesheets, setShowTimesheets] = useState(false);
+  const [briefingAssignment, setBriefingAssignment] = useState(null);
   const { openChat } = useStaffAssistant();
   const queryClient = useQueryClient();
 
@@ -99,11 +101,12 @@ export default function StaffDashboard() {
     }
   };
 
-  const handleCompleteJob = async (assignmentId) => {
+  const handleCompleteJob = async (assignmentId, extraData = {}) => {
     try {
       const updateData = {
         status: 'completed',
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
+        ...extraData
       };
       if (meterageInputs[assignmentId] !== undefined && meterageInputs[assignmentId] !== '') {
         updateData.meterage = parseFloat(meterageInputs[assignmentId]) || 0;
@@ -126,6 +129,22 @@ export default function StaffDashboard() {
     } catch (error) {
       console.error('Error signing briefing:', error);
     }
+  };
+
+  const handleStartAttempt = (assignmentId) => {
+    const assignment = assignments.find(a => a.id === assignmentId);
+    if (!assignment) return;
+    const hasPriorBriefing = assignments.some(a => a.job_id === assignment.job_id && a.briefing_signed && a.id !== assignment.id);
+    if (assignment.briefing_signed || hasPriorBriefing) {
+      handleStartJob(assignmentId);
+    } else {
+      setBriefingAssignment(assignment);
+    }
+  };
+
+  const handleBriefingComplete = () => {
+    setBriefingAssignment(null);
+    queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
   };
 
   if (loading) {
@@ -170,12 +189,17 @@ export default function StaffDashboard() {
     vehicle: vehicles.find(v => v.id === assignment.vehicle_id),
     client: clients.find(c => c.id === jobs.find(j => j.id === assignment.job_id)?.client_id),
     staff,
-    onStart: handleStartJob,
+    onStart: handleStartAttempt,
     onComplete: handleCompleteJob,
     onSign: handleBriefingSign,
     meterage: meterageInputs[assignment.id],
     onMeterageChange: (id, val) => setMeterageInputs(prev => ({ ...prev, [id]: val })),
-    tasksSubmitted: mgrTimesheets.some(t => t.job_id === assignment.job_id && t.date === todayStr && (t.status === 'submitted' || t.status === 'approved'))
+    tasksSubmitted: mgrTimesheets.some(t => t.job_id === assignment.job_id && t.date === todayStr && (t.status === 'submitted' || t.status === 'approved')),
+    needsBriefing: !assignment.briefing_signed && !assignments.some(a => a.job_id === assignment.job_id && a.briefing_signed && a.id !== assignment.id),
+    previousProgress: assignments
+      .filter(a => a.job_id === assignment.job_id && a.progress_notes && a.assigned_date < assignment.assigned_date)
+      .sort((a, b) => new Date(b.assigned_date) - new Date(a.assigned_date))
+      .map(a => ({ date: a.assigned_date, notes: a.progress_notes, staffName: allStaff.find(s => s.id === a.staff_id)?.name || staff.name }))
   });
 
   return (
@@ -298,6 +322,17 @@ export default function StaffDashboard() {
           <ManagerTimesheetApprovals staffId={staff.id} />
         </SheetContent>
       </Sheet>
+
+      {/* Briefing modal */}
+      {briefingAssignment && (
+        <JobBriefingModal
+          assignment={briefingAssignment}
+          job={jobs.find(j => j.id === briefingAssignment.job_id)}
+          client={clients.find(c => c.id === jobs.find(j => j.id === briefingAssignment.job_id)?.client_id)}
+          onStart={handleBriefingComplete}
+          onClose={() => setBriefingAssignment(null)}
+        />
+      )}
 
       {/* My Timesheets pop-out */}
       <Sheet open={showTimesheets} onOpenChange={setShowTimesheets}>

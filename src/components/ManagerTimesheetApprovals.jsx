@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, CheckCircle2, XCircle, TrendingUp, ClipboardCheck } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, TrendingUp, ClipboardCheck, ShieldCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { computeStaffOvertime, buildRateMap, entryMinutes } from '@/utils/overtime';
 
@@ -20,6 +20,7 @@ export default function ManagerTimesheetApprovals({ staffId }) {
   const { data: allStaff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: timesheets = [] } = useQuery({ queryKey: ['all-timesheets-mgr'], queryFn: () => base44.entities.Timesheet.list('-created_date', 500) });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
+  const { data: allAssignments = [] } = useQuery({ queryKey: ['all-assignments-mgr'], queryFn: () => base44.entities.RotaAssignment.list('-created_date', 500) });
   const { data: overtimeRates = [] } = useQuery({ queryKey: ['overtime-rates'], queryFn: () => base44.entities.OvertimeRate.list() });
   const { data: overtimeSetting } = useQuery({
     queryKey: ['overtime-setting'],
@@ -81,6 +82,7 @@ export default function ManagerTimesheetApprovals({ staffId }) {
                     <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
                       <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />{fmtDur(mins)}</span>
                       {b.isOvertime && <span className="inline-flex items-center gap-1 text-amber-600 font-medium"><TrendingUp className="w-3 h-3" />OT {fmtDur(b.otMins)} ×{b.multiplier}</span>}
+                      {(() => { const ra = allAssignments.find(a => a.staff_id === t.staff_id && a.job_id === t.job_id && a.assigned_date === t.date); return ra?.briefing_signed ? <span className="inline-flex items-center gap-1 text-emerald-600 font-medium"><ShieldCheck className="w-3 h-3" />Briefing {ra.briefing_signed_at ? format(new Date(ra.briefing_signed_at), 'HH:mm') : ''}</span> : null; })()}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">

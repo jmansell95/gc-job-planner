@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, MapPin, Calendar, Users, Truck, FileText, Briefcase,
-  Clock, Eye, Download, User, HardHat, Phone, Mail, Tag, Edit2
+  Clock, Eye, Download, User, HardHat, Phone, Mail, Tag, Edit2,
+  ShieldCheck, PlayCircle, CheckCircle2, MessageSquare
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
@@ -538,15 +539,38 @@ export default function JobDetail({ job: initialJob, onBack }) {
                           const member = allStaff.find(s => s.id === rota.staff_id);
                           const vehicle = vehicles.find(v => v.id === rota.vehicle_id);
                           return (
-                            <div key={rota.id} className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs">
-                              <User className="w-3.5 h-3.5 text-slate-400" />
-                              <span className="font-medium text-slate-700">{member?.name || 'Unknown'}</span>
-                              {vehicle && (
-                                <>
-                                  <span className="text-slate-300">·</span>
-                                  <Truck className="w-3.5 h-3.5 text-slate-400" />
-                                  <span className="text-slate-500 font-mono">{vehicle.registration_number}</span>
-                                </>
+                            <div key={rota.id} className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <User className="w-3.5 h-3.5 text-slate-400" />
+                                <span className="font-medium text-slate-700">{member?.name || 'Unknown'}</span>
+                                {vehicle && (
+                                  <>
+                                    <span className="text-slate-300">·</span>
+                                    <Truck className="w-3.5 h-3.5 text-slate-400" />
+                                    <span className="text-slate-500 font-mono">{vehicle.registration_number}</span>
+                                  </>
+                                )}
+                                {rota.briefing_signed && (
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium ml-auto">
+                                    <ShieldCheck className="w-3 h-3" /> Briefing {rota.briefing_signed_at ? format(new Date(rota.briefing_signed_at), 'HH:mm') : ''}
+                                  </span>
+                                )}
+                                {rota.status === 'started' && (
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                                    <PlayCircle className="w-3 h-3" /> Started
+                                  </span>
+                                )}
+                                {rota.status === 'completed' && (
+                                  <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
+                                    <CheckCircle2 className="w-3 h-3" /> Done
+                                  </span>
+                                )}
+                              </div>
+                              {rota.progress_notes && (
+                                <div className="flex items-start gap-1.5 mt-1.5 pl-5">
+                                  <MessageSquare className="w-3 h-3 text-slate-400 flex-shrink-0 mt-0.5" />
+                                  <p className="text-slate-500 leading-relaxed">{rota.progress_notes}</p>
+                                </div>
                               )}
                             </div>
                           );

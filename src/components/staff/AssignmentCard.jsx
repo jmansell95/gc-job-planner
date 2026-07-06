@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera } from 'lucide-react';
+import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import { formatJobType } from '@/utils/format';
@@ -32,8 +32,9 @@ const statusConfig = {
   completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' }
 };
 
-export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange, tasksSubmitted = false }) {
+export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange, tasksSubmitted = false, needsBriefing = false, previousProgress = [] }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const [progressNote, setProgressNote] = useState(assignment.progress_notes || '');
   const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
   const StatusIcon = status.icon;
   const isDriller = job?.job_type === 'cp_drilling' || job?.job_type === 'rotary_drilling';
@@ -89,7 +90,7 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               canStart ? (
                 <button onClick={() => onStart(assignment.id)}
                   className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
-                  <PlayCircle className="w-4 h-4" /> Start Job
+                  <PlayCircle className="w-4 h-4" /> Start Job{needsBriefing ? ' · Briefing' : ''}
                 </button>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-500 rounded-xl text-xs font-semibold">
@@ -98,20 +99,50 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               )
             )}
             {assignment.status === 'started' && (
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap w-full">
                 {isDriller && (
                   <input type="number" min="0" step="0.1" placeholder="Meterage (m)"
                     value={meterage || ''}
                     onChange={e => onMeterageChange(assignment.id, e.target.value)}
                     className="w-32 px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
                 )}
-                <button onClick={() => onComplete(assignment.id)}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
-                  <CheckCircle2 className="w-4 h-4" /> Complete
+                <button onClick={() => onComplete(assignment.id, { progress_notes: progressNote.trim() })}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-semibold touch-manipulation ml-auto">
+                  <CheckCircle2 className="w-4 h-4" /> Complete Shift
                 </button>
               </div>
             )}
           </div>
+
+          {/* Progress notes — for multi-day jobs */}
+          {assignment.status === 'started' && (
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-slate-600 mb-1.5">End-of-shift progress notes (optional)</label>
+              <textarea value={progressNote} onChange={e => setProgressNote(e.target.value)} rows={2} placeholder="What was done today? What's left for the next shift?"
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 resize-none" />
+            </div>
+          )}
+
+          {/* Previous shift progress */}
+          {previousProgress.length > 0 && (
+            <div className="mb-4 bg-slate-50 rounded-xl border border-slate-200 p-3.5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Previous Shifts</p>
+              </div>
+              <div className="space-y-2">
+                {previousProgress.map((p, i) => (
+                  <div key={i} className="text-sm">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-medium text-slate-500">{format(new Date(p.date + 'T00:00:00'), 'dd MMM')}</span>
+                      <span className="text-xs text-slate-400">· {p.staffName}</span>
+                    </div>
+                    <p className="text-slate-600 text-xs leading-relaxed">{p.notes}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Details grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -152,21 +183,41 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
             </div>
           </div>
 
-          {/* Briefing + photos */}
+          {/* Briefing status + photos */}
           <div className="pt-3 border-t border-slate-100 space-y-3">
             {assignment.briefing_signed ? (
-              <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50/50 rounded-lg px-3 py-2">
-                <ClipboardCheck className="w-4 h-4 flex-shrink-0" />
-                <span className="font-medium">Briefing signed off</span>
-                {assignment.briefing_signed_at && (
-                  <span className="text-xs text-slate-400 ml-auto">{format(new Date(assignment.briefing_signed_at), 'dd MMM HH:mm')}</span>
+              <div className="bg-emerald-50/50 rounded-lg px-3 py-2.5">
+                <div className="flex items-center gap-2 text-sm text-emerald-700">
+                  <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+                  <span className="font-medium">Briefing completed</span>
+                  {assignment.briefing_signed_at && (
+                    <span className="text-xs text-slate-400 ml-auto">{format(new Date(assignment.briefing_signed_at), 'dd MMM yyyy, HH:mm')}</span>
+                  )}
+                </div>
+                {assignment.briefing_start_at && assignment.briefing_signed_at && (
+                  <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500 pl-6">
+                    <span>Start: {format(new Date(assignment.briefing_start_at), 'HH:mm')}</span>
+                    <span>End: {format(new Date(assignment.briefing_signed_at), 'HH:mm')}</span>
+                    <span className="font-medium text-slate-600">Duration: {Math.round((new Date(assignment.briefing_signed_at) - new Date(assignment.briefing_start_at)) / 60000)}m</span>
+                  </div>
                 )}
               </div>
+            ) : needsBriefing ? (
+              <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2.5">
+                <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+                <span className="font-medium">Site briefing required — tap "Start Job" to begin.</span>
+              </div>
             ) : (
-              <button onClick={() => onSign(assignment.id)}
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-xl hover:bg-slate-900 active:scale-95 transition text-sm font-medium w-full sm:w-auto touch-manipulation">
-                <ClipboardCheck className="w-4 h-4" /> Sign Off Job Briefing
-              </button>
+              <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
+                <ShieldCheck className="w-4 h-4 flex-shrink-0 text-slate-400" />
+                <span>Briefing completed on a previous shift.</span>
+              </div>
+            )}
+            {assignment.progress_notes && assignment.status === 'completed' && (
+              <div className="bg-slate-50 rounded-lg px-3 py-2.5 text-sm">
+                <p className="text-xs font-semibold text-slate-400 uppercase mb-1">Shift Progress Notes</p>
+                <p className="text-slate-600 text-xs leading-relaxed">{assignment.progress_notes}</p>
+              </div>
             )}
             {tasksSubmitted ? (
               <SitePhotoUpload jobId={job.id} staffName={staff.name} />
