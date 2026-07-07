@@ -82,6 +82,16 @@
       "type": "number",
       "description": "Pay multiplier for this overtime shift (e.g. 1.5 = time-and-a-half, 2.0 = double time). Falls back to the default OvertimeRate for the day when not set."
     },
+    "start_delayed": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the job started later than its planned start date \u2014 captured during assignment so managers can track delays."
+    },
+    "actual_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Actual date the job started on site \u2014 recorded when the job was delayed from its planned start date"
+    },
     "meterage": {
       "type": "number",
       "description": "Meters drilled (for drilling crews, recorded at job completion)"

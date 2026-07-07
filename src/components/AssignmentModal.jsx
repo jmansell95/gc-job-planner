@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2, Clock, MapPin, Calendar, User, Phone, Briefcase, FileText } from 'lucide-react';
+import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2, Clock, MapPin, Calendar, CalendarClock, User, Phone, Briefcase, FileText } from 'lucide-react';
+import { format, differenceInDays } from 'date-fns';
 import { isStaffOutsideJobTeams, getJobTeamIds } from '@/utils/jobTeams';
 import { isWeekend, buildRateMap } from '@/utils/overtime';
 
 export default function AssignmentModal({ isOpen, onClose, assignment, defaultStaffId, defaultDate, weekStartStr, staff, jobs, vehicles, existingRotas }) {
-  const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '', notes: '', is_overtime: false, rate_multiplier: '' });
+  const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '', notes: '', is_overtime: false, rate_multiplier: '', start_delayed: false, actual_start_date: '' });
   const [conflictWarnings, setConflictWarnings] = useState([]);
   const [resetting, setResetting] = useState(false);
   const queryClient = useQueryClient();
@@ -30,7 +31,9 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           end_time: assignment.end_time || '',
           notes: assignment.notes || '',
           is_overtime: !!assignment.is_overtime,
-          rate_multiplier: assignment.rate_multiplier != null ? String(assignment.rate_multiplier) : ''
+          rate_multiplier: assignment.rate_multiplier != null ? String(assignment.rate_multiplier) : '',
+          start_delayed: !!assignment.start_delayed,
+          actual_start_date: assignment.actual_start_date || ''
         });
       } else {
         const weekend = isWeekend(defaultDate);
@@ -44,7 +47,9 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           end_time: defaults.end_time,
           notes: '',
           is_overtime: weekend,
-          rate_multiplier: weekend ? String(rateMap[new Date(defaultDate + 'T00:00:00').getDay()] ?? 1.5) : ''
+          rate_multiplier: weekend ? String(rateMap[new Date(defaultDate + 'T00:00:00').getDay()] ?? 1.5) : '',
+          start_delayed: false,
+          actual_start_date: ''
         });
       }
       setConflictWarnings([]);
@@ -89,7 +94,20 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   };
 
   const handleJobChange = (jobId) => {
-    setFormData(prev => ({ ...prev, job_id: jobId }));
+    const job = jobs.find(j => j.id === jobId);
+    setFormData(prev => {
+      const next = { ...prev, job_id: jobId };
+      if (job?.start_date && prev.assigned_date) {
+        if (prev.assigned_date > job.start_date) {
+          next.start_delayed = true;
+          next.actual_start_date = prev.actual_start_date || prev.assigned_date;
+        } else {
+          next.start_delayed = false;
+          next.actual_start_date = '';
+        }
+      }
+      return next;
+    });
   };
 
   const selectedJob = jobs.find(j => j.id === formData.job_id);
@@ -143,7 +161,8 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
     try {
       const payload = {
         ...formData,
-        rate_multiplier: formData.rate_multiplier === '' ? null : Number(formData.rate_multiplier)
+        rate_multiplier: formData.rate_multiplier === '' ? null : Number(formData.rate_multiplier),
+        actual_start_date: formData.start_delayed ? (formData.actual_start_date || null) : null
       };
       if (isEditing) {
         await base44.entities.RotaAssignment.update(assignment.id, payload);
@@ -228,9 +247,9 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                     </div>
                   )}
                   {selectedJob.start_date && (
-                    <div className="flex items-center gap-1.5 text-slate-600">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                      <span className="truncate">{selectedJob.start_date} → {selectedJob.end_date || 'TBC'}</span>
+                    <div className="flex items-center gap-1.5 text-slate-600 bg-white/60 rounded-md px-1.5 py-1">
+                      <Calendar className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                      <span className="truncate"><span className="text-slate-400">Planned:</span> <span className="font-semibold text-slate-700">{format(new Date(selectedJob.start_date + 'T00:00:00'), 'dd MMM yyyy')}</span> → {selectedJob.end_date ? format(new Date(selectedJob.end_date + 'T00:00:00'), 'dd MMM yyyy') : 'TBC'}</span>
                     </div>
                   )}
                   {selectedJob.project_manager && (
@@ -250,6 +269,40 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                   <div className="flex items-start gap-1.5 text-xs text-slate-500 pt-1 border-t border-slate-200">
                     <FileText className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
                     <p className="line-clamp-2">{selectedJob.notes}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {selectedJob?.start_date && (
+              <div className="sm:col-span-2 rounded-lg border border-slate-200 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <CalendarClock className="w-4 h-4 text-emerald-700" />
+                  <p className="text-xs font-semibold text-slate-800">Job Start Timing</p>
+                </div>
+                <p className="text-xs text-slate-500 mb-2.5">
+                  Planned start: <span className="font-semibold text-slate-700">{format(new Date(selectedJob.start_date + 'T00:00:00'), 'dd MMM yyyy')}</span>. Is the job starting on time?
+                </p>
+                <div className="flex gap-2 mb-2">
+                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, start_delayed: false, actual_start_date: '' }))}
+                    className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition ${!formData.start_delayed ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    <CheckCircle2 className="w-3.5 h-3.5" /> On time
+                  </button>
+                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, start_delayed: true, actual_start_date: prev.actual_start_date || prev.assigned_date || selectedJob.start_date }))}
+                    className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition ${formData.start_delayed ? 'bg-amber-50 border-amber-400 text-amber-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                    <AlertTriangle className="w-3.5 h-3.5" /> Delayed
+                  </button>
+                </div>
+                {formData.start_delayed && (
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Actual start date</label>
+                    <input type="date" value={formData.actual_start_date} onChange={(e) => setFormData(prev => ({ ...prev, actual_start_date: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 text-sm" />
+                    {formData.actual_start_date && selectedJob.start_date && formData.actual_start_date > selectedJob.start_date && (
+                      <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        {differenceInDays(new Date(formData.actual_start_date + 'T00:00:00'), new Date(selectedJob.start_date + 'T00:00:00'))} day(s) behind planned start
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
