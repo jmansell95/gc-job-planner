@@ -39,7 +39,7 @@ export default function WeeklyRotaBuilder() {
   const [showWeekends, setShowWeekends] = useState(false);
 
   const queryClient = useQueryClient();
-  const weekStart = startOfWeek(selectedWeek);
+  const weekStart = startOfWeek(selectedWeek, { weekStartsOn: 1 });
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
 
   const { data: staff = [], isLoading: staffLoading, isError: staffError, refetch: refetchStaff } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
