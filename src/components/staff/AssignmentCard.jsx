@@ -65,6 +65,11 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
           <h3 className="text-base font-bold text-slate-900 leading-tight truncate">{job.name}</h3>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-semibold ${jobTypeBadgeColors[job.job_type]}`}>{formatJobType(job.job_type)}</span>
+            {assignment.is_overtime && (
+              <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-700 ring-1 ring-amber-200">
+                Overtime{assignment.rate_multiplier ? ` · ${Number(assignment.rate_multiplier)}x` : ''}
+              </span>
+            )}
             <span className="inline-flex items-center gap-1 text-xs text-slate-500">
               <Calendar className="w-3 h-3" /> {format(new Date(assignment.assigned_date), 'EEE, dd MMM')}
             </span>

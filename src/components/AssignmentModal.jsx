@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2 } from 'lucide-react';
+import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2, Clock } from 'lucide-react';
 import { isStaffOutsideJobTeams, getJobTeamIds } from '@/utils/jobTeams';
+import { isWeekend, buildRateMap } from '@/utils/overtime';
 
 export default function AssignmentModal({ isOpen, onClose, assignment, defaultStaffId, defaultDate, weekStartStr, staff, jobs, vehicles, existingRotas }) {
-  const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '', notes: '' });
+  const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '', notes: '', is_overtime: false, rate_multiplier: '' });
   const [conflictWarnings, setConflictWarnings] = useState([]);
   const [resetting, setResetting] = useState(false);
   const queryClient = useQueryClient();
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
   const { data: recurring = [] } = useQuery({ queryKey: ['recurring-absences'], queryFn: () => base44.entities.RecurringAbsence.list() });
+  const { data: overtimeRates = [] } = useQuery({ queryKey: ['overtime-rates'], queryFn: () => base44.entities.OvertimeRate.list() });
+  const rateMap = buildRateMap(overtimeRates);
 
   const isEditing = !!assignment;
 
@@ -25,9 +28,12 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           vehicle_id: assignment.vehicle_id || '',
           start_time: assignment.start_time || '',
           end_time: assignment.end_time || '',
-          notes: assignment.notes || ''
+          notes: assignment.notes || '',
+          is_overtime: !!assignment.is_overtime,
+          rate_multiplier: assignment.rate_multiplier != null ? String(assignment.rate_multiplier) : ''
         });
       } else {
+        const weekend = isWeekend(defaultDate);
         setFormData({
           job_id: '',
           staff_id: defaultStaffId || '',
@@ -35,7 +41,9 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           vehicle_id: '',
           start_time: '',
           end_time: '',
-          notes: ''
+          notes: '',
+          is_overtime: weekend,
+          rate_multiplier: weekend ? String(rateMap[new Date(defaultDate + 'T00:00:00').getDay()] ?? 1.5) : ''
         });
       }
       setConflictWarnings([]);
@@ -80,8 +88,32 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   const selectedStaffTeamName = selectedStaff ? (teams.find(t => t.id === selectedStaff.team_id)?.name || 'No team') : '';
 
   const handleDateChange = (date) => {
-    setFormData(prev => ({ ...prev, assigned_date: date }));
+    const weekend = isWeekend(date);
+    setFormData(prev => {
+      // Auto-enable overtime + default rate when a weekend is picked (unless the
+      // user previously turned it off for this same edit session).
+      const next = { ...prev, assigned_date: date };
+      if (weekend && !prev.is_overtime && prev.rate_multiplier === '') {
+        next.is_overtime = true;
+        next.rate_multiplier = String(rateMap[new Date(date + 'T00:00:00').getDay()] ?? 1.5);
+      }
+      if (!weekend && prev.is_overtime && prev.rate_multiplier === '') {
+        next.is_overtime = false;
+      }
+      return next;
+    });
     setConflictWarnings(date && formData.staff_id ? checkConflicts(formData.staff_id, date, formData.vehicle_id) : []);
+  };
+
+  const toggleOvertime = (on) => {
+    setFormData(prev => {
+      const next = { ...prev, is_overtime: on };
+      if (on && (!prev.rate_multiplier || prev.rate_multiplier === '')) {
+        const dow = prev.assigned_date ? new Date(prev.assigned_date + 'T00:00:00').getDay() : 6;
+        next.rate_multiplier = String(rateMap[dow] ?? 1.5);
+      }
+      return next;
+    });
   };
 
   const handleVehicleChange = (vehicleId) => {
@@ -98,11 +130,15 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
       if (!confirm('There are scheduling conflicts:\n\n' + conflictWarnings.map(w => '• ' + w).join('\n') + '\n\nAdd anyway?')) return;
     }
     try {
+      const payload = {
+        ...formData,
+        rate_multiplier: formData.rate_multiplier === '' ? null : Number(formData.rate_multiplier)
+      };
       if (isEditing) {
-        await base44.entities.RotaAssignment.update(assignment.id, formData);
+        await base44.entities.RotaAssignment.update(assignment.id, payload);
       } else {
         await base44.entities.RotaAssignment.create({
-          ...formData,
+          ...payload,
           week_start: weekStartStr,
           status: 'assigned'
         });
@@ -219,6 +255,44 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 <input type="time" value={formData.end_time} onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
               </div>
+            </div>
+            {/* Overtime */}
+            <div className="sm:col-span-2 rounded-lg border border-slate-200 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-500" />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800">Overtime Shift</p>
+                    <p className="text-[11px] text-slate-400">
+                      {isWeekend(formData.assigned_date)
+                        ? 'Weekend date — overtime suggested.'
+                        : 'Enable to bill this shift at an overtime rate.'}
+                    </p>
+                  </div>
+                </div>
+                <button type="button" onClick={() => toggleOvertime(!formData.is_overtime)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition flex-shrink-0 ${formData.is_overtime ? 'bg-amber-500' : 'bg-slate-200'}`}>
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${formData.is_overtime ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+              {formData.is_overtime && (
+                <div className="mt-3 flex items-center gap-2">
+                  <label className="text-xs font-medium text-slate-600 whitespace-nowrap">Rate multiplier</label>
+                  <select value={formData.rate_multiplier} onChange={(e) => setFormData({ ...formData, rate_multiplier: e.target.value })}
+                    className="flex-1 px-2.5 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 text-sm">
+                    <option value="">Use day default</option>
+                    <option value="1.5">1.5x (time-and-a-half)</option>
+                    <option value="2">2.0x (double time)</option>
+                    <option value="2.5">2.5x</option>
+                    <option value="3">3.0x</option>
+                  </select>
+                  {formData.rate_multiplier && (
+                    <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-1 rounded-md whitespace-nowrap">
+                      {Number(formData.rate_multiplier).toFixed(1)}x
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-slate-600 mb-1">Notes</label>

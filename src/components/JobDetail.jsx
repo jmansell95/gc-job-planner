@@ -20,7 +20,7 @@ import JobWorkLog from '@/components/JobWorkLog';
 import JobPhotoGallery from '@/components/JobPhotoGallery';
 import { formatJobType } from '@/utils/format';
 import { getJobPrimaryType, isDrillingJob as isDrillingJobByTeams } from '@/utils/jobTeams';
-import { computeStaffOvertime, buildRateMap } from '@/utils/overtime';
+import { computeStaffOvertime, buildRateMap, getAssignmentMultiplier } from '@/utils/overtime';
 import JobStatusModal from '@/components/JobStatusModal';
 
 const jobTypeColors = {
@@ -232,10 +232,16 @@ export default function JobDetail({ job: initialJob, onBack }) {
     const otBreakdown = computeStaffOvertime(staffAllEntries, otRateMap, otThreshold, hourlyRate);
     const jobEntryCost = validTimesheets.filter(t => t.staff_id === member.id).reduce((sum, t) => sum + (otBreakdown[t.id]?.cost || 0), 0);
     const usesTimesheet = !usesMeterage && jobEntryCost > 0;
+    const overtimeShifts = memberRotas.filter(r => r.is_overtime);
+    const dayRateCost = memberRotas.reduce((sum, r) => {
+      const mult = r.is_overtime ? getAssignmentMultiplier(r, otRateMap) : 1;
+      return sum + dayRate * mult;
+    }, 0);
     return {
       name: member.name,
       role: roleLabels[member.job_role] || member.job_role,
       shifts: memberRotas.length,
+      overtimeShifts: overtimeShifts.length,
       dayRate,
       meterage,
       meterageRate,
@@ -245,7 +251,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
       hourlyRate,
       cost: usesMeterage ? meterage * meterageRate
         : usesTimesheet ? jobEntryCost
-        : memberRotas.length * dayRate
+        : dayRateCost
     };
   });
   const totalCost = staffCosts.reduce((sum, s) => sum + s.cost, 0);

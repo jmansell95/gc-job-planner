@@ -21,6 +21,18 @@ const statusBadge = {
   completed: 'bg-emerald-100 text-emerald-700',
 };
 
+const OvertimeBadge = ({ assignment }) => {
+  if (!assignment.is_overtime) return null;
+  const mult = assignment.rate_multiplier != null && assignment.rate_multiplier !== ''
+    ? Number(assignment.rate_multiplier)
+    : null;
+  return (
+    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold flex-shrink-0 whitespace-nowrap">
+      OT{mult ? ` ${mult}x` : ''}
+    </span>
+  );
+};
+
 export default function CalendarView() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -105,8 +117,9 @@ export default function CalendarView() {
                         const job = jobs.find(j => j.id === a.job_id);
                         const colors = jobTypeColors[getJobPrimaryType(job, teams)] || jobTypeColors.depot;
                         return (
-                          <div key={a.id} className={`text-[10px] px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} truncate font-medium`}>
-                            {job?.name?.substring(0, 12) || '—'}
+                          <div key={a.id} className={`text-[10px] px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} truncate font-medium flex items-center gap-1`}>
+                            {a.is_overtime && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>}
+                            <span className="truncate">{job?.name?.substring(0, 12) || '—'}</span>
                           </div>
                         );
                       })}
@@ -156,9 +169,12 @@ export default function CalendarView() {
                             </p>
                           )}
                         </div>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize flex-shrink-0 ${statusBadge[a.status] || statusBadge.assigned}`}>
-                          {a.status}
-                        </span>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {a.is_overtime && <OvertimeBadge assignment={a} />}
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize ${statusBadge[a.status] || statusBadge.assigned}`}>
+                            {a.status}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-slate-600">
                         <UsersIcon className="w-3 h-3" />

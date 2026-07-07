@@ -5,7 +5,7 @@ import { startOfWeek, addDays, format, subWeeks } from 'date-fns';
 import {
   Plus, Calendar, ChevronLeft, ChevronRight, X, Copy,
   MapPin, Truck, Clock, CheckCircle2, PlayCircle, ClipboardCheck,
-  Users, Briefcase, Search, Filter, StickyNote, Save, Send, Loader2
+  Users, Briefcase, Search, Filter, StickyNote, Save, Send, Loader2, CalendarDays
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import AssignmentModal from '@/components/AssignmentModal';
@@ -36,6 +36,7 @@ export default function WeeklyRotaBuilder() {
   const [staffSearch, setStaffSearch] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [showWeekends, setShowWeekends] = useState(false);
 
   const queryClient = useQueryClient();
   const weekStart = startOfWeek(selectedWeek);
@@ -63,7 +64,7 @@ export default function WeeklyRotaBuilder() {
   });
   const isPublished = weekRecord?.status === 'published';
 
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const days = Array.from({ length: showWeekends ? 7 : 5 }, (_, i) => addDays(weekStart, i));
 
   // Filter staff by team and search
   const filteredStaff = staff.filter(s => {
@@ -73,7 +74,7 @@ export default function WeeklyRotaBuilder() {
   });
 
   const rotasByStaff = {};
-  filteredStaff.forEach(s => { rotasByStaff[s.id] = Array.from({ length: 7 }, () => []); });
+  filteredStaff.forEach(s => { rotasByStaff[s.id] = Array.from({ length: days.length }, () => []); });
   rotas.forEach(rota => {
     const dayIndex = days.findIndex(d => format(d, 'yyyy-MM-dd') === rota.assigned_date);
     if (dayIndex !== -1 && rotasByStaff[rota.staff_id]) {
@@ -152,6 +153,8 @@ export default function WeeklyRotaBuilder() {
           start_time: r.start_time || '',
           end_time: r.end_time || '',
           notes: r.notes || '',
+          is_overtime: !!r.is_overtime,
+          rate_multiplier: r.rate_multiplier != null ? r.rate_multiplier : null,
           week_start: weekStartStr,
           status: 'assigned'
         };
@@ -227,10 +230,15 @@ export default function WeeklyRotaBuilder() {
     const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
     const StatusIcon = status.icon;
     return (
-      <div key={assignment.id} className={`group relative px-2.5 py-2 rounded-lg text-xs border-l-[3px] cursor-pointer hover:shadow-sm transition ${colors.bg} ${colors.border}`}
+      <div key={assignment.id} className={`group relative px-2.5 py-2 rounded-lg text-xs border-l-[3px] cursor-pointer hover:shadow-sm transition ${assignment.is_overtime ? 'border-l-amber-400 ring-1 ring-amber-200/60' : ''} ${colors.bg} ${colors.border}`}
         onClick={() => handleEditAssignment(assignment)}>
         <div className="flex items-start justify-between gap-1 mb-1">
           <span className="font-semibold text-slate-900 truncate flex-1">{job?.name || 'Unknown'}</span>
+          {assignment.is_overtime && (
+            <span className="text-[9px] px-1 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold whitespace-nowrap flex-shrink-0">
+              OT{assignment.rate_multiplier ? ` ${Number(assignment.rate_multiplier)}x` : ''}
+            </span>
+          )}
           <button onClick={(e) => { e.stopPropagation(); handleDeleteAssignment(assignment.id); }}
             className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-red-500 rounded transition">
             <X className="w-3 h-3" />
@@ -384,6 +392,12 @@ export default function WeeklyRotaBuilder() {
             {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
+        <button onClick={() => setShowWeekends(v => !v)}
+          className={`flex items-center gap-2 rounded-lg border px-3 py-2 shadow-sm text-sm font-medium transition ${showWeekends ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+          <CalendarDays className="w-4 h-4" />
+          {showWeekends ? 'Mon–Sun' : 'Mon–Fri'}
+          <span className="text-[11px] text-slate-400">{showWeekends ? 'incl. weekends' : '+ weekends'}</span>
+        </button>
         {(teamFilter || staffSearch) && (
           <span className="text-xs text-slate-500 self-center">
             Showing {filteredStaff.length} of {staff.length} staff
@@ -482,7 +496,7 @@ export default function WeeklyRotaBuilder() {
                 </tr>
               ))}
               {filteredStaff.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400 text-sm">
+                <tr><td colSpan={days.length + 1} className="px-4 py-8 text-center text-slate-400 text-sm">
                   {staff.length === 0 ? 'No staff found. Add staff in Settings.' : 'No staff match your filters.'}
                 </td></tr>
               )}
@@ -554,6 +568,13 @@ export default function WeeklyRotaBuilder() {
                           {assignment.shift_status === 'declined' && <span className="px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-medium text-[10px]">✗ Declined</span>}
                           {assignment.meterage > 0 && <span className="text-amber-600 font-medium">{assignment.meterage}m</span>}
                         </div>
+                        {assignment.is_overtime && (
+                          <div className="mt-1.5">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold">
+                              Overtime{assignment.rate_multiplier ? ` · ${Number(assignment.rate_multiplier)}x rate` : ''}
+                            </span>
+                          </div>
+                        )}
                         {assignment.notes && (
                           <div className="mt-1.5 flex items-start gap-1 text-xs text-slate-500">
                             <StickyNote className="w-3 h-3 flex-shrink-0 mt-0.5" />

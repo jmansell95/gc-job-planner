@@ -73,6 +73,15 @@
       "default": "pending",
       "description": "Staff confirmation status for this shift"
     },
+    "is_overtime": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this is an overtime shift (typically a weekend shift). The whole shift is paid at the overtime rate."
+    },
+    "rate_multiplier": {
+      "type": "number",
+      "description": "Pay multiplier for this overtime shift (e.g. 1.5 = time-and-a-half, 2.0 = double time). Falls back to the default OvertimeRate for the day when not set."
+    },
     "meterage": {
       "type": "number",
       "description": "Meters drilled (for drilling crews, recorded at job completion)"

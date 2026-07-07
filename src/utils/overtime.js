@@ -27,6 +27,28 @@ export function entryMinutes(t) {
   return Number(t.task_duration_minutes) || (t.total_hours ? t.total_hours * 60 : 0);
 }
 
+// Returns the effective pay multiplier for a rota assignment.
+// Per-assignment rate_multiplier takes priority; otherwise falls back to the
+// day-of-week rate from the supplied rateMap.
+export function getAssignmentMultiplier(assignment, rateMap) {
+  if (!assignment) return 1.0;
+  if (assignment.rate_multiplier != null && assignment.rate_multiplier !== '') {
+    const v = Number(assignment.rate_multiplier);
+    if (!isNaN(v) && v > 0) return v;
+  }
+  if (assignment.is_overtime) {
+    const day = new Date(assignment.assigned_date + 'T00:00:00').getDay();
+    return rateMap ? (rateMap[day] ?? 1.5) : 1.5;
+  }
+  return 1.0;
+}
+
+export function isWeekend(dateStr) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr + 'T00:00:00').getDay();
+  return d === 0 || d === 6;
+}
+
 export function weekKey(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
