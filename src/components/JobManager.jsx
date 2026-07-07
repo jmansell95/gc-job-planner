@@ -74,10 +74,14 @@ export default function JobManager() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const cleanData = { ...formData };
+      ['budget_amount', 'actual_cost', 'meterage', 'client_charge', 'markup_percentage', 'vat_rate'].forEach(k => {
+        if (cleanData[k] === '' || cleanData[k] === undefined || cleanData[k] === null) delete cleanData[k];
+      });
       if (editingId) {
-        await base44.entities.Job.update(editingId, formData);
+        await base44.entities.Job.update(editingId, cleanData);
       } else {
-        await base44.entities.Job.create(formData);
+        await base44.entities.Job.create(cleanData);
       }
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       setFormData(emptyForm);
@@ -85,6 +89,7 @@ export default function JobManager() {
       setEditingId(null);
     } catch (error) {
       console.error('Error saving job:', error);
+      alert('Could not save the job: ' + (error?.message || 'Please check all required fields.'));
     }
   };
 
