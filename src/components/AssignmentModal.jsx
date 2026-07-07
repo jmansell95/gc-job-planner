@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2, Clock } from 'lucide-react';
+import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2, Clock, MapPin, Calendar, User, Phone, Briefcase, FileText } from 'lucide-react';
 import { isStaffOutsideJobTeams, getJobTeamIds } from '@/utils/jobTeams';
 import { isWeekend, buildRateMap } from '@/utils/overtime';
 
@@ -34,13 +34,14 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
         });
       } else {
         const weekend = isWeekend(defaultDate);
+        const defaults = getStaffDefaultTimes(defaultStaffId);
         setFormData({
           job_id: '',
           staff_id: defaultStaffId || '',
           assigned_date: defaultDate || '',
           vehicle_id: '',
-          start_time: '',
-          end_time: '',
+          start_time: defaults.start_time,
+          end_time: defaults.end_time,
           notes: '',
           is_overtime: weekend,
           rate_multiplier: weekend ? String(rateMap[new Date(defaultDate + 'T00:00:00').getDay()] ?? 1.5) : ''
@@ -70,8 +71,18 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
     return warnings;
   };
 
+  const getStaffDefaultTimes = (staffId) => {
+    const member = staff.find(s => s.id === staffId);
+    const team = teams.find(t => t.id === member?.team_id);
+    if (team?.job_type === 'depot' || /depot/i.test(team?.name || '')) {
+      return { start_time: '07:00', end_time: '16:00' };
+    }
+    return { start_time: '08:00', end_time: '17:00' };
+  };
+
   const handleStaffChange = (staffId) => {
-    setFormData(prev => ({ ...prev, staff_id: staffId }));
+    const defaults = isEditing ? {} : getStaffDefaultTimes(staffId);
+    setFormData(prev => ({ ...prev, staff_id: staffId, ...defaults }));
     if (staffId && formData.assigned_date) {
       setConflictWarnings(checkConflicts(staffId, formData.assigned_date, formData.vehicle_id));
     } else setConflictWarnings([]);
@@ -200,6 +211,49 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 <p className="text-[11px] text-slate-400 mt-1">Required teams: {requiredTeamNames.join(', ')}</p>
               )}
             </div>
+            {selectedJob && (
+              <div className="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-2.5">
+                <div className="flex items-center gap-2 pb-1 border-b border-slate-200">
+                  <Briefcase className="w-4 h-4 text-emerald-700" />
+                  <p className="text-sm font-bold text-slate-900 truncate">{selectedJob.name}</p>
+                  {selectedJob.job_reference && (
+                    <span className="ml-auto text-[11px] font-mono text-slate-400 bg-white border border-slate-200 rounded px-1.5 py-0.5">{selectedJob.job_reference}</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {selectedJob.location && (
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                      <span className="truncate">{selectedJob.location}</span>
+                    </div>
+                  )}
+                  {selectedJob.start_date && (
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                      <span className="truncate">{selectedJob.start_date} → {selectedJob.end_date || 'TBC'}</span>
+                    </div>
+                  )}
+                  {selectedJob.project_manager && (
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <User className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                      <span className="truncate">PM: {selectedJob.project_manager}</span>
+                    </div>
+                  )}
+                  {selectedJob.site_contact_phone && (
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      <Phone className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                      <span className="truncate">{selectedJob.site_contact_name ? `${selectedJob.site_contact_name} · ` : ''}{selectedJob.site_contact_phone}</span>
+                    </div>
+                  )}
+                </div>
+                {selectedJob.notes && (
+                  <div className="flex items-start gap-1.5 text-xs text-slate-500 pt-1 border-t border-slate-200">
+                    <FileText className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
+                    <p className="line-clamp-2">{selectedJob.notes}</p>
+                  </div>
+                )}
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Staff Member *</label>
               <select value={formData.staff_id} onChange={(e) => handleStaffChange(e.target.value)} required
@@ -233,8 +287,14 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Date *</label>
-              <input type="date" value={formData.assigned_date} onChange={(e) => handleDateChange(e.target.value)} required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+              {defaultDate ? (
+                <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium">
+                  {(() => { try { return new Date(formData.assigned_date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }); } catch { return formData.assigned_date; } })()}
+                </div>
+              ) : (
+                <input type="date" value={formData.assigned_date} onChange={(e) => handleDateChange(e.target.value)} required
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Vehicle</label>
@@ -244,16 +304,18 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} — {v.name}</option>)}
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Start Time</label>
-                <input type="time" value={formData.start_time} onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+            <div className="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-emerald-700" />
+                <div>
+                  <p className="text-xs font-semibold text-slate-800">Shift Hours (auto from team)</p>
+                  <p className="text-[11px] text-slate-400">{selectedStaff ? (teams.find(t => t.id === selectedStaff.team_id)?.name || 'No team') : 'Select staff to apply team hours'}</p>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">End Time</label>
-                <input type="time" value={formData.end_time} onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-md">{formData.start_time || '—'}</span>
+                <span className="text-slate-300">→</span>
+                <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-md">{formData.end_time || '—'}</span>
               </div>
             </div>
             {/* Overtime */}
