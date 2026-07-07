@@ -1,5 +1,8 @@
 import React from 'react';
-import { Briefcase, CalendarDays, Users, PoundSterling, StickyNote, FileText, Upload, Eye, Download, RefreshCw, X, Ruler } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Briefcase, CalendarDays, Users, PoundSterling, StickyNote, FileText, Upload, Eye, Download, RefreshCw, X, Ruler, UsersRound } from 'lucide-react';
+import { isDrillingJobType } from '@/utils/jobTeams';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
@@ -29,6 +32,17 @@ function Field({ label, children, full, hint }) {
 export default function JobForm({ formData, setFormData, onSubmit, onCancel, editingId, clients, contractors, onFileUpload, uploadingFile }) {
   const num = (key) => formData[key] === undefined || formData[key] === null ? '' : formData[key];
   const setNum = (key, v) => setFormData({ ...formData, [key]: v === '' ? '' : parseFloat(v) });
+  const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
+
+  const selectedTeamIds = Array.isArray(formData.required_team_ids) ? formData.required_team_ids : [];
+  const selectedTeams = selectedTeamIds.map(id => teams.find(t => t.id === id)).filter(Boolean);
+  const showMeterage = isDrillingJobType(formData.job_type) || selectedTeams.some(t => isDrillingJobType(t.job_type));
+
+  const toggleTeam = (teamId) => {
+    const current = selectedTeamIds;
+    const next = current.includes(teamId) ? current.filter(id => id !== teamId) : [...current, teamId];
+    setFormData({ ...formData, required_team_ids: next });
+  };
 
   return (
     <form onSubmit={onSubmit} className="bg-white rounded-xl border border-emerald-200 shadow-sm p-5 md:p-6 mb-6 space-y-6">
@@ -48,14 +62,26 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
         <Field label="Location" full>
           <input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} required className={inputCls} />
         </Field>
-        <Field label="Job Type">
-          <select value={formData.job_type} onChange={(e) => setFormData({ ...formData, job_type: e.target.value })} className={inputCls}>
-            <option value="groundworks">Groundworks</option>
-            <option value="cp_drilling">CP Drilling</option>
-            <option value="rotary_drilling">Rotary Drilling</option>
-            <option value="enabling_works">Enabling Works</option>
-            <option value="depot">Depot</option>
-          </select>
+        <Field label="Required Teams" hint="Staff from these teams can be assigned" full>
+          {teams.length === 0 ? (
+            <p className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">No teams set up yet. Add teams in Settings first.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {teams.map(t => {
+                const selected = selectedTeamIds.includes(t.id);
+                return (
+                  <button type="button" key={t.id} onClick={() => toggleTeam(t.id)}
+                    className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition font-medium ${selected ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700'}`}>
+                    <UsersRound className="w-3 h-3" />
+                    {t.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {selectedTeamIds.length === 0 && teams.length > 0 && (
+            <p className="text-[11px] text-amber-600 mt-1.5">Select at least one team — staff outside these teams can still be assigned but managers will see a warning.</p>
+          )}
         </Field>
         <Field label="Status">
           <select value={formData.status || 'planning'} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className={inputCls}>
@@ -110,7 +136,7 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
         <Field label="Actual Cost (GBP)" hint="Manual override">
           <input type="number" min="0" step="0.01" value={num('actual_cost')} onChange={(e) => setNum('actual_cost', e.target.value)} placeholder="Leave blank to auto-calculate" className={inputCls} />
         </Field>
-        {(formData.job_type === 'cp_drilling' || formData.job_type === 'rotary_drilling') && (
+        {showMeterage && (
           <Field label="Total Meterage (m)" hint="Overrides shift meterage for costing">
             <div className="relative">
               <Ruler className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500" />

@@ -23,7 +23,14 @@
         "enabling_works",
         "depot"
       ],
-      "description": "Type of job"
+      "description": "Legacy job type \u2014 no longer used for assignment restrictions. Kept for backward-compatible display on jobs created before the team-centric migration."
+    },
+    "required_team_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Teams required for this job. Staff outside these teams can still be assigned but managers see a soft warning. Derived from the legacy job_type during migration."
     },
     "status": {
       "type": "string",
@@ -167,7 +174,6 @@
   "required": [
     "name",
     "location",
-    "job_type",
     "start_date",
     "end_date"
   ]

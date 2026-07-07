@@ -18,6 +18,7 @@ import JobCommentsViewer from '@/components/JobCommentsViewer';
 import JobWorkLog from '@/components/JobWorkLog';
 import JobPhotoGallery from '@/components/JobPhotoGallery';
 import { formatJobType } from '@/utils/format';
+import { getJobPrimaryType, isDrillingJob as isDrillingJobByTeams } from '@/utils/jobTeams';
 import { computeStaffOvertime, buildRateMap } from '@/utils/overtime';
 
 const jobTypeColors = {
@@ -56,9 +57,12 @@ const statusLabels = {
 
 export default function JobDetail({ job: initialJob, onBack }) {
   const [job, setJob] = useState(initialJob);
-  const colors = jobTypeColors[job.job_type] || jobTypeColors.depot;
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+
+  const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
+  const primaryType = getJobPrimaryType(job, teams);
+  const colors = jobTypeColors[primaryType] || jobTypeColors.depot;
   const [formData, setFormData] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -122,7 +126,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
     </style></head><body>
     <h1>${job.name}</h1>
     <div class="meta">
-      ${job.job_type.replace(/_/g,' ')} &nbsp;·&nbsp; ${job.location} &nbsp;·&nbsp; ${job.start_date} → ${job.end_date || 'TBC'}
+      ${(primaryType || '').replace(/_/g,' ')} &nbsp;·&nbsp; ${job.location} &nbsp;·&nbsp; ${job.start_date} → ${job.end_date || 'TBC'}
       &nbsp;·&nbsp; Printed ${format(new Date(), 'dd MMM yyyy HH:mm')}
     </div>
     ${assignedStaff.length > 0 ? `<h2>Assigned Staff (${assignedStaff.length})</h2>
@@ -192,7 +196,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
 
   // Job cost estimation — meterage-based for drilling jobs, day-rate for others,
   // with task-based timesheet labour overriding day-rate cost where tasks are logged.
-  const isDrillingJob = job.job_type === 'cp_drilling' || job.job_type === 'rotary_drilling';
+  const isDrillingJob = isDrillingJobByTeams(job, teams);
   const jobMeterage = isDrillingJob && job.meterage != null && job.meterage !== '' ? Number(job.meterage) : 0;
   const useJobMeterage = jobMeterage > 0;
   const validTimesheets = (timesheets || []).filter(t => t.status === 'submitted' || t.status === 'approved');
@@ -276,7 +280,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
                 <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
-                {formatJobType(job.job_type)}
+                {formatJobType(primaryType)}
               </span>
               <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']}`}>
                 {statusLabels[job.status || 'planning']}
@@ -320,7 +324,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
               <p className="text-[11px] text-slate-400 uppercase font-medium">Type</p>
               <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`}></span>
-                {formatJobType(job.job_type)}
+                {formatJobType(primaryType)}
               </span>
             </div>
             <div>

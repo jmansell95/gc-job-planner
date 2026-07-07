@@ -1,7 +1,10 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { motion } from 'framer-motion';
 import { Users, MapPin, Truck, Clock, ClipboardCheck, ChevronRight, PlayCircle, CheckCircle2, Calendar } from 'lucide-react';
 import { formatJobType } from '@/utils/format';
+import { getJobPrimaryType } from '@/utils/jobTeams';
 
 const jobTypeBadge = {
   groundworks: 'bg-green-100 text-green-700 ring-1 ring-green-200',
@@ -34,6 +37,7 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
     _seen[k] = true;
     return true;
   });
+  const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.35 }}
       className="card-modern rounded-2xl overflow-hidden lg:col-span-2">
@@ -69,7 +73,8 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
             const vehicle = vehicles.find(v => v.id === r.vehicle_id);
             const status = statusConfig[r.status || 'assigned'] || statusConfig.assigned;
             const StatusIcon = status.icon;
-            const typeBadge = jobTypeBadge[job?.job_type] || 'bg-slate-100 text-slate-600 ring-1 ring-slate-200';
+            const primaryType = getJobPrimaryType(job, teams);
+            const typeBadge = jobTypeBadge[primaryType] || 'bg-slate-100 text-slate-600 ring-1 ring-slate-200';
 
             return (
               <button key={r.id} onClick={() => job && onSelectJob(job)}
@@ -81,10 +86,10 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-slate-900 truncate">{member?.name || 'Unknown'}</p>
-                    {job?.job_type && (
+                    {primaryType && (
                       <span className={`inline-flex items-center gap-1 mt-0.5 text-[11px] font-medium px-2 py-0.5 rounded-full ${typeBadge}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${jobTypeDot[job.job_type]}`} />
-                        {formatJobType(job.job_type)}
+                        <span className={`w-1.5 h-1.5 rounded-full ${jobTypeDot[primaryType]}`} />
+                        {formatJobType(primaryType)}
                       </span>
                     )}
                   </div>

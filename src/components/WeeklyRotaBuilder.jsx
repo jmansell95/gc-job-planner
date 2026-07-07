@@ -11,6 +11,7 @@ import PageHeader from '@/components/PageHeader';
 import AssignmentModal from '@/components/AssignmentModal';
 import { EmptyState, ErrorState, RotaSkeleton, Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatJobType } from '@/utils/format';
+import { getJobPrimaryType } from '@/utils/jobTeams';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const jobTypeColors = {
@@ -221,7 +222,7 @@ export default function WeeklyRotaBuilder() {
     const job = jobs.find(j => j.id === assignment.job_id);
     const vehicle = vehicles.find(v => v.id === assignment.vehicle_id);
     const client = clients.find(c => c.id === job?.client_id);
-    const colors = jobTypeColors[job?.job_type] || jobTypeColors.depot;
+    const colors = jobTypeColors[getJobPrimaryType(job, teams)] || jobTypeColors.depot;
     const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
     const StatusIcon = status.icon;
     return (
@@ -522,7 +523,7 @@ export default function WeeklyRotaBuilder() {
                     const job = jobs.find(j => j.id === assignment.job_id);
                     const vehicle = vehicles.find(v => v.id === assignment.vehicle_id);
                     const client = clients.find(c => c.id === job?.client_id);
-                    const colors = jobTypeColors[job?.job_type] || jobTypeColors.depot;
+                    const colors = jobTypeColors[getJobPrimaryType(job, teams)] || jobTypeColors.depot;
                     const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
                     const StatusIcon = status.icon;
                     return (
@@ -543,7 +544,7 @@ export default function WeeklyRotaBuilder() {
                           </button>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
-                          {job && <span className={`px-2 py-0.5 rounded-full font-medium ${colors.badge}`}>{formatJobType(job.job_type)}</span>}
+                          {job && <span className={`px-2 py-0.5 rounded-full font-medium ${colors.badge}`}>{formatJobType(getJobPrimaryType(job, teams))}</span>}
                           {vehicle && <span className="flex items-center gap-0.5 text-slate-500"><Truck className="w-3 h-3" />{vehicle.registration_number}</span>}
                           {job?.location && <span className="flex items-center gap-0.5 text-slate-500"><MapPin className="w-3 h-3" />{job.location}</span>}
                           <span className={`inline-flex items-center gap-0.5 ${status.text}`}><StatusIcon className="w-3 h-3" />{status.label}</span>

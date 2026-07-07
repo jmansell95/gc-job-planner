@@ -5,6 +5,7 @@ import { Calendar, ChevronLeft, ChevronRight, MapPin, Users as UsersIcon, Clock 
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, addMonths, parseISO } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
 import { formatJobType } from '@/utils/format';
+import { getJobPrimaryType } from '@/utils/jobTeams';
 
 const jobTypeColors = {
   groundworks: { dot: 'bg-green-500', bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
@@ -27,6 +28,7 @@ export default function CalendarView() {
   const { data: assignments = [] } = useQuery({ queryKey: ['calendar-assignments'], queryFn: () => base44.entities.RotaAssignment.list() });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
+  const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
 
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
@@ -101,7 +103,7 @@ export default function CalendarView() {
                     <div className="space-y-0.5">
                       {dayAssignments.slice(0, 3).map(a => {
                         const job = jobs.find(j => j.id === a.job_id);
-                        const colors = jobTypeColors[job?.job_type] || jobTypeColors.depot;
+                        const colors = jobTypeColors[getJobPrimaryType(job, teams)] || jobTypeColors.depot;
                         return (
                           <div key={a.id} className={`text-[10px] px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} truncate font-medium`}>
                             {job?.name?.substring(0, 12) || '—'}

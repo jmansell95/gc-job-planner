@@ -1,15 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, AlertTriangle, Trash2, RotateCcw, Loader2 } from 'lucide-react';
-
-const JOB_TYPE_LABELS = {
-  groundworks: 'Groundworks',
-  cp_drilling: 'CP Drilling',
-  rotary_drilling: 'Rotary Drilling',
-  enabling_works: 'Enabling Works',
-  depot: 'Depot'
-};
+import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2 } from 'lucide-react';
+import { isStaffOutsideJobTeams, getJobTeamIds } from '@/utils/jobTeams';
 
 export default function AssignmentModal({ isOpen, onClose, assignment, defaultStaffId, defaultDate, weekStartStr, staff, jobs, vehicles, existingRotas }) {
   const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '', notes: '' });
@@ -19,11 +12,6 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
   const { data: recurring = [] } = useQuery({ queryKey: ['recurring-absences'], queryFn: () => base44.entities.RecurringAbsence.list() });
-
-  const teamJobType = (staffMember) => {
-    if (!staffMember?.team_id) return null;
-    return teams.find(t => t.id === staffMember.team_id)?.job_type || null;
-  };
 
   const isEditing = !!assignment;
 
@@ -75,37 +63,21 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   };
 
   const handleStaffChange = (staffId) => {
-    const s = staff.find(x => x.id === staffId);
-    setFormData(prev => {
-      const currentJob = jobs.find(j => j.id === prev.job_id);
-      const staffJobType = teamJobType(s);
-      const jobOk = currentJob && (!staffJobType || currentJob.job_type === staffJobType);
-      return { ...prev, staff_id: staffId, job_id: jobOk ? prev.job_id : '' };
-    });
+    setFormData(prev => ({ ...prev, staff_id: staffId }));
     if (staffId && formData.assigned_date) {
       setConflictWarnings(checkConflicts(staffId, formData.assigned_date, formData.vehicle_id));
     } else setConflictWarnings([]);
   };
 
   const handleJobChange = (jobId) => {
-    const job = jobs.find(j => j.id === jobId);
-    setFormData(prev => {
-      const currentStaff = staff.find(s => s.id === prev.staff_id);
-      const staffJobType = teamJobType(currentStaff);
-      const staffOk = currentStaff && (!staffJobType || (job && job.job_type === staffJobType));
-      return { ...prev, job_id: jobId, staff_id: staffOk ? prev.staff_id : '' };
-    });
+    setFormData(prev => ({ ...prev, job_id: jobId }));
   };
 
   const selectedJob = jobs.find(j => j.id === formData.job_id);
   const selectedStaff = staff.find(s => s.id === formData.staff_id);
-  const selectedStaffJobType = teamJobType(selectedStaff);
-  const eligibleStaff = selectedJob
-    ? staff.filter(s => { const tj = teamJobType(s); return !tj || tj === selectedJob.job_type || s.id === formData.staff_id; })
-    : staff;
-  const eligibleJobs = selectedStaff && selectedStaffJobType
-    ? jobs.filter(j => j.job_type === selectedStaffJobType || j.id === formData.job_id)
-    : jobs;
+  const teamMismatch = isStaffOutsideJobTeams(selectedStaff, selectedJob, teams);
+  const requiredTeamNames = selectedJob ? getJobTeamIds(selectedJob).map(id => teams.find(t => t.id === id)?.name).filter(Boolean) : [];
+  const selectedStaffTeamName = selectedStaff ? (teams.find(t => t.id === selectedStaff.team_id)?.name || 'No team') : '';
 
   const handleDateChange = (date) => {
     setFormData(prev => ({ ...prev, assigned_date: date }));
@@ -119,6 +91,9 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (teamMismatch) {
+      if (!confirm(`This staff member (${selectedStaffTeamName}) is not in the required teams for this job (${requiredTeamNames.join(', ')}).\n\nAssign anyway?`)) return;
+    }
     if (conflictWarnings.length > 0) {
       if (!confirm('There are scheduling conflicts:\n\n' + conflictWarnings.map(w => '• ' + w).join('\n') + '\n\nAdd anyway?')) return;
     }
@@ -183,10 +158,10 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
               <select value={formData.job_id} onChange={(e) => handleJobChange(e.target.value)} required
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
                 <option value="">Select Job</option>
-                {eligibleJobs.map(job => <option key={job.id} value={job.id}>{job.name}</option>)}
+                {jobs.map(job => <option key={job.id} value={job.id}>{job.name}</option>)}
               </select>
-              {selectedStaff && selectedStaffJobType && (
-                <p className="text-[11px] text-slate-400 mt-1">Only {JOB_TYPE_LABELS[selectedStaffJobType]} jobs are shown for this staff member's team.</p>
+              {selectedJob && requiredTeamNames.length > 0 && (
+                <p className="text-[11px] text-slate-400 mt-1">Required teams: {requiredTeamNames.join(', ')}</p>
               )}
             </div>
             <div>
@@ -194,15 +169,19 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
               <select value={formData.staff_id} onChange={(e) => handleStaffChange(e.target.value)} required
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
                 <option value="">Select Staff</option>
-                {eligibleStaff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                {staff.map(s => {
+                  const teamName = teams.find(t => t.id === s.team_id)?.name || 'No team';
+                  const aligned = selectedJob ? !isStaffOutsideJobTeams(s, selectedJob, teams) : false;
+                  return <option key={s.id} value={s.id}>{s.name} — {teamName}{selectedJob && aligned ? ' ✓' : ''}</option>;
+                })}
               </select>
               {selectedJob && (
-                <p className="text-[11px] text-slate-400 mt-1">Only staff in teams handling {JOB_TYPE_LABELS[selectedJob.job_type]} jobs can be assigned.</p>
+                <p className="text-[11px] text-slate-400 mt-1">All staff are listed. Those in the required teams are marked ✓.</p>
               )}
-              {formData.assigned_date && eligibleStaff.length > 0 && (() => {
+              {formData.assigned_date && staff.length > 0 && (() => {
                 const date = formData.assigned_date;
                 const dow = new Date(date + 'T00:00:00').getDay();
-                const free = eligibleStaff.filter(s => {
+                const free = staff.filter(s => {
                   if (existingRotas.some(r => r.staff_id === s.id && r.assigned_date === date && r.id !== assignment?.id)) return false;
                   if (recurring.some(r => r.staff_id === s.id && r.is_active !== false && Array.isArray(r.days_of_week) && r.days_of_week.includes(dow))) return false;
                   if (absences.some(a => a.staff_id === s.id && a.status === 'approved' && a.start_date <= date && a.end_date >= date)) return false;
@@ -211,7 +190,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 return (
                   <p className="text-[11px] mt-1">
                     <span className="text-emerald-700 font-medium">{free.length} available</span>
-                    <span className="text-slate-400"> · {eligibleStaff.length - free.length} busy/off</span>
+                    <span className="text-slate-400"> · {staff.length - free.length} busy/off</span>
                   </p>
                 );
               })()}
@@ -248,6 +227,21 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm resize-none" />
             </div>
           </div>
+          {teamMismatch && (
+            <div className="mt-3 flex items-start gap-2 text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Team alignment warning</p>
+                <p className="text-xs text-orange-600 mt-0.5">{selectedStaff?.name} ({selectedStaffTeamName}) is not in the required teams for this job ({requiredTeamNames.join(', ')}). You can still assign them.</p>
+              </div>
+            </div>
+          )}
+          {selectedJob && selectedStaff && !teamMismatch && requiredTeamNames.length > 0 && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>{selectedStaff.name} is in a required team for this job.</span>
+            </div>
+          )}
           {conflictWarnings.length > 0 && (
             <div className="mt-3 space-y-1.5">
               {conflictWarnings.map((w, i) => (
