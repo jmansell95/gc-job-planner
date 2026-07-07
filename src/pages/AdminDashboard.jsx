@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AdminNav from '@/components/AdminNav';
 import DashboardOverview from '@/components/DashboardOverview';
@@ -15,6 +15,18 @@ import ComplianceManager from '@/components/ComplianceManager';
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
   const [selectedJob, setSelectedJob] = useState(null);
+  const [settingsTab, setSettingsTab] = useState('staff');
+
+  useEffect(() => {
+    const handler = (e) => {
+      const { section, job, settingsTab: tab } = e.detail || {};
+      if (job) setSelectedJob(job);
+      if (tab) setSettingsTab(tab);
+      if (section) setActiveSection(section);
+    };
+    window.addEventListener('app-navigate', handler);
+    return () => window.removeEventListener('app-navigate', handler);
+  }, []);
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-100">
@@ -43,7 +55,7 @@ export default function AdminDashboard() {
             {activeSection === 'teams' && <TeamManager />}
             {activeSection === 'compliance' && <ComplianceManager />}
             {activeSection === 'insights' && <WeeklyInsightsPage />}
-            {activeSection === 'settings' && <SettingsPage />}
+            {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} />}
           </motion.div>
         </div>
       </main>

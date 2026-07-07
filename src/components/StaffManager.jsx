@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import PrintReportButton from '@/components/PrintReportButton';
+import { CardGridSkeleton } from '@/components/StateViews';
 import StaffShiftEditor from '@/components/StaffShiftEditor';
 import { formatWorkerType } from '@/utils/format';
 
@@ -39,8 +40,8 @@ export default function StaffManager() {
     return cleaned;
   };
 
-  const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
-  const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
+  const { data: staff = [], isLoading: staffLoading } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
+  const { data: teams = [], isLoading: teamsLoading } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: users = [] } = useQuery({ queryKey: ['users-list'], queryFn: () => base44.entities.User.list() });
 
@@ -271,7 +272,9 @@ export default function StaffManager() {
         </form>
       )}
 
-      {staff.length === 0 ? (
+      {staffLoading || teamsLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : staff.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">No staff yet. Add your first staff member above.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Users, ChevronDown, ChevronRight, GitBranch, UserCircle2, UserMinus } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import { Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatWorkerType } from '@/utils/format';
 
 const workerBadge = {
@@ -30,9 +31,10 @@ export default function TeamManager() {
 
   const queryClient = useQueryClient();
 
-  const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
-  const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
+  const { data: teams = [], isLoading: teamsLoading } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
+  const { data: staff = [], isLoading: staffLoading } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: users = [] } = useQuery({ queryKey: ['users-list'], queryFn: () => base44.entities.User.list() });
+  const isLoading = teamsLoading || staffLoading;
 
   const getUserForStaff = (m) => users.find(u => u.email?.toLowerCase() === m.email?.toLowerCase());
   const statusOf = (m) => {
@@ -266,7 +268,16 @@ export default function TeamManager() {
         </form>
       )}
 
-      {teams.length === 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-slate-200 p-6">
+              <Skeleton className="h-5 w-1/3 mb-3" />
+              <SkeletonText lines={3} />
+            </div>
+          ))}
+        </div>
+      ) : teams.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">
           No teams yet — add your first team group above, then assign staff to it from the Staff tab.
         </div>

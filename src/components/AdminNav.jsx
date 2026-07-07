@@ -5,6 +5,7 @@ import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useStaffAssistant } from '@/components/StaffAssistantChat';
 import MobileNavDrawer from '@/components/MobileNavDrawer';
+import GlobalSearch from '@/components/GlobalSearch';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
   const [notifOpen, setNotifOpen] = useState(false);
@@ -49,7 +50,8 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           </div>
         </div>
       </div>
-      <div className="px-4 pb-3">
+      <div className="px-4 pb-3 space-y-2">
+        <GlobalSearch />
         <button onClick={openChat} type="button"
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-sm font-medium hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-sm">
           <Sparkles className="w-4 h-4" />

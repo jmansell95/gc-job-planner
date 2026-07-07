@@ -28,6 +28,9 @@ Deno.serve(async (req) => {
     // Fetch all draft entries for this staff+date
     const drafts = await base44.asServiceRole.entities.Timesheet.filter({ staff_id, date, status: 'draft' });
 
+    // Fetch rota assignments for this staff+date to inherit overtime status & rate
+    const assignments = await base44.asServiceRole.entities.RotaAssignment.filter({ staff_id, assigned_date: date });
+
     if (drafts.length === 0) {
       return Response.json({ success: true, summaries: [], message: 'No drafts to submit' });
     }
@@ -96,6 +99,15 @@ Deno.serve(async (req) => {
         if (travelFrom) {
           summaryData.travel_depart_site = travelFrom.start_time;
           summaryData.travel_arrive_home = travelFrom.end_time;
+        }
+      }
+
+      // Inherit overtime flag & rate from the matching rota assignment
+      const matchingAssignment = jid !== 'no_job' ? assignments.find(a => a.job_id === jid) : null;
+      if (matchingAssignment && matchingAssignment.is_overtime) {
+        summaryData.is_overtime = true;
+        if (matchingAssignment.rate_multiplier != null && matchingAssignment.rate_multiplier !== '') {
+          summaryData.rate_multiplier = Number(matchingAssignment.rate_multiplier);
         }
       }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Users, Truck, HardHat, Building2, CalendarX, Mail, PoundSterling, Package, Timer, Zap } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import PillTabs from '@/components/PillTabs';
@@ -39,8 +39,9 @@ const tabDescriptions = {
   automations: 'View and toggle background automations',
 };
 
-export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('staff');
+export default function SettingsPage({ initialTab }) {
+  const [activeTab, setActiveTab] = useState(initialTab || 'staff');
+  useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
   const active = tabs.find(t => t.id === activeTab);
 
   return (

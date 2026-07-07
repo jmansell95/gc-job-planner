@@ -58,6 +58,10 @@
       "default": false,
       "description": "True when the staff member explicitly logged this task as overtime. The whole entry is paid at the overtime rate for its day, regardless of the weekly threshold."
     },
+    "rate_multiplier": {
+      "type": "number",
+      "description": "Pay multiplier inherited from the rota assignment (e.g. 1.5 = time-and-a-half). Used when is_overtime is true; overrides the default day-of-week rate."
+    },
     "task_type": {
       "type": "string",
       "enum": [

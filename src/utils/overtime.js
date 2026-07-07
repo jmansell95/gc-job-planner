@@ -89,7 +89,7 @@ export function computeStaffOvertime(allStaffEntries, rateMap, thresholdHours, h
       const otMins = explicitOT ? mins : mins - regularMins;
       cumulative += mins;
       const day = new Date(t.date + 'T00:00:00').getDay();
-      const mult = rateMap[day] ?? 1.0;
+      const mult = explicitOT && t.rate_multiplier != null && t.rate_multiplier !== '' ? Number(t.rate_multiplier) : (rateMap[day] ?? 1.0);
       const regCost = (regularMins / 60) * hourlyRate;
       const otCost = (otMins / 60) * hourlyRate * mult;
       result[t.id] = { regularMins, otMins, multiplier: mult, cost: regCost + otCost, isOvertime: otMins > 0 };

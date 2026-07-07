@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Truck, Wrench } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
+import { TableSkeleton } from '@/components/StateViews';
 
 const emptyForm = {
   name: '', registration_number: '', assigned_staff_id: '', team_id: '',
@@ -32,7 +33,7 @@ export default function VehicleManager() {
   const [formData, setFormData] = useState(emptyForm);
 
   const queryClient = useQueryClient();
-  const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
+  const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
 
@@ -120,7 +121,11 @@ export default function VehicleManager() {
         </form>
       )}
 
-      {vehicles.length === 0 ? (
+      {vehiclesLoading ? (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <TableSkeleton rows={5} cols={5} />
+        </div>
+      ) : vehicles.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">No vehicles yet. Add your first vehicle above.</div>
       ) : (
         <>
