@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, Sparkles, MessageCircle, History, ChevronDown, ClipboardCheck } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, Sparkles, MessageCircle, History, ChevronDown, ClipboardCheck, CheckCircle2 } from 'lucide-react';
 import { format, isFuture, isPast } from 'date-fns';
 import DailyTaskLog from '@/components/DailyTaskLog';
 import StaffTimesheets from '@/components/StaffTimesheets';
@@ -373,6 +373,42 @@ export default function StaffDashboard() {
             ) : (
               <div className="bg-white rounded-2xl border border-slate-200">
                 <EmptyState icon={CalendarDays} title="No jobs scheduled" message="You have no assignments for today. Check back later or contact your supervisor." />
+              </div>
+            )}
+
+            {/* Upcoming assignments */}
+            {upcomingAssignments.length > 0 && (
+              <div>
+                <SectionHeader icon={Calendar} title="Upcoming" count={upcomingAssignments.length} />
+                <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-3">
+                  {upcomingAssignments.slice(0, 5).map(a => (
+                    <AssignmentCard key={a.id} {...cardProps(a)} />
+                  ))}
+                </motion.div>
+              </div>
+            )}
+
+            {/* Recently completed */}
+            {pastAssignments.some(a => a.status === 'completed') && (
+              <div>
+                <SectionHeader icon={History} title="Recently Completed" count={pastAssignments.filter(a => a.status === 'completed').length} tone="muted" />
+                <div className="space-y-2">
+                  {pastAssignments.filter(a => a.status === 'completed').slice(0, 4).map(a => {
+                    const job = jobs.find(j => j.id === a.job_id);
+                    return (
+                      <div key={a.id} className="bg-white rounded-xl border border-slate-200 px-4 py-3 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-slate-900 truncate">{job?.name || 'Unknown'}</p>
+                          <p className="text-xs text-slate-400">{format(new Date(a.assigned_date + 'T00:00:00'), 'EEE dd MMM')}</p>
+                        </div>
+                        {a.meterage > 0 && <span className="text-xs font-semibold text-amber-600">{a.meterage}m</span>}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

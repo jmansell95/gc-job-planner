@@ -126,6 +126,14 @@ export default function TimesheetManager() {
     await base44.entities.Timesheet.update(id, { status: 'submitted' });
     queryClient.invalidateQueries({ queryKey: ['timesheets'] });
   };
+  const handleBulkApprove = async () => {
+    const pending = timesheets.filter(t => t.status === 'submitted' && (staffFilter === 'all' || t.staff_id === staffFilter));
+    if (pending.length === 0) return;
+    if (!confirm(`Approve ${pending.length} submitted timesheet(s)?`)) return;
+    const updates = pending.map(t => ({ id: t.id, status: 'approved', approved_by_name: currentUser?.full_name || '' }));
+    await base44.entities.Timesheet.bulkUpdate(updates);
+    queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+  };
   const handleBulkDelete = async (status) => {
     const count = timesheets.filter(t => t.status === status && (staffFilter === 'all' || t.staff_id === staffFilter)).length;
     if (count === 0) return;
@@ -221,7 +229,14 @@ export default function TimesheetManager() {
       {/* Bulk actions */}
       {(scopedApproved > 0 || scopedSubmitted > 0) && (
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <span className="text-xs text-slate-400 font-medium mr-1">Bulk delete:</span>
+          {scopedSubmitted > 0 && (
+            <>
+              <span className="text-xs text-slate-400 font-medium mr-1">Bulk actions:</span>
+              <button onClick={handleBulkApprove} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Approve all submitted ({scopedSubmitted})
+              </button>
+            </>
+          )}
           {scopedApproved > 0 && (
             <button onClick={() => handleBulkDelete('approved')} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-red-200 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-50 transition">
               <Trash2 className="w-3.5 h-3.5" /> All approved ({scopedApproved})
@@ -229,7 +244,7 @@ export default function TimesheetManager() {
           )}
           {scopedSubmitted > 0 && (
             <button onClick={() => handleBulkDelete('submitted')} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-red-200 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-50 transition">
-              <Trash2 className="w-3.5 h-3.5" /> All submitted ({scopedSubmitted})
+              <Trash2 className="w-3.5 h-3.5" /> Delete submitted ({scopedSubmitted})
             </button>
           )}
           {staffFilter !== 'all' && <span className="text-[10px] text-slate-400">Scoped to selected staff</span>}

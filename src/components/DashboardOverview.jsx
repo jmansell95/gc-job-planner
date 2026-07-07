@@ -22,7 +22,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets'], queryFn: () => base44.entities.Timesheet.list('-created_date', 100) });
 
-  const weekStart = startOfWeek(new Date());
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const weekDays = Array.from({ length: 7 }, (_, i) => format(addDays(weekStart, i), 'yyyy-MM-dd'));
@@ -57,7 +57,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dashboard</h1>
-              <p className="text-slate-500 text-sm mt-0.5">Week of {format(weekStart, 'dd MMM yyyy')}</p>
+              <p className="text-slate-500 text-sm mt-0.5">{thisWeekRotas.length} shifts this week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
