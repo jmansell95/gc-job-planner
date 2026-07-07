@@ -35,6 +35,7 @@ export default function WeeklyRotaBuilder() {
   const [teamFilter, setTeamFilter] = useState('');
   const [staffSearch, setStaffSearch] = useState('');
   const [publishing, setPublishing] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [notice, setNotice] = useState(null);
   const [showWeekends, setShowWeekends] = useState(false);
 
@@ -170,11 +171,10 @@ export default function WeeklyRotaBuilder() {
   };
 
   const handleSaveDraft = async () => {
+    setSavingDraft(true);
     try {
       if (weekRecord) {
-        if (weekRecord.status !== 'published') {
-          await base44.entities.RotaWeek.update(weekRecord.id, { status: 'draft' });
-        }
+        await base44.entities.RotaWeek.update(weekRecord.id, { status: 'draft', superseded: false });
       } else {
         await base44.entities.RotaWeek.create({ week_start: weekStartStr, status: 'draft' });
         // Supersede all previously published weeks so staff can't see old schedules
@@ -188,6 +188,8 @@ export default function WeeklyRotaBuilder() {
       setNotice({ type: 'success', msg: 'Draft saved. Staff will see the new schedule once you submit it.' });
     } catch (e) {
       setNotice({ type: 'error', msg: e.message || 'Failed to save draft' });
+    } finally {
+      setSavingDraft(false);
     }
   };
 
@@ -309,9 +311,9 @@ export default function WeeklyRotaBuilder() {
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
             <Plus className="w-4 h-4" /> Add Assignment
           </button>
-          <button onClick={handleSaveDraft} disabled={isPublished}
+          <button onClick={handleSaveDraft} disabled={savingDraft}
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition text-sm font-medium">
-            <Save className="w-4 h-4" /> Save Draft
+            {savingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Draft
           </button>
           <button onClick={handleSubmitWeek} disabled={publishing}
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition text-sm font-medium disabled:opacity-50">
