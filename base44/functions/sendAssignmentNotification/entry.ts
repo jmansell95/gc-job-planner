@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+const DEFAULT_ASSIGNMENT_TEMPLATE = "Hi {staff_name},\n\nYou have been assigned to a new job:\n\nJob: {job_name}\nLocation: {location}\nDate: {date}\nType: {job_type}\n{notes}\n\nPlease review the details and check your app for the full schedule.\n\nGC Job Planner";
+
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function linkBlock(baseUrl, path, label) {
   if (!baseUrl) return '';
@@ -59,22 +61,19 @@ Deno.serve(async (req) => {
     if (!cfg || cfg.enabled === false) {
       return Response.json({ skipped: true, reason: 'Alert disabled' });
     }
-    // Only the configured template is sent — no default fallback.
-    if (!cfg.template) {
-      return Response.json({ skipped: true, reason: 'No template configured for assignment notification' });
-    }
+    const effectiveTemplate = (cfg && cfg.template) || DEFAULT_ASSIGNMENT_TEMPLATE;
 
     const dateObj = assignedDate ? new Date(assignedDate + 'T00:00:00') : new Date();
     const formattedDate = dateObj.toLocaleDateString('en-GB', {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
     const notesLine = job.notes ? 'Notes: ' + job.notes : '';
-    const text = cfg.template
+    const text = effectiveTemplate
       .replace(/\{staff_name\}/g, staff.name)
       .replace(/\{job_name\}/g, job.name)
       .replace(/\{location\}/g, job.location)
       .replace(/\{date\}/g, formattedDate)
-      .replace(/\{job_type\}/g, job.job_type.replace(/_/g, ' '))
+      .replace(/\{job_type\}/g, (job.job_type || 'general').replace(/_/g, ' '))
       .replace(/\{notes\}/g, notesLine);
     const subject = (cfg && cfg.subject)
       ? cfg.subject.replace(/\{job_name\}/g, job.name).replace(/\{staff_name\}/g, staff.name)
