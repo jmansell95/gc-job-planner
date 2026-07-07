@@ -36,18 +36,17 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           actual_start_date: assignment.actual_start_date || ''
         });
       } else {
-        const weekend = isWeekend(defaultDate);
         const defaults = getStaffDefaultTimes(defaultStaffId);
         setFormData({
           job_id: '',
           staff_id: defaultStaffId || '',
-          assigned_date: defaultDate || '',
+          assigned_date: '',
           vehicle_id: '',
           start_time: defaults.start_time,
           end_time: defaults.end_time,
           notes: '',
-          is_overtime: weekend,
-          rate_multiplier: weekend ? String(rateMap[new Date(defaultDate + 'T00:00:00').getDay()] ?? 1.5) : '',
+          is_overtime: false,
+          rate_multiplier: '',
           start_delayed: false,
           actual_start_date: ''
         });
@@ -95,19 +94,26 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
 
   const handleJobChange = (jobId) => {
     const job = jobs.find(j => j.id === jobId);
+    const plannedStart = job?.start_date || '';
     setFormData(prev => {
-      const next = { ...prev, job_id: jobId };
-      if (job?.start_date && prev.assigned_date) {
-        if (prev.assigned_date > job.start_date) {
-          next.start_delayed = true;
-          next.actual_start_date = prev.actual_start_date || prev.assigned_date;
-        } else {
-          next.start_delayed = false;
-          next.actual_start_date = '';
+      const next = { ...prev, job_id: jobId, assigned_date: plannedStart, start_delayed: false, actual_start_date: '' };
+      if (plannedStart) {
+        const weekend = isWeekend(plannedStart);
+        if (weekend && !prev.is_overtime && prev.rate_multiplier === '') {
+          next.is_overtime = true;
+          next.rate_multiplier = String(rateMap[new Date(plannedStart + 'T00:00:00').getDay()] ?? 1.5);
+        }
+        if (!weekend && prev.is_overtime && prev.rate_multiplier === '') {
+          next.is_overtime = false;
         }
       }
       return next;
     });
+    if (plannedStart && formData.staff_id) {
+      setConflictWarnings(checkConflicts(formData.staff_id, plannedStart, formData.vehicle_id));
+    } else {
+      setConflictWarnings([]);
+    }
   };
 
   const selectedJob = jobs.find(j => j.id === formData.job_id);
@@ -157,6 +163,10 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
     }
     if (conflictWarnings.length > 0) {
       if (!confirm('There are scheduling conflicts:\n\n' + conflictWarnings.map(w => '• ' + w).join('\n') + '\n\nAdd anyway?')) return;
+    }
+    if (!formData.assigned_date) {
+      alert('Please select a job — the assignment date is taken from the job\'s planned start.');
+      return;
     }
     try {
       const payload = {
@@ -286,7 +296,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                   Planned start: <span className="font-semibold text-slate-700">{format(new Date(selectedJob.start_date + 'T00:00:00'), 'dd MMM yyyy')}</span>. Is the job starting on time?
                 </p>
                 <div className="flex gap-2 mb-2">
-                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, start_delayed: false, actual_start_date: '' }))}
+                  <button type="button" onClick={() => { setFormData(prev => ({ ...prev, start_delayed: false, actual_start_date: '', assigned_date: selectedJob.start_date })); if (formData.staff_id) setConflictWarnings(checkConflicts(formData.staff_id, selectedJob.start_date, formData.vehicle_id)); }}
                     className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium border transition ${!formData.start_delayed ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
                     <CheckCircle2 className="w-3.5 h-3.5" /> On time
                   </button>
@@ -298,7 +308,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 {formData.start_delayed && (
                   <div>
                     <label className="block text-xs font-medium text-slate-600 mb-1">Actual start date</label>
-                    <input type="date" value={formData.actual_start_date} onChange={(e) => setFormData(prev => ({ ...prev, actual_start_date: e.target.value }))}
+                    <input type="date" value={formData.actual_start_date} onChange={(e) => { const v = e.target.value; setFormData(prev => ({ ...prev, actual_start_date: v, assigned_date: v })); if (formData.staff_id) setConflictWarnings(checkConflicts(formData.staff_id, v, formData.vehicle_id)); else setConflictWarnings([]); }}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 text-sm" />
                     {formData.actual_start_date && selectedJob.start_date && formData.actual_start_date > selectedJob.start_date && (
                       <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
@@ -342,15 +352,12 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
               })()}
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Date *</label>
-              {defaultDate ? (
-                <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium">
-                  {(() => { try { return new Date(formData.assigned_date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }); } catch { return formData.assigned_date; } })()}
-                </div>
-              ) : (
-                <input type="date" value={formData.assigned_date} onChange={(e) => handleDateChange(e.target.value)} required
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
-              )}
+              <label className="block text-xs font-medium text-slate-600 mb-1">Assignment Date</label>
+              <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 font-medium flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                {formData.assigned_date ? format(new Date(formData.assigned_date + 'T00:00:00'), 'EEE dd MMM yyyy') : <span className="text-slate-400 italic">Select a job first</span>}
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">Auto from job planned start · override via "Delayed"</p>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Vehicle</label>
