@@ -164,6 +164,9 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
         rate_multiplier: formData.rate_multiplier === '' ? null : Number(formData.rate_multiplier),
         actual_start_date: formData.start_delayed ? (formData.actual_start_date || null) : null
       };
+      if (formData.start_delayed && formData.actual_start_date) {
+        payload.assigned_date = formData.actual_start_date;
+      }
       if (isEditing) {
         await base44.entities.RotaAssignment.update(assignment.id, payload);
       } else {
