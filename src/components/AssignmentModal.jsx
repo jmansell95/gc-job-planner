@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2, Clock, MapPin, Calendar, CalendarClock, User, Phone, Briefcase, FileText } from 'lucide-react';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, addDays } from 'date-fns';
 import { isStaffOutsideJobTeams, getJobTeamIds } from '@/utils/jobTeams';
 import { isWeekend, buildRateMap } from '@/utils/overtime';
 
@@ -16,6 +16,26 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   const { data: recurring = [] } = useQuery({ queryKey: ['recurring-absences'], queryFn: () => base44.entities.RecurringAbsence.list() });
   const { data: overtimeRates = [] } = useQuery({ queryKey: ['overtime-rates'], queryFn: () => base44.entities.OvertimeRate.list() });
   const rateMap = buildRateMap(overtimeRates);
+
+  const computeWeekStart = (dateStr) => {
+    const d = new Date(dateStr + 'T00:00:00');
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diff);
+    return format(monday, 'yyyy-MM-dd');
+  };
+
+  const buildDateRange = (startStr, endStr) => {
+    const days = [];
+    let d = new Date(startStr + 'T00:00:00');
+    const end = new Date(endStr + 'T00:00:00');
+    while (d <= end) {
+      days.push(format(d, 'yyyy-MM-dd'));
+      d = addDays(d, 1);
+    }
+    return days;
+  };
 
   const isEditing = !!assignment;
 
@@ -118,6 +138,8 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
 
   const selectedJob = jobs.find(j => j.id === formData.job_id);
   const selectedStaff = staff.find(s => s.id === formData.staff_id);
+  const effectiveStartDisplay = formData.start_delayed && formData.actual_start_date ? formData.actual_start_date : formData.assigned_date;
+  const multiDayDays = (!isEditing && selectedJob?.end_date && effectiveStartDisplay && selectedJob.end_date > effectiveStartDisplay) ? buildDateRange(effectiveStartDisplay, selectedJob.end_date) : [];
   const teamMismatch = isStaffOutsideJobTeams(selectedStaff, selectedJob, teams);
   const requiredTeamNames = selectedJob ? getJobTeamIds(selectedJob).map(id => teams.find(t => t.id === id)?.name).filter(Boolean) : [];
   const selectedStaffTeamName = selectedStaff ? (teams.find(t => t.id === selectedStaff.team_id)?.name || 'No team') : '';
@@ -169,20 +191,49 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
       return;
     }
     try {
-      const payload = {
-        ...formData,
-        rate_multiplier: formData.rate_multiplier === '' ? null : Number(formData.rate_multiplier),
-        actual_start_date: formData.start_delayed ? (formData.actual_start_date || null) : null
-      };
-      if (formData.start_delayed && formData.actual_start_date) {
-        payload.assigned_date = formData.actual_start_date;
-      }
+      const rateMultiplier = formData.rate_multiplier === '' ? null : Number(formData.rate_multiplier);
+      const effectiveStart = formData.start_delayed && formData.actual_start_date ? formData.actual_start_date : formData.assigned_date;
+      const isMultiDay = !isEditing && selectedJob?.end_date && selectedJob.end_date > effectiveStart;
       if (isEditing) {
+        const payload = {
+          ...formData,
+          rate_multiplier: rateMultiplier,
+          actual_start_date: formData.start_delayed ? (formData.actual_start_date || null) : null
+        };
+        if (formData.start_delayed && formData.actual_start_date) payload.assigned_date = formData.actual_start_date;
         await base44.entities.RotaAssignment.update(assignment.id, payload);
+      } else if (isMultiDay) {
+        const days = buildDateRange(effectiveStart, selectedJob.end_date);
+        const assignments = days.map((dateStr, idx) => ({
+          job_id: formData.job_id,
+          staff_id: formData.staff_id,
+          assigned_date: dateStr,
+          vehicle_id: formData.vehicle_id || '',
+          week_start: computeWeekStart(dateStr),
+          start_time: formData.start_time || '',
+          end_time: formData.end_time || '',
+          notes: formData.notes || '',
+          is_overtime: !!formData.is_overtime,
+          rate_multiplier: rateMultiplier,
+          start_delayed: idx === 0 ? !!formData.start_delayed : false,
+          actual_start_date: idx === 0 ? (formData.start_delayed ? (formData.actual_start_date || null) : null) : null,
+          status: 'assigned'
+        }));
+        await base44.entities.RotaAssignment.bulkCreate(assignments);
       } else {
         await base44.entities.RotaAssignment.create({
-          ...payload,
-          week_start: weekStartStr,
+          job_id: formData.job_id,
+          staff_id: formData.staff_id,
+          assigned_date: effectiveStart,
+          vehicle_id: formData.vehicle_id || '',
+          week_start: computeWeekStart(effectiveStart),
+          start_time: formData.start_time || '',
+          end_time: formData.end_time || '',
+          notes: formData.notes || '',
+          is_overtime: !!formData.is_overtime,
+          rate_multiplier: rateMultiplier,
+          start_delayed: !!formData.start_delayed,
+          actual_start_date: formData.start_delayed ? (formData.actual_start_date || null) : null,
           status: 'assigned'
         });
       }
@@ -359,6 +410,12 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
               </div>
               <p className="text-[11px] text-slate-400 mt-1">Auto from job planned start · override via "Delayed"</p>
             </div>
+            {multiDayDays.length > 0 && (
+              <div className="sm:col-span-2 flex items-start gap-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                <CalendarClock className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <span>Multi-day job — assignments will be created for each day from <strong>{format(new Date(effectiveStartDisplay + 'T00:00:00'), 'dd MMM')}</strong> to <strong>{format(new Date(selectedJob.end_date + 'T00:00:00'), 'dd MMM yyyy')}</strong> ({multiDayDays.length} days).</span>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Vehicle</label>
               <select value={formData.vehicle_id} onChange={(e) => handleVehicleChange(e.target.value)}
