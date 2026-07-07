@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle } from 'lucide-react';
+import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle, PauseCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import { formatJobType } from '@/utils/format';
@@ -47,6 +47,16 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
     <motion.div variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } } }}
       className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
       <div className={`h-1.5 ${accent}`} />
+
+      {job.status === 'on_hold' && (
+        <div className="flex items-start gap-2 bg-amber-50 border-b border-amber-100 px-4 py-2.5">
+          <PauseCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-amber-800">This job is on hold</p>
+            <p className="text-[11px] text-amber-700 mt-0.5">Do not start work until management confirms it has resumed. {job.status_reason ? `Reason: ${job.status_reason}` : ''}</p>
+          </div>
+        </div>
+      )}
 
       {/* Compact header — always visible */}
       <button onClick={() => setExpanded(e => !e)} className="w-full text-left p-4 flex items-center gap-3 hover:bg-slate-50/60 transition">
