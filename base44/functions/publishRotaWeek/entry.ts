@@ -76,6 +76,43 @@ function buildEmail(staff, rotas, jobs, vehicles, cfg, weekStart, baseUrl) {
   return { html, subject };
 }
 
+function buildManagerEmail(rotas, jobs, vehicles, cfg, weekStart, baseUrl) {
+  const accent = (cfg && cfg.accent_color) || '#0e7a4f';
+  const bannerTitle = (cfg && cfg.banner_title) || 'GC Job Planner';
+  const showBanner = !(cfg && cfg.show_banner === false);
+  const footer = (cfg && cfg.footer_text) || 'GC Job Planner';
+  const weekLabel = fmtWeek(weekStart);
+  let rows = '';
+  for (const r of rotas) {
+    const job = jobs.find((j) => j && j.id === r.job_id);
+    const vehicle = vehicles.find((v) => v && v.id === r.vehicle_id);
+    if (!job) continue;
+    const times = (r.start_time || r.end_time) ? (r.start_time || '—') + '–' + (r.end_time || '—') : '—';
+    rows += '<tr><td style="padding:8px 10px;border-bottom:1px solid #e2e8f0">' + fmtDate(r.assigned_date) + '</td>' +
+      '<td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-weight:600">' + escapeHtml(r._staffName || '—') + '</td>' +
+      '<td style="padding:8px 10px;border-bottom:1px solid #e2e8f0">' + escapeHtml(job.name) + '</td>' +
+      '<td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;color:#64748b">' + escapeHtml(job.location) + '</td>' +
+      '<td style="padding:8px 10px;border-bottom:1px solid #e2e8f0">' + escapeHtml(times) + '</td>' +
+      '<td style="padding:8px 10px;border-bottom:1px solid #e2e8f0">' + (vehicle ? escapeHtml(vehicle.registration_number) : '—') + '</td></tr>';
+  }
+  const thStyle = 'style="padding:10px;background:' + accent + ';color:white;text-align:left;font-size:12px;text-transform:uppercase"';
+  const table = '<table style="width:100%;border-collapse:collapse"><thead><tr>' +
+    '<th ' + thStyle + '>Date</th><th ' + thStyle + '>Staff</th><th ' + thStyle + '>Job</th><th ' + thStyle + '>Location</th><th ' + thStyle + '>Times</th><th ' + thStyle + '>Vehicle</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>';
+  const banner = showBanner
+    ? '<tr><td style="background:' + accent + ';padding:18px 24px"><h1 style="margin:0;color:#ffffff;font-size:18px;font-family:Arial,Helvetica,sans-serif">' + escapeHtml(bannerTitle) + '</h1></td></tr>'
+    : '';
+  const bodyCell = '<p style="font-size:14px;color:#475569;margin:0 0 16px 0">The weekly rota has been published for ' + escapeHtml(weekLabel) + '. Below is the full schedule for all assigned staff.</p>' +
+    table + linkBlock(baseUrl, '/admin', 'Open planner');
+  const html = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">' +
+    '<table align="center" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:100%;margin:24px auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 6px 24px rgba(15,42,31,0.08)">' +
+    banner +
+    '<tr><td style="padding:24px;color:#1e293b;font-size:14px;line-height:1.6">' + bodyCell + '</td></tr>' +
+    '<tr><td style="padding:14px 24px;background:#f8fafc;color:#64748b;font-size:12px;border-top:1px solid #e2e8f0;text-align:center">' + escapeHtml(footer) + '</td></tr>' +
+    '</table></body></html>';
+  return { html, subject: 'Weekly Rota Published – ' + weekLabel };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -137,6 +174,26 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Send a full-schedule copy to configured recipients (managers/admins)
+    const recipients = (cfg && cfg.recipient_emails) ? String(cfg.recipient_emails).split(',').map((e) => e.trim()).filter(Boolean) : [];
+    let copies = 0;
+    if (recipients.length > 0) {
+      const allRotas = rotas.filter((r) => jobs.find((j) => j && j.id === r.job_id));
+      if (allRotas.length > 0) {
+        const withNames = allRotas.map((r) => {
+          const st = staffList.find((s) => s && s.id === r.staff_id);
+          return Object.assign({}, r, { _staffName: st ? st.name : '—' });
+        });
+        const { html: mgrHtml, subject: mgrSubject } = buildManagerEmail(withNames, jobs, vehicles, effectiveCfg, weekStart, baseUrl);
+        for (const email of recipients) {
+          try {
+            await base44.asServiceRole.integrations.Core.SendEmail({ to: email, subject: mgrSubject, body: mgrHtml, from_name: 'GC Job Planner' });
+            copies++;
+          } catch (e) {}
+        }
+      }
+    }
+
     // Auto-move all involved jobs from 'planning' to 'in_progress'
     let jobsActivated = 0;
     if (jobIds.length > 0) {
@@ -150,7 +207,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ success: true, published: true, emailed, skipped, disabled: false, jobsActivated });
+    return Response.json({ success: true, published: true, emailed, skipped, copies, disabled: false, jobsActivated });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

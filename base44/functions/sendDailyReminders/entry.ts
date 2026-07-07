@@ -83,8 +83,38 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Send a combined daily schedule copy to configured recipients (managers/admins)
+    const schedCfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'staff_schedule' });
+    const schedCfg = schedCfgList[0];
+    const recipients = (schedCfg && schedCfg.recipient_emails) ? String(schedCfg.recipient_emails).split(',').map((e) => e.trim()).filter(Boolean) : [];
+    let copies = 0;
+    if (recipients.length > 0) {
+      const validRotas = todaysRotas.filter((a) => jobs.find((j) => j.id === a.job_id));
+      if (validRotas.length > 0) {
+        const lines = validRotas.map((a) => {
+          const job = jobs.find((j) => j.id === a.job_id);
+          const member = staff.find((s) => s.id === a.staff_id);
+          const vehicle = vehicles.find((v) => v.id === a.vehicle_id);
+          const staffName = member ? member.name : '—';
+          const jobName = job ? job.name : 'Unknown job';
+          const location = job ? job.location : '';
+          const time = (a.start_time || a.end_time) ? ' · ' + (a.start_time || '—') + '–' + (a.end_time || '—') : '';
+          const reg = vehicle ? ' · ' + vehicle.registration_number : '';
+          return '   • ' + staffName + ' — ' + jobName + (location ? ' — ' + location : '') + time + reg;
+        }).join('\n');
+        const bodyText = 'Daily schedule overview for ' + todayStr + ':\n\n' + lines + '\n\nGC Job Planner';
+        const bodyHtml = escapeHtml(bodyText).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open planner');
+        for (const email of recipients) {
+          try {
+            await base44.asServiceRole.integrations.Core.SendEmail({ to: email, subject: 'Daily schedule overview — ' + todayStr, body: styledHtml(bodyHtml, null) });
+            copies++;
+          } catch (e) {}
+        }
+      }
+    }
+
     if (ac) { try { await base44.asServiceRole.entities.AutomationControl.update(ac.id, { last_run_at: new Date().toISOString(), last_run_status: 'success' }); } catch (e) {} }
-    return Response.json({ sent: true, date: todayStr, notified, totalAssignments: todaysRotas.length, skipped });
+    return Response.json({ sent: true, date: todayStr, notified, copies, totalAssignments: todaysRotas.length, skipped });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -86,7 +86,18 @@ Deno.serve(async (req) => {
       body: styledHtml(bodyHtml, cfg)
     });
 
-    return Response.json({ sent: true, to: staff.email });
+    // Send a copy to configured recipients (managers/admins)
+    const recipients = (cfg && cfg.recipient_emails) ? String(cfg.recipient_emails).split(',').map((e) => e.trim()).filter(Boolean) : [];
+    let copies = 0;
+    for (const email of recipients) {
+      if (email === staff.email) continue;
+      try {
+        await base44.asServiceRole.integrations.Core.SendEmail({ to: email, subject, body: styledHtml(bodyHtml, cfg) });
+        copies++;
+      } catch (e) {}
+    }
+
+    return Response.json({ sent: true, to: staff.email, copies });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
