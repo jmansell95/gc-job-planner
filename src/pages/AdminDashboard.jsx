@@ -36,7 +36,7 @@ export default function AdminDashboard() {
             {activeSection === 'job-detail' && selectedJob && (
               <JobDetail job={selectedJob} onBack={() => setActiveSection('overview')} />
             )}
-            {activeSection === 'jobs' && <JobManager />}
+            {activeSection === 'jobs' && <JobManager onNavigateRota={() => setActiveSection('rota')} />}
             {activeSection === 'rota' && <WeeklyRotaBuilder />}
             {activeSection === 'timesheets' && <TimesheetManager />}
             {activeSection === 'calendar' && <CalendarView />}

@@ -52,7 +52,7 @@ const emptyForm = {
   budget_amount: '', actual_cost: '', meterage: '', client_charge: '', client_charge_description: ''
 };
 
-export default function JobManager() {
+export default function JobManager({ onNavigateRota }) {
   const [selectedJob, setSelectedJob] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -254,6 +254,7 @@ export default function JobManager() {
         <JobCreatedModal
           job={createdJob}
           onView={() => { setSelectedJob(createdJob); setCreatedJob(null); }}
+          onBuildRota={onNavigateRota ? () => { onNavigateRota(); setCreatedJob(null); } : undefined}
           onLater={() => setCreatedJob(null)}
           onClose={() => setCreatedJob(null)}
         />

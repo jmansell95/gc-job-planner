@@ -1,7 +1,7 @@
 import React from 'react';
-import { CheckCircle2, Eye, CalendarClock, X } from 'lucide-react';
+import { CheckCircle2, Eye, CalendarClock, CalendarPlus, X } from 'lucide-react';
 
-export default function JobCreatedModal({ job, onView, onLater, onClose }) {
+export default function JobCreatedModal({ job, onView, onBuildRota, onLater, onClose }) {
   if (!job) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm px-4">
@@ -32,6 +32,11 @@ export default function JobCreatedModal({ job, onView, onLater, onClose }) {
             <button onClick={onView} className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">
               <Eye className="w-4 h-4" /> View Job & Set Up Now
             </button>
+            {onBuildRota && (
+              <button onClick={onBuildRota} className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm">
+                <CalendarPlus className="w-4 h-4" /> Build Rota for This Job
+              </button>
+            )}
             <button onClick={onLater} className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm">
               Do It Later
             </button>
