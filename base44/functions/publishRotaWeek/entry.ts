@@ -137,7 +137,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ success: true, published: true, emailed, skipped, disabled: false });
+    // Auto-move all involved jobs from 'planning' to 'in_progress'
+    let jobsActivated = 0;
+    if (jobIds.length > 0) {
+      const jobsToUpdate = jobs.filter((j) => j && j.status === 'planning').map((j) => j.id);
+      if (jobsToUpdate.length > 0) {
+        await base44.asServiceRole.entities.Job.updateMany(
+          { _id: { $in: jobsToUpdate } },
+          { $set: { status: 'in_progress', status_changed_at: now } }
+        );
+        jobsActivated = jobsToUpdate.length;
+      }
+    }
+
+    return Response.json({ success: true, published: true, emailed, skipped, disabled: false, jobsActivated });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

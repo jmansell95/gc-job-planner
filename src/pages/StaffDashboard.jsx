@@ -227,7 +227,10 @@ export default function StaffDashboard() {
   // the new rota is published/sent to them.
   const visibleWeekStarts = rotaWeeks.filter(w => w.status === 'published' && !w.superseded).map(w => w.week_start);
   const hasAnyRotaWeeks = rotaWeeks.length > 0;
-  const visibleAssignments = hasAnyRotaWeeks ? assignments.filter(a => visibleWeekStarts.includes(a.week_start)) : assignments;
+  const cancelledJobIds = new Set(jobs.filter(j => j.status === 'cancelled').map(j => j.id));
+  const onHoldJobIds = new Set(jobs.filter(j => j.status === 'on_hold').map(j => j.id));
+  const visibleAssignments = (hasAnyRotaWeeks ? assignments.filter(a => visibleWeekStarts.includes(a.week_start)) : assignments)
+    .filter(a => !cancelledJobIds.has(a.job_id));
   const scheduleLocked = hasAnyRotaWeeks && visibleWeekStarts.length === 0;
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');

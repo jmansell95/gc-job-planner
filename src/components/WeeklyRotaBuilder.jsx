@@ -199,6 +199,7 @@ export default function WeeklyRotaBuilder() {
       queryClient.invalidateQueries({ queryKey: ['rota-week'] });
       queryClient.invalidateQueries({ queryKey: ['rota-weeks'] });
       const parts = [`Rota published — ${d.emailed || 0} staff emailed`];
+      if (d.jobsActivated) parts.push(`${d.jobsActivated} job(s) activated`);
       if (d.skipped) parts.push(`${d.skipped} without a valid email`);
       if (d.disabled) parts.push('schedule email is disabled in Settings');
       setNotice({ type: 'success', msg: parts.join(', ') + '.' });

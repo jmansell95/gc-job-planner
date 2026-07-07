@@ -4,7 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, MapPin, Calendar, Users, Truck, FileText, Briefcase,
   Clock, Eye, Download, User, HardHat, Phone, Mail, Tag, Edit2,
-  ShieldCheck, PlayCircle, CheckCircle2, MessageSquare
+  ShieldCheck, PlayCircle, CheckCircle2, MessageSquare,
+  UsersRound, CalendarClock, Send, AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
@@ -20,6 +21,7 @@ import JobPhotoGallery from '@/components/JobPhotoGallery';
 import { formatJobType } from '@/utils/format';
 import { getJobPrimaryType, isDrillingJob as isDrillingJobByTeams } from '@/utils/jobTeams';
 import { computeStaffOvertime, buildRateMap } from '@/utils/overtime';
+import JobStatusModal from '@/components/JobStatusModal';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500', border: 'border-green-200' },
@@ -49,10 +51,11 @@ const statusBadge = {
   in_progress: 'bg-emerald-100 text-emerald-700',
   completed: 'bg-teal-100 text-teal-700',
   on_hold: 'bg-amber-100 text-amber-700',
+  cancelled: 'bg-red-100 text-red-700',
 };
 
 const statusLabels = {
-  planning: 'Planning', in_progress: 'In Progress', completed: 'Completed', on_hold: 'On Hold',
+  planning: 'Planning', in_progress: 'In Progress', completed: 'Completed', on_hold: 'On Hold', cancelled: 'Cancelled',
 };
 
 export default function JobDetail({ job: initialJob, onBack }) {
@@ -66,6 +69,13 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const [formData, setFormData] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+
+  const handleStatusSave = async (data) => {
+    await base44.entities.Job.update(job.id, data);
+    setJob(prev => ({ ...prev, ...data }));
+    queryClient.invalidateQueries({ queryKey: ['jobs'] });
+  };
 
   const handleEdit = () => {
     setFormData({ ...job });
@@ -266,6 +276,9 @@ export default function JobDetail({ job: initialJob, onBack }) {
           Back to Jobs
         </button>
         <div className="flex items-center gap-2">
+          <button onClick={() => setShowStatusModal(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
+            <AlertCircle className="w-4 h-4" /> Change Status
+          </button>
           <button onClick={handleEdit} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
             <Edit2 className="w-4 h-4" /> Edit Job
           </button>
@@ -282,9 +295,13 @@ export default function JobDetail({ job: initialJob, onBack }) {
                 <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
                 {formatJobType(primaryType)}
               </span>
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']}`}>
+              <button
+                onClick={() => setShowStatusModal(true)}
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']} hover:opacity-80 transition cursor-pointer`}
+                title="Click to change status"
+              >
                 {statusLabels[job.status || 'planning']}
-              </span>
+              </button>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{job.name}</h1>
             <div className="flex items-center gap-2 mt-2 text-slate-600">
@@ -311,6 +328,39 @@ export default function JobDetail({ job: initialJob, onBack }) {
         </div>
       </div>
 
+      {/* Workflow guidance banner */}
+      {job.status === 'planning' && (
+        <div className="rounded-2xl p-5 mb-6 bg-gradient-to-br from-slate-50 to-emerald-50/60 border border-emerald-200">
+          <div className="flex items-center gap-2 mb-3">
+            <CalendarClock className="w-5 h-5 text-emerald-700" />
+            <h3 className="font-bold text-slate-900 text-sm">Job Setup Checklist</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className={`rounded-xl p-3 border ${job.required_team_ids?.length > 0 ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
+              <div className="flex items-center gap-2 mb-1">
+                {job.required_team_ids?.length > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <UsersRound className="w-4 h-4 text-slate-400" />}
+                <p className="text-xs font-bold text-slate-800">1. Assign Teams</p>
+              </div>
+              <p className="text-[11px] text-slate-500">{job.required_team_ids?.length > 0 ? `${job.required_team_ids.length} team(s) assigned` : 'Edit the job to pick required teams'}</p>
+            </div>
+            <div className={`rounded-xl p-3 border ${rotas.length > 0 ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
+              <div className="flex items-center gap-2 mb-1">
+                {rotas.length > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <CalendarClock className="w-4 h-4 text-slate-400" />}
+                <p className="text-xs font-bold text-slate-800">2. Build Rota</p>
+              </div>
+              <p className="text-[11px] text-slate-500">{rotas.length > 0 ? `${rotas.length} shifts scheduled` : 'Go to Weekly Rota Builder to assign staff'}</p>
+            </div>
+            <div className="rounded-xl p-3 border border-slate-200 bg-white">
+              <div className="flex items-center gap-2 mb-1">
+                <Send className="w-4 h-4 text-slate-400" />
+                <p className="text-xs font-bold text-slate-800">3. Publish & Activate</p>
+              </div>
+              <p className="text-[11px] text-slate-500">Submit the rota week — staff get emailed and the job auto-activates</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Quick info row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* Job Info */}
@@ -329,10 +379,19 @@ export default function JobDetail({ job: initialJob, onBack }) {
             </div>
             <div>
               <p className="text-[11px] text-slate-400 uppercase font-medium">Status</p>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']}`}>
+              <button
+                onClick={() => setShowStatusModal(true)}
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']} hover:opacity-80 transition cursor-pointer`}
+              >
                 {statusLabels[job.status || 'planning']}
-              </span>
+              </button>
             </div>
+            {job.status_reason && (
+              <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <p className="text-[11px] text-amber-600 font-semibold uppercase mb-0.5">Status Reason</p>
+                <p className="text-xs text-amber-800">{job.status_reason}</p>
+              </div>
+            )}
             {job.job_reference && (
               <div>
                 <p className="text-[11px] text-slate-400 uppercase font-medium">Reference</p>
@@ -688,6 +747,10 @@ export default function JobDetail({ job: initialJob, onBack }) {
           <PortalSectionManager job={job} />
         </div>
       </div>
+
+      {showStatusModal && (
+        <JobStatusModal job={job} onClose={() => setShowStatusModal(false)} onSave={handleStatusSave} />
+      )}
     </div>
   );
 }

@@ -38,10 +38,19 @@
         "planning",
         "in_progress",
         "completed",
-        "on_hold"
+        "on_hold",
+        "cancelled"
       ],
       "default": "planning",
-      "description": "Job status"
+      "description": "Job status. New jobs start in 'planning', automatically move to 'in_progress' when the rota is published, and can be manually set to 'on_hold', 'completed', or 'cancelled' from the job detail page."
+    },
+    "status_reason": {
+      "type": "string",
+      "description": "Reason recorded when a job is put on hold or cancelled"
+    },
+    "status_changed_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last manual status change (on hold, cancelled, completed, or reactivated)"
     },
     "start_date": {
       "type": "string",

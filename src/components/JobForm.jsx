@@ -83,14 +83,7 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
             <p className="text-[11px] text-amber-600 mt-1.5">Select at least one team — staff outside these teams can still be assigned but managers will see a warning.</p>
           )}
         </Field>
-        <Field label="Status">
-          <select value={formData.status || 'planning'} onChange={(e) => setFormData({ ...formData, status: e.target.value })} className={inputCls}>
-            <option value="planning">Planning</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="on_hold">On Hold</option>
-          </select>
-        </Field>
+
       </Section>
 
       {/* Schedule */}
