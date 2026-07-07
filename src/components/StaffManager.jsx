@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, BellOff } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import PrintReportButton from '@/components/PrintReportButton';
 import { CardGridSkeleton } from '@/components/StateViews';
@@ -23,7 +23,7 @@ export default function StaffManager() {
   const [inviteLoading, setInviteLoading] = useState(null);
   const [inviteOnCreate, setInviteOnCreate] = useState(true);
   const [shiftOpenId, setShiftOpenId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '', email_notifications_enabled: true });
 
   const queryClient = useQueryClient();
 
@@ -76,7 +76,7 @@ export default function StaffManager() {
       }
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
-      setFormData({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '' });
+      setFormData({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '', email_notifications_enabled: true });
       setShowForm(false);
       setEditingId(null);
     } catch (error) {
@@ -149,7 +149,7 @@ export default function StaffManager() {
   const resetForm = () => {
     setShowForm(!showForm);
     setEditingId(null);
-    setFormData({ name: '', email: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '' });
+    setFormData({ name: '', email: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', email_notifications_enabled: true });
   };
 
   const activeCount = staff.filter(s => getUserForStaff(s)).length;
@@ -261,6 +261,17 @@ export default function StaffManager() {
             </label>
           )}
 
+          {editingId && (
+            <label className="flex items-center gap-2 mt-4 cursor-pointer">
+              <input type="checkbox" checked={formData.email_notifications_enabled !== false} onChange={e => setFormData({ ...formData, email_notifications_enabled: e.target.checked })}
+                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+              <span className="text-sm text-slate-600 flex items-center gap-1.5">
+                <Bell className="w-3.5 h-3.5 text-emerald-600" />
+                Receive schedule and assignment emails
+              </span>
+            </label>
+          )}
+
           <div className="flex gap-2 mt-5">
             <button type="submit" disabled={submitting} className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm disabled:opacity-50">
               {submitting ? 'Saving...' : editingId ? 'Update' : 'Add'} Staff Member
@@ -323,6 +334,11 @@ export default function StaffManager() {
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${workerBadge[member.worker_type] || 'bg-slate-100 text-slate-600'}`}>{formatWorkerType(member.worker_type)}</span>
                   {teams.find(t => t.id === member.team_id) && (
                     <span className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">{teams.find(t => t.id === member.team_id).name}</span>
+                  )}
+                  {member.email_notifications_enabled === false && (
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-slate-100 text-slate-500 flex items-center gap-1">
+                      <BellOff className="w-3 h-3" /> Emails off
+                    </span>
                   )}
                 </div>
 

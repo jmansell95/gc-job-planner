@@ -68,6 +68,11 @@
       "type": "boolean",
       "default": false,
       "description": "Whether an app invite email has been sent to this staff member"
+    },
+    "email_notifications_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this staff member receives automated schedule and assignment emails. When false, the system skips sending them weekly schedules, daily reminders, and assignment notifications."
     }
   },
   "required": [

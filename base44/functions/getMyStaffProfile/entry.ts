@@ -19,7 +19,8 @@ Deno.serve(async (req) => {
         worker_type: null,
         team_id: null,
         is_admin: user.role === 'admin',
-        no_staff_profile: true
+        no_staff_profile: true,
+        email_notifications_enabled: true
       });
     }
     const s = staff[0];
@@ -30,7 +31,8 @@ Deno.serve(async (req) => {
       job_role: s.job_role,
       worker_type: s.worker_type,
       team_id: s.team_id,
-      is_admin: user.role === 'admin'
+      is_admin: user.role === 'admin',
+      email_notifications_enabled: s.email_notifications_enabled !== false
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

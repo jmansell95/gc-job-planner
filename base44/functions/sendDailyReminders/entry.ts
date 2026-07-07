@@ -54,6 +54,7 @@ Deno.serve(async (req) => {
 
     for (const member of staff) {
       if (!member.email) { skipped.push({ name: member.name, reason: 'no email' }); continue; }
+      if (member.email_notifications_enabled === false) { skipped.push({ name: member.name, reason: 'unsubscribed' }); continue; }
       const assignments = (byStaff[member.id] || []).filter(a => jobs.find(j => j.id === a.job_id));
       if (assignments.length === 0) continue;
 

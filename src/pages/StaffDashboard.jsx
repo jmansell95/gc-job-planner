@@ -10,6 +10,7 @@ import { useStaffAssistant } from '@/components/StaffAssistantChat';
 import { motion } from 'framer-motion';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 import AssignmentCard from '@/components/staff/AssignmentCard';
+import EmailNotificationToggle from '@/components/staff/EmailNotificationToggle';
 import JobBriefingModal from '@/components/staff/JobBriefingModal';
 import EndOfDayCard from '@/components/staff/EndOfDayCard';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -284,6 +285,7 @@ export default function StaffDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <EmailNotificationToggle initialEnabled={staff.email_notifications_enabled} />
               {reporters.length > 0 && (
                 <button onClick={() => setShowApprovals(true)} type="button"
                   className="relative flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">

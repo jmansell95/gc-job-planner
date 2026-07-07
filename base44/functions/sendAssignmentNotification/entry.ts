@@ -44,6 +44,9 @@ Deno.serve(async (req) => {
     if (!staff || !staff.email) {
       return Response.json({ skipped: true, reason: 'Staff not found or no email' });
     }
+    if (staff.email_notifications_enabled === false) {
+      return Response.json({ skipped: true, reason: 'Staff unsubscribed from emails' });
+    }
 
     const jobList = await base44.asServiceRole.entities.Job.filter({ id: jobId });
     const job = jobList[0];
