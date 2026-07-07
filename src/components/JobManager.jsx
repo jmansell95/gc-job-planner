@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, CardGridSkeleton } from '@/components/StateView
 import JobDetail from '@/components/JobDetail';
 import JobForm from '@/components/JobForm';
 import PrintReportButton from '@/components/PrintReportButton';
+import JobCreatedModal from '@/components/JobCreatedModal';
 import { formatJobType } from '@/utils/format';
 import { getJobPrimaryType } from '@/utils/jobTeams';
 import { format, parseISO } from 'date-fns';
@@ -59,6 +60,7 @@ export default function JobManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [formData, setFormData] = useState(emptyForm);
+  const [createdJob, setCreatedJob] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -78,15 +80,17 @@ export default function JobManager() {
       ['budget_amount', 'actual_cost', 'meterage', 'client_charge', 'markup_percentage', 'vat_rate'].forEach(k => {
         if (cleanData[k] === '' || cleanData[k] === undefined || cleanData[k] === null) delete cleanData[k];
       });
+      let savedJob = null;
       if (editingId) {
         await base44.entities.Job.update(editingId, cleanData);
       } else {
-        await base44.entities.Job.create(cleanData);
+        savedJob = await base44.entities.Job.create(cleanData);
       }
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       setFormData(emptyForm);
       setShowForm(false);
       setEditingId(null);
+      if (savedJob) setCreatedJob(savedJob);
     } catch (error) {
       console.error('Error saving job:', error);
       alert('Could not save the job: ' + (error?.message || 'Please check all required fields.'));
@@ -244,6 +248,15 @@ export default function JobManager() {
             );
           })}
         </div>
+      )}
+
+      {createdJob && (
+        <JobCreatedModal
+          job={createdJob}
+          onView={() => { setSelectedJob(createdJob); setCreatedJob(null); }}
+          onLater={() => setCreatedJob(null)}
+          onClose={() => setCreatedJob(null)}
+        />
       )}
     </div>
   );
