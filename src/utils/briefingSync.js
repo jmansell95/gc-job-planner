@@ -63,6 +63,22 @@ export async function syncPendingBriefings() {
         briefing_signed_at: item.signed_at
       });
 
+      // Log briefing (and optional travel) as daily task entries
+      try {
+        const briefingStart = item.briefing_start_at || new Date(new Date(item.signed_at).getTime() - (item.briefing_duration_minutes || 0) * 60000).toISOString();
+        await base44.functions.invoke('logBriefingAsTask', {
+          staff_id: item.staff_id,
+          job_id: item.job_id,
+          assigned_date: item.assigned_date,
+          briefing_start_at: briefingStart,
+          briefing_signed_at: item.signed_at,
+          travel_depart_home: item.travel_depart_home || null,
+          travel_arrive_site: item.travel_arrive_site || null
+        });
+      } catch (err) {
+        console.error('Error logging offline briefing as task:', err);
+      }
+
       synced++;
     } catch (err) {
       console.error('Sync error for briefing item:', err);

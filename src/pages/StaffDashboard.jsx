@@ -217,6 +217,7 @@ export default function StaffDashboard() {
     setBriefingAssignment(null);
     queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
     queryClient.invalidateQueries({ queryKey: ['all-rota-assignments'] });
+    queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });
     if (offline) {
       toast({ title: 'Briefing saved offline', description: 'Your signature will sync when you reconnect.' });
       return;
@@ -362,19 +363,22 @@ export default function StaffDashboard() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-8">
-        {/* WhatsApp reminder */}
-        <div className="mb-5 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5 text-sm text-emerald-900">
-          <MessageCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-          <p className="font-medium">Check WhatsApp groups for updates at the start of each working day.</p>
-        </div>
+        {/* Info banners — consolidated stack */}
+        <div className="space-y-2.5 mb-5">
+          {/* Early access — most important, shown first */}
+          {!canPerformActions && isBeforeSiteOpen() && (
+            <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-900">
+              <Clock className="w-4 h-4 text-blue-600 flex-shrink-0" />
+              <p className="font-medium">Early access — you can view today's schedule, but work actions unlock at {SITE_OPEN_TIME}.</p>
+            </div>
+          )}
 
-        {/* Early access banner — can view schedule but can't act until 8am */}
-        {!canPerformActions && isBeforeSiteOpen() && (
-          <div className="mb-5 flex items-center gap-2.5 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-900">
-            <Clock className="w-4 h-4 text-blue-600 flex-shrink-0" />
-            <p className="font-medium">Early access — you can view today's schedule, but work actions unlock at {SITE_OPEN_TIME}.</p>
+          {/* WhatsApp reminder */}
+          <div className="flex items-center gap-2 bg-emerald-50/70 border border-emerald-100 rounded-xl px-4 py-2.5 text-sm text-emerald-900">
+            <MessageCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <p className="font-medium">Check WhatsApp groups for updates at the start of each working day.</p>
           </div>
-        )}
+        </div>
 
         {/* Compliance status alert */}
         {(() => {
@@ -434,9 +438,13 @@ export default function StaffDashboard() {
               <SectionHeader icon={Clock} title="Today" count={todaysAssignments.length} />
             )}
 
-            {/* Current/next job — one at a time */}
+            {/* Today's focus — current/next job */}
             {heroAssignment ? (
               <>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-5 bg-emerald-600 rounded-full" />
+                  <p className="text-sm font-bold text-slate-700 uppercase tracking-wide">{isHeroStarted ? 'In Progress' : 'Today\'s Focus'}</p>
+                </div>
                 <AssignmentCard {...cardProps(heroAssignment)} defaultExpanded />
                 {isHeroStarted && <DailyTaskLog staffId={staff.id} />}
               </>

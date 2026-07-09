@@ -126,7 +126,10 @@ export default function StaffProfile() {
 
         {/* Actions Grid */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900 mb-4">Quick Actions</h2>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1 h-5 bg-emerald-600 rounded-full" />
+            <h2 className="text-lg font-bold text-slate-900">Quick Actions</h2>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <button onClick={() => setShowAbsenceForm(true)} type="button"
               className="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 active:scale-95 transition touch-manipulation">
@@ -194,10 +197,24 @@ export default function StaffProfile() {
         </div>
 
         {/* Compliance Wallet */}
-        <ComplianceWallet staffId={staff.id} staffName={staff.name} />
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1 h-5 bg-emerald-600 rounded-full" />
+            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">My Compliance</h2>
+          </div>
+          <ComplianceWallet staffId={staff.id} staffName={staff.name} />
+        </div>
 
         {/* Team Mini Feed */}
-        {staff.team_id && <TeamMiniFeed teamId={staff.team_id} currentStaffId={staff.id} />}
+        {staff.team_id && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-5 bg-emerald-600 rounded-full" />
+              <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Team Feed</h2>
+            </div>
+            <TeamMiniFeed teamId={staff.team_id} currentStaffId={staff.id} />
+          </div>
+        )}
       </div>
 
       {/* Approvals Sheet */}
