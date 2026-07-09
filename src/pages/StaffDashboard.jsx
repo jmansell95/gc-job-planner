@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { syncPendingBriefings } from '@/utils/briefingSync';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME, SITE_EARLY_ACCESS_TIME } from '@/utils/siteHours';
 import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
+import TravelFromSiteModal from '@/components/staff/TravelFromSiteModal';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -38,6 +39,7 @@ export default function StaffDashboard() {
   const [meterageInputs, setMeterageInputs] = useState({});
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [briefingAssignment, setBriefingAssignment] = useState(null);
+  const [travelFromAssignment, setTravelFromAssignment] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -137,9 +139,38 @@ export default function StaffDashboard() {
     }
   };
 
-  const handleCompleteJob = async (assignmentId, extraData = {}) => {
+  // Opens the travel-from-site modal before final completion
+  const handleCompleteJob = (assignmentId, extraData = {}) => {
+    setTravelFromAssignment({ assignmentId, extraData });
+  };
+
+  // Actual completion after travel-from-site is captured (or skipped)
+  const handleCompleteJobWithTravel = async (travelData) => {
+    if (!travelFromAssignment) return;
+    const { assignmentId, extraData } = travelFromAssignment;
     try {
       const todayStr = format(new Date(), 'yyyy-MM-dd');
+      // Create travel_from entry first so it's included in the timesheet merge
+      if (travelData.departSite && travelData.arriveHome) {
+        const [dh, dm] = travelData.departSite.split(':').map(Number);
+        const [ah, am] = travelData.arriveHome.split(':').map(Number);
+        const travelMins = (ah * 60 + am) - (dh * 60 + dm);
+        if (travelMins > 0) {
+          const assignment = assignments.find(a => a.id === assignmentId);
+          await base44.entities.Timesheet.create({
+            staff_id: staff.id,
+            date: todayStr,
+            job_id: assignment?.job_id || '',
+            task_description: 'Travel from site',
+            task_type: 'travel_from',
+            start_time: travelData.departSite,
+            end_time: travelData.arriveHome,
+            task_duration_minutes: travelMins,
+            total_hours: Math.round((travelMins / 60) * 100) / 100,
+            status: 'draft'
+          });
+        }
+      }
       try {
         await base44.functions.invoke('submitDailyTimesheet', { staff_id: staff.id, date: todayStr });
       } catch (e) { console.error('Timesheet submit error:', e); }
@@ -506,6 +537,16 @@ export default function StaffDashboard() {
           crewAssignments={allAssignments.filter(a => a.job_id === briefingAssignment.job_id && a.assigned_date === briefingAssignment.assigned_date)}
           onSigned={handleBriefingComplete}
           onClose={() => setBriefingAssignment(null)}
+        />
+      )}
+
+      {/* Travel-from-site modal — final step before shift completion */}
+      {travelFromAssignment && (
+        <TravelFromSiteModal
+          open={!!travelFromAssignment}
+          jobName={jobs.find(j => j.id === assignments.find(a => a.id === travelFromAssignment.assignmentId)?.job_id)?.name}
+          onConfirm={handleCompleteJobWithTravel}
+          onClose={() => setTravelFromAssignment(null)}
         />
       )}
     </div>

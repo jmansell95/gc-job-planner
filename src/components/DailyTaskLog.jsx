@@ -179,6 +179,8 @@ export default function DailyTaskLog({ staffId }) {
   const nonOTTotal = nonOTEntries.reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
   const breakTotal = entries.filter(t => t.is_break).reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
   const sortedAll = [...nonOTEntries].sort((a, b) => (toMins(a.start_time) ?? 0) - (toMins(b.start_time) ?? 0));
+  // Display list includes ALL entries (travel, breaks, on-site) sorted chronologically
+  const displayEntries = [...entries].sort((a, b) => (toMins(a.start_time) ?? 0) - (toMins(b.start_time) ?? 0));
   const gaps = [];
   for (let i = 1; i < sortedAll.length; i++) {
     const prevEnd = toMins(sortedAll[i - 1].end_time);
@@ -344,7 +346,7 @@ export default function DailyTaskLog({ staffId }) {
           <div className="space-y-2">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Today's log</p>
             <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 overflow-hidden">
-              {sortedAll.map(t => {
+              {displayEntries.map(t => {
                 const job = jobs.find(j => j.id === t.job_id);
                 const tMins = Number(t.task_duration_minutes) || 0;
                 return (
