@@ -516,10 +516,12 @@ export default function StaffDashboard() {
             {/* Today's focus — current/next job */}
             {heroAssignment ? (
               <>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-1 h-5 bg-emerald-600 rounded-full" />
-                  <p className="text-sm font-bold text-slate-700 uppercase tracking-wide">{isHeroStarted ? 'In Progress' : 'Today\'s Focus'}</p>
-                </div>
+                {isHeroStarted && (
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-5 bg-emerald-600 rounded-full" />
+                    <p className="text-sm font-bold text-slate-700 uppercase tracking-wide">In Progress</p>
+                  </div>
+                )}
                 <AssignmentCard {...cardProps(heroAssignment)} defaultExpanded />
                 {isHeroStarted && <DailyTaskLog staffId={staff.id} />}
               </>
