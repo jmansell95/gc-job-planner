@@ -4,15 +4,24 @@ import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useStaffAssistant } from '@/components/StaffAssistantChat';
+import { useNavigate } from 'react-router-dom';
 import MobileNavDrawer from '@/components/MobileNavDrawer';
 import GlobalSearch from '@/components/GlobalSearch';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
+  const navigate = useNavigate();
   const [notifOpen, setNotifOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
   const notifications = useNotifications();
   const notifCount = notifications.count;
   const { openChat } = useStaffAssistant();
+
+  useEffect(() => {
+    (async () => {
+      try { const res = await base44.functions.invoke('getMyStaffProfile'); setProfile(res.data); } catch (e) {}
+    })();
+  }, []);
 
   useEffect(() => {
     if (!notifOpen && !drawerOpen) return;
@@ -25,7 +34,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     await base44.auth.logout('/');
   };
 
-  const navItems = [
+  const allNavItems = [
     { id: 'overview', label: 'Dashboard', icon: Grid3x3 },
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
     { id: 'rota', label: 'Rotas', icon: Calendar },
@@ -36,6 +45,11 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'teams', label: 'Teams', icon: Users },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
+
+  const navItems = profile?.is_admin
+    ? allNavItems
+    : allNavItems.filter(item => profile?.team?.allowed_tool_access?.includes(item.id));
+  const canViewSchedule = profile?.is_admin || profile?.team?.allowed_tool_access?.includes('staff_schedule');
 
   const desktopNav = (
     <>
@@ -57,6 +71,13 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           <Sparkles className="w-4 h-4" />
           Ask Assistant
         </button>
+        {canViewSchedule && (
+          <button onClick={() => navigate('/staff-schedule')} type="button"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-800/60 text-emerald-200 text-sm font-medium hover:bg-emerald-800 hover:text-white active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-emerald-700/50">
+            <CalendarDays className="w-4 h-4" />
+            My Schedule
+          </button>
+        )}
       </div>
       <div className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map(item => {
@@ -103,6 +124,12 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
+            {canViewSchedule && (
+              <button onClick={() => navigate('/staff-schedule')} aria-label="My Schedule" type="button"
+                className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
+                <CalendarDays className="w-5 h-5" />
+              </button>
+            )}
             <button onClick={openChat} aria-label="Ask Assistant" type="button"
               className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <Sparkles className="w-5 h-5" />

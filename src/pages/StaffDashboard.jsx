@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, Sparkles, MessageCircle, History, ChevronDown, ClipboardCheck, CheckCircle2 } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, Sparkles, MessageCircle, History, ChevronDown, ClipboardCheck, CheckCircle2, LayoutDashboard } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isPast } from 'date-fns';
 import DailyTaskLog from '@/components/DailyTaskLog';
 import StaffTimesheets from '@/components/StaffTimesheets';
@@ -32,6 +33,7 @@ function SectionHeader({ icon: Icon, title, count, tone = 'dark' }) {
 }
 
 export default function StaffDashboard() {
+  const navigate = useNavigate();
   const [staff, setStaff] = useState(null);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -306,6 +308,13 @@ export default function StaffDashboard() {
                 <Sparkles className="w-5 h-5" />
                 <span className="hidden sm:inline">Ask Assistant</span>
               </button>
+              {(staff?.is_admin || (staff?.team?.allowed_tool_access && staff.team.allowed_tool_access.length > 0)) && (
+                <button onClick={() => navigate('/admin')} type="button"
+                  className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+                  <LayoutDashboard className="w-5 h-5" />
+                  <span className="hidden sm:inline">Admin</span>
+                </button>
+              )}
             </div>
           </div>
 

@@ -24,6 +24,30 @@
         "depot"
       ],
       "description": "Job type this team handles \u2014 staff in this team can only be assigned to matching jobs. Blank/absent = flexible (any job type, e.g. supervisors)."
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "field_ops",
+        "depot",
+        "management"
+      ],
+      "description": "Top-level group this team belongs to. 'field_ops' = field crews (drillers, groundworkers) who see their schedule first. 'depot' = depot staff (managers, fitters) who see the admin dashboard first. 'management' = senior leadership with full access."
+    },
+    "default_landing_page": {
+      "type": "string",
+      "enum": [
+        "/staff-schedule",
+        "/admin"
+      ],
+      "description": "Where staff in this team land first after login. Field teams \u2192 /staff-schedule, Depot/Management \u2192 /admin."
+    },
+    "allowed_tool_access": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Admin sections this team can access when viewing the admin dashboard. Keys: overview, jobs, rota, calendar, timesheets, compliance, insights, teams, settings, staff_schedule. Empty = no admin access (field teams that only see their schedule)."
     }
   },
   "required": [

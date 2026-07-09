@@ -10,6 +10,9 @@ Deno.serve(async (req) => {
     if (staff.length === 0 && user.id) {
       try { staff = await base44.entities.Staff.filter({ user_id: user.id }); } catch (_) {}
     }
+
+    const isAdmin = user.role === 'admin';
+
     if (staff.length === 0) {
       return Response.json({
         id: null,
@@ -18,12 +21,24 @@ Deno.serve(async (req) => {
         job_role: null,
         worker_type: null,
         team_id: null,
-        is_admin: user.role === 'admin',
+        team: null,
+        is_admin: isAdmin,
         no_staff_profile: true,
         email_notifications_enabled: true
       });
     }
+
     const s = staff[0];
+
+    // Fetch the team to include capability/landing info
+    let team = null;
+    if (s.team_id) {
+      try {
+        const teamList = await base44.asServiceRole.entities.Team.filter({ id: s.team_id });
+        team = teamList[0] || null;
+      } catch (_) {}
+    }
+
     return Response.json({
       id: s.id,
       name: s.name,
@@ -31,7 +46,14 @@ Deno.serve(async (req) => {
       job_role: s.job_role,
       worker_type: s.worker_type,
       team_id: s.team_id,
-      is_admin: user.role === 'admin',
+      team: team ? {
+        id: team.id,
+        name: team.name,
+        category: team.category || null,
+        default_landing_page: team.default_landing_page || null,
+        allowed_tool_access: team.allowed_tool_access || []
+      } : null,
+      is_admin: isAdmin,
       email_notifications_enabled: s.email_notifications_enabled !== false
     });
   } catch (error) {

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Users, ChevronDown, ChevronRight, GitBranch, UserCircle2, UserMinus } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, ChevronDown, ChevronRight, GitBranch, UserCircle2, UserMinus, Check } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatWorkerType } from '@/utils/format';
+import { TEAM_CATEGORIES, LANDING_PAGES, CAPABILITY_KEYS, DEFAULT_CAPABILITIES, DEFAULT_LANDING_PAGE } from '@/utils/teamAccess';
 
 const workerBadge = {
   direct_employee: 'bg-emerald-100 text-emerald-700',
@@ -25,7 +26,7 @@ const JOB_TYPE_LABELS = {
 export default function TeamManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '', parent_team_id: '', job_type: '' });
+  const [formData, setFormData] = useState({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [] });
   const [presetParent, setPresetParent] = useState(null);
   const [collapsed, setCollapsed] = useState({});
 
@@ -52,14 +53,14 @@ export default function TeamManager() {
 
   const openCreate = (parentId = null) => {
     setEditingId(null);
-    setFormData({ name: '', description: '', parent_team_id: parentId || '', job_type: '' });
+    setFormData({ name: '', description: '', parent_team_id: parentId || '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [] });
     setPresetParent(parentId);
     setShowForm(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const payload = { name: formData.name, description: formData.description, parent_team_id: formData.parent_team_id || '', job_type: formData.job_type || '' };
+    const payload = { name: formData.name, description: formData.description, parent_team_id: formData.parent_team_id || '', job_type: formData.job_type || '', category: formData.category || '', default_landing_page: formData.default_landing_page || '', allowed_tool_access: formData.allowed_tool_access || [] };
     try {
       if (editingId) {
         await base44.entities.Team.update(editingId, payload);
@@ -67,7 +68,7 @@ export default function TeamManager() {
         await base44.entities.Team.create(payload);
       }
       queryClient.invalidateQueries({ queryKey: ['teams'] });
-      setFormData({ name: '', description: '', parent_team_id: '', job_type: '' });
+      setFormData({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [] });
       setShowForm(false);
       setEditingId(null);
       setPresetParent(null);
@@ -77,7 +78,7 @@ export default function TeamManager() {
   };
 
   const handleEdit = (team) => {
-    setFormData({ name: team.name, description: team.description || '', parent_team_id: team.parent_team_id || '', job_type: team.job_type || '' });
+    setFormData({ name: team.name, description: team.description || '', parent_team_id: team.parent_team_id || '', job_type: team.job_type || '', category: team.category || '', default_landing_page: team.default_landing_page || '', allowed_tool_access: team.allowed_tool_access || [] });
     setEditingId(team.id);
     setShowForm(true);
     setPresetParent(null);
@@ -153,6 +154,12 @@ export default function TeamManager() {
                 )}
                 {!isSub && totalPeople > members.length && (
                   <span className="text-xs text-slate-400">{totalPeople} people total</span>
+                )}
+                {team.category && (
+                  <span className="text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full font-medium">{TEAM_CATEGORIES.find(c => c.value === team.category)?.label || team.category}</span>
+                )}
+                {team.default_landing_page && (
+                  <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">→ {LANDING_PAGES.find(p => p.value === team.default_landing_page)?.label || team.default_landing_page}</span>
                 )}
                 {team.job_type && (
                   <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium">{JOB_TYPE_LABELS[team.job_type] || team.job_type}</span>
@@ -254,6 +261,66 @@ export default function TeamManager() {
               <label className="block text-sm font-medium text-slate-700 mb-2">Team Description</label>
               <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600" rows="3" />
+            </div>
+
+            {/* Access Control */}
+            <div className="border-t border-slate-100 pt-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-3">Access & Landing Page</label>
+
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Top-Level Group</label>
+                <select value={formData.category} onChange={(e) => {
+                  const cat = e.target.value;
+                  setFormData({
+                    ...formData,
+                    category: cat,
+                    default_landing_page: DEFAULT_LANDING_PAGE[cat] || formData.default_landing_page,
+                    allowed_tool_access: formData.allowed_tool_access.length === 0 ? (DEFAULT_CAPABILITIES[cat] || []) : formData.allowed_tool_access
+                  });
+                }} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
+                  <option value="">— Select group —</option>
+                  {TEAM_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                </select>
+                {formData.category && (
+                  <p className="text-xs text-slate-400 mt-1">{TEAM_CATEGORIES.find(c => c.value === formData.category)?.description}</p>
+                )}
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-slate-500 mb-1.5">Default Landing Page <span className="text-slate-400">(what they see first after login)</span></label>
+                <div className="grid grid-cols-2 gap-2">
+                  {LANDING_PAGES.map(p => (
+                    <button type="button" key={p.value} onClick={() => setFormData({ ...formData, default_landing_page: p.value })}
+                      className={`px-3 py-2.5 rounded-lg text-sm font-medium border transition text-left ${formData.default_landing_page === p.value ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-2">Admin Tool Access</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {CAPABILITY_KEYS.map(cap => {
+                    const checked = formData.allowed_tool_access.includes(cap.key);
+                    return (
+                      <button type="button" key={cap.key} onClick={() => {
+                        const next = checked
+                          ? formData.allowed_tool_access.filter(k => k !== cap.key)
+                          : [...formData.allowed_tool_access, cap.key];
+                        setFormData({ ...formData, allowed_tool_access: next });
+                      }}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition text-left ${checked ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                        <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${checked ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
+                          {checked && <Check className="w-2.5 h-2.5 text-white" />}
+                        </span>
+                        {cap.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-slate-400 mt-2">Pick which sections this team can access. Field teams typically only need "Schedule View". Selecting a group above auto-fills sensible defaults.</p>
+              </div>
             </div>
           </div>
           <div className="flex gap-3 mt-6">
