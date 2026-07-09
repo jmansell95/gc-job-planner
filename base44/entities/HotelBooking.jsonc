@@ -4,11 +4,25 @@
   "properties": {
     "staff_id": {
       "type": "string",
-      "description": "Staff member this hotel booking is for"
+      "description": "DEPRECATED \u2014 legacy single-staff field. Use assigned_staff_ids instead."
     },
     "staff_name": {
       "type": "string",
-      "description": "Staff member name (for display)"
+      "description": "DEPRECATED \u2014 legacy single-staff display name. Use assigned_staff_names instead."
+    },
+    "assigned_staff_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Staff member IDs assigned to this hotel booking for the job"
+    },
+    "assigned_staff_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Staff member names (for display)"
     },
     "job_id": {
       "type": "string",
@@ -54,7 +68,6 @@
     }
   },
   "required": [
-    "staff_id",
     "job_id",
     "hotel_name"
   ]
