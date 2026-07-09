@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import {
   Hotel, Plus, MapPin, Calendar, Phone, FileText, Trash2, Edit2,
-  X, Users, Home, BedDouble, Wand2, Check, Loader2, Navigation
+  X, Users, Home, BedDouble, Wand2, Check, Loader2, Navigation, Hash
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -53,6 +53,7 @@ function HotelCard({ booking, staffCount, onEdit, onDelete, onUnassign, staffMap
         <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
           {booking.room_type && <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" /> {booking.room_type}</span>}
           {booking.booking_reference && <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {booking.booking_reference}</span>}
+          {booking.po_number && <span className="flex items-center gap-1 font-medium text-slate-700"><Hash className="w-3 h-3 text-blue-500" /> PO: {booking.po_number}</span>}
           {booking.contact_phone && (
             <a href={`tel:${booking.contact_phone}`} className="flex items-center gap-1 text-blue-700 font-medium hover:underline"><Phone className="w-3 h-3" /> {booking.contact_phone}</a>
           )}
@@ -74,7 +75,7 @@ function HotelEditor({ open, onClose, booking, job, assignedStaff, onSave, allSt
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setForm(booking || { hotel_name: '', address: '', check_in_date: job?.start_date || '', check_out_date: job?.end_date || '', room_type: '', booking_reference: '', contact_phone: '', notes: '' });
+    setForm(booking || { hotel_name: '', address: '', check_in_date: job?.start_date || '', check_out_date: job?.end_date || '', room_type: '', booking_reference: '', po_number: '', contact_phone: '', notes: '' });
     setSelectedStaffIds(booking?.assigned_staff_ids || []);
   }, [booking, job, open]);
 
@@ -147,6 +148,10 @@ function HotelEditor({ open, onClose, booking, job, assignedStaff, onSave, allSt
               <label className="block text-xs font-medium text-slate-600 mb-1">Booking Ref</label>
               <input type="text" value={form.booking_reference || ''} onChange={e => setForm({ ...form, booking_reference: e.target.value })} className={inputCls} />
             </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">PO Number</label>
+            <input type="text" value={form.po_number || ''} onChange={e => setForm({ ...form, po_number: e.target.value })} className={inputCls} placeholder="Purchase order number" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Contact Phone</label>

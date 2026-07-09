@@ -54,6 +54,10 @@
       "type": "string",
       "description": "Booking confirmation / reference number"
     },
+    "po_number": {
+      "type": "string",
+      "description": "Purchase order (PO) number for this hotel booking"
+    },
     "room_type": {
       "type": "string",
       "description": "Room type (e.g. Single, Twin, Double)"
