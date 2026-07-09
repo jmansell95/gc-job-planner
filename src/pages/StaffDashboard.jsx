@@ -255,7 +255,7 @@ export default function StaffDashboard() {
     );
   }
 
-  if (!isWithinSiteHours()) {
+  if (!isWithinSiteHours() && !staff?.is_admin) {
     return <OutsideSiteHours openTime={SITE_OPEN_TIME} closeTime={SITE_CLOSE_TIME} />;
   }
 
