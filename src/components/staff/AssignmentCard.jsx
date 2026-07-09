@@ -63,7 +63,6 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
 
       {/* Compact header — always visible */}
       <button onClick={() => setExpanded(e => !e)} className="w-full text-left p-4 flex items-center gap-3 hover:bg-slate-50/60 transition">
-        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${jobTypeDot[job.job_type] || 'bg-slate-400'}`} />
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-bold text-slate-900 leading-tight truncate">{job.name}</h3>
           <div className="flex items-center gap-x-3 gap-y-1.5 mt-1.5 flex-wrap">
