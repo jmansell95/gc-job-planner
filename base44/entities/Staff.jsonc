@@ -10,6 +10,10 @@
       "type": "string",
       "description": "Staff member email address"
     },
+    "phone": {
+      "type": "string",
+      "description": "Staff member phone number"
+    },
     "worker_type": {
       "type": "string",
       "enum": [

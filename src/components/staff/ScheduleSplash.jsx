@@ -164,7 +164,7 @@ export default function ScheduleSplash({ assignments, jobs, vehicles, clients, t
               <div>
                 <p className="text-sm font-semibold text-blue-900">Daily workflow</p>
                 <p className="text-xs text-blue-700 mt-0.5 leading-relaxed">
-                  Each day: log your travel to site → complete the site briefing → add your daily tasks → submit your timesheet at the end of the shift.
+                  Each day: log your travel to site → complete the site briefing → add your daily tasks → submit your timesheet → log your travel from site to home.
                 </p>
               </div>
             </div>

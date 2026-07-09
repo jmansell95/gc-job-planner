@@ -63,6 +63,11 @@ export default function TeamMiniFeed({ teamId, currentStaffId }) {
                   </p>
                   {m.email && <p className="text-xs text-slate-400 truncate">{m.email}</p>}
                 </div>
+                {m.phone && (
+                  <a href={`tel:${m.phone}`} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition flex-shrink-0">
+                    <Phone className="w-4 h-4" />
+                  </a>
+                )}
                 {m.email && (
                   <a href={`mailto:${m.email}`} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition flex-shrink-0">
                     <Mail className="w-4 h-4" />

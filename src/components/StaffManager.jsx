@@ -27,7 +27,7 @@ export default function StaffManager() {
   const [inviteOnCreate, setInviteOnCreate] = useState(true);
   const [shiftOpenId, setShiftOpenId] = useState(null);
   const [complianceStaff, setComplianceStaff] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '', email_notifications_enabled: true });
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '', email_notifications_enabled: true });
 
   const queryClient = useQueryClient();
 
@@ -80,7 +80,7 @@ export default function StaffManager() {
       }
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
-      setFormData({ name: '', email: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '', email_notifications_enabled: true });
+      setFormData({ name: '', email: '', phone: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '', email_notifications_enabled: true });
       setShowForm(false);
       setEditingId(null);
     } catch (error) {
@@ -153,7 +153,7 @@ export default function StaffManager() {
   const resetForm = () => {
     setShowForm(!showForm);
     setEditingId(null);
-    setFormData({ name: '', email: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', email_notifications_enabled: true });
+    setFormData({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', email_notifications_enabled: true });
   };
 
   const activeCount = staff.filter(s => getUserForStaff(s)).length;
@@ -199,6 +199,7 @@ export default function StaffManager() {
             {[
               { label: 'Full Name', key: 'name', type: 'text', required: true },
               { label: 'Email Address', key: 'email', type: 'email', required: true },
+              { label: 'Phone Number', key: 'phone', type: 'tel', required: false },
             ].map(f => (
               <div key={f.key}>
                 <label className="block text-xs font-medium text-slate-600 mb-1">{f.label}{f.required && ' *'}</label>
