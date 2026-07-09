@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck, Plus, Trash2, Edit2, Upload, FileText, AlertTriangle, X, CheckCircle2, Clock, FileWarning, Search } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
+import { formatComplianceDate, complianceDaysUntil, parseComplianceDate } from '@/utils/complianceDate';
 
 const CATEGORIES = [
   { key: 'staff', label: 'Staff', color: 'bg-blue-100 text-blue-700' },
@@ -16,11 +17,10 @@ function getStatus(item) {
   if (item.status_override === 'not_required') return 'not_required';
   if (item.status_override === 'missing') return 'missing';
   if (!item.expiry_date) return 'compliant';
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const exp = new Date(item.expiry_date + 'T00:00:00');
-  const diff = differenceInDays(exp, today);
-  if (diff < 0) return 'expired';
-  if (diff <= 30) return 'expiring_soon';
+  const days = complianceDaysUntil(item.expiry_date);
+  if (days === null) return 'compliant';
+  if (days < 0) return 'expired';
+  if (days <= 30) return 'expiring_soon';
   return 'compliant';
 }
 
@@ -230,8 +230,8 @@ export default function ComplianceTracking() {
                   const status = STATUS_CONFIG[item._status];
                   const cat = CATEGORIES.find(c => c.key === item.category);
                   const StatusIcon = status.icon;
-                  const expDate = item.expiry_date ? new Date(item.expiry_date + 'T00:00:00') : null;
-                  const daysLeft = expDate ? differenceInDays(expDate, new Date()) : null;
+                  const expDate = item.expiry_date ? parseComplianceDate(item.expiry_date) : null;
+                  const daysLeft = item.expiry_date ? complianceDaysUntil(item.expiry_date) : null;
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
                       <td className="px-4 py-3">
@@ -246,7 +246,7 @@ export default function ComplianceTracking() {
                         {expDate ? (
                           <div>
                             <p className={`font-medium ${item._status === 'expired' ? 'text-red-600' : item._status === 'expiring_soon' ? 'text-amber-600' : 'text-slate-600'}`}>
-                              {format(expDate, 'dd MMM yyyy')}
+                              {item.expiry_date ? formatComplianceDate(item.expiry_date) : '—'}
                             </p>
                             {daysLeft !== null && item._status !== 'not_required' && (
                               <p className="text-xs text-slate-400">{daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : `${daysLeft}d left`}</p>

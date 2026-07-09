@@ -13,6 +13,7 @@ import EndOfDayCard from '@/components/staff/EndOfDayCard';
 import { useToast } from '@/components/ui/use-toast';
 import { syncPendingBriefings } from '@/utils/briefingSync';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME, SITE_EARLY_ACCESS_TIME } from '@/utils/siteHours';
+import { complianceDaysUntil } from '@/utils/complianceDate';
 import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
 import TravelFromSiteModal from '@/components/staff/TravelFromSiteModal';
 import ScheduleSplash from '@/components/staff/ScheduleSplash';
@@ -458,11 +459,15 @@ export default function StaffDashboard() {
         {/* Compliance status alert */}
         {(() => {
           const myItems = myCompliance.filter(i => i.reference_id === staff?.id || i.reference_name === staff?.name);
-          const expired = myItems.filter(i => i.expiry_date && new Date(i.expiry_date + 'T00:00:00') < new Date() && i.status_override === 'auto');
+          const expired = myItems.filter(i => {
+            if (!i.expiry_date || i.status_override !== 'auto') return false;
+            const days = complianceDaysUntil(i.expiry_date);
+            return days !== null && days < 0;
+          });
           const expiring = myItems.filter(i => {
             if (!i.expiry_date || i.status_override !== 'auto') return false;
-            const days = Math.ceil((new Date(i.expiry_date + 'T00:00:00') - new Date()) / 86400000);
-            return days >= 0 && days <= 30;
+            const days = complianceDaysUntil(i.expiry_date);
+            return days !== null && days >= 0 && days <= 30;
           });
           const hasCSCS = myItems.some(i => i.qualification_type === 'cscs_card' || /cscs/i.test(i.title));
           if (expired.length === 0 && expiring.length === 0 && hasCSCS) return null;

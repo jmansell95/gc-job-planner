@@ -45,13 +45,11 @@
     },
     "issue_date": {
       "type": "string",
-      "format": "date",
-      "description": "Date issued or last renewed"
+      "description": "Date issued or last renewed. Staff compliance uses YYYY-MM (month/year) format; other categories use YYYY-MM-DD."
     },
     "expiry_date": {
       "type": "string",
-      "format": "date",
-      "description": "When this compliance item expires"
+      "description": "When this compliance item expires. Staff compliance uses YYYY-MM (month/year) format; other categories use YYYY-MM-DD."
     },
     "document_url": {
       "type": "string",

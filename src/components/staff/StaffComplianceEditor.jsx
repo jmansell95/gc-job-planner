@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import { Plus, Trash2, Edit2, ShieldCheck, X, Upload, FileText, Loader2, CreditCard, Calendar, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
+import { formatComplianceDate, complianceDaysUntil } from '@/utils/complianceDate';
 
 const QUALIFICATION_TYPES = [
   { value: 'cscs_card', label: 'CSCS Card', requiresFrontBack: true },
@@ -19,7 +20,8 @@ function getStatus(item) {
   if (item.status_override === 'missing') return { label: 'Missing', Icon: XCircle, bg: 'bg-red-50', text: 'text-red-600', ring: 'ring-red-100' };
   if (item.status_override === 'not_required') return { label: 'N/A', Icon: CheckCircle2, bg: 'bg-slate-50', text: 'text-slate-400', ring: 'ring-slate-100' };
   if (!item.expiry_date) return { label: 'No Expiry', Icon: FileText, bg: 'bg-slate-50', text: 'text-slate-400', ring: 'ring-slate-100' };
-  const days = differenceInDays(new Date(item.expiry_date + 'T00:00:00'), new Date());
+  const days = complianceDaysUntil(item.expiry_date);
+  if (days === null) return { label: 'No Expiry', Icon: FileText, bg: 'bg-slate-50', text: 'text-slate-400', ring: 'ring-slate-100' };
   if (days < 0) return { label: 'Expired', Icon: XCircle, bg: 'bg-red-50', text: 'text-red-600', ring: 'ring-red-100' };
   if (days <= 30) return { label: `${days}d left`, Icon: AlertTriangle, bg: 'bg-amber-50', text: 'text-amber-600', ring: 'ring-amber-100' };
   return { label: 'Valid', Icon: CheckCircle2, bg: 'bg-emerald-50', text: 'text-emerald-600', ring: 'ring-emerald-100' };
@@ -186,12 +188,12 @@ export default function StaffComplianceEditor({ staffId, staffName }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Issue Date</label>
-              <input type="date" value={form.issue_date || ''} onChange={e => setForm({ ...form, issue_date: e.target.value })}
+              <input type="month" value={form.issue_date || ''} onChange={e => setForm({ ...form, issue_date: e.target.value })}
                 className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Expiry Date</label>
-              <input type="date" value={form.expiry_date || ''} onChange={e => setForm({ ...form, expiry_date: e.target.value })}
+              <input type="month" value={form.expiry_date || ''} onChange={e => setForm({ ...form, expiry_date: e.target.value })}
                 className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
             </div>
           </div>
@@ -285,8 +287,8 @@ export default function StaffComplianceEditor({ staffId, staffName }) {
                     </div>
                     {item.card_number && <p className="text-xs text-slate-500 mt-0.5">Card #: {item.card_number}</p>}
                     <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
-                      {item.issue_date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Issued: {format(new Date(item.issue_date + 'T00:00:00'), 'dd MMM yyyy')}</span>}
-                      {item.expiry_date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Expires: {format(new Date(item.expiry_date + 'T00:00:00'), 'dd MMM yyyy')}</span>}
+                      {item.issue_date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Issued: {formatComplianceDate(item.issue_date)}</span>}
+                      {item.expiry_date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Expires: {formatComplianceDate(item.expiry_date)}</span>}
                     </div>
                     {(item.document_url || item.back_document_url) && (
                       <div className="flex items-center gap-2 mt-2">

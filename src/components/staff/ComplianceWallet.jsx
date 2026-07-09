@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { format, differenceInDays } from 'date-fns';
+import { formatComplianceDate, complianceDaysUntil } from '@/utils/complianceDate';
 import { ShieldCheck, FileText, AlertTriangle, CheckCircle2, XCircle, CreditCard, Calendar, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 
@@ -9,7 +10,8 @@ function getComplianceStatus(item) {
   if (item.status_override === 'missing') return { color: 'red', label: 'Missing', Icon: XCircle, bg: 'bg-red-50', text: 'text-red-600', ring: 'ring-red-100', cardRing: 'ring-red-200' };
   if (item.status_override === 'not_required') return { color: 'slate', label: 'Not Required', Icon: CheckCircle2, bg: 'bg-slate-50', text: 'text-slate-400', ring: 'ring-slate-100', cardRing: 'ring-slate-200' };
   if (!item.expiry_date) return { color: 'slate', label: 'No Expiry', Icon: FileText, bg: 'bg-slate-50', text: 'text-slate-400', ring: 'ring-slate-100', cardRing: 'ring-slate-200' };
-  const days = differenceInDays(new Date(item.expiry_date + 'T00:00:00'), new Date());
+  const days = complianceDaysUntil(item.expiry_date);
+  if (days === null) return { color: 'slate', label: 'No Expiry', Icon: FileText, bg: 'bg-slate-50', text: 'text-slate-400', ring: 'ring-slate-100', cardRing: 'ring-slate-200' };
   if (days < 0) return { color: 'red', label: 'Expired', Icon: XCircle, bg: 'bg-red-50', text: 'text-red-600', ring: 'ring-red-100', cardRing: 'ring-red-200' };
   if (days <= 30) return { color: 'amber', label: `${days}d left`, Icon: AlertTriangle, bg: 'bg-amber-50', text: 'text-amber-600', ring: 'ring-amber-100', cardRing: 'ring-amber-200' };
   return { color: 'green', label: 'Valid', Icon: CheckCircle2, bg: 'bg-emerald-50', text: 'text-emerald-600', ring: 'ring-emerald-100', cardRing: 'ring-emerald-200' };
@@ -29,8 +31,8 @@ export default function ComplianceWallet({ staffId, staffName }) {
   const myItems = allItems.filter(i => i.reference_id === staffId || (staffName && i.reference_name === staffName));
   const expiringCount = myItems.filter(i => {
     if (!i.expiry_date) return false;
-    const days = differenceInDays(new Date(i.expiry_date + 'T00:00:00'), new Date());
-    return days <= 30;
+    const days = complianceDaysUntil(i.expiry_date);
+    return days !== null && days <= 30;
   }).length;
 
   return (
@@ -74,7 +76,7 @@ export default function ComplianceWallet({ staffId, staffName }) {
                     </div>
                     {item.expiry_date && (
                       <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" /> Expires {format(new Date(item.expiry_date + 'T00:00:00'), 'dd MMM yyyy')}
+                        <Calendar className="w-3 h-3" /> Expires {formatComplianceDate(item.expiry_date)}
                       </p>
                     )}
                     {item.card_number && (
@@ -92,7 +94,7 @@ export default function ComplianceWallet({ staffId, staffName }) {
                   <div className="px-3 pb-3 pt-1 border-t border-slate-200/50">
                     {item.issue_date && (
                       <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" /> Issued: {format(new Date(item.issue_date + 'T00:00:00'), 'dd MMM yyyy')}
+                        <Calendar className="w-3 h-3" /> Issued: {formatComplianceDate(item.issue_date)}
                       </p>
                     )}
 
