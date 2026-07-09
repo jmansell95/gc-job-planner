@@ -88,9 +88,9 @@ export default function TeamManager() {
     const subs = subTeamsOf(team.id);
     const members = membersOf(team.id);
     const bits = [];
-    if (subs.length) bits.push(`${subs.length} sub-team${subs.length === 1 ? '' : 's'}`);
-    if (members.length) bits.push(`${members.length} staff member${members.length === 1 ? '' : 's'} (they'll become unassigned)`);
-    const msg = bits.length ? `This team has ${bits.join(' and ')}. Delete it anyway?` : 'Are you sure?';
+    if (subs.length) bits.push(`${subs.length} sub-crew${subs.length === 1 ? '' : 's'}`);
+    if (members.length) bits.push(`${members.length} crew member${members.length === 1 ? '' : 's'} (they'll become unassigned)`);
+    const msg = bits.length ? `This crew has ${bits.join(' and ')}. Delete it anyway?` : 'Are you sure?';
     if (confirm(msg)) {
       try {
         await base44.entities.Team.delete(team.id);
@@ -149,7 +149,7 @@ export default function TeamManager() {
                 )}
                 {!isSub && subs.length > 0 && (
                   <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
-                    <GitBranch className="w-3 h-3" /> {subs.length} sub-team{subs.length === 1 ? '' : 's'}
+                    <GitBranch className="w-3 h-3" /> {subs.length} sub-crew{subs.length === 1 ? '' : 's'}
                   </span>
                 )}
                 {!isSub && totalPeople > members.length && (
@@ -169,7 +169,7 @@ export default function TeamManager() {
           </div>
           <div className="flex gap-1 md:gap-2 flex-shrink-0">
             {!isSub && (
-              <button onClick={() => openCreate(team.id)} title="Add sub-team" className="p-1.5 md:p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition">
+              <button onClick={() => openCreate(team.id)} title="Add sub-crew" className="p-1.5 md:p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition">
                 <Plus className="w-4 h-4" />
               </button>
             )}
@@ -202,16 +202,16 @@ export default function TeamManager() {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-        <PageHeader title="Manage Teams" icon={Users} />
+        <PageHeader title="Manage Crews" icon={Users} />
         <button onClick={() => openCreate()} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium self-start md:self-auto">
-          <Plus className="w-4 h-4" /> Add Team
+          <Plus className="w-4 h-4" /> Add Crew
         </button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 md:gap-4 mb-6">
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 md:p-4">
-          <p className="text-xs text-slate-500 font-medium">Teams</p>
+          <p className="text-xs text-slate-500 font-medium">Crews</p>
           <p className="text-xl md:text-2xl font-bold text-slate-900 mt-1">{teams.length}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 md:p-4">
@@ -228,21 +228,21 @@ export default function TeamManager() {
         <form onSubmit={handleSubmit} className="bg-white rounded-xl p-4 md:p-6 border border-emerald-200 mb-6 shadow-sm">
           <div className="space-y-4 md:space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Team Name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Crew Name</label>
               <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600" />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Parent Team {presetParent && <span className="text-xs text-emerald-600 font-normal">(sub-team)</span>}
+                Parent Crew {presetParent && <span className="text-xs text-emerald-600 font-normal">(sub-crew)</span>}
               </label>
               <select value={formData.parent_team_id} onChange={(e) => setFormData({ ...formData, parent_team_id: e.target.value })}
                 disabled={!!editingId && editingId === formData.parent_team_id}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
-                <option value="">— Top-level team group —</option>
+                <option value="">— Top-level crew group —</option>
                 {parentTeams.filter(t => t.id !== editingId).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}
               </select>
-              <p className="text-xs text-slate-400 mt-1">Leave blank for a team group; pick a parent to create a sub-team under it.</p>
+              <p className="text-xs text-slate-400 mt-1">Leave blank for a crew group; pick a parent to create a sub-crew under it.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Job Type</label>
@@ -255,10 +255,10 @@ export default function TeamManager() {
                 <option value="enabling_works">Enabling Works</option>
                 <option value="depot">Depot</option>
               </select>
-              <p className="text-xs text-slate-400 mt-1">Staff in this team can only be assigned to matching job types. Leave flexible for supervisors/managers.</p>
+              <p className="text-xs text-slate-400 mt-1">Crew members in this crew can only be assigned to matching job types. Leave flexible for supervisors/managers.</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Team Description</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Crew Description</label>
               <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600" rows="3" />
             </div>
@@ -319,13 +319,13 @@ export default function TeamManager() {
                     );
                   })}
                 </div>
-                <p className="text-xs text-slate-400 mt-2">Pick which sections this team can access. Field teams typically only need "Schedule View". Selecting a group above auto-fills sensible defaults.</p>
+                <p className="text-xs text-slate-400 mt-2">Pick which sections this crew can access. Field crews typically only need "Schedule View". Selecting a group above auto-fills sensible defaults.</p>
               </div>
             </div>
           </div>
           <div className="flex gap-3 mt-6">
             <button type="submit" className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">
-              {editingId ? 'Update Team' : 'Add Team'}
+              {editingId ? 'Update Crew' : 'Add Crew'}
             </button>
             <button type="button" onClick={() => { setShowForm(false); setPresetParent(null); }}
               className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition font-medium text-sm">
@@ -346,7 +346,7 @@ export default function TeamManager() {
         </div>
       ) : teams.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">
-          No teams yet — add your first team group above, then assign staff to it from the Staff tab.
+          No crews yet — add your first crew group above, then assign crew members to it from the Crews tab.
         </div>
       ) : (
         <div className="space-y-4">
@@ -359,8 +359,8 @@ export default function TeamManager() {
         <div className="mt-6 bg-amber-50/50 rounded-xl border border-amber-200 p-4 md:p-6">
           <div className="flex items-center gap-2 mb-3">
             <UserMinus className="w-4 h-4 text-amber-600" />
-            <h3 className="font-semibold text-slate-900 text-sm">Unassigned Staff ({unassignedStaff.length})</h3>
-            <span className="text-xs text-slate-500">— assign them a team from the Staff tab</span>
+            <h3 className="font-semibold text-slate-900 text-sm">Unassigned Crew ({unassignedStaff.length})</h3>
+            <span className="text-xs text-slate-500">— assign them a crew from the Crews tab</span>
           </div>
           <div className="bg-white rounded-lg border border-amber-100 divide-y divide-slate-50">
             {unassignedStaff.map(m => <MemberRow key={m.id} m={m} />)}

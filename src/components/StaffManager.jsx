@@ -59,19 +59,19 @@ export default function StaffManager() {
           payload.invite_sent = false;
         }
         await base44.entities.Staff.update(editingId, payload);
-        toast({ title: 'Staff member updated' });
+        toast({ title: 'Crew member updated' });
       } else {
         const created = await base44.entities.Staff.create(payload);
         if (inviteOnCreate && formData.email) {
           try {
             await base44.users.inviteUser(formData.email, 'user');
             await base44.entities.Staff.update(created.id, { invite_sent: true });
-            toast({ title: 'Staff added', description: `Invite sent to ${formData.email}` });
+            toast({ title: 'Crew member added', description: `Invite sent to ${formData.email}` });
           } catch (err) {
-            toast({ title: 'Staff added', description: 'App invite could not be sent — use the "Send app invite" button on the card.', variant: 'destructive' });
+            toast({ title: 'Crew member added', description: 'App invite could not be sent — use the "Send app invite" button on the card.', variant: 'destructive' });
           }
         } else {
-          toast({ title: 'Staff member added' });
+          toast({ title: 'Crew member added' });
         }
       }
       queryClient.invalidateQueries({ queryKey: ['staff'] });
@@ -80,7 +80,7 @@ export default function StaffManager() {
       setShowForm(false);
       setEditingId(null);
     } catch (error) {
-      toast({ title: 'Could not save staff member', description: error?.message || 'Please check all fields and try again.', variant: 'destructive' });
+      toast({ title: 'Could not save crew member', description: error?.message || 'Please check all fields and try again.', variant: 'destructive' });
     } finally {
       setSubmitting(false);
     }
@@ -103,7 +103,7 @@ export default function StaffManager() {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       toast({ title: `${member.name} deleted` });
     } catch (error) {
-      toast({ title: 'Could not delete staff member', description: error?.message, variant: 'destructive' });
+      toast({ title: 'Could not delete crew member', description: error?.message, variant: 'destructive' });
     }
   };
 
@@ -138,11 +138,11 @@ export default function StaffManager() {
     const rows = staff.map(s =>
       `<tr><td>${s.name}</td><td>${s.email}</td><td>${formatWorkerType(s.worker_type)}</td><td>${teams.find(t => t.id === s.team_id)?.name || '—'}</td><td>${getUserForStaff(s) ? 'Yes' : 'No'}</td></tr>`
     ).join('');
-    return `<!DOCTYPE html><html><head><title>Staff Report</title>
+    return `<!DOCTYPE html><html><head><title>Crew Report</title>
     <style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#111}h1{font-size:16px;margin-bottom:4px}p{color:#555;font-size:11px;margin-bottom:12px}table{width:100%;border-collapse:collapse}th{background:#1a5c3a;color:white;padding:6px 8px;text-align:left;font-size:11px}td{padding:5px 8px;border-bottom:1px solid #e2e8f0}tr:nth-child(even) td{background:#f8fafb}@media print{body{margin:10mm}}</style>
-    </head><body><h1>Staff Report</h1>
-    <p>${staff.length} staff members &nbsp;&middot;&nbsp; Printed ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</p>
-    <table><thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Team</th><th>App Access</th></tr></thead>
+    </head><body><h1>Crew Report</h1>
+    <p>${staff.length} crew members &nbsp;&middot;&nbsp; Printed ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</p>
+    <table><thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Crew</th><th>App Access</th></tr></thead>
     <tbody>${rows}</tbody></table></body></html>`;
   };
 
@@ -159,11 +159,11 @@ export default function StaffManager() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <PageHeader title="Manage Staff" icon={Users} />
+        <PageHeader title="Manage Crew" icon={Users} />
         <div className="flex items-center gap-2">
           <PrintReportButton buildHtml={buildStaffPrintHtml} label="Print" />
           <button onClick={resetForm} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-            <Plus className="w-4 h-4" /> Add Staff
+            <Plus className="w-4 h-4" /> Add Crew Member
           </button>
         </div>
       </div>
@@ -171,7 +171,7 @@ export default function StaffManager() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <p className="text-xs text-slate-500 font-medium">Total Staff</p>
+          <p className="text-xs text-slate-500 font-medium">Total Crew</p>
           <p className="text-2xl font-bold text-slate-900 mt-1">{staff.length}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
@@ -190,7 +190,7 @@ export default function StaffManager() {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl p-5 border border-emerald-200 mb-6 shadow-sm">
-          <h3 className="font-semibold text-slate-900 mb-4">{editingId ? 'Edit Staff Member' : 'New Staff Member'}</h3>
+          <h3 className="font-semibold text-slate-900 mb-4">{editingId ? 'Edit Crew Member' : 'New Crew Member'}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               { label: 'Full Name', key: 'name', type: 'text', required: true },
@@ -212,10 +212,10 @@ export default function StaffManager() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Team *</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Crew *</label>
               <select value={formData.team_id} onChange={e => setFormData({ ...formData, team_id: e.target.value })} required
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="">Select Team</option>
+                <option value="">Select Crew</option>
                 {teams.map(t => {
                   const parent = teams.find(p => p.id === t.parent_team_id);
                   return <option key={t.id} value={t.id}>{parent ? `${parent.name} — ${t.name}` : t.name}</option>;
@@ -274,7 +274,7 @@ export default function StaffManager() {
 
           <div className="flex gap-2 mt-5">
             <button type="submit" disabled={submitting} className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm disabled:opacity-50">
-              {submitting ? 'Saving...' : editingId ? 'Update' : 'Add'} Staff Member
+              {submitting ? 'Saving...' : editingId ? 'Update' : 'Add'} Crew Member
             </button>
             <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm">
               Cancel
@@ -286,7 +286,7 @@ export default function StaffManager() {
       {staffLoading || teamsLoading ? (
         <CardGridSkeleton count={6} />
       ) : staff.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">No staff yet. Add your first staff member above.</div>
+        <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">No crew yet. Add your first crew member above.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {staff.map(member => {

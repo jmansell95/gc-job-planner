@@ -38,7 +38,7 @@ export default function TeamMiniFeed({ teamId, currentStaffId }) {
         <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
           <Users className="w-4 h-4 text-emerald-700" />
         </div>
-        <h2 className="text-lg font-bold text-slate-900">My Team</h2>
+        <h2 className="text-lg font-bold text-slate-900">My Crew</h2>
       </div>
 
       {staffLoading ? (
@@ -46,7 +46,7 @@ export default function TeamMiniFeed({ teamId, currentStaffId }) {
           {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}
         </div>
       ) : teamMembers.length === 0 ? (
-        <EmptyState icon={Users} title="No team members" message="You're not part of a team yet." />
+        <EmptyState icon={Users} title="No crew members" message="You're not part of a crew yet." />
       ) : (
         <div className="space-y-4">
           {/* Team contacts */}

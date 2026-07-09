@@ -86,7 +86,7 @@ export default function StaffProfile() {
           <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
             <HardHat className="w-7 h-7 text-slate-400" />
           </div>
-          <p className="text-slate-700 font-semibold">No staff profile found</p>
+          <p className="text-slate-700 font-semibold">No crew profile found</p>
           <p className="text-slate-400 text-sm mt-1">Contact your supervisor to get set up.</p>
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function StaffProfile() {
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-5 md:space-y-6">
         {/* Quick Stats */}
-        <ProfileStats staffId={staff.id} />
+        <ProfileStats staffId={staff.id} jobType={staff.team?.job_type} />
 
         {/* Daily Diary */}
         <DailyDiary staffId={staff.id} />

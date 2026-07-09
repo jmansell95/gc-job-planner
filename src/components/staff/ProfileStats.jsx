@@ -9,7 +9,7 @@ const fmtH = (mins) => {
   return h.toFixed(1) + 'h';
 };
 
-export default function ProfileStats({ staffId }) {
+export default function ProfileStats({ staffId, jobType }) {
   const { data: summaries = [] } = useQuery({
     queryKey: ['profile-stats', staffId],
     queryFn: () => base44.entities.Timesheet.filter({ staff_id: staffId, is_summary: true }, '-date', 200),
@@ -32,16 +32,17 @@ export default function ProfileStats({ staffId }) {
 
   const pendingCount = summaries.filter(s => s.status === 'submitted').length;
   const totalMeterage = validSummaries.reduce((sum, s) => sum + (Number(s.meterage) || 0), 0);
+  const isDrillingCrew = jobType === 'cp_drilling' || jobType === 'rotary_drilling';
 
   const stats = [
     { label: 'This Week', value: fmtH(weekMins), icon: Clock, gradient: 'stat-gradient-emerald' },
     { label: 'This Month', value: fmtH(monthMins), icon: Calendar, gradient: 'stat-gradient-blue' },
     { label: 'Pending Approval', value: pendingCount, icon: ClipboardCheck, gradient: 'stat-gradient-amber' },
-    { label: 'Total Meterage', value: totalMeterage > 0 ? totalMeterage + 'm' : '—', icon: Ruler, gradient: 'stat-gradient-slate' },
+    ...(isDrillingCrew ? [{ label: 'Total Meterage', value: totalMeterage > 0 ? totalMeterage + 'm' : '—', icon: Ruler, gradient: 'stat-gradient-slate' }] : []),
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className={`grid grid-cols-2 gap-3 ${isDrillingCrew ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
       {stats.map(stat => (
         <div key={stat.label} className={`${stat.gradient} rounded-2xl p-4 text-white shadow-sm`}>
           <div className="flex items-center gap-2 mb-1.5">

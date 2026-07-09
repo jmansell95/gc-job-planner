@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
         id: team.id,
         name: team.name,
         category: team.category || null,
+        job_type: team.job_type || null,
         default_landing_page: team.default_landing_page || null,
         allowed_tool_access: team.allowed_tool_access || []
       } : null,
