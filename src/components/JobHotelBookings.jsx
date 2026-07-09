@@ -165,19 +165,21 @@ function HotelEditor({ open, onClose, booking, job, assignedStaff, onSave, allSt
           {/* Staff assignment grid */}
           <div className="pt-2 border-t border-slate-100">
             <label className="block text-xs font-medium text-slate-600 mb-2">Assigned Crew ({selectedStaffIds.length})</label>
-            {assignedStaff.length === 0 ? (
-              <p className="text-xs text-slate-400">No staff assigned to this job yet.</p>
+            {allStaff.length === 0 ? (
+              <p className="text-xs text-slate-400">No crew members available.</p>
             ) : (
               <div className="grid grid-cols-1 gap-1.5 max-h-48 overflow-y-auto">
-                {assignedStaff.map((member, i) => {
+                {allStaff.map((member) => {
                   const selected = selectedStaffIds.includes(member.id);
+                  const onJob = assignedStaff.some(s => s.id === member.id);
                   return (
                     <button key={member.id} type="button" onClick={() => toggleStaff(member.id)}
                       className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition text-left ${selected ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
                       <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 ${selected ? 'bg-blue-600' : 'bg-white border border-slate-300'}`}>
                         {selected && <Check className="w-3 h-3 text-white" />}
                       </div>
-                      {member.name}
+                      <span className="flex-1">{member.name}</span>
+                      {onJob && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">On job</span>}
                     </button>
                   );
                 })}
