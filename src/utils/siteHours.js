@@ -1,5 +1,5 @@
-export const SITE_OPEN_TIME = '06:00';
-export const SITE_CLOSE_TIME = '20:00';
+export const SITE_OPEN_TIME = '08:00';
+export const SITE_CLOSE_TIME = '17:00';
 export const CHECK_IN_DEADLINE = '08:15';
 
 export function getCurrentTimeStr() {

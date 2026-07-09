@@ -4,7 +4,7 @@ import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, Chec
 import { format } from 'date-fns';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import { formatJobType } from '@/utils/format';
-import { isCheckInDeadlinePassed } from '@/utils/siteHours';
+import { isCheckInDeadlinePassed, isWithinSiteHours } from '@/utils/siteHours';
 
 const jobTypeDot = {
   groundworks: 'bg-green-500',
@@ -106,7 +106,11 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
           {/* Quick actions row */}
           <div className="flex flex-wrap gap-2 mb-4">
             {(assignment.status || 'assigned') === 'assigned' && (
-              canStart ? (
+              !isWithinSiteHours() ? (
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold">
+                  <Clock className="w-3.5 h-3.5 flex-shrink-0" /> Outside working hours (8am–5pm) — come back tomorrow
+                </div>
+              ) : canStart ? (
                 deadlinePassed ? (
                   <div className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-xl text-xs font-semibold ring-1 ring-red-200">
                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> Check-in deadline passed (8:15 AM) — contact your supervisor
@@ -149,7 +153,7 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
           </div>
 
           {/* Progress notes — for multi-day jobs */}
-          {assignment.status === 'started' && (
+          {assignment.status === 'started' && isWithinSiteHours() && (
             <div className="mb-4">
               <label className="block text-xs font-medium text-slate-600 mb-1.5">End-of-shift progress notes (optional)</label>
               <textarea value={progressNote} onChange={e => setProgressNote(e.target.value)} rows={2} placeholder="What was done today? What's left for the next shift?"
