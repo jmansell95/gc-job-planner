@@ -440,18 +440,18 @@ export default function StaffDashboard() {
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-8">
         {/* Info banners — consolidated stack */}
-        <div className="space-y-2.5 mb-5">
+        <div className="space-y-2 mb-5">
           {/* Early access — most important, shown first */}
           {!canPerformActions && isBeforeSiteOpen() && (
-            <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-900">
+            <div className="flex items-center gap-2.5 bg-blue-50/80 border border-blue-100 rounded-xl px-4 py-3 text-sm text-blue-900">
               <Clock className="w-4 h-4 text-blue-600 flex-shrink-0" />
-              <p className="font-medium">Early access — you can view today's schedule, but work actions unlock at {SITE_OPEN_TIME}.</p>
+              <p className="font-medium">Early access — work actions unlock at {SITE_OPEN_TIME}.</p>
             </div>
           )}
 
           {/* WhatsApp reminder */}
-          <div className="flex items-center gap-2 bg-emerald-50/70 border border-emerald-100 rounded-xl px-4 py-2.5 text-sm text-emerald-900">
-            <MessageCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm text-slate-600">
+            <MessageCircle className="w-4 h-4 text-slate-400 flex-shrink-0" />
             <p className="font-medium">Check WhatsApp groups for updates at the start of each working day.</p>
           </div>
         </div>
@@ -474,10 +474,12 @@ export default function StaffDashboard() {
           const isUrgent = expired.length > 0 || !hasCSCS;
           return (
             <button onClick={() => navigate('/staff-profile')} type="button"
-              className={`mb-5 w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-left transition ${isUrgent ? 'bg-red-50 border border-red-200 text-red-900' : 'bg-amber-50 border border-amber-200 text-amber-900'}`}>
-              <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
+              className={`mb-5 w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm text-left transition shadow-sm ${isUrgent ? 'bg-red-50 border border-red-100 text-red-900' : 'bg-amber-50 border border-amber-100 text-amber-900'}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isUrgent ? 'bg-red-100' : 'bg-amber-100'}`}>
+                <AlertTriangle className={`w-5 h-5 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
+              </div>
               <div className="min-w-0 flex-1">
-                <p className="font-semibold">{expired.length > 0 ? `${expired.length} compliance item${expired.length > 1 ? 's' : ''} expired` : expiring.length > 0 ? `${expiring.length} item${expiring.length > 1 ? 's' : ''} expiring soon` : 'CSCS card not on file'}</p>
+                <p className="font-bold">{expired.length > 0 ? `${expired.length} compliance item${expired.length > 1 ? 's' : ''} expired` : expiring.length > 0 ? `${expiring.length} item${expiring.length > 1 ? 's' : ''} expiring soon` : 'CSCS card not on file'}</p>
                 <p className="text-xs opacity-80 mt-0.5">{expired.length > 0 ? 'Tap to view details in your profile.' : expiring.length > 0 ? 'Tap to check your compliance wallet.' : 'Field staff need a valid CSCS card. Tap to view your profile.'}</p>
               </div>
               <ShieldCheck className={`w-5 h-5 flex-shrink-0 ${isUrgent ? 'text-red-400' : 'text-amber-400'}`} />
