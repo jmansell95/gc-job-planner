@@ -15,6 +15,7 @@ import { syncPendingBriefings } from '@/utils/briefingSync';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME, SITE_EARLY_ACCESS_TIME } from '@/utils/siteHours';
 import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
 import TravelFromSiteModal from '@/components/staff/TravelFromSiteModal';
+import ScheduleSplash from '@/components/staff/ScheduleSplash';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -40,6 +41,7 @@ export default function StaffDashboard() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [briefingAssignment, setBriefingAssignment] = useState(null);
   const [travelFromAssignment, setTravelFromAssignment] = useState(null);
+  const [splashDismissed, setSplashDismissed] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -122,6 +124,7 @@ export default function StaffDashboard() {
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
   const { data: allStaff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
+  const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: allAssignments = [] } = useQuery({ queryKey: ['all-rota-assignments'], queryFn: () => base44.entities.RotaAssignment.list('-created_date', 500) });
   const { data: mgrTimesheets = [] } = useQuery({ queryKey: ['all-timesheets-mgr'], queryFn: () => base44.entities.Timesheet.list('-created_date', 500) });
   const { data: rotaWeeks = [] } = useQuery({ queryKey: ['rota-weeks'], queryFn: () => base44.entities.RotaWeek.list() });
@@ -224,6 +227,17 @@ export default function StaffDashboard() {
     }
   };
 
+  const handleAcknowledgeSchedule = async (weekStart) => {
+    try {
+      await base44.functions.invoke('acknowledgeSchedule', { week_start: weekStart });
+      setStaff(prev => prev ? { ...prev, last_acknowledged_week: weekStart } : prev);
+    } catch (error) {
+      console.error('Error acknowledging schedule:', error);
+    } finally {
+      setSplashDismissed(true);
+    }
+  };
+
   const handleStartAttempt = (assignmentId) => {
     const assignment = assignments.find(a => a.id === assignmentId);
     if (!assignment) return;
@@ -288,6 +302,29 @@ export default function StaffDashboard() {
     );
   }
 
+  // Schedule splash — staff must acknowledge their weekly rota before proceeding.
+  // Shown before the site-hours check so they can review the schedule any time.
+  const publishedWeekStarts = rotaWeeks.filter(w => w.status === 'published' && !w.superseded).map(w => w.week_start);
+  const latestPublishedWeek = publishedWeekStarts.length > 0 ? [...publishedWeekStarts].sort().reverse()[0] : null;
+  const needsSplash = !splashDismissed && staff && latestPublishedWeek && latestPublishedWeek !== (staff.last_acknowledged_week || null);
+
+  if (needsSplash) {
+    const splashAssignments = assignments.filter(a => publishedWeekStarts.includes(a.week_start));
+    return (
+      <ScheduleSplash
+        assignments={splashAssignments}
+        jobs={jobs}
+        vehicles={vehicles}
+        clients={clients}
+        teams={teams}
+        staff={staff}
+        weekStart={latestPublishedWeek}
+        loading={assignmentsLoading}
+        onAcknowledge={() => handleAcknowledgeSchedule(latestPublishedWeek)}
+      />
+    );
+  }
+
   if (!isWithinSiteHours() && !isBeforeSiteOpen() && !staff?.is_admin) {
     return <OutsideSiteHours openTime={SITE_OPEN_TIME} closeTime={SITE_CLOSE_TIME} />;
   }
@@ -312,7 +349,7 @@ export default function StaffDashboard() {
 
   const nextTodayAssignment = todaysAssignments.find(a => (a.status || 'assigned') !== 'completed');
   const todaysAllDone = todaysAssignments.length > 0 && !nextTodayAssignment;
-  const heroAssignment = nextTodayAssignment || upcomingAssignments[0];
+  const heroAssignment = nextTodayAssignment || null;
   const isHeroStarted = heroAssignment?.status === 'started' && heroAssignment?.assigned_date === todayStr;
 
   const reporters = allStaff.filter(s => s.manager_id === staff.id);
@@ -487,41 +524,7 @@ export default function StaffDashboard() {
               </div>
             )}
 
-            {/* Upcoming assignments */}
-            {upcomingAssignments.length > 0 && (
-              <div>
-                <SectionHeader icon={Calendar} title="Upcoming" count={upcomingAssignments.length} />
-                <motion.div variants={listContainer} initial="hidden" animate="show" className="space-y-3">
-                  {upcomingAssignments.slice(0, 5).map(a => (
-                    <AssignmentCard key={a.id} {...cardProps(a)} />
-                  ))}
-                </motion.div>
-              </div>
-            )}
 
-            {/* Recently completed */}
-            {pastAssignments.some(a => a.status === 'completed') && (
-              <div>
-                <SectionHeader icon={History} title="Recently Completed" count={pastAssignments.filter(a => a.status === 'completed').length} tone="muted" />
-                <div className="space-y-2">
-                  {pastAssignments.filter(a => a.status === 'completed').slice(0, 4).map(a => {
-                    const job = jobs.find(j => j.id === a.job_id);
-                    return (
-                      <div key={a.id} className="bg-white rounded-xl border border-slate-200 px-4 py-3 flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-slate-900 truncate">{job?.name || 'Unknown'}</p>
-                          <p className="text-xs text-slate-400">{format(new Date(a.assigned_date + 'T00:00:00'), 'EEE dd MMM')}</p>
-                        </div>
-                        {a.meterage > 0 && <span className="text-xs font-semibold text-amber-600">{a.meterage}m</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         )}
 

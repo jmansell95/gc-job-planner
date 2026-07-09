@@ -24,8 +24,9 @@ Deno.serve(async (req) => {
         team: null,
         is_admin: isAdmin,
         no_staff_profile: true,
-        email_notifications_enabled: true
-      });
+        email_notifications_enabled: true,
+          last_acknowledged_week: null
+        });
     }
 
     const s = staff[0];
@@ -55,7 +56,8 @@ Deno.serve(async (req) => {
         allowed_tool_access: team.allowed_tool_access || []
       } : null,
       is_admin: isAdmin,
-      email_notifications_enabled: s.email_notifications_enabled !== false
+      email_notifications_enabled: s.email_notifications_enabled !== false,
+      last_acknowledged_week: s.last_acknowledged_week || null
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
