@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, MessageCircle, History, CheckCircle2, UserCircle } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, MessageCircle, History, CheckCircle2, UserCircle, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isPast } from 'date-fns';
 import DailyTaskLog from '@/components/DailyTaskLog';
@@ -123,6 +123,7 @@ export default function StaffDashboard() {
   const { data: allAssignments = [] } = useQuery({ queryKey: ['all-rota-assignments'], queryFn: () => base44.entities.RotaAssignment.list('-created_date', 500) });
   const { data: mgrTimesheets = [] } = useQuery({ queryKey: ['all-timesheets-mgr'], queryFn: () => base44.entities.Timesheet.list('-created_date', 500) });
   const { data: rotaWeeks = [] } = useQuery({ queryKey: ['rota-weeks'], queryFn: () => base44.entities.RotaWeek.list() });
+  const { data: myCompliance = [] } = useQuery({ queryKey: ['staff-compliance', staff?.id], queryFn: () => base44.entities.ComplianceItem.filter({ category: 'staff' }), enabled: !!staff?.id });
 
   const handleStartJob = async (assignmentId) => {
     try {
@@ -364,6 +365,31 @@ export default function StaffDashboard() {
           <MessageCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
           <p className="font-medium">Check WhatsApp groups for updates at the start of each working day.</p>
         </div>
+
+        {/* Compliance status alert */}
+        {(() => {
+          const myItems = myCompliance.filter(i => i.reference_id === staff?.id || i.reference_name === staff?.name);
+          const expired = myItems.filter(i => i.expiry_date && new Date(i.expiry_date + 'T00:00:00') < new Date() && i.status_override === 'auto');
+          const expiring = myItems.filter(i => {
+            if (!i.expiry_date || i.status_override !== 'auto') return false;
+            const days = Math.ceil((new Date(i.expiry_date + 'T00:00:00') - new Date()) / 86400000);
+            return days >= 0 && days <= 30;
+          });
+          const hasCSCS = myItems.some(i => i.qualification_type === 'cscs_card' || /cscs/i.test(i.title));
+          if (expired.length === 0 && expiring.length === 0 && hasCSCS) return null;
+          const isUrgent = expired.length > 0 || !hasCSCS;
+          return (
+            <button onClick={() => navigate('/staff-profile')} type="button"
+              className={`mb-5 w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-left transition ${isUrgent ? 'bg-red-50 border border-red-200 text-red-900' : 'bg-amber-50 border border-amber-200 text-amber-900'}`}>
+              <AlertTriangle className={`w-5 h-5 flex-shrink-0 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">{expired.length > 0 ? `${expired.length} compliance item${expired.length > 1 ? 's' : ''} expired` : expiring.length > 0 ? `${expiring.length} item${expiring.length > 1 ? 's' : ''} expiring soon` : 'CSCS card not on file'}</p>
+                <p className="text-xs opacity-80 mt-0.5">{expired.length > 0 ? 'Tap to view details in your profile.' : expiring.length > 0 ? 'Tap to check your compliance wallet.' : 'Field staff need a valid CSCS card. Tap to view your profile.'}</p>
+              </div>
+              <ShieldCheck className={`w-5 h-5 flex-shrink-0 ${isUrgent ? 'text-red-400' : 'text-amber-400'}`} />
+            </button>
+          );
+        })()}
 
         {!isOnline && (
           <div className="mb-5 flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">

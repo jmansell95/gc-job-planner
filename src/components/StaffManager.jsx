@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, BellOff } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, BellOff, ShieldCheck } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import StaffComplianceEditor from '@/components/staff/StaffComplianceEditor';
 import PageHeader from '@/components/PageHeader';
 import PrintReportButton from '@/components/PrintReportButton';
 import { CardGridSkeleton } from '@/components/StateViews';
@@ -23,6 +25,7 @@ export default function StaffManager() {
   const [inviteLoading, setInviteLoading] = useState(null);
   const [inviteOnCreate, setInviteOnCreate] = useState(true);
   const [shiftOpenId, setShiftOpenId] = useState(null);
+  const [complianceStaff, setComplianceStaff] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '', email_notifications_enabled: true });
 
   const queryClient = useQueryClient();
@@ -355,6 +358,7 @@ export default function StaffManager() {
                 )}
 
                 <div className="flex gap-1 justify-end mt-auto">
+                  <button onClick={() => setComplianceStaff(member)} className="p-2 rounded-lg transition text-emerald-600 hover:bg-emerald-50" title="Compliance"><ShieldCheck className="w-4 h-4" /></button>
                   <button onClick={() => setShiftOpenId(shiftOpenId === member.id ? null : member.id)} className={`p-2 rounded-lg transition ${shiftOpenId === member.id ? 'text-emerald-600 bg-emerald-50' : 'text-slate-500 hover:bg-slate-100'}`} title="Shift times"><Clock className="w-4 h-4" /></button>
                   <button onClick={() => handleEdit(member)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
                   <button onClick={() => handleDelete(member)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
@@ -370,6 +374,19 @@ export default function StaffManager() {
           })}
         </div>
       )}
+
+      {/* Compliance Editor Sheet */}
+      <Sheet open={!!complianceStaff} onOpenChange={(open) => !open && setComplianceStaff(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-600" />
+              {complianceStaff?.name}'s Compliance
+            </SheetTitle>
+          </SheetHeader>
+          {complianceStaff && <StaffComplianceEditor staffId={complianceStaff.id} staffName={complianceStaff.name} />}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -15,7 +15,21 @@
     },
     "title": {
       "type": "string",
-      "description": "Name of the compliance item (e.g. CPCS Card, Vehicle MOT, Public Liability Insurance, RAMS)"
+      "description": "Name of the compliance item (e.g. CSCS Card, CPCS Card, Vehicle MOT, Public Liability Insurance, RAMS)"
+    },
+    "qualification_type": {
+      "type": "string",
+      "enum": [
+        "cscs_card",
+        "cpcs_card",
+        "npors_card",
+        "first_aid_cert",
+        "driver_license",
+        "dbs_certificate",
+        "other"
+      ],
+      "default": "other",
+      "description": "Standardized qualification type for filtering, badges, and special UI (e.g. CSCS front/back card display)"
     },
     "reference_name": {
       "type": "string",
@@ -24,6 +38,10 @@
     "reference_id": {
       "type": "string",
       "description": "Optional linked entity ID (staff, vehicle, job)"
+    },
+    "card_number": {
+      "type": "string",
+      "description": "Card or registration number (e.g. CSCS registration number)"
     },
     "issue_date": {
       "type": "string",
@@ -37,11 +55,19 @@
     },
     "document_url": {
       "type": "string",
-      "description": "URL of the uploaded certificate or document"
+      "description": "URL of the uploaded certificate or front of card"
     },
     "document_name": {
       "type": "string",
       "description": "Original filename of the uploaded document"
+    },
+    "back_document_url": {
+      "type": "string",
+      "description": "URL of the back of the card (e.g. CSCS card back side)"
+    },
+    "back_document_name": {
+      "type": "string",
+      "description": "Original filename of the back document"
     },
     "responsible_person": {
       "type": "string",
