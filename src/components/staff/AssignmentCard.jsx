@@ -62,33 +62,33 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
       )}
 
       {/* Compact header — always visible */}
-      <button onClick={() => setExpanded(e => !e)} className="w-full text-left p-4 flex items-center gap-3 hover:bg-slate-50/60 transition">
+      <button onClick={() => setExpanded(e => !e)} className="w-full text-left p-4 flex items-start gap-3 hover:bg-slate-50/60 transition">
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-bold text-slate-900 leading-tight truncate">{job.name}</h3>
-          <div className="flex items-center gap-x-3 gap-y-1.5 mt-1.5 flex-wrap">
-            <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-semibold ${jobTypeBadgeColors[job.job_type]}`}>{formatJobType(job.job_type)}</span>
+          <div className="flex items-center gap-x-2.5 gap-y-1 mt-1.5 flex-wrap">
+            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${jobTypeBadgeColors[job.job_type]}`}>{formatJobType(job.job_type)}</span>
             {assignment.is_overtime && (
-              <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-700 ring-1 ring-amber-200">
+              <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">
                 OT{assignment.rate_multiplier ? ` ${Number(assignment.rate_multiplier)}x` : ''}
               </span>
             )}
-            <span className="inline-flex items-center gap-1 text-xs text-slate-600">
-              <Calendar className="w-3.5 h-3.5 text-slate-400" />
-              <span className="font-medium text-slate-400">Date</span>
-              <span className="font-semibold text-slate-700">{format(new Date(assignment.assigned_date), 'EEE, dd MMM')}</span>
+            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+              <Calendar className="w-3 h-3 text-slate-400" />
+              <span className="text-slate-400">Date:</span>
+              <span className="font-medium text-slate-700">{format(new Date(assignment.assigned_date), 'EEE dd MMM')}</span>
             </span>
             {assignment.start_time && (
-              <span className="inline-flex items-center gap-1 text-xs text-slate-600">
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                <span className="font-medium text-slate-400">Time</span>
-                <span className="font-semibold text-slate-700">{assignment.start_time}{assignment.end_time ? `–${assignment.end_time}` : ''}</span>
+              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                <Clock className="w-3 h-3 text-slate-400" />
+                <span className="text-slate-400">Time:</span>
+                <span className="font-medium text-slate-700">{assignment.start_time}{assignment.end_time ? `–${assignment.end_time}` : ''}</span>
               </span>
             )}
             {vehicle && (
-              <span className="inline-flex items-center gap-1 text-xs text-slate-600">
-                <Truck className="w-3.5 h-3.5 text-slate-400" />
-                <span className="font-medium text-slate-400">Vehicle</span>
-                <span className="font-mono font-semibold text-slate-700">{vehicle.registration_number}</span>
+              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                <Truck className="w-3 h-3 text-slate-400" />
+                <span className="text-slate-400">Vehicle:</span>
+                <span className="font-mono font-medium text-slate-700">{vehicle.registration_number}</span>
               </span>
             )}
           </div>
