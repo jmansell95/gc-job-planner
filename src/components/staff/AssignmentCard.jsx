@@ -66,24 +66,30 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
         <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${jobTypeDot[job.job_type] || 'bg-slate-400'}`} />
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-bold text-slate-900 leading-tight truncate">{job.name}</h3>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
+          <div className="flex items-center gap-x-3 gap-y-1.5 mt-1.5 flex-wrap">
             <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-semibold ${jobTypeBadgeColors[job.job_type]}`}>{formatJobType(job.job_type)}</span>
             {assignment.is_overtime && (
               <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-100 text-amber-700 ring-1 ring-amber-200">
-                Overtime{assignment.rate_multiplier ? ` · ${Number(assignment.rate_multiplier)}x` : ''}
+                OT{assignment.rate_multiplier ? ` ${Number(assignment.rate_multiplier)}x` : ''}
               </span>
             )}
-            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-              <Calendar className="w-3 h-3" /> {format(new Date(assignment.assigned_date), 'EEE, dd MMM')}
+            <span className="inline-flex items-center gap-1 text-xs text-slate-600">
+              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              <span className="font-medium text-slate-400">Date</span>
+              <span className="font-semibold text-slate-700">{format(new Date(assignment.assigned_date), 'EEE, dd MMM')}</span>
             </span>
             {assignment.start_time && (
-              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-                <Clock className="w-3 h-3" /> {assignment.start_time}{assignment.end_time ? `–${assignment.end_time}` : ''}
+              <span className="inline-flex items-center gap-1 text-xs text-slate-600">
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <span className="font-medium text-slate-400">Time</span>
+                <span className="font-semibold text-slate-700">{assignment.start_time}{assignment.end_time ? `–${assignment.end_time}` : ''}</span>
               </span>
             )}
             {vehicle && (
-              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-                <Truck className="w-3 h-3" /> <span className="font-mono font-semibold">{vehicle.registration_number}</span>
+              <span className="inline-flex items-center gap-1 text-xs text-slate-600">
+                <Truck className="w-3.5 h-3.5 text-slate-400" />
+                <span className="font-medium text-slate-400">Vehicle</span>
+                <span className="font-mono font-semibold text-slate-700">{vehicle.registration_number}</span>
               </span>
             )}
           </div>
