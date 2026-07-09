@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { HardHat, ArrowLeft, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Mail, Clock } from 'lucide-react';
+import { HardHat, ArrowLeft, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import DailyDiary from '@/components/staff/DailyDiary';
 import ProfileStats from '@/components/staff/ProfileStats';
@@ -136,12 +136,7 @@ export default function StaffProfile() {
               <span className="text-sm font-medium text-slate-700">Request Time Off</span>
             </button>
 
-            <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-                <Mail className="w-5 h-5 text-emerald-600" />
-              </div>
-              <EmailNotificationToggle initialEnabled={staff.email_notifications_enabled} />
-            </div>
+            <EmailNotificationToggle initialEnabled={staff.email_notifications_enabled} />
 
             {reporters.length > 0 && (
               <button onClick={() => setShowApprovals(true)} type="button"

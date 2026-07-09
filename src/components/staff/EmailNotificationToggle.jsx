@@ -29,9 +29,15 @@ export default function EmailNotificationToggle({ initialEnabled }) {
 
   return (
     <button onClick={handleToggle} disabled={saving} type="button"
-      className={`flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl text-sm font-medium active:scale-95 transition touch-manipulation ${enabled ? 'bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white' : 'bg-amber-500/30 hover:bg-amber-500/40 ring-1 ring-amber-300/30 text-amber-50'}`}>
-      {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : enabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
-      <span className="hidden sm:inline">{enabled ? 'Emails On' : 'Emails Off'}</span>
+      className="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 active:scale-95 transition touch-manipulation">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${enabled ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+        {saving
+          ? <Loader2 className={`w-5 h-5 animate-spin ${enabled ? 'text-emerald-600' : 'text-amber-600'}`} />
+          : enabled
+            ? <Bell className="w-5 h-5 text-emerald-600" />
+            : <BellOff className="w-5 h-5 text-amber-600" />}
+      </div>
+      <span className="text-sm font-medium text-slate-700">{enabled ? 'Emails On' : 'Emails Off'}</span>
     </button>
   );
 }
