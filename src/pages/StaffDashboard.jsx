@@ -42,6 +42,7 @@ export default function StaffDashboard() {
   const [briefingAssignment, setBriefingAssignment] = useState(null);
   const [travelFromAssignment, setTravelFromAssignment] = useState(null);
   const [splashDismissed, setSplashDismissed] = useState(false);
+  const [showScheduleSummary, setShowScheduleSummary] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -229,8 +230,9 @@ export default function StaffDashboard() {
 
   const handleAcknowledgeSchedule = async (weekStart) => {
     try {
-      await base44.functions.invoke('acknowledgeSchedule', { week_start: weekStart });
-      setStaff(prev => prev ? { ...prev, last_acknowledged_week: weekStart } : prev);
+      const res = await base44.functions.invoke('acknowledgeSchedule', { week_start: weekStart });
+      const ackAt = res?.data?.acknowledged_at || new Date().toISOString();
+      setStaff(prev => prev ? { ...prev, last_acknowledged_week: weekStart, schedule_acknowledged_at: ackAt } : prev);
     } catch (error) {
       console.error('Error acknowledging schedule:', error);
     } finally {
@@ -402,6 +404,11 @@ export default function StaffDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={() => setShowScheduleSummary(true)} type="button"
+                className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+                <CalendarDays className="w-5 h-5" />
+                <span className="hidden sm:inline">My Schedule</span>
+              </button>
               <button onClick={() => navigate('/staff-profile')} type="button"
                 className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
                 <UserCircle className="w-5 h-5" />
@@ -550,6 +557,23 @@ export default function StaffDashboard() {
           jobName={jobs.find(j => j.id === assignments.find(a => a.id === travelFromAssignment.assignmentId)?.job_id)?.name}
           onConfirm={handleCompleteJobWithTravel}
           onClose={() => setTravelFromAssignment(null)}
+        />
+      )}
+
+      {/* Schedule summary overlay — reviewable any time */}
+      {showScheduleSummary && (
+        <ScheduleSplash
+          assignments={visibleAssignments}
+          jobs={jobs}
+          vehicles={vehicles}
+          clients={clients}
+          teams={teams}
+          staff={staff}
+          weekStart={latestPublishedWeek || (visibleAssignments[0]?.week_start) || format(new Date(), 'yyyy-MM-dd')}
+          loading={assignmentsLoading}
+          reviewMode
+          acknowledgedAt={staff.schedule_acknowledged_at}
+          onClose={() => setShowScheduleSummary(false)}
         />
       )}
     </div>

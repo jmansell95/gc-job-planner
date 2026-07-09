@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Truck, Clock, Briefcase, CheckCircle2, Sunrise, Navigation, HardHat, Loader2 } from 'lucide-react';
+import { Calendar, MapPin, Truck, Clock, Briefcase, CheckCircle2, Sunrise, Navigation, HardHat, Loader2, X } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { formatJobType } from '@/utils/format';
 import { getJobPrimaryType } from '@/utils/jobTeams';
@@ -20,7 +20,7 @@ const jobTypeBadge = {
   depot: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200'
 };
 
-export default function ScheduleSplash({ assignments, jobs, vehicles, clients, teams, staff, weekStart, loading, onAcknowledge }) {
+export default function ScheduleSplash({ assignments, jobs, vehicles, clients, teams, staff, weekStart, loading, onAcknowledge, reviewMode = false, onClose, acknowledgedAt }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const weekStartDate = new Date(weekStart + 'T00:00:00');
   const weekEndDate = addDays(weekStartDate, 6);
@@ -51,8 +51,15 @@ export default function ScheduleSplash({ assignments, jobs, vehicles, clients, t
             </div>
           </div>
           <p className="text-emerald-100/90 text-sm">
-            Hi {staff.name.split(' ')[0]}, please review your assignments for this week before starting.
+            {reviewMode
+              ? `Hi ${staff.name.split(' ')[0]}, here's a reminder of your assignments for this week.`
+              : `Hi ${staff.name.split(' ')[0]}, please review your assignments for this week before starting.`}
           </p>
+          {reviewMode && (
+            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition">
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -165,17 +172,33 @@ export default function ScheduleSplash({ assignments, jobs, vehicles, clients, t
         )}
       </div>
 
-      {/* Sticky acknowledge button */}
+      {/* Sticky bottom button */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-4 z-10">
         <div className="max-w-2xl mx-auto">
-          <button
-            onClick={onAcknowledge}
-            disabled={loading}
-            className="flex items-center justify-center gap-2 w-full px-5 py-4 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-[0.98] transition text-sm font-bold disabled:opacity-50 touch-manipulation shadow-lg shadow-emerald-700/20"
-          >
-            <CheckCircle2 className="w-5 h-5" />
-            I've read my schedule — ready to start
-          </button>
+          {acknowledgedAt && (
+            <p className="text-center text-xs text-slate-500 mb-2 flex items-center justify-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              Acknowledged {format(new Date(acknowledgedAt), "dd MMM yyyy 'at' HH:mm")}
+            </p>
+          )}
+          {reviewMode ? (
+            <button
+              onClick={onClose}
+              className="flex items-center justify-center gap-2 w-full px-5 py-4 bg-slate-800 text-white rounded-xl hover:bg-slate-900 active:scale-[0.98] transition text-sm font-bold touch-manipulation shadow-lg"
+            >
+              <X className="w-5 h-5" />
+              Close
+            </button>
+          ) : (
+            <button
+              onClick={onAcknowledge}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 w-full px-5 py-4 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-[0.98] transition text-sm font-bold disabled:opacity-50 touch-manipulation shadow-lg shadow-emerald-700/20"
+            >
+              <CheckCircle2 className="w-5 h-5" />
+              I've read my schedule — ready to start
+            </button>
+          )}
         </div>
       </div>
     </div>

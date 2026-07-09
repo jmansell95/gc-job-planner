@@ -78,6 +78,10 @@
       "type": "string",
       "format": "date",
       "description": "Week start (Monday) of the last rota the staff member acknowledged via the schedule splash screen"
+    },
+    "schedule_acknowledged_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the staff member last acknowledged their weekly schedule"
     }
   },
   "required": [

@@ -10,6 +10,7 @@ import PrintReportButton from '@/components/PrintReportButton';
 import { CardGridSkeleton } from '@/components/StateViews';
 import StaffShiftEditor from '@/components/StaffShiftEditor';
 import { formatWorkerType } from '@/utils/format';
+import { format } from 'date-fns';
 
 const workerBadge = {
   direct_employee: 'bg-emerald-100 text-emerald-700',
@@ -355,6 +356,19 @@ export default function StaffManager() {
 
                 {member.manager_id && staff.find(s => s.id === member.manager_id) && (
                   <div className="text-xs text-slate-400 mb-3">Approves to: <span className="text-slate-600 font-medium">{staff.find(s => s.id === member.manager_id).name}</span></div>
+                )}
+
+                {/* Schedule acknowledgement status */}
+                {member.last_acknowledged_week ? (
+                  <div className="text-xs text-slate-400 mb-3 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                    <span>Schedule acknowledged: <span className="text-slate-600 font-medium">{format(new Date(member.last_acknowledged_week + 'T00:00:00'), 'dd MMM yyyy')}</span>{member.schedule_acknowledged_at && <span className="text-slate-400"> at {format(new Date(member.schedule_acknowledged_at), 'HH:mm')}</span>}</span>
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-400 mb-3 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                    <span>Schedule not yet acknowledged</span>
+                  </div>
                 )}
 
                 <div className="flex gap-1 justify-end mt-auto">

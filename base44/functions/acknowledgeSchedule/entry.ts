@@ -18,11 +18,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Staff profile not found' }, { status: 404 });
     }
 
+    const acknowledgedAt = new Date().toISOString();
     await base44.asServiceRole.entities.Staff.update(staff[0].id, {
-      last_acknowledged_week: week_start
+      last_acknowledged_week: week_start,
+      schedule_acknowledged_at: acknowledgedAt
     });
 
-    return Response.json({ success: true, week_start });
+    return Response.json({ success: true, week_start, acknowledged_at: acknowledgedAt });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
