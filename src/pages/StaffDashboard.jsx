@@ -1,20 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, Sparkles, MessageCircle, History, ChevronDown, ClipboardCheck, CheckCircle2, LayoutDashboard } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, MessageCircle, History, CheckCircle2, UserCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isPast } from 'date-fns';
 import DailyTaskLog from '@/components/DailyTaskLog';
-import StaffTimesheets from '@/components/StaffTimesheets';
-import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
-import { useStaffAssistant } from '@/components/StaffAssistantChat';
 import { motion } from 'framer-motion';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 import AssignmentCard from '@/components/staff/AssignmentCard';
-import EmailNotificationToggle from '@/components/staff/EmailNotificationToggle';
 import JobBriefingModal from '@/components/staff/JobBriefingModal';
 import EndOfDayCard from '@/components/staff/EndOfDayCard';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useToast } from '@/components/ui/use-toast';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
@@ -39,10 +34,7 @@ export default function StaffDashboard() {
   const [loading, setLoading] = useState(true);
   const [meterageInputs, setMeterageInputs] = useState({});
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [showApprovals, setShowApprovals] = useState(false);
-  const [showTimesheets, setShowTimesheets] = useState(false);
   const [briefingAssignment, setBriefingAssignment] = useState(null);
-  const { openChat } = useStaffAssistant();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -287,34 +279,11 @@ export default function StaffDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <EmailNotificationToggle initialEnabled={staff.email_notifications_enabled} />
-              {reporters.length > 0 && (
-                <button onClick={() => setShowApprovals(true)} type="button"
-                  className="relative flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                  <ClipboardCheck className="w-5 h-5" />
-                  <span className="hidden sm:inline">Approvals</span>
-                  {pendingCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center ring-2 ring-emerald-800">{pendingCount}</span>
-                  )}
-                </button>
-              )}
-              <button onClick={() => setShowTimesheets(true)} type="button"
+              <button onClick={() => navigate('/staff-profile')} type="button"
                 className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                <Clock className="w-5 h-5" />
-                <span className="hidden sm:inline">My Timesheets</span>
+                <UserCircle className="w-5 h-5" />
+                <span className="hidden sm:inline">My Profile</span>
               </button>
-              <button onClick={openChat} type="button"
-                className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                <Sparkles className="w-5 h-5" />
-                <span className="hidden sm:inline">Ask Assistant</span>
-              </button>
-              {(staff?.is_admin || (staff?.team?.allowed_tool_access && staff.team.allowed_tool_access.length > 0)) && (
-                <button onClick={() => navigate('/admin')} type="button"
-                  className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                  <LayoutDashboard className="w-5 h-5" />
-                  <span className="hidden sm:inline">Admin</span>
-                </button>
-              )}
             </div>
           </div>
 
@@ -427,19 +396,6 @@ export default function StaffDashboard() {
 
       </div>
 
-      {/* Timesheet Approvals pop-out */}
-      <Sheet open={showApprovals} onOpenChange={setShowApprovals}>
-        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
-          <SheetHeader className="mb-4">
-            <SheetTitle className="flex items-center gap-2">
-              <ClipboardCheck className="w-5 h-5 text-amber-600" />
-              Timesheet Approvals
-            </SheetTitle>
-          </SheetHeader>
-          <ManagerTimesheetApprovals staffId={staff.id} />
-        </SheetContent>
-      </Sheet>
-
       {/* Briefing modal */}
       {briefingAssignment && (
         <JobBriefingModal
@@ -450,19 +406,6 @@ export default function StaffDashboard() {
           onClose={() => setBriefingAssignment(null)}
         />
       )}
-
-      {/* My Timesheets pop-out */}
-      <Sheet open={showTimesheets} onOpenChange={setShowTimesheets}>
-        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
-          <SheetHeader className="mb-4">
-            <SheetTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-emerald-700" />
-              My Timesheets
-            </SheetTitle>
-          </SheetHeader>
-          <StaffTimesheets staffId={staff.id} staffName={staff.name} />
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }
