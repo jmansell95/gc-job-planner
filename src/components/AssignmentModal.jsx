@@ -5,6 +5,7 @@ import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2, Clock, MapP
 import { format, differenceInDays, addDays } from 'date-fns';
 import { isStaffOutsideJobTeams, getJobTeamIds } from '@/utils/jobTeams';
 import { isWeekend, buildRateMap } from '@/utils/overtime';
+import { getCurrentTimeStr, SITE_CLOSE_TIME } from '@/utils/siteHours';
 
 export default function AssignmentModal({ isOpen, onClose, assignment, defaultStaffId, defaultDate, weekStartStr, staff, jobs, vehicles, existingRotas }) {
   const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '', notes: '', is_overtime: false, rate_multiplier: '', start_delayed: false, actual_start_date: '' });
@@ -180,6 +181,19 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Block creating assignments for past days or today after working hours
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const isDateLocked = (dateStr) => {
+      if (!dateStr) return false;
+      if (dateStr < todayStr) return true;
+      if (dateStr === todayStr) return getCurrentTimeStr() > SITE_CLOSE_TIME;
+      return false;
+    };
+    const effectiveDate = formData.start_delayed && formData.actual_start_date ? formData.actual_start_date : formData.assigned_date;
+    if (!isEditing && isDateLocked(effectiveDate)) {
+      alert('Cannot create assignments for past days or after the working day has ended.');
+      return;
+    }
     if (teamMismatch) {
       if (!confirm(`This staff member (${selectedStaffTeamName}) is not in the required teams for this job (${requiredTeamNames.join(', ')}).\n\nAssign anyway?`)) return;
     }

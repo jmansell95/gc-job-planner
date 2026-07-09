@@ -12,6 +12,7 @@ import AssignmentModal from '@/components/AssignmentModal';
 import { EmptyState, ErrorState, RotaSkeleton, Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatJobType } from '@/utils/format';
 import { getJobPrimaryType } from '@/utils/jobTeams';
+import { getCurrentTimeStr, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const jobTypeColors = {
@@ -92,7 +93,16 @@ export default function WeeklyRotaBuilder() {
     return null;
   };
 
+  // Dates in the past, or today after the working day ends, are locked —
+  // managers can't add or move assignments to them.
+  const isDateLocked = (dateStr) => {
+    if (dateStr < todayStr) return true;
+    if (dateStr === todayStr) return getCurrentTimeStr() > SITE_CLOSE_TIME;
+    return false;
+  };
+
   const handleCellClick = (staffId, dateStr) => {
+    if (isDateLocked(dateStr)) return;
     setModal({ isOpen: true, assignment: null, defaultStaffId: staffId, defaultDate: dateStr });
   };
 
@@ -117,6 +127,7 @@ export default function WeeklyRotaBuilder() {
     const [srcStaff, srcDate] = source.droppableId.split('|');
     const [dstStaff, dstDate] = destination.droppableId.split('|');
     if (srcStaff === dstStaff && srcDate === dstDate) return;
+    if (isDateLocked(dstDate)) return;
     const assignment = rotas.find(r => r.id === draggableId);
     if (!assignment) return;
     try {
@@ -436,7 +447,7 @@ export default function WeeklyRotaBuilder() {
                 {days.map(day => {
                   const isToday = format(day, 'yyyy-MM-dd') === todayStr;
                   return (
-                    <th key={day.toISOString()} className={`px-3 py-3 text-center font-semibold text-sm whitespace-nowrap ${isToday ? 'bg-emerald-600' : ''}`}>
+                    <th key={day.toISOString()} className={`px-3 py-3 text-center font-semibold text-sm whitespace-nowrap ${isToday ? 'bg-emerald-600' : ''} ${isDateLocked(format(day, 'yyyy-MM-dd')) ? 'opacity-50' : ''}`}>
                       <div className="text-xs font-normal opacity-80">{format(day, 'EEE')}</div>
                       <div>{format(day, 'dd')}</div>
                     </th>
@@ -485,10 +496,12 @@ export default function WeeklyRotaBuilder() {
                                 </Draggable>
                               ))}
                               {provided.placeholder}
-                              <button onClick={() => handleCellClick(member.id, dayStr)}
-                                className="w-full py-1 text-[10px] text-slate-300 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition flex items-center justify-center gap-0.5 opacity-0 group-hover/cell:opacity-100">
-                                <Plus className="w-2.5 h-2.5" /> Add
-                              </button>
+                              {!isDateLocked(dayStr) && (
+                                <button onClick={() => handleCellClick(member.id, dayStr)}
+                                  className="w-full py-1 text-[10px] text-slate-300 hover:text-emerald-600 hover:bg-emerald-50/50 rounded-lg transition flex items-center justify-center gap-0.5 opacity-0 group-hover/cell:opacity-100">
+                                  <Plus className="w-2.5 h-2.5" /> Add
+                                </button>
+                              )}
                             </div>
                           )}
                         </Droppable>

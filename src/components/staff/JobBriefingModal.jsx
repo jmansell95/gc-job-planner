@@ -69,17 +69,17 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
   const allDocsReviewed = briefingDocs.length === 0 || reviewedDocIds.size === briefingDocs.length;
 
   const goNext = () => {
-    if (phase === 'intro') setPhase(briefingDocs.length > 0 ? 'documents' : 'induction');
+    if (phase === 'intro') setPhase('travel');
+    else if (phase === 'travel') setPhase(briefingDocs.length > 0 ? 'documents' : 'induction');
     else if (phase === 'documents') setPhase('induction');
-    else if (phase === 'induction') setPhase('travel');
-    else if (phase === 'travel') setPhase('sign');
+    else if (phase === 'induction') setPhase('sign');
   };
 
   const goPrev = () => {
-    if (phase === 'sign') setPhase('travel');
-    else if (phase === 'travel') setPhase('induction');
-    else if (phase === 'induction') setPhase(briefingDocs.length > 0 ? 'documents' : 'intro');
-    else if (phase === 'documents') setPhase('intro');
+    if (phase === 'sign') setPhase('induction');
+    else if (phase === 'induction') setPhase(briefingDocs.length > 0 ? 'documents' : 'travel');
+    else if (phase === 'documents') setPhase('travel');
+    else if (phase === 'travel') setPhase('intro');
   };
 
   const handleSign = async () => {
@@ -159,9 +159,9 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
 
   if (!job) return null;
 
-  const stepLabels = ['Briefing', briefingDocs.length > 0 ? 'Documents' : null, 'Induction', 'Travel', 'Sign'].filter(Boolean);
+  const stepLabels = ['Briefing', 'Travel', briefingDocs.length > 0 ? 'Documents' : null, 'Induction', 'Sign'].filter(Boolean);
   const docOffset = briefingDocs.length > 0 ? 1 : 0;
-  const activeStep = phase === 'intro' ? 0 : phase === 'documents' ? 1 : phase === 'induction' ? (1 + docOffset) : phase === 'travel' ? (2 + docOffset) : (3 + docOffset);
+  const activeStep = phase === 'intro' ? 0 : phase === 'travel' ? 1 : phase === 'documents' ? 2 : phase === 'induction' ? (2 + docOffset) : (3 + docOffset);
 
   return (
     <AnimatePresence>
