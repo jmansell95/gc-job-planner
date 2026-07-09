@@ -11,6 +11,7 @@ import AssignmentCard from '@/components/staff/AssignmentCard';
 import JobBriefingModal from '@/components/staff/JobBriefingModal';
 import EndOfDayCard from '@/components/staff/EndOfDayCard';
 import { useToast } from '@/components/ui/use-toast';
+import { syncPendingBriefings } from '@/utils/briefingSync';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -52,7 +53,16 @@ export default function StaffDashboard() {
       }
     }
     loadStaff();
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = () => {
+      setIsOnline(true);
+      syncPendingBriefings().then(count => {
+        if (count > 0) {
+          queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+          queryClient.invalidateQueries({ queryKey: ['all-rota-assignments'] });
+          toast({ title: 'Briefing signatures synced', description: `${count} offline signature${count === 1 ? '' : 's'} uploaded.` });
+        }
+      }).catch(err => console.error('Sync error:', err));
+    };
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -108,6 +118,7 @@ export default function StaffDashboard() {
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
   const { data: allStaff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
+  const { data: allAssignments = [] } = useQuery({ queryKey: ['all-rota-assignments'], queryFn: () => base44.entities.RotaAssignment.list('-created_date', 500) });
   const { data: mgrTimesheets = [] } = useQuery({ queryKey: ['all-timesheets-mgr'], queryFn: () => base44.entities.Timesheet.list('-created_date', 500) });
   const { data: rotaWeeks = [] } = useQuery({ queryKey: ['rota-weeks'], queryFn: () => base44.entities.RotaWeek.list() });
 
@@ -183,16 +194,41 @@ export default function StaffDashboard() {
     const assignment = assignments.find(a => a.id === assignmentId);
     if (!assignment) return;
     const hasPriorBriefing = assignments.some(a => a.job_id === assignment.job_id && a.briefing_signed && a.id !== assignment.id);
-    if (assignment.briefing_signed || hasPriorBriefing) {
-      handleStartJob(assignmentId);
-    } else {
+    const thisSigned = assignment.briefing_signed || hasPriorBriefing;
+    if (!thisSigned) {
       setBriefingAssignment(assignment);
+      return;
     }
+    const crew = allAssignments.filter(a => a.job_id === assignment.job_id && a.assigned_date === assignment.assigned_date);
+    const allSigned = crew.length > 0 && crew.every(a => a.briefing_signed);
+    if (!allSigned) {
+      const signedCount = crew.filter(a => a.briefing_signed).length;
+      toast({ title: 'Waiting for crew briefings', description: `${signedCount} of ${crew.length} crew members have signed off. Everyone must complete the briefing before the shift can start.` });
+      return;
+    }
+    handleStartJob(assignmentId);
   };
 
-  const handleBriefingComplete = () => {
+  const handleBriefingComplete = ({ offline } = {}) => {
+    const justSigned = briefingAssignment;
     setBriefingAssignment(null);
     queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+    queryClient.invalidateQueries({ queryKey: ['all-rota-assignments'] });
+    if (offline) {
+      toast({ title: 'Briefing saved offline', description: 'Your signature will sync when you reconnect.' });
+      return;
+    }
+    if (justSigned) {
+      const crew = allAssignments.filter(a => a.job_id === justSigned.job_id && a.assigned_date === justSigned.assigned_date);
+      const signedCount = crew.filter(a => a.briefing_signed || a.id === justSigned.id).length;
+      const allSigned = crew.length > 0 && signedCount === crew.length;
+      if (allSigned) {
+        handleStartJob(justSigned.id);
+        toast({ title: 'All crew briefed — shift started', description: 'Everyone has signed off on the site briefing.' });
+      } else {
+        toast({ title: 'Briefing signed', description: `${signedCount} of ${crew.length} crew members signed off — waiting for the rest.` });
+      }
+    }
   };
 
   if (loading) {
@@ -242,7 +278,11 @@ export default function StaffDashboard() {
   const reporters = allStaff.filter(s => s.manager_id === staff.id);
   const pendingCount = mgrTimesheets.filter(t => reporters.some(r => r.id === t.staff_id) && t.status === 'submitted').length;
 
-  const cardProps = (assignment) => ({
+  const cardProps = (assignment) => {
+    const crew = allAssignments.filter(a => a.job_id === assignment.job_id && a.assigned_date === assignment.assigned_date);
+    const crewSignedCount = crew.filter(a => a.briefing_signed).length;
+    const crewTotal = crew.length;
+    return {
     assignment,
     job: jobs.find(j => j.id === assignment.job_id),
     vehicle: vehicles.find(v => v.id === assignment.vehicle_id),
@@ -257,11 +297,15 @@ export default function StaffDashboard() {
     onMeterageChange: (id, val) => setMeterageInputs(prev => ({ ...prev, [id]: val })),
     tasksSubmitted: mgrTimesheets.some(t => t.job_id === assignment.job_id && t.date === todayStr && (t.status === 'submitted' || t.status === 'approved')),
     needsBriefing: !assignment.briefing_signed && !visibleAssignments.some(a => a.job_id === assignment.job_id && a.briefing_signed && a.id !== assignment.id),
+    crewSignedCount,
+    crewTotal,
+    allCrewSigned: crewTotal > 0 && crewSignedCount === crewTotal,
     previousProgress: visibleAssignments
       .filter(a => a.job_id === assignment.job_id && a.progress_notes && a.assigned_date < assignment.assigned_date)
       .sort((a, b) => new Date(b.assigned_date) - new Date(a.assigned_date))
       .map(a => ({ date: a.assigned_date, notes: a.progress_notes, staffName: allStaff.find(s => s.id === a.staff_id)?.name || staff.name }))
-  });
+  };
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -403,7 +447,9 @@ export default function StaffDashboard() {
           assignment={briefingAssignment}
           job={jobs.find(j => j.id === briefingAssignment.job_id)}
           client={clients.find(c => c.id === jobs.find(j => j.id === briefingAssignment.job_id)?.client_id)}
-          onStart={handleBriefingComplete}
+          staff={staff}
+          crewAssignments={allAssignments.filter(a => a.job_id === briefingAssignment.job_id && a.assigned_date === briefingAssignment.assigned_date)}
+          onSigned={handleBriefingComplete}
           onClose={() => setBriefingAssignment(null)}
         />
       )}

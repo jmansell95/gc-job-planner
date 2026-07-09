@@ -32,7 +32,7 @@ const statusConfig = {
   completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' }
 };
 
-export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange, tasksSubmitted = false, needsBriefing = false, previousProgress = [], onConfirmShift, onDeclineShift }) {
+export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange, tasksSubmitted = false, needsBriefing = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [progressNote, setProgressNote] = useState(assignment.progress_notes || '');
   const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
@@ -104,10 +104,21 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
           <div className="flex flex-wrap gap-2 mb-4">
             {(assignment.status || 'assigned') === 'assigned' && (
               canStart ? (
-                <button onClick={() => onStart(assignment.id)}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
-                  <PlayCircle className="w-4 h-4" /> Start Job{needsBriefing ? ' · Briefing' : ''}
-                </button>
+                needsBriefing ? (
+                  <button onClick={() => onStart(assignment.id)}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
+                    <ShieldCheck className="w-4 h-4" /> Begin Briefing
+                  </button>
+                ) : !allCrewSigned && crewTotal > 1 ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 text-amber-700 rounded-xl text-xs font-semibold ring-1 ring-amber-200">
+                    <ShieldCheck className="w-3.5 h-3.5" /> {crewSignedCount}/{crewTotal} crew briefed
+                  </span>
+                ) : (
+                  <button onClick={() => onStart(assignment.id)}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
+                    <PlayCircle className="w-4 h-4" /> Start Job
+                  </button>
+                )
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-500 rounded-xl text-xs font-semibold">
                   <Clock className="w-3.5 h-3.5" /> Starts {format(new Date(assignment.assigned_date + 'T00:00:00'), 'dd MMM')}{assignment.start_time ? ` · ${assignment.start_time}` : ''}
@@ -205,7 +216,7 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               <div className="bg-emerald-50/50 rounded-lg px-3 py-2.5">
                 <div className="flex items-center gap-2 text-sm text-emerald-700">
                   <ShieldCheck className="w-4 h-4 flex-shrink-0" />
-                  <span className="font-medium">Briefing completed</span>
+                  <span className="font-medium">You've signed the briefing</span>
                   {assignment.briefing_signed_at && (
                     <span className="text-xs text-slate-400 ml-auto">{format(new Date(assignment.briefing_signed_at), 'dd MMM yyyy, HH:mm')}</span>
                   )}
@@ -217,11 +228,26 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
                     <span className="font-medium text-slate-600">Duration: {Math.round((new Date(assignment.briefing_signed_at) - new Date(assignment.briefing_start_at)) / 60000)}m</span>
                   </div>
                 )}
+                {!allCrewSigned && crewTotal > 1 && (
+                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-emerald-100 text-xs text-amber-700">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span className="font-medium">Waiting for crew: {crewSignedCount} of {crewTotal} signed off. Shift starts when everyone completes the briefing.</span>
+                  </div>
+                )}
+                {allCrewSigned && crewTotal > 1 && (
+                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-emerald-100 text-xs text-emerald-700">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span className="font-medium">All crew briefed — ready to start.</span>
+                  </div>
+                )}
               </div>
             ) : needsBriefing ? (
               <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2.5">
                 <ShieldCheck className="w-4 h-4 flex-shrink-0" />
-                <span className="font-medium">Site briefing required — tap "Start Job" to begin.</span>
+                <span className="font-medium">Site briefing required — tap "Begin Briefing" to start.</span>
+                {crewTotal > 1 && (
+                  <span className="text-xs text-amber-600 ml-auto">{crewSignedCount}/{crewTotal} crew briefed</span>
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 rounded-lg px-3 py-2">

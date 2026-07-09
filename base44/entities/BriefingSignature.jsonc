@@ -1,0 +1,64 @@
+{
+  "name": "BriefingSignature",
+  "type": "object",
+  "properties": {
+    "assignment_id": {
+      "type": "string",
+      "description": "The RotaAssignment this signature belongs to"
+    },
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member who signed"
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Staff member name (for audit display)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job this briefing was for"
+    },
+    "assigned_date": {
+      "type": "string",
+      "format": "date",
+      "description": "The working date of the assignment"
+    },
+    "signature_url": {
+      "type": "string",
+      "description": "URL of the uploaded signature image (PNG)"
+    },
+    "signed_at": {
+      "type": "string",
+      "description": "ISO timestamp when the briefing was signed"
+    },
+    "induction_completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the crew member confirmed the site induction was completed (PowerPoint / third-party presentation)"
+    },
+    "induction_completed_at": {
+      "type": "string",
+      "description": "ISO timestamp when induction confirmation was recorded"
+    },
+    "document_ids_reviewed": {
+      "type": "string",
+      "description": "Comma-separated IDs of briefing documents the crew member reviewed before signing"
+    },
+    "briefing_duration_minutes": {
+      "type": "number",
+      "description": "Minutes between briefing start and sign-off"
+    },
+    "synced_from_offline": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this signature was captured while offline and synced later"
+    }
+  },
+  "required": [
+    "assignment_id",
+    "staff_id",
+    "job_id",
+    "signature_url",
+    "signed_at"
+  ]
+}
