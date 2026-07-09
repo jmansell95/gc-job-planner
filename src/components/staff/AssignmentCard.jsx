@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle, PauseCircle, AlertTriangle } from 'lucide-react';
+import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle, PauseCircle, AlertTriangle, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import { formatJobType } from '@/utils/format';
@@ -198,6 +198,20 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
                 <div className="flex items-start gap-2 text-sm text-slate-600">
                   <Briefcase className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                   <span>Client: <span className="font-medium text-slate-700">{client.name}</span></span>
+                </div>
+              )}
+              {(job.site_contact_name || job.site_contact_phone) && (
+                <div className="flex items-start gap-2 text-sm text-slate-600">
+                  <Phone className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span>Site Contact: </span>
+                    {job.site_contact_name && <span className="font-medium text-slate-700">{job.site_contact_name}</span>}
+                    {job.site_contact_phone && (
+                      <a href={`tel:${job.site_contact_phone}`} className="ml-1.5 inline-flex items-center gap-1 text-emerald-700 font-semibold hover:underline">
+                        {job.site_contact_phone}
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
               {assignment.meterage != null && assignment.meterage > 0 && (

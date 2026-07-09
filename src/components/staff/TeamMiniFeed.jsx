@@ -62,6 +62,11 @@ export default function TeamMiniFeed({ teamId, currentStaffId }) {
                     {m.id === currentStaffId && <span className="text-xs text-emerald-600 ml-1.5">(you)</span>}
                   </p>
                   {m.email && <p className="text-xs text-slate-400 truncate">{m.email}</p>}
+                  {m.phone && (
+                    <a href={`tel:${m.phone}`} className="text-xs text-emerald-600 truncate flex items-center gap-1 hover:underline">
+                      <Phone className="w-3 h-3 flex-shrink-0" /> {m.phone}
+                    </a>
+                  )}
                 </div>
                 {m.phone && (
                   <a href={`tel:${m.phone}`} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition flex-shrink-0">

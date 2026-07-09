@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Truck, Clock, Briefcase, CheckCircle2, Sunrise, Navigation, HardHat, Loader2, X } from 'lucide-react';
+import { Calendar, MapPin, Truck, Clock, Briefcase, CheckCircle2, Sunrise, Navigation, HardHat, Loader2, X, Phone } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { formatJobType } from '@/utils/format';
 import { getJobPrimaryType } from '@/utils/jobTeams';
@@ -133,6 +133,11 @@ export default function ScheduleSplash({ assignments, jobs, vehicles, clients, t
                                   <span className="inline-flex items-center gap-1 text-xs text-slate-500">
                                     <Truck className="w-3 h-3" /> <span className="font-mono font-semibold">{vehicle.registration_number}</span>
                                   </span>
+                                )}
+                                {job.site_contact_phone && (
+                                  <a href={`tel:${job.site_contact_phone}`} className="inline-flex items-center gap-1 text-xs text-emerald-700 font-semibold hover:underline">
+                                    <Phone className="w-3 h-3" /> {job.site_contact_name ? `${job.site_contact_name}` : 'Site Contact'}: {job.site_contact_phone}
+                                  </a>
                                 )}
                                 {client && (
                                   <span className="inline-flex items-center gap-1 text-xs text-slate-400">
