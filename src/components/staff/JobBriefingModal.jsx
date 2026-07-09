@@ -101,7 +101,6 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
           briefing_duration_minutes: durationMin
         });
         setOfflineSaved(true);
-        onSigned({ offline: true });
         return;
       }
 
@@ -381,7 +380,7 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
                     <p className="text-sm text-slate-500 max-w-sm mx-auto">
                       Your briefing signature has been saved on this device. It will sync automatically when you reconnect to the internet.
                     </p>
-                    <button onClick={onClose} className="mt-5 w-full px-5 py-3.5 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-bold">
+                    <button onClick={() => onSigned({ offline: true })} className="mt-5 w-full px-5 py-3.5 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-bold">
                       Close
                     </button>
                   </div>

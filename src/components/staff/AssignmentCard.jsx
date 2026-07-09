@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle, PauseCircle } from 'lucide-react';
+import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle, PauseCircle, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import { formatJobType } from '@/utils/format';
+import { isCheckInDeadlinePassed } from '@/utils/siteHours';
 
 const jobTypeDot = {
   groundworks: 'bg-green-500',
@@ -41,6 +42,8 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
   const accent = jobTypeAccent[job?.job_type] || jobTypeAccent.depot;
   const scheduledStart = new Date(assignment.assigned_date + 'T' + (assignment.start_time || '00:00:00'));
   const canStart = new Date() >= scheduledStart;
+  const isToday = assignment.assigned_date === format(new Date(), 'yyyy-MM-dd');
+  const deadlinePassed = isToday && isCheckInDeadlinePassed() && !assignment.briefing_start_at && !assignment.briefing_signed && (assignment.status || 'assigned') === 'assigned';
   if (!job) return null;
 
   return (
@@ -104,7 +107,11 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
           <div className="flex flex-wrap gap-2 mb-4">
             {(assignment.status || 'assigned') === 'assigned' && (
               canStart ? (
-                needsBriefing ? (
+                deadlinePassed ? (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-xl text-xs font-semibold ring-1 ring-red-200">
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> Check-in deadline passed (8:15 AM) — contact your supervisor
+                  </div>
+                ) : needsBriefing ? (
                   <button onClick={() => onStart(assignment.id)}
                     className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
                     <ShieldCheck className="w-4 h-4" /> Begin Briefing

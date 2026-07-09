@@ -12,6 +12,8 @@ import JobBriefingModal from '@/components/staff/JobBriefingModal';
 import EndOfDayCard from '@/components/staff/EndOfDayCard';
 import { useToast } from '@/components/ui/use-toast';
 import { syncPendingBriefings } from '@/utils/briefingSync';
+import { isWithinSiteHours, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
+import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -251,6 +253,10 @@ export default function StaffDashboard() {
         </div>
       </div>
     );
+  }
+
+  if (!isWithinSiteHours()) {
+    return <OutsideSiteHours openTime={SITE_OPEN_TIME} closeTime={SITE_CLOSE_TIME} />;
   }
 
   // Staff only see assignments from the latest published (non-superseded) rota week.

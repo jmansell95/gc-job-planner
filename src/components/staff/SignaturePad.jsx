@@ -3,6 +3,7 @@ import { Eraser, PenLine } from 'lucide-react';
 
 export default function SignaturePad({ onChange }) {
   const canvasRef = useRef(null);
+  const hasSignatureRef = useRef(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
 
@@ -40,12 +41,15 @@ export default function SignaturePad({ onChange }) {
     const ctx = canvasRef.current.getContext('2d');
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
-    if (!hasSignature) setHasSignature(true);
+    if (!hasSignatureRef.current) {
+      hasSignatureRef.current = true;
+      setHasSignature(true);
+    }
   };
 
   const end = (e) => {
     if (e) e.preventDefault();
-    if (isDrawing && hasSignature && onChange) {
+    if (isDrawing && hasSignatureRef.current && onChange) {
       onChange(canvasRef.current.toDataURL('image/png'));
     }
     setIsDrawing(false);
@@ -55,6 +59,7 @@ export default function SignaturePad({ onChange }) {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasSignatureRef.current = false;
     setHasSignature(false);
     if (onChange) onChange(null);
   };
