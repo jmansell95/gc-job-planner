@@ -393,6 +393,11 @@ export default function StaffDashboard() {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Today's assignments */}
+            {todaysAssignments.length > 0 && (
+              <SectionHeader icon={Clock} title="Today" count={todaysAssignments.length} />
+            )}
+
             {/* Current/next job — one at a time */}
             {heroAssignment ? (
               <>
