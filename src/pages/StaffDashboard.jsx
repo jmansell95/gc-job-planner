@@ -276,6 +276,7 @@ export default function StaffDashboard() {
               <div className="min-w-0">
                 <h1 className="text-2xl md:text-3xl font-bold text-white truncate tracking-tight">My Schedule</h1>
                 <p className="text-emerald-100 text-sm md:text-base mt-0.5 truncate">Welcome back, {staff.name.split(' ')[0]}</p>
+                <p className="text-emerald-200/80 text-xs md:text-sm mt-0.5 truncate">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
