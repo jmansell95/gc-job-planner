@@ -22,6 +22,7 @@ import { formatJobType } from '@/utils/format';
 import { getJobPrimaryType, isDrillingJob as isDrillingJobByTeams } from '@/utils/jobTeams';
 import { computeStaffOvertime, buildRateMap, getAssignmentMultiplier } from '@/utils/overtime';
 import JobStatusModal from '@/components/JobStatusModal';
+import JobHotelBookings from '@/components/JobHotelBookings';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500', border: 'border-green-200' },
@@ -657,6 +658,9 @@ export default function JobDetail({ job: initialJob, onBack }) {
               </div>
             )}
           </div>
+
+          {/* Accommodations */}
+          <JobHotelBookings job={job} assignedStaff={assignedStaff} allStaff={allStaff} />
 
           {/* Site Photos */}
           <JobPhotoGallery job={job} />

@@ -416,7 +416,7 @@ export default function StaffManager() {
               {hotelStaff?.name}'s Hotel Bookings
             </SheetTitle>
           </SheetHeader>
-          {hotelStaff && <HotelBookingsManager staffId={hotelStaff.id} staffName={hotelStaff.name} jobs={jobs} />}
+          {hotelStaff && <HotelBookingsManager staffId={hotelStaff.id} staffName={hotelStaff.name} />}
         </SheetContent>
       </Sheet>
     </div>
