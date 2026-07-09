@@ -12,7 +12,7 @@ import JobBriefingModal from '@/components/staff/JobBriefingModal';
 import EndOfDayCard from '@/components/staff/EndOfDayCard';
 import { useToast } from '@/components/ui/use-toast';
 import { syncPendingBriefings } from '@/utils/briefingSync';
-import { isWithinSiteHours, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
+import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME, SITE_EARLY_ACCESS_TIME } from '@/utils/siteHours';
 import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
@@ -256,9 +256,10 @@ export default function StaffDashboard() {
     );
   }
 
-  if (!isWithinSiteHours() && !staff?.is_admin) {
+  if (!isWithinSiteHours() && !isBeforeSiteOpen() && !staff?.is_admin) {
     return <OutsideSiteHours openTime={SITE_OPEN_TIME} closeTime={SITE_CLOSE_TIME} />;
   }
+  const canPerformActions = isWithinSiteHours() || staff?.is_admin;
 
   // Staff only see assignments from the latest published (non-superseded) rota week.
   // When a new draft is created, old weeks are superseded and staff see nothing until
@@ -300,6 +301,7 @@ export default function StaffDashboard() {
     onSign: handleBriefingSign,
     onConfirmShift: handleConfirmShift,
     onDeclineShift: handleDeclineShift,
+    canPerformActions,
     meterage: meterageInputs[assignment.id],
     onMeterageChange: (id, val) => setMeterageInputs(prev => ({ ...prev, [id]: val })),
     tasksSubmitted: mgrTimesheets.some(t => t.job_id === assignment.job_id && t.date === todayStr && (t.status === 'submitted' || t.status === 'approved')),
@@ -365,6 +367,14 @@ export default function StaffDashboard() {
           <MessageCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
           <p className="font-medium">Check WhatsApp groups for updates at the start of each working day.</p>
         </div>
+
+        {/* Early access banner — can view schedule but can't act until 8am */}
+        {!canPerformActions && isBeforeSiteOpen() && (
+          <div className="mb-5 flex items-center gap-2.5 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-900">
+            <Clock className="w-4 h-4 text-blue-600 flex-shrink-0" />
+            <p className="font-medium">Early access — you can view today's schedule, but work actions unlock at {SITE_OPEN_TIME}.</p>
+          </div>
+        )}
 
         {/* Compliance status alert */}
         {(() => {
