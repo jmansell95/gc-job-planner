@@ -75,19 +75,22 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               )}
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs">
+              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Date</span>
                 <span className="font-medium text-slate-700">{format(new Date(assignment.assigned_date), 'EEE dd MMM')}</span>
               </span>
               {assignment.start_time && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs">
+                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs">
                   <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Time</span>
                   <span className="font-medium text-slate-700">{assignment.start_time}{assignment.end_time ? `–${assignment.end_time}` : ''}</span>
                 </span>
               )}
               {vehicle && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs">
+                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs">
                   <Truck className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Vehicle</span>
                   <span className="font-mono font-medium text-slate-700">{vehicle.registration_number}</span>
                 </span>
               )}
