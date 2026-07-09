@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle, PauseCircle, AlertTriangle, Phone } from 'lucide-react';
+import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle, PauseCircle, AlertTriangle, Phone, Hotel, Navigation } from 'lucide-react';
 import { format } from 'date-fns';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import { formatJobType } from '@/utils/format';
@@ -33,7 +33,7 @@ const statusConfig = {
   completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' }
 };
 
-export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange, tasksSubmitted = false, needsBriefing = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true }) {
+export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange, tasksSubmitted = false, needsBriefing = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true, hotelBooking = null }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [progressNote, setProgressNote] = useState(assignment.progress_notes || '');
   const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
@@ -65,30 +65,32 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
       <button onClick={() => setExpanded(e => !e)} className="w-full text-left p-4 flex items-start gap-3 hover:bg-slate-50/60 transition">
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-bold text-slate-900 leading-tight truncate">{job.name}</h3>
-          <div className="flex items-center gap-x-2.5 gap-y-1 mt-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap text-xs">
             <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${jobTypeBadgeColors[job.job_type]}`}>{formatJobType(job.job_type)}</span>
             {assignment.is_overtime && (
               <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">
                 OT{assignment.rate_multiplier ? ` ${Number(assignment.rate_multiplier)}x` : ''}
               </span>
             )}
-            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+            <span className="inline-flex items-center gap-0.5 text-slate-500">
               <Calendar className="w-3 h-3 text-slate-400" />
-              <span className="text-slate-400">Date:</span>
               <span className="font-medium text-slate-700">{format(new Date(assignment.assigned_date), 'EEE dd MMM')}</span>
             </span>
             {assignment.start_time && (
-              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+              <span className="inline-flex items-center gap-0.5 text-slate-500">
                 <Clock className="w-3 h-3 text-slate-400" />
-                <span className="text-slate-400">Time:</span>
                 <span className="font-medium text-slate-700">{assignment.start_time}{assignment.end_time ? `–${assignment.end_time}` : ''}</span>
               </span>
             )}
             {vehicle && (
-              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+              <span className="inline-flex items-center gap-0.5 text-slate-500">
                 <Truck className="w-3 h-3 text-slate-400" />
-                <span className="text-slate-400">Vehicle:</span>
                 <span className="font-mono font-medium text-slate-700">{vehicle.registration_number}</span>
+              </span>
+            )}
+            {hotelBooking && (
+              <span className="inline-flex items-center gap-0.5 text-blue-700 font-medium">
+                <Hotel className="w-3 h-3" /> {hotelBooking.hotel_name}
               </span>
             )}
           </div>
@@ -244,6 +246,37 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               )}
             </div>
           </div>
+
+          {/* Hotel booking details */}
+          {hotelBooking && (
+            <div className="mb-4 bg-blue-50/60 rounded-xl border border-blue-100 p-3.5">
+              <div className="flex items-center gap-2 mb-2">
+                <Hotel className="w-4 h-4 text-blue-700" />
+                <p className="text-xs font-bold text-blue-900 uppercase tracking-wide">Hotel Booking</p>
+              </div>
+              <p className="text-sm font-semibold text-slate-900">{hotelBooking.hotel_name}</p>
+              {hotelBooking.address && (
+                <a href={`https://maps.google.com/?q=${encodeURIComponent(hotelBooking.address + ' ' + (hotelBooking.hotel_name || ''))}`} target="_blank" rel="noopener noreferrer"
+                  className="flex items-start gap-1.5 text-xs text-slate-600 mt-1 hover:text-blue-700 transition">
+                  <MapPin className="w-3.5 h-3.5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <span className="break-words">{hotelBooking.address} <Navigation className="w-3 h-3 inline text-blue-500" /></span>
+                </a>
+              )}
+              <div className="flex items-center gap-3 mt-2 text-xs text-slate-600 flex-wrap">
+                {hotelBooking.check_in_date && (
+                  <span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-slate-400" /> {format(new Date(hotelBooking.check_in_date + 'T00:00:00'), 'dd MMM')}{hotelBooking.check_out_date ? ` – ${format(new Date(hotelBooking.check_out_date + 'T00:00:00'), 'dd MMM')}` : ''}</span>
+                )}
+                {hotelBooking.room_type && <span>· {hotelBooking.room_type}</span>}
+                {hotelBooking.booking_reference && <span className="flex items-center gap-1">· <FileText className="w-3 h-3" /> {hotelBooking.booking_reference}</span>}
+              </div>
+              {hotelBooking.contact_phone && (
+                <a href={`tel:${hotelBooking.contact_phone}`} className="inline-flex items-center gap-1 text-xs text-blue-700 font-semibold hover:underline mt-2">
+                  <Phone className="w-3 h-3" /> {hotelBooking.contact_phone}
+                </a>
+              )}
+              {hotelBooking.notes && <p className="text-xs text-slate-500 mt-2 leading-relaxed">{hotelBooking.notes}</p>}
+            </div>
+          )}
 
           {/* Briefing status + photos */}
           <div className="pt-3 border-t border-slate-100 space-y-3">

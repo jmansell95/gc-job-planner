@@ -1,0 +1,61 @@
+{
+  "name": "HotelBooking",
+  "type": "object",
+  "properties": {
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member this hotel booking is for"
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Staff member name (for display)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job this hotel booking is associated with"
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (for display)"
+    },
+    "hotel_name": {
+      "type": "string",
+      "description": "Name of the hotel"
+    },
+    "address": {
+      "type": "string",
+      "description": "Hotel address"
+    },
+    "check_in_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Check-in date"
+    },
+    "check_out_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Check-out date"
+    },
+    "booking_reference": {
+      "type": "string",
+      "description": "Booking confirmation / reference number"
+    },
+    "room_type": {
+      "type": "string",
+      "description": "Room type (e.g. Single, Twin, Double)"
+    },
+    "contact_phone": {
+      "type": "string",
+      "description": "Hotel contact phone number"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes (e.g. parking, breakfast included)"
+    }
+  },
+  "required": [
+    "staff_id",
+    "job_id",
+    "hotel_name"
+  ]
+}

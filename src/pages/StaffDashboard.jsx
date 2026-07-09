@@ -131,6 +131,7 @@ export default function StaffDashboard() {
   const { data: mgrTimesheets = [] } = useQuery({ queryKey: ['all-timesheets-mgr'], queryFn: () => base44.entities.Timesheet.list('-created_date', 500) });
   const { data: rotaWeeks = [] } = useQuery({ queryKey: ['rota-weeks'], queryFn: () => base44.entities.RotaWeek.list() });
   const { data: myCompliance = [] } = useQuery({ queryKey: ['staff-compliance', staff?.id], queryFn: () => base44.entities.ComplianceItem.filter({ category: 'staff' }), enabled: !!staff?.id });
+  const { data: myHotelBookings = [] } = useQuery({ queryKey: ['my-hotel-bookings', staff?.id], queryFn: () => base44.entities.HotelBooking.filter({ staff_id: staff.id }), enabled: !!staff?.id });
 
   const handleStartJob = async (assignmentId) => {
     try {
@@ -384,7 +385,8 @@ export default function StaffDashboard() {
     previousProgress: visibleAssignments
       .filter(a => a.job_id === assignment.job_id && a.progress_notes && a.assigned_date < assignment.assigned_date)
       .sort((a, b) => new Date(b.assigned_date) - new Date(a.assigned_date))
-      .map(a => ({ date: a.assigned_date, notes: a.progress_notes, staffName: allStaff.find(s => s.id === a.staff_id)?.name || staff.name }))
+      .map(a => ({ date: a.assigned_date, notes: a.progress_notes, staffName: allStaff.find(s => s.id === a.staff_id)?.name || staff.name })),
+    hotelBooking: myHotelBookings.find(h => h.job_id === assignment.job_id) || null
   };
   };
 
