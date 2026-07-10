@@ -1,0 +1,82 @@
+{
+  "name": "TrainingCourse",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Course title (e.g. Forklift Training, CSCS Renewal)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "cscs_card",
+        "cpcs_card",
+        "npors_card",
+        "first_aid_cert",
+        "driver_license",
+        "dbs_certificate",
+        "forklift",
+        "other"
+      ],
+      "default": "other",
+      "description": "Training category / qualification type this course leads to"
+    },
+    "provider": {
+      "type": "string",
+      "description": "Training provider/company name"
+    },
+    "provider_phone": {
+      "type": "string",
+      "description": "Training provider contact phone"
+    },
+    "venue": {
+      "type": "string",
+      "description": "Venue name"
+    },
+    "address": {
+      "type": "string",
+      "description": "Venue address"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Course start date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Course end date (same as start for single-day courses)"
+    },
+    "start_time": {
+      "type": "string",
+      "description": "Daily start time (HH:MM)"
+    },
+    "end_time": {
+      "type": "string",
+      "description": "Daily end time (HH:MM)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Course description / notes"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "in_progress",
+        "completed",
+        "cancelled"
+      ],
+      "default": "scheduled",
+      "description": "Course status"
+    },
+    "default_expiry_months": {
+      "type": "number",
+      "description": "Default certificate validity in months (used when creating compliance items from completions)"
+    }
+  },
+  "required": [
+    "title",
+    "start_date"
+  ]
+}

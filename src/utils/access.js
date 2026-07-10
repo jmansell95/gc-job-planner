@@ -10,8 +10,8 @@ export const SYSTEM_ROLES = [
 
 // Admin sections visible to each role.
 export const ROLE_SECTIONS = {
-  admin: ['overview', 'jobs', 'rota', 'calendar', 'timesheets', 'compliance', 'insights', 'teams', 'settings'],
-  manager: ['overview', 'jobs', 'rota', 'calendar', 'timesheets', 'compliance', 'insights'],
+  admin: ['overview', 'jobs', 'rota', 'calendar', 'timesheets', 'compliance', 'insights', 'teams', 'settings', 'training'],
+  manager: ['overview', 'jobs', 'rota', 'calendar', 'timesheets', 'compliance', 'insights', 'training'],
   viewer: ['overview', 'jobs', 'calendar', 'compliance', 'insights'],
 };
 

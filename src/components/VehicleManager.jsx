@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Truck, Wrench } from 'lucide-react';
+import { Plus, Trash2, Edit2, Truck, Wrench, CalendarClock } from 'lucide-react';
+import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
 import { format, differenceInDays } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
 import { TableSkeleton } from '@/components/StateViews';
@@ -31,6 +32,7 @@ export default function VehicleManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
+  const [view, setView] = useState('vehicles'); // 'vehicles' | 'maintenance'
 
   const queryClient = useQueryClient();
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
@@ -56,6 +58,19 @@ export default function VehicleManager() {
 
   return (
     <div>
+      <div className="flex items-center gap-2 mb-5">
+        <button onClick={() => setView('vehicles')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${view === 'vehicles' ? 'bg-emerald-700 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+          <Truck className="w-4 h-4" /> Vehicles
+        </button>
+        <button onClick={() => setView('maintenance')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${view === 'maintenance' ? 'bg-emerald-700 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+          <CalendarClock className="w-4 h-4" /> Maintenance Bookings
+        </button>
+      </div>
+
+      {view === 'maintenance' ? (
+        <VehicleMaintenanceManager />
+      ) : (
+      <>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <PageHeader title="Manage Vehicles" icon={Truck} />
         <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
@@ -218,6 +233,8 @@ export default function VehicleManager() {
             })}
           </div>
         </>
+      )}
+      </>
       )}
     </div>
   );

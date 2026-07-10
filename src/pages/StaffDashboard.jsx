@@ -19,6 +19,7 @@ import TravelFromSiteModal from '@/components/staff/TravelFromSiteModal';
 import ScheduleSplash from '@/components/staff/ScheduleSplash';
 import NextJobPrompt from '@/components/staff/NextJobPrompt';
 import AdHocVisitModal from '@/components/staff/AdHocVisitModal';
+import StaffBookings from '@/components/staff/StaffBookings';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -679,6 +680,19 @@ export default function StaffDashboard() {
                 <EmptyState icon={CalendarDays} title="No assignments scheduled" message="Check back later — your supervisor will assign you to upcoming jobs." />
               </div>
             )}
+          </div>
+        )}
+
+        {/* My Bookings — maintenance & training */}
+        {staff?.id && (
+          <div className="mt-6">
+            <div className="flex items-center gap-2.5 mb-3 md:mb-4">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                <CalendarClock className="w-4 h-4 text-amber-600" />
+              </div>
+              <h2 className="text-lg md:text-xl font-bold text-slate-900">My Bookings</h2>
+            </div>
+            <StaffBookings staffId={staff.id} compact />
           </div>
         )}
 

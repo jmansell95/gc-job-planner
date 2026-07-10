@@ -26,6 +26,7 @@
         "first_aid_cert",
         "driver_license",
         "dbs_certificate",
+        "forklift",
         "other"
       ],
       "default": "other",

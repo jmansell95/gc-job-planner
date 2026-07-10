@@ -6,6 +6,7 @@ import { HardHat, ArrowLeft, Sparkles, LayoutDashboard, ClipboardCheck, Calendar
 import { format } from 'date-fns';
 import DailyDiary from '@/components/staff/DailyDiary';
 import WorkHistory from '@/components/staff/WorkHistory';
+import StaffBookings from '@/components/staff/StaffBookings';
 import ProfileStats from '@/components/staff/ProfileStats';
 import ComplianceWallet from '@/components/staff/ComplianceWallet';
 import TeamMiniFeed from '@/components/staff/TeamMiniFeed';
@@ -127,6 +128,15 @@ export default function StaffProfile() {
 
         {/* Work History */}
         <WorkHistory staffId={staff.id} />
+
+        {/* My Bookings — maintenance & training */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1 h-5 bg-amber-600 rounded-full" />
+            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">My Bookings</h2>
+          </div>
+          <StaffBookings staffId={staff.id} />
+        </div>
 
         {/* Actions Grid */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">

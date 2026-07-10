@@ -13,6 +13,7 @@ import TimesheetManager from '@/components/TimesheetManager';
 import CalendarView from '@/components/CalendarView';
 import WeeklyInsightsPage from '@/components/WeeklyInsightsPage';
 import ComplianceManager from '@/components/ComplianceManager';
+import TrainingManager from '@/components/TrainingManager';
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -73,6 +74,7 @@ export default function AdminDashboard() {
             {activeSection === 'calendar' && <CalendarView />}
             {activeSection === 'teams' && <TeamManager />}
             {activeSection === 'compliance' && <ComplianceManager />}
+            {activeSection === 'training' && <TrainingManager />}
             {activeSection === 'insights' && <WeeklyInsightsPage />}
             {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} />}
           </motion.div>

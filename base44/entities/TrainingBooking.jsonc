@@ -1,0 +1,75 @@
+{
+  "name": "TrainingBooking",
+  "type": "object",
+  "properties": {
+    "course_id": {
+      "type": "string",
+      "description": "The TrainingCourse this booking is for"
+    },
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member attending the training"
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Staff member name (for display)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "booked",
+        "attended",
+        "passed",
+        "failed",
+        "rebooked"
+      ],
+      "default": "booked",
+      "description": "Booking outcome. 'booked' = scheduled, 'attended' = showed up, 'passed' = completed with certificate, 'failed' = did not pass, 'rebooked' = rebooked onto a new course after failing."
+    },
+    "failure_reason": {
+      "type": "string",
+      "description": "Reason recorded when staff fail the course"
+    },
+    "rebooked_course_id": {
+      "type": "string",
+      "description": "ID of the new TrainingCourse this staff was rebooked onto after failing"
+    },
+    "certificate_url": {
+      "type": "string",
+      "description": "URL of the uploaded certificate"
+    },
+    "certificate_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded certificate"
+    },
+    "certificate_title": {
+      "type": "string",
+      "description": "Name/label of the certificate (e.g. Forklift Operator Certificate)"
+    },
+    "issue_date": {
+      "type": "string",
+      "description": "Date the certificate was issued (YYYY-MM for staff compliance format)"
+    },
+    "expiry_date": {
+      "type": "string",
+      "description": "Date the certificate expires (YYYY-MM for staff compliance format)"
+    },
+    "linked_compliance_id": {
+      "type": "string",
+      "description": "ID of the ComplianceItem created from this booking's certificate upload"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes about the training booking"
+    },
+    "completed_at": {
+      "type": "string",
+      "description": "ISO timestamp when the outcome was recorded"
+    }
+  },
+  "required": [
+    "course_id",
+    "staff_id",
+    "status"
+  ]
+}

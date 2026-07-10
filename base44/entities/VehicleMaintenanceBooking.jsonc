@@ -1,0 +1,84 @@
+{
+  "name": "VehicleMaintenanceBooking",
+  "type": "object",
+  "properties": {
+    "vehicle_id": {
+      "type": "string",
+      "description": "Vehicle this booking is for"
+    },
+    "vehicle_name": {
+      "type": "string",
+      "description": "Vehicle name/reg (for display)"
+    },
+    "booking_type": {
+      "type": "string",
+      "enum": [
+        "mot",
+        "service",
+        "windscreen",
+        "repair",
+        "inspection",
+        "other"
+      ],
+      "description": "Type of maintenance booking"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "requested",
+        "booked",
+        "in_progress",
+        "completed",
+        "cancelled"
+      ],
+      "default": "requested",
+      "description": "Booking status. 'requested' = needs to be called in to Holeman, 'booked' = confirmed with date/time, 'completed' = work done."
+    },
+    "booking_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the booking appointment"
+    },
+    "booking_time": {
+      "type": "string",
+      "description": "Time of the booking appointment (HH:MM)"
+    },
+    "supplier_name": {
+      "type": "string",
+      "description": "Supplier/garage name (e.g. Holeman)"
+    },
+    "supplier_phone": {
+      "type": "string",
+      "description": "Supplier contact phone number"
+    },
+    "location": {
+      "type": "string",
+      "description": "Garage/venue address"
+    },
+    "assigned_staff_id": {
+      "type": "string",
+      "description": "Staff member assigned to take the vehicle in"
+    },
+    "assigned_staff_name": {
+      "type": "string",
+      "description": "Assigned staff name (for display)"
+    },
+    "cost": {
+      "type": "number",
+      "description": "Cost of the maintenance work in GBP"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes about the booking (e.g. work required, access details)"
+    },
+    "completed_at": {
+      "type": "string",
+      "description": "ISO timestamp when the booking was completed"
+    }
+  },
+  "required": [
+    "vehicle_id",
+    "booking_type",
+    "booking_date"
+  ]
+}
