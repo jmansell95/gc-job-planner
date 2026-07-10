@@ -19,6 +19,12 @@ const workerBadge = {
   agency: 'bg-blue-100 text-blue-700',
 };
 
+const roleBadge = {
+  admin: 'bg-purple-100 text-purple-700 border border-purple-200',
+  manager: 'bg-indigo-100 text-indigo-700 border border-indigo-200',
+  viewer: 'bg-slate-100 text-slate-600 border border-slate-200',
+};
+
 export default function StaffManager() {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
@@ -29,7 +35,7 @@ export default function StaffManager() {
   const [shiftOpenId, setShiftOpenId] = useState(null);
   const [complianceStaff, setComplianceStaff] = useState(null);
   const [hotelStaff, setHotelStaff] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false });
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: '' });
 
   const queryClient = useQueryClient();
 
@@ -39,7 +45,7 @@ export default function StaffManager() {
       if (cleaned[k] === '' || cleaned[k] == null) delete cleaned[k];
       else cleaned[k] = Number(cleaned[k]);
     });
-    ['default_vehicle_id', 'manager_id', 'team_id'].forEach(k => {
+    ['default_vehicle_id', 'manager_id', 'team_id', 'system_role'].forEach(k => {
       if (cleaned[k] === '') delete cleaned[k];
     });
     delete cleaned.job_role;
@@ -83,7 +89,7 @@ export default function StaffManager() {
       }
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
-      setFormData({ name: '', email: '', phone: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false });
+      setFormData({ name: '', email: '', phone: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: '' });
       setShowForm(false);
       setEditingId(null);
     } catch (error) {
@@ -166,7 +172,7 @@ export default function StaffManager() {
   const resetForm = () => {
     setShowForm(!showForm);
     setEditingId(null);
-    setFormData({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', email_notifications_enabled: true, delivery_dashboard_enabled: false });
+    setFormData({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: '' });
   };
 
   const activeCount = staff.filter(s => getUserForStaff(s)).length;
@@ -238,6 +244,16 @@ export default function StaffManager() {
                   const parent = teams.find(p => p.id === t.parent_team_id);
                   return <option key={t.id} value={t.id}>{parent ? `${parent.name} — ${t.name}` : t.name}</option>;
                 })}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Access Level</label>
+              <select value={formData.system_role || ''} onChange={e => setFormData({ ...formData, system_role: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
+                <option value="">Field Staff (schedule only)</option>
+                <option value="viewer">Viewer (read-only dashboard)</option>
+                <option value="manager">Manager (operations access)</option>
+                <option value="admin">Admin (full access)</option>
               </select>
             </div>
             <div>
@@ -370,6 +386,11 @@ export default function StaffManager() {
                   {member.delivery_dashboard_enabled && (
                     <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-blue-50 text-blue-700 flex items-center gap-1 border border-blue-200">
                       <Truck className="w-3 h-3" /> Driver
+                    </span>
+                  )}
+                  {member.system_role && (
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${roleBadge[member.system_role] || 'bg-slate-100 text-slate-600'}`}>
+                      {member.system_role}
                     </span>
                   )}
                 </div>

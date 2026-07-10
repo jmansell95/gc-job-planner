@@ -7,6 +7,7 @@ import { useStaffAssistant } from '@/components/StaffAssistantChat';
 import { useNavigate } from 'react-router-dom';
 import MobileNavDrawer from '@/components/MobileNavDrawer';
 import GlobalSearch from '@/components/GlobalSearch';
+import { canAccessSection } from '@/utils/access';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
   const navigate = useNavigate();
@@ -46,10 +47,8 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
-  const navItems = profile?.is_admin
-    ? allNavItems
-    : allNavItems.filter(item => profile?.team?.allowed_tool_access?.includes(item.id));
-  const canViewSchedule = profile?.is_admin || profile?.team?.allowed_tool_access?.includes('staff_schedule');
+  const navItems = allNavItems.filter(item => canAccessSection(profile, item.id));
+  const canViewSchedule = canAccessSection(profile, 'staff_schedule');
 
   const desktopNav = (
     <>

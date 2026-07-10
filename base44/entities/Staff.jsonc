@@ -83,6 +83,15 @@
       "default": false,
       "description": "Whether this staff member can access the Delivery Dashboard. When false, the Deliveries button is hidden and the route redirects them back to their schedule."
     },
+    "system_role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "manager",
+        "viewer"
+      ],
+      "description": "App-level access role. 'admin' = full access including settings and crews, 'manager' = manage operations without settings, 'viewer' = read-only dashboard access. Blank/null for field staff (schedule-only, controlled by team capabilities)."
+    },
     "last_acknowledged_week": {
       "type": "string",
       "format": "date",

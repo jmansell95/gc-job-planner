@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
-import { resolveLandingPage } from '@/utils/teamAccess';
+import { resolveRoleLandingPage } from '@/utils/access';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ export default function Home() {
         const res = await base44.functions.invoke('getMyStaffProfile');
         const profile = res.data;
         if (cancelled) return;
-        const landing = resolveLandingPage(profile?.team, profile?.is_admin || user.role === 'admin');
+        const landing = resolveRoleLandingPage(profile, user.role === 'admin');
         navigate(landing, { replace: true });
       } catch (err) {
         if (cancelled) return;
