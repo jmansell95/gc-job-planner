@@ -1,0 +1,49 @@
+{
+  "name": "HelpTopic",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Help topic title (shown as heading)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "delivery",
+        "compliance",
+        "safety",
+        "general",
+        "app_usage"
+      ],
+      "default": "general",
+      "description": "Category for filtering and grouping topics"
+    },
+    "content": {
+      "type": "string",
+      "description": "Markdown content of the help topic"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Short summary shown in search results and topic lists"
+    },
+    "order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order within a category (lower = first)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this topic is visible to users"
+    },
+    "tags": {
+      "type": "string",
+      "description": "Comma-separated keywords for search (e.g. 'signature, offline, delivery')"
+    }
+  },
+  "required": [
+    "title",
+    "category",
+    "content"
+  ]
+}

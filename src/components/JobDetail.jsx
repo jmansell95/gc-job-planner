@@ -23,6 +23,7 @@ import { getJobPrimaryType, isDrillingJob as isDrillingJobByTeams } from '@/util
 import { computeStaffOvertime, buildRateMap, getAssignmentMultiplier } from '@/utils/overtime';
 import JobStatusModal from '@/components/JobStatusModal';
 import JobHotelBookings from '@/components/JobHotelBookings';
+import DeliveryManager from '@/components/delivery/DeliveryManager';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500', border: 'border-green-200' },
@@ -673,6 +674,11 @@ export default function JobDetail({ job: initialJob, onBack }) {
 
           {/* Accommodations */}
           <JobHotelBookings job={job} assignedStaff={assignedStaff} allStaff={allStaff} />
+
+          {/* Deliveries & Collections */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <DeliveryManager jobId={job.id} jobName={job.name} />
+          </div>
 
           {/* Site Photos */}
           <JobPhotoGallery job={job} />

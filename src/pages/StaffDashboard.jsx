@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, MessageCircle, History, CheckCircle2, UserCircle, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, MessageCircle, History, CheckCircle2, UserCircle, ShieldCheck, AlertTriangle, Truck, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isPast } from 'date-fns';
 import DailyTaskLog from '@/components/DailyTaskLog';
@@ -11,7 +11,7 @@ import AssignmentCard from '@/components/staff/AssignmentCard';
 import JobBriefingModal from '@/components/staff/JobBriefingModal';
 import EndOfDayCard from '@/components/staff/EndOfDayCard';
 import { useToast } from '@/components/ui/use-toast';
-import { syncPendingBriefings } from '@/utils/briefingSync';
+import { syncAllOfflineData, getOfflineDeliveryCount } from '@/utils/offlineSync';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME, SITE_EARLY_ACCESS_TIME } from '@/utils/siteHours';
 import { complianceDaysUntil } from '@/utils/complianceDate';
 import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
@@ -67,11 +67,14 @@ export default function StaffDashboard() {
     loadStaff();
     const handleOnline = () => {
       setIsOnline(true);
-      syncPendingBriefings().then(count => {
-        if (count > 0) {
+      syncAllOfflineData().then(result => {
+        if (result.total > 0) {
           queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
           queryClient.invalidateQueries({ queryKey: ['all-rota-assignments'] });
-          toast({ title: 'Briefing signatures synced', description: `${count} offline signature${count === 1 ? '' : 's'} uploaded.` });
+          const parts = [];
+          if (result.briefings > 0) parts.push(`${result.briefings} briefing${result.briefings !== 1 ? 's' : ''}`);
+          if (result.deliveries > 0) parts.push(`${result.deliveries} deliver${result.deliveries !== 1 ? 'ies' : 'y'}`);
+          toast({ title: 'Offline data synced', description: `${parts.join(' and ')} uploaded.` });
         }
       }).catch(err => console.error('Sync error:', err));
     };
@@ -471,6 +474,15 @@ export default function StaffDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={() => navigate('/deliveries')} type="button"
+                className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+                <Truck className="w-5 h-5" />
+                <span className="hidden sm:inline">Deliveries</span>
+              </button>
+              <button onClick={() => navigate('/help')} type="button"
+                className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+                <HelpCircle className="w-5 h-5" />
+              </button>
               <button onClick={() => setShowScheduleSummary(true)} type="button"
                 className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
                 <CalendarDays className="w-5 h-5" />

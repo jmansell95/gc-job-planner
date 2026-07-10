@@ -12,6 +12,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import StaffProfile from './pages/StaffProfile';
 import ClientPortal from './pages/ClientPortal';
+import DeliveryDashboard from './pages/DeliveryDashboard';
+import HelpGuide from './pages/HelpGuide';
 import { StaffAssistantProvider } from '@/components/StaffAssistantChat';
 import AppBaseUrlSync from '@/components/AppBaseUrlSync';
 
@@ -50,6 +52,8 @@ const AuthenticatedApp = () => {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/staff-schedule" element={<StaffDashboard />} />
           <Route path="/staff-profile" element={<StaffProfile />} />
+          <Route path="/deliveries" element={<DeliveryDashboard />} />
+          <Route path="/help" element={<HelpGuide />} />
         </Route>
         <Route path="/client-portal/:token" element={<ClientPortal />} />
         <Route path="*" element={<PageNotFound />} />

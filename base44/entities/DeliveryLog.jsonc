@@ -1,0 +1,130 @@
+{
+  "name": "DeliveryLog",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this delivery/collection is associated with"
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (for display)"
+    },
+    "driver_staff_id": {
+      "type": "string",
+      "description": "Staff member assigned to drive / carry out the delivery"
+    },
+    "driver_staff_name": {
+      "type": "string",
+      "description": "Driver name (for display)"
+    },
+    "delivery_type": {
+      "type": "string",
+      "enum": [
+        "site_delivery",
+        "supplier_collection",
+        "item_handover"
+      ],
+      "description": "Type of movement: delivering to site, collecting from supplier, or internal handover"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "Delivery task status"
+    },
+    "items": {
+      "type": "string",
+      "description": "Comma-separated or free-text list of items being delivered/collected"
+    },
+    "pickup_address": {
+      "type": "string",
+      "description": "Where to collect/pick up the items from (supplier yard, depot, etc.)"
+    },
+    "delivery_address": {
+      "type": "string",
+      "description": "Where items are being delivered to (site address, supplier return, etc.)"
+    },
+    "contact_name": {
+      "type": "string",
+      "description": "On-site or supplier contact name for handover"
+    },
+    "contact_phone": {
+      "type": "string",
+      "description": "Contact phone number for the delivery/collection point"
+    },
+    "po_number": {
+      "type": "string",
+      "description": "Purchase order / reference number for this delivery"
+    },
+    "linked_cost_item_id": {
+      "type": "string",
+      "description": "Optional linked JobCostItem for automatic cost tracking updates"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the delivery/collection is scheduled for"
+    },
+    "started_at": {
+      "type": "string",
+      "description": "ISO timestamp when the driver started the delivery task"
+    },
+    "completed_at": {
+      "type": "string",
+      "description": "ISO timestamp when the delivery was signed off"
+    },
+    "signature_url": {
+      "type": "string",
+      "description": "URL of the uploaded recipient signature image (PNG)"
+    },
+    "signature_data_url": {
+      "type": "string",
+      "description": "Base64 data URL of the signature \u2014 used for offline storage, cleared after sync"
+    },
+    "signed_by_name": {
+      "type": "string",
+      "description": "Name of the person who signed for the delivery"
+    },
+    "photo_urls": {
+      "type": "string",
+      "description": "Comma-separated URLs of condition/evidence photos"
+    },
+    "photo_data_urls": {
+      "type": "string",
+      "description": "Comma-separated base64 data URLs of photos \u2014 used for offline storage, cleared after sync"
+    },
+    "gps_coordinates": {
+      "type": "string",
+      "description": "Lat/lng captured at time of completion (e.g. '51.5074,-0.1278')"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Driver notes about the delivery/collection (damage, delays, access issues)"
+    },
+    "condition_report": {
+      "type": "string",
+      "description": "Condition of equipment upon delivery or collection (good, damaged, missing parts, etc.)"
+    },
+    "synced_from_offline": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this delivery was signed off while offline and synced later"
+    },
+    "vehicle_id": {
+      "type": "string",
+      "description": "Vehicle used for this delivery"
+    }
+  },
+  "required": [
+    "job_id",
+    "driver_staff_id",
+    "delivery_type",
+    "scheduled_date"
+  ]
+}

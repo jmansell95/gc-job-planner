@@ -5,7 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import SignaturePad from '@/components/staff/SignaturePad';
-import { saveOfflineBriefing } from '@/utils/briefingSync';
+import { saveOfflineBriefing } from '@/utils/offlineSync';
 
 export default function JobBriefingModal({ assignment, job, client, staff, crewAssignments = [], onSigned, onClose }) {
   const [phase, setPhase] = useState(assignment.briefing_start_at ? 'documents' : 'intro');
