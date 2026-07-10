@@ -1,9 +1,9 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Wrench, GraduationCap, Calendar, Clock, MapPin, Phone, FileText, CheckCircle2, XCircle } from 'lucide-react';
+import { Wrench, GraduationCap, Calendar, Clock, MapPin, Phone, FileText, CheckCircle2, XCircle, CalendarClock } from 'lucide-react';
 import { format, isFuture, isToday, isPast } from 'date-fns';
-import { Skeleton } from '@/components/StateViews';
+import { Skeleton, EmptyState } from '@/components/StateViews';
 
 export default function StaffBookings({ staffId, compact = false }) {
   const { data: maintenanceBookings = [], isLoading: mbLoading } = useQuery({
@@ -53,8 +53,6 @@ export default function StaffBookings({ staffId, compact = false }) {
 
   const hasUpcoming = upcomingMaintenance.length > 0 || upcomingTraining.length > 0;
   const hasPast = pastMaintenance.length > 0 || pastTraining.length > 0;
-
-  if (!hasUpcoming && !hasPast && compact) return null;
 
   const MaintenanceCard = ({ b }) => {
     const vehicle = vehicles.find(v => v.id === b.vehicle_id);
@@ -151,10 +149,8 @@ export default function StaffBookings({ staffId, compact = false }) {
       )}
 
       {!hasUpcoming && !hasPast && (
-        <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-          <Wrench className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-          <p className="text-sm font-semibold text-slate-500">No bookings yet</p>
-          <p className="text-xs text-slate-400 mt-1">Your manager will book vehicle maintenance and training courses for you here.</p>
+        <div className="bg-white rounded-xl border border-slate-200">
+          <EmptyState icon={CalendarClock} title="No bookings yet" message="Your manager will book vehicle maintenance and training courses for you here." />
         </div>
       )}
     </div>

@@ -99,10 +99,10 @@ export default function StaffProfile() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
+      {/* Header with Quick Actions bar */}
       <div className="hero-gradient relative overflow-hidden">
         <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-7">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-3 min-w-0">
               <button onClick={() => navigate('/staff-schedule')} type="button"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation flex-shrink-0">
@@ -114,6 +114,37 @@ export default function StaffProfile() {
                 <p className="text-emerald-100 text-sm truncate">{staff.name}{staff.team?.name ? ` · ${staff.team.name}` : ''}</p>
               </div>
             </div>
+          </div>
+          {/* Quick Actions bar */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            <button onClick={() => setShowAbsenceForm(true)} type="button"
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
+              <CalendarPlus className="w-4 h-4" />
+              <span>Time Off</span>
+            </button>
+            <EmailNotificationToggle initialEnabled={staff.email_notifications_enabled} compact />
+            {reporters.length > 0 && (
+              <button onClick={() => setShowApprovals(true)} type="button"
+                className="relative flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
+                <ClipboardCheck className="w-4 h-4" />
+                <span>Approvals</span>
+                {pendingCount > 0 && (
+                  <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center">{pendingCount}</span>
+                )}
+              </button>
+            )}
+            <button onClick={openChat} type="button"
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
+              <Sparkles className="w-4 h-4" />
+              <span>Assistant</span>
+            </button>
+            {canAccessAdmin && (
+              <button onClick={() => navigate('/admin')} type="button"
+                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
+                <LayoutDashboard className="w-4 h-4" />
+                <span>Admin</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -138,77 +169,30 @@ export default function StaffProfile() {
           <StaffBookings staffId={staff.id} />
         </div>
 
-        {/* Actions Grid */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1 h-5 bg-emerald-600 rounded-full" />
-            <h2 className="text-lg font-bold text-slate-900">Quick Actions</h2>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <button onClick={() => setShowAbsenceForm(true)} type="button"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 active:scale-95 transition touch-manipulation">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-                <CalendarPlus className="w-5 h-5 text-amber-600" />
-              </div>
-              <span className="text-sm font-medium text-slate-700">Request Time Off</span>
-            </button>
-
-            <EmailNotificationToggle initialEnabled={staff.email_notifications_enabled} />
-
-            {reporters.length > 0 && (
-              <button onClick={() => setShowApprovals(true)} type="button"
-                className="relative flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 active:scale-95 transition touch-manipulation">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <ClipboardCheck className="w-5 h-5 text-blue-600" />
-                </div>
-                <span className="text-sm font-medium text-slate-700">Approvals</span>
-                {pendingCount > 0 && (
-                  <span className="absolute top-2 right-2 min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center">{pendingCount}</span>
-                )}
-              </button>
-            )}
-
-            <button onClick={openChat} type="button"
-              className="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 active:scale-95 transition touch-manipulation">
-              <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-violet-600" />
-              </div>
-              <span className="text-sm font-medium text-slate-700">Ask Assistant</span>
-            </button>
-
-            {canAccessAdmin && (
-              <button onClick={() => navigate('/admin')} type="button"
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 hover:bg-slate-100 active:scale-95 transition touch-manipulation">
-                <div className="w-10 h-10 rounded-xl bg-slate-200 flex items-center justify-center">
-                  <LayoutDashboard className="w-5 h-5 text-slate-600" />
-                </div>
-                <span className="text-sm font-medium text-slate-700">Admin Dashboard</span>
-              </button>
-            )}
-          </div>
-
-          {/* Upcoming absences */}
-          {upcomingAbsences.length > 0 && (
-            <div className="border-t border-slate-100 mt-4 pt-4">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Upcoming Time Off</p>
-              <div className="space-y-1.5">
-                {upcomingAbsences.map(a => (
-                  <div key={a.id} className="flex items-center gap-2 text-sm">
-                    <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                    <span className="text-slate-700 font-medium capitalize">{a.reason}</span>
-                    <span className="text-slate-400">·</span>
-                    <span className="text-slate-500">{format(new Date(a.start_date + 'T00:00:00'), 'dd MMM')} – {format(new Date(a.end_date + 'T00:00:00'), 'dd MMM')}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ml-auto ${
-                      a.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                      a.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                      'bg-slate-100 text-slate-500'
-                    }`}>{a.status}</span>
-                  </div>
-                ))}
-              </div>
+        {/* Upcoming Time Off */}
+        {upcomingAbsences.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-5 bg-amber-600 rounded-full" />
+              <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Upcoming Time Off</h2>
             </div>
-          )}
-        </div>
+            <div className="space-y-2">
+              {upcomingAbsences.map(a => (
+                <div key={a.id} className="flex items-center gap-2 text-sm">
+                  <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                  <span className="text-slate-700 font-medium capitalize">{a.reason}</span>
+                  <span className="text-slate-400">·</span>
+                  <span className="text-slate-500">{format(new Date(a.start_date + 'T00:00:00'), 'dd MMM')} – {format(new Date(a.end_date + 'T00:00:00'), 'dd MMM')}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ml-auto ${
+                    a.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                    a.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                    'bg-slate-100 text-slate-500'
+                  }`}>{a.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Compliance Wallet */}
         <div>
