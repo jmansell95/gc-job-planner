@@ -2,7 +2,7 @@ import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ClipboardCheck, RotateCcw, CalendarX, PauseCircle, CalendarClock, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
+import { ClipboardCheck, RotateCcw, CalendarX, PauseCircle, CalendarClock, ArrowRight, CheckCircle2, Sparkles, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 
 const toneStyles = {
@@ -26,6 +26,7 @@ export default function NeedsAttentionPanel({ onNavigate }) {
   const { data: absences = [] } = useQuery({ queryKey: ['absences', 'attention'], queryFn: () => base44.entities.Absence.list('-created_date', 100), ...refreshOpts });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs', 'attention'], queryFn: () => base44.entities.Job.list(), ...refreshOpts });
   const { data: rotaWeeks = [] } = useQuery({ queryKey: ['rota-week', 'attention'], queryFn: () => base44.entities.RotaWeek.list(), ...refreshOpts });
+  const { data: complianceItems = [] } = useQuery({ queryKey: ['compliance', 'attention'], queryFn: () => base44.entities.ComplianceItem.list('-created_date', 200), ...refreshOpts });
 
   const pendingTs = timesheets.filter(t => t.status === 'submitted').length;
   const withdrawnTs = timesheets.filter(t => t.status === 'deleted' && !t.withdrawal_acknowledged).length;
@@ -34,12 +35,28 @@ export default function NeedsAttentionPanel({ onNavigate }) {
   const thisWeekRota = rotaWeeks.find(w => w.week_start === weekStartStr);
   const rotaUnpublished = !thisWeekRota || thisWeekRota.status !== 'published';
 
+  // Expired or expiring-soon compliance items (staff category only, auto status, not exempt)
+  const todayISO = format(now, 'yyyy-MM-dd');
+  const expiryWarnDate = format(new Date(now.getTime() + 30 * 86400000), 'yyyy-MM-dd');
+  const expiredCompliance = complianceItems.filter(c => {
+    if (c.status_override === 'not_required') return false;
+    if (!c.expiry_date) return false;
+    return c.expiry_date < todayISO;
+  }).length;
+  const expiringCompliance = complianceItems.filter(c => {
+    if (c.status_override === 'not_required') return false;
+    if (!c.expiry_date) return false;
+    return c.expiry_date >= todayISO && c.expiry_date <= expiryWarnDate;
+  }).length;
+
   const items = [
     pendingTs > 0 && { key: 'ts', icon: ClipboardCheck, label: 'Timesheets to approve', value: pendingTs, tone: 'emerald', nav: 'timesheets' },
     withdrawnTs > 0 && { key: 'wd', icon: RotateCcw, label: 'Withdrawn timesheets to review', value: withdrawnTs, tone: 'slate', nav: 'timesheets' },
     pendingAbs > 0 && { key: 'abs', icon: CalendarX, label: 'Absence requests pending', value: pendingAbs, tone: 'amber', nav: 'settings' },
     onHoldJobs > 0 && { key: 'hold', icon: PauseCircle, label: 'Jobs on hold', value: onHoldJobs, tone: 'rose', nav: 'jobs' },
     rotaUnpublished && { key: 'rota', icon: CalendarClock, label: "This week's rota not published", value: null, tone: 'blue', nav: 'rota' },
+    expiredCompliance > 0 && { key: 'exp', icon: ShieldAlert, label: 'Expired compliance items', value: expiredCompliance, tone: 'rose', nav: 'compliance' },
+    expiringCompliance > 0 && { key: 'soon', icon: ShieldAlert, label: 'Compliance expiring soon', value: expiringCompliance, tone: 'amber', nav: 'compliance' },
   ].filter(Boolean);
 
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };

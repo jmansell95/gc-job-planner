@@ -103,6 +103,8 @@ export default function WeeklyRotaBuilder() {
 
   const handleCellClick = (staffId, dateStr) => {
     if (isDateLocked(dateStr)) return;
+    const ls = leaveState(staffId, dateStr);
+    if (ls && !confirm(`This staff member is marked as ${ls.label} on this date. Assign them anyway?`)) return;
     setModal({ isOpen: true, assignment: null, defaultStaffId: staffId, defaultDate: dateStr });
   };
 
@@ -128,6 +130,8 @@ export default function WeeklyRotaBuilder() {
     const [dstStaff, dstDate] = destination.droppableId.split('|');
     if (srcStaff === dstStaff && srcDate === dstDate) return;
     if (isDateLocked(dstDate)) return;
+    const dstLeave = leaveState(dstStaff, dstDate);
+    if (dstLeave && !confirm(`This staff member is marked as ${dstLeave.label} on this date. Move the assignment anyway?`)) return;
     const assignment = rotas.find(r => r.id === draggableId);
     if (!assignment) return;
     try {

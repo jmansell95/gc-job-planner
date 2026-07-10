@@ -9,6 +9,7 @@ import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
 import JobCostAnalytics from '@/components/JobCostAnalytics';
 import DashboardInsights from '@/components/DashboardInsights';
 import FieldCrewsToday from '@/components/FieldCrewsToday';
+import NeedsAttentionPanel from '@/components/NeedsAttentionPanel';
 
 
 const cardVariants = {
@@ -70,6 +71,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           </div>
         </div>
       </motion.div>
+
+      {/* Needs Attention */}
+      <NeedsAttentionPanel onNavigate={onNavigate} />
 
       {/* KPI Stats — clickable */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">

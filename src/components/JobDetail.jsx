@@ -175,6 +175,11 @@ export default function JobDetail({ job: initialJob, onBack }) {
     queryFn: () => base44.entities.RotaAssignment.filter({ job_id: job.id })
   });
 
+  const { data: hotelBookings = [] } = useQuery({
+    queryKey: ['hotel-bookings-for-job', job.id],
+    queryFn: () => base44.entities.HotelBooking.filter({ job_id: job.id })
+  });
+
   const { data: timesheets = [] } = useQuery({
     queryKey: ['timesheets-for-job', job.id],
     queryFn: () => base44.entities.Timesheet.filter({ job_id: job.id })
@@ -342,7 +347,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
             <CalendarClock className="w-5 h-5 text-emerald-700" />
             <h3 className="font-bold text-slate-900 text-sm">Job Setup Checklist</h3>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className={`rounded-xl p-3 border ${job.required_team_ids?.length > 0 ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
               <div className="flex items-center gap-2 mb-1">
                 {job.required_team_ids?.length > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <UsersRound className="w-4 h-4 text-slate-400" />}
@@ -350,19 +355,26 @@ export default function JobDetail({ job: initialJob, onBack }) {
               </div>
               <p className="text-[11px] text-slate-500">{job.required_team_ids?.length > 0 ? `${job.required_team_ids.length} team(s) assigned` : 'Edit the job to pick required teams'}</p>
             </div>
+            <div className={`rounded-xl p-3 border ${hotelBookings.length > 0 ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
+              <div className="flex items-center gap-2 mb-1">
+                {hotelBookings.length > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <CalendarClock className="w-4 h-4 text-slate-400" />}
+                <p className="text-xs font-bold text-slate-800">2. Hotel Bookings <span className="font-normal text-slate-400">(optional)</span></p>
+              </div>
+              <p className="text-[11px] text-slate-500">{hotelBookings.length > 0 ? `${hotelBookings.length} booking(s) added` : 'Add accommodation if crew need stays'}</p>
+            </div>
             <div className={`rounded-xl p-3 border ${rotas.length > 0 ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
               <div className="flex items-center gap-2 mb-1">
                 {rotas.length > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <CalendarClock className="w-4 h-4 text-slate-400" />}
-                <p className="text-xs font-bold text-slate-800">2. Build Rota</p>
+                <p className="text-xs font-bold text-slate-800">3. Build Rota</p>
               </div>
               <p className="text-[11px] text-slate-500">{rotas.length > 0 ? `${rotas.length} shifts scheduled` : 'Go to Weekly Rota Builder to assign staff'}</p>
             </div>
-            <div className="rounded-xl p-3 border border-slate-200 bg-white">
+            <div className={`rounded-xl p-3 border ${job.status === 'in_progress' || job.status === 'completed' ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
               <div className="flex items-center gap-2 mb-1">
-                <Send className="w-4 h-4 text-slate-400" />
-                <p className="text-xs font-bold text-slate-800">3. Publish & Activate</p>
+                {job.status === 'in_progress' || job.status === 'completed' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Send className="w-4 h-4 text-slate-400" />}
+                <p className="text-xs font-bold text-slate-800">4. Publish & Activate</p>
               </div>
-              <p className="text-[11px] text-slate-500">Submit the rota week — staff get emailed and the job auto-activates</p>
+              <p className="text-[11px] text-slate-500">{job.status === 'in_progress' || job.status === 'completed' ? 'Job activated & staff emailed' : 'Submit the rota week to email staff'}</p>
             </div>
           </div>
         </div>
