@@ -16,6 +16,7 @@ export default function DeliveryManager({ jobId, jobName }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [editingDeliveryId, setEditingDeliveryId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     delivery_type: 'site_delivery',
@@ -52,15 +53,21 @@ export default function DeliveryManager({ jobId, jobName }) {
     setSaving(true);
     try {
       const driver = staff.find(s => s.id === formData.driver_staff_id);
-      await base44.entities.DeliveryLog.create({
+      const payload = {
         ...formData,
         job_id: jobId,
         job_name: jobName || '',
-        driver_staff_name: driver?.name || '',
-        status: 'pending'
-      });
+        driver_staff_name: driver?.name || ''
+      };
+      if (editingDeliveryId) {
+        await base44.entities.DeliveryLog.update(editingDeliveryId, payload);
+        toast({ title: 'Delivery task updated', description: `${driver?.name || 'Driver'} · ${format(new Date(formData.scheduled_date + 'T00:00:00'), 'dd MMM')}.` });
+      } else {
+        payload.status = 'pending';
+        await base44.entities.DeliveryLog.create(payload);
+        toast({ title: 'Delivery task created', description: `${driver?.name || 'Driver'} assigned for ${format(new Date(formData.scheduled_date + 'T00:00:00'), 'dd MMM')}.` });
+      }
       queryClient.invalidateQueries({ queryKey: ['job-deliveries', jobId] });
-      toast({ title: 'Delivery task created', description: `${driver?.name || 'Driver'} assigned for ${format(new Date(formData.scheduled_date + 'T00:00:00'), 'dd MMM')}.` });
       setFormData({
         delivery_type: 'site_delivery',
         driver_staff_id: '',
@@ -74,6 +81,7 @@ export default function DeliveryManager({ jobId, jobName }) {
         vehicle_id: '',
         notes: ''
       });
+      setEditingDeliveryId(null);
       setShowForm(false);
     } catch (err) {
       console.error('Error creating delivery:', err);
@@ -81,6 +89,24 @@ export default function DeliveryManager({ jobId, jobName }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEditDelivery = (d) => {
+    setFormData({
+      delivery_type: d.delivery_type || 'site_delivery',
+      driver_staff_id: d.driver_staff_id || '',
+      items: d.items || '',
+      pickup_address: d.pickup_address || '',
+      delivery_address: d.delivery_address || '',
+      contact_name: d.contact_name || '',
+      contact_phone: d.contact_phone || '',
+      po_number: d.po_number || '',
+      scheduled_date: d.scheduled_date || format(new Date(), 'yyyy-MM-dd'),
+      vehicle_id: d.vehicle_id || '',
+      notes: d.notes || ''
+    });
+    setEditingDeliveryId(d.id);
+    setShowForm(true);
   };
 
   const handleDelete = async (id) => {
@@ -116,16 +142,17 @@ export default function DeliveryManager({ jobId, jobName }) {
           <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700">{deliveries.length}</span>
         </div>
         <button
-          onClick={() => setShowForm(s => !s)}
+          onClick={() => { setEditingDeliveryId(null); setShowForm(s => !s); }}
           className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 text-sm font-semibold transition active:scale-95"
         >
           {showForm ? <><X className="w-4 h-4" /> Cancel</> : <><Plus className="w-4 h-4" /> New Task</>}
         </button>
       </div>
 
-      {/* New delivery form */}
+      {/* New / edit delivery form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
+          <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">{editingDeliveryId ? 'Editing delivery task' : 'New delivery task'}</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Delivery Type</label>
@@ -195,7 +222,7 @@ export default function DeliveryManager({ jobId, jobName }) {
           </div>
           <button type="submit" disabled={saving}
             className="w-full py-2.5 bg-emerald-600 text-white rounded-xl font-semibold text-sm hover:bg-emerald-700 transition active:scale-95 disabled:opacity-50">
-            {saving ? 'Creating…' : 'Create Delivery Task'}
+            {saving ? 'Saving…' : editingDeliveryId ? 'Update Delivery Task' : 'Create Delivery Task'}
           </button>
         </form>
       )}
@@ -234,11 +261,16 @@ export default function DeliveryManager({ jobId, jobName }) {
                   <p className="text-xs text-emerald-600 mt-1">Signed by {d.signed_by_name} · {d.completed_at ? format(new Date(d.completed_at), 'dd MMM HH:mm') : ''}</p>
                 )}
               </div>
-              {d.status === 'pending' && (
-                <button onClick={() => handleDelete(d.id)} className="text-xs text-red-400 hover:text-red-600 font-medium flex-shrink-0">
-                  Delete
+              <div className="flex flex-col gap-1.5 items-end flex-shrink-0">
+                <button onClick={() => handleEditDelivery(d)} className="text-xs text-blue-500 hover:text-blue-700 font-medium">
+                  Edit
                 </button>
-              )}
+                {d.status === 'pending' && (
+                  <button onClick={() => handleDelete(d.id)} className="text-xs text-red-400 hover:text-red-600 font-medium">
+                    Delete
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

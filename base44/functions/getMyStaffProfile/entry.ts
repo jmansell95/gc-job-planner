@@ -25,6 +25,7 @@ Deno.serve(async (req) => {
         is_admin: isAdmin,
         no_staff_profile: true,
         email_notifications_enabled: true,
+        delivery_dashboard_enabled: false,
           last_acknowledged_week: null
         });
     }
@@ -57,6 +58,7 @@ Deno.serve(async (req) => {
       } : null,
       is_admin: isAdmin,
       email_notifications_enabled: s.email_notifications_enabled !== false,
+      delivery_dashboard_enabled: s.delivery_dashboard_enabled === true,
       last_acknowledged_week: s.last_acknowledged_week || null
     });
   } catch (error) {

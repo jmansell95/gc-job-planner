@@ -43,6 +43,10 @@ export default function DeliveryDashboard() {
       try {
         const res = await base44.functions.invoke('getMyStaffProfile');
         if (res.data && res.data.id && !res.data.no_staff_profile) {
+          if (!res.data.delivery_dashboard_enabled && !res.data.is_admin) {
+            navigate('/staff-schedule', { replace: true });
+            return;
+          }
           setStaff(res.data);
         }
       } catch (e) {

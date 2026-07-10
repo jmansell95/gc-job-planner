@@ -10,6 +10,7 @@ import JobCostAnalytics from '@/components/JobCostAnalytics';
 import DashboardInsights from '@/components/DashboardInsights';
 import FieldCrewsToday from '@/components/FieldCrewsToday';
 import NeedsAttentionPanel from '@/components/NeedsAttentionPanel';
+import DeliveryStats from '@/components/DeliveryStats';
 
 
 const cardVariants = {
@@ -71,6 +72,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           </div>
         </div>
       </motion.div>
+
+      {/* Delivery & Collection stats */}
+      <DeliveryStats onNavigate={onNavigate} />
 
       {/* Needs Attention */}
       <NeedsAttentionPanel onNavigate={onNavigate} />

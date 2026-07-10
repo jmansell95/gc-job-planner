@@ -474,11 +474,13 @@ export default function StaffDashboard() {
               </div>
             </div>
             <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-1.5">
-              <button onClick={() => navigate('/deliveries')} type="button"
-                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                <Truck className="w-5 h-5" />
-                <span>Deliveries</span>
-              </button>
+              {staff.delivery_dashboard_enabled && (
+                <button onClick={() => navigate('/deliveries')} type="button"
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+                  <Truck className="w-5 h-5" />
+                  <span>Deliveries</span>
+                </button>
+              )}
               <button onClick={() => navigate('/help')} type="button"
                 className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
                 <HelpCircle className="w-5 h-5" />

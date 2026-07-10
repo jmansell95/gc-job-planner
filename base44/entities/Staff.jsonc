@@ -78,6 +78,11 @@
       "default": true,
       "description": "Whether this staff member receives automated schedule and assignment emails. When false, the system skips sending them weekly schedules, daily reminders, and assignment notifications."
     },
+    "delivery_dashboard_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this staff member can access the Delivery Dashboard. When false, the Deliveries button is hidden and the route redirects them back to their schedule."
+    },
     "last_acknowledged_week": {
       "type": "string",
       "format": "date",
