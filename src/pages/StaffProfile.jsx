@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { HardHat, ArrowLeft, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import DailyDiary from '@/components/staff/DailyDiary';
+import WorkHistory from '@/components/staff/WorkHistory';
 import ProfileStats from '@/components/staff/ProfileStats';
 import ComplianceWallet from '@/components/staff/ComplianceWallet';
 import TeamMiniFeed from '@/components/staff/TeamMiniFeed';
@@ -123,6 +124,9 @@ export default function StaffProfile() {
 
         {/* Daily Diary */}
         <DailyDiary staffId={staff.id} />
+
+        {/* Work History */}
+        <WorkHistory staffId={staff.id} />
 
         {/* Actions Grid */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">

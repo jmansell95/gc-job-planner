@@ -347,14 +347,18 @@ export default function StaffDashboard() {
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const todaysAssignments = visibleAssignments.filter(a => a.assigned_date === todayStr);
+  const todaysSorted = [...todaysAssignments].sort((a, b) => (a.start_time || '23:59').localeCompare(b.start_time || '23:59'));
   const upcomingAssignments = visibleAssignments.filter(a => isFuture(new Date(a.assigned_date + 'T00:00:00')) && a.assigned_date !== todayStr);
-  const pastAssignments = visibleAssignments.filter(a => isPast(new Date(a.assigned_date + 'T00:00:00')) && a.assigned_date !== todayStr)
-    .sort((a, b) => new Date(b.assigned_date) - new Date(a.assigned_date));
+  const upcomingGrouped = {};
+  upcomingAssignments.forEach(a => {
+    if (!upcomingGrouped[a.assigned_date]) upcomingGrouped[a.assigned_date] = [];
+    upcomingGrouped[a.assigned_date].push(a);
+  });
+  const upcomingDates = Object.keys(upcomingGrouped).sort();
 
-  const nextTodayAssignment = todaysAssignments.find(a => (a.status || 'assigned') !== 'completed');
-  const todaysAllDone = todaysAssignments.length > 0 && !nextTodayAssignment;
-  const heroAssignment = nextTodayAssignment || null;
-  const isHeroStarted = heroAssignment?.status === 'started' && heroAssignment?.assigned_date === todayStr;
+  const nextTodayAssignment = todaysSorted.find(a => (a.status || 'assigned') !== 'completed');
+  const todaysAllDone = todaysSorted.length > 0 && !nextTodayAssignment;
+  const activeStarted = nextTodayAssignment?.status === 'started';
 
   const reporters = allStaff.filter(s => s.manager_id === staff.id);
   const pendingCount = mgrTimesheets.filter(t => reporters.some(r => r.id === t.staff_id) && t.status === 'submitted').length;
@@ -517,32 +521,89 @@ export default function StaffDashboard() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Today's assignments */}
-            {todaysAssignments.length > 0 && (
-              <SectionHeader icon={Clock} title="Today" count={todaysAssignments.length} />
-            )}
-
-            {/* Today's focus — current/next job */}
-            {heroAssignment ? (
-              <>
-                {isHeroStarted && (
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-1 h-5 bg-emerald-600 rounded-full" />
-                    <p className="text-sm font-bold text-slate-700 uppercase tracking-wide">In Progress</p>
+            {/* Today's Timeline — all jobs for today in order */}
+            {todaysSorted.length > 0 && (
+              <div>
+                <SectionHeader icon={Clock} title="Today" count={todaysSorted.length} />
+                {todaysAllDone ? (
+                  <EndOfDayCard />
+                ) : (
+                  <div className="space-y-3">
+                    {todaysSorted.map(a => {
+                      const isActive = a.id === nextTodayAssignment?.id;
+                      const isStarted = a.status === 'started';
+                      const isCompleted = a.status === 'completed';
+                      return (
+                        <div key={a.id}>
+                          {isActive && isStarted && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-1 h-5 bg-emerald-600 rounded-full" />
+                              <p className="text-sm font-bold text-slate-700 uppercase tracking-wide">In Progress</p>
+                            </div>
+                          )}
+                          {isActive && !isStarted && !isCompleted && todaysSorted.length > 1 && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-1 h-5 bg-amber-500 rounded-full" />
+                              <p className="text-sm font-bold text-slate-600 uppercase tracking-wide">Up Next</p>
+                            </div>
+                          )}
+                          {isCompleted && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-1 h-5 bg-slate-300 rounded-full" />
+                              <p className="text-sm font-bold text-slate-400 uppercase tracking-wide">Completed</p>
+                            </div>
+                          )}
+                          <AssignmentCard {...cardProps(a)} defaultExpanded={isActive} />
+                          {isActive && isStarted && <div className="mt-3"><DailyTaskLog staffId={staff.id} /></div>}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-                <AssignmentCard {...cardProps(heroAssignment)} defaultExpanded />
-                {isHeroStarted && <DailyTaskLog staffId={staff.id} />}
-              </>
-            ) : todaysAllDone ? (
-              <EndOfDayCard />
-            ) : (
-              <div className="bg-white rounded-2xl border border-slate-200">
-                <EmptyState icon={CalendarDays} title="No jobs scheduled" message="You have no assignments for today. Check back later or contact your supervisor." />
               </div>
             )}
 
+            {/* No jobs today but upcoming exists */}
+            {todaysSorted.length === 0 && upcomingDates.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200">
+                <EmptyState icon={CalendarDays} title="No jobs today" message="Check your upcoming assignments below." />
+              </div>
+            )}
 
+            {/* Upcoming Assignments grouped by date */}
+            {upcomingDates.length > 0 && (
+              <div>
+                <SectionHeader icon={Calendar} title="Upcoming" count={upcomingAssignments.length} tone="muted" />
+                <div className="space-y-4">
+                  {upcomingDates.slice(0, 10).map(date => {
+                    const dayAssignments = upcomingGrouped[date].sort((a, b) => (a.start_time || '23:59').localeCompare(b.start_time || '23:59'));
+                    const d = new Date(date + 'T00:00:00');
+                    return (
+                      <div key={date}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">{format(d, 'EEEE')}</span>
+                          <span className="text-xs text-slate-400">{format(d, 'dd MMM yyyy')}</span>
+                          <span className="text-xs text-slate-300">·</span>
+                          <span className="text-xs text-slate-400">{dayAssignments.length} {dayAssignments.length === 1 ? 'job' : 'jobs'}</span>
+                        </div>
+                        <div className="space-y-3">
+                          {dayAssignments.map(a => (
+                            <AssignmentCard key={a.id} {...cardProps(a)} />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Nothing at all */}
+            {todaysSorted.length === 0 && upcomingDates.length === 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200">
+                <EmptyState icon={CalendarDays} title="No assignments scheduled" message="Check back later — your supervisor will assign you to upcoming jobs." />
+              </div>
+            )}
           </div>
         )}
 
