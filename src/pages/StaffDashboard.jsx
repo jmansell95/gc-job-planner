@@ -462,7 +462,7 @@ export default function StaffDashboard() {
       {/* Header */}
       <div className="hero-gradient relative overflow-hidden">
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-7">
-          <div className="flex items-center justify-between gap-2 sm:gap-4 mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-5">
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
               <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg ring-1 ring-white/25 flex-shrink-0">
                 <HardHat className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white" />
@@ -473,25 +473,26 @@ export default function StaffDashboard() {
                 <p className="text-emerald-200/80 text-xs md:text-sm mt-0.5 truncate">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-1.5">
               <button onClick={() => navigate('/deliveries')} type="button"
-                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-xs sm:text-sm font-medium active:scale-95 transition touch-manipulation">
-                <Truck className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Deliveries</span>
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+                <Truck className="w-5 h-5" />
+                <span>Deliveries</span>
               </button>
               <button onClick={() => navigate('/help')} type="button"
-                className="flex items-center justify-center px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-xs sm:text-sm font-medium active:scale-95 transition touch-manipulation">
-                <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+                <HelpCircle className="w-5 h-5" />
+                <span>Help</span>
               </button>
               <button onClick={() => setShowScheduleSummary(true)} type="button"
-                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-xs sm:text-sm font-medium active:scale-95 transition touch-manipulation">
-                <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Schedule</span>
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+                <CalendarDays className="w-5 h-5" />
+                <span>Schedule</span>
               </button>
               <button onClick={() => navigate('/staff-profile')} type="button"
-                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-xs sm:text-sm font-medium active:scale-95 transition touch-manipulation">
-                <UserCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Profile</span>
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+                <UserCircle className="w-5 h-5" />
+                <span>Profile</span>
               </button>
             </div>
           </div>
