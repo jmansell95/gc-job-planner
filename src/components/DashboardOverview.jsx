@@ -58,6 +58,10 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     }
   }, [layout]);
 
+  const currentHour = new Date().getHours();
+  const greeting = currentHour < 12 ? 'Good morning' : currentHour < 17 ? 'Good afternoon' : 'Good evening';
+  const firstName = profile?.name?.split(' ')[0] || '';
+
   const activeJobs = jobs.filter(j => (j.status || 'planning') === 'in_progress');
   const onHoldJobs = jobs.filter(j => j.status === 'on_hold');
   const todaysRotas = thisWeekRotas.filter(r => r.assigned_date === todayStr);
@@ -126,9 +130,12 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
             <div className="p-2.5 bg-emerald-100 rounded-xl flex-shrink-0">
               <Grid3x3 className="w-7 h-7 text-emerald-700" />
             </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Dashboard</h1>
-              <p className="text-slate-500 text-sm mt-0.5">{thisWeekRotas.length} shifts this week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 tracking-tight truncate">
+                {greeting}{firstName ? `, ${firstName}` : ''}
+              </h1>
+              <p className="text-slate-500 text-sm mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
+              <p className="text-slate-400 text-xs mt-0.5">{thisWeekRotas.length} shifts this week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
