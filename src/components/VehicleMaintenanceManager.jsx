@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Wrench, Phone, MapPin, Calendar, Clock, Trash2, Edit2, CheckCircle2, X, Truck, User } from 'lucide-react';
-import { format } from 'date-fns';
+import { Plus, Wrench, Phone, MapPin, Calendar, Clock, Trash2, Edit2, CheckCircle2, X, Truck, User, ArrowLeft } from 'lucide-react';
+import { format, differenceInDays } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 
@@ -26,7 +26,7 @@ const STATUS_CONFIG = {
 const emptyForm = {
   vehicle_id: '', booking_type: 'mot', status: 'requested',
   booking_date: format(new Date(), 'yyyy-MM-dd'), booking_time: '08:00',
-  supplier_name: 'Holeman', supplier_phone: '', location: '',
+  supplier_name: 'Holman', supplier_phone: '', location: '',
   assigned_staff_id: '', cost: '', notes: ''
 };
 
@@ -35,6 +35,7 @@ export default function VehicleMaintenanceManager() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [selectedVehicleId, setSelectedVehicleId] = useState(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -98,8 +99,9 @@ export default function VehicleMaintenanceManager() {
     toast({ title: 'Booking deleted' });
   };
 
-  const upcoming = bookings.filter(b => ['requested', 'booked', 'in_progress'].includes(b.status));
-  const past = bookings.filter(b => ['completed', 'cancelled'].includes(b.status));
+  const filteredBookings = selectedVehicleId ? bookings.filter(b => b.vehicle_id === selectedVehicleId) : bookings;
+  const upcoming = filteredBookings.filter(b => ['requested', 'booked', 'in_progress'].includes(b.status));
+  const past = filteredBookings.filter(b => ['completed', 'cancelled'].includes(b.status));
 
   const renderBookingCard = (b) => {
     const vehicle = vehicles.find(v => v.id === b.vehicle_id);
@@ -118,9 +120,10 @@ export default function VehicleMaintenanceManager() {
                 <p className="font-bold text-slate-900">{typeLabel}</p>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${st.color}`}>{st.label}</span>
               </div>
-              <p className="text-sm text-slate-600 mt-0.5">
+              <button onClick={() => b.vehicle_id && setSelectedVehicleId(b.vehicle_id)} disabled={!b.vehicle_id}
+                className="text-sm text-slate-600 mt-0.5 block text-left hover:text-emerald-700 hover:underline disabled:hover:text-slate-600 disabled:hover:no-underline transition">
                 {vehicle ? `${vehicle.name} (${vehicle.registration_number})` : b.vehicle_name || 'Vehicle not specified'}
-              </p>
+              </button>
               <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-xs text-slate-500">
                 <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{b.booking_date ? format(new Date(b.booking_date + 'T00:00:00'), 'dd MMM yyyy') : 'TBC'}</span>
                 {b.booking_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{b.booking_time}</span>}
@@ -164,9 +167,9 @@ export default function VehicleMaintenanceManager() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Maintenance Bookings</h2>
-          <p className="text-sm text-slate-500">Book MOTs, services and repairs with Holeman or other suppliers</p>
+          <p className="text-sm text-slate-500">Book MOTs, services and repairs with Holman or other suppliers</p>
         </div>
-        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
+        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ ...emptyForm, vehicle_id: selectedVehicleId || '' }); }}
           className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
           <Plus className="w-4 h-4" /> Book Maintenance
         </button>
@@ -247,11 +250,51 @@ export default function VehicleMaintenanceManager() {
         </form>
       )}
 
+      {selectedVehicleId && (() => {
+        const v = vehicles.find(vh => vh.id === selectedVehicleId);
+        if (!v) return null;
+        const issues = [];
+        const today = new Date();
+        if (v.mot_expiry) {
+          const days = differenceInDays(new Date(v.mot_expiry + 'T00:00:00'), today);
+          if (days < 0) issues.push({ label: 'MOT Expired', color: 'bg-red-50 text-red-700' });
+          else if (days <= 30) issues.push({ label: `MOT due in ${days}d`, color: 'bg-amber-50 text-amber-700' });
+        }
+        if (v.service_due_date) {
+          const days = differenceInDays(new Date(v.service_due_date + 'T00:00:00'), today);
+          if (days < 0) issues.push({ label: 'Service Overdue', color: 'bg-red-50 text-red-700' });
+          else if (days <= 30) issues.push({ label: `Service due in ${days}d`, color: 'bg-amber-50 text-amber-700' });
+        }
+        return (
+          <div className="mb-5 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <button onClick={() => setSelectedVehicleId(null)} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-3 transition">
+              <ArrowLeft className="w-4 h-4" /> All Bookings
+            </button>
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                <Truck className="w-5 h-5 text-amber-600" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-mono font-bold text-slate-900 text-lg">{v.registration_number}</p>
+                <p className="text-sm text-slate-500">{v.name}</p>
+              </div>
+              {issues.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {issues.map((issue, i) => (
+                    <span key={i} className={`text-xs px-2 py-1 rounded-full font-medium ${issue.color}`}>{issue.label}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {isLoading ? (
         <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-28 w-full rounded-xl" />)}</div>
-      ) : bookings.length === 0 ? (
+      ) : filteredBookings.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200">
-          <EmptyState icon={Wrench} title="No maintenance bookings yet" message="Book MOTs, services and repairs here. Staff will be notified by email when assigned." />
+          <EmptyState icon={Wrench} title={selectedVehicleId ? "No bookings for this vehicle" : "No maintenance bookings yet"} message={selectedVehicleId ? "Book MOTs, services and repairs for this vehicle using the button above." : "Book MOTs, services and repairs here. Staff will be notified by email when assigned."} />
         </div>
       ) : (
         <div className="space-y-6">

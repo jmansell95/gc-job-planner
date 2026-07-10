@@ -1,4 +1,4 @@
-import { Truck, AlertCircle, Grid3x3, Users, BarChart3, PoundSterling, Wrench } from 'lucide-react';
+import { Truck, AlertCircle, Grid3x3, Users, BarChart3, PoundSterling, Wrench, CalendarClock } from 'lucide-react';
 
 export const WIDGET_REGISTRY = {
   'delivery-stats': { title: 'Delivery & Collection', icon: Truck },
@@ -8,6 +8,7 @@ export const WIDGET_REGISTRY = {
   'charts': { title: 'Charts', icon: BarChart3 },
   'cost-analytics': { title: 'Cost Analytics', icon: PoundSterling },
   'vehicle-alerts': { title: 'Vehicle Maintenance', icon: Wrench },
+  'maintenance-quick-view': { title: 'Upcoming Bookings', icon: CalendarClock },
 };
 
 export const DEFAULT_WIDGET_ORDER = [
@@ -18,4 +19,5 @@ export const DEFAULT_WIDGET_ORDER = [
   'charts',
   'cost-analytics',
   'vehicle-alerts',
+  'maintenance-quick-view',
 ];

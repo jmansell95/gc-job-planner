@@ -6,6 +6,7 @@ import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Plus, Calendar, Setti
 import { format, startOfWeek, addDays } from 'date-fns';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
+import MaintenanceQuickView from '@/components/MaintenanceQuickView';
 import JobCostAnalytics from '@/components/JobCostAnalytics';
 import NeedsAttentionPanel from '@/components/NeedsAttentionPanel';
 import DeliveryStats from '@/components/DeliveryStats';
@@ -85,6 +86,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'charts': return <ChartsWidget jobs={jobs} staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />;
       case 'cost-analytics': return <JobCostAnalytics />;
       case 'vehicle-alerts': return <VehicleMaintenanceAlerts vehicles={vehicles} />;
+      case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
       default: return null;
     }
   };
