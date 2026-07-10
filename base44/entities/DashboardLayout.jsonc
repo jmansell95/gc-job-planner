@@ -1,0 +1,20 @@
+{
+  "name": "DashboardLayout",
+  "type": "object",
+  "properties": {
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member this dashboard layout belongs to"
+    },
+    "widget_order": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Ordered list of visible widget IDs. Widgets not in this list are hidden."
+    }
+  },
+  "required": [
+    "staff_id"
+  ]
+}

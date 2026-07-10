@@ -1,24 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
-import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Plus, Calendar, ArrowRight } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Plus, Calendar, Settings2, Check, Eye } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
-import { JobStatusChart, StaffUtilizationChart, JobTypeBreakdownChart } from '@/components/DashboardCharts';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
 import JobCostAnalytics from '@/components/JobCostAnalytics';
-import DashboardInsights from '@/components/DashboardInsights';
-import FieldCrewsToday from '@/components/FieldCrewsToday';
 import NeedsAttentionPanel from '@/components/NeedsAttentionPanel';
 import DeliveryStats from '@/components/DeliveryStats';
-
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 14 },
-  show: (i) => ({ opacity: 1, y: 0, transition: { delay: i * 0.06, duration: 0.35 } })
-};
+import WidgetCard from '@/components/dashboard/WidgetCard';
+import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER } from '@/components/dashboard/registry';
+import { KpiStatsWidget, FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
+  const [customizeMode, setCustomizeMode] = useState(false);
+  const [widgetOrder, setWidgetOrder] = useState(DEFAULT_WIDGET_ORDER);
+  const [layoutId, setLayoutId] = useState(null);
+  const queryClient = useQueryClient();
+
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
@@ -34,6 +34,30 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     queryFn: () => base44.entities.RotaAssignment.filter({ week_start: weekStartStr })
   });
 
+  // Fetch current user's profile + saved dashboard layout
+  const { data: profile } = useQuery({
+    queryKey: ['my-staff-profile'],
+    queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; }
+  });
+
+  const { data: layout } = useQuery({
+    queryKey: ['dashboard-layout', profile?.id],
+    queryFn: async () => {
+      const layouts = await base44.entities.DashboardLayout.filter({ staff_id: profile.id });
+      return layouts[0] || null;
+    },
+    enabled: !!profile?.id
+  });
+
+  useEffect(() => {
+    if (layout) {
+      setLayoutId(layout.id);
+      if (layout.widget_order && layout.widget_order.length > 0) {
+        setWidgetOrder(layout.widget_order);
+      }
+    }
+  }, [layout]);
+
   const activeJobs = jobs.filter(j => (j.status || 'planning') === 'in_progress');
   const onHoldJobs = jobs.filter(j => j.status === 'on_hold');
   const todaysRotas = thisWeekRotas.filter(r => r.assigned_date === todayStr);
@@ -47,6 +71,51 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     { label: 'Pending Approval', value: pendingTs, sub: 'timesheets', icon: ClipboardCheck, gradient: pendingTs > 0 ? 'stat-gradient-amber' : 'stat-gradient-slate', nav: 'timesheets' },
     { label: 'Vehicles', value: vehicles.length, sub: 'in fleet', icon: Truck, gradient: 'stat-gradient-amber', nav: 'settings' },
   ];
+
+  const renderWidget = (widgetId) => {
+    switch (widgetId) {
+      case 'delivery-stats': return <DeliveryStats onNavigate={onNavigate} />;
+      case 'needs-attention': return <NeedsAttentionPanel onNavigate={onNavigate} />;
+      case 'kpi-stats': return <KpiStatsWidget stats={stats} onNavigate={onNavigate} />;
+      case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={jobs} vehicles={vehicles} onSelectJob={onSelectJob} onNavigate={onNavigate} />;
+      case 'charts': return <ChartsWidget jobs={jobs} staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />;
+      case 'cost-analytics': return <JobCostAnalytics />;
+      case 'vehicle-alerts': return <VehicleMaintenanceAlerts vehicles={vehicles} />;
+      default: return null;
+    }
+  };
+
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+    const newOrder = [...widgetOrder];
+    const [moved] = newOrder.splice(result.source.index, 1);
+    newOrder.splice(result.destination.index, 0, moved);
+    setWidgetOrder(newOrder);
+  };
+
+  const saveLayout = async (order) => {
+    if (!profile?.id) return;
+    try {
+      if (layoutId) {
+        await base44.entities.DashboardLayout.update(layoutId, { widget_order: order });
+      } else {
+        const created = await base44.entities.DashboardLayout.create({ staff_id: profile.id, widget_order: order });
+        setLayoutId(created.id);
+      }
+      queryClient.invalidateQueries({ queryKey: ['dashboard-layout', profile.id] });
+    } catch (e) { console.error('Layout save error:', e); }
+  };
+
+  const handleToggleWidget = (widgetId) => {
+    setWidgetOrder(prev => prev.includes(widgetId) ? prev.filter(id => id !== widgetId) : [...prev, widgetId]);
+  };
+
+  const handleExitCustomize = () => {
+    saveLayout(widgetOrder);
+    setCustomizeMode(false);
+  };
+
+  const hiddenWidgets = DEFAULT_WIDGET_ORDER.filter(id => !widgetOrder.includes(id));
 
   return (
     <div>
@@ -62,73 +131,79 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
               <p className="text-slate-500 text-sm mt-0.5">{thisWeekRotas.length} shifts this week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => onNavigate('jobs')} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
-              <Plus className="w-4 h-4 text-emerald-700" /> Add Job
-            </button>
-            <button onClick={() => onNavigate('rota')} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-              <Calendar className="w-4 h-4" /> Build Rota
-            </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {!customizeMode ? (
+              <>
+                <button onClick={() => onNavigate('jobs')} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
+                  <Plus className="w-4 h-4 text-emerald-700" /> Add Job
+                </button>
+                <button onClick={() => onNavigate('rota')} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
+                  <Calendar className="w-4 h-4" /> Build Rota
+                </button>
+                <button onClick={() => setCustomizeMode(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
+                  <Settings2 className="w-4 h-4" /> Customize
+                </button>
+              </>
+            ) : (
+              <button onClick={handleExitCustomize} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
+                <Check className="w-4 h-4" /> Done
+              </button>
+            )}
           </div>
         </div>
       </motion.div>
 
-      {/* Delivery & Collection stats */}
-      <DeliveryStats onNavigate={onNavigate} />
-
-      {/* Needs Attention */}
-      <NeedsAttentionPanel onNavigate={onNavigate} />
-
-      {/* KPI Stats — clickable */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        {stats.map((stat, i) => {
-          const Icon = stat.icon;
-          return (
-            <motion.button key={stat.label} custom={i} initial="hidden" animate="show" variants={cardVariants}
-              onClick={() => onNavigate(stat.nav)}
-              className="card-modern rounded-2xl p-4 sm:p-5 flex items-center gap-3 sm:gap-4 text-left group">
-              <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl ${stat.gradient} flex items-center justify-center flex-shrink-0 shadow-md`}>
-                <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">{stat.value}</p>
-                <p className="text-xs text-slate-500 font-medium">{stat.label}</p>
-                <p className="text-[11px] text-slate-400 truncate">{stat.sub}</p>
-              </div>
-              <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition ml-auto flex-shrink-0" />
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/* Field Crews + AI Insights side by side on desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <FieldCrewsToday todaysRotas={todaysRotas} staff={staff} jobs={jobs} vehicles={vehicles} onSelectJob={onSelectJob} onNavigate={onNavigate} />
-
-        {/* AI Weekly Insights (inline, no longer a separate orphan) */}
-        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18, duration: 0.35 }}>
-          <DashboardInsights />
-        </motion.div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <JobStatusChart jobs={jobs} />
-        <JobTypeBreakdownChart jobs={jobs} />
-        <div className="lg:col-span-2">
-          <StaffUtilizationChart staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />
+      {customizeMode && (
+        <div className="mb-6 bg-emerald-50/80 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800">
+          Drag sections by the handle to reorder. Use "Hide" to remove a section — add it back from the bottom.
         </div>
-      </div>
+      )}
 
-      {/* Cost Analytics */}
-      <div className="mb-6">
-        <JobCostAnalytics />
-      </div>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="dashboard-widgets">
+          {(provided) => (
+            <div ref={provided.innerRef} {...provided.droppableProps}>
+              {widgetOrder.map((widgetId, index) => (
+                <Draggable key={widgetId} draggableId={widgetId} index={index} isDragDisabled={!customizeMode}>
+                  {(provided) => (
+                    <div ref={provided.innerRef} {...provided.draggableProps}>
+                      <WidgetCard
+                        widgetId={widgetId}
+                        customizeMode={customizeMode}
+                        dragHandleProps={provided.dragHandleProps}
+                        onHide={() => handleToggleWidget(widgetId)}
+                      >
+                        {renderWidget(widgetId)}
+                      </WidgetCard>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
 
-      {/* Vehicle Maintenance Alerts */}
-      <div className="mb-6">
-        <VehicleMaintenanceAlerts vehicles={vehicles} />
-      </div>
+      {/* Hidden widgets — add them back */}
+      {customizeMode && hiddenWidgets.length > 0 && (
+        <div className="mt-2 bg-white rounded-2xl border border-dashed border-slate-300 p-4">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Hidden Sections — tap to add back</p>
+          <div className="flex flex-wrap gap-2">
+            {hiddenWidgets.map(widgetId => {
+              const config = WIDGET_REGISTRY[widgetId];
+              if (!config) return null;
+              const Icon = config.icon;
+              return (
+                <button key={widgetId} onClick={() => handleToggleWidget(widgetId)} type="button"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-50 text-slate-600 rounded-lg border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition text-sm font-medium">
+                  <Eye className="w-4 h-4" /> {config.title}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
