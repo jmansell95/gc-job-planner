@@ -47,17 +47,28 @@ Deno.serve(async (req) => {
     const admins = users.filter(u => u.role === 'admin' && u.email);
     if (admins.length === 0) return Response.json({ skipped: true, reason: 'No admins' });
 
-    const text = 'A job status has changed:\n\n' +
-      'Job: ' + (data.name || '—') + '\n' +
-      'Location: ' + (data.location || '—') + '\n' +
-      'Status: ' + (statusLabels[oldStatus] || oldStatus || '—') + ' → ' + (statusLabels[newStatus] || newStatus || '—') + '\n' +
-      '\nView the job in the planner.\n\nGC Job Planner';
+    const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'job_status_change' });
+    const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+    if (cfg.enabled === false) return Response.json({ skipped: true, reason: 'Email alert disabled' });
+
+    const oldLabel = statusLabels[oldStatus] || oldStatus || '—';
+    const newLabel = statusLabels[newStatus] || newStatus || '—';
+    let text;
+    if (cfg.template) {
+      text = cfg.template
+        .replace(/\{job_name\}/g, data.name || '—').replace(/\{location\}/g, data.location || '—')
+        .replace(/\{old_status\}/g, oldLabel).replace(/\{new_status\}/g, newLabel);
+    } else {
+      const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+      text = intro + 'A job status has changed:\n\nJob: ' + (data.name || '—') + '\nLocation: ' + (data.location || '—') + '\nStatus: ' + oldLabel + ' -> ' + newLabel + '\n\nView the job in the planner.\n\nGC Job Planner';
+    }
+    const subject = cfg.subject ? cfg.subject.replace(/\{job_name\}/g, data.name || 'Job') : 'Job status updated: ' + (data.name || 'Job');
 
     const baseUrl = await getAppBaseUrl(base44);
     const bodyHtml = escapeHtml(text).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open planner');
     let notified = 0;
     for (const u of admins) {
-      try { await base44.asServiceRole.integrations.Core.SendEmail({ to: u.email, subject: 'Job status updated: ' + (data.name || 'Job'), body: styledHtml(bodyHtml, null) }); notified++; } catch (e) {}
+      try { await base44.asServiceRole.integrations.Core.SendEmail({ to: u.email, subject, body: styledHtml(bodyHtml, cfg) }); notified++; } catch (e) {}
     }
 
     if (ac) { try { await base44.asServiceRole.entities.AutomationControl.update(ac.id, { last_run_at: new Date().toISOString(), last_run_status: 'success' }); } catch (e) {} }

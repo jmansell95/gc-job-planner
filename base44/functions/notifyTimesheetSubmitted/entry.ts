@@ -57,20 +57,29 @@ Deno.serve(async (req) => {
     const jobName = job ? job.name : 'Unknown job';
     const hours = ts.total_hours != null ? ts.total_hours + 'h' : ((ts.task_duration_minutes ? (ts.task_duration_minutes / 60).toFixed(1) + 'h' : '—'));
 
-    const text = 'A timesheet has been submitted for approval:\n\n' +
-      'Staff: ' + staffName + '\n' +
-      'Job: ' + jobName + '\n' +
-      'Date: ' + (ts.date || '—') + '\n' +
-      'Hours: ' + hours + '\n' +
-      (ts.task_description ? 'Task: ' + ts.task_description + '\n' : '') +
-      (ts.notes ? 'Notes: ' + ts.notes + '\n' : '') +
-      '\nReview and approve it in the planner.\n\nGC Job Planner';
+    const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'timesheet_submitted' });
+    const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+    if (cfg.enabled === false) return Response.json({ skipped: true, reason: 'Email alert disabled' });
+
+    const taskDesc = ts.task_description || '';
+    const tsNotes = ts.notes || '';
+    let text;
+    if (cfg.template) {
+      text = cfg.template
+        .replace(/\{staff_name\}/g, staffName).replace(/\{job_name\}/g, jobName)
+        .replace(/\{date\}/g, ts.date || '—').replace(/\{hours\}/g, hours)
+        .replace(/\{task_description\}/g, taskDesc).replace(/\{notes\}/g, tsNotes);
+    } else {
+      const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+      text = intro + 'A timesheet has been submitted for approval:\n\nStaff: ' + staffName + '\nJob: ' + jobName + '\nDate: ' + (ts.date || '—') + '\nHours: ' + hours + (taskDesc ? '\nTask: ' + taskDesc : '') + (tsNotes ? '\nNotes: ' + tsNotes : '') + '\n\nReview and approve it in the planner.\n\nGC Job Planner';
+    }
+    const subject = cfg.subject ? cfg.subject.replace(/\{staff_name\}/g, staffName).replace(/\{job_name\}/g, jobName) : 'Timesheet submitted by ' + staffName;
 
     const baseUrl = await getAppBaseUrl(base44);
     const bodyHtml = escapeHtml(text).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open planner');
     let notified = 0;
     for (const to of recipients) {
-      try { await base44.asServiceRole.integrations.Core.SendEmail({ to, subject: 'Timesheet submitted by ' + staffName, body: styledHtml(bodyHtml, null) }); notified++; } catch (e) {}
+      try { await base44.asServiceRole.integrations.Core.SendEmail({ to, subject, body: styledHtml(bodyHtml, cfg) }); notified++; } catch (e) {}
     }
 
     if (ac) { try { await base44.asServiceRole.entities.AutomationControl.update(ac.id, { last_run_at: new Date().toISOString(), last_run_status: 'success' }); } catch (e) {} }

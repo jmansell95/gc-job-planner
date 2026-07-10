@@ -4,7 +4,14 @@ const DEFAULTS = [
   { alert_key: 'vehicle_maintenance', enabled: true, recipient_emails: '', days_before_warning: 30, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
   { alert_key: 'assignment_notification', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
   { alert_key: 'staff_schedule', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'staff_invitation', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
+  { alert_key: 'staff_invitation', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'absence_request', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'job_status_change', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'new_job', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'timesheet_submitted', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'maintenance_booking', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'training_booking', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'daily_reminder', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
 ];
 
 function escapeHtml(s) {
@@ -44,6 +51,9 @@ function linkForAlert(alert_key) {
   if (alert_key === 'staff_invitation') {
     return { path: '', label: 'Open the app' };
   }
+  if (alert_key === 'maintenance_booking' || alert_key === 'training_booking' || alert_key === 'daily_reminder') {
+    return { path: '/staff-schedule', label: 'View your schedule' };
+  }
   return { path: '/admin', label: 'Open planner' };
 }
 
@@ -64,6 +74,71 @@ function renderTestTemplate(alert_key, template) {
     return template
       .replace(/\{staff_name\}/g, 'John Smith')
       .replace(/\{email\}/g, 'john@example.com');
+  }
+  if (alert_key === 'absence_request') {
+    return template
+      .replace(/\{staff_name\}/g, 'John Smith')
+      .replace(/\{start_date\}/g, '2026-07-15')
+      .replace(/\{end_date\}/g, '2026-07-18')
+      .replace(/\{reason\}/g, 'Holiday')
+      .replace(/\{notes\}/g, 'Family holiday');
+  }
+  if (alert_key === 'job_status_change') {
+    return template
+      .replace(/\{job_name\}/g, 'Sample Job')
+      .replace(/\{location\}/g, 'Sample Site, London')
+      .replace(/\{old_status\}/g, 'In Progress')
+      .replace(/\{new_status\}/g, 'On Hold');
+  }
+  if (alert_key === 'new_job') {
+    return template
+      .replace(/\{job_name\}/g, 'Sample Job')
+      .replace(/\{location\}/g, 'Sample Site, London')
+      .replace(/\{job_type\}/g, 'groundworks')
+      .replace(/\{start_date\}/g, '2026-07-15')
+      .replace(/\{end_date\}/g, '2026-07-30')
+      .replace(/\{job_reference\}/g, 'JOB-001');
+  }
+  if (alert_key === 'timesheet_submitted') {
+    return template
+      .replace(/\{staff_name\}/g, 'John Smith')
+      .replace(/\{job_name\}/g, 'Sample Job')
+      .replace(/\{date\}/g, '2026-07-10')
+      .replace(/\{hours\}/g, '8h')
+      .replace(/\{task_description\}/g, 'Setting up the rig')
+      .replace(/\{notes\}/g, 'All went well');
+  }
+  if (alert_key === 'maintenance_booking') {
+    return template
+      .replace(/\{staff_name\}/g, 'John Smith')
+      .replace(/\{vehicle_name\}/g, 'Van 01 (AB12 CDE)')
+      .replace(/\{booking_type\}/g, 'MOT')
+      .replace(/\{booking_date\}/g, 'Monday, 15 July 2026')
+      .replace(/\{booking_time\}/g, '09:00')
+      .replace(/\{supplier_name\}/g, 'Holeman')
+      .replace(/\{supplier_phone\}/g, '01234 567890')
+      .replace(/\{location\}/g, 'Holeman Garage, Bristol')
+      .replace(/\{notes\}/g, 'Please arrive 15 mins early');
+  }
+  if (alert_key === 'training_booking') {
+    return template
+      .replace(/\{staff_name\}/g, 'John Smith')
+      .replace(/\{course_title\}/g, 'Forklift Training')
+      .replace(/\{start_date\}/g, 'Monday, 15 July 2026')
+      .replace(/\{end_date\}/g, '')
+      .replace(/\{start_time\}/g, '08:00')
+      .replace(/\{end_time\}/g, '16:00')
+      .replace(/\{venue\}/g, 'Training Centre Bristol')
+      .replace(/\{address\}/g, '123 Industrial Way, Bristol')
+      .replace(/\{provider\}/g, 'NPORS Training Ltd')
+      .replace(/\{provider_phone\}/g, '01234 567890')
+      .replace(/\{description\}/g, '3-day forklift operator certification course');
+  }
+  if (alert_key === 'daily_reminder') {
+    return template
+      .replace(/\{staff_name\}/g, 'John Smith')
+      .replace(/\{today_date\}/g, '2026-07-10')
+      .replace(/\{assignment_list\}/g, '   - Sample Job - Sample Site, London - 07:00-17:00 - AB12 CDE\n   - Second Job - Another Site, Bath - 07:00-17:00');
   }
   return template
     .replace(/\{staff_name\}/g, 'John Smith')
@@ -164,7 +239,8 @@ Deno.serve(async (req) => {
       if (recipients.length === 0) {
         return Response.json({ error: 'No recipients configured' }, { status: 400 });
       }
-      const subject = cfg.subject || (alert_key === 'vehicle_maintenance' ? 'Vehicle Maintenance Alert (Test)' : alert_key === 'staff_schedule' ? 'Weekly Schedule (Test)' : alert_key === 'staff_invitation' ? 'App Invitation (Test)' : 'New Job Assignment (Test)');
+      const defaultSubjects = { vehicle_maintenance: 'Vehicle Maintenance Alert (Test)', assignment_notification: 'New Job Assignment (Test)', staff_schedule: 'Weekly Schedule (Test)', staff_invitation: 'App Invitation (Test)', absence_request: 'Absence Request (Test)', job_status_change: 'Job Status Updated (Test)', new_job: 'New Job Created (Test)', timesheet_submitted: 'Timesheet Submitted (Test)', maintenance_booking: 'Maintenance Booking (Test)', training_booking: 'Training Booking (Test)', daily_reminder: 'Daily Schedule Reminder (Test)' };
+      const subject = cfg.subject || defaultSubjects[alert_key] || 'Alert (Test)';
       const text = renderTestTemplate(alert_key, cfg.template);
       const baseUrl = await getAppBaseUrl(base44);
       const link = linkForAlert(alert_key);

@@ -49,6 +49,9 @@ Deno.serve(async (req) => {
     });
 
     const baseUrl = await getAppBaseUrl(base44);
+    const dailyCfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'daily_reminder' });
+    const dailyCfg = dailyCfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+    if (dailyCfg.enabled === false) return Response.json({ skipped: true, reason: 'Email alert disabled' });
     let notified = 0;
     const skipped = [];
 
@@ -69,14 +72,22 @@ Deno.serve(async (req) => {
         return `   • ${jobName}${location ? ' — ' + location : ''}${time}${reg}${notes}`;
       }).join('\n');
 
-      const bodyText = `Hello ${member.name},\n\nHere is your schedule for today (${todayStr}):\n\n${lines}\n\nHave a safe shift.\n\nGC Job Planner`;
+      let bodyText;
+      if (dailyCfg.template) {
+        bodyText = dailyCfg.template
+          .replace(/\{staff_name\}/g, member.name).replace(/\{today_date\}/g, todayStr)
+          .replace(/\{assignment_list\}/g, lines);
+      } else {
+        const intro = dailyCfg.intro_message ? dailyCfg.intro_message + '\n\n' : '';
+        bodyText = intro + `Hello ${member.name},\n\nHere is your schedule for today (${todayStr}):\n\n${lines}\n\nHave a safe shift.\n\nGC Job Planner`;
+      }
       const bodyHtml = escapeHtml(bodyText).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/staff-schedule', 'View your schedule');
 
       try {
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: member.email,
-          subject: `Your schedule for today — ${assignments.length} assignment${assignments.length > 1 ? 's' : ''}`,
-          body: styledHtml(bodyHtml, null)
+          subject: dailyCfg.subject ? dailyCfg.subject.replace(/\{staff_name\}/g, member.name).replace(/\{today_date\}/g, todayStr) : `Your schedule for today — ${assignments.length} assignment${assignments.length > 1 ? 's' : ''}`,
+          body: styledHtml(bodyHtml, dailyCfg)
         });
         notified++;
       } catch (err) {
@@ -107,7 +118,7 @@ Deno.serve(async (req) => {
         const bodyHtml = escapeHtml(bodyText).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open planner');
         for (const email of recipients) {
           try {
-            await base44.asServiceRole.integrations.Core.SendEmail({ to: email, subject: 'Daily schedule overview — ' + todayStr, body: styledHtml(bodyHtml, null) });
+            await base44.asServiceRole.integrations.Core.SendEmail({ to: email, subject: 'Daily schedule overview — ' + todayStr, body: styledHtml(bodyHtml, schedCfg) });
             copies++;
           } catch (e) {}
         }

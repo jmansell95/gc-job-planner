@@ -54,19 +54,28 @@ Deno.serve(async (req) => {
     const staffName = staff ? staff.name : 'Unknown staff';
     const reason = (abs.reason || '').replace(/_/g, ' ');
 
-    const text = 'An absence request has been submitted:\n\n' +
-      'Staff: ' + staffName + '\n' +
-      'From: ' + (abs.start_date || '—') + '\n' +
-      'To: ' + (abs.end_date || '—') + '\n' +
-      'Reason: ' + reason + '\n' +
-      (abs.notes ? 'Notes: ' + abs.notes + '\n' : '') +
-      '\nReview and respond in the planner.\n\nGC Job Planner';
+    const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'absence_request' });
+    const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+    if (cfg.enabled === false) return Response.json({ skipped: true, reason: 'Email alert disabled' });
+
+    const notesStr = abs.notes || '';
+    let text;
+    if (cfg.template) {
+      text = cfg.template
+        .replace(/\{staff_name\}/g, staffName).replace(/\{start_date\}/g, abs.start_date || '—')
+        .replace(/\{end_date\}/g, abs.end_date || '—').replace(/\{reason\}/g, reason)
+        .replace(/\{notes\}/g, notesStr);
+    } else {
+      const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+      text = intro + 'An absence request has been submitted:\n\nStaff: ' + staffName + '\nFrom: ' + (abs.start_date || '—') + '\nTo: ' + (abs.end_date || '—') + '\nReason: ' + reason + (notesStr ? '\nNotes: ' + notesStr : '') + '\n\nReview and respond in the planner.\n\nGC Job Planner';
+    }
+    const subject = cfg.subject ? cfg.subject.replace(/\{staff_name\}/g, staffName) : 'Absence request: ' + staffName;
 
     const baseUrl = await getAppBaseUrl(base44);
     const bodyHtml = escapeHtml(text).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open planner');
     let notified = 0;
     for (const to of recipients) {
-      try { await base44.asServiceRole.integrations.Core.SendEmail({ to, subject: 'Absence request: ' + staffName, body: styledHtml(bodyHtml, null) }); notified++; } catch (e) {}
+      try { await base44.asServiceRole.integrations.Core.SendEmail({ to, subject, body: styledHtml(bodyHtml, cfg) }); notified++; } catch (e) {}
     }
 
     if (ac) { try { await base44.asServiceRole.entities.AutomationControl.update(ac.id, { last_run_at: new Date().toISOString(), last_run_status: 'success' }); } catch (e) {} }

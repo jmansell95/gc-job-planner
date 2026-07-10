@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Mail, Save, Send, Loader2, Truck, UserCheck, Clock, Palette, RotateCcw, Eye, Sparkles, Type, Calendar, UserPlus } from 'lucide-react';
+import { Mail, Save, Send, Loader2, Truck, UserCheck, Clock, Palette, RotateCcw, Eye, Sparkles, Type, Calendar, UserPlus, CalendarX, AlertTriangle, Briefcase, ClipboardCheck, Wrench, GraduationCap, Bell } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const ALERT_META = {
@@ -40,6 +40,69 @@ const ALERT_META = {
     showRecipients: false,
     tokens: ['{staff_name}', '{email}'],
   },
+  absence_request: {
+    title: 'Absence Request',
+    desc: 'Emails managers/admins when a staff member requests time off.',
+    schedule: 'Runs automatically when an absence request is submitted',
+    icon: CalendarX,
+    showThreshold: false,
+    showRecipients: false,
+    tokens: ['{staff_name}', '{start_date}', '{end_date}', '{reason}', '{notes}'],
+  },
+  job_status_change: {
+    title: 'Job Status Change',
+    desc: 'Emails admins when a job is put on hold, cancelled, completed or reactivated.',
+    schedule: 'Runs automatically when a job status changes',
+    icon: AlertTriangle,
+    showThreshold: false,
+    showRecipients: false,
+    tokens: ['{job_name}', '{location}', '{old_status}', '{new_status}'],
+  },
+  new_job: {
+    title: 'New Job Alert',
+    desc: 'Emails admins when a new job is created in the planner.',
+    schedule: 'Runs automatically when a new job is added',
+    icon: Briefcase,
+    showThreshold: false,
+    showRecipients: false,
+    tokens: ['{job_name}', '{location}', '{job_type}', '{start_date}', '{end_date}', '{job_reference}'],
+  },
+  timesheet_submitted: {
+    title: 'Timesheet Submission',
+    desc: 'Emails managers/admins when a staff member submits a timesheet for approval.',
+    schedule: 'Runs automatically when a timesheet is submitted',
+    icon: ClipboardCheck,
+    showThreshold: false,
+    showRecipients: false,
+    tokens: ['{staff_name}', '{job_name}', '{date}', '{hours}', '{task_description}', '{notes}'],
+  },
+  maintenance_booking: {
+    title: 'Maintenance Booking',
+    desc: 'Emails a staff member when they are assigned to a vehicle maintenance booking.',
+    schedule: 'Sent when you assign staff to a maintenance booking',
+    icon: Wrench,
+    showThreshold: false,
+    showRecipients: false,
+    tokens: ['{staff_name}', '{vehicle_name}', '{booking_type}', '{booking_date}', '{booking_time}', '{supplier_name}', '{supplier_phone}', '{location}', '{notes}'],
+  },
+  training_booking: {
+    title: 'Training Booking',
+    desc: 'Emails a staff member when they are booked onto a training course.',
+    schedule: 'Sent when you book staff onto a training course',
+    icon: GraduationCap,
+    showThreshold: false,
+    showRecipients: false,
+    tokens: ['{staff_name}', '{course_title}', '{start_date}', '{end_date}', '{start_time}', '{end_time}', '{venue}', '{address}', '{provider}', '{provider_phone}', '{description}'],
+  },
+  daily_reminder: {
+    title: 'Daily Schedule Reminder',
+    desc: 'Emails each staff member their assignments first thing in the morning.',
+    schedule: 'Runs automatically every weekday at 5:00 AM',
+    icon: Bell,
+    showThreshold: false,
+    showRecipients: false,
+    tokens: ['{staff_name}', '{today_date}', '{assignment_list}'],
+  },
 };
 
 const ACCENT_PRESETS = [
@@ -51,6 +114,34 @@ const ACCENT_PRESETS = [
 ];
 
 const DEFAULT_STYLE = { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+
+const SUBJECT_PLACEHOLDERS = {
+  vehicle_maintenance: 'Vehicle Maintenance Alert',
+  assignment_notification: 'New Job Assignment',
+  staff_schedule: "John's Weekly Schedule",
+  staff_invitation: "You're Invited to GC Job Planner",
+  absence_request: 'Absence Request: John Smith',
+  job_status_change: 'Job Status Updated: Sample Job',
+  new_job: 'New Job Created: Sample Job',
+  timesheet_submitted: 'Timesheet Submitted by John Smith',
+  maintenance_booking: 'MOT Booking — Van 01',
+  training_booking: 'Training Booking — Forklift Training',
+  daily_reminder: 'Your Schedule for Today',
+};
+
+const TEMPLATE_PLACEHOLDERS = {
+  vehicle_maintenance: 'Vehicle Maintenance Report\n\n{alert_list}\n\nPlease schedule maintenance as soon as possible.\n\nGC Job Planner',
+  assignment_notification: 'Hello {staff_name},\n\nYou have been assigned to a new job:\n\nJob: {job_name}\nLocation: {location}\nDate: {date}\nJob Type: {job_type}\n{notes}\n\nPlease check your schedule for full details.\n\nGC Job Planner',
+  staff_schedule: 'Hi {staff_name}, here is your schedule for the week of {week_start}. You have {assignment_count} assignment(s).',
+  staff_invitation: 'Hi {staff_name},\n\nYou have been invited to join the GC Job Planner app. Use the login link sent to {email} to set up your account and start viewing your schedule and logging timesheets.\n\nGC Job Planner',
+  absence_request: 'An absence request has been submitted:\n\nStaff: {staff_name}\nFrom: {start_date}\nTo: {end_date}\nReason: {reason}\n{notes}\n\nReview and respond in the planner.\n\nGC Job Planner',
+  job_status_change: 'A job status has changed:\n\nJob: {job_name}\nLocation: {location}\nStatus: {old_status} -> {new_status}\n\nView the job in the planner.\n\nGC Job Planner',
+  new_job: 'A new job has been created:\n\nJob: {job_name}\nLocation: {location}\nType: {job_type}\nStart: {start_date}\nEnd: {end_date}\nReference: {job_reference}\n\nReview the job in the planner.\n\nGC Job Planner',
+  timesheet_submitted: 'A timesheet has been submitted for approval:\n\nStaff: {staff_name}\nJob: {job_name}\nDate: {date}\nHours: {hours}\nTask: {task_description}\nNotes: {notes}\n\nReview and approve it in the planner.\n\nGC Job Planner',
+  maintenance_booking: 'Hello {staff_name},\n\nA vehicle {booking_type} booking has been scheduled for you:\n\nVehicle: {vehicle_name}\nBooking Type: {booking_type}\nDate: {booking_date}\nTime: {booking_time}\nSupplier: {supplier_name}\nSupplier Phone: {supplier_phone}\nLocation: {location}\n\nNotes: {notes}\n\nPlease ensure the vehicle is taken to the appointment on time.\n\nGC Job Planner',
+  training_booking: 'Hello {staff_name},\n\nYou have been booked onto a training course:\n\nCourse: {course_title}\nDate: {start_date}\nTime: {start_time} - {end_time}\nVenue: {venue}\nAddress: {address}\nProvider: {provider}\nProvider Phone: {provider_phone}\n\nDetails: {description}\n\nPlease arrive on time and bring any required PPE or identification.\n\nGC Job Planner',
+  daily_reminder: 'Hello {staff_name},\n\nHere is your schedule for today ({today_date}):\n\n{assignment_list}\n\nHave a safe shift.\n\nGC Job Planner',
+};
 
 function escapeHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -96,6 +187,42 @@ function renderSampleBody(key, cfg) {
     }
     const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
     return intro + 'Hi John Smith,\n\nYou have been invited to join the GC Job Planner app. Use the login link sent to your email (john@example.com) to set up your account and start viewing your schedule and logging timesheets.\n\nGC Job Planner';
+  }
+  if (key === 'absence_request') {
+    if (cfg.template) return cfg.template.replace(/\{staff_name\}/g, 'John Smith').replace(/\{start_date\}/g, '2026-07-15').replace(/\{end_date\}/g, '2026-07-18').replace(/\{reason\}/g, 'Holiday').replace(/\{notes\}/g, 'Family holiday');
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'An absence request has been submitted:\n\nStaff: John Smith\nFrom: 2026-07-15\nTo: 2026-07-18\nReason: Holiday\nNotes: Family holiday\n\nReview and respond in the planner.\n\nGC Job Planner';
+  }
+  if (key === 'job_status_change') {
+    if (cfg.template) return cfg.template.replace(/\{job_name\}/g, 'Sample Job').replace(/\{location\}/g, 'Sample Site, London').replace(/\{old_status\}/g, 'In Progress').replace(/\{new_status\}/g, 'On Hold');
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'A job status has changed:\n\nJob: Sample Job\nLocation: Sample Site, London\nStatus: In Progress -> On Hold\n\nView the job in the planner.\n\nGC Job Planner';
+  }
+  if (key === 'new_job') {
+    if (cfg.template) return cfg.template.replace(/\{job_name\}/g, 'Sample Job').replace(/\{location\}/g, 'Sample Site, London').replace(/\{job_type\}/g, 'groundworks').replace(/\{start_date\}/g, '2026-07-15').replace(/\{end_date\}/g, '2026-07-30').replace(/\{job_reference\}/g, 'JOB-001');
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'A new job has been created:\n\nJob: Sample Job\nLocation: Sample Site, London\nType: groundworks\nStart: 2026-07-15\nEnd: 2026-07-30\nReference: JOB-001\n\nReview the job in the planner.\n\nGC Job Planner';
+  }
+  if (key === 'timesheet_submitted') {
+    if (cfg.template) return cfg.template.replace(/\{staff_name\}/g, 'John Smith').replace(/\{job_name\}/g, 'Sample Job').replace(/\{date\}/g, '2026-07-10').replace(/\{hours\}/g, '8h').replace(/\{task_description\}/g, 'Setting up the rig').replace(/\{notes\}/g, 'All went well');
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'A timesheet has been submitted for approval:\n\nStaff: John Smith\nJob: Sample Job\nDate: 2026-07-10\nHours: 8h\nTask: Setting up the rig\nNotes: All went well\n\nReview and approve it in the planner.\n\nGC Job Planner';
+  }
+  if (key === 'maintenance_booking') {
+    if (cfg.template) return cfg.template.replace(/\{staff_name\}/g, 'John Smith').replace(/\{vehicle_name\}/g, 'Van 01 (AB12 CDE)').replace(/\{booking_type\}/g, 'MOT').replace(/\{booking_date\}/g, 'Monday, 15 July 2026').replace(/\{booking_time\}/g, '09:00').replace(/\{supplier_name\}/g, 'Holeman').replace(/\{supplier_phone\}/g, '01234 567890').replace(/\{location\}/g, 'Holeman Garage, Bristol').replace(/\{notes\}/g, 'Please arrive 15 mins early');
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'Hello John Smith,\n\nA vehicle MOT booking has been scheduled for you:\n\nVehicle: Van 01 (AB12 CDE)\nBooking Type: MOT\nDate: Monday, 15 July 2026\nTime: 09:00\nSupplier: Holeman\nSupplier Phone: 01234 567890\nLocation: Holeman Garage, Bristol\n\nNotes: Please arrive 15 mins early\n\nPlease ensure the vehicle is taken to the appointment on time.\n\nGC Job Planner';
+  }
+  if (key === 'training_booking') {
+    if (cfg.template) return cfg.template.replace(/\{staff_name\}/g, 'John Smith').replace(/\{course_title\}/g, 'Forklift Training').replace(/\{start_date\}/g, 'Monday, 15 July 2026').replace(/\{end_date\}/g, '').replace(/\{start_time\}/g, '08:00').replace(/\{end_time\}/g, '16:00').replace(/\{venue\}/g, 'Training Centre Bristol').replace(/\{address\}/g, '123 Industrial Way, Bristol').replace(/\{provider\}/g, 'NPORS Training Ltd').replace(/\{provider_phone\}/g, '01234 567890').replace(/\{description\}/g, '3-day forklift operator certification course');
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'Hello John Smith,\n\nYou have been booked onto a training course:\n\nCourse: Forklift Training\nDate: Monday, 15 July 2026\nTime: 08:00 - 16:00\nVenue: Training Centre Bristol\nAddress: 123 Industrial Way, Bristol\nProvider: NPORS Training Ltd\nProvider Phone: 01234 567890\n\nDetails: 3-day forklift operator certification course\n\nPlease arrive on time and bring any required PPE or identification.\n\nGC Job Planner';
+  }
+  if (key === 'daily_reminder') {
+    const sampleList = '   - Sample Job - Sample Site, London - 07:00-17:00 - AB12 CDE\n   - Second Job - Another Site, Bath - 07:00-17:00';
+    if (cfg.template) return cfg.template.replace(/\{staff_name\}/g, 'John Smith').replace(/\{today_date\}/g, '2026-07-10').replace(/\{assignment_list\}/g, sampleList);
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'Hello John Smith,\n\nHere is your schedule for today (2026-07-10):\n\n' + sampleList + '\n\nHave a safe shift.\n\nGC Job Planner';
   }
   const tok = { staff_name: 'John Smith', job_name: 'Sample Job', location: 'Sample Site, London', date: 'Monday, 6 July 2026', job_type: 'groundworks', notes: 'Notes: Sample note' };
   if (cfg.template) {
@@ -286,7 +413,7 @@ export default function EmailAlertsSettings() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">Email subject <span className="text-slate-400 font-normal">(optional)</span></label>
                   <input type="text" value={draft.subject || ''} onChange={(e) => updateDraft(key, 'subject', e.target.value)}
-                    placeholder={key === 'vehicle_maintenance' ? 'Vehicle Maintenance Alert' : key === 'staff_schedule' ? "John's Weekly Schedule" : key === 'staff_invitation' ? "You're Invited to GC Job Planner" : 'New Job Assignment'}
+                    placeholder={SUBJECT_PLACEHOLDERS[key] || 'Alert'}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
                   {key === 'assignment_notification' && <p className="text-xs text-slate-400 mt-1">Use {'{job_name}'} to insert the job name.</p>}
                   {key === 'staff_schedule' && <p className="text-xs text-slate-400 mt-1">Use {'{staff_name}'} or {'{week_start}'} in the subject.</p>}
@@ -308,13 +435,7 @@ export default function EmailAlertsSettings() {
                   </div>
                   <textarea ref={(el) => (textareaRefs.current[key] = el)}
                     value={draft.template || ''} onChange={(e) => updateDraft(key, 'template', e.target.value)} rows="7"
-                    placeholder={key === 'vehicle_maintenance'
-                      ? `Vehicle Maintenance Report\n\n{alert_list}\n\nPlease schedule maintenance as soon as possible.\n\nGC Job Planner`
-                      : key === 'staff_schedule'
-                        ? `Hi {staff_name}, here is your schedule for the week of {week_start}. You have {assignment_count} assignment(s).`
-                        : key === 'staff_invitation'
-                          ? `Hi {staff_name},\n\nYou have been invited to join the GC Job Planner app. Use the login link sent to {email} to set up your account and start viewing your schedule and logging timesheets.\n\nGC Job Planner`
-                          : `Hello {staff_name},\n\nYou have been assigned to a new job:\n\nJob: {job_name}\nLocation: {location}\nDate: {date}\nJob Type: {job_type}\n{notes}\n\nPlease check your schedule for full details.\n\nGC Job Planner`}
+                    placeholder={TEMPLATE_PLACEHOLDERS[key] || ''}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 font-mono" />
                   <p className="text-xs text-slate-400 mt-1">Click a token to insert it. Leave blank to use the default template.</p>
                 </div>

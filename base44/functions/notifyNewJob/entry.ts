@@ -41,20 +41,29 @@ Deno.serve(async (req) => {
     const admins = users.filter(u => u.role === 'admin' && u.email);
     if (admins.length === 0) return Response.json({ skipped: true, reason: 'No admins' });
 
-    const text = 'A new job has been created:\n\n' +
-      'Job: ' + job.name + '\n' +
-      'Location: ' + (job.location || '—') + '\n' +
-      'Type: ' + (job.job_type || '').replace(/_/g, ' ') + '\n' +
-      'Start: ' + (job.start_date || '—') + '\n' +
-      'End: ' + (job.end_date || '—') + '\n' +
-      (job.job_reference ? 'Reference: ' + job.job_reference + '\n' : '') +
-      '\nReview the job in the planner.\n\nGC Job Planner';
+    const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'new_job' });
+    const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+    if (cfg.enabled === false) return Response.json({ skipped: true, reason: 'Email alert disabled' });
+
+    const jobType = (job.job_type || '').replace(/_/g, ' ');
+    const ref = job.job_reference || '';
+    let text;
+    if (cfg.template) {
+      text = cfg.template
+        .replace(/\{job_name\}/g, job.name).replace(/\{location\}/g, job.location || '—')
+        .replace(/\{job_type\}/g, jobType).replace(/\{start_date\}/g, job.start_date || '—')
+        .replace(/\{end_date\}/g, job.end_date || '—').replace(/\{job_reference\}/g, ref);
+    } else {
+      const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+      text = intro + 'A new job has been created:\n\nJob: ' + job.name + '\nLocation: ' + (job.location || '—') + '\nType: ' + jobType + '\nStart: ' + (job.start_date || '—') + '\nEnd: ' + (job.end_date || '—') + (ref ? '\nReference: ' + ref : '') + '\n\nReview the job in the planner.\n\nGC Job Planner';
+    }
+    const subject = cfg.subject ? cfg.subject.replace(/\{job_name\}/g, job.name) : 'New Job Created: ' + job.name;
 
     const baseUrl = await getAppBaseUrl(base44);
     const bodyHtml = escapeHtml(text).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open planner');
     let notified = 0;
     for (const u of admins) {
-      try { await base44.asServiceRole.integrations.Core.SendEmail({ to: u.email, subject: 'New Job Created: ' + job.name, body: styledHtml(bodyHtml, null) }); notified++; } catch (e) {}
+      try { await base44.asServiceRole.integrations.Core.SendEmail({ to: u.email, subject, body: styledHtml(bodyHtml, cfg) }); notified++; } catch (e) {}
     }
 
     if (ac) { try { await base44.asServiceRole.entities.AutomationControl.update(ac.id, { last_run_at: new Date().toISOString(), last_run_status: 'success' }); } catch (e) {} }

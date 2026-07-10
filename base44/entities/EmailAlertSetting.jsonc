@@ -8,7 +8,14 @@
         "vehicle_maintenance",
         "assignment_notification",
         "staff_schedule",
-        "staff_invitation"
+        "staff_invitation",
+        "absence_request",
+        "job_status_change",
+        "new_job",
+        "timesheet_submitted",
+        "maintenance_booking",
+        "training_booking",
+        "daily_reminder"
       ],
       "description": "Which automated alert this configures"
     },
