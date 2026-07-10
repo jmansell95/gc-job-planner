@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Search, HelpCircle, FileText, Download, ChevronRight, BookOpen, Truck, ShieldCheck, AlertTriangle, Info } from 'lucide-react';
+import { Search, HelpCircle, FileText, Download, ChevronRight, BookOpen, Truck, ShieldCheck, AlertTriangle, Info, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
@@ -106,24 +106,25 @@ export default function HelpGuide() {
       {/* Header */}
       <div className="hero-gradient relative overflow-hidden">
         <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-7">
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg ring-1 ring-white/25 flex-shrink-0">
-                <HelpCircle className="w-6 h-6 md:w-7 md:h-7 text-white" />
+          <div className="flex items-center justify-between gap-2 sm:gap-4 mb-4">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg ring-1 ring-white/25 flex-shrink-0">
+                <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-2xl md:text-3xl font-bold text-white truncate tracking-tight">Help Guide</h1>
-                <p className="text-emerald-100 text-sm md:text-base mt-0.5">Everything you need to know</p>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate tracking-tight">Help Guide</h1>
+                <p className="text-emerald-100 text-xs sm:text-sm md:text-base mt-0.5">Everything you need to know</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <button onClick={handleExportPDF} type="button"
-                className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                <Download className="w-5 h-5" />
+                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-xs sm:text-sm font-medium active:scale-95 transition touch-manipulation">
+                <Download className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Print PDF</span>
               </button>
-              <button onClick={() => navigate(-1)} type="button"
-                className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+              <button onClick={() => navigate('/staff-schedule')} type="button"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-xs sm:text-sm font-medium active:scale-95 transition touch-manipulation">
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Back</span>
               </button>
             </div>
