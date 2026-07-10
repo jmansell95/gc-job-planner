@@ -22,7 +22,6 @@ export const CAPABILITY_KEYS = [
   { key: 'compliance', label: 'Compliance', description: 'Track certifications and compliance items' },
   { key: 'insights', label: 'Insights', description: 'Weekly performance and cost insights' },
   { key: 'teams', label: 'Teams', description: 'Manage teams and staff assignments' },
-  { key: 'training', label: 'Training', description: 'Manage training courses and certifications' },
   { key: 'settings', label: 'Settings', description: 'Configure staff, vehicles, costs, alerts' },
   { key: 'staff_schedule', label: 'Schedule View', description: 'Access the personal staff schedule view' },
 ];
@@ -30,7 +29,7 @@ export const CAPABILITY_KEYS = [
 // Default capabilities when a new team is created, based on category.
 export const DEFAULT_CAPABILITIES = {
   field_ops: ['staff_schedule', 'timesheets'],
-  depot: ['overview', 'jobs', 'rota', 'calendar', 'timesheets', 'compliance', 'insights', 'teams', 'settings', 'training'],
+  depot: ['overview', 'jobs', 'rota', 'calendar', 'timesheets', 'compliance', 'insights', 'teams', 'settings'],
   management: CAPABILITY_KEYS.map(c => c.key),
 };
 
