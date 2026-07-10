@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, MessageCircle, History, CheckCircle2, UserCircle, ShieldCheck, AlertTriangle, Truck, HelpCircle } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, MessageCircle, History, CheckCircle2, UserCircle, ShieldCheck, AlertTriangle, Truck, HelpCircle, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isPast } from 'date-fns';
 import DailyTaskLog from '@/components/DailyTaskLog';
@@ -575,6 +575,14 @@ export default function StaffDashboard() {
             You're offline. Showing cached schedule — changes will sync when you reconnect.
           </div>
         )}
+
+        {/* My Day heading */}
+        <div className="flex items-center gap-2.5 mb-3 md:mb-4">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+            <Sun className="w-4 h-4 text-emerald-600" />
+          </div>
+          <h2 className="text-lg md:text-xl font-bold text-slate-900">My Day</h2>
+        </div>
 
         {/* Assignments List */}
         {assignmentsLoading ? (
