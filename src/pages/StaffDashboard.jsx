@@ -17,6 +17,8 @@ import { complianceDaysUntil } from '@/utils/complianceDate';
 import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
 import TravelFromSiteModal from '@/components/staff/TravelFromSiteModal';
 import ScheduleSplash from '@/components/staff/ScheduleSplash';
+import NextJobPrompt from '@/components/staff/NextJobPrompt';
+import AdHocVisitModal from '@/components/staff/AdHocVisitModal';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -44,6 +46,8 @@ export default function StaffDashboard() {
   const [travelFromAssignment, setTravelFromAssignment] = useState(null);
   const [splashDismissed, setSplashDismissed] = useState(false);
   const [showScheduleSummary, setShowScheduleSummary] = useState(false);
+  const [showNextJobPrompt, setShowNextJobPrompt] = useState(false);
+  const [showAdHocVisit, setShowAdHocVisit] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -145,15 +149,22 @@ export default function StaffDashboard() {
     }
   };
 
-  // Opens the travel-from-site modal before final completion
+  // Opens the travel-from-site modal before final completion — but only if
+  // this is the last job of the day. For multi-job days, complete directly
+  // and show the "Next Job" prompt instead.
   const handleCompleteJob = (assignmentId, extraData = {}) => {
-    setTravelFromAssignment({ assignmentId, extraData });
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const hasMoreJobs = assignments.some(a => a.assigned_date === todayStr && (a.status || 'assigned') !== 'completed' && a.id !== assignmentId);
+    if (hasMoreJobs) {
+      completeAssignment(assignmentId, extraData, { departSite: null, arriveHome: null });
+    } else {
+      setTravelFromAssignment({ assignmentId, extraData });
+    }
   };
 
-  // Actual completion after travel-from-site is captured (or skipped)
-  const handleCompleteJobWithTravel = async (travelData) => {
-    if (!travelFromAssignment) return;
-    const { assignmentId, extraData } = travelFromAssignment;
+  // Core completion logic — shared by both the travel-modal path and the
+  // direct-complete path for multi-job days.
+  const completeAssignment = async (assignmentId, extraData, travelData) => {
     try {
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       // Create travel_from entry first so it's included in the timesheet merge
@@ -194,9 +205,57 @@ export default function StaffDashboard() {
       queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['staff-timesheets'] });
       queryClient.invalidateQueries({ queryKey: ['all-timesheets-mgr'] });
-      toast({ title: 'Shift completed', description: 'Your timesheet has been submitted for approval.' });
+      // After completion, check if there are more jobs today
+      const remaining = assignments.filter(a => a.assigned_date === todayStr && (a.status || 'assigned') !== 'completed' && a.id !== assignmentId);
+      if (remaining.length > 0) {
+        setShowNextJobPrompt(true);
+      } else {
+        toast({ title: 'Shift completed', description: 'Your timesheet has been submitted for approval.' });
+      }
     } catch (error) {
       console.error('Error completing job:', error);
+    }
+  };
+
+  // Actual completion after travel-from-site is captured (or skipped)
+  const handleCompleteJobWithTravel = async (travelData) => {
+    if (!travelFromAssignment) return;
+    const { assignmentId, extraData } = travelFromAssignment;
+    setTravelFromAssignment(null);
+    await completeAssignment(assignmentId, extraData, travelData);
+  };
+
+  // Log an ad-hoc / nearby site visit (unplanned work at a different site)
+  const handleAdHocVisit = async ({ jobId, customSite, description, durationMinutes }) => {
+    try {
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const visitJob = jobs.find(j => j.id === jobId);
+      await base44.entities.Timesheet.create({
+        staff_id: staff.id,
+        date: todayStr,
+        job_id: jobId || '',
+        task_description: description || (customSite ? `Nearby visit: ${customSite}` : 'Nearby site visit'),
+        task_type: 'on_site',
+        task_duration_minutes: Number(durationMinutes) || 0,
+        total_hours: Math.round(((Number(durationMinutes) || 0) / 60) * 100) / 100,
+        status: 'draft',
+        notes: customSite ? `Site: ${customSite}` : ''
+      });
+      try {
+        await base44.functions.invoke('submitDailyTimesheet', { staff_id: staff.id, date: todayStr });
+      } catch (e) { console.error('Timesheet submit error:', e); }
+      queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-timesheets'] });
+      queryClient.invalidateQueries({ queryKey: ['all-timesheets-mgr'] });
+      toast({ title: 'Visit logged', description: `${durationMinutes} min recorded${visitJob ? ` at ${visitJob.name}` : customSite ? ` at ${customSite}` : ''}.` });
+      setShowAdHocVisit(false);
+      // After ad-hoc visit, check if there are more scheduled jobs today
+      const remaining = assignments.filter(a => a.assigned_date === todayStr && (a.status || 'assigned') !== 'completed');
+      if (remaining.length > 0) {
+        setShowNextJobPrompt(true);
+      }
+    } catch (error) {
+      console.error('Error logging ad-hoc visit:', error);
     }
   };
 
@@ -390,9 +449,10 @@ export default function StaffDashboard() {
       .filter(a => a.job_id === assignment.job_id && a.progress_notes && a.assigned_date < assignment.assigned_date)
       .sort((a, b) => new Date(b.assigned_date) - new Date(a.assigned_date))
       .map(a => ({ date: a.assigned_date, notes: a.progress_notes, staffName: allStaff.find(s => s.id === a.staff_id)?.name || staff.name })),
-    hotelBooking: myHotelBookings.find(h => h.job_id === assignment.job_id) || null
-  };
-  };
+    hotelBooking: myHotelBookings.find(h => h.job_id === assignment.job_id) || null,
+    onAdHocVisit: () => setShowAdHocVisit(true)
+    };
+    };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -631,6 +691,24 @@ export default function StaffDashboard() {
           onClose={() => setTravelFromAssignment(null)}
         />
       )}
+
+      {/* Next Job prompt — shown after completing a job when more jobs remain today */}
+      <NextJobPrompt
+        open={showNextJobPrompt}
+        onClose={() => setShowNextJobPrompt(false)}
+        remainingJobs={todaysSorted.filter(a => (a.status || 'assigned') !== 'completed')}
+        jobs={jobs}
+        onCheckIn={(assignmentId) => { setShowNextJobPrompt(false); handleStartAttempt(assignmentId); }}
+        onAdHocVisit={() => { setShowNextJobPrompt(false); setShowAdHocVisit(true); }}
+      />
+
+      {/* Ad-hoc / nearby site visit modal */}
+      <AdHocVisitModal
+        open={showAdHocVisit}
+        onClose={() => setShowAdHocVisit(false)}
+        onSubmit={handleAdHocVisit}
+        jobs={jobs}
+      />
 
       {/* Schedule summary overlay — reviewable any time */}
       {showScheduleSummary && (

@@ -33,7 +33,7 @@ const statusConfig = {
   completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' }
 };
 
-export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange, tasksSubmitted = false, needsBriefing = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true, hotelBooking = null }) {
+export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange, tasksSubmitted = false, needsBriefing = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true, hotelBooking = null, onAdHocVisit }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [progressNote, setProgressNote] = useState(assignment.progress_notes || '');
   const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
@@ -157,6 +157,12 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
                     value={meterage || ''}
                     onChange={e => onMeterageChange(assignment.id, e.target.value)}
                     className="w-32 px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
+                )}
+                {onAdHocVisit && (
+                  <button onClick={() => onAdHocVisit(assignment.id)}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 active:scale-95 transition text-sm font-semibold border border-blue-200 touch-manipulation">
+                    <Navigation className="w-4 h-4" /> Quick Visit
+                  </button>
                 )}
                 <button onClick={() => onComplete(assignment.id, { progress_notes: progressNote.trim() })}
                   className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-semibold touch-manipulation ml-auto">

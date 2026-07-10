@@ -82,7 +82,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
     const warnings = [];
     if (staffId && date) {
       const dup = existingRotas.some(r => r.staff_id === staffId && r.assigned_date === date && r.id !== assignment?.id);
-      if (dup) warnings.push('This staff member is already assigned on this date.');
+      if (dup) warnings.push('This staff member already has an assignment on this date — multi-job days are supported. Confirm to add another.');
       const dow = new Date(date + 'T00:00:00').getDay();
       const rec = recurring.find(r => r.staff_id === staffId && r.is_active !== false && Array.isArray(r.days_of_week) && r.days_of_week.includes(dow));
       if (rec) warnings.push(`Staff is regularly off (${rec.label || 'Day Off'}) on this day.`);
