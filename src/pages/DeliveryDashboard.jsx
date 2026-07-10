@@ -325,6 +325,14 @@ export default function DeliveryDashboard() {
           </div>
         )}
 
+        {/* My Deliveries Today heading */}
+        <div className="flex items-center gap-2.5 mb-3 md:mb-4">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+            <Clock className="w-4 h-4 text-emerald-600" />
+          </div>
+          <h2 className="text-lg md:text-xl font-bold text-slate-900">My Deliveries Today</h2>
+        </div>
+
         {isLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 2 }).map((_, i) => (
@@ -335,53 +343,39 @@ export default function DeliveryDashboard() {
               </div>
             ))}
           </div>
-        ) : deliveries.length === 0 ? (
+        ) : todaysSorted.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200">
-            <EmptyState icon={Truck} title="No deliveries assigned" message="Your supervisor will assign delivery tasks here. Check back later." />
+            <EmptyState icon={Clock} title="No deliveries scheduled yet" message="Check back later — your supervisor will assign delivery tasks to you." />
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* Today's deliveries */}
-            {todaysSorted.length > 0 && (
-              <div>
-                <SectionHeader icon={Clock} title="Today" count={todaysSorted.length} />
-                <div className="space-y-3">
-                  {todaysSorted.map(d => (
-                    <DeliveryCard key={d.id} {...cardProps(d)} defaultExpanded={d.status === 'in_progress'} />
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="space-y-3">
+            {todaysSorted.map(d => (
+              <DeliveryCard key={d.id} {...cardProps(d)} defaultExpanded={d.status === 'in_progress'} />
+            ))}
+          </div>
+        )}
 
-            {/* Upcoming */}
-            {upcoming.length > 0 && (
-              <div>
-                <SectionHeader icon={Calendar} title="Upcoming" count={upcoming.length} tone="muted" />
-                <div className="space-y-3">
-                  {upcoming.slice(0, 10).map(d => (
-                    <DeliveryCard key={d.id} {...cardProps(d)} />
-                  ))}
-                </div>
-              </div>
-            )}
+        {/* Upcoming */}
+        {!isLoading && upcoming.length > 0 && (
+          <div className="mt-6">
+            <SectionHeader icon={Calendar} title="Upcoming" count={upcoming.length} tone="muted" />
+            <div className="space-y-3">
+              {upcoming.slice(0, 10).map(d => (
+                <DeliveryCard key={d.id} {...cardProps(d)} />
+              ))}
+            </div>
+          </div>
+        )}
 
-            {/* Completed */}
-            {completed.length > 0 && (
-              <div>
-                <SectionHeader icon={CheckCircle2} title="Recently Completed" count={completed.length} tone="muted" />
-                <div className="space-y-3">
-                  {completed.map(d => (
-                    <DeliveryCard key={d.id} {...cardProps(d)} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {todaysSorted.length === 0 && upcoming.length === 0 && completed.length === 0 && (
-              <div className="bg-white rounded-2xl border border-slate-200">
-                <EmptyState icon={Truck} title="No deliveries assigned" message="Check back later." />
-              </div>
-            )}
+        {/* Completed */}
+        {!isLoading && completed.length > 0 && (
+          <div className="mt-6">
+            <SectionHeader icon={CheckCircle2} title="Recently Completed" count={completed.length} tone="muted" />
+            <div className="space-y-3">
+              {completed.map(d => (
+                <DeliveryCard key={d.id} {...cardProps(d)} />
+              ))}
+            </div>
           </div>
         )}
       </div>
