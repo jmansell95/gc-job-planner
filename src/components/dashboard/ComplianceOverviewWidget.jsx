@@ -2,7 +2,7 @@ import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ShieldCheck, ShieldAlert, ShieldX, GraduationCap, ArrowRight, Users, Truck } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, ShieldX, GraduationCap, ArrowRight, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { complianceDaysUntil } from '@/utils/complianceDate';
 import WidgetShell from '@/components/dashboard/WidgetShell';
@@ -48,18 +48,6 @@ export default function ComplianceOverviewWidget({ onNavigate }) {
     return days !== null && days > 30;
   }).length;
 
-  // Vehicle compliance
-  const vehicleItems = complianceItems.filter(c => c.category === 'vehicle' && c.status_override !== 'not_required');
-  const vehicleExpired = vehicleItems.filter(c => {
-    if (!c.expiry_date) return false;
-    return c.expiry_date < todayStr;
-  }).length;
-  const vehicleExpiring = vehicleItems.filter(c => {
-    if (!c.expiry_date) return false;
-    const days = complianceDaysUntil(c.expiry_date);
-    return days !== null && days >= 0 && days <= 30;
-  }).length;
-
   // Upcoming training
   const upcomingTraining = trainingBookings.filter(b => {
     const course = courses.find(c => c.id === b.course_id);
@@ -85,7 +73,7 @@ export default function ComplianceOverviewWidget({ onNavigate }) {
     slate: { bg: 'bg-slate-50', iconBg: 'bg-slate-100', iconText: 'text-slate-500', text: 'text-slate-600' },
   };
 
-  const hasIssues = expired > 0 || expiring > 0 || missing > 0 || vehicleExpired > 0 || vehicleExpiring > 0;
+  const hasIssues = expired > 0 || expiring > 0 || missing > 0;
 
   return (
     <WidgetShell icon={ShieldCheck} title="Compliance Snapshot" subtitle="Staff & vehicle compliance at a glance"
@@ -113,24 +101,8 @@ export default function ComplianceOverviewWidget({ onNavigate }) {
         })}
       </div>
 
-      {/* Vehicle + Training row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* Vehicle compliance */}
-        <button onClick={() => onNavigate('compliance')} type="button"
-          className="flex items-center gap-3 bg-white rounded-xl p-3.5 border border-slate-200 hover:border-emerald-200 hover:shadow-sm transition text-left">
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${vehicleExpired > 0 ? 'bg-rose-100' : vehicleExpiring > 0 ? 'bg-amber-100' : 'bg-emerald-100'}`}>
-            <Truck className={`w-4.5 h-4.5 ${vehicleExpired > 0 ? 'text-rose-600' : vehicleExpiring > 0 ? 'text-amber-600' : 'text-emerald-600'}`} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-slate-900">Vehicle Compliance</p>
-            <p className="text-xs text-slate-400">
-              {vehicleExpired > 0 ? `${vehicleExpired} expired` : vehicleExpiring > 0 ? `${vehicleExpiring} expiring soon` : 'All up to date'}
-            </p>
-          </div>
-          <ArrowRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
-        </button>
-
-        {/* Training */}
+      {/* Training row */}
+      <div className="grid grid-cols-1 gap-3">
         <button onClick={() => onNavigate('compliance')} type="button"
           className="flex items-center gap-3 bg-white rounded-xl p-3.5 border border-slate-200 hover:border-emerald-200 hover:shadow-sm transition text-left">
           <div className="w-9 h-9 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
@@ -152,10 +124,8 @@ export default function ComplianceOverviewWidget({ onNavigate }) {
           <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0" />
           <span className="font-medium">
             {expired > 0 && `${expired} expired item${expired !== 1 ? 's' : ''}`}
-            {expired > 0 && (expiring > 0 || vehicleExpired > 0) && ' · '}
+            {expired > 0 && expiring > 0 && ' · '}
             {expiring > 0 && `${expiring} expiring soon`}
-            {expiring > 0 && vehicleExpired > 0 && ' · '}
-            {vehicleExpired > 0 && `${vehicleExpired} vehicle issue${vehicleExpired !== 1 ? 's' : ''}`}
             {' — tap to review'}
           </span>
         </div>

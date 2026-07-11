@@ -1,8 +1,9 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Wrench, ArrowRight, AlertTriangle, CalendarClock } from 'lucide-react';
+import { Wrench, ArrowRight, AlertTriangle, CalendarClock, ShieldX, ShieldAlert } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
+import { complianceDaysUntil } from '@/utils/complianceDate';
 import { Skeleton } from '@/components/StateViews';
 
 const TYPE_LABELS = { mot: 'MOT', service: 'Service', windscreen: 'Windscreen', repair: 'Repair', inspection: 'Inspection', other: 'Maintenance' };
@@ -22,6 +23,10 @@ export default function MaintenanceQuickView({ onNavigate }) {
     queryFn: () => base44.entities.VehicleMaintenanceBooking.list('-booking_date', 20)
   });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
+  const { data: complianceItems = [] } = useQuery({
+    queryKey: ['vehicle-compliance-quick'],
+    queryFn: () => base44.entities.ComplianceItem.filter({ category: 'vehicle' })
+  });
 
   // Compute MOT/service alerts from vehicle dates
   const today = new Date();
@@ -42,6 +47,15 @@ export default function MaintenanceQuickView({ onNavigate }) {
   const expiredCount = allIssues.filter(i => i.severity === 'expired').length;
   const warningCount = allIssues.filter(i => i.severity === 'warning').length;
 
+  // Vehicle compliance items (MOT, insurance, etc. from compliance manager)
+  const todayStr = format(today, 'yyyy-MM-dd');
+  const vehicleComplianceItems = complianceItems.filter(c => c.status_override !== 'not_required' && c.expiry_date);
+  const complianceExpired = vehicleComplianceItems.filter(c => c.expiry_date < todayStr).length;
+  const complianceExpiring = vehicleComplianceItems.filter(c => {
+    const days = complianceDaysUntil(c.expiry_date);
+    return days !== null && days >= 0 && days <= 30;
+  }).length;
+
   const upcoming = bookings.filter(b => ['requested', 'booked', 'in_progress'].includes(b.status));
   const nextFour = upcoming.slice(0, 4);
 
@@ -53,20 +67,25 @@ export default function MaintenanceQuickView({ onNavigate }) {
             <Wrench className="w-4 h-4 text-amber-600" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-slate-900">Fleet Maintenance</h2>
-            <p className="text-xs text-slate-400">Alerts &amp; upcoming bookings</p>
+            <h2 className="text-sm font-bold text-slate-900">Fleet &amp; Compliance</h2>
+            <p className="text-xs text-slate-400">Vehicle maintenance, compliance &amp; bookings</p>
           </div>
         </div>
-        <button onClick={goToVehicles} className="text-xs text-emerald-700 font-medium hover:underline flex items-center gap-1 whitespace-nowrap flex-shrink-0">
-          View all <ArrowRight className="w-3 h-3" />
-        </button>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <button onClick={() => onNavigate('compliance')} className="text-xs text-emerald-700 font-medium hover:underline flex items-center gap-1 whitespace-nowrap">
+            Compliance <ArrowRight className="w-3 h-3" />
+          </button>
+          <button onClick={goToVehicles} className="text-xs text-emerald-700 font-medium hover:underline flex items-center gap-1 whitespace-nowrap">
+            View all <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>
       </div>
 
-      {(expiredCount > 0 || warningCount > 0) && (
+      {(expiredCount > 0 || warningCount > 0 || complianceExpired > 0 || complianceExpiring > 0) && (
         <div className="px-5 py-2.5 bg-amber-50/60 border-b border-amber-100 flex items-center gap-2 flex-wrap">
           {expiredCount > 0 && (
             <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-red-100 text-red-700">
-              <AlertTriangle className="w-3 h-3" /> {expiredCount} expired
+              <AlertTriangle className="w-3 h-3" /> {expiredCount} MOT/service expired
             </span>
           )}
           {warningCount > 0 && (
@@ -74,9 +93,26 @@ export default function MaintenanceQuickView({ onNavigate }) {
               <CalendarClock className="w-3 h-3" /> {warningCount} due soon
             </span>
           )}
-          <button onClick={goToVehicles} className="text-xs text-slate-500 hover:text-emerald-700 font-medium ml-auto">
-            Review →
-          </button>
+          {complianceExpired > 0 && (
+            <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-red-100 text-red-700">
+              <ShieldX className="w-3 h-3" /> {complianceExpired} compliance expired
+            </span>
+          )}
+          {complianceExpiring > 0 && (
+            <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-amber-100 text-amber-700">
+              <ShieldAlert className="w-3 h-3" /> {complianceExpiring} compliance expiring
+            </span>
+          )}
+          <div className="flex items-center gap-3 ml-auto">
+            {complianceExpired > 0 && (
+              <button onClick={() => onNavigate('compliance')} className="text-xs text-slate-500 hover:text-emerald-700 font-medium">
+                Compliance →
+              </button>
+            )}
+            <button onClick={goToVehicles} className="text-xs text-slate-500 hover:text-emerald-700 font-medium">
+              Vehicles →
+            </button>
+          </div>
         </div>
       )}
 
