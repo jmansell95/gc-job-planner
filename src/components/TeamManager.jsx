@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Users, ChevronDown, ChevronRight, GitBranch, UserCircle2, UserMinus, Check } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, ChevronDown, ChevronRight, GitBranch, UserCircle2, UserMinus, Check, Shield } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatWorkerType } from '@/utils/format';
@@ -26,7 +26,7 @@ const JOB_TYPE_LABELS = {
 export default function TeamManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [] });
+  const [formData, setFormData] = useState({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
   const [presetParent, setPresetParent] = useState(null);
   const [collapsed, setCollapsed] = useState({});
 
@@ -53,14 +53,14 @@ export default function TeamManager() {
 
   const openCreate = (parentId = null) => {
     setEditingId(null);
-    setFormData({ name: '', description: '', parent_team_id: parentId || '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [] });
+    setFormData({ name: '', description: '', parent_team_id: parentId || '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
     setPresetParent(parentId);
     setShowForm(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const payload = { name: formData.name, description: formData.description, parent_team_id: formData.parent_team_id || '', job_type: formData.job_type || '', category: formData.category || '', default_landing_page: formData.default_landing_page || '', allowed_tool_access: formData.allowed_tool_access || [] };
+    const payload = { name: formData.name, description: formData.description, parent_team_id: formData.parent_team_id || '', job_type: formData.job_type || '', category: formData.category || '', default_landing_page: formData.default_landing_page || '', allowed_tool_access: formData.allowed_tool_access || [], is_supervisor_team: formData.is_supervisor_team || false, supervisor_staff_id: formData.supervisor_staff_id || '', managed_team_ids: formData.managed_team_ids || [] };
     try {
       if (editingId) {
         await base44.entities.Team.update(editingId, payload);
@@ -68,7 +68,7 @@ export default function TeamManager() {
         await base44.entities.Team.create(payload);
       }
       queryClient.invalidateQueries({ queryKey: ['teams'] });
-      setFormData({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [] });
+      setFormData({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
       setShowForm(false);
       setEditingId(null);
       setPresetParent(null);
@@ -78,7 +78,7 @@ export default function TeamManager() {
   };
 
   const handleEdit = (team) => {
-    setFormData({ name: team.name, description: team.description || '', parent_team_id: team.parent_team_id || '', job_type: team.job_type || '', category: team.category || '', default_landing_page: team.default_landing_page || '', allowed_tool_access: team.allowed_tool_access || [] });
+    setFormData({ name: team.name, description: team.description || '', parent_team_id: team.parent_team_id || '', job_type: team.job_type || '', category: team.category || '', default_landing_page: team.default_landing_page || '', allowed_tool_access: team.allowed_tool_access || [], is_supervisor_team: team.is_supervisor_team || false, supervisor_staff_id: team.supervisor_staff_id || '', managed_team_ids: team.managed_team_ids || [] });
     setEditingId(team.id);
     setShowForm(true);
     setPresetParent(null);
@@ -163,6 +163,11 @@ export default function TeamManager() {
                 )}
                 {team.job_type && (
                   <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium">{JOB_TYPE_LABELS[team.job_type] || team.job_type}</span>
+                )}
+                {team.is_supervisor_team && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium">
+                    <Shield className="w-3 h-3" /> Supervisor
+                  </span>
                 )}
               </div>
             </div>
@@ -321,6 +326,54 @@ export default function TeamManager() {
                 </div>
                 <p className="text-xs text-slate-400 mt-2">Pick which sections this crew can access. Field crews typically only need "Schedule View". Selecting a group above auto-fills sensible defaults.</p>
               </div>
+            </div>
+
+            {/* Supervisor Settings */}
+            <div className="border-t border-slate-100 pt-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-3">Supervisor Settings</label>
+              <div className="mb-4">
+                <button type="button" onClick={() => setFormData({ ...formData, is_supervisor_team: !formData.is_supervisor_team })}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium border transition text-left ${formData.is_supervisor_team ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                  <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${formData.is_supervisor_team ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
+                    {formData.is_supervisor_team && <Check className="w-2.5 h-2.5 text-white" />}
+                  </span>
+                  This is a supervisor team (oversees other crews)
+                </button>
+                <p className="text-xs text-slate-400 mt-1">Enable for supervisor teams like a Drilling Supervisor who manages all CP and Rotary crews.</p>
+              </div>
+              {formData.is_supervisor_team && (
+                <>
+                  <div className="mb-4">
+                    <label className="block text-xs font-medium text-slate-500 mb-1.5">Supervisor</label>
+                    <select value={formData.supervisor_staff_id} onChange={(e) => setFormData({ ...formData, supervisor_staff_id: e.target.value })}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
+                      <option value="">— Select supervisor —</option>
+                      {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-2">Managed Crews</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {teams.filter(t => t.id !== editingId).map(t => {
+                        const checked = formData.managed_team_ids.includes(t.id);
+                        return (
+                          <button type="button" key={t.id} onClick={() => {
+                            const next = checked ? formData.managed_team_ids.filter(id => id !== t.id) : [...formData.managed_team_ids, t.id];
+                            setFormData({ ...formData, managed_team_ids: next });
+                          }}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition text-left ${checked ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                            <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${checked ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
+                              {checked && <Check className="w-2.5 h-2.5 text-white" />}
+                            </span>
+                            {t.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-slate-400 mt-2">Pick which crews this supervisor oversees. They'll see a production overview of these crews on their dashboard.</p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
           <div className="flex gap-3 mt-6">

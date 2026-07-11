@@ -14,6 +14,7 @@ import WidgetCard from '@/components/dashboard/WidgetCard';
 import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER } from '@/components/dashboard/registry';
 import { KpiStatsWidget, FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
+import SupervisorOverviewWidget from '@/components/dashboard/SupervisorOverviewWidget';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [customizeMode, setCustomizeMode] = useState(false);
@@ -84,6 +85,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'needs-attention': return <NeedsAttentionPanel onNavigate={onNavigate} />;
       case 'kpi-stats': return <KpiStatsWidget stats={stats} onNavigate={onNavigate} />;
       case 'compliance-overview': return <ComplianceOverviewWidget onNavigate={onNavigate} />;
+      case 'supervisor-overview': return <SupervisorOverviewWidget profile={profile} />;
       case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={jobs} vehicles={vehicles} onSelectJob={onSelectJob} onNavigate={onNavigate} />;
       case 'charts': return <ChartsWidget jobs={jobs} staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />;
       case 'cost-analytics': return <JobCostAnalytics />;
