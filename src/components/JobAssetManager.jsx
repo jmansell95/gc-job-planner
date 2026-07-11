@@ -52,6 +52,19 @@ export default function JobAssetManager({ job, isDrillingJob }) {
   const trailerAssignments = assignments.filter(a => a.asset_type === 'trailer');
   const machineryAssignments = assignments.filter(a => a.asset_type === 'machinery');
 
+  // Collect all equipment IDs linked to any rig — shown under Rigs, excluded from Trailer/Machinery tabs
+  const linkedEquipmentIds = new Set();
+  for (const ra of rigAssignments) {
+    const rigAsset = assets.find(as => as.id === ra.asset_id);
+    if (rigAsset?.linked_equipment_ids) {
+      rigAsset.linked_equipment_ids.forEach(id => linkedEquipmentIds.add(id));
+    }
+  }
+
+  // Standalone trailers & machinery (exclude rig-linked equipment like shackles, ropes)
+  const standaloneTrailers = trailerAssignments.filter(a => !linkedEquipmentIds.has(a.asset_id));
+  const standaloneMachinery = machineryAssignments.filter(a => !linkedEquipmentIds.has(a.asset_id));
+
   // Rigs tab only visible for drilling jobs
   const tabs = isDrillingJob ? ['rigs', 'trailers', 'machinery'] : ['trailers', 'machinery'];
 
@@ -60,7 +73,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
     setActiveTab('machinery');
   }
 
-  const currentAssignments = activeTab === 'rigs' ? rigAssignments : activeTab === 'trailers' ? trailerAssignments : machineryAssignments;
+  const currentAssignments = activeTab === 'rigs' ? rigAssignments : activeTab === 'trailers' ? standaloneTrailers : standaloneMachinery;
 
   const handleRemove = async (assignmentId, assetName) => {
     if (!confirm(`Remove ${assetName} from this job?`)) return;
@@ -91,15 +104,15 @@ export default function JobAssetManager({ job, isDrillingJob }) {
     return status === 'expired' || status === 'unknown';
   });
 
-  // For each rig, find linked equipment assignments via the rig's linked_equipment_ids
-  const getLinkedAssignments = (rigAssignment) => {
+  // Count how many linked equipment items are assigned for a given rig
+  const getLinkedCount = (rigAssignment) => {
     const rigAsset = assets.find(as => as.id === rigAssignment.asset_id);
-    if (!rigAsset || !rigAsset.linked_equipment_ids) return [];
+    if (!rigAsset?.linked_equipment_ids) return 0;
     const linkedIds = new Set(rigAsset.linked_equipment_ids);
-    return assignments.filter(a => linkedIds.has(a.asset_id));
+    return assignments.filter(a => linkedIds.has(a.asset_id)).length;
   };
 
-  const renderAssetCard = (a, showTooling = false) => {
+  const renderAssetCard = (a, showTooling = false, linkedCount = 0) => {
     const asset = assets.find(as => as.id === a.asset_id);
     const liveStatus = asset?.compliance_status || a.compliance_status || 'unknown';
     const compCfg = complianceConfig[liveStatus] || complianceConfig.unknown;
@@ -117,6 +130,11 @@ export default function JobAssetManager({ job, isDrillingJob }) {
             {a.rig_type && a.rig_type !== 'n/a' && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600 uppercase">{a.rig_type}</span>}
           </div>
           {asset?.serial_number && <p className="text-xs text-slate-400 font-mono mt-0.5">{asset.serial_number}</p>}
+          {linkedCount > 0 && (
+            <div className="mt-1.5 inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium bg-blue-50 text-blue-700 border border-blue-200">
+              <Link2 className="w-3 h-3" /> {linkedCount} {linkedCount === 1 ? 'piece' : 'pieces'} of equipment connected
+            </div>
+          )}
           {showTooling && asset?.tooling_notes && (
             <div className="mt-1.5 bg-blue-50/50 border border-blue-100 rounded-md px-2.5 py-1.5">
               <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide mb-0.5">Tooling & Equipment</p>
@@ -171,7 +189,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
         {tabs.map(tabKey => {
           const cfg = tabConfig[tabKey];
           const TabIcon = cfg.icon;
-          const count = tabKey === 'rigs' ? rigAssignments.length : tabKey === 'trailers' ? trailerAssignments.length : machineryAssignments.length;
+          const count = tabKey === 'rigs' ? rigAssignments.length : tabKey === 'trailers' ? standaloneTrailers.length : standaloneMachinery.length;
           return (
             <button key={tabKey} type="button" onClick={() => setActiveTab(tabKey)}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition ${activeTab === tabKey ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
@@ -196,27 +214,9 @@ export default function JobAssetManager({ job, isDrillingJob }) {
             )}
           </div>
         ) : activeTab === 'rigs' ? (
-          /* Rigs tab: show each rig with its linked equipment and tooling notes */
-          <div className="space-y-4">
-            {rigAssignments.map(rigA => {
-              const linked = getLinkedAssignments(rigA);
-              return (
-                <div key={rigA.id} className="space-y-2">
-                  {renderAssetCard(rigA, true)}
-                  {linked.length > 0 && (
-                    <div className="ml-4 bg-slate-50 rounded-lg border border-slate-100 p-3">
-                      <p className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
-                        <Link2 className="w-3.5 h-3.5 text-emerald-600" />
-                        Linked Equipment ({linked.length})
-                      </p>
-                      <div className="space-y-2">
-                        {linked.map(eq => renderAssetCard(eq, false))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          /* Rigs tab: show each rig with a count of connected equipment */
+          <div className="space-y-3">
+            {rigAssignments.map(rigA => renderAssetCard(rigA, true, getLinkedCount(rigA)))}
           </div>
         ) : (
           /* Trailers / Machinery tabs: no tooling notes shown */

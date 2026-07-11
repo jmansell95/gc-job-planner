@@ -24,7 +24,6 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
   const [selectedRigId, setSelectedRigId] = useState(null);
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState(new Set());
   const [selectedSingleId, setSelectedSingleId] = useState(null);
-  const [role, setRole] = useState(isDrillingJob ? 'primary_rig' : 'machinery');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
@@ -46,7 +45,6 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
     setSelectedRigId(null);
     setSelectedSingleId(null);
     setSelectedEquipmentIds(new Set());
-    setRole(tab === 'rigs' ? 'primary_rig' : tab === 'trailers' ? 'trailer' : 'machinery');
   };
 
   const handleRigSelect = (rig) => {
@@ -82,7 +80,7 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
           job_id: job.id, job_name: job.name,
           asset_id: rig.id, asset_name: rig.name,
           asset_type: 'rig', rig_type: rig.rig_type || 'n/a',
-          role, compliance_status: rig.compliance_status || 'unknown',
+          role: 'primary_rig', compliance_status: rig.compliance_status || 'unknown',
           status: 'assigned', assigned_date: today, notes,
         });
         for (const eqId of selectedEquipmentIds) {
@@ -106,7 +104,7 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
             job_id: job.id, job_name: job.name,
             asset_id: asset.id, asset_name: asset.name,
             asset_type: asset.asset_type, rig_type: 'n/a',
-            role, compliance_status: asset.compliance_status || 'unknown',
+            role: asset.asset_type === 'trailer' ? 'trailer' : 'machinery', compliance_status: asset.compliance_status || 'unknown',
             status: 'assigned', assigned_date: today, notes,
           });
         }
@@ -223,14 +221,6 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
               {selectedRig && linkedEquipment.length === 0 && (
                 <p className="text-xs text-slate-400 italic">No equipment linked to this rig. You can link equipment in Settings → Assets.</p>
               )}
-
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Rig Role</label>
-                <select value={role} onChange={e => setRole(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:border-emerald-600">
-                  <option value="primary_rig">Primary Rig</option>
-                  <option value="support_rig">Support Rig</option>
-                </select>
-              </div>
             </>
           )}
         </div>
@@ -250,22 +240,6 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
               {selectedSingleId && (
                 <p className="text-[11px] text-slate-500">Selected: <strong>{assets.find(a => a.id === selectedSingleId)?.name}</strong></p>
               )}
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Role</label>
-                <select value={role} onChange={e => setRole(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:border-emerald-600">
-                  {activeTab === 'trailers' ? (
-                    <>
-                      <option value="trailer">Trailer</option>
-                      <option value="welfare_unit">Welfare Unit</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="machinery">Machinery</option>
-                      <option value="welfare_unit">Welfare Unit</option>
-                    </>
-                  )}
-                </select>
-              </div>
             </>
           )}
         </div>
