@@ -2,7 +2,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { JobStatusChart, StaffUtilizationChart, JobTypeBreakdownChart } from '@/components/DashboardCharts';
-import DashboardInsights from '@/components/DashboardInsights';
 import FieldCrewsToday from '@/components/FieldCrewsToday';
 
 const cardVariants = {
@@ -37,12 +36,7 @@ export function KpiStatsWidget({ stats, onNavigate }) {
 
 export function FieldCrewsWidget({ todaysRotas, staff, jobs, vehicles, onSelectJob, onNavigate }) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <FieldCrewsToday todaysRotas={todaysRotas} staff={staff} jobs={jobs} vehicles={vehicles} onSelectJob={onSelectJob} onNavigate={onNavigate} />
-      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18, duration: 0.35 }}>
-        <DashboardInsights />
-      </motion.div>
-    </div>
+    <FieldCrewsToday todaysRotas={todaysRotas} staff={staff} jobs={jobs} vehicles={vehicles} onSelectJob={onSelectJob} onNavigate={onNavigate} />
   );
 }
 
