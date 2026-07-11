@@ -31,12 +31,23 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
 
   const tabs = isDrillingJob ? ['rigs', 'machinery', 'trailers'] : ['machinery', 'trailers'];
 
+  // Collect ALL equipment IDs linked to ANY rig — excluded from Machinery tab (lifting equipment lives under its rig)
+  const allLinkedEquipmentIds = new Set();
+  for (const asset of assets) {
+    if (asset.asset_type === 'rig' && asset.linked_equipment_ids) {
+      asset.linked_equipment_ids.forEach(id => allLinkedEquipmentIds.add(id));
+    }
+  }
+
   const availableForTab = (tabKey) => {
     const targetType = tabConfig[tabKey].asset_type;
     return assets.filter(a => {
       if (a.is_active === false) return false;
       if (assignedAssetIds.has(a.id)) return false;
-      return a.asset_type === targetType;
+      if (a.asset_type !== targetType) return false;
+      // Exclude rig-linked lifting equipment from Machinery tab
+      if (tabKey === 'machinery' && allLinkedEquipmentIds.has(a.id)) return false;
+      return true;
     });
   };
 

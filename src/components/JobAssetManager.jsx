@@ -52,12 +52,11 @@ export default function JobAssetManager({ job, isDrillingJob }) {
   const trailerAssignments = assignments.filter(a => a.asset_type === 'trailer');
   const machineryAssignments = assignments.filter(a => a.asset_type === 'machinery');
 
-  // Collect all equipment IDs linked to any rig — shown under Rigs, excluded from Trailer/Machinery tabs
+  // Collect ALL equipment IDs linked to ANY rig (not just assigned ones) — excluded from Machinery/Trailer tabs
   const linkedEquipmentIds = new Set();
-  for (const ra of rigAssignments) {
-    const rigAsset = assets.find(as => as.id === ra.asset_id);
-    if (rigAsset?.linked_equipment_ids) {
-      rigAsset.linked_equipment_ids.forEach(id => linkedEquipmentIds.add(id));
+  for (const asset of assets) {
+    if (asset.asset_type === 'rig' && asset.linked_equipment_ids) {
+      asset.linked_equipment_ids.forEach(id => linkedEquipmentIds.add(id));
     }
   }
 
@@ -104,15 +103,18 @@ export default function JobAssetManager({ job, isDrillingJob }) {
     return status === 'expired' || status === 'unknown';
   });
 
-  // Count how many linked equipment items are assigned for a given rig
-  const getLinkedCount = (rigAssignment) => {
+  // Get linked equipment stats (total + compliant count) for a given rig
+  const getLinkedEquipmentStats = (rigAssignment) => {
     const rigAsset = assets.find(as => as.id === rigAssignment.asset_id);
-    if (!rigAsset?.linked_equipment_ids) return 0;
-    const linkedIds = new Set(rigAsset.linked_equipment_ids);
-    return assignments.filter(a => linkedIds.has(a.asset_id)).length;
+    if (!rigAsset?.linked_equipment_ids || rigAsset.linked_equipment_ids.length === 0) return { total: 0, compliant: 0 };
+    const linkedAssets = rigAsset.linked_equipment_ids
+      .map(id => assets.find(as => as.id === id))
+      .filter(Boolean);
+    const compliant = linkedAssets.filter(a => (a.compliance_status || 'unknown') === 'compliant').length;
+    return { total: linkedAssets.length, compliant };
   };
 
-  const renderAssetCard = (a, showTooling = false, linkedCount = 0) => {
+  const renderAssetCard = (a, showTooling = false, linkedStats = null) => {
     const asset = assets.find(as => as.id === a.asset_id);
     const liveStatus = asset?.compliance_status || a.compliance_status || 'unknown';
     const compCfg = complianceConfig[liveStatus] || complianceConfig.unknown;
@@ -130,9 +132,9 @@ export default function JobAssetManager({ job, isDrillingJob }) {
             {a.rig_type && a.rig_type !== 'n/a' && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600 uppercase">{a.rig_type}</span>}
           </div>
           {asset?.serial_number && <p className="text-xs text-slate-400 font-mono mt-0.5">{asset.serial_number}</p>}
-          {linkedCount > 0 && (
+          {linkedStats && linkedStats.total > 0 && (
             <div className="mt-1.5 inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium bg-blue-50 text-blue-700 border border-blue-200">
-              <Link2 className="w-3 h-3" /> {linkedCount} {linkedCount === 1 ? 'piece' : 'pieces'} of equipment connected
+              <Link2 className="w-3 h-3" /> {linkedStats.total} {linkedStats.total === 1 ? 'piece' : 'pieces'} of equipment connected · {linkedStats.compliant}/{linkedStats.total} compliant
             </div>
           )}
           {showTooling && asset?.tooling_notes && (
@@ -216,7 +218,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
         ) : activeTab === 'rigs' ? (
           /* Rigs tab: show each rig with a count of connected equipment */
           <div className="space-y-3">
-            {rigAssignments.map(rigA => renderAssetCard(rigA, true, getLinkedCount(rigA)))}
+            {rigAssignments.map(rigA => renderAssetCard(rigA, true, getLinkedEquipmentStats(rigA)))}
           </div>
         ) : (
           /* Trailers / Machinery tabs: no tooling notes shown */
