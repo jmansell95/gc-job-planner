@@ -1,9 +1,10 @@
-import { Truck, AlertCircle, Grid3x3, Users, BarChart3, PoundSterling, Wrench, CalendarClock } from 'lucide-react';
+import { Truck, AlertCircle, Grid3x3, Users, BarChart3, PoundSterling, Wrench, CalendarClock, ShieldCheck } from 'lucide-react';
 
 export const WIDGET_REGISTRY = {
   'delivery-stats': { title: 'Delivery & Collection', icon: Truck },
   'needs-attention': { title: 'Needs Attention', icon: AlertCircle },
   'kpi-stats': { title: 'Key Metrics', icon: Grid3x3 },
+  'compliance-overview': { title: 'Compliance Snapshot', icon: ShieldCheck },
   'field-crews': { title: 'Field Crews & Insights', icon: Users },
   'charts': { title: 'Charts', icon: BarChart3 },
   'cost-analytics': { title: 'Cost Analytics', icon: PoundSterling },
@@ -15,6 +16,7 @@ export const DEFAULT_WIDGET_ORDER = [
   'delivery-stats',
   'needs-attention',
   'kpi-stats',
+  'compliance-overview',
   'field-crews',
   'charts',
   'cost-analytics',
