@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Wrench, Plus, Trash2, Edit2, X, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, RefreshCw } from 'lucide-react';
+import { Wrench, Plus, Trash2, Edit2, X, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, RefreshCw, Anchor } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
 import SyncComplianceButton from '@/components/SyncComplianceButton';
@@ -13,6 +13,7 @@ const assetTypeConfig = {
   machinery: { label: 'Machinery', icon: Wrench, badge: 'bg-purple-100 text-purple-700' },
   trailer: { label: 'Trailer', icon: Package, badge: 'bg-amber-100 text-amber-700' },
   vehicle: { label: 'Vehicle', icon: Truck, badge: 'bg-slate-100 text-slate-700' },
+  lifting: { label: 'Lifting Equipment', icon: Anchor, badge: 'bg-teal-100 text-teal-700' },
 };
 
 const complianceConfig = {
@@ -134,6 +135,7 @@ export default function SiteAssetManager() {
                 <option value="machinery">Machinery</option>
                 <option value="trailer">Trailer</option>
                 <option value="vehicle">Vehicle</option>
+                <option value="lifting">Lifting Equipment</option>
               </select>
             </div>
             {form.asset_type === 'rig' && (
@@ -170,7 +172,7 @@ export default function SiteAssetManager() {
             {form.asset_type === 'rig' && (
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Linked Equipment</label>
-                <p className="text-xs text-slate-400 mb-2">Select the machinery and trailers that belong to this rig. When assigning this rig to a drilling job, the linked equipment is shown for quick bulk assignment.</p>
+                <p className="text-xs text-slate-400 mb-2">Select the lifting equipment, machinery and trailers that belong to this rig. When assigning this rig to a drilling job, the linked equipment is shown for quick bulk assignment.</p>
                 <div className="max-h-48 overflow-y-auto border border-slate-300 rounded-lg divide-y divide-slate-100 bg-white">
                   {assets.filter(a => a.asset_type !== 'rig' && a.id !== editingId).length === 0 ? (
                     <p className="text-xs text-slate-400 px-3 py-2">No equipment available to link. Add machinery or trailers first.</p>

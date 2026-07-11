@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { X, Cog, Wrench, Package, Truck, ShieldCheck, ShieldAlert, ShieldX, Plus, CheckCircle2, Link2 } from 'lucide-react';
+import { X, Cog, Wrench, Package, Truck, ShieldCheck, ShieldAlert, ShieldX, Plus, CheckCircle2, Link2, Anchor } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const complianceConfig = {
@@ -11,10 +11,11 @@ const complianceConfig = {
   unknown: { label: 'Unknown', icon: ShieldAlert, badge: 'bg-slate-50 text-slate-600 border-slate-200' },
 };
 
-const assetTypeIcon = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck };
+const assetTypeIcon = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Anchor };
 
 const tabConfig = {
   rigs: { label: 'Rigs', icon: Cog, asset_type: 'rig' },
+  lifting: { label: 'Lifting Equipment', icon: Anchor, asset_type: 'lifting' },
   machinery: { label: 'Machinery', icon: Wrench, asset_type: 'machinery' },
   trailers: { label: 'Trailers', icon: Package, asset_type: 'trailer' },
 };
@@ -29,7 +30,7 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const tabs = isDrillingJob ? ['rigs', 'machinery', 'trailers'] : ['machinery', 'trailers'];
+  const tabs = isDrillingJob ? ['rigs', 'lifting', 'machinery', 'trailers'] : ['lifting', 'machinery', 'trailers'];
 
   // Collect ALL equipment IDs linked to ANY rig — excluded from Machinery tab (lifting equipment lives under its rig)
   const allLinkedEquipmentIds = new Set();
@@ -45,8 +46,8 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
       if (a.is_active === false) return false;
       if (assignedAssetIds.has(a.id)) return false;
       if (a.asset_type !== targetType) return false;
-      // Exclude rig-linked lifting equipment from Machinery tab
-      if (tabKey === 'machinery' && allLinkedEquipmentIds.has(a.id)) return false;
+      // Exclude rig-linked equipment from Machinery and Lifting tabs (they show under their rig)
+      if ((tabKey === 'machinery' || tabKey === 'lifting') && allLinkedEquipmentIds.has(a.id)) return false;
       return true;
     });
   };
@@ -101,7 +102,7 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
               job_id: job.id, job_name: job.name,
               asset_id: eq.id, asset_name: eq.name,
               asset_type: eq.asset_type, rig_type: 'n/a',
-              role: eq.asset_type === 'trailer' ? 'trailer' : 'machinery',
+              role: eq.asset_type === 'trailer' ? 'trailer' : eq.asset_type === 'lifting' ? 'lifting' : 'machinery',
               compliance_status: eq.compliance_status || 'unknown',
               status: 'assigned', assigned_date: today,
               notes: `Linked to ${rig.name}`,
@@ -115,7 +116,7 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
             job_id: job.id, job_name: job.name,
             asset_id: asset.id, asset_name: asset.name,
             asset_type: asset.asset_type, rig_type: 'n/a',
-            role: asset.asset_type === 'trailer' ? 'trailer' : 'machinery', compliance_status: asset.compliance_status || 'unknown',
+            role: asset.asset_type === 'trailer' ? 'trailer' : asset.asset_type === 'lifting' ? 'lifting' : 'machinery', compliance_status: asset.compliance_status || 'unknown',
             status: 'assigned', assigned_date: today, notes,
           });
         }
@@ -238,13 +239,13 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
       )}
 
       {/* Machinery / Trailers Tab */}
-      {(activeTab === 'machinery' || activeTab === 'trailers') && (
+      {(activeTab === 'machinery' || activeTab === 'trailers' || activeTab === 'lifting') && (
         <div className="space-y-3">
           {availableForTab(activeTab).length === 0 ? (
-            <p className="text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-lg">No {activeTab === 'machinery' ? 'machinery' : 'trailers'} available.</p>
+            <p className="text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-lg">No {activeTab === 'machinery' ? 'machinery' : activeTab === 'lifting' ? 'lifting equipment' : 'trailers'} available.</p>
           ) : (
             <>
-              <label className="block text-xs font-medium text-slate-600">Select {activeTab === 'machinery' ? 'Machinery' : 'Trailer'}</label>
+              <label className="block text-xs font-medium text-slate-600">Select {activeTab === 'machinery' ? 'Machinery' : activeTab === 'lifting' ? 'Lifting Equipment' : 'Trailer'}</label>
               <div className="max-h-56 overflow-y-auto border border-slate-300 rounded-lg divide-y divide-slate-100 bg-white">
                 {availableForTab(activeTab).map(a => renderAssetItem(a, selectedSingleId === a.id, () => setSelectedSingleId(a.id)))}
               </div>

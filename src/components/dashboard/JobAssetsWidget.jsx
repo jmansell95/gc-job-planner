@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Boxes, Cog, Wrench, Package, ArrowRight, MapPin } from 'lucide-react';
+import { Boxes, Cog, Wrench, Package, ArrowRight, MapPin, Anchor } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 
 const assetTypeConfig = {
@@ -9,6 +9,7 @@ const assetTypeConfig = {
   machinery: { icon: Wrench, chip: 'bg-purple-50 text-purple-700 border-purple-200' },
   trailer: { icon: Package, chip: 'bg-amber-50 text-amber-700 border-amber-200' },
   vehicle: { icon: Package, chip: 'bg-slate-50 text-slate-600 border-slate-200' },
+  lifting: { icon: Anchor, chip: 'bg-teal-50 text-teal-700 border-teal-200' },
 };
 
 function AssetChip({ type, name, status }) {

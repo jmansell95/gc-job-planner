@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cog, Plus, Trash2, ShieldCheck, ShieldAlert, ShieldX, Truck, Wrench, Package, AlertTriangle, Link2 } from 'lucide-react';
+import { Cog, Plus, Trash2, ShieldCheck, ShieldAlert, ShieldX, Truck, Wrench, Package, AlertTriangle, Link2, Anchor } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
 import JobAssetAssignForm from '@/components/JobAssetAssignForm';
@@ -11,10 +11,11 @@ const roleLabels = {
   support_rig: 'Support Rig',
   machinery: 'Machinery',
   trailer: 'Trailer',
+  lifting: 'Lifting Equipment',
   welfare_unit: 'Welfare Unit',
 };
 
-const assetTypeIcon = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck };
+const assetTypeIcon = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Anchor };
 
 const complianceConfig = {
   compliant: { label: 'Compliant', icon: ShieldCheck, badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
@@ -25,8 +26,9 @@ const complianceConfig = {
 
 const tabConfig = {
   rigs: { label: 'Rigs', icon: Cog },
-  trailers: { label: 'Trailers', icon: Package },
+  lifting: { label: 'Lifting Equipment', icon: Anchor },
   machinery: { label: 'Machinery', icon: Wrench },
+  trailers: { label: 'Trailers', icon: Package },
 };
 
 export default function JobAssetManager({ job, isDrillingJob }) {
@@ -51,6 +53,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
   const rigAssignments = assignments.filter(a => a.asset_type === 'rig');
   const trailerAssignments = assignments.filter(a => a.asset_type === 'trailer');
   const machineryAssignments = assignments.filter(a => a.asset_type === 'machinery');
+  const liftingAssignments = assignments.filter(a => a.asset_type === 'lifting');
 
   // Collect ALL equipment IDs linked to ANY rig (not just assigned ones) — excluded from Machinery/Trailer tabs
   const linkedEquipmentIds = new Set();
@@ -63,16 +66,17 @@ export default function JobAssetManager({ job, isDrillingJob }) {
   // Standalone trailers & machinery (exclude rig-linked equipment like shackles, ropes)
   const standaloneTrailers = trailerAssignments.filter(a => !linkedEquipmentIds.has(a.asset_id));
   const standaloneMachinery = machineryAssignments.filter(a => !linkedEquipmentIds.has(a.asset_id));
+  const standaloneLifting = liftingAssignments.filter(a => !linkedEquipmentIds.has(a.asset_id));
 
   // Rigs tab only visible for drilling jobs
-  const tabs = isDrillingJob ? ['rigs', 'trailers', 'machinery'] : ['trailers', 'machinery'];
+  const tabs = isDrillingJob ? ['rigs', 'lifting', 'machinery', 'trailers'] : ['lifting', 'machinery', 'trailers'];
 
   // Ensure activeTab is valid for non-drilling (in case isDrillingJob changes)
   if (!isDrillingJob && activeTab === 'rigs') {
     setActiveTab('machinery');
   }
 
-  const currentAssignments = activeTab === 'rigs' ? rigAssignments : activeTab === 'trailers' ? standaloneTrailers : standaloneMachinery;
+  const currentAssignments = activeTab === 'rigs' ? rigAssignments : activeTab === 'lifting' ? standaloneLifting : activeTab === 'trailers' ? standaloneTrailers : standaloneMachinery;
 
   const handleRemove = async (assignmentId, assetName) => {
     if (!confirm(`Remove ${assetName} from this job?`)) return;
@@ -137,6 +141,31 @@ export default function JobAssetManager({ job, isDrillingJob }) {
               <Link2 className="w-3 h-3" /> {linkedStats.total} {linkedStats.total === 1 ? 'piece' : 'pieces'} of equipment connected · {linkedStats.compliant}/{linkedStats.total} compliant
             </div>
           )}
+          {showTooling && (() => {
+            const rigAsset = assets.find(as => as.id === a.asset_id);
+            const linkedLifting = (rigAsset?.linked_equipment_ids || [])
+              .map(id => assets.find(as => as.id === id))
+              .filter(as => as && as.asset_type === 'lifting');
+            if (linkedLifting.length === 0) return null;
+            return (
+              <div className="mt-2 space-y-1">
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Lifting Equipment on this Rig</p>
+                {linkedLifting.map(item => {
+                  const itemCfg = complianceConfig[item.compliance_status || 'unknown'] || complianceConfig.unknown;
+                  const ItemIcon = itemCfg.icon;
+                  return (
+                    <div key={item.id} className="flex items-center gap-2 text-xs bg-slate-50 rounded-md px-2 py-1.5">
+                      <Anchor className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                      <span className="flex-1 truncate text-slate-700 font-medium">{item.name}</span>
+                      <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full font-medium border ${itemCfg.badge}`}>
+                        <ItemIcon className="w-2.5 h-2.5" /> {itemCfg.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
           {showTooling && asset?.tooling_notes && (
             <div className="mt-1.5 bg-blue-50/50 border border-blue-100 rounded-md px-2.5 py-1.5">
               <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide mb-0.5">Tooling & Equipment</p>
@@ -166,7 +195,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
     );
   };
 
-  const emptyIcon = activeTab === 'rigs' ? Cog : activeTab === 'trailers' ? Package : Wrench;
+  const emptyIcon = activeTab === 'rigs' ? Cog : activeTab === 'lifting' ? Anchor : activeTab === 'trailers' ? Package : Wrench;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -191,7 +220,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
         {tabs.map(tabKey => {
           const cfg = tabConfig[tabKey];
           const TabIcon = cfg.icon;
-          const count = tabKey === 'rigs' ? rigAssignments.length : tabKey === 'trailers' ? standaloneTrailers.length : standaloneMachinery.length;
+          const count = tabKey === 'rigs' ? rigAssignments.length : tabKey === 'lifting' ? standaloneLifting.length : tabKey === 'trailers' ? standaloneTrailers.length : standaloneMachinery.length;
           return (
             <button key={tabKey} type="button" onClick={() => setActiveTab(tabKey)}
               className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition ${activeTab === tabKey ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
@@ -209,7 +238,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
           <div className="text-center py-6">
             {React.createElement(emptyIcon, { className: 'w-8 h-8 text-slate-300 mx-auto mb-2' })}
             <p className="text-sm text-slate-400">
-              {activeTab === 'rigs' ? 'No rigs assigned yet' : activeTab === 'trailers' ? 'No trailers assigned' : 'No machinery assigned'}
+              {activeTab === 'rigs' ? 'No rigs assigned yet' : activeTab === 'lifting' ? 'No lifting equipment assigned' : activeTab === 'trailers' ? 'No trailers assigned' : 'No machinery assigned'}
             </p>
             {activeTab === 'rigs' && isDrillingJob && (
               <p className="text-xs text-amber-600 mt-1">This is a drilling job — assign a rig and associated tooling.</p>

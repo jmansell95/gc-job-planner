@@ -24,7 +24,8 @@
         "rig",
         "machinery",
         "trailer",
-        "vehicle"
+        "vehicle",
+        "lifting"
       ],
       "description": "Asset type (denormalised from SiteAsset)"
     },
@@ -44,6 +45,7 @@
         "support_rig",
         "machinery",
         "trailer",
+        "lifting",
         "welfare_unit"
       ],
       "default": "machinery",

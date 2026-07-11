@@ -12,9 +12,10 @@
         "rig",
         "machinery",
         "trailer",
-        "vehicle"
+        "vehicle",
+        "lifting"
       ],
-      "description": "Type of asset"
+      "description": "Type of asset \u2014 'lifting' covers lifting gear (shackles, slings, chains, hooks) linked to rigs"
     },
     "rig_type": {
       "type": "string",
@@ -64,7 +65,7 @@
         "type": "string"
       },
       "default": [],
-      "description": "IDs of SiteAsset equipment (machinery, trailers) linked to this rig \u2014 shown when assigning the rig to a job for quick bulk assignment"
+      "description": "IDs of SiteAsset equipment (lifting gear, machinery, trailers) linked to this rig \u2014 shown when assigning the rig to a job for quick bulk assignment"
     },
     "is_active": {
       "type": "boolean",

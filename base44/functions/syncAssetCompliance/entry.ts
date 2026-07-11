@@ -60,9 +60,9 @@ Deno.serve(async (req) => {
     const extractEquipmentAssetType = (e) => {
       const raw = String(e.category || e.equipment_type || e.asset_type || e.type || '').toLowerCase();
       if (raw.includes('trailer')) return 'trailer';
-      if (raw.includes('machine') || raw.includes('excav') || raw.includes('digger') || raw.includes('grout')) return 'machinery';
+      if (raw.includes('lift') || raw.includes('shackle') || raw.includes('sling') || raw.includes('chain') || raw.includes('rope') || raw.includes('hook') || raw.includes('hoist') || raw.includes('crane') || raw.includes('rigging')) return 'lifting';
+      if (raw.includes('machine') || raw.includes('excav') || raw.includes('digger') || raw.includes('grout') || raw.includes('mixer')) return 'machinery';
       if (raw.includes('vehicle') || raw.includes('van') || raw.includes('truck')) return 'vehicle';
-      // Lifting equipment and everything else → machinery
       return 'machinery';
     };
 
