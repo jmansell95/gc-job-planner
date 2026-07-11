@@ -281,6 +281,9 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const endDate = job.end_date ? new Date(job.end_date + 'T00:00:00') : null;
   const jobDurationDays = startDate && endDate ? Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1) : null;
 
+  // Non-drilling teams only see trailers & machinery (not rigs) in the equipment summary
+  const visibleAssetAssignments = isDrillingJob ? assetAssignments : assetAssignments.filter(a => a.asset_type !== 'rig');
+
   if (showForm) {
     return (
       <div>
@@ -537,13 +540,13 @@ export default function JobDetail({ job: initialJob, onBack }) {
           <div className="flex items-center gap-2 mb-3">
             <Truck className="w-4 h-4 text-emerald-700" />
             <h3 className="font-semibold text-slate-900 text-sm">Vehicles & Equipment</h3>
-            {(assignedVehicles.length > 0 || assetAssignments.length > 0) && (
-              <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{assignedVehicles.length + assetAssignments.length}</span>
+            {(assignedVehicles.length > 0 || visibleAssetAssignments.length > 0) && (
+              <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{assignedVehicles.length + visibleAssetAssignments.length}</span>
             )}
           </div>
-          {assetAssignments.length > 0 && (
+          {visibleAssetAssignments.length > 0 && (
             <div className="space-y-1.5 mb-2">
-              {assetAssignments.map(a => {
+              {visibleAssetAssignments.map(a => {
                 const asset = siteAssets.find(as => as.id === a.asset_id);
                 const liveStatus = asset?.compliance_status || a.compliance_status || 'unknown';
                 const compBadge = {
@@ -568,7 +571,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
             </div>
           )}
           {assignedVehicles.length > 0 && (
-            <div className={`space-y-1.5 ${assetAssignments.length > 0 ? 'pt-2 border-t border-slate-100' : ''}`}>
+            <div className={`space-y-1.5 ${visibleAssetAssignments.length > 0 ? 'pt-2 border-t border-slate-100' : ''}`}>
               {assignedVehicles.map(v => (
                 <div key={v.id} className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center flex-shrink-0">
@@ -582,8 +585,8 @@ export default function JobDetail({ job: initialJob, onBack }) {
               ))}
             </div>
           )}
-          {assignedVehicles.length === 0 && assetAssignments.length === 0 && (
-            <p className="text-xs text-slate-400">No vehicles or rigs assigned</p>
+          {assignedVehicles.length === 0 && visibleAssetAssignments.length === 0 && (
+            <p className="text-xs text-slate-400">No vehicles or equipment assigned</p>
           )}
           {job.requisition_list_url && (
             <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer"

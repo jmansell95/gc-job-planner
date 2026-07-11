@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cog, Plus, Trash2, ShieldCheck, ShieldAlert, ShieldX, Truck, Wrench, Package, AlertTriangle } from 'lucide-react';
+import { Cog, Plus, Trash2, ShieldCheck, ShieldAlert, ShieldX, Truck, Wrench, Package, AlertTriangle, Link2 } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
 import JobAssetAssignForm from '@/components/JobAssetAssignForm';
@@ -23,8 +23,15 @@ const complianceConfig = {
   unknown: { label: 'Unknown', icon: ShieldAlert, badge: 'bg-slate-50 text-slate-600 border-slate-200' },
 };
 
+const tabConfig = {
+  rigs: { label: 'Rigs', icon: Cog },
+  trailers: { label: 'Trailers', icon: Package },
+  machinery: { label: 'Machinery', icon: Wrench },
+};
+
 export default function JobAssetManager({ job, isDrillingJob }) {
   const [showForm, setShowForm] = useState(false);
+  const [activeTab, setActiveTab] = useState(isDrillingJob ? 'rigs' : 'machinery');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -39,6 +46,21 @@ export default function JobAssetManager({ job, isDrillingJob }) {
   });
 
   const assignedAssetIds = new Set(assignments.map(a => a.asset_id));
+
+  // Partition assignments by asset type
+  const rigAssignments = assignments.filter(a => a.asset_type === 'rig');
+  const trailerAssignments = assignments.filter(a => a.asset_type === 'trailer');
+  const machineryAssignments = assignments.filter(a => a.asset_type === 'machinery');
+
+  // Rigs tab only visible for drilling jobs
+  const tabs = isDrillingJob ? ['rigs', 'trailers', 'machinery'] : ['trailers', 'machinery'];
+
+  // Ensure activeTab is valid for non-drilling (in case isDrillingJob changes)
+  if (!isDrillingJob && activeTab === 'rigs') {
+    setActiveTab('machinery');
+  }
+
+  const currentAssignments = activeTab === 'rigs' ? rigAssignments : activeTab === 'trailers' ? trailerAssignments : machineryAssignments;
 
   const handleRemove = async (assignmentId, assetName) => {
     if (!confirm(`Remove ${assetName} from this job?`)) return;
@@ -69,18 +91,69 @@ export default function JobAssetManager({ job, isDrillingJob }) {
     return status === 'expired' || status === 'unknown';
   });
 
+  // For each rig, find linked equipment assignments via the rig's linked_equipment_ids
+  const getLinkedAssignments = (rigAssignment) => {
+    const rigAsset = assets.find(as => as.id === rigAssignment.asset_id);
+    if (!rigAsset || !rigAsset.linked_equipment_ids) return [];
+    const linkedIds = new Set(rigAsset.linked_equipment_ids);
+    return assignments.filter(a => linkedIds.has(a.asset_id));
+  };
+
+  const renderAssetCard = (a, showTooling = false) => {
+    const asset = assets.find(as => as.id === a.asset_id);
+    const liveStatus = asset?.compliance_status || a.compliance_status || 'unknown';
+    const compCfg = complianceConfig[liveStatus] || complianceConfig.unknown;
+    const CompIcon = compCfg.icon;
+    const TypeIcon = assetTypeIcon[a.asset_type] || Cog;
+    return (
+      <div key={a.id} className="flex items-start gap-3 p-3 border border-slate-200 rounded-lg">
+        <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+          <TypeIcon className="w-5 h-5 text-slate-600" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-semibold text-slate-900 text-sm">{a.asset_name}</p>
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">{roleLabels[a.role] || a.role}</span>
+            {a.rig_type && a.rig_type !== 'n/a' && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600 uppercase">{a.rig_type}</span>}
+          </div>
+          {asset?.serial_number && <p className="text-xs text-slate-400 font-mono mt-0.5">{asset.serial_number}</p>}
+          {showTooling && asset?.tooling_notes && (
+            <div className="mt-1.5 bg-blue-50/50 border border-blue-100 rounded-md px-2.5 py-1.5">
+              <p className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide mb-0.5">Tooling & Equipment</p>
+              <p className="text-xs text-slate-600">{asset.tooling_notes}</p>
+            </div>
+          )}
+          {a.notes && <p className="text-xs text-slate-500 mt-1 italic">{a.notes}</p>}
+          <div className="flex items-center gap-2 mt-2">
+            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium border ${compCfg.badge}`}>
+              <CompIcon className="w-3 h-3" /> {compCfg.label}
+            </span>
+            {asset?.compliance_expiry_date && <span className="text-xs text-slate-400">Expires {asset.compliance_expiry_date}</span>}
+          </div>
+          <div className="flex items-center gap-1 mt-2">
+            {['assigned', 'on_site', 'returned'].map(st => (
+              <button key={st} onClick={() => handleStatusChange(a.id, st)}
+                className={`text-xs px-2 py-0.5 rounded-full font-medium transition ${a.status === st ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                {st === 'assigned' ? 'Planned' : st === 'on_site' ? 'On Site' : 'Returned'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <button onClick={() => handleRemove(a.id, a.asset_name)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition flex-shrink-0">
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    );
+  };
+
+  const emptyIcon = activeTab === 'rigs' ? Cog : activeTab === 'trailers' ? Package : Wrench;
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
         <Cog className="w-5 h-5 text-emerald-700" />
-        <h2 className="font-semibold text-slate-900">Rigs & Equipment</h2>
+        <h2 className="font-semibold text-slate-900">Equipment</h2>
         <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{assignments.length}</span>
-        {isDrillingJob && assignments.length === 0 && (
-          <span className="text-xs text-amber-600 font-medium">Drilling job — assign a rig</span>
-        )}
-        {!isDrillingJob && (
-          <span className="text-xs text-slate-400 font-medium hidden sm:inline">Machinery & trailers only</span>
-        )}
       </div>
 
       {hasNonCompliant && (
@@ -93,64 +166,62 @@ export default function JobAssetManager({ job, isDrillingJob }) {
         </div>
       )}
 
+      {/* Tabs */}
+      <div className="flex gap-1 px-5 pt-4 border-b border-slate-200">
+        {tabs.map(tabKey => {
+          const cfg = tabConfig[tabKey];
+          const TabIcon = cfg.icon;
+          const count = tabKey === 'rigs' ? rigAssignments.length : tabKey === 'trailers' ? trailerAssignments.length : machineryAssignments.length;
+          return (
+            <button key={tabKey} type="button" onClick={() => setActiveTab(tabKey)}
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition ${activeTab === tabKey ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+              <TabIcon className="w-3.5 h-3.5" /> {cfg.label}
+              <span className="ml-0.5 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full">{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="p-5">
         {isLoading ? (
           <Skeleton className="h-20 w-full rounded-lg" />
-        ) : assignments.length === 0 ? (
+        ) : currentAssignments.length === 0 ? (
           <div className="text-center py-6">
-            <Cog className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            {React.createElement(emptyIcon, { className: 'w-8 h-8 text-slate-300 mx-auto mb-2' })}
             <p className="text-sm text-slate-400">
-              {isDrillingJob ? 'No rigs or equipment assigned yet' : 'No equipment assigned'}
+              {activeTab === 'rigs' ? 'No rigs assigned yet' : activeTab === 'trailers' ? 'No trailers assigned' : 'No machinery assigned'}
             </p>
-            {isDrillingJob ? (
+            {activeTab === 'rigs' && isDrillingJob && (
               <p className="text-xs text-amber-600 mt-1">This is a drilling job — assign a rig and associated tooling.</p>
-            ) : (
-              <p className="text-xs text-slate-400 mt-1">Machinery, trailers and welfare units can be assigned.</p>
             )}
           </div>
-        ) : (
-          <div className="space-y-3">
-            {assignments.map(a => {
-              const asset = assets.find(as => as.id === a.asset_id);
-              const liveStatus = asset?.compliance_status || a.compliance_status || 'unknown';
-              const compCfg = complianceConfig[liveStatus] || complianceConfig.unknown;
-              const CompIcon = compCfg.icon;
-              const TypeIcon = assetTypeIcon[a.asset_type] || Cog;
+        ) : activeTab === 'rigs' ? (
+          /* Rigs tab: show each rig with its linked equipment and tooling notes */
+          <div className="space-y-4">
+            {rigAssignments.map(rigA => {
+              const linked = getLinkedAssignments(rigA);
               return (
-                <div key={a.id} className="flex items-start gap-3 p-3 border border-slate-200 rounded-lg">
-                  <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                    <TypeIcon className="w-5 h-5 text-slate-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-slate-900 text-sm">{a.asset_name}</p>
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">{roleLabels[a.role] || a.role}</span>
-                      {a.rig_type && a.rig_type !== 'n/a' && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600 uppercase">{a.rig_type}</span>}
+                <div key={rigA.id} className="space-y-2">
+                  {renderAssetCard(rigA, true)}
+                  {linked.length > 0 && (
+                    <div className="ml-4 bg-slate-50 rounded-lg border border-slate-100 p-3">
+                      <p className="text-xs font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                        <Link2 className="w-3.5 h-3.5 text-emerald-600" />
+                        Linked Equipment ({linked.length})
+                      </p>
+                      <div className="space-y-2">
+                        {linked.map(eq => renderAssetCard(eq, false))}
+                      </div>
                     </div>
-                    {asset?.serial_number && <p className="text-xs text-slate-400 font-mono mt-0.5">{asset.serial_number}</p>}
-                    {asset?.tooling_notes && <p className="text-xs text-slate-500 mt-1">{asset.tooling_notes}</p>}
-                    {a.notes && <p className="text-xs text-slate-500 mt-1 italic">{a.notes}</p>}
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium border ${compCfg.badge}`}>
-                        <CompIcon className="w-3 h-3" /> {compCfg.label}
-                      </span>
-                      {asset?.compliance_expiry_date && <span className="text-xs text-slate-400">Expires {asset.compliance_expiry_date}</span>}
-                    </div>
-                    <div className="flex items-center gap-1 mt-2">
-                      {['assigned', 'on_site', 'returned'].map(st => (
-                        <button key={st} onClick={() => handleStatusChange(a.id, st)}
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium transition ${a.status === st ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
-                          {st === 'assigned' ? 'Planned' : st === 'on_site' ? 'On Site' : 'Returned'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <button onClick={() => handleRemove(a.id, a.asset_name)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition flex-shrink-0">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  )}
                 </div>
               );
             })}
+          </div>
+        ) : (
+          /* Trailers / Machinery tabs: no tooling notes shown */
+          <div className="space-y-3">
+            {currentAssignments.map(a => renderAssetCard(a, false))}
           </div>
         )}
 
