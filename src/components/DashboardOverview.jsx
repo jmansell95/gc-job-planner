@@ -16,6 +16,7 @@ import { KpiStatsWidget, FieldCrewsWidget, ChartsWidget } from '@/components/das
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
 import SupervisorOverviewWidget from '@/components/dashboard/SupervisorOverviewWidget';
 import RigTrackerWidget from '@/components/dashboard/RigTrackerWidget';
+import JobAssetsWidget from '@/components/dashboard/JobAssetsWidget';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [customizeMode, setCustomizeMode] = useState(false);
@@ -93,6 +94,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'vehicle-alerts': return <VehicleMaintenanceAlerts vehicles={vehicles} onNavigate={onNavigate} />;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
       case 'rig-tracker': return <RigTrackerWidget onSelectJob={onSelectJob} />;
+      case 'job-assets': return <JobAssetsWidget onSelectJob={onSelectJob} />;
       default: return null;
     }
   };
@@ -156,7 +158,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                   <Calendar className="w-4 h-4" /> Build Rota
                 </button>
                 <button onClick={() => setCustomizeMode(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
-                  <Settings2 className="w-4 h-4" /> Customize
+                  <Settings2 className="w-4 h-4" /> Edit
                 </button>
               </>
             ) : (
