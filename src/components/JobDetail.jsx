@@ -278,6 +278,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
 
   const startDate = job.start_date ? new Date(job.start_date + 'T00:00:00') : null;
   const endDate = job.end_date ? new Date(job.end_date + 'T00:00:00') : null;
+  const jobDurationDays = startDate && endDate ? Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1) : null;
 
   if (showForm) {
     return (
@@ -339,6 +340,19 @@ export default function JobDetail({ job: initialJob, onBack }) {
               <div className="flex items-center gap-1.5">
                 <Calendar className="w-4 h-4" />
                 <span>{format(startDate, 'dd MMM yyyy')} → {endDate ? format(endDate, 'dd MMM yyyy') : 'TBC'}</span>
+              </div>
+            )}
+            {startDate && endDate && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/70 rounded-lg border border-slate-200/60">
+                <CalendarClock className="w-4 h-4 text-emerald-700" />
+                <span className="font-bold text-slate-900">{Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1)}</span>
+                <span className="text-slate-500">day job</span>
+              </div>
+            )}
+            {startDate && !endDate && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/70 rounded-lg border border-slate-200/60">
+                <CalendarClock className="w-4 h-4 text-amber-600" />
+                <span className="text-sm text-amber-700 font-medium">End date not set</span>
               </div>
             )}
             <div className="flex items-center gap-1.5">

@@ -7,10 +7,8 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
 
-    // Connect to the GC Compliance Manager app using the current user's token
-    const authHeader = req.headers.get('Authorization') || '';
-    const token = authHeader.replace('Bearer ', '').trim();
-    const complianceApp = createClient({ appId: "6a3be07293b53789beb4f09e", token });
+    // Connect to the GC Compliance Manager app (requires the app to be public or Equipment entity publicly readable)
+    const complianceApp = createClient({ appId: "6a3be07293b53789beb4f09e" });
 
     // Fetch all Equipment records from the compliance app
     let equipmentRecords = [];
@@ -49,9 +47,29 @@ Deno.serve(async (req) => {
       return e.serial_number || e.serialNumber || e.serial || e.registration_number || e.registrationNumber || '';
     };
 
+    // Helper: extract asset type from an Equipment record
+    const extractAssetType = (e) => {
+      const raw = String(e.asset_type || e.type || e.equipment_type || e.category || '').toLowerCase();
+      if (raw.includes('rig')) return 'rig';
+      if (raw.includes('trailer')) return 'trailer';
+      if (raw.includes('machine') || raw.includes('excav') || raw.includes('digger')) return 'machinery';
+      if (raw.includes('vehicle') || raw.includes('van') || raw.includes('truck')) return 'vehicle';
+      return 'machinery'; // default
+    };
+
+    // Helper: extract rig type
+    const extractRigType = (e) => {
+      const raw = String(e.rig_type || e.drilling_type || '').toLowerCase();
+      if (raw.includes('cp') || raw.includes('cable') || raw.includes('percussion')) return 'cp';
+      if (raw.includes('rotary')) return 'rotary';
+      return 'n/a';
+    };
+
     let synced = 0;
     let unmatched = 0;
+    let created = 0;
     const unmatchedAssets = [];
+    const matchedEquipmentIds = new Set();
 
     for (const asset of siteAssets) {
       let match = null;
@@ -85,6 +103,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      matchedEquipmentIds.add(match.id);
       const status = extractStatus(match);
       const expiryDate = extractExpiry(match);
 
@@ -97,14 +116,52 @@ Deno.serve(async (req) => {
       synced++;
     }
 
+    // Create new SiteAsset records for Equipment records that didn't match any local asset
+    const now = new Date().toISOString();
+    const newAssets = [];
+    for (const eq of equipmentRecords) {
+      if (matchedEquipmentIds.has(eq.id)) continue;
+      const name = eq.name || eq.title || 'Unnamed Equipment';
+      const serial = extractSerial(eq);
+      // Skip if a local asset with same name already exists (already unmatched above)
+      const assetType = extractAssetType(eq);
+      const rigType = assetType === 'rig' ? extractRigType(eq) : 'n/a';
+      const status = extractStatus(eq);
+      const expiryDate = extractExpiry(eq);
+
+      newAssets.push({
+        name,
+        asset_type: assetType,
+        rig_type: rigType,
+        serial_number: serial,
+        external_compliance_id: eq.id,
+        compliance_status: status,
+        compliance_expiry_date: expiryDate || null,
+        compliance_last_checked: now,
+        is_active: true,
+        notes: eq.notes || eq.description || '',
+      });
+    }
+
+    if (newAssets.length > 0) {
+      try {
+        await base44.asServiceRole.entities.SiteAsset.bulkCreate(newAssets);
+        created = newAssets.length;
+      } catch (createErr) {
+        // log but don't fail the whole sync
+        console.error('Error creating new assets:', createErr.message);
+      }
+    }
+
     return Response.json({
       success: true,
       total_assets: siteAssets.length,
       total_equipment_records: equipmentRecords.length,
       synced,
       unmatched,
+      created,
       unmatched_assets: unmatchedAssets,
-      synced_at: new Date().toISOString(),
+      synced_at: now,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

@@ -81,6 +81,7 @@ export default function SiteAssetManager() {
   };
 
   const [syncing, setSyncing] = useState(false);
+  const [lastSyncResult, setLastSyncResult] = useState(null);
   const handleSync = async () => {
     setSyncing(true);
     try {
@@ -88,15 +89,25 @@ export default function SiteAssetManager() {
       const d = res.data;
       if (d?.error) {
         toast({ title: 'Sync failed', description: d.details || d.error, variant: 'destructive' });
+        setLastSyncResult({ success: false, message: d.details || d.error });
       } else {
-        toast({ title: 'Compliance synced', description: `${d.synced} of ${d.total_assets} assets updated from GC Compliance Manager${d.unmatched > 0 ? ` · ${d.unmatched} unmatched` : ''}` });
+        const msg = `${d.synced} updated${d.created > 0 ? `, ${d.created} new` : ''}${d.unmatched > 0 ? `, ${d.unmatched} unmatched` : ''}`;
+        toast({ title: 'Compliance synced', description: msg });
+        setLastSyncResult({ success: true, message: msg, at: new Date().toISOString() });
         queryClient.invalidateQueries({ queryKey: ['site-assets'] });
       }
     } catch (err) {
       toast({ title: 'Sync failed', description: err.message, variant: 'destructive' });
+      setLastSyncResult({ success: false, message: err.message });
     }
     setSyncing(false);
   };
+
+  // Compliance issue counts for visual warnings
+  const expiredCount = assets.filter(a => a.compliance_status === 'expired').length;
+  const unknownCount = assets.filter(a => a.compliance_status === 'unknown').length;
+  const expiringCount = assets.filter(a => a.compliance_status === 'expiring').length;
+  const neverSyncedCount = assets.filter(a => !a.compliance_last_checked).length;
 
   return (
     <div>
@@ -116,6 +127,36 @@ export default function SiteAssetManager() {
           </button>
         </div>
       </div>
+
+      {/* Sync status / issue banners */}
+      {lastSyncResult && !lastSyncResult.success && (
+        <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3.5 mb-4">
+          <ShieldX className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-red-800">Compliance sync failed</p>
+            <p className="text-xs text-red-700 mt-0.5">{lastSyncResult.message}</p>
+            <p className="text-[11px] text-red-500 mt-1">Make sure the GC Compliance Manager app is set to Public, or the Equipment entity allows public read access.</p>
+          </div>
+        </div>
+      )}
+      {lastSyncResult && lastSyncResult.success && (
+        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <p className="text-xs text-emerald-700 font-medium">Last sync: {lastSyncResult.message}</p>
+        </div>
+      )}
+      {(expiredCount > 0 || unknownCount > 0 || neverSyncedCount > 0) && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3.5 mb-4">
+          <ShieldAlert className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {expiredCount > 0 && <p className="text-sm font-semibold text-red-700">{expiredCount} expired</p>}
+            {expiringCount > 0 && <p className="text-sm font-semibold text-amber-700">{expiringCount} expiring soon</p>}
+            {unknownCount > 0 && <p className="text-sm font-semibold text-slate-600">{unknownCount} unknown status</p>}
+            {neverSyncedCount > 0 && <p className="text-sm font-semibold text-blue-600">{neverSyncedCount} never synced</p>}
+            <p className="text-xs text-amber-600 w-full">Click "Sync Compliance" to refresh statuses from GC Compliance Manager.</p>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-emerald-200 shadow-sm p-5 mb-6 space-y-4">
@@ -193,8 +234,12 @@ export default function SiteAssetManager() {
             const compCfg = complianceConfig[asset.compliance_status] || complianceConfig.unknown;
             const TypeIcon = typeCfg.icon;
             const CompIcon = compCfg.icon;
+            const cardBorder = asset.compliance_status === 'expired' ? 'border-l-4 border-l-red-400' :
+              asset.compliance_status === 'expiring' ? 'border-l-4 border-l-amber-400' :
+              asset.compliance_status === 'unknown' ? 'border-l-4 border-l-slate-300' :
+              !asset.compliance_last_checked ? 'border-l-4 border-l-blue-300' : '';
             return (
-              <div key={asset.id} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <div key={asset.id} className={`bg-white rounded-xl border border-slate-200 shadow-sm p-4 ${cardBorder}`}>
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
