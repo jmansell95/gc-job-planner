@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Users, MapPin, Truck, Clock, ClipboardCheck, ChevronRight, PlayCircle, CheckCircle2, Calendar } from 'lucide-react';
 import { formatJobType } from '@/utils/format';
 import { getJobPrimaryType } from '@/utils/jobTeams';
+import { getCrewLabel } from '@/utils/terminology';
 
 const jobTypeBadge = {
   groundworks: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
@@ -44,12 +45,12 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
       <div className="px-4 sm:px-5 py-4 border-b border-slate-100/70 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <Clock className="w-5 h-5 text-emerald-700 flex-shrink-0" />
-          <h2 className="font-semibold text-slate-900 truncate">Field Crews On Site Today</h2>
+          <h2 className="font-semibold text-slate-900 truncate">Crews On Site Today</h2>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full font-semibold ring-1 ring-emerald-200 whitespace-nowrap">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            {todaysRotas.length} {todaysRotas.length === 1 ? 'assignment' : 'assignments'}
+            {todaysRotas.length} {todaysRotas.length === 1 ? 'shift' : 'shifts'}
           </span>
           <button onClick={() => onNavigate('calendar')} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2 py-1.5 rounded-lg hover:bg-emerald-50 transition">
             Calendar <ChevronRight className="w-3.5 h-3.5" />
@@ -62,7 +63,7 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
             <Users className="w-5 h-5 text-slate-300" />
           </div>
-          <p className="text-slate-400 text-sm">No assignments scheduled today</p>
+          <p className="text-slate-400 text-sm">No crews on site today</p>
           <button onClick={() => onNavigate('rota')} className="mt-2 text-xs text-emerald-700 hover:text-emerald-900 font-medium">Build this week's rota →</button>
         </div>
       ) : (
@@ -89,7 +90,7 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
                     {primaryType && (
                       <span className={`inline-flex items-center gap-1 mt-0.5 text-[11px] font-medium px-2 py-0.5 rounded-full ${typeBadge}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${jobTypeDot[primaryType]}`} />
-                        {formatJobType(primaryType)}
+                        {getCrewLabel(primaryType, 1)}
                       </span>
                     )}
                   </div>

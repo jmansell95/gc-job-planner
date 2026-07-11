@@ -12,6 +12,7 @@ import AssignmentModal from '@/components/AssignmentModal';
 import { EmptyState, ErrorState, RotaSkeleton, Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatJobType } from '@/utils/format';
 import { getJobPrimaryType } from '@/utils/jobTeams';
+import { getCrewLabel } from '@/utils/terminology';
 import { getCurrentTimeStr, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
@@ -320,7 +321,7 @@ export default function WeeklyRotaBuilder() {
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={handleSmartFill} disabled={smartFillLoading}
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50">
-            <Copy className="w-4 h-4" /> {smartFillLoading ? 'Copying...' : 'Smart Fill'}
+            <Copy className="w-4 h-4" /> {smartFillLoading ? 'Copying...' : 'Copy Last Week'}
           </button>
           <button onClick={() => setModal({ isOpen: true, assignment: null, defaultStaffId: '', defaultDate: '' })}
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
@@ -332,7 +333,7 @@ export default function WeeklyRotaBuilder() {
           </button>
           <button onClick={handleSubmitWeek} disabled={publishing}
             className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition text-sm font-medium disabled:opacity-50">
-            {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} {isPublished ? 'Resend' : 'Submit Week'}
+            {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} {isPublished ? 'Resend' : 'Publish Week'}
           </button>
         </div>
       </div>
@@ -362,17 +363,17 @@ export default function WeeklyRotaBuilder() {
           <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
             <span className="w-7 h-7 rounded-lg stat-gradient-emerald flex items-center justify-center"><Calendar className="w-4 h-4 text-white" /></span>
             <span className="text-sm font-bold text-slate-900">{totalAssignments}</span>
-            <span className="text-xs text-slate-500">assignments</span>
+            <span className="text-xs text-slate-500">shifts</span>
           </div>
           <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
             <span className="w-7 h-7 rounded-lg stat-gradient-blue flex items-center justify-center"><Users className="w-4 h-4 text-white" /></span>
             <span className="text-sm font-bold text-slate-900">{staffWorking}</span>
-            <span className="text-xs text-slate-500">staff working</span>
+            <span className="text-xs text-slate-500">crew working</span>
           </div>
           <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
             <span className="w-7 h-7 rounded-lg stat-gradient-amber flex items-center justify-center"><Briefcase className="w-4 h-4 text-white" /></span>
             <span className="text-sm font-bold text-slate-900">{jobsActive}</span>
-            <span className="text-xs text-slate-500">jobs active</span>
+            <span className="text-xs text-slate-500">active jobs</span>
           </div>
           {weekRecord && (
             <div className={`bg-white rounded-lg border px-4 py-2.5 flex items-center gap-2.5 shadow-sm ${isPublished ? 'border-emerald-300' : 'border-amber-300'}`}>
@@ -469,7 +470,7 @@ export default function WeeklyRotaBuilder() {
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium text-slate-900 text-sm whitespace-nowrap truncate">{member.name}</p>
-                        <p className="text-xs text-slate-400">{teams.find(t => t.id === member.team_id)?.name || 'No team'}</p>
+                        <p className="text-xs text-slate-400">{teams.find(t => t.id === member.team_id)?.name || 'Unassigned'}</p>
                       </div>
                     </div>
                   </td>
@@ -516,7 +517,7 @@ export default function WeeklyRotaBuilder() {
               ))}
               {filteredStaff.length === 0 && (
                 <tr><td colSpan={days.length + 1} className="px-4 py-8 text-center text-slate-400 text-sm">
-                  {staff.length === 0 ? 'No staff found. Add staff in Settings.' : 'No staff match your filters.'}
+                  {staff.length === 0 ? 'No crew found. Add staff in Settings.' : 'No crew match your filters.'}
                 </td></tr>
               )}
             </tbody>

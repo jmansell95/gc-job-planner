@@ -31,7 +31,7 @@ const tabs = [
 ];
 
 const tabDescriptions = {
-  staff: 'Manage staff, app access and shift times',
+  staff: 'Manage crew, app access and shift times',
   vehicles: 'Track vehicles, MOTs and service dates',
   clients: 'Manage client contacts',
   contractors: 'Manage contractor contacts',

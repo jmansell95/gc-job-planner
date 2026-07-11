@@ -19,6 +19,7 @@ import JobCommentsViewer from '@/components/JobCommentsViewer';
 import JobWorkLog from '@/components/JobWorkLog';
 import JobPhotoGallery from '@/components/JobPhotoGallery';
 import { getJobPrimaryType, isDrillingJob as isDrillingJobByTeams, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
+import { getCrewLabel } from '@/utils/terminology';
 import { computeStaffOvertime, buildRateMap, getAssignmentMultiplier } from '@/utils/overtime';
 import JobStatusModal from '@/components/JobStatusModal';
 import JobHotelBookings from '@/components/JobHotelBookings';
@@ -357,11 +358,11 @@ export default function JobDetail({ job: initialJob, onBack }) {
             )}
             <div className="flex items-center gap-1.5">
               <Users className="w-4 h-4" />
-              <span>{assignedStaff.length} staff</span>
+              <span>{assignedStaff.length} {assignedStaff.length === 1 ? getCrewLabel(primaryType, 1).toLowerCase() : 'crew'}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Clock className="w-4 h-4" />
-              <span>{rotas.length} shifts</span>
+              <span>{rotas.length} {rotas.length === 1 ? 'shift' : 'shifts'}</span>
             </div>
           </div>
         </div>
@@ -582,7 +583,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
             </div>
           )}
           {assignedVehicles.length === 0 && assetAssignments.length === 0 && (
-            <p className="text-xs text-slate-400">No vehicles or equipment assigned</p>
+            <p className="text-xs text-slate-400">No vehicles or rigs assigned</p>
           )}
           {job.requisition_list_url && (
             <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer"
@@ -613,10 +614,10 @@ export default function JobDetail({ job: initialJob, onBack }) {
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
               <Users className="w-5 h-5 text-emerald-700" />
               <h2 className="font-semibold text-slate-900">Assigned Staff</h2>
-              <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{assignedStaff.length}</span>
+              <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{assignedStaff.length} {assignedStaff.length === 1 ? 'person' : 'people'}</span>
             </div>
             {assignedStaff.length === 0 ? (
-              <div className="px-5 py-8 text-center text-slate-400 text-sm">No staff assigned yet</div>
+              <div className="px-5 py-8 text-center text-slate-400 text-sm">No crew assigned yet</div>
             ) : (
               <div className="divide-y divide-slate-100">
                 {assignedStaff.map(member => {
@@ -631,7 +632,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
                         </div>
                         <div className="min-w-0">
                           <p className="font-semibold text-slate-900 truncate">{member.name}</p>
-                          <p className="text-xs text-slate-500">{roleLabels[member.job_role] || member.job_role}</p>
+                          <p className="text-xs text-slate-500">{roleLabels[member.job_role] || getCrewLabel(primaryType, 1)}</p>
                           {memberVehicles.length > 0 && (
                             <div className="flex items-center gap-1 mt-1">
                               <Truck className="w-3.5 h-3.5 text-slate-400" />
@@ -644,7 +645,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${workerTypeBadge[member.worker_type] || 'bg-slate-100 text-slate-600'}`}>
                           {member.worker_type?.replace(/_/g, ' ')}
                         </span>
-                        <span className="text-xs text-slate-400">{memberRotas.length} shifts</span>
+                        <span className="text-xs text-slate-400">{memberRotas.length} {memberRotas.length === 1 ? 'shift' : 'shifts'}</span>
                       </div>
                     </div>
                   );
@@ -661,7 +662,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
               <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{sortedDates.length} days</span>
             </div>
             {sortedDates.length === 0 ? (
-              <div className="px-5 py-8 text-center text-slate-400 text-sm">No scheduled days yet</div>
+              <div className="px-5 py-8 text-center text-slate-400 text-sm">No shifts scheduled yet</div>
             ) : (
               <div className="divide-y divide-slate-100">
                 {sortedDates.map(date => {

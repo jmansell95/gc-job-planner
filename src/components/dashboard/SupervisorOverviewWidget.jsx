@@ -95,7 +95,7 @@ export default function SupervisorOverviewWidget({ profile }) {
         </div>
         <div>
           <h2 className="font-semibold text-slate-900 text-sm">Supervisor Overview</h2>
-          <p className="text-xs text-slate-400">{managedTeams.length} crew{managedTeams.length !== 1 ? 's' : ''} under your supervision</p>
+          <p className="text-xs text-slate-400">{managedTeams.length} {managedTeams.length === 1 ? 'crew' : 'crews'} under your supervision</p>
         </div>
       </div>
 
@@ -105,32 +105,32 @@ export default function SupervisorOverviewWidget({ profile }) {
           <div className="bg-slate-50 rounded-xl p-3 text-center">
             <Users className="w-4 h-4 text-slate-400 mx-auto mb-1" />
             <p className="text-lg font-bold text-slate-900">{totalOnSite}</p>
-            <p className="text-[10px] text-slate-500 uppercase font-medium">On Site Today</p>
+            <p className="text-[10px] text-slate-500 uppercase font-medium">On Site</p>
           </div>
           {teamData.some(t => t.isDrilling) ? (
             <>
               <div className="bg-blue-50 rounded-xl p-3 text-center">
                 <Ruler className="w-4 h-4 text-blue-500 mx-auto mb-1" />
                 <p className="text-lg font-bold text-blue-700">{totalMeterage.toFixed(1)}m</p>
-                <p className="text-[10px] text-blue-600 uppercase font-medium">Meterage Today</p>
+                <p className="text-[10px] text-blue-600 uppercase font-medium">Metres Drilled</p>
               </div>
               <div className="bg-purple-50 rounded-xl p-3 text-center">
                 <TestTube className="w-4 h-4 text-purple-500 mx-auto mb-1" />
                 <p className="text-lg font-bold text-purple-700">{totalSamples}</p>
-                <p className="text-[10px] text-purple-600 uppercase font-medium">Samples Today</p>
+                <p className="text-[10px] text-purple-600 uppercase font-medium">Samples</p>
               </div>
             </>
           ) : (
             <div className="bg-emerald-50 rounded-xl p-3 text-center">
               <Package className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
               <p className="text-lg font-bold text-emerald-700">{totalLogs}</p>
-              <p className="text-[10px] text-emerald-600 uppercase font-medium">Log Entries Today</p>
+              <p className="text-[10px] text-emerald-600 uppercase font-medium">Log Entries</p>
             </div>
           )}
           <div className="bg-amber-50 rounded-xl p-3 text-center">
             <Briefcase className="w-4 h-4 text-amber-500 mx-auto mb-1" />
             <p className="text-lg font-bold text-amber-700">{[...new Set(teamData.flatMap(t => t.activeJobs.map(j => j.id)))].length}</p>
-            <p className="text-[10px] text-amber-600 uppercase font-medium">Active Jobs</p>
+            <p className="text-[10px] text-amber-600 uppercase font-medium">Jobs Live</p>
           </div>
         </div>
 
@@ -150,8 +150,8 @@ export default function SupervisorOverviewWidget({ profile }) {
                 <span className="text-xs text-slate-500 flex-shrink-0">
                   <span className="font-bold text-slate-700">{onSite}</span>/{memberCount} on site
                 </span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
+                </div>
+                <div className="flex flex-wrap gap-1.5">
                 {isDrilling ? (
                   <>
                     {meterage > 0 && (

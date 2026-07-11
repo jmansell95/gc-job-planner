@@ -31,7 +31,7 @@ export default function MaintenanceQuickView({ onNavigate }) {
           </div>
           <div className="min-w-0">
             <h2 className="text-sm font-bold text-slate-900">Upcoming Maintenance</h2>
-            <p className="text-xs text-slate-400">Booked &amp; requested services</p>
+            <p className="text-xs text-slate-400">Booked &amp; requested vehicle services</p>
           </div>
         </div>
         {upcoming.length > 0 && (
@@ -45,7 +45,7 @@ export default function MaintenanceQuickView({ onNavigate }) {
       ) : nextThree.length === 0 ? (
         <div className="px-5 py-8 text-center text-slate-400 text-sm">
           <Wrench className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-          No upcoming maintenance bookings
+          No maintenance booked yet
         </div>
       ) : (
         <div className="divide-y divide-slate-100">

@@ -260,7 +260,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   };
 
   const handleResetBriefing = async () => {
-    if (!confirm('Reset the briefing for this assignment?\n\nThe staff member will need to complete the site briefing again before they can start work.')) return;
+    if (!confirm('Reset the briefing for this shift?\n\nThe crew member will need to complete the site briefing again before they can start work.')) return;
     setResetting(true);
     try {
       await base44.functions.invoke('resetAssignmentBriefing', { assignment_id: assignment.id });
@@ -274,7 +274,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   };
 
   const handleDelete = async () => {
-    if (!confirm('Delete this assignment?')) return;
+    if (!confirm('Delete this shift?')) return;
     try {
       await base44.entities.RotaAssignment.delete(assignment.id);
       queryClient.invalidateQueries({ queryKey: ['rotas'] });
@@ -290,7 +290,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 sticky top-0 bg-white rounded-t-xl">
-          <h3 className="font-semibold text-slate-900">{isEditing ? 'Edit Assignment' : 'New Assignment'}</h3>
+          <h3 className="font-semibold text-slate-900">{isEditing ? 'Edit Shift' : 'New Shift'}</h3>
           <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition">
             <X className="w-4 h-4 text-slate-500" />
           </button>

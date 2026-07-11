@@ -33,7 +33,7 @@ export default function RigTrackerWidget({ onSelectJob }) {
           </div>
           <div className="min-w-0">
             <h2 className="text-sm font-bold text-slate-900">Rig Locations</h2>
-            <p className="text-xs text-slate-400">Rigs deployed to active jobs</p>
+            <p className="text-xs text-slate-400">Rigs currently deployed to sites</p>
           </div>
         </div>
         <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium flex-shrink-0">{rigAssignments.length}</span>

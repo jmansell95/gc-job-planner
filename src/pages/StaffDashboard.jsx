@@ -319,7 +319,7 @@ export default function StaffDashboard() {
     const allSigned = crew.length > 0 && crew.every(a => a.briefing_signed);
     if (!allSigned) {
       const signedCount = crew.filter(a => a.briefing_signed).length;
-      toast({ title: 'Waiting for crew briefings', description: `${signedCount} of ${crew.length} crew members have signed off. Everyone must complete the briefing before the shift can start.` });
+      toast({ title: 'Waiting for crew briefings', description: `${signedCount} of ${crew.length} crew members have signed off. Everyone must complete the briefing before work can start.` });
       return;
     }
     handleStartJob(assignmentId);
@@ -364,7 +364,7 @@ export default function StaffDashboard() {
             <HardHat className="w-7 h-7 text-slate-400" />
           </div>
           <p className="text-slate-700 font-semibold">No crew profile found</p>
-          <p className="text-slate-400 text-sm mt-1">Contact your supervisor to get set up.</p>
+          <p className="text-slate-400 text-sm mt-1">Contact your manager to get set up.</p>
         </div>
       </div>
     );
@@ -535,7 +535,7 @@ export default function StaffDashboard() {
           {/* WhatsApp reminder */}
           <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm text-slate-600">
             <MessageCircle className="w-4 h-4 text-slate-400 flex-shrink-0" />
-            <p className="font-medium">Check WhatsApp groups for updates at the start of each working day.</p>
+            <p className="font-medium">Check WhatsApp for updates at the start of each working day.</p>
           </div>
         </div>
 
@@ -598,11 +598,11 @@ export default function StaffDashboard() {
           </div>
         ) : scheduleLocked ? (
           <div className="bg-white rounded-2xl border border-slate-200">
-            <EmptyState icon={CalendarClock} title="New schedule on the way" message="Your manager is preparing your new rota. You'll receive it by email once it's ready." />
+            <EmptyState icon={CalendarClock} title="New schedule on the way" message="Your manager is preparing your new rota. You'll get it by email once it's ready." />
           </div>
         ) : visibleAssignments.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200">
-            <EmptyState icon={CalendarDays} title="No assignments scheduled" message="Check back later — your supervisor will assign you to upcoming jobs." />
+            <EmptyState icon={CalendarDays} title="No shifts scheduled" message="Check back later — your manager will assign you to upcoming jobs." />
           </div>
         ) : (
           <div className="space-y-6">
@@ -656,7 +656,7 @@ export default function StaffDashboard() {
             {/* No jobs today but upcoming exists */}
             {todaysSorted.length === 0 && upcomingDates.length > 0 && (
               <div className="bg-white rounded-2xl border border-slate-200">
-                <EmptyState icon={CalendarDays} title="No jobs today" message="Check your upcoming assignments below." />
+                <EmptyState icon={CalendarDays} title="No jobs today" message="Check your upcoming shifts below." />
               </div>
             )}
 
@@ -691,11 +691,11 @@ export default function StaffDashboard() {
             {/* Nothing at all */}
             {todaysSorted.length === 0 && upcomingDates.length === 0 && (
               <div className="bg-white rounded-2xl border border-slate-200">
-                <EmptyState icon={CalendarDays} title="No assignments scheduled" message="Check back later — your supervisor will assign you to upcoming jobs." />
-              </div>
-            )}
-          </div>
-        )}
+                <EmptyState icon={CalendarDays} title="No shifts scheduled" message="Check back later — your manager will assign you to upcoming jobs." />
+                </div>
+                )}
+                </div>
+                )}
 
         {/* My Bookings — maintenance & training */}
         {staff?.id && (

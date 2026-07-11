@@ -75,7 +75,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   const stats = [
     { label: 'Active Jobs', value: activeJobs.length, sub: onHoldJobs.length ? `${onHoldJobs.length} on hold` : `${jobs.length} total`, icon: Briefcase, gradient: 'stat-gradient-emerald', nav: 'jobs' },
-    { label: 'Working Today', value: staffToday, sub: `${activeStaff} active staff`, icon: Users, gradient: 'stat-gradient-blue', nav: 'rota' },
+    { label: 'Working Today', value: staffToday, sub: `${activeStaff} active crew`, icon: Users, gradient: 'stat-gradient-blue', nav: 'rota' },
     { label: 'Pending Approval', value: pendingTs, sub: 'timesheets', icon: ClipboardCheck, gradient: pendingTs > 0 ? 'stat-gradient-amber' : 'stat-gradient-slate', nav: 'timesheets' },
     { label: 'Vehicles', value: vehicles.length, sub: 'in fleet', icon: Truck, gradient: 'stat-gradient-amber', nav: 'settings' },
   ];
@@ -134,7 +134,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       {/* Hero header */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="p-2.5 bg-emerald-100 rounded-xl flex-shrink-0">
               <Grid3x3 className="w-7 h-7 text-emerald-700" />
             </div>
@@ -143,7 +143,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                 {greeting}{firstName ? `, ${firstName}` : ''}
               </h1>
               <p className="text-slate-500 text-sm mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
-              <p className="text-slate-400 text-xs mt-0.5">{thisWeekRotas.length} shifts this week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
+              <p className="text-slate-400 text-xs mt-0.5">{thisWeekRotas.length} {thisWeekRotas.length === 1 ? 'shift' : 'shifts'} this week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">

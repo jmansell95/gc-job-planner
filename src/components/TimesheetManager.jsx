@@ -159,7 +159,7 @@ export default function TimesheetManager() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         <StatBox icon={Clock} label="Pending Approval" value={pendingCount} accent="bg-amber-100 text-amber-700" />
         <StatBox icon={CheckCircle2} label="Approved Hours" value={fmtMins(approvedMins)} accent="bg-emerald-100 text-emerald-700" />
-        <StatBox icon={TrendingUp} label="Approved Overtime" value={fmtMins(approvedOtMins)} accent="bg-orange-100 text-orange-700" sub="across all staff" />
+        <StatBox icon={TrendingUp} label="Approved Overtime" value={fmtMins(approvedOtMins)} accent="bg-orange-100 text-orange-700" sub="across all crew" />
         <StatBox icon={PoundSterling} label="Approved Cost" value={fmtCost(approvedCost)} accent="bg-blue-100 text-blue-700" sub="incl. overtime" />
         <StatBox icon={FileText} label="Total Timesheets" value={workTimesheets.length} accent="bg-slate-100 text-slate-600" />
         {approvedMeterage > 0 && (
@@ -175,7 +175,7 @@ export default function TimesheetManager() {
           <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
             <Users className="w-5 h-5 text-emerald-700" />
             <h2 className="font-semibold text-slate-900">Approved</h2>
-            <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{staffSummary.length} staff</span>
+            <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{staffSummary.length} {staffSummary.length === 1 ? 'person' : 'crew'}</span>
           </div>
           <div className="divide-y divide-slate-100">
             {staffSummary.map(p => (

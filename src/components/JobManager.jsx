@@ -206,7 +206,7 @@ export default function JobManager({ onNavigateRota }) {
       ) : isError ? (
         <ErrorState message="Couldn't load jobs" onRetry={refetch} />
       ) : jobs.length === 0 ? (
-        <EmptyState icon={Briefcase} title="No jobs yet" message="Add your first job to start scheduling work." actionLabel="Add Job" onAction={() => { setEditingId(null); setShowForm(true); }} />
+        <EmptyState icon={Briefcase} title="No jobs yet" message="Add your first job to start scheduling crews and shifts." actionLabel="Add Job" onAction={() => { setEditingId(null); setShowForm(true); }} />
       ) : filteredJobs.length === 0 ? (
         <EmptyState icon={Search} title="No jobs match your search" message="Try a different name, location, or status filter." />
       ) : (

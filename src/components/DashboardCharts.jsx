@@ -79,7 +79,7 @@ export function WeeklyAssignmentsChart({ days, rotas }) {
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className={cardCls}>
       <div className="flex items-center gap-2 mb-4">
         <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><BarChart3 className="w-4 h-4 text-emerald-700" /></div>
-        <h2 className="font-semibold text-slate-900">This Week's Assignments</h2>
+        <h2 className="font-semibold text-slate-900">This Week's Shifts</h2>
       </div>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
@@ -127,8 +127,8 @@ export function StaffUtilizationChart({ staff, rotas, weekDays }) {
   };
 
   const summary = [
-    { label: 'Total staff', value: data.length, icon: Users, tint: 'bg-emerald-50 text-emerald-700' },
-    { label: 'Assigned', value: assignedCount, icon: UserCheck, tint: 'bg-blue-50 text-blue-600' },
+    { label: 'Total crew', value: data.length, icon: Users, tint: 'bg-emerald-50 text-emerald-700' },
+    { label: 'On shift', value: assignedCount, icon: UserCheck, tint: 'bg-blue-50 text-blue-600' },
     { label: 'Idle', value: idleCount, icon: UserX, tint: 'bg-slate-100 text-slate-500' },
     { label: 'Avg utilisation', value: avgPct + '%', icon: Gauge, tint: 'bg-emerald-100 text-emerald-700' },
   ];
@@ -137,11 +137,11 @@ export function StaffUtilizationChart({ staff, rotas, weekDays }) {
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className={cardCls}>
       <div className="flex items-center gap-2 mb-4">
         <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><Users className="w-4 h-4 text-emerald-700" /></div>
-        <h2 className="font-semibold text-slate-900">Staff Utilisation</h2>
+        <h2 className="font-semibold text-slate-900">Crew Utilisation</h2>
         <span className="text-xs text-slate-400 ml-1 hidden sm:inline">This week · vs {workingDays}-day work week</span>
       </div>
       {data.length === 0 ? (
-        <div className="h-[180px] flex items-center justify-center text-slate-400 text-sm">No staff yet</div>
+        <div className="h-[180px] flex items-center justify-center text-slate-400 text-sm">No crew yet</div>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">

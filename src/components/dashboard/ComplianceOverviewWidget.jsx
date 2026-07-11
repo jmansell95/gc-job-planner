@@ -74,7 +74,7 @@ export default function ComplianceOverviewWidget({ onNavigate }) {
     { label: 'Expired', value: expired, icon: ShieldX, tone: 'rose', sub: `${missing} missing` },
     { label: 'Expiring Soon', value: expiring, icon: ShieldAlert, tone: 'amber', sub: 'within 30 days' },
     { label: 'Valid', value: valid, icon: ShieldCheck, tone: 'emerald', sub: 'up to date' },
-    { label: 'No Records', value: staffWithoutCompliance, icon: Users, tone: 'slate', sub: 'staff without items' },
+    { label: 'No Records', value: staffWithoutCompliance, icon: Users, tone: 'slate', sub: 'crew without items' },
   ];
 
   const toneMap = {
