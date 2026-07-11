@@ -179,15 +179,6 @@ export default function JobDetail({ job: initialJob, onBack }) {
     queryFn: () => base44.entities.RotaAssignment.filter({ job_id: job.id })
   });
 
-  const { data: assetAssignments = [] } = useQuery({
-    queryKey: ['job-asset-assignments', job.id],
-    queryFn: () => base44.entities.JobAssetAssignment.filter({ job_id: job.id })
-  });
-
-  const { data: siteAssets = [] } = useQuery({
-    queryKey: ['site-assets'],
-    queryFn: () => base44.entities.SiteAsset.list()
-  });
 
   const { data: hotelBookings = [] } = useQuery({
     queryKey: ['hotel-bookings-for-job', job.id],
@@ -281,8 +272,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const endDate = job.end_date ? new Date(job.end_date + 'T00:00:00') : null;
   const jobDurationDays = startDate && endDate ? Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1) : null;
 
-  // Non-drilling teams only see trailers & machinery (not rigs) in the equipment summary
-  const visibleAssetAssignments = isDrillingJob ? assetAssignments : assetAssignments.filter(a => a.asset_type !== 'rig');
+
 
   if (showForm) {
     return (
@@ -535,43 +525,17 @@ export default function JobDetail({ job: initialJob, onBack }) {
           </div>
         )}
 
-        {/* Vehicles & Equipment */}
+        {/* Vehicles */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-3">
             <Truck className="w-4 h-4 text-emerald-700" />
-            <h3 className="font-semibold text-slate-900 text-sm">Vehicles & Equipment</h3>
-            {(assignedVehicles.length > 0 || visibleAssetAssignments.length > 0) && (
-              <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{assignedVehicles.length + visibleAssetAssignments.length}</span>
+            <h3 className="font-semibold text-slate-900 text-sm">Vehicles</h3>
+            {assignedVehicles.length > 0 && (
+              <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{assignedVehicles.length}</span>
             )}
           </div>
-          {visibleAssetAssignments.length > 0 && (
-            <div className="space-y-1.5 mb-2">
-              {visibleAssetAssignments.map(a => {
-                const asset = siteAssets.find(as => as.id === a.asset_id);
-                const liveStatus = asset?.compliance_status || a.compliance_status || 'unknown';
-                const compBadge = {
-                  compliant: 'bg-emerald-50 text-emerald-700',
-                  expiring: 'bg-amber-50 text-amber-700',
-                  expired: 'bg-red-50 text-red-700',
-                  unknown: 'bg-slate-50 text-slate-500',
-                }[liveStatus] || 'bg-slate-50 text-slate-500';
-                return (
-                  <div key={a.id} className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center flex-shrink-0">
-                      {a.asset_type === 'rig' ? <Cog className="w-3 h-3 text-blue-600" /> : a.asset_type === 'trailer' ? <Package className="w-3 h-3 text-amber-600" /> : <Wrench className="w-3 h-3 text-purple-600" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-slate-900 truncate">{a.asset_name}</p>
-                      <p className="text-[11px] text-slate-500 truncate">{a.role === 'primary_rig' ? 'Primary Rig' : a.role === 'support_rig' ? 'Support Rig' : a.asset_type}{a.rig_type && a.rig_type !== 'n/a' ? ` · ${a.rig_type.toUpperCase()}` : ''}</p>
-                    </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${compBadge}`}>{liveStatus}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {assignedVehicles.length > 0 && (
-            <div className={`space-y-1.5 ${visibleAssetAssignments.length > 0 ? 'pt-2 border-t border-slate-100' : ''}`}>
+          {assignedVehicles.length > 0 ? (
+            <div className="space-y-1.5">
               {assignedVehicles.map(v => (
                 <div key={v.id} className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center flex-shrink-0">
@@ -584,9 +548,8 @@ export default function JobDetail({ job: initialJob, onBack }) {
                 </div>
               ))}
             </div>
-          )}
-          {assignedVehicles.length === 0 && visibleAssetAssignments.length === 0 && (
-            <p className="text-xs text-slate-400">No vehicles or equipment assigned</p>
+          ) : (
+            <p className="text-xs text-slate-400">No vehicles assigned</p>
           )}
           {job.requisition_list_url && (
             <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer"
