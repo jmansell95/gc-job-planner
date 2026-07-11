@@ -67,14 +67,14 @@ export default function JobAssetsWidget({ onSelectJob }) {
           No rigs or equipment assigned to jobs yet
         </div>
       ) : (
-        <div className="divide-y divide-slate-100 max-h-[480px] overflow-y-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 max-h-[480px] overflow-y-auto">
           {jobEntries.map(({ job, assets }) => {
             const rigs = assets.filter(a => a.asset_type === 'rig');
             const machinery = assets.filter(a => a.asset_type === 'machinery');
             const trailers = assets.filter(a => a.asset_type === 'trailer');
             return (
               <button key={job.id} onClick={() => onSelectJob(job)}
-                className="w-full px-5 py-3.5 hover:bg-slate-50 transition cursor-pointer text-left group">
+                className="w-full px-4 py-3.5 rounded-xl border border-slate-100 hover:border-emerald-200 hover:bg-slate-50 transition cursor-pointer text-left group">
                 <div className="flex items-center gap-2 mb-1.5">
                   <p className="text-sm font-semibold text-slate-900 truncate flex-1">{job.name}</p>
                   <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition flex-shrink-0" />

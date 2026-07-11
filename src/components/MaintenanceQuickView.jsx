@@ -48,12 +48,12 @@ export default function MaintenanceQuickView({ onNavigate }) {
           No maintenance booked yet
         </div>
       ) : (
-        <div className="divide-y divide-slate-100">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
           {nextThree.map(b => {
             const vehicle = vehicles.find(v => v.id === b.vehicle_id);
             const typeLabel = TYPE_LABELS[b.booking_type] || 'Maintenance';
             return (
-              <button key={b.id} onClick={() => window.dispatchEvent(new CustomEvent('app-navigate', { detail: { section: 'settings', settingsTab: 'vehicles' } }))} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-slate-50 transition cursor-pointer text-left group">
+              <button key={b.id} onClick={() => window.dispatchEvent(new CustomEvent('app-navigate', { detail: { section: 'settings', settingsTab: 'vehicles' } }))} className="w-full px-4 py-3 rounded-xl border border-slate-100 hover:border-amber-200 hover:bg-slate-50 transition cursor-pointer text-left group">
                 <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
                   <Wrench className="w-4 h-4 text-amber-600" />
                 </div>
@@ -73,7 +73,7 @@ export default function MaintenanceQuickView({ onNavigate }) {
             );
           })}
           {upcoming.length > 4 && (
-            <div className="px-5 py-2 text-center">
+            <div className="md:col-span-2 text-center pt-1">
               <button onClick={() => onNavigate('settings')} className="text-xs text-slate-500 hover:text-emerald-700 font-medium">
                 +{upcoming.length - 4} more upcoming
               </button>

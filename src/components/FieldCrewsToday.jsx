@@ -67,7 +67,7 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
           <button onClick={() => onNavigate('rota')} className="mt-2 text-xs text-emerald-700 hover:text-emerald-900 font-medium">Build this week's rota →</button>
         </div>
       ) : (
-        <div className="divide-y divide-slate-100/70 max-h-[420px] overflow-y-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 max-h-[420px] overflow-y-auto">
           {todaysRotas.map(r => {
             const member = staff.find(s => s.id === r.staff_id);
             const job = jobs.find(j => j.id === r.job_id);
@@ -79,7 +79,7 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
 
             return (
               <button key={r.id} onClick={() => job && onSelectJob(job)}
-                className="w-full px-4 sm:px-5 py-3.5 hover:bg-emerald-50/40 transition text-left">
+                className="w-full px-4 py-3.5 rounded-xl border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/40 transition text-left">
                 {/* Top row: avatar + name + status */}
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">

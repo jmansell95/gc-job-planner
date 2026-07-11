@@ -46,14 +46,14 @@ export default function RigTrackerWidget({ onSelectJob }) {
           No rigs currently assigned to jobs
         </div>
       ) : (
-        <div className="divide-y divide-slate-100">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
           {rigAssignments.map(a => {
             const rig = assets.find(as => as.id === a.asset_id);
             const job = jobs.find(j => j.id === a.job_id);
             const compStatus = rig?.compliance_status || 'unknown';
             return (
               <button key={a.id} onClick={() => job && onSelectJob(job)}
-                className="w-full px-5 py-3 flex items-center gap-3 hover:bg-slate-50 transition cursor-pointer text-left">
+                className="w-full px-4 py-3 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-slate-50 transition cursor-pointer text-left">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
                   <Cog className="w-4 h-4 text-blue-600" />
                 </div>
