@@ -148,7 +148,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
             <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">{roleLabels[a.role] || a.role}</span>
             {a.rig_type && a.rig_type !== 'n/a' && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600 uppercase">{a.rig_type}</span>}
           </div>
-          {asset?.serial_number && <p className="text-xs text-slate-400 font-mono mt-0.5">{asset.serial_number}</p>}
+          {asset?.serial_number && <p className="text-sm font-bold text-slate-600 font-mono mt-1">{asset.serial_number}</p>}
           {linkedStats && linkedStats.total > 0 && (
             <div className="mt-1.5 inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium bg-blue-50 text-blue-700 border border-blue-200">
               <Link2 className="w-3 h-3" /> {linkedStats.total} {linkedStats.total === 1 ? 'piece' : 'pieces'} of equipment connected · {linkedStats.compliant}/{linkedStats.total} compliant
@@ -169,7 +169,10 @@ export default function JobAssetManager({ job, isDrillingJob }) {
                   return (
                     <div key={item.id} className="flex items-center gap-2 text-xs bg-slate-50 rounded-md px-2 py-1.5">
                       <Anchor className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                      <span className="flex-1 truncate text-slate-700 font-medium">{item.name}</span>
+                      <div className="flex-1 truncate">
+                        <span className="text-slate-700 font-medium">{item.name}</span>
+                        {item.serial_number && <span className="ml-2 font-mono text-[10px] font-bold text-slate-500">{item.serial_number}</span>}
+                      </div>
                       <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full font-medium border ${itemCfg.badge}`}>
                         <ItemIcon className="w-2.5 h-2.5" /> {itemCfg.label}
                       </span>
