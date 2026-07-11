@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Wrench, Plus, Trash2, Edit2, X, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, RefreshCw } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
+import SyncComplianceButton from '@/components/SyncComplianceButton';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
@@ -80,29 +81,6 @@ export default function SiteAssetManager() {
     }
   };
 
-  const [syncing, setSyncing] = useState(false);
-  const [lastSyncResult, setLastSyncResult] = useState(null);
-  const handleSync = async () => {
-    setSyncing(true);
-    try {
-      const res = await base44.functions.invoke('syncAssetCompliance', {});
-      const d = res.data;
-      if (d?.error) {
-        toast({ title: 'Sync failed', description: d.details || d.error, variant: 'destructive' });
-        setLastSyncResult({ success: false, message: d.details || d.error });
-      } else {
-        const msg = `${d.synced} updated${d.created > 0 ? `, ${d.created} new` : ''}${d.unmatched > 0 ? `, ${d.unmatched} unmatched` : ''}`;
-        toast({ title: 'Compliance synced', description: msg });
-        setLastSyncResult({ success: true, message: msg, at: new Date().toISOString() });
-        queryClient.invalidateQueries({ queryKey: ['site-assets'] });
-      }
-    } catch (err) {
-      toast({ title: 'Sync failed', description: err.message, variant: 'destructive' });
-      setLastSyncResult({ success: false, message: err.message });
-    }
-    setSyncing(false);
-  };
-
   // Compliance issue counts for visual warnings
   const expiredCount = assets.filter(a => a.compliance_status === 'expired').length;
   const unknownCount = assets.filter(a => a.compliance_status === 'unknown').length;
@@ -117,34 +95,14 @@ export default function SiteAssetManager() {
           <p className="text-sm text-slate-500">Rigs, machinery & trailers — compliance synced from GC Compliance Manager</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleSync} disabled={syncing}
-            className="flex items-center gap-2 px-3.5 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition text-sm font-medium disabled:opacity-50">
-            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing…' : 'Sync Compliance'}
-          </button>
+          <SyncComplianceButton />
           <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
             <Plus className="w-4 h-4" /> Add Asset
           </button>
         </div>
       </div>
 
-      {/* Sync status / issue banners */}
-      {lastSyncResult && !lastSyncResult.success && (
-        <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl p-3.5 mb-4">
-          <ShieldX className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-red-800">Compliance sync failed</p>
-            <p className="text-xs text-red-700 mt-0.5">{lastSyncResult.message}</p>
-            <p className="text-[11px] text-red-500 mt-1">Make sure the GC Compliance Manager app is set to Public, or the Equipment entity allows public read access.</p>
-          </div>
-        </div>
-      )}
-      {lastSyncResult && lastSyncResult.success && (
-        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4">
-          <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-          <p className="text-xs text-emerald-700 font-medium">Last sync: {lastSyncResult.message}</p>
-        </div>
-      )}
+      {/* Issue banners */}
       {(expiredCount > 0 || unknownCount > 0 || neverSyncedCount > 0) && (
         <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3.5 mb-4">
           <ShieldAlert className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
