@@ -77,6 +77,16 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             My Schedule
           </button>
         )}
+        <button onClick={() => setNotifOpen(true)} type="button"
+          className="relative w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-800/60 text-emerald-200 text-sm font-medium hover:bg-emerald-800 hover:text-white active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-emerald-700/50">
+          <Bell className="w-4 h-4" />
+          Notifications
+          {notifCount > 0 && (
+            <span className="absolute top-1 right-2 min-w-[18px] h-[18px] px-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full flex items-center justify-center">
+              {notifCount > 9 ? '9+' : notifCount}
+            </span>
+          )}
+        </button>
       </div>
       <div className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map(item => {

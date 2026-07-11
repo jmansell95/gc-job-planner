@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, X, Wrench, Clock, CalendarOff, CheckCircle2, AlertTriangle, CheckCheck, RotateCcw, PauseCircle, CalendarClock } from 'lucide-react';
+import { Bell, X, Wrench, Clock, CalendarOff, CheckCircle2, AlertTriangle, CheckCheck, RotateCcw, PauseCircle, CalendarClock, FileClock, ShieldAlert } from 'lucide-react';
 
 export default function NotificationCenter({ isOpen, onClose, onNavigate, notifications }) {
-  const { items, vehicleAlerts, pendingTimesheets, withdrawnTimesheets, pendingAbsences, onHoldJobs, rotaAlerts, count, dismiss, clearAll } = notifications;
+  const { items, vehicleAlerts, pendingTimesheets, withdrawnTimesheets, draftTimesheets, pendingAbsences, onHoldJobs, rotaAlerts, complianceAlerts, count, dismiss, clearAll } = notifications;
 
   return (
     <AnimatePresence>
@@ -54,6 +54,10 @@ export default function NotificationCenter({ isOpen, onClose, onNavigate, notifi
               <NotifGroup label="Withdrawn to Review" icon={RotateCcw} color="text-slate-600" items={withdrawnTimesheets}
                 onNavigate={() => { onNavigate?.('timesheets'); onClose(); }} onDismiss={dismiss} />
             )}
+            {draftTimesheets.length > 0 && (
+              <NotifGroup label="Draft Timesheets (48h+)" icon={FileClock} color="text-amber-600" items={draftTimesheets}
+                onNavigate={() => { onNavigate?.('timesheets'); onClose(); }} onDismiss={dismiss} />
+            )}
             {onHoldJobs.length > 0 && (
               <NotifGroup label="Jobs On Hold" icon={PauseCircle} color="text-rose-600" items={onHoldJobs}
                 onNavigate={() => { onNavigate?.('jobs'); onClose(); }} onDismiss={dismiss} />
@@ -61,6 +65,10 @@ export default function NotificationCenter({ isOpen, onClose, onNavigate, notifi
             {rotaAlerts.length > 0 && (
               <NotifGroup label="Rota" icon={CalendarClock} color="text-blue-600" items={rotaAlerts}
                 onNavigate={() => { onNavigate?.('rota'); onClose(); }} onDismiss={dismiss} />
+            )}
+            {complianceAlerts.length > 0 && (
+              <NotifGroup label="Compliance Alerts" icon={ShieldAlert} color="text-rose-600" items={complianceAlerts}
+                onNavigate={() => { onNavigate?.('compliance'); onClose(); }} onDismiss={dismiss} />
             )}
             {pendingAbsences.length > 0 && (
               <NotifGroup label="Absence Requests" icon={CalendarOff} color="text-purple-600" items={pendingAbsences}

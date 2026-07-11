@@ -8,7 +8,6 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
 import JobCostAnalytics from '@/components/JobCostAnalytics';
-import NeedsAttentionPanel from '@/components/NeedsAttentionPanel';
 import DeliveryStats from '@/components/DeliveryStats';
 import WidgetCard from '@/components/dashboard/WidgetCard';
 import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER } from '@/components/dashboard/registry';
@@ -84,7 +83,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const renderWidget = (widgetId) => {
     switch (widgetId) {
       case 'delivery-stats': return <DeliveryStats onNavigate={onNavigate} />;
-      case 'needs-attention': return <NeedsAttentionPanel onNavigate={onNavigate} />;
       case 'kpi-stats': return <KpiStatsWidget stats={stats} onNavigate={onNavigate} />;
       case 'compliance-overview': return <ComplianceOverviewWidget onNavigate={onNavigate} />;
       case 'supervisor-overview': return <SupervisorOverviewWidget profile={profile} />;

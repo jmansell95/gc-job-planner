@@ -12,6 +12,7 @@ export function useNotifications() {
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: rotaWeeks = [] } = useQuery({ queryKey: ['rota-week'], queryFn: () => base44.entities.RotaWeek.list() });
+  const { data: complianceItems = [] } = useQuery({ queryKey: ['compliance'], queryFn: () => base44.entities.ComplianceItem.list('-created_date', 200) });
 
   const [dismissed, setDismissed] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')); } catch { return new Set(); }
@@ -71,7 +72,27 @@ export function useNotifications() {
     ? [{ id: 'rota_unpublished', kind: 'rota', title: "This week's rota", subtitle: 'Not published yet', severity: 'warning', meta: format(startOfWeek(today), 'dd MMM') }]
     : [];
 
-  const all = [...vehicleAlerts, ...pendingTimesheets, ...withdrawnTimesheets, ...pendingAbsences, ...onHoldJobs, ...rotaUnpublished];
+  const draftTimesheets = timesheets
+    .filter(t => {
+      if (t.status !== 'draft') return false;
+      const created = new Date(t.created_date);
+      return (today.getTime() - created.getTime()) > 48 * 60 * 60 * 1000;
+    })
+    .map(t => {
+      const s = staff.find(x => x.id === t.staff_id);
+      return { id: 'draft_' + t.id, kind: 'draft', title: s?.name || 'Unknown', subtitle: 'Draft timesheet unresolved (48h+)', severity: 'warning', meta: t.date };
+    });
+
+  const todayISO = format(today, 'yyyy-MM-dd');
+  const expiryWarnDate = format(new Date(today.getTime() + 30 * 86400000), 'yyyy-MM-dd');
+  const expiredCompliance = complianceItems
+    .filter(c => c.status_override !== 'not_required' && c.expiry_date && c.expiry_date < todayISO)
+    .map(c => ({ id: 'exp_' + c.id, kind: 'compliance_expired', title: c.title, subtitle: c.reference_name || '', severity: 'expired', meta: `expired ${c.expiry_date}` }));
+  const expiringCompliance = complianceItems
+    .filter(c => c.status_override !== 'not_required' && c.expiry_date && c.expiry_date >= todayISO && c.expiry_date <= expiryWarnDate)
+    .map(c => ({ id: 'soon_' + c.id, kind: 'compliance_expiring', title: c.title, subtitle: c.reference_name || '', severity: 'warning', meta: `expires ${c.expiry_date}` }));
+
+  const all = [...vehicleAlerts, ...pendingTimesheets, ...withdrawnTimesheets, ...draftTimesheets, ...pendingAbsences, ...onHoldJobs, ...rotaUnpublished, ...expiredCompliance, ...expiringCompliance];
   const visible = all.filter(n => !dismissed.has(n.id));
 
   const dismiss = useCallback((id) => {
@@ -87,9 +108,11 @@ export function useNotifications() {
     vehicleAlerts: visible.filter(n => n.kind === 'vehicle'),
     pendingTimesheets: visible.filter(n => n.kind === 'timesheet'),
     withdrawnTimesheets: visible.filter(n => n.kind === 'withdrawn'),
+    draftTimesheets: visible.filter(n => n.kind === 'draft'),
     pendingAbsences: visible.filter(n => n.kind === 'absence'),
     onHoldJobs: visible.filter(n => n.kind === 'on_hold'),
     rotaAlerts: visible.filter(n => n.kind === 'rota'),
+    complianceAlerts: visible.filter(n => n.kind === 'compliance_expired' || n.kind === 'compliance_expiring'),
     count: visible.length,
     dismiss,
     clearAll,

@@ -1,8 +1,7 @@
-import { Truck, AlertCircle, Grid3x3, Users, BarChart3, PoundSterling, Wrench, CalendarClock, ShieldCheck, Shield, Cog, Boxes } from 'lucide-react';
+import { Truck, Grid3x3, Users, BarChart3, PoundSterling, Wrench, CalendarClock, ShieldCheck, Shield, Cog, Boxes } from 'lucide-react';
 
 export const WIDGET_REGISTRY = {
   'delivery-stats': { title: 'Delivery & Collection', icon: Truck },
-  'needs-attention': { title: 'Needs Attention', icon: AlertCircle },
   'kpi-stats': { title: 'Key Metrics', icon: Grid3x3 },
   'compliance-overview': { title: 'Compliance Snapshot', icon: ShieldCheck },
   'supervisor-overview': { title: 'Supervisor Overview', icon: Shield },
@@ -17,7 +16,6 @@ export const WIDGET_REGISTRY = {
 
 export const DEFAULT_WIDGET_ORDER = [
   'delivery-stats',
-  'needs-attention',
   'kpi-stats',
   'compliance-overview',
   'supervisor-overview',
