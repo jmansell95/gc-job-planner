@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { ShieldCheck, ShieldAlert, ShieldX, GraduationCap, ArrowRight, Users, Truck } from 'lucide-react';
 import { format } from 'date-fns';
 import { complianceDaysUntil } from '@/utils/complianceDate';
+import WidgetShell from '@/components/dashboard/WidgetShell';
 
 export default function ComplianceOverviewWidget({ onNavigate }) {
   const { data: complianceItems = [] } = useQuery({
@@ -87,23 +88,11 @@ export default function ComplianceOverviewWidget({ onNavigate }) {
   const hasIssues = expired > 0 || expiring > 0 || missing > 0 || vehicleExpired > 0 || vehicleExpiring > 0;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-            <ShieldCheck className="w-4.5 h-4.5 text-emerald-700" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-slate-900">Compliance Snapshot</h2>
-            <p className="text-xs text-slate-400">Staff & vehicle compliance at a glance</p>
-          </div>
-        </div>
-        <button onClick={() => onNavigate('compliance')} type="button"
-          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50 rounded-lg transition">
-          View All <ArrowRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
+    <WidgetShell icon={ShieldCheck} title="Compliance Snapshot" subtitle="Staff & vehicle compliance at a glance"
+      action={<button onClick={() => onNavigate('compliance')} type="button"
+        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50 rounded-lg transition">
+        View All <ArrowRight className="w-3.5 h-3.5" />
+      </button>}>
       {/* Staff compliance summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         {summaryCards.map(card => {
@@ -171,6 +160,6 @@ export default function ComplianceOverviewWidget({ onNavigate }) {
           </span>
         </div>
       )}
-    </motion.div>
+    </WidgetShell>
   );
 }

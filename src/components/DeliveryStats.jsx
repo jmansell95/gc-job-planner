@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Truck, Package, ArrowRightLeft, CheckCircle2, Clock, PackageCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/StateViews';
+import WidgetShell from '@/components/dashboard/WidgetShell';
 
 export default function DeliveryStats({ onNavigate }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -31,44 +32,42 @@ export default function DeliveryStats({ onNavigate }) {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)}
-      </div>
+      <WidgetShell icon={PackageCheck} title="Deliveries & Collections" subtitle="Today's delivery activity">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        </div>
+      </WidgetShell>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-3">
-        <PackageCheck className="w-4 h-4 text-emerald-600" />
-        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Deliveries &amp; Collections Today</h2>
-        <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">{todays.length}</span>
-      </div>
+    <WidgetShell icon={PackageCheck} title="Deliveries & Collections" subtitle="Today's delivery activity"
+      action={<span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">{todays.length}</span>}>
       {todays.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-8 text-center text-slate-400 text-sm">
+        <div className="py-8 text-center text-slate-400 text-sm">
           <PackageCheck className="w-8 h-8 text-slate-200 mx-auto mb-2" />
           No deliveries or collections scheduled for today
         </div>
       ) : (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {cards.map((stat, i) => {
-          const Icon = stat.icon;
-          return (
-            <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, duration: 0.3 }}
-              className="card-modern rounded-2xl p-4 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl ${stat.gradient} flex items-center justify-center flex-shrink-0 shadow-md`}>
-                <Icon className="w-5 h-5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xl font-bold text-slate-900 leading-tight">{stat.value}</p>
-                <p className="text-xs text-slate-500 font-medium">{stat.label}</p>
-                <p className="text-[11px] text-slate-400 truncate">{stat.sub}</p>
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {cards.map((stat, i) => {
+            const Icon = stat.icon;
+            return (
+              <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, duration: 0.3 }}
+                className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl ${stat.gradient} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                  <Icon className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xl font-bold text-slate-900 leading-tight">{stat.value}</p>
+                  <p className="text-xs text-slate-500 font-medium">{stat.label}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{stat.sub}</p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
       )}
-    </div>
+    </WidgetShell>
   );
 }

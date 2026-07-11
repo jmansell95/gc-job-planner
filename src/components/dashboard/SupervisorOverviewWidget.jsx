@@ -30,7 +30,10 @@ export default function SupervisorOverviewWidget({ profile }) {
   const isSupervisor = myTeam?.is_supervisor_team === true;
 
   const managedTeamIds = (myTeam?.managed_team_ids || []);
-  const managedTeams = managedTeamIds.map(id => teams.find(t => t.id === id)).filter(Boolean);
+  let managedTeams = managedTeamIds.map(id => teams.find(t => t.id === id)).filter(Boolean);
+  if (managedTeams.length === 0) {
+    managedTeams = teams.filter(t => t.category === 'field_ops' && !t.is_supervisor_team);
+  }
 
   const { data: staff = [] } = useQuery({
     queryKey: ['staff'],
@@ -56,9 +59,7 @@ export default function SupervisorOverviewWidget({ profile }) {
     enabled: isSupervisor,
   });
 
-  // Don't render if not a supervisor
-  if (!teamsLoading && !isSupervisor) return null;
-  if (teamsLoading) return <Skeleton className="h-48 w-full rounded-2xl" />;
+  if (teamsLoading) return <Skeleton className="h-48 w-full rounded-xl" />;
 
   // Build per-team production data
   const teamData = managedTeams.map(team => {
@@ -88,14 +89,16 @@ export default function SupervisorOverviewWidget({ profile }) {
   const totalLogs = teamData.reduce((s, t) => s + t.logCount, 0);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-          <Shield className="w-4 h-4 text-indigo-700" />
-        </div>
-        <div>
-          <h2 className="font-semibold text-slate-900 text-sm">Supervisor Overview</h2>
-          <p className="text-xs text-slate-400">{managedTeams.length} {managedTeams.length === 1 ? 'crew' : 'crews'} under your supervision</p>
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+            <Shield className="w-4 h-4 text-indigo-700" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold text-slate-900">Supervisor Overview</h2>
+            <p className="text-xs text-slate-400">{managedTeams.length} {managedTeams.length === 1 ? 'crew' : 'crews'} · {isSupervisor ? 'under your supervision' : 'across all teams'}</p>
+          </div>
         </div>
       </div>
 
@@ -135,6 +138,12 @@ export default function SupervisorOverviewWidget({ profile }) {
         </div>
 
         {/* Per-team cards */}
+        {teamData.length === 0 ? (
+          <div className="py-8 text-center text-slate-400 text-sm">
+            <Users className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+            No team activity to display
+          </div>
+        ) : (
         <div className="space-y-3">
           {teamData.map(({ team, isDrilling, memberCount, onSite, meterage, samples, totalDepth, logCount, activeJobs }) => (
             <div key={team.id} className="border border-slate-200 rounded-xl p-3.5">
@@ -189,6 +198,7 @@ export default function SupervisorOverviewWidget({ profile }) {
             </div>
           ))}
         </div>
+        )}
       </div>
     </div>
   );

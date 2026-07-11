@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Cell } from 'recharts';
 import { Wallet, TrendingUp, TrendingDown, Download, PiggyBank, Filter } from 'lucide-react';
+import WidgetShell from '@/components/dashboard/WidgetShell';
 
 const tooltipStyle = {
   borderRadius: 12,
@@ -94,38 +95,25 @@ export default function JobCostAnalytics() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-6">
-      <div className="card-modern rounded-2xl p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-sm">
-              <Wallet className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-slate-900">Cost Analytics</h2>
-              <p className="text-xs text-slate-500">Budget vs estimated labour spend</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Filter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <select
-                value={selectedJobId}
-                onChange={e => setSelectedJobId(e.target.value)}
-                className="pl-8 pr-7 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 appearance-none cursor-pointer max-w-[180px] truncate"
-              >
-                <option value="all">All Jobs</option>
-                {jobs.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
-              </select>
-            </div>
-            <button onClick={handleExportCsv} disabled={exporting || displayRows.length === 0}
-              className="flex items-center gap-1.5 px-3 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-xs font-medium disabled:opacity-50 flex-shrink-0">
-              <Download className="w-3.5 h-3.5" /> CSV
-            </button>
-          </div>
+    <WidgetShell icon={Wallet} title="Cost Analytics" subtitle="Budget vs estimated labour spend"
+      action={<div className="flex items-center gap-2">
+        <div className="relative">
+          <Filter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <select
+            value={selectedJobId}
+            onChange={e => setSelectedJobId(e.target.value)}
+            className="pl-8 pr-7 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 appearance-none cursor-pointer max-w-[180px] truncate"
+          >
+            <option value="all">All Jobs</option>
+            {jobs.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
+          </select>
         </div>
-
-        {/* Scope badge */}
+        <button onClick={handleExportCsv} disabled={exporting || displayRows.length === 0}
+          className="flex items-center gap-1.5 px-3 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-xs font-medium disabled:opacity-50 flex-shrink-0">
+          <Download className="w-3.5 h-3.5" /> CSV
+        </button>
+      </div>}>
+      {/* Scope badge */}
         <div className="mb-4">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -137,7 +125,7 @@ export default function JobCostAnalytics() {
           {stats.map((s) => {
             const Icon = s.icon;
             return (
-              <div key={s.label} className="rounded-xl border border-slate-100 p-3 flex items-center gap-3 bg-white">
+              <div key={s.label}               className="rounded-xl border border-slate-100 p-3 flex items-center gap-3 bg-slate-50">
                 <div className={`w-10 h-10 rounded-lg ${s.gradient} flex items-center justify-center flex-shrink-0 shadow-sm`}>
                   <Icon className="w-5 h-5 text-white" />
                 </div>
@@ -201,7 +189,6 @@ export default function JobCostAnalytics() {
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-rose-500" />Over-budget spend</span>
           </div>
         </div>
-      </div>
-    </motion.div>
+    </WidgetShell>
   );
 }

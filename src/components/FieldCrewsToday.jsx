@@ -41,11 +41,13 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.35 }}
-      className="card-modern rounded-2xl overflow-hidden">
-      <div className="px-4 sm:px-5 py-4 border-b border-slate-100/70 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <Clock className="w-5 h-5 text-emerald-700 flex-shrink-0" />
-          <h2 className="font-semibold text-slate-900 truncate">Crews On Site Today</h2>
+      className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <Clock className="w-4 h-4 text-emerald-700" />
+          </div>
+          <h2 className="text-sm font-bold text-slate-900 truncate">Crews On Site Today</h2>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full font-semibold ring-1 ring-emerald-200 whitespace-nowrap">
