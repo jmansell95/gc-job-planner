@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cog, Plus, Trash2, ShieldCheck, ShieldAlert, ShieldX, Truck, Wrench, Package, AlertTriangle, Link2, Anchor, ArrowRight, Check, X } from 'lucide-react';
+import { Cog, Plus, Trash2, ShieldCheck, ShieldAlert, ShieldX, Truck, Wrench, Package, AlertTriangle, Link2, Anchor, ArrowRight, Check, X, ChevronDown } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/use-toast';
 import JobAssetAssignForm from '@/components/JobAssetAssignForm';
 
@@ -16,6 +17,12 @@ const roleLabels = {
 };
 
 const assetTypeIcon = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Anchor };
+
+const statusConfig = {
+  assigned: { label: 'Planned', dot: 'bg-slate-400', badge: 'bg-slate-100 text-slate-600 hover:bg-slate-200' },
+  on_site: { label: 'On Site', dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' },
+  returned: { label: 'Returned', dot: 'bg-blue-500', badge: 'bg-blue-50 text-blue-700 hover:bg-blue-100' },
+};
 
 const complianceConfig = {
   compliant: { label: 'Compliant', icon: ShieldCheck, badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
@@ -222,18 +229,23 @@ export default function JobAssetManager({ job, isDrillingJob }) {
           )}
           {a.notes && <p className="text-xs text-slate-500 mt-1 italic">{a.notes}</p>}
           <div className="flex items-center gap-2 mt-2">
-            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium border ${compCfg.badge}`}>
-              <CompIcon className="w-3 h-3" /> {compCfg.label}
-            </span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium transition ${statusConfig[a.status || 'assigned']?.badge || statusConfig.assigned.badge}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${statusConfig[a.status || 'assigned']?.dot || statusConfig.assigned.dot}`} />
+                  {statusConfig[a.status || 'assigned']?.label || 'Planned'}
+                  <ChevronDown className="w-3 h-3 opacity-60" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {['assigned', 'on_site', 'returned'].map(st => (
+                  <DropdownMenuItem key={st} onClick={() => handleStatusChange(a.id, st)} className={`text-xs ${a.status === st ? 'font-semibold' : ''}`}>
+                    {statusConfig[st].label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {asset?.compliance_expiry_date && <span className="text-xs text-slate-400">Expires {asset.compliance_expiry_date}</span>}
-          </div>
-          <div className="flex items-center gap-1 mt-2">
-            {['assigned', 'on_site', 'returned'].map(st => (
-              <button key={st} onClick={() => handleStatusChange(a.id, st)}
-                className={`text-xs px-2 py-0.5 rounded-full font-medium transition ${a.status === st ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
-                {st === 'assigned' ? 'Planned' : st === 'on_site' ? 'On Site' : 'Returned'}
-              </button>
-            ))}
           </div>
         </div>
         <button onClick={() => handleRemove(a.id, a.asset_name)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition flex-shrink-0">
