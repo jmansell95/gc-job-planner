@@ -21,6 +21,7 @@ const complianceConfig = {
   compliant: { label: 'Compliant', icon: ShieldCheck, badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   expiring: { label: 'Expiring', icon: ShieldAlert, badge: 'bg-amber-50 text-amber-700 border-amber-200' },
   expired: { label: 'Expired', icon: ShieldX, badge: 'bg-red-50 text-red-700 border-red-200' },
+  non_compliant: { label: 'Not Compliant', icon: ShieldX, badge: 'bg-red-50 text-red-700 border-red-200' },
   unknown: { label: 'Unknown', icon: ShieldAlert, badge: 'bg-slate-50 text-slate-600 border-slate-200' },
 };
 
@@ -134,7 +135,8 @@ export default function JobAssetManager({ job, isDrillingJob }) {
   const renderAssetCard = (a, showTooling = false, linkedStats = null) => {
     const asset = assets.find(as => as.id === a.asset_id);
     const liveStatus = asset?.compliance_status || a.compliance_status || 'unknown';
-    const compCfg = complianceConfig[liveStatus] || complianceConfig.unknown;
+    const statusKey = (liveStatus === 'expired' || liveStatus === 'unknown') ? 'non_compliant' : liveStatus;
+    const compCfg = complianceConfig[statusKey] || complianceConfig.unknown;
     const CompIcon = compCfg.icon;
     const TypeIcon = assetTypeIcon[a.asset_type] || Cog;
     return (
@@ -164,7 +166,9 @@ export default function JobAssetManager({ job, isDrillingJob }) {
               <div className="mt-2 space-y-1">
                 <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Lifting Equipment on this Rig</p>
                 {linkedLifting.map(item => {
-                  const itemCfg = complianceConfig[item.compliance_status || 'unknown'] || complianceConfig.unknown;
+                  const itemStatus = item.compliance_status || 'unknown';
+                  const itemKey = (itemStatus === 'expired' || itemStatus === 'unknown') ? 'non_compliant' : itemStatus;
+                  const itemCfg = complianceConfig[itemKey] || complianceConfig.unknown;
                   const ItemIcon = itemCfg.icon;
                   return (
                     <div key={item.id} className="flex items-center gap-2 text-xs bg-slate-50 rounded-md px-2 py-1.5">
