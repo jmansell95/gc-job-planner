@@ -138,7 +138,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
     </style></head><body>
     <h1>${job.name}</h1>
     <div class="meta">
-      ${(primaryType || '').replace(/_/g,' ')} &nbsp;·&nbsp; ${job.location} &nbsp;·&nbsp; ${job.start_date} → ${job.end_date || 'TBC'}
+      ${(primaryType || 'general').replace(/_/g,' ')} &nbsp;·&nbsp; ${job.location} &nbsp;·&nbsp; ${job.start_date} → ${job.end_date || 'TBC'}
       &nbsp;·&nbsp; Printed ${format(new Date(), 'dd MMM yyyy HH:mm')}
     </div>
     ${assignedStaff.length > 0 ? `<h2>Assigned Staff (${assignedStaff.length})</h2>
@@ -306,7 +306,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
                 <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
-                {formatJobType(primaryType)}
+                {formatJobType(primaryType) || 'General'}
               </span>
               <button
                 onClick={() => setShowStatusModal(true)}
@@ -394,7 +394,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
               <p className="text-[11px] text-slate-400 uppercase font-medium">Type</p>
               <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`}></span>
-                {formatJobType(primaryType)}
+                {formatJobType(primaryType) || 'General'}
               </span>
             </div>
             <div>
