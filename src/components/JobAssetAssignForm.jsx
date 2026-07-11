@@ -30,7 +30,7 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const tabs = isDrillingJob ? ['rigs', 'lifting', 'machinery', 'trailers'] : ['lifting', 'machinery', 'trailers'];
+  const tabs = isDrillingJob ? ['rigs', 'lifting', 'machinery', 'trailers'] : ['machinery', 'trailers'];
 
   // Collect ALL equipment IDs linked to ANY rig — excluded from Machinery tab (lifting equipment lives under its rig)
   const allLinkedEquipmentIds = new Set();

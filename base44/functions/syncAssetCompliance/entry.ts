@@ -39,18 +39,30 @@ Deno.serve(async (req) => {
     // === Helpers for Equipment records ===
 
     const extractEquipmentStatus = (e) => {
-      const raw = e.status || e.compliance_status || '';
-      if (!raw) return 'unknown';
-      const lower = String(raw).toLowerCase();
-      if (lower.includes('compliant') && !lower.includes('non')) return 'compliant';
-      if (lower.includes('expir')) return 'expiring';
-      if (lower.includes('expired') || lower.includes('lapsed') || lower.includes('non')) return 'expired';
-      if (lower.includes('unknown') || lower.includes('pending')) return 'unknown';
+      const raw = e.status || e.compliance_status || e.complianceStatus || '';
+      if (raw) {
+        const lower = String(raw).toLowerCase();
+        if (lower.includes('compliant') && !lower.includes('non')) return 'compliant';
+        if (lower.includes('expir')) return 'expiring';
+        if (lower.includes('expired') || lower.includes('lapsed') || lower.includes('non')) return 'expired';
+        if (lower.includes('unknown') || lower.includes('pending')) return 'unknown';
+      }
+      // Fall back to computing status from expiry / inspection date
+      const expiry = e.expiry_date || e.compliance_expiry_date || e.next_inspection_date || e.next_service_date || e.nextTestDate || e.inspection_due_date || e.loler_expiry || e.test_due_date || '';
+      if (expiry) {
+        const now = new Date();
+        const expiryDate = new Date(expiry);
+        if (isNaN(expiryDate.getTime())) return 'unknown';
+        const daysUntil = (expiryDate - now) / (1000 * 60 * 60 * 24);
+        if (daysUntil < 0) return 'expired';
+        if (daysUntil < 30) return 'expiring';
+        return 'compliant';
+      }
       return 'unknown';
     };
 
     const extractExpiry = (e) => {
-      return e.expiry_date || e.compliance_expiry_date || e.next_inspection_date || e.next_service_date || '';
+      return e.expiry_date || e.compliance_expiry_date || e.next_inspection_date || e.next_service_date || e.nextTestDate || e.inspection_due_date || e.loler_expiry || e.test_due_date || '';
     };
 
     const extractSerial = (e) => {
@@ -60,7 +72,7 @@ Deno.serve(async (req) => {
     const extractEquipmentAssetType = (e) => {
       const raw = String(e.category || e.equipment_type || e.asset_type || e.type || '').toLowerCase();
       if (raw.includes('trailer')) return 'trailer';
-      if (raw.includes('lift') || raw.includes('shackle') || raw.includes('sling') || raw.includes('chain') || raw.includes('rope') || raw.includes('hook') || raw.includes('hoist') || raw.includes('crane') || raw.includes('rigging')) return 'lifting';
+      if (raw.includes('lift') || raw.includes('shackle') || raw.includes('sling') || raw.includes('chain') || raw.includes('rope') || raw.includes('hook') || raw.includes('hoist') || raw.includes('crane') || raw.includes('rigging') || raw.includes('swl') || raw.includes('lever') || raw.includes('pull') || raw.includes('beam') || raw.includes('spreader')) return 'lifting';
       if (raw.includes('machine') || raw.includes('excav') || raw.includes('digger') || raw.includes('grout') || raw.includes('mixer')) return 'machinery';
       if (raw.includes('vehicle') || raw.includes('van') || raw.includes('truck')) return 'vehicle';
       return 'machinery';
@@ -245,6 +257,43 @@ Deno.serve(async (req) => {
       }
     }
 
+    // === Sync linked equipment — group equipment records by rig_id ===
+    const freshSiteAssets = await base44.asServiceRole.entities.SiteAsset.list();
+    let linksUpdated = 0;
+
+    const equipmentByRigId = {};
+    for (const eq of equipmentRecords) {
+      const rigId = eq.rig_id || eq.rigId || eq.linked_rig_id || '';
+      if (rigId && String(rigId) !== 'null') {
+        const key = String(rigId);
+        if (!equipmentByRigId[key]) equipmentByRigId[key] = [];
+        equipmentByRigId[key].push(eq.id);
+      }
+    }
+
+    for (const [complianceRigId, eqIds] of Object.entries(equipmentByRigId)) {
+      const rigAsset = freshSiteAssets.find(a => a.asset_type === 'rig' && a.external_compliance_id === complianceRigId);
+      if (!rigAsset) continue;
+
+      const siteAssetLinkedIds = eqIds
+        .map(eqId => {
+          const eqAsset = freshSiteAssets.find(a => a.external_compliance_id === eqId);
+          return eqAsset ? eqAsset.id : null;
+        })
+        .filter(Boolean);
+
+      if (siteAssetLinkedIds.length === 0) continue;
+
+      const current = new Set(rigAsset.linked_equipment_ids || []);
+      const needsUpdate = siteAssetLinkedIds.some(id => !current.has(id)) || siteAssetLinkedIds.length !== current.size;
+      if (needsUpdate) {
+        await base44.asServiceRole.entities.SiteAsset.update(rigAsset.id, {
+          linked_equipment_ids: siteAssetLinkedIds,
+        });
+        linksUpdated++;
+      }
+    }
+
     return Response.json({
       success: true,
       total_equipment_records: equipmentRecords.length,
@@ -254,6 +303,7 @@ Deno.serve(async (req) => {
       equipment_unmatched: unmatched,
       rigs_synced: rigsSynced,
       rigs_created: rigsCreated,
+      links_updated: linksUpdated,
       unmatched_assets: unmatchedAssets,
       synced_at: now,
     });

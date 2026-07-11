@@ -78,7 +78,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
   const canViewLifting = profile?.is_admin || profile?.system_role === 'admin' || profile?.system_role === 'manager' ||
     profile?.job_role === 'cp_driller' || profile?.job_role === 'rotary_driller' ||
     profile?.team?.job_type === 'cp_drilling' || profile?.team?.job_type === 'rotary_drilling';
-  const baseTabs = isDrillingJob ? ['rigs', 'lifting', 'machinery', 'trailers'] : ['lifting', 'machinery', 'trailers'];
+  const baseTabs = isDrillingJob ? ['rigs', 'lifting', 'machinery', 'trailers'] : ['machinery', 'trailers'];
   const tabs = canViewLifting ? baseTabs : baseTabs.filter(t => t !== 'lifting');
 
   // Ensure activeTab is valid for non-drilling (in case isDrillingJob changes)

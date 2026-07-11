@@ -88,6 +88,32 @@ export default function SiteAssetManager() {
   const expiringCount = assets.filter(a => a.compliance_status === 'expiring').length;
   const neverSyncedCount = assets.filter(a => !a.compliance_last_checked).length;
 
+  // Filter state
+  const [typeTab, setTypeTab] = useState('all');
+  const [search, setSearch] = useState('');
+  const [compFilter, setCompFilter] = useState('all');
+
+  const typeTabs = [
+    { key: 'all', label: 'All', icon: null },
+    { key: 'rig', label: 'Rigs', icon: Cog },
+    { key: 'lifting', label: 'Lifting', icon: Anchor },
+    { key: 'machinery', label: 'Machinery', icon: Wrench },
+    { key: 'trailer', label: 'Trailers', icon: Package },
+    { key: 'vehicle', label: 'Vehicles', icon: Truck },
+  ];
+
+  const filteredAssets = assets.filter(a => {
+    if (typeTab !== 'all' && a.asset_type !== typeTab) return false;
+    if (compFilter !== 'all' && (a.compliance_status || 'unknown') !== compFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase().trim();
+      const nameMatch = (a.name || '').toLowerCase().includes(q);
+      const serialMatch = (a.serial_number || '').toLowerCase().includes(q);
+      if (!nameMatch && !serialMatch) return false;
+    }
+    return true;
+  });
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -113,6 +139,37 @@ export default function SiteAssetManager() {
             {unknownCount > 0 && <p className="text-sm font-semibold text-slate-600">{unknownCount} unknown status</p>}
             {neverSyncedCount > 0 && <p className="text-sm font-semibold text-blue-600">{neverSyncedCount} never synced</p>}
             <p className="text-xs text-amber-600 w-full">Click "Sync Compliance" to refresh statuses from GC Compliance Manager.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Filters */}
+      {assets.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-4 space-y-3">
+          <div className="flex gap-1 flex-wrap">
+            {typeTabs.map(tab => {
+              const count = tab.key === 'all' ? assets.length : assets.filter(a => a.asset_type === tab.key).length;
+              const TabIcon = tab.icon;
+              return (
+                <button key={tab.key} onClick={() => setTypeTab(tab.key)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${typeTab === tab.key ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                  {TabIcon && <TabIcon className="w-3.5 h-3.5" />} {tab.label}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${typeTab === tab.key ? 'bg-emerald-600' : 'bg-slate-200'}`}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or serial..."
+              className="flex-1 min-w-[180px] px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+            <select value={compFilter} onChange={e => setCompFilter(e.target.value)}
+              className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600">
+              <option value="all">All Status</option>
+              <option value="compliant">Compliant</option>
+              <option value="expiring">Expiring Soon</option>
+              <option value="expired">Expired</option>
+              <option value="unknown">Unknown</option>
+            </select>
           </div>
         </div>
       )}
@@ -221,9 +278,13 @@ export default function SiteAssetManager() {
         <div className="bg-white rounded-xl border border-slate-200">
           <EmptyState icon={Wrench} title="No assets yet" message="Add your rigs, machinery and trailers here. Link each asset to its record in GC Compliance Manager." actionLabel="Add Asset" onAction={handleAdd} />
         </div>
+      ) : filteredAssets.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-200">
+          <EmptyState icon={Wrench} title="No matches" message="No assets match your current filters. Try clearing the search or changing the filter." />
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {assets.map(asset => {
+          {filteredAssets.map(asset => {
             const typeCfg = assetTypeConfig[asset.asset_type] || assetTypeConfig.machinery;
             const compCfg = complianceConfig[asset.compliance_status] || complianceConfig.unknown;
             const TypeIcon = typeCfg.icon;
