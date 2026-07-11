@@ -7,8 +7,9 @@ import { useToast } from '@/components/ui/use-toast';
 const complianceConfig = {
   compliant: { label: 'Compliant', icon: ShieldCheck, badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   expiring: { label: 'Expiring', icon: ShieldAlert, badge: 'bg-amber-50 text-amber-700 border-amber-200' },
-  expired: { label: 'Expired', icon: ShieldX, badge: 'bg-red-50 text-red-700 border-red-200' },
-  unknown: { label: 'Unknown', icon: ShieldAlert, badge: 'bg-slate-50 text-slate-600 border-slate-200' },
+  expired: { label: 'Not Compliant', icon: ShieldX, badge: 'bg-red-50 text-red-700 border-red-200' },
+  non_compliant: { label: 'Not Compliant', icon: ShieldX, badge: 'bg-red-50 text-red-700 border-red-200' },
+  unknown: { label: 'Not Compliant', icon: ShieldX, badge: 'bg-red-50 text-red-700 border-red-200' },
 };
 
 const assetTypeIcon = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Anchor };

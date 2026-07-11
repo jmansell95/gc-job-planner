@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cog, Plus, Trash2, ShieldCheck, ShieldAlert, ShieldX, Truck, Wrench, Package, AlertTriangle, Link2, Anchor } from 'lucide-react';
+import { Cog, Plus, Trash2, ShieldCheck, ShieldAlert, ShieldX, Truck, Wrench, Package, AlertTriangle, Link2, Anchor, ArrowRight } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
 import JobAssetAssignForm from '@/components/JobAssetAssignForm';
@@ -30,6 +30,10 @@ const tabConfig = {
   lifting: { label: 'Lifting Equipment', icon: Anchor },
   machinery: { label: 'Machinery', icon: Wrench },
   trailers: { label: 'Trailers', icon: Package },
+};
+
+const goToAssets = () => {
+  window.dispatchEvent(new CustomEvent('app-navigate', { detail: { section: 'settings', settingsTab: 'assets' } }));
 };
 
 export default function JobAssetManager({ job, isDrillingJob }) {
@@ -146,7 +150,9 @@ export default function JobAssetManager({ job, isDrillingJob }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-semibold text-slate-900 text-sm">{a.asset_name}</p>
+            <button onClick={goToAssets} className="font-semibold text-slate-900 text-sm hover:text-emerald-700 hover:underline inline-flex items-center gap-1">
+              {a.asset_name} <ArrowRight className="w-3 h-3 text-slate-400" />
+            </button>
             <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">{roleLabels[a.role] || a.role}</span>
             {a.rig_type && a.rig_type !== 'n/a' && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600 uppercase">{a.rig_type}</span>}
           </div>
