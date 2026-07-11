@@ -15,6 +15,7 @@ import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER } from '@/components/dashboard/re
 import { KpiStatsWidget, FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
 import SupervisorOverviewWidget from '@/components/dashboard/SupervisorOverviewWidget';
+import RigTrackerWidget from '@/components/dashboard/RigTrackerWidget';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [customizeMode, setCustomizeMode] = useState(false);
@@ -91,6 +92,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'cost-analytics': return <JobCostAnalytics />;
       case 'vehicle-alerts': return <VehicleMaintenanceAlerts vehicles={vehicles} />;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
+      case 'rig-tracker': return <RigTrackerWidget onSelectJob={onSelectJob} />;
       default: return null;
     }
   };

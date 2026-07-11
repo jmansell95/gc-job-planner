@@ -48,7 +48,7 @@ export default function MaintenanceQuickView({ onNavigate }) {
             const vehicle = vehicles.find(v => v.id === b.vehicle_id);
             const typeLabel = TYPE_LABELS[b.booking_type] || 'Maintenance';
             return (
-              <div key={b.id} className="px-5 py-3 flex items-center gap-3">
+              <button key={b.id} onClick={() => window.dispatchEvent(new CustomEvent('app-navigate', { detail: { section: 'settings', settingsTab: 'vehicles' } }))} className="w-full px-5 py-3 flex items-center gap-3 hover:bg-slate-50 transition cursor-pointer text-left">
                 <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
                   <Wrench className="w-4 h-4 text-amber-600" />
                 </div>
@@ -63,7 +63,7 @@ export default function MaintenanceQuickView({ onNavigate }) {
                   {b.booking_date && <p className="text-xs font-medium text-slate-700">{format(new Date(b.booking_date + 'T00:00:00'), 'dd MMM')}</p>}
                   {b.booking_time && <p className="text-[10px] text-slate-400">{b.booking_time}</p>}
                 </div>
-              </div>
+              </button>
             );
           })}
           {upcoming.length > 4 && (
