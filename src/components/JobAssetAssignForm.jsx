@@ -24,7 +24,7 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
   const [activeTab, setActiveTab] = useState(isDrillingJob ? 'rigs' : 'machinery');
   const [selectedRigId, setSelectedRigId] = useState(null);
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState(new Set());
-  const [selectedSingleId, setSelectedSingleId] = useState(null);
+  const [selectedAssetIds, setSelectedAssetIds] = useState(new Set());
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
@@ -55,7 +55,7 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setSelectedRigId(null);
-    setSelectedSingleId(null);
+    setSelectedAssetIds(new Set());
     setSelectedEquipmentIds(new Set());
   };
 
@@ -77,6 +77,13 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
     if (next.has(eqId)) next.delete(eqId);
     else next.add(eqId);
     setSelectedEquipmentIds(next);
+  };
+
+  const toggleAssetSelection = (assetId) => {
+    const next = new Set(selectedAssetIds);
+    if (next.has(assetId)) next.delete(assetId);
+    else next.add(assetId);
+    setSelectedAssetIds(next);
   };
 
   const handleAssign = async () => {
@@ -109,16 +116,18 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
             });
           }
         }
-      } else if (selectedSingleId) {
-        const asset = assets.find(a => a.id === selectedSingleId);
-        if (asset) {
-          assignments.push({
-            job_id: job.id, job_name: job.name,
-            asset_id: asset.id, asset_name: asset.name,
-            asset_type: asset.asset_type, rig_type: 'n/a',
-            role: asset.asset_type === 'trailer' ? 'trailer' : asset.asset_type === 'lifting' ? 'lifting' : 'machinery', compliance_status: asset.compliance_status || 'unknown',
-            status: 'assigned', assigned_date: today, notes,
-          });
+      } else if (selectedAssetIds.size > 0) {
+        for (const assetId of selectedAssetIds) {
+          const asset = assets.find(a => a.id === assetId);
+          if (asset) {
+            assignments.push({
+              job_id: job.id, job_name: job.name,
+              asset_id: asset.id, asset_name: asset.name,
+              asset_type: asset.asset_type, rig_type: 'n/a',
+              role: asset.asset_type === 'trailer' ? 'trailer' : asset.asset_type === 'lifting' ? 'lifting' : 'machinery', compliance_status: asset.compliance_status || 'unknown',
+              status: 'assigned', assigned_date: today, notes,
+            });
+          }
         }
       }
 
@@ -131,7 +140,7 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
       await base44.entities.JobAssetAssignment.bulkCreate(assignments);
       queryClient.invalidateQueries({ queryKey: ['job-asset-assignments', job.id] });
       const label = assignments.length > 1
-        ? `${assignments[0].asset_name} + ${assignments.length - 1} linked items`
+        ? `${assignments.length} assets`
         : assignments[0].asset_name;
       toast({ title: 'Asset assigned', description: `${label} added to ${job.name}` });
       onClose();
@@ -166,7 +175,7 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
     ? selectedRig.linked_equipment_ids.map(id => assets.find(a => a.id === id)).filter(Boolean)
     : [];
 
-  const canSubmit = activeTab === 'rigs' ? selectedRigId : selectedSingleId;
+  const canSubmit = activeTab === 'rigs' ? selectedRigId : selectedAssetIds.size > 0;
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); handleAssign(); }} className="mt-4 p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-4">
@@ -246,12 +255,12 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
             <p className="text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-lg">No {activeTab === 'machinery' ? 'machinery' : activeTab === 'lifting' ? 'lifting equipment' : 'trailers'} available.</p>
           ) : (
             <>
-              <label className="block text-xs font-medium text-slate-600">Select {activeTab === 'machinery' ? 'Machinery' : activeTab === 'lifting' ? 'Lifting Equipment' : 'Trailer'}</label>
+              <label className="block text-xs font-medium text-slate-600">Select {activeTab === 'machinery' ? 'Machinery' : activeTab === 'lifting' ? 'Lifting Equipment' : 'Trailers'} <span className="text-slate-400 font-normal">(tap to select multiple)</span></label>
               <div className="max-h-56 overflow-y-auto border border-slate-300 rounded-lg divide-y divide-slate-100 bg-white">
-                {availableForTab(activeTab).map(a => renderAssetItem(a, selectedSingleId === a.id, () => setSelectedSingleId(a.id)))}
+                {availableForTab(activeTab).map(a => renderAssetItem(a, selectedAssetIds.has(a.id), () => toggleAssetSelection(a.id)))}
               </div>
-              {selectedSingleId && (
-                <p className="text-[11px] text-slate-500">Selected: <strong>{assets.find(a => a.id === selectedSingleId)?.name}</strong></p>
+              {selectedAssetIds.size > 0 && (
+                <p className="text-[11px] text-slate-500">{selectedAssetIds.size} {selectedAssetIds.size === 1 ? 'item' : 'items'} selected</p>
               )}
             </>
           )}
