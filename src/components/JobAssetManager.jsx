@@ -38,7 +38,12 @@ export default function JobAssetManager({ job, isDrillingJob }) {
     queryFn: () => base44.entities.SiteAsset.list(),
   });
 
-  const availableAssets = assets.filter(a => a.is_active !== false && !assignments.some(asg => asg.asset_id === a.id));
+  const availableAssets = assets.filter(a => {
+    if (a.is_active === false) return false;
+    if (assignments.some(asg => asg.asset_id === a.id)) return false;
+    if (isDrillingJob) return true;
+    return a.asset_type !== 'rig';
+  });
 
   const handleAssign = async (e) => {
     e.preventDefault();
@@ -46,6 +51,10 @@ export default function JobAssetManager({ job, isDrillingJob }) {
     try {
       const asset = assets.find(a => a.id === form.asset_id);
       if (!asset) return;
+      if (!isDrillingJob && asset.asset_type === 'rig') {
+        toast({ title: 'Rigs can only be assigned to drilling jobs', variant: 'destructive' });
+        return;
+      }
       await base44.entities.JobAssetAssignment.create({
         job_id: job.id,
         job_name: job.name,
@@ -106,6 +115,9 @@ export default function JobAssetManager({ job, isDrillingJob }) {
         {isDrillingJob && assignments.length === 0 && (
           <span className="text-xs text-amber-600 font-medium">Drilling job — assign a rig</span>
         )}
+        {!isDrillingJob && (
+          <span className="text-xs text-slate-400 font-medium hidden sm:inline">Machinery & trailers only</span>
+        )}
       </div>
 
       {hasNonCompliant && (
@@ -125,7 +137,11 @@ export default function JobAssetManager({ job, isDrillingJob }) {
           <div className="text-center py-6">
             <Cog className="w-8 h-8 text-slate-300 mx-auto mb-2" />
             <p className="text-sm text-slate-400">No rigs or equipment assigned yet</p>
-            {isDrillingJob && <p className="text-xs text-amber-600 mt-1">This is a drilling job — assign a rig and associated tooling.</p>}
+            {isDrillingJob ? (
+              <p className="text-xs text-amber-600 mt-1">This is a drilling job — assign a rig and associated tooling.</p>
+            ) : (
+              <p className="text-xs text-slate-400 mt-1">Machinery, trailers and welfare units can be assigned. Rigs are only available on drilling jobs.</p>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
@@ -211,7 +227,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
           </form>
         ) : (
           <button onClick={() => setShowForm(true)} className="mt-4 flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition text-sm font-medium">
-            <Plus className="w-4 h-4" /> Assign Asset
+            <Plus className="w-4 h-4" /> {isDrillingJob ? 'Assign Rig / Equipment' : 'Assign Machinery / Trailer'}
           </button>
         )}
       </div>

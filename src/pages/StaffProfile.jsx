@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { HardHat, ArrowLeft, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock } from 'lucide-react';
+import { HardHat, ArrowLeft, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import DailyDiary from '@/components/staff/DailyDiary';
 import WorkHistory from '@/components/staff/WorkHistory';
@@ -161,20 +161,24 @@ export default function StaffProfile() {
         <WorkHistory staffId={staff.id} />
 
         {/* My Bookings — maintenance & training */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-1 h-5 bg-amber-600 rounded-full" />
-            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">My Bookings</h2>
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+              <Wrench className="w-4 h-4 text-amber-600" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-900">My Bookings</h2>
           </div>
           <StaffBookings staffId={staff.id} />
         </div>
 
         {/* Upcoming Time Off */}
         {upcomingAbsences.length > 0 && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-5 shadow-sm">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-1 h-5 bg-amber-600 rounded-full" />
-              <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Upcoming Time Off</h2>
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-4 h-4 text-amber-600" />
+              </div>
+              <h2 className="text-lg font-bold text-slate-900">Upcoming Time Off</h2>
             </div>
             <div className="space-y-2">
               {upcomingAbsences.map(a => (
@@ -195,23 +199,11 @@ export default function StaffProfile() {
         )}
 
         {/* Compliance Wallet */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-1 h-5 bg-emerald-600 rounded-full" />
-            <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">My Compliance</h2>
-          </div>
-          <ComplianceWallet staffId={staff.id} staffName={staff.name} />
-        </div>
+        <ComplianceWallet staffId={staff.id} staffName={staff.name} />
 
         {/* Team Mini Feed */}
         {staff.team_id && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-1 h-5 bg-emerald-600 rounded-full" />
-              <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Team Feed</h2>
-            </div>
-            <TeamMiniFeed teamId={staff.team_id} currentStaffId={staff.id} />
-          </div>
+          <TeamMiniFeed teamId={staff.team_id} currentStaffId={staff.id} />
         )}
       </div>
 
