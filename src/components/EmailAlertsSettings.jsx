@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Mail, Save, Send, Loader2, Truck, UserCheck, Clock, Palette, RotateCcw, Eye, Sparkles, Type, Calendar, UserPlus, CalendarX, AlertTriangle, Briefcase, ClipboardCheck, Wrench, GraduationCap, Bell } from 'lucide-react';
+import { Mail, Save, Send, Loader2, Truck, UserCheck, Clock, Palette, RotateCcw, Eye, Sparkles, Type, Calendar, UserPlus, CalendarX, AlertTriangle, Briefcase, ClipboardCheck, Wrench, GraduationCap, Bell, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const ALERT_META = {
@@ -103,6 +103,15 @@ const ALERT_META = {
     showRecipients: false,
     tokens: ['{staff_name}', '{today_date}', '{assignment_list}'],
   },
+  compliance_expiry: {
+    title: 'Compliance Expiry Alert',
+    desc: 'Emails admins about expired or soon-to-expire compliance items (staff, vehicles, equipment).',
+    schedule: 'Runs automatically every day at 8:00 AM',
+    icon: ShieldCheck,
+    showThreshold: true,
+    showRecipients: true,
+    tokens: ['{alert_count}', '{alert_list}'],
+  },
 };
 
 const ACCENT_PRESETS = [
@@ -127,6 +136,7 @@ const SUBJECT_PLACEHOLDERS = {
   maintenance_booking: 'MOT Booking — Van 01',
   training_booking: 'Training Booking — Forklift Training',
   daily_reminder: 'Your Schedule for Today',
+  compliance_expiry: 'Compliance Expiry Alert',
 };
 
 const TEMPLATE_PLACEHOLDERS = {
@@ -141,6 +151,7 @@ const TEMPLATE_PLACEHOLDERS = {
   maintenance_booking: 'Hello {staff_name},\n\nA vehicle {booking_type} booking has been scheduled for you:\n\nVehicle: {vehicle_name}\nBooking Type: {booking_type}\nDate: {booking_date}\nTime: {booking_time}\nSupplier: {supplier_name}\nSupplier Phone: {supplier_phone}\nLocation: {location}\n\nNotes: {notes}\n\nPlease ensure the vehicle is taken to the appointment on time.\n\nGC Job Planner',
   training_booking: 'Hello {staff_name},\n\nYou have been booked onto a training course:\n\nCourse: {course_title}\nDate: {start_date}\nTime: {start_time} - {end_time}\nVenue: {venue}\nAddress: {address}\nProvider: {provider}\nProvider Phone: {provider_phone}\n\nDetails: {description}\n\nPlease arrive on time and bring any required PPE or identification.\n\nGC Job Planner',
   daily_reminder: 'Hello {staff_name},\n\nHere is your schedule for today ({today_date}):\n\n{assignment_list}\n\nHave a safe shift.\n\nGC Job Planner',
+  compliance_expiry: 'Compliance Expiry Report\n\n{alert_list}\n\nReview and renew these items as soon as possible.\n\nGC Job Planner',
 };
 
 function escapeHtml(s) {
@@ -170,6 +181,12 @@ function renderSampleBody(key, cfg) {
     if (cfg.template) return cfg.template.replace(/\{alert_count\}/g, '2').replace(/\{alert_list\}/g, sampleList);
     const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
     return intro + sampleList + 'Please schedule maintenance as soon as possible.\n\nGC Job Planner';
+  }
+  if (key === 'compliance_expiry') {
+    const sampleList = 'John Smith — CSCS Card (staff):\n  EXPIRED (expiry: 2026-06)\nVan 01 — Vehicle MOT (vehicle):\n  Expiring soon (expiry: 2026-07-25)\n';
+    if (cfg.template) return cfg.template.replace(/\{alert_count\}/g, '2').replace(/\{alert_list\}/g, sampleList);
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'Compliance Expiry Report\n\n2 item(s) require attention:\n\n' + sampleList + '\nReview and renew these items as soon as possible.\n\nGC Job Planner';
   }
   if (key === 'staff_schedule') {
     if (cfg.template) {

@@ -520,7 +520,7 @@ export default function StaffDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-8">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
         {/* Info banners — consolidated stack */}
         <div className="space-y-2 mb-5">
           {/* Early access — most important, shown first */}

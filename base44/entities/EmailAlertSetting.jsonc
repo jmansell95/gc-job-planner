@@ -6,6 +6,7 @@
       "type": "string",
       "enum": [
         "vehicle_maintenance",
+        "compliance_expiry",
         "assignment_notification",
         "staff_schedule",
         "staff_invitation",
@@ -30,7 +31,7 @@
     },
     "days_before_warning": {
       "type": "number",
-      "description": "Days before due date to warn (vehicle maintenance)"
+      "description": "Days before due date to warn (vehicle maintenance, compliance expiry)"
     },
     "subject": {
       "type": "string",

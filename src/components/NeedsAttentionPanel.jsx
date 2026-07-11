@@ -2,7 +2,7 @@ import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ClipboardCheck, RotateCcw, CalendarX, PauseCircle, CalendarClock, ArrowRight, CheckCircle2, Sparkles, ShieldAlert } from 'lucide-react';
+import { ClipboardCheck, RotateCcw, CalendarX, PauseCircle, CalendarClock, ArrowRight, CheckCircle2, Sparkles, ShieldAlert, FileClock } from 'lucide-react';
 import { format } from 'date-fns';
 
 const toneStyles = {
@@ -30,6 +30,11 @@ export default function NeedsAttentionPanel({ onNavigate }) {
 
   const pendingTs = timesheets.filter(t => t.status === 'submitted').length;
   const withdrawnTs = timesheets.filter(t => t.status === 'deleted' && !t.withdrawal_acknowledged).length;
+  const draftTs = timesheets.filter(t => {
+    if (t.status !== 'draft') return false;
+    const created = new Date(t.created_date);
+    return (now.getTime() - created.getTime()) > 48 * 60 * 60 * 1000;
+  }).length;
   const pendingAbs = absences.filter(a => a.status === 'pending').length;
   const onHoldJobs = jobs.filter(j => j.status === 'on_hold').length;
   const thisWeekRota = rotaWeeks.find(w => w.week_start === weekStartStr);
@@ -52,6 +57,7 @@ export default function NeedsAttentionPanel({ onNavigate }) {
   const items = [
     pendingTs > 0 && { key: 'ts', icon: ClipboardCheck, label: 'Timesheets to approve', value: pendingTs, tone: 'emerald', nav: 'timesheets' },
     withdrawnTs > 0 && { key: 'wd', icon: RotateCcw, label: 'Withdrawn timesheets to review', value: withdrawnTs, tone: 'slate', nav: 'timesheets' },
+    draftTs > 0 && { key: 'draft', icon: FileClock, label: 'Draft timesheets unresolved', value: draftTs, tone: 'amber', nav: 'timesheets' },
     pendingAbs > 0 && { key: 'abs', icon: CalendarX, label: 'Absence requests pending', value: pendingAbs, tone: 'amber', nav: 'settings' },
     onHoldJobs > 0 && { key: 'hold', icon: PauseCircle, label: 'Jobs on hold', value: onHoldJobs, tone: 'rose', nav: 'jobs' },
     rotaUnpublished && { key: 'rota', icon: CalendarClock, label: "This week's rota not published", value: null, tone: 'blue', nav: 'rota' },

@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 
 const emailAlertMap = {
   vehicle_maintenance: 'vehicle_maintenance',
+  compliance_expiry: 'compliance_expiry',
   assignment_notification: 'assignment_notification',
 };
 
