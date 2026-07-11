@@ -16,7 +16,7 @@ import JobTypeManager from '@/components/JobTypeManager';
 import SiteAssetManager from '@/components/SiteAssetManager';
 
 const tabs = [
-  { id: 'staff', label: 'Staff', icon: Users },
+  { id: 'staff', label: 'Crew', icon: Users },
   { id: 'vehicles', label: 'Vehicles', icon: Truck },
   { id: 'clients', label: 'Clients', icon: Building2 },
   { id: 'contractors', label: 'Contractors', icon: HardHat },

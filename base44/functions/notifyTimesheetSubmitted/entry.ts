@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     }
     if (recipients.length === 0) return Response.json({ skipped: true, reason: 'No recipients' });
 
-    const staffName = staff ? staff.name : 'Unknown staff';
+    const staffName = staff ? staff.name : 'Unknown crew member';
     const jobName = job ? job.name : 'Unknown job';
     const hours = ts.total_hours != null ? ts.total_hours + 'h' : ((ts.task_duration_minutes ? (ts.task_duration_minutes / 60).toFixed(1) + 'h' : '—'));
 
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
         .replace(/\{task_description\}/g, taskDesc).replace(/\{notes\}/g, tsNotes);
     } else {
       const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
-      text = intro + 'A timesheet has been submitted for approval:\n\nStaff: ' + staffName + '\nJob: ' + jobName + '\nDate: ' + (ts.date || '—') + '\nHours: ' + hours + (taskDesc ? '\nTask: ' + taskDesc : '') + (tsNotes ? '\nNotes: ' + tsNotes : '') + '\n\nReview and approve it in the planner.\n\nGC Job Planner';
+      text = intro + 'A timesheet has been submitted for approval:\n\nCrew: ' + staffName + '\nJob: ' + jobName + '\nDate: ' + (ts.date || '—') + '\nHours: ' + hours + (taskDesc ? '\nTask: ' + taskDesc : '') + (tsNotes ? '\nNotes: ' + tsNotes : '') + '\n\nReview and approve it in the planner.\n\nGC Job Planner';
     }
     const subject = cfg.subject ? cfg.subject.replace(/\{staff_name\}/g, staffName).replace(/\{job_name\}/g, jobName) : 'Timesheet submitted by ' + staffName;
 

@@ -151,10 +151,10 @@ export default function CalendarView() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 md:p-6 lg:sticky lg:top-4">
             <h3 className="font-bold text-slate-900 mb-1">{format(parseISO(selectedDate), 'EEEE, MMM d')}</h3>
-            <p className="text-xs text-slate-500 mb-4">{selectedAssignments.length} assignment{selectedAssignments.length !== 1 ? 's' : ''}</p>
+            <p className="text-xs text-slate-500 mb-4">{selectedAssignments.length} shift{selectedAssignments.length !== 1 ? 's' : ''}</p>
 
             {selectedAssignments.length === 0 ? (
-              <p className="text-sm text-slate-400 py-8 text-center">No assignments this day</p>
+              <p className="text-sm text-slate-400 py-8 text-center">No shifts this day</p>
             ) : (
               <div className="space-y-3 max-h-[500px] overflow-y-auto">
                 {selectedAssignments.map(a => {

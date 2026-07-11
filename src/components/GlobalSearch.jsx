@@ -46,11 +46,11 @@ export default function GlobalSearch() {
         className="hidden lg:flex items-center gap-2.5 w-full px-4 py-2.5 bg-emerald-900/40 text-emerald-300/60 hover:text-white hover:bg-emerald-800/60 rounded-lg transition cursor-pointer text-sm font-medium ring-1 ring-emerald-700/30"
       >
         <Search className="w-4 h-4 flex-shrink-0" />
-        <span>Search jobs, staff, vehicles…</span>
+        <span>Search jobs, crew, vehicles…</span>
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Search jobs, staff, vehicles…" />
+        <CommandInput placeholder="Search jobs, crew, vehicles…" />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
 
@@ -69,7 +69,7 @@ export default function GlobalSearch() {
           )}
 
           {staff.length > 0 && (
-            <CommandGroup heading="Staff">
+            <CommandGroup heading="Crew">
               {staff.slice(0, 8).map(member => (
                 <CommandItem key={member.id} value={`staff ${member.name} ${member.email || ''}`} onSelect={() => navigate({ section: 'settings', settingsTab: 'staff' })}>
                   <Users className="w-4 h-4 text-blue-600" />

@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
       try {
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: member.email,
-          subject: dailyCfg.subject ? dailyCfg.subject.replace(/\{staff_name\}/g, member.name).replace(/\{today_date\}/g, todayStr) : `Your schedule for today — ${assignments.length} assignment${assignments.length > 1 ? 's' : ''}`,
+          subject: dailyCfg.subject ? dailyCfg.subject.replace(/\{staff_name\}/g, member.name).replace(/\{today_date\}/g, todayStr) : `Your schedule for today — ${assignments.length} shift${assignments.length > 1 ? 's' : ''}`,
           body: styledHtml(bodyHtml, dailyCfg)
         });
         notified++;

@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const DEFAULT_ASSIGNMENT_TEMPLATE = "Hi {staff_name},\n\nYou have been assigned to a new job:\n\nJob: {job_name}\nLocation: {location}\nDate: {date}\nType: {job_type}\n{notes}\n\nPlease review the details and check your app for the full schedule.\n\nGC Job Planner";
+const DEFAULT_ASSIGNMENT_TEMPLATE = "Hi {staff_name},\n\nYou have a new shift:\n\nJob: {job_name}\nLocation: {location}\nDate: {date}\nType: {job_type}\n{notes}\n\nPlease review the details and check your app for the full schedule.\n\nGC Job Planner";
 
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function linkBlock(baseUrl, path, label) {
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       .replace(/\{notes\}/g, notesLine);
     const subject = (cfg && cfg.subject)
       ? cfg.subject.replace(/\{job_name\}/g, job.name).replace(/\{staff_name\}/g, staff.name)
-      : 'New Job Assignment: ' + job.name;
+      : 'New Shift: ' + job.name;
 
     const baseUrl = await getAppBaseUrl(base44);
     const bodyHtml = escapeHtml(text).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/staff-schedule', 'View your schedule');
