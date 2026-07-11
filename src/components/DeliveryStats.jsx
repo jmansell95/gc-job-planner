@@ -37,15 +37,19 @@ export default function DeliveryStats({ onNavigate }) {
     );
   }
 
-  if (todays.length === 0) return null;
-
   return (
-    <div className="mb-6">
+    <div>
       <div className="flex items-center gap-2 mb-3">
         <PackageCheck className="w-4 h-4 text-emerald-600" />
         <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Deliveries &amp; Collections Today</h2>
         <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">{todays.length}</span>
       </div>
+      {todays.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-8 text-center text-slate-400 text-sm">
+          <PackageCheck className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+          No deliveries or collections scheduled for today
+        </div>
+      ) : (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {cards.map((stat, i) => {
           const Icon = stat.icon;
@@ -64,6 +68,7 @@ export default function DeliveryStats({ onNavigate }) {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
