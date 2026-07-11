@@ -15,8 +15,10 @@ const jobRoleLabels = {
   supervisor: 'Supervisor',
 };
 
-export function formatJobType(type) {
+export function formatJobType(type, jobTypes = []) {
   if (!type) return '';
+  const jt = jobTypes.find(t => t.key === type);
+  if (jt?.label) return jt.label;
   return jobTypeLabels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 

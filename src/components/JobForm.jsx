@@ -33,10 +33,11 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
   const num = (key) => formData[key] === undefined || formData[key] === null ? '' : formData[key];
   const setNum = (key, v) => setFormData({ ...formData, [key]: v === '' ? '' : parseFloat(v) });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
+  const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
 
   const selectedTeamIds = Array.isArray(formData.required_team_ids) ? formData.required_team_ids : [];
   const selectedTeams = selectedTeamIds.map(id => teams.find(t => t.id === id)).filter(Boolean);
-  const showMeterage = isDrillingJobType(formData.job_type) || selectedTeams.some(t => isDrillingJobType(t.job_type));
+  const showMeterage = isDrillingJobType(formData.job_type, jobTypes) || selectedTeams.some(t => isDrillingJobType(t.job_type, jobTypes));
 
   const toggleTeam = (teamId) => {
     const current = selectedTeamIds;
@@ -58,6 +59,12 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
         </Field>
         <Field label="Job Reference" hint="PO / quote no.">
           <input type="text" value={formData.job_reference || ''} onChange={(e) => setFormData({ ...formData, job_reference: e.target.value })} placeholder="e.g. PO-10245" className={inputCls} />
+        </Field>
+        <Field label="Job Type">
+          <select value={formData.job_type || ''} onChange={(e) => setFormData({ ...formData, job_type: e.target.value })} className={inputCls}>
+            <option value="">Select Type</option>
+            {jobTypes.map(jt => <option key={jt.id} value={jt.key}>{jt.label}</option>)}
+          </select>
         </Field>
         <Field label="Location" full>
           <input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} required className={inputCls} />

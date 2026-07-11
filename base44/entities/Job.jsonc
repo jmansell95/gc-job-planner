@@ -16,14 +16,7 @@
     },
     "job_type": {
       "type": "string",
-      "enum": [
-        "groundworks",
-        "cp_drilling",
-        "rotary_drilling",
-        "enabling_works",
-        "depot"
-      ],
-      "description": "Legacy job type \u2014 no longer used for assignment restrictions. Kept for backward-compatible display on jobs created before the team-centric migration."
+      "description": "Job type key \u2014 matches the key field of a JobType record (e.g. groundworks, cp_drilling). Managed via Settings \u2192 Job Types. Falls back to the first required team's job_type when not set."
     },
     "required_team_ids": {
       "type": "array",

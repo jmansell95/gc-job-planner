@@ -1,0 +1,48 @@
+{
+  "name": "JobType",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Unique slug key stored on jobs (e.g. groundworks, cp_drilling, piling)"
+    },
+    "label": {
+      "type": "string",
+      "description": "Display name shown on badges and dropdowns"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "emerald",
+        "amber",
+        "blue",
+        "purple",
+        "slate",
+        "rose",
+        "teal",
+        "orange"
+      ],
+      "default": "slate",
+      "description": "Colour theme used for badges, dots and bars across the app"
+    },
+    "is_drilling": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is a drilling job type \u2014 shows meterage fields on jobs and enables drilling cost calculations"
+    },
+    "order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order (lower = first in dropdowns and lists)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this job type is available for new jobs"
+    }
+  },
+  "required": [
+    "key",
+    "label"
+  ]
+}

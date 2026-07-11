@@ -4,8 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Calendar, ChevronLeft, ChevronRight, MapPin, Users as UsersIcon, Clock } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isToday, addMonths, parseISO } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
-import { formatJobType } from '@/utils/format';
-import { getJobPrimaryType } from '@/utils/jobTeams';
+import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 
 const jobTypeColors = {
   groundworks: { dot: 'bg-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
@@ -41,6 +40,7 @@ export default function CalendarView() {
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
+  const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
 
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
@@ -115,7 +115,7 @@ export default function CalendarView() {
                     <div className="space-y-0.5">
                       {dayAssignments.slice(0, 3).map(a => {
                         const job = jobs.find(j => j.id === a.job_id);
-                        const colors = jobTypeColors[getJobPrimaryType(job, teams)] || jobTypeColors.depot;
+                        const colors = getJobTypeColor(getJobPrimaryType(job, teams), jobTypes);
                         return (
                           <div key={a.id} className={`text-[10px] px-1.5 py-0.5 rounded ${colors.bg} ${colors.text} truncate font-medium flex items-center gap-1`}>
                             {a.is_overtime && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0"></span>}
@@ -134,12 +134,15 @@ export default function CalendarView() {
 
             {/* Legend */}
             <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-100">
-              {Object.entries(jobTypeColors).map(([type, colors]) => (
-                <div key={type} className="flex items-center gap-1.5">
-                  <span className={`w-2.5 h-2.5 rounded-full ${colors.dot}`}></span>
-                  <span className="text-xs text-slate-500">{formatJobType(type)}</span>
-                </div>
-              ))}
+              {jobTypes.map(jt => {
+                const colors = getJobTypeColor(jt.key, jobTypes);
+                return (
+                  <div key={jt.id} className="flex items-center gap-1.5">
+                    <span className={`w-2.5 h-2.5 rounded-full ${colors.dot}`}></span>
+                    <span className="text-xs text-slate-500">{jt.label}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -157,7 +160,7 @@ export default function CalendarView() {
                 {selectedAssignments.map(a => {
                   const job = jobs.find(j => j.id === a.job_id);
                   const member = staff.find(s => s.id === a.staff_id);
-                  const colors = jobTypeColors[job?.job_type] || jobTypeColors.depot;
+                  const colors = getJobTypeColor(job?.job_type, jobTypes);
                   return (
                     <div key={a.id} className={`rounded-lg p-3 border ${colors.border} ${colors.bg}`}>
                       <div className="flex items-start justify-between gap-2 mb-2">

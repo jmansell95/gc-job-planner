@@ -8,8 +8,7 @@ import JobDetail from '@/components/JobDetail';
 import JobForm from '@/components/JobForm';
 import PrintReportButton from '@/components/PrintReportButton';
 import JobCreatedModal from '@/components/JobCreatedModal';
-import { formatJobType } from '@/utils/format';
-import { getJobPrimaryType } from '@/utils/jobTeams';
+import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import { format, parseISO } from 'date-fns';
 
 const fmtDate = (d) => {
@@ -45,7 +44,7 @@ const statusLabels = {
 };
 
 const emptyForm = {
-  name: '', job_reference: '', location: '', required_team_ids: [], status: 'planning',
+  name: '', job_reference: '', job_type: '', location: '', required_team_ids: [], status: 'planning',
   start_date: '', end_date: '', client_id: '', contractor_id: '',
   project_manager: '', site_contact_name: '', site_contact_phone: '',
   notes: '', requisition_list_url: '', requisition_list_name: '',
@@ -72,6 +71,7 @@ export default function JobManager({ onNavigateRota }) {
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
   const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list() });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
+  const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -130,7 +130,7 @@ export default function JobManager({ onNavigateRota }) {
   const buildJobsPrintHtml = () => {
     const rows = jobs.map(j => {
       const jt = getJobPrimaryType(j, teams) || '';
-      return `<tr><td>${j.name}</td><td>${j.location}</td><td>${jt.replace(/_/g,' ')}</td><td>${(statusLabels[j.status]||'Planning')}</td><td>${j.start_date}</td><td>${j.end_date}</td></tr>`;
+      return `<tr><td>${j.name}</td><td>${j.location}</td><td>${getJobTypeLabel(jt, jobTypes)}</td><td>${(statusLabels[j.status]||'Planning')}</td><td>${j.start_date}</td><td>${j.end_date}</td></tr>`;
     }).join('');
     return `<!DOCTYPE html><html><head><title>Jobs Report</title>
     <style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#111}h1{font-size:16px;margin-bottom:4px}p{color:#555;font-size:11px;margin-bottom:12px}table{width:100%;border-collapse:collapse}th{background:#1a5c3a;color:white;padding:6px 8px;text-align:left;font-size:11px}td{padding:5px 8px;border-bottom:1px solid #e2e8f0}tr:nth-child(even) td{background:#f8fafb}@media print{body{margin:10mm}}</style>
@@ -216,11 +216,11 @@ export default function JobManager({ onNavigateRota }) {
             const primaryType = getJobPrimaryType(job, teams);
             return (
             <div key={job.id} className="card-modern rounded-xl overflow-hidden flex flex-col">
-              <div className={`h-1.5 ${jobTypeBar[primaryType] || 'bg-slate-300'}`} />
+              <div className={`h-1.5 ${getJobTypeColor(primaryType, jobTypes).bar}`} />
               <div className="p-5 flex-1">
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex flex-wrap gap-1.5">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${jobTypeBadge[primaryType] || 'bg-slate-100 text-slate-600'}`}>{formatJobType(primaryType)}</span>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${getJobTypeColor(primaryType, jobTypes).badge}`}>{getJobTypeLabel(primaryType, jobTypes)}</span>
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[job.status || 'planning']}`}>{statusLabels[job.status || 'planning']}</span>
                   </div>
                   {job.requisition_list_url && <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" title="Has requisition list" />}
