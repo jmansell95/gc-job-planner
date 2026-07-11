@@ -212,21 +212,22 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
                   <div className="space-y-1.5 max-h-40 overflow-y-auto">
                     {linkedEquipment.map(eq => {
                       const isAssigned = assignedAssetIds.has(eq.id);
-                      const isChecked = selectedEquipmentIds.has(eq.id);
                       const TypeIcon = assetTypeIcon[eq.asset_type] || Wrench;
                       return (
-                        <label key={eq.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-md ${isAssigned ? 'opacity-50' : 'hover:bg-slate-50 cursor-pointer'}`}>
-                          <input type="checkbox" checked={isChecked} disabled={isAssigned}
-                            onChange={() => !isAssigned && toggleEquipment(eq.id)}
-                            className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500" />
-                          <TypeIcon className="w-3.5 h-3.5 text-slate-400" />
-                          <span className="text-xs font-medium text-slate-700 flex-1 truncate">{eq.name}</span>
-                          {isAssigned && <span className="text-[10px] text-slate-400">Already assigned</span>}
-                        </label>
+                        <div key={eq.id} className={`flex items-center gap-2 px-2 py-1.5 rounded-md bg-slate-50 ${isAssigned ? 'opacity-50' : ''}`}>
+                          <TypeIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-xs font-medium text-slate-700 truncate block">{eq.name}</span>
+                            {eq.serial_number && <span className="text-[10px] font-bold text-slate-500 font-mono">{eq.serial_number}</span>}
+                          </div>
+                          {isAssigned
+                            ? <span className="text-[10px] text-slate-400 flex-shrink-0">Already assigned</span>
+                            : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />}
+                        </div>
                       );
                     })}
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-2">Checked items will be assigned alongside the rig. Uncheck any you don't need.</p>
+                  <p className="text-[10px] text-slate-400 mt-2">All linked equipment will be assigned with this rig.</p>
                 </div>
               )}
 
