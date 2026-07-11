@@ -26,10 +26,17 @@ export default function RigTrackerWidget({ onSelectJob }) {
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-        <Cog className="w-5 h-5 text-blue-600" />
-        <h2 className="font-semibold text-slate-900">Rig Locations</h2>
-        <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{rigAssignments.length}</span>
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <Cog className="w-4 h-4 text-blue-600" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold text-slate-900">Rig Locations</h2>
+            <p className="text-xs text-slate-400">Rigs deployed to active jobs</p>
+          </div>
+        </div>
+        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium flex-shrink-0">{rigAssignments.length}</span>
       </div>
       {isLoading ? (
         <div className="px-5 py-4 space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}</div>

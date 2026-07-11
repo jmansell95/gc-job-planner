@@ -90,7 +90,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={jobs} vehicles={vehicles} onSelectJob={onSelectJob} onNavigate={onNavigate} />;
       case 'charts': return <ChartsWidget jobs={jobs} staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />;
       case 'cost-analytics': return <JobCostAnalytics />;
-      case 'vehicle-alerts': return <VehicleMaintenanceAlerts vehicles={vehicles} />;
+      case 'vehicle-alerts': return <VehicleMaintenanceAlerts vehicles={vehicles} onNavigate={onNavigate} />;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
       case 'rig-tracker': return <RigTrackerWidget onSelectJob={onSelectJob} />;
       default: return null;
