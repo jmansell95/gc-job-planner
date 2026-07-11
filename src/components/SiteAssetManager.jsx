@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Wrench, Plus, Trash2, Edit2, X, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package } from 'lucide-react';
+import { Wrench, Plus, Trash2, Edit2, X, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, RefreshCw } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -23,8 +23,7 @@ const complianceConfig = {
 
 const emptyForm = {
   name: '', asset_type: 'rig', rig_type: 'n/a', serial_number: '',
-  external_compliance_id: '', compliance_status: 'unknown', compliance_expiry_date: '',
-  tooling_notes: '', is_active: true, notes: '',
+  external_compliance_id: '', tooling_notes: '', is_active: true, notes: '',
 };
 
 export default function SiteAssetManager() {
@@ -81,16 +80,41 @@ export default function SiteAssetManager() {
     }
   };
 
+  const [syncing, setSyncing] = useState(false);
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await base44.functions.invoke('syncAssetCompliance', {});
+      const d = res.data;
+      if (d?.error) {
+        toast({ title: 'Sync failed', description: d.details || d.error, variant: 'destructive' });
+      } else {
+        toast({ title: 'Compliance synced', description: `${d.synced} of ${d.total_assets} assets updated from GC Compliance Manager${d.unmatched > 0 ? ` · ${d.unmatched} unmatched` : ''}` });
+        queryClient.invalidateQueries({ queryKey: ['site-assets'] });
+      }
+    } catch (err) {
+      toast({ title: 'Sync failed', description: err.message, variant: 'destructive' });
+    }
+    setSyncing(false);
+  };
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
           <h2 className="text-lg font-bold text-slate-900">Site Assets</h2>
-          <p className="text-sm text-slate-500">Rigs, machinery & trailers — linked to GC Compliance Manager</p>
+          <p className="text-sm text-slate-500">Rigs, machinery & trailers — compliance synced from GC Compliance Manager</p>
         </div>
-        <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-          <Plus className="w-4 h-4" /> Add Asset
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleSync} disabled={syncing}
+            className="flex items-center gap-2 px-3.5 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition text-sm font-medium disabled:opacity-50">
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing…' : 'Sync Compliance'}
+          </button>
+          <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
+            <Plus className="w-4 h-4" /> Add Asset
+          </button>
+        </div>
       </div>
 
       {showForm && (
@@ -127,22 +151,18 @@ export default function SiteAssetManager() {
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Serial / Reg Number</label>
               <input type="text" value={form.serial_number} onChange={e => setForm({ ...form, serial_number: e.target.value })} className={inputCls} />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">GC Compliance Manager ID</label>
-              <input type="text" value={form.external_compliance_id} onChange={e => setForm({ ...form, external_compliance_id: e.target.value })} className={inputCls} placeholder="Asset ID from Compliance app" />
+            <div className="sm:col-span-2">
+              <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg p-3">
+                <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-700">
+                  Compliance status and expiry date are synced automatically from the <strong>GC Compliance Manager</strong> app. Use the "Sync Compliance" button above to refresh.
+                </p>
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Compliance Status</label>
-              <select value={form.compliance_status} onChange={e => setForm({ ...form, compliance_status: e.target.value })} className={inputCls}>
-                <option value="compliant">Compliant</option>
-                <option value="expiring">Expiring Soon</option>
-                <option value="expired">Expired</option>
-                <option value="unknown">Unknown</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Compliance Expiry Date</label>
-              <input type="date" value={form.compliance_expiry_date || ''} onChange={e => setForm({ ...form, compliance_expiry_date: e.target.value })} className={inputCls} />
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">GC Compliance Manager ID <span className="text-slate-400 font-normal">(optional)</span></label>
+              <input type="text" value={form.external_compliance_id} onChange={e => setForm({ ...form, external_compliance_id: e.target.value })} className={inputCls} placeholder="Auto-matched by serial/name if blank" />
+              <p className="text-[11px] text-slate-400 mt-1">Leave blank — the sync auto-matches by serial number or name.</p>
             </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Tooling Notes</label>
@@ -202,6 +222,12 @@ export default function SiteAssetManager() {
                   <span className="text-xs font-semibold">{compCfg.label}</span>
                   {asset.compliance_expiry_date && <span className="text-xs opacity-70 ml-auto">Expires {asset.compliance_expiry_date}</span>}
                 </div>
+                {asset.compliance_last_checked && (
+                  <p className="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1">
+                    <RefreshCw className="w-2.5 h-2.5" />
+                    Synced {new Date(asset.compliance_last_checked).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
                 {asset.tooling_notes && (
                   <p className="text-xs text-slate-500 mt-2 line-clamp-2">{asset.tooling_notes}</p>
                 )}
