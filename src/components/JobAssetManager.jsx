@@ -55,6 +55,10 @@ export default function JobAssetManager({ job, isDrillingJob }) {
         toast({ title: 'Rigs can only be assigned to drilling jobs', variant: 'destructive' });
         return;
       }
+      if (asset.asset_type === 'rig' && asset.compliance_status !== 'compliant') {
+        toast({ title: 'Rig not compliant', description: 'This rig cannot be taken to site. Please speak with the Compliance Manager, Jordan Mansell, to get this compliant before deploying.', variant: 'destructive' });
+        return;
+      }
       await base44.entities.JobAssetAssignment.create({
         job_id: job.id,
         job_name: job.name,
@@ -200,14 +204,44 @@ export default function JobAssetManager({ job, isDrillingJob }) {
             ) : (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Asset</label>
-                  <select value={form.asset_id} onChange={e => setForm({ ...form, asset_id: e.target.value })} required
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white">
-                    <option value="">Select asset</option>
-                    {availableAssets.map(a => (
-                      <option key={a.id} value={a.id}>{a.name} {a.serial_number ? `(${a.serial_number})` : ''} — {a.asset_type}{a.rig_type && a.rig_type !== 'n/a' ? ` ${a.rig_type.toUpperCase()}` : ''}</option>
-                    ))}
-                  </select>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Asset {isDrillingJob && <span className="text-amber-600 font-normal">— rigs only (drilling job)</span>}
+                  </label>
+                  <div className="max-h-56 overflow-y-auto border border-slate-300 rounded-lg divide-y divide-slate-100 bg-white">
+                    {availableAssets.map(a => {
+                      const compCfg = complianceConfig[a.compliance_status] || complianceConfig.unknown;
+                      const CompIcon = compCfg.icon;
+                      const TypeIcon = assetTypeIcon[a.asset_type] || Cog;
+                      const isRig = a.asset_type === 'rig';
+                      const isNonCompliantRig = isRig && a.compliance_status !== 'compliant';
+                      const isSelected = form.asset_id === a.id;
+                      return (
+                        <button key={a.id} type="button"
+                          onClick={() => {
+                            if (isNonCompliantRig) {
+                              toast({ title: 'Rig not compliant', description: 'This rig cannot be taken to site. Please speak with the Compliance Manager, Jordan Mansell, to get this compliant before deploying.', variant: 'destructive' });
+                              return;
+                            }
+                            setForm({ ...form, asset_id: a.id });
+                          }}
+                          className={`w-full flex items-center gap-2 px-3 py-2 text-left transition ${isNonCompliantRig ? 'opacity-50 cursor-not-allowed' : 'hover:bg-emerald-50 cursor-pointer'} ${isSelected ? 'bg-emerald-100 ring-1 ring-emerald-300' : ''}`}>
+                          <TypeIcon className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-slate-800 truncate">{a.name}</p>
+                            {a.serial_number && <p className="text-[10px] text-slate-400 font-mono truncate">{a.serial_number}</p>}
+                          </div>
+                          <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium border flex-shrink-0 ${compCfg.badge}`}>
+                            <CompIcon className="w-2.5 h-2.5" /> {compCfg.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {form.asset_id && (
+                    <p className="text-[11px] text-slate-500 mt-1.5">
+                      Selected: <strong>{assets.find(a => a.id === form.asset_id)?.name}</strong>
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Role</label>
