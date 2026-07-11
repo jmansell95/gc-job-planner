@@ -23,6 +23,8 @@ import { computeStaffOvertime, buildRateMap, getAssignmentMultiplier } from '@/u
 import JobStatusModal from '@/components/JobStatusModal';
 import JobHotelBookings from '@/components/JobHotelBookings';
 import DeliveryManager from '@/components/delivery/DeliveryManager';
+import JobAssetManager from '@/components/JobAssetManager';
+import InvestigationLogManager from '@/components/InvestigationLogManager';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-emerald-100', text: 'text-emerald-800', dot: 'bg-emerald-500', border: 'border-emerald-200' },
@@ -671,6 +673,12 @@ export default function JobDetail({ job: initialJob, onBack }) {
               </div>
             )}
           </div>
+
+          {/* Rigs & Equipment */}
+          <JobAssetManager job={job} isDrillingJob={isDrillingJob} />
+
+          {/* Investigation Log */}
+          <InvestigationLogManager job={job} isDrillingJob={isDrillingJob} />
 
           {/* Accommodations */}
           <JobHotelBookings job={job} assignedStaff={assignedStaff} allStaff={allStaff} />

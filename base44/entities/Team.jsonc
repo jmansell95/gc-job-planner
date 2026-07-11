@@ -48,6 +48,22 @@
         "type": "string"
       },
       "description": "Admin sections this team can access when viewing the admin dashboard. Keys: overview, jobs, rota, calendar, timesheets, compliance, insights, teams, settings, staff_schedule. Empty = no admin access (field teams that only see their schedule)."
+    },
+    "supervisor_staff_id": {
+      "type": "string",
+      "description": "Staff member ID of the supervisor who manages this team. The supervisor gets a consolidated view of all crews reporting to them."
+    },
+    "is_supervisor_team": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this is a supervisor team that oversees other crews (e.g. a Drilling Supervisor team managing all CP and Rotary crews). Supervisor teams see a production overview of their reporting crews."
+    },
+    "managed_team_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs of teams that this supervisor team oversees. Used to build the supervisor's consolidated production view."
     }
   },
   "required": [

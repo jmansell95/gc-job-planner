@@ -1,0 +1,100 @@
+{
+  "name": "InvestigationLog",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this log entry belongs to"
+    },
+    "assignment_id": {
+      "type": "string",
+      "description": "RotaAssignment this log was recorded from (optional)"
+    },
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member who recorded the log"
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Staff member name (for display)"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the work was carried out"
+    },
+    "log_type": {
+      "type": "string",
+      "enum": [
+        "borehole_progress",
+        "sample_collection",
+        "pit_excavation",
+        "installation",
+        "site_setup",
+        "other"
+      ],
+      "description": "Type of investigation activity. Drilling jobs use borehole_progress/sample_collection; groundworks use pit_excavation/installation/site_setup."
+    },
+    "borehole_ref": {
+      "type": "string",
+      "description": "Borehole reference (e.g. BH-01, CP-03) \u2014 for drilling logs"
+    },
+    "depth_from": {
+      "type": "number",
+      "description": "Start depth in metres (for borehole progress or pit excavation)"
+    },
+    "depth_to": {
+      "type": "number",
+      "description": "End depth in metres (for borehole progress or pit excavation)"
+    },
+    "sample_id": {
+      "type": "string",
+      "description": "Sample reference number (e.g. S-01, UDS-02)"
+    },
+    "sample_type": {
+      "type": "string",
+      "enum": [
+        "disturbed",
+        "undisturbed",
+        "water",
+        "none"
+      ],
+      "default": "none",
+      "description": "Type of sample collected"
+    },
+    "units_completed": {
+      "type": "number",
+      "description": "Number of units completed (e.g. 2 EV chargers installed, 3 trial pits dug)"
+    },
+    "units_label": {
+      "type": "string",
+      "description": "Unit label (e.g. 'chargers', 'pits', 'metres')"
+    },
+    "dimensions": {
+      "type": "string",
+      "description": "Dimensions (e.g. '1.2m x 0.8m x 1.5m deep' for trial pits)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the work carried out or observations (ground conditions, obstructions, etc.)"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "description": "How long this activity took in minutes"
+    },
+    "photo_urls": {
+      "type": "string",
+      "description": "Comma-separated URLs of evidence photos"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO timestamp when this log was created"
+    }
+  },
+  "required": [
+    "job_id",
+    "staff_id",
+    "date",
+    "log_type"
+  ]
+}

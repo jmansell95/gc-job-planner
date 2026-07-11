@@ -1,0 +1,75 @@
+{
+  "name": "SiteAsset",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Asset name (e.g. 'Truck-mounted Rig 1', 'Trailer T-03', 'Excavator CAT 320')"
+    },
+    "asset_type": {
+      "type": "string",
+      "enum": [
+        "rig",
+        "machinery",
+        "trailer",
+        "vehicle"
+      ],
+      "description": "Type of asset"
+    },
+    "rig_type": {
+      "type": "string",
+      "enum": [
+        "cp",
+        "rotary",
+        "n/a"
+      ],
+      "default": "n/a",
+      "description": "Drilling rig type \u2014 CP (cable percussion) or Rotary. Only set when asset_type is 'rig'."
+    },
+    "serial_number": {
+      "type": "string",
+      "description": "Serial number, asset tag or registration"
+    },
+    "external_compliance_id": {
+      "type": "string",
+      "description": "ID of this asset in the GC Compliance Manager app \u2014 used to cross-reference compliance records"
+    },
+    "compliance_status": {
+      "type": "string",
+      "enum": [
+        "compliant",
+        "expiring",
+        "expired",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Current compliance status. Synced from the GC Compliance Manager app \u2014 admins update this when compliance changes."
+    },
+    "compliance_expiry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the asset's compliance expires (from GC Compliance Manager)"
+    },
+    "compliance_last_checked": {
+      "type": "string",
+      "description": "ISO timestamp of when the compliance status was last synced from GC Compliance Manager"
+    },
+    "tooling_notes": {
+      "type": "string",
+      "description": "Associated tooling for this rig/equipment (e.g. casing sizes, augers, core barrels)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this asset is available for job assignment"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about this asset"
+    }
+  },
+  "required": [
+    "name",
+    "asset_type"
+  ]
+}

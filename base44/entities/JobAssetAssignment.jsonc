@@ -1,0 +1,98 @@
+{
+  "name": "JobAssetAssignment",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this asset is assigned to"
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (for display)"
+    },
+    "asset_id": {
+      "type": "string",
+      "description": "SiteAsset assigned to this job"
+    },
+    "asset_name": {
+      "type": "string",
+      "description": "Asset name (for display, denormalised from SiteAsset)"
+    },
+    "asset_type": {
+      "type": "string",
+      "enum": [
+        "rig",
+        "machinery",
+        "trailer",
+        "vehicle"
+      ],
+      "description": "Asset type (denormalised from SiteAsset)"
+    },
+    "rig_type": {
+      "type": "string",
+      "enum": [
+        "cp",
+        "rotary",
+        "n/a"
+      ],
+      "description": "Rig type if applicable (denormalised from SiteAsset)"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "primary_rig",
+        "support_rig",
+        "machinery",
+        "trailer",
+        "welfare_unit"
+      ],
+      "default": "machinery",
+      "description": "Role this asset plays on the job"
+    },
+    "compliance_status": {
+      "type": "string",
+      "enum": [
+        "compliant",
+        "expiring",
+        "expired",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Compliance status snapshot at time of assignment. The live status lives on the SiteAsset record."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "assigned",
+        "on_site",
+        "returned"
+      ],
+      "default": "assigned",
+      "description": "Assignment status \u2014 'assigned' = planned, 'on_site' = delivered to site, 'returned' = returned after job"
+    },
+    "assigned_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the asset was assigned to the job"
+    },
+    "arrived_on_site_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the asset arrived on site"
+    },
+    "returned_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the asset was returned / off-hired"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes about this asset assignment"
+    }
+  },
+  "required": [
+    "job_id",
+    "asset_id",
+    "role"
+  ]
+}

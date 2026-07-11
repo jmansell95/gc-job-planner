@@ -20,6 +20,7 @@ import ScheduleSplash from '@/components/staff/ScheduleSplash';
 import NextJobPrompt from '@/components/staff/NextJobPrompt';
 import AdHocVisitModal from '@/components/staff/AdHocVisitModal';
 import StaffBookings from '@/components/staff/StaffBookings';
+import InvestigationLogEntry from '@/components/staff/InvestigationLogEntry';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -638,7 +639,12 @@ export default function StaffDashboard() {
                             </div>
                           )}
                           <AssignmentCard {...cardProps(a)} defaultExpanded={isActive} />
-                          {isActive && isStarted && <div className="mt-3"><DailyTaskLog staffId={staff.id} /></div>}
+                          {isActive && isStarted && (
+                            <div className="mt-3 space-y-3">
+                              <DailyTaskLog staffId={staff.id} />
+                              <InvestigationLogEntry staffId={staff.id} jobId={a.job_id} job={jobs.find(j => j.id === a.job_id)} />
+                            </div>
+                          )}
                         </div>
                       );
                     })}

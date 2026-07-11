@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Users, Truck, HardHat, Building2, CalendarX, Mail, PoundSterling, Package, Timer, Zap, Tag } from 'lucide-react';
+import { Settings, Users, Truck, HardHat, Building2, CalendarX, Mail, PoundSterling, Package, Timer, Zap, Tag, Wrench } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import PillTabs from '@/components/PillTabs';
 import StaffManager from '@/components/StaffManager';
@@ -13,6 +13,7 @@ import SupplierManager from '@/components/SupplierManager';
 import OvertimeRatesManager from '@/components/OvertimeRatesManager';
 import AutomationCenter from '@/components/AutomationCenter';
 import JobTypeManager from '@/components/JobTypeManager';
+import SiteAssetManager from '@/components/SiteAssetManager';
 
 const tabs = [
   { id: 'staff', label: 'Staff', icon: Users },
@@ -25,6 +26,7 @@ const tabs = [
   { id: 'overtime', label: 'Overtime', icon: Timer },
   { id: 'email-alerts', label: 'Email Alerts', icon: Mail },
   { id: 'automations', label: 'Automations', icon: Zap },
+  { id: 'assets', label: 'Assets', icon: Wrench },
   { id: 'job-types', label: 'Job Types', icon: Tag },
 ];
 
@@ -40,6 +42,7 @@ const tabDescriptions = {
   'email-alerts': 'Configure automated email alerts',
   automations: 'View and toggle background automations',
   'job-types': 'Manage job types and colours',
+  assets: 'Rigs, machinery & trailers — linked to GC Compliance Manager',
 };
 
 export default function SettingsPage({ initialTab }) {
@@ -66,6 +69,7 @@ export default function SettingsPage({ initialTab }) {
       {activeTab === 'email-alerts' && <EmailAlertsSettings />}
       {activeTab === 'automations' && <AutomationCenter />}
       {activeTab === 'job-types' && <JobTypeManager />}
+      {activeTab === 'assets' && <SiteAssetManager />}
     </div>
   );
 }
