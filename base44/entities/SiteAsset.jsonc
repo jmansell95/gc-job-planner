@@ -17,6 +17,10 @@
       ],
       "description": "Type of asset \u2014 'lifting' covers lifting gear (shackles, slings, chains, hooks) linked to rigs"
     },
+    "equipment_type": {
+      "type": "string",
+      "description": "Equipment type/category pulled from GC Compliance Manager (e.g. 'Overshot Tool', 'Sling', 'Shackle'). More specific than asset_type."
+    },
     "rig_type": {
       "type": "string",
       "enum": [

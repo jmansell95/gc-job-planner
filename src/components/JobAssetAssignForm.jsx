@@ -162,6 +162,7 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
         <TypeIcon className="w-4 h-4 text-slate-500 flex-shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-slate-800 truncate">{asset.name}</p>
+          {asset.equipment_type && <p className="text-[10px] text-emerald-600 font-medium truncate">{asset.equipment_type}</p>}
           {asset.serial_number && <p className="text-[10px] text-slate-400 font-mono truncate">{asset.serial_number}</p>}
         </div>
         <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium border flex-shrink-0 ${compCfg.badge}`}>

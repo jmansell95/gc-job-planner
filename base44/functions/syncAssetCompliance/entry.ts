@@ -69,6 +69,10 @@ Deno.serve(async (req) => {
       return e.serial_number || e.serialNumber || e.serial || e.registration_number || '';
     };
 
+    const extractEquipmentType = (e) => {
+      return String(e.equipment_type || e.type || e.category || e.type_name || e.category_label || '').trim();
+    };
+
     const extractEquipmentAssetType = (e) => {
       const raw = String(e.category || e.equipment_type || e.asset_type || e.type || '').toLowerCase();
       if (raw.includes('trailer')) return 'trailer';
@@ -150,6 +154,7 @@ Deno.serve(async (req) => {
         compliance_last_checked: now,
         external_compliance_id: match.id,
         asset_type: assetType,
+        equipment_type: extractEquipmentType(match) || asset.equipment_type || '',
         notes: match.notes || match.last_test_notes || asset.notes || '',
       });
       synced++;
@@ -166,6 +171,7 @@ Deno.serve(async (req) => {
       newEquipmentAssets.push({
         name,
         asset_type: assetType,
+        equipment_type: extractEquipmentType(eq),
         rig_type: 'n/a',
         serial_number: serial,
         external_compliance_id: eq.id,

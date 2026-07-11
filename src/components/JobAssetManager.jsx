@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cog, Plus, Trash2, ShieldCheck, ShieldAlert, ShieldX, Truck, Wrench, Package, AlertTriangle, Link2, Anchor, ArrowRight } from 'lucide-react';
+import { Cog, Plus, Trash2, ShieldCheck, ShieldAlert, ShieldX, Truck, Wrench, Package, AlertTriangle, Link2, Anchor, ArrowRight, Check, X } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
 import JobAssetAssignForm from '@/components/JobAssetAssignForm';
@@ -136,7 +136,20 @@ export default function JobAssetManager({ job, isDrillingJob }) {
     return { total: linkedAssets.length, compliant };
   };
 
-  const renderAssetCard = (a, showTooling = false, linkedStats = null) => {
+  // Calculate overall compliance for a rig + all its linked equipment
+  const getOverallRigCompliance = (rigAssignment) => {
+    const rigAsset = assets.find(as => as.id === rigAssignment.asset_id);
+    const allItems = [rigAsset];
+    if (rigAsset?.linked_equipment_ids) {
+      for (const id of rigAsset.linked_equipment_ids) {
+        const linked = assets.find(as => as.id === id);
+        if (linked) allItems.push(linked);
+      }
+    }
+    return allItems.filter(Boolean).every(a => (a.compliance_status || 'unknown') === 'compliant');
+  };
+
+  const renderAssetCard = (a, showTooling = false, linkedStats = null, overallCompliant = null) => {
     const asset = assets.find(as => as.id === a.asset_id);
     const liveStatus = asset?.compliance_status || a.compliance_status || 'unknown';
     const statusKey = (liveStatus === 'expired' || liveStatus === 'unknown') ? 'non_compliant' : liveStatus;
@@ -155,6 +168,14 @@ export default function JobAssetManager({ job, isDrillingJob }) {
             </button>
             <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">{roleLabels[a.role] || a.role}</span>
             {a.rig_type && a.rig_type !== 'n/a' && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600 uppercase">{a.rig_type}</span>}
+            {asset?.equipment_type && (
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">{asset.equipment_type}</span>
+            )}
+            {overallCompliant !== null && (
+              <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium border ${overallCompliant ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                {overallCompliant ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />} {overallCompliant ? 'All Compliant' : 'Not Compliant'}
+              </span>
+            )}
           </div>
           {asset?.serial_number && <p className="text-sm font-bold text-slate-600 font-mono mt-1">{asset.serial_number}</p>}
           {linkedStats && linkedStats.total > 0 && (
@@ -181,6 +202,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
                       <Anchor className="w-3 h-3 text-slate-400 flex-shrink-0" />
                       <div className="flex-1 truncate">
                         <span className="text-slate-700 font-medium">{item.name}</span>
+                        {item.equipment_type && <span className="ml-1.5 text-[10px] text-emerald-600 font-medium">({item.equipment_type})</span>}
                         {item.serial_number && <span className="ml-2 font-mono text-[10px] font-bold text-slate-500">{item.serial_number}</span>}
                       </div>
                       <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full font-medium border ${itemCfg.badge}`}>
@@ -273,7 +295,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
         ) : activeTab === 'rigs' ? (
           /* Rigs tab: show each rig with a count of connected equipment */
           <div className="space-y-3">
-            {rigAssignments.map(rigA => renderAssetCard(rigA, true, getLinkedEquipmentStats(rigA)))}
+            {rigAssignments.map(rigA => renderAssetCard(rigA, true, getLinkedEquipmentStats(rigA), getOverallRigCompliance(rigA)))}
           </div>
         ) : (
           /* Trailers / Machinery tabs: no tooling notes shown */
