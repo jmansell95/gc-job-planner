@@ -67,18 +67,13 @@ export default function MaintenanceQuickView({ onNavigate }) {
             <Wrench className="w-4 h-4 text-amber-600" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-slate-900">Fleet &amp; Compliance</h2>
-            <p className="text-xs text-slate-400">Vehicle maintenance, compliance &amp; bookings</p>
+            <h2 className="text-sm font-bold text-slate-900">Fleet Compliance</h2>
+            <p className="text-xs text-slate-400">Vehicle maintenance &amp; bookings</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <button onClick={() => onNavigate('compliance')} className="text-xs text-emerald-700 font-medium hover:underline flex items-center gap-1 whitespace-nowrap">
-            Compliance <ArrowRight className="w-3 h-3" />
-          </button>
-          <button onClick={goToVehicles} className="text-xs text-emerald-700 font-medium hover:underline flex items-center gap-1 whitespace-nowrap">
-            View all <ArrowRight className="w-3 h-3" />
-          </button>
-        </div>
+        <button onClick={goToVehicles} className="text-xs text-emerald-700 font-medium hover:underline flex items-center gap-1 whitespace-nowrap flex-shrink-0">
+          View all <ArrowRight className="w-3 h-3" />
+        </button>
       </div>
 
       {(expiredCount > 0 || warningCount > 0 || complianceExpired > 0 || complianceExpiring > 0) && (
@@ -104,13 +99,8 @@ export default function MaintenanceQuickView({ onNavigate }) {
             </span>
           )}
           <div className="flex items-center gap-3 ml-auto">
-            {complianceExpired > 0 && (
-              <button onClick={() => onNavigate('compliance')} className="text-xs text-slate-500 hover:text-emerald-700 font-medium">
-                Compliance →
-              </button>
-            )}
             <button onClick={goToVehicles} className="text-xs text-slate-500 hover:text-emerald-700 font-medium">
-              Vehicles →
+              Review →
             </button>
           </div>
         </div>

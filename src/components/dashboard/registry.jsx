@@ -8,7 +8,7 @@ export const WIDGET_REGISTRY = {
   'field-crews': { title: 'Field Crews Today', icon: Users },
   'charts': { title: 'Charts', icon: BarChart3 },
   'cost-analytics': { title: 'Cost Analytics', icon: PoundSterling },
-  'maintenance-quick-view': { title: 'Fleet & Compliance', icon: CalendarClock },
+  'maintenance-quick-view': { title: 'Fleet Compliance', icon: CalendarClock },
   'job-assets': { title: 'Job Equipment', icon: Boxes },
 };
 
