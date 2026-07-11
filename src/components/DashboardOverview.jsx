@@ -5,21 +5,20 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Plus, Calendar, Settings2, Check, Eye } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import VehicleMaintenanceAlerts from '@/components/VehicleMaintenanceAlerts';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
 import JobCostAnalytics from '@/components/JobCostAnalytics';
 import DeliveryStats from '@/components/DeliveryStats';
 import WidgetCard from '@/components/dashboard/WidgetCard';
-import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER } from '@/components/dashboard/registry';
+import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES } from '@/components/dashboard/registry';
 import { KpiStatsWidget, FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
 import SupervisorOverviewWidget from '@/components/dashboard/SupervisorOverviewWidget';
-import RigTrackerWidget from '@/components/dashboard/RigTrackerWidget';
 import JobAssetsWidget from '@/components/dashboard/JobAssetsWidget';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [customizeMode, setCustomizeMode] = useState(false);
   const [widgetOrder, setWidgetOrder] = useState(DEFAULT_WIDGET_ORDER);
+  const [widgetSizes, setWidgetSizes] = useState({});
   const [layoutId, setLayoutId] = useState(null);
   const queryClient = useQueryClient();
 
@@ -57,7 +56,10 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     if (layout) {
       setLayoutId(layout.id);
       if (layout.widget_order && layout.widget_order.length > 0) {
-        setWidgetOrder(layout.widget_order);
+        setWidgetOrder(layout.widget_order.filter(id => WIDGET_REGISTRY[id]));
+      }
+      if (layout.widget_sizes) {
+        setWidgetSizes(layout.widget_sizes);
       }
     }
   }, [layout]);
@@ -89,9 +91,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={jobs} vehicles={vehicles} onSelectJob={onSelectJob} onNavigate={onNavigate} />;
       case 'charts': return <ChartsWidget jobs={jobs} staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />;
       case 'cost-analytics': return <JobCostAnalytics />;
-      case 'vehicle-alerts': return <VehicleMaintenanceAlerts vehicles={vehicles} onNavigate={onNavigate} />;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
-      case 'rig-tracker': return <RigTrackerWidget onSelectJob={onSelectJob} />;
       case 'job-assets': return <JobAssetsWidget onSelectJob={onSelectJob} />;
       default: return null;
     }
@@ -105,13 +105,14 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     setWidgetOrder(newOrder);
   };
 
-  const saveLayout = async (order) => {
+  const saveLayout = async (order, sizes) => {
     if (!profile?.id) return;
     try {
+      const payload = { widget_order: order, widget_sizes: sizes || {} };
       if (layoutId) {
-        await base44.entities.DashboardLayout.update(layoutId, { widget_order: order });
+        await base44.entities.DashboardLayout.update(layoutId, payload);
       } else {
-        const created = await base44.entities.DashboardLayout.create({ staff_id: profile.id, widget_order: order });
+        const created = await base44.entities.DashboardLayout.create({ staff_id: profile.id, ...payload });
         setLayoutId(created.id);
       }
       queryClient.invalidateQueries({ queryKey: ['dashboard-layout', profile.id] });
@@ -122,8 +123,20 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     setWidgetOrder(prev => prev.includes(widgetId) ? prev.filter(id => id !== widgetId) : [...prev, widgetId]);
   };
 
+  const handleResize = (widgetId, size) => {
+    setWidgetSizes(prev => ({ ...prev, [widgetId]: size }));
+  };
+
+  const getWidgetSize = (widgetId) => widgetSizes[widgetId] || DEFAULT_WIDGET_SIZES[widgetId] || 'md';
+
+  const sizeColSpan = (size) => {
+    if (size === 'sm') return 'col-span-1';
+    if (size === 'lg') return 'col-span-1 lg:col-span-3';
+    return 'col-span-1 lg:col-span-2';
+  };
+
   const handleExitCustomize = () => {
-    saveLayout(widgetOrder);
+    saveLayout(widgetOrder, widgetSizes);
     setCustomizeMode(false);
   };
 
@@ -170,23 +183,25 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
       {customizeMode && (
         <div className="mb-6 bg-emerald-50/80 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800">
-          Drag sections by the handle to reorder. Use "Hide" to remove a section — add it back from the bottom.
+          Drag sections by the handle to reorder. Use S / M / L to resize each section, or "Hide" to remove it.
         </div>
       )}
 
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="dashboard-widgets">
           {(provided) => (
-            <div ref={provided.innerRef} {...provided.droppableProps}>
+            <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
               {widgetOrder.map((widgetId, index) => (
                 <Draggable key={widgetId} draggableId={widgetId} index={index} isDragDisabled={!customizeMode}>
                   {(provided) => (
-                    <div ref={provided.innerRef} {...provided.draggableProps}>
+                    <div ref={provided.innerRef} {...provided.draggableProps} className={sizeColSpan(getWidgetSize(widgetId))}>
                       <WidgetCard
                         widgetId={widgetId}
                         customizeMode={customizeMode}
                         dragHandleProps={provided.dragHandleProps}
                         onHide={() => handleToggleWidget(widgetId)}
+                        size={getWidgetSize(widgetId)}
+                        onResize={(s) => handleResize(widgetId, s)}
                       >
                         {renderWidget(widgetId)}
                       </WidgetCard>

@@ -41,7 +41,7 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.35 }}
-      className="card-modern rounded-2xl overflow-hidden lg:col-span-2">
+      className="card-modern rounded-2xl overflow-hidden">
       <div className="px-4 sm:px-5 py-4 border-b border-slate-100/70 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <Clock className="w-5 h-5 text-emerald-700 flex-shrink-0" />

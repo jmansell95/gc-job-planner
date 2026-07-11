@@ -12,6 +12,10 @@
         "type": "string"
       },
       "description": "Ordered list of visible widget IDs. Widgets not in this list are hidden."
+    },
+    "widget_sizes": {
+      "type": "object",
+      "description": "Map of widget ID to size ('sm', 'md', 'lg'). Controls how many grid columns each widget spans on large screens."
     }
   },
   "required": [
