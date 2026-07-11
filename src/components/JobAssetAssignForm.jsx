@@ -229,7 +229,8 @@ export default function JobAssetAssignForm({ job, isDrillingJob, assets, assigne
                           <TypeIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <span className="text-xs font-medium text-slate-700 truncate block">{eq.name}</span>
-                            {eq.serial_number && <span className="text-[10px] font-bold text-slate-500 font-mono">{eq.serial_number}</span>}
+                            {eq.equipment_type && <span className="text-[10px] text-emerald-600 font-medium">{eq.equipment_type}</span>}
+                            {eq.serial_number && <span className="ml-1 text-[10px] font-bold text-slate-500 font-mono">{eq.serial_number}</span>}
                           </div>
                           {isAssigned
                             ? <span className="text-[10px] text-slate-400 flex-shrink-0">Already assigned</span>
