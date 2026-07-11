@@ -7,8 +7,10 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
 
-    // Connect to the GC Compliance Manager app (requires the app to be public or Equipment entity publicly readable)
-    const complianceApp = createClient({ appId: "6a3be07293b53789beb4f09e" });
+    // Connect to the GC Compliance Manager app using the current user's token (works if the user has access to both apps)
+    const authHeader = req.headers.get('authorization') || '';
+    const userToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const complianceApp = createClient({ appId: "6a3be07293b53789beb4f09e", token: userToken });
 
     // Fetch all Equipment records from the compliance app
     let equipmentRecords = [];
@@ -18,7 +20,7 @@ Deno.serve(async (req) => {
       return Response.json({
         error: 'Failed to fetch from Compliance Manager app',
         details: fetchErr.message,
-        hint: 'Ensure the Equipment entity in the GC Compliance Manager app allows read access.'
+        hint: 'Ensure your Base44 account has access to the GC Compliance Manager app, or set that app to Public.'
       }, { status: 502 });
     }
 
