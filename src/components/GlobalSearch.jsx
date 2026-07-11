@@ -43,12 +43,10 @@ export default function GlobalSearch() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="hidden lg:flex items-center gap-2 px-3 py-1.5 text-xs text-emerald-200/70 hover:text-white hover:bg-emerald-800/50 rounded-lg transition cursor-pointer"
-        title="Search (⌘K)"
+        className="hidden lg:flex items-center gap-2.5 w-full px-4 py-2.5 bg-emerald-900/40 text-emerald-300/60 hover:text-white hover:bg-emerald-800/60 rounded-lg transition cursor-pointer text-sm font-medium ring-1 ring-emerald-700/30"
       >
-        <Search className="w-3.5 h-3.5" />
-        <span>Search…</span>
-        <kbd className="ml-1 px-1.5 py-0.5 text-[10px] bg-emerald-900/60 rounded border border-emerald-700/50">⌘K</kbd>
+        <Search className="w-4 h-4 flex-shrink-0" />
+        <span>Search jobs, staff, vehicles…</span>
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
