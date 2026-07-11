@@ -58,6 +58,14 @@
       "type": "string",
       "description": "Associated tooling for this rig/equipment (e.g. casing sizes, augers, core barrels)"
     },
+    "linked_equipment_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "IDs of SiteAsset equipment (machinery, trailers) linked to this rig \u2014 shown when assigning the rig to a job for quick bulk assignment"
+    },
     "is_active": {
       "type": "boolean",
       "default": true,

@@ -24,7 +24,7 @@ const complianceConfig = {
 
 const emptyForm = {
   name: '', asset_type: 'rig', rig_type: 'n/a', serial_number: '',
-  external_compliance_id: '', tooling_notes: '', is_active: true, notes: '',
+  external_compliance_id: '', tooling_notes: '', linked_equipment_ids: [], is_active: true, notes: '',
 };
 
 export default function SiteAssetManager() {
@@ -40,7 +40,7 @@ export default function SiteAssetManager() {
   });
 
   const handleEdit = (asset) => {
-    setForm({ ...emptyForm, ...asset });
+    setForm({ ...emptyForm, ...asset, linked_equipment_ids: asset.linked_equipment_ids || [] });
     setEditingId(asset.id);
     setShowForm(true);
   };
@@ -167,6 +167,40 @@ export default function SiteAssetManager() {
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Tooling Notes</label>
               <textarea value={form.tooling_notes} onChange={e => setForm({ ...form, tooling_notes: e.target.value })} rows={2} className={inputCls} placeholder="Associated tooling (casing sizes, augers, core barrels)" />
             </div>
+            {form.asset_type === 'rig' && (
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Linked Equipment</label>
+                <p className="text-xs text-slate-400 mb-2">Select the machinery and trailers that belong to this rig. When assigning this rig to a drilling job, the linked equipment is shown for quick bulk assignment.</p>
+                <div className="max-h-48 overflow-y-auto border border-slate-300 rounded-lg divide-y divide-slate-100 bg-white">
+                  {assets.filter(a => a.asset_type !== 'rig' && a.id !== editingId).length === 0 ? (
+                    <p className="text-xs text-slate-400 px-3 py-2">No equipment available to link. Add machinery or trailers first.</p>
+                  ) : (
+                    assets.filter(a => a.asset_type !== 'rig' && a.id !== editingId).map(a => {
+                      const TypeIcon = assetTypeConfig[a.asset_type]?.icon || Wrench;
+                      const isChecked = (form.linked_equipment_ids || []).includes(a.id);
+                      return (
+                        <label key={a.id} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">
+                          <input type="checkbox" checked={isChecked}
+                            onChange={(e) => {
+                              const current = new Set(form.linked_equipment_ids || []);
+                              if (e.target.checked) current.add(a.id);
+                              else current.delete(a.id);
+                              setForm({ ...form, linked_equipment_ids: Array.from(current) });
+                            }}
+                            className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500" />
+                          <TypeIcon className="w-4 h-4 text-slate-400" />
+                          <span className="text-sm text-slate-700 flex-1">{a.name}</span>
+                          {a.serial_number && <span className="text-xs text-slate-400 font-mono">{a.serial_number}</span>}
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+                {(form.linked_equipment_ids || []).length > 0 && (
+                  <p className="text-[11px] text-emerald-600 mt-1.5">{(form.linked_equipment_ids || []).length} item(s) linked</p>
+                )}
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Notes</label>
               <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className={inputCls} />
