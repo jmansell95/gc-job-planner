@@ -302,6 +302,7 @@ export default function SiteAssetManager() {
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-slate-900 truncate">{asset.name}</p>
+                      {asset.equipment_type && <p className="text-[11px] text-emerald-600 font-medium truncate">{asset.equipment_type}</p>}
                       {asset.serial_number && <p className="text-xs text-slate-400 font-mono truncate">{asset.serial_number}</p>}
                     </div>
                   </div>
