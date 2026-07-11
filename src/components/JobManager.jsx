@@ -17,7 +17,7 @@ const fmtDate = (d) => {
 };
 
 const jobTypeBadge = {
-  groundworks: 'bg-green-100 text-green-700 ring-1 ring-green-200',
+  groundworks: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
   cp_drilling: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
   rotary_drilling: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
   enabling_works: 'bg-purple-100 text-purple-700 ring-1 ring-purple-200',
@@ -25,7 +25,7 @@ const jobTypeBadge = {
 };
 
 const jobTypeBar = {
-  groundworks: 'bg-gradient-to-r from-green-400 to-emerald-600',
+  groundworks: 'bg-gradient-to-r from-emerald-400 to-emerald-600',
   cp_drilling: 'bg-gradient-to-r from-amber-400 to-orange-500',
   rotary_drilling: 'bg-gradient-to-r from-blue-400 to-indigo-500',
   enabling_works: 'bg-gradient-to-r from-purple-400 to-fuchsia-500',
@@ -162,7 +162,7 @@ export default function JobManager({ onNavigateRota }) {
           <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Jobs List" />
           <button
             onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition"
           >
             <Plus className="w-4 h-4" /> Add Job
           </button>

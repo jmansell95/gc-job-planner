@@ -7,7 +7,7 @@ const STATUS_COLORS = { planning: '#64748b', in_progress: '#059669', completed: 
 const STATUS_LABELS = { planning: 'Planning', in_progress: 'In Progress', completed: 'Completed', on_hold: 'On Hold' };
 
 const JOB_TYPE_LABELS = { groundworks: 'Groundworks', cp_drilling: 'CP Drilling', rotary_drilling: 'Rotary Drilling', enabling_works: 'Enabling Works', depot: 'Depot' };
-const JOB_TYPE_COLORS = { groundworks: '#16a34a', cp_drilling: '#f59e0b', rotary_drilling: '#3b82f6', enabling_works: '#a855f7', depot: '#64748b' };
+const JOB_TYPE_COLORS = { groundworks: '#059669', cp_drilling: '#f59e0b', rotary_drilling: '#3b82f6', enabling_works: '#a855f7', depot: '#64748b' };
 
 const tooltipStyle = {
   borderRadius: 12,

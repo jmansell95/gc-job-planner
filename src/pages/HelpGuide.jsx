@@ -145,7 +145,7 @@ export default function HelpGuide() {
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-8">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
         {/* Category filter */}
         <div className="flex flex-wrap gap-2 mb-6">
           <button

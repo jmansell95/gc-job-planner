@@ -32,7 +32,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
-      <div className="w-8 h-8 border-4 border-slate-200 border-t-green-600 rounded-full animate-spin"></div>
+      <div className="w-8 h-8 border-4 border-emerald-100 border-t-emerald-700 rounded-full animate-spin"></div>
       <p className="text-sm text-slate-400 mt-4">Loading your workspace…</p>
     </div>
   );

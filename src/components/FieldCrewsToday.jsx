@@ -7,7 +7,7 @@ import { formatJobType } from '@/utils/format';
 import { getJobPrimaryType } from '@/utils/jobTeams';
 
 const jobTypeBadge = {
-  groundworks: 'bg-green-100 text-green-700 ring-1 ring-green-200',
+  groundworks: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
   cp_drilling: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
   rotary_drilling: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
   enabling_works: 'bg-purple-100 text-purple-700 ring-1 ring-purple-200',
@@ -15,7 +15,7 @@ const jobTypeBadge = {
 };
 
 const jobTypeDot = {
-  groundworks: 'bg-green-500',
+  groundworks: 'bg-emerald-500',
   cp_drilling: 'bg-amber-500',
   rotary_drilling: 'bg-blue-500',
   enabling_works: 'bg-purple-500',

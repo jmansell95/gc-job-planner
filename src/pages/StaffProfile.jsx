@@ -150,7 +150,7 @@ export default function StaffProfile() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-5 md:space-y-6">
+      <div className="max-w-4xl mx-auto px-4 md:px-6 pt-5 md:pt-8 space-y-5 md:space-y-6" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
         {/* Quick Stats */}
         <ProfileStats staffId={staff.id} jobType={staff.team?.job_type} />
 
@@ -243,28 +243,28 @@ export default function StaffProfile() {
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">From</label>
                   <input type="date" value={absenceForm.start_date} onChange={e => setAbsenceForm({ ...absenceForm, start_date: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600" />
+                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">To</label>
                   <input type="date" value={absenceForm.end_date} min={absenceForm.start_date} onChange={e => setAbsenceForm({ ...absenceForm, end_date: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600" />
+                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Reason</label>
                 <select value={absenceForm.reason} onChange={e => setAbsenceForm({ ...absenceForm, reason: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 bg-white">
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white">
                   {ABSENCE_REASONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Notes (optional)</label>
                 <textarea value={absenceForm.notes} onChange={e => setAbsenceForm({ ...absenceForm, notes: e.target.value })} rows={2}
-                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 resize-none" />
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 resize-none" />
               </div>
               <button onClick={handleSaveAbsence} disabled={savingAbsence || !absenceForm.start_date || !absenceForm.end_date}
-                className="w-full px-4 py-2.5 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 transition text-sm font-semibold disabled:opacity-50">
+                className="w-full px-4 py-2.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-semibold disabled:opacity-50">
                 {savingAbsence ? 'Submitting…' : 'Submit Request'}
               </button>
             </div>
