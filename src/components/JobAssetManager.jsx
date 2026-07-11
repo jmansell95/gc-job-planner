@@ -47,6 +47,11 @@ export default function JobAssetManager({ job, isDrillingJob }) {
     queryFn: () => base44.entities.SiteAsset.list(),
   });
 
+  const { data: profile } = useQuery({
+    queryKey: ['my-staff-profile'],
+    queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; }
+  });
+
   const assignedAssetIds = new Set(assignments.map(a => a.asset_id));
 
   // Partition assignments by asset type
@@ -69,11 +74,19 @@ export default function JobAssetManager({ job, isDrillingJob }) {
   const standaloneLifting = liftingAssignments.filter(a => !linkedEquipmentIds.has(a.asset_id));
 
   // Rigs tab only visible for drilling jobs
-  const tabs = isDrillingJob ? ['rigs', 'lifting', 'machinery', 'trailers'] : ['lifting', 'machinery', 'trailers'];
+  // Lifting Equipment tab only visible to drillers and admins/managers
+  const canViewLifting = profile?.is_admin || profile?.system_role === 'admin' || profile?.system_role === 'manager' ||
+    profile?.job_role === 'cp_driller' || profile?.job_role === 'rotary_driller' ||
+    profile?.team?.job_type === 'cp_drilling' || profile?.team?.job_type === 'rotary_drilling';
+  const baseTabs = isDrillingJob ? ['rigs', 'lifting', 'machinery', 'trailers'] : ['lifting', 'machinery', 'trailers'];
+  const tabs = canViewLifting ? baseTabs : baseTabs.filter(t => t !== 'lifting');
 
   // Ensure activeTab is valid for non-drilling (in case isDrillingJob changes)
   if (!isDrillingJob && activeTab === 'rigs') {
     setActiveTab('machinery');
+  }
+  if (!canViewLifting && activeTab === 'lifting') {
+    setActiveTab(isDrillingJob ? 'rigs' : 'machinery');
   }
 
   const currentAssignments = activeTab === 'rigs' ? rigAssignments : activeTab === 'lifting' ? standaloneLifting : activeTab === 'trailers' ? standaloneTrailers : standaloneMachinery;
