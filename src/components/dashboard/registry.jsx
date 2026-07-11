@@ -3,7 +3,7 @@ import { Truck, Grid3x3, Users, BarChart3, PoundSterling, CalendarClock, ShieldC
 export const WIDGET_REGISTRY = {
   'delivery-stats': { title: 'Delivery & Collection', icon: Truck },
   'kpi-stats': { title: 'Key Metrics', icon: Grid3x3 },
-  'compliance-overview': { title: 'Compliance Snapshot', icon: ShieldCheck },
+  'compliance-overview': { title: 'Staff Training Compliance', icon: ShieldCheck },
   'supervisor-overview': { title: 'Supervisor Overview', icon: Shield },
   'field-crews': { title: 'Field Crews Today', icon: Users },
   'charts': { title: 'Charts', icon: BarChart3 },

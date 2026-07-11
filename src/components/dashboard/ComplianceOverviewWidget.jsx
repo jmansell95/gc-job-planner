@@ -76,7 +76,7 @@ export default function ComplianceOverviewWidget({ onNavigate }) {
   const hasIssues = expired > 0 || expiring > 0 || missing > 0;
 
   return (
-    <WidgetShell icon={ShieldCheck} title="Compliance Snapshot" subtitle="Staff & vehicle compliance at a glance"
+    <WidgetShell icon={ShieldCheck} title="Staff Training Compliance" subtitle="Staff training & upcoming courses at a glance"
       action={<button onClick={() => onNavigate('compliance')} type="button"
         className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50 rounded-lg transition">
         View All <ArrowRight className="w-3.5 h-3.5" />
