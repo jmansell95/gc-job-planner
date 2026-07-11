@@ -148,8 +148,8 @@ export default function StaffBookings({ staffId, compact = false }) {
         </div>
       )}
 
-      {!hasUpcoming && !hasPast && (
-        <div className="bg-white rounded-xl border border-slate-200">
+      {!hasUpcoming && (compact || !hasPast) && (
+        <div className="bg-white rounded-2xl border border-slate-200">
           <EmptyState icon={CalendarClock} title="No bookings yet" message="Your manager will book vehicle maintenance and training courses for you here." />
         </div>
       )}
