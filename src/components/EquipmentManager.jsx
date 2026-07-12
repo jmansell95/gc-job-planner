@@ -74,6 +74,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
   const [savingItem, setSavingItem] = useState(false);
   const [hireFilter, setHireFilter] = useState('active');
   const [applyingPreset, setApplyingPreset] = useState(false);
+  const [addingRigGear, setAddingRigGear] = useState(false);
 
   const [offHiringId, setOffHiringId] = useState(null);
   const [offHireDate, setOffHireDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -84,6 +85,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
   const itemNet = (c) => (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
   const totalNet = items.reduce((s, c) => s + itemNet(c), 0);
   const defaultDates = job ? { start: job.start_date, end: job.end_date } : null;
+  const rigsWithGear = catalogueItems.filter(c => (c.linked_catalogue_ids || []).length > 0);
 
   const handleSubmitItem = async (formData) => {
     if (isJobMode) {
@@ -217,6 +219,51 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     setApplyingPreset(false);
   };
 
+  const addRigWithGear = async (e) => {
+    const catId = e.target.value;
+    if (!catId) return;
+    e.target.value = '';
+    setAddingRigGear(true);
+    try {
+      const rig = catalogueItems.find(c => c.id === catId);
+      if (!rig) return;
+      const gear = (rig.linked_catalogue_ids || []).map(id => catalogueItems.find(c => c.id === id)).filter(Boolean);
+      const payload = [
+        {
+          job_id: jobId,
+          category: rig.category,
+          supplier_id: rig.default_supplier_id || '',
+          description: rig.description,
+          reference_number: rig.reference_number || '',
+          site_asset_id: rig.site_asset_id || '',
+          po_number: '', start_date: '', end_date: '',
+          unit_cost: Number(rig.default_unit_cost) || 0,
+          quantity: 1, unit_label: rig.default_unit_label || 'day',
+          vat_exempt: !!rig.default_vat_exempt,
+          hire_status: 'active', current_location: 'yard', notes: ''
+        },
+        ...gear.map(g => ({
+          job_id: jobId,
+          category: g.category,
+          supplier_id: g.default_supplier_id || '',
+          description: g.description,
+          reference_number: g.reference_number || '',
+          site_asset_id: g.site_asset_id || '',
+          po_number: '', start_date: '', end_date: '',
+          unit_cost: Number(g.default_unit_cost) || 0,
+          quantity: 1, unit_label: g.default_unit_label || 'day',
+          vat_exempt: !!g.default_vat_exempt,
+          hire_status: 'active', current_location: 'yard', notes: ''
+        }))
+      ];
+      await base44.entities.JobCostItem.bulkCreate(payload);
+      queryClient.invalidateQueries({ queryKey: ['job-cost-items', jobId] });
+      queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', jobId] });
+      toast({ title: `Added ${payload.length} items`, description: `${rig.description} + ${gear.length} linked items — adjust dates and costs as needed.` });
+    } catch (err) { console.error(err); toast({ title: 'Error', description: 'Could not add rig and gear.' }); }
+    setAddingRigGear(false);
+  };
+
   const openOffHire = (c) => {
     setOffHiringId(c.id);
     setOffHireDate(format(new Date(), 'yyyy-MM-dd'));
@@ -272,6 +319,12 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
               <select value="" onChange={applyPreset} disabled={applyingPreset} className="text-xs px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white text-emerald-700 font-medium hover:bg-emerald-50 cursor-pointer disabled:opacity-50">
                 <option value="">{applyingPreset ? 'Adding…' : '📋 Add from preset…'}</option>
                 {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            )}
+            {isJobMode && rigsWithGear.length > 0 && (
+              <select value="" onChange={addRigWithGear} disabled={addingRigGear} className="text-xs px-2.5 py-1.5 rounded-lg border border-blue-200 bg-white text-blue-700 font-medium hover:bg-blue-50 cursor-pointer disabled:opacity-50">
+                <option value="">{addingRigGear ? 'Adding…' : '🚜 Add rig + gear…'}</option>
+                {rigsWithGear.map(r => <option key={r.id} value={r.id}>{r.description} (+{(r.linked_catalogue_ids || []).length})</option>)}
               </select>
             )}
           </div>

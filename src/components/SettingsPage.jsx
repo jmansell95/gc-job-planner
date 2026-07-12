@@ -15,8 +15,7 @@ import AutomationCenter from '@/components/AutomationCenter';
 import JobTypeManager from '@/components/JobTypeManager';
 import SiteAssetManager from '@/components/SiteAssetManager';
 import BillingRulesManager from '@/components/BillingRulesManager';
-import CostPresetManager from '@/components/CostPresetManager';
-import EquipmentCatalogueManager from '@/components/EquipmentCatalogueManager';
+import EquipmentLibraryManager from '@/components/EquipmentLibraryManager';
 import SettingsNav, { allSettingsItems } from '@/components/SettingsNav';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
@@ -49,8 +48,7 @@ export default function SettingsPage({ initialTab }) {
       case 'job-types': return <JobTypeManager />;
       case 'assets': return <SiteAssetManager />;
       case 'billing': return <BillingRulesManager />;
-      case 'presets': return <CostPresetManager />;
-      case 'catalogue': return <EquipmentCatalogueManager />;
+      case 'equipment-library': return <EquipmentLibraryManager />;
       default: return null;
     }
   };

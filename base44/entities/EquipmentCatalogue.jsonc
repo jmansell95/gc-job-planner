@@ -4,7 +4,7 @@
   "properties": {
     "description": {
       "type": "string",
-      "description": "Item description (e.g. 'Excavator 5-ton', 'Transformer hire', 'Casing hire')"
+      "description": "Item description (e.g. 'Excavator 5-ton', 'CP Rig 1', 'Casing hire')"
     },
     "category": {
       "type": "string",
@@ -37,7 +37,19 @@
     },
     "reference_number": {
       "type": "string",
-      "description": "Default reference / serial number (optional)"
+      "description": "Default reference / serial number (optional). Auto-filled from linked SiteAsset."
+    },
+    "site_asset_id": {
+      "type": "string",
+      "description": "Linked SiteAsset (rig, machinery, trailer, lifting gear) from GC Compliance Manager \u2014 auto-fills description and reference_number, and shows live compliance status"
+    },
+    "linked_catalogue_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "IDs of other EquipmentCatalogue items linked to this rig (lifting gear, trailers, machinery) \u2014 shown when adding to a job for quick bulk assignment as a set"
     },
     "is_active": {
       "type": "boolean",
