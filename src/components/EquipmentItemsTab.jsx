@@ -64,7 +64,7 @@ export default function EquipmentItemsTab() {
     try {
       const newEntries = unimportedAssets.map(a => ({
         description: a.name,
-        category: a.asset_type === 'rig' || a.asset_type === 'machinery' ? 'internal_equipment' : 'hired_equipment',
+        category: 'internal_equipment',
         default_supplier_id: '',
         default_unit_cost: 0,
         default_unit_label: 'day',
@@ -108,7 +108,7 @@ export default function EquipmentItemsTab() {
       site_asset_id: assetId,
       description: asset?.name || p.description,
       reference_number: asset?.serial_number || p.reference_number,
-      category: asset?.asset_type === 'rig' || asset?.asset_type === 'machinery' ? 'internal_equipment' : p.category
+      category: 'internal_equipment'
     }));
   };
 
