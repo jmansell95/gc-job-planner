@@ -45,7 +45,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'timesheets', label: 'Timesheets', icon: Clock },
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck },
     { id: 'insights', label: 'Insights', icon: Lightbulb },
-    { id: 'teams', label: 'Teams', icon: Users },
+    { id: 'teams', label: 'Crews', icon: Users },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
