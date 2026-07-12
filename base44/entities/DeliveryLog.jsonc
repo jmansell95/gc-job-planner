@@ -119,6 +119,41 @@
     "vehicle_id": {
       "type": "string",
       "description": "Vehicle used for this delivery"
+    },
+    "chargeable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this delivery is chargeable to the client. All drives are chargeable by default; toggle off for goodwill/free visits."
+    },
+    "billing_rule_id": {
+      "type": "string",
+      "description": "BillingRule used to calculate the charge for this delivery"
+    },
+    "charge_amount": {
+      "type": "number",
+      "description": "Calculated charge amount in GBP (set by the calculateCharge function)"
+    },
+    "charge_breakdown": {
+      "type": "string",
+      "description": "JSON breakdown of how the charge was calculated (rule name, method, components)"
+    },
+    "miles": {
+      "type": "number",
+      "description": "Round-trip miles driven for this delivery \u2014 used for per-mile charge calculations"
+    },
+    "billing_status": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "no_charge",
+        "custom_fee"
+      ],
+      "default": "auto",
+      "description": "How the charge was determined. 'auto' = calculated from rule, 'no_charge' = explicitly not charged, 'custom_fee' = manual override amount."
+    },
+    "custom_fee": {
+      "type": "number",
+      "description": "Manual fee override in GBP \u2014 used when billing_status is 'custom_fee'"
     }
   },
   "required": [

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp, X, Car, Briefcase } from 'lucide-react';
+import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp, X, Car, Briefcase, PoundSterling } from 'lucide-react';
 import { format } from 'date-fns';
 
 const TASK_SUGGESTIONS = [
@@ -46,6 +46,7 @@ export default function DailyTaskLog({ staffId }) {
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs-for-assignments'], queryFn: () => base44.entities.Job.list() });
   const { data: todayEntries = [] } = useQuery({ queryKey: ['daily-tasks', staffId, today], queryFn: () => base44.entities.Timesheet.filter({ staff_id: staffId, date: today }), enabled: !!staffId });
   const { data: shifts = [] } = useQuery({ queryKey: ['staff-shifts', staffId], queryFn: () => base44.entities.StaffShift.filter({ staff_id: staffId }), enabled: !!staffId });
+  const { data: taskBillingRules = [] } = useQuery({ queryKey: ['billing-rules-task'], queryFn: () => base44.entities.BillingRule.filter({ rule_type: 'task', is_active: true }) });
 
   const todayAssignments = assignments.filter(a => a.assigned_date === today);
   const todayJobIds = [...new Set(todayAssignments.map(a => a.job_id))];
@@ -89,10 +90,11 @@ export default function DailyTaskLog({ staffId }) {
     setAdding(true);
     try {
       const taskType = isTravel ? (travelDirection === 'to' ? 'travel_to' : 'travel_from') : 'on_site';
-      await base44.entities.Timesheet.create({
+      const taskDesc = isTravel ? (travelDirection === 'to' ? 'Travel to site' : 'Travel from site') : (isLunch ? 'Lunch Break' : task.trim());
+      const created = await base44.entities.Timesheet.create({
         staff_id: staffId, date: today,
         job_id: isLunch ? '' : jobId,
-        task_description: isTravel ? (travelDirection === 'to' ? 'Travel to site' : 'Travel from site') : (isLunch ? 'Lunch Break' : task.trim()),
+        task_description: taskDesc,
         start_time: startTime, end_time: endTime,
         task_duration_minutes: durMins,
         total_hours: Math.round((durMins / 60) * 100) / 100,
@@ -100,6 +102,25 @@ export default function DailyTaskLog({ staffId }) {
         notes: notes.trim(), status: 'draft', is_break: isLunch, is_overtime: isOvertime,
         task_type: taskType
       });
+      // Auto-calculate client charge for on-site tasks
+      if (!isLunch && !isTravel && taskDesc) {
+        try {
+          const res = await base44.functions.invoke('calculateCharge', {
+            entity_type: 'task',
+            task_description: taskDesc,
+            duration_minutes: durMins
+          });
+          const cd = res.data;
+          if (cd && created.id) {
+            await base44.entities.Timesheet.update(created.id, {
+              chargeable: cd.charge_amount > 0,
+              charge_amount: cd.charge_amount || 0,
+              charge_breakdown: JSON.stringify(cd.breakdown || {}),
+              billing_rule_id: cd.billing_rule_id || ''
+            });
+          }
+        } catch (calcErr) { console.error('Charge calc error:', calcErr); }
+      }
       resetForm();
       invalidateAll();
     } catch (err) { console.error(err); }
@@ -285,10 +306,16 @@ export default function DailyTaskLog({ staffId }) {
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
               )}
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {TASK_SUGGESTIONS.map(s => (
-                  <button type="button" key={s} onClick={() => { setTask(s); setIsLunch(false); setIsOvertime(false); setIsTravel(false); }}
-                    className={`text-xs px-2.5 py-1 rounded-full border transition ${!isLunch && !isOvertime && task === s ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700'}`}>{s}</button>
-                ))}
+                {TASK_SUGGESTIONS.map(s => {
+                  const hasRule = taskBillingRules.some(r => r.name?.toLowerCase().trim() === s.toLowerCase().trim() && r.is_chargeable !== false);
+                  return (
+                    <button type="button" key={s} onClick={() => { setTask(s); setIsLunch(false); setIsOvertime(false); setIsTravel(false); }}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition inline-flex items-center gap-1 ${!isLunch && !isOvertime && task === s ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700'}`}>
+                      {s}
+                      {hasRule && <PoundSterling className="w-2.5 h-2.5 opacity-70" />}
+                    </button>
+                  );
+                })}
                 <button type="button" onClick={() => { setIsLunch(true); setTask('Lunch Break'); setIsOvertime(false); setIsTravel(false); }}
                   className={`text-xs px-2.5 py-1 rounded-full border transition inline-flex items-center gap-1 ${isLunch ? 'bg-amber-500 text-white border-amber-500' : 'bg-amber-50 border-amber-200 text-amber-700 hover:border-amber-400'}`}>
                   <Coffee className="w-3 h-3" /> Lunch Break
@@ -370,6 +397,11 @@ export default function DailyTaskLog({ staffId }) {
                         {!t.is_break && t.meterage > 0 && (
                           <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-50 text-amber-700">
                             <Ruler className="w-2.5 h-2.5" /> {t.meterage}m
+                          </span>
+                        )}
+                        {t.chargeable && Number(t.charge_amount) > 0 && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700">
+                            <PoundSterling className="w-2.5 h-2.5" /> {Number(t.charge_amount).toFixed(2)}
                           </span>
                         )}
                       </div>

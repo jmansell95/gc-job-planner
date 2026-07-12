@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Users, Truck, HardHat, Building2, CalendarX, Mail, PoundSterling, Package, Timer, Zap, Tag, Wrench } from 'lucide-react';
+import { Settings, Users, Truck, HardHat, Building2, CalendarX, Mail, PoundSterling, Package, Timer, Zap, Tag, Wrench, Banknote } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import PillTabs from '@/components/PillTabs';
 import StaffManager from '@/components/StaffManager';
@@ -14,6 +14,7 @@ import OvertimeRatesManager from '@/components/OvertimeRatesManager';
 import AutomationCenter from '@/components/AutomationCenter';
 import JobTypeManager from '@/components/JobTypeManager';
 import SiteAssetManager from '@/components/SiteAssetManager';
+import BillingRulesManager from '@/components/BillingRulesManager';
 
 const tabs = [
   { id: 'staff', label: 'Crew', icon: Users },
@@ -28,6 +29,7 @@ const tabs = [
   { id: 'automations', label: 'Automations', icon: Zap },
   { id: 'assets', label: 'Assets', icon: Wrench },
   { id: 'job-types', label: 'Job Types', icon: Tag },
+  { id: 'billing', label: 'Billing Rules', icon: Banknote },
 ];
 
 const tabDescriptions = {
@@ -43,6 +45,7 @@ const tabDescriptions = {
   automations: 'View and toggle background automations',
   'job-types': 'Manage job types and colours',
   assets: 'Rigs, machinery & trailers — linked to GC Compliance Manager',
+  billing: 'Delivery, task & consumable pricing rules',
 };
 
 export default function SettingsPage({ initialTab }) {
@@ -70,6 +73,7 @@ export default function SettingsPage({ initialTab }) {
       {activeTab === 'automations' && <AutomationCenter />}
       {activeTab === 'job-types' && <JobTypeManager />}
       {activeTab === 'assets' && <SiteAssetManager />}
+      {activeTab === 'billing' && <BillingRulesManager />}
     </div>
   );
 }

@@ -150,6 +150,23 @@
     "withdrawal_acknowledged_at": {
       "type": "string",
       "description": "ISO timestamp when the withdrawal was acknowledged"
+    },
+    "chargeable": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this task is chargeable to the client. Set to true by the system when a matching BillingRule is found."
+    },
+    "billing_rule_id": {
+      "type": "string",
+      "description": "BillingRule that matched this task description \u2014 used to calculate the client charge"
+    },
+    "charge_amount": {
+      "type": "number",
+      "description": "Calculated client charge in GBP for this task (set by calculateCharge)"
+    },
+    "charge_breakdown": {
+      "type": "string",
+      "description": "JSON breakdown of how the charge was calculated"
     }
   },
   "required": [

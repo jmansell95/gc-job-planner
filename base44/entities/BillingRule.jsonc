@@ -1,0 +1,83 @@
+{
+  "name": "BillingRule",
+  "type": "object",
+  "properties": {
+    "rule_type": {
+      "type": "string",
+      "enum": [
+        "delivery",
+        "task",
+        "consumable",
+        "site_visit"
+      ],
+      "description": "Type of chargeable activity this rule applies to. 'delivery' = site deliveries/collections, 'task' = daily tasks staff log, 'consumable' = cable ties/sprays/small equipment, 'site_visit' = ad-hoc site visits."
+    },
+    "name": {
+      "type": "string",
+      "description": "Rule name. For task rules, this must match the task description staff enter (e.g. 'Setting up the rig'). For consumables, this is the item name (e.g. 'Cable Ties (bag)')."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description or internal notes about this billing rule"
+    },
+    "charge_method": {
+      "type": "string",
+      "enum": [
+        "flat_fee",
+        "per_mile",
+        "per_hour",
+        "per_unit",
+        "flat_plus_mileage",
+        "flat_plus_time",
+        "flat_plus_mileage_plus_time"
+      ],
+      "default": "flat_fee",
+      "description": "How the charge is calculated. 'flat_fee' = single fixed amount, 'per_mile' = miles \u00d7 rate, 'per_hour' = hours \u00d7 rate, 'per_unit' = units \u00d7 rate, 'flat_plus_mileage' = flat + miles \u00d7 rate, 'flat_plus_time' = flat + hours \u00d7 rate, 'flat_plus_mileage_plus_time' = all three."
+    },
+    "flat_fee": {
+      "type": "number",
+      "description": "Base flat fee in GBP \u2014 used when charge_method includes a flat component"
+    },
+    "per_mile_rate": {
+      "type": "number",
+      "description": "Rate per mile in GBP \u2014 used when charge_method includes mileage"
+    },
+    "per_hour_rate": {
+      "type": "number",
+      "description": "Rate per hour in GBP \u2014 used when charge_method includes time"
+    },
+    "per_unit_rate": {
+      "type": "number",
+      "description": "Rate per unit in GBP \u2014 used for consumables (per_unit method)"
+    },
+    "unit_label": {
+      "type": "string",
+      "default": "each",
+      "description": "Unit label for per_unit charges (e.g. 'bag', 'can', 'each')"
+    },
+    "is_chargeable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this rule produces a charge. Set to false for tasks included in the day rate that aren't billed separately to the client."
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this rule is available for new charges. Inactive rules are kept for historical records but not offered in dropdowns."
+    },
+    "category": {
+      "type": "string",
+      "description": "Sub-category for grouping (e.g. 'drilling', 'groundworks', 'deliveries'). Optional."
+    },
+    "sort_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order (lower = first in dropdowns and lists)"
+    }
+  },
+  "required": [
+    "rule_type",
+    "name",
+    "charge_method"
+  ]
+}

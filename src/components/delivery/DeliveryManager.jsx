@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Truck, Plus, X, Package, MapPin, User, Phone, Calendar, FileText, ClipboardList } from 'lucide-react';
+import { Truck, Plus, X, Package, MapPin, User, Phone, Calendar, FileText, ClipboardList, PoundSterling, Route, ToggleRight, ToggleLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton, EmptyState } from '@/components/StateViews';
+
+const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const typeOptions = [
   { value: 'site_delivery', label: 'Site Delivery', icon: Truck },
@@ -29,7 +31,10 @@ export default function DeliveryManager({ jobId, jobName }) {
     po_number: '',
     scheduled_date: format(new Date(), 'yyyy-MM-dd'),
     vehicle_id: '',
-    notes: ''
+    notes: '',
+    chargeable: true,
+    miles: '',
+    billing_rule_id: ''
   });
 
   const { data: deliveries = [], isLoading } = useQuery({
@@ -43,6 +48,7 @@ export default function DeliveryManager({ jobId, jobName }) {
 
   const { data: staff = [] } = useQuery({ queryKey: ['delivery-staff'], queryFn: () => base44.entities.Staff.filter({ is_active: true }) });
   const { data: vehicles = [] } = useQuery({ queryKey: ['delivery-vehicles-mgr'], queryFn: () => base44.entities.Vehicle.list() });
+  const { data: billingRules = [] } = useQuery({ queryKey: ['billing-rules-delivery'], queryFn: () => base44.entities.BillingRule.filter({ rule_type: 'delivery', is_active: true }) });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,16 +63,39 @@ export default function DeliveryManager({ jobId, jobName }) {
         ...formData,
         job_id: jobId,
         job_name: jobName || '',
-        driver_staff_name: driver?.name || ''
+        driver_staff_name: driver?.name || '',
+        miles: formData.miles === '' ? 0 : parseFloat(formData.miles),
+        chargeable: !!formData.chargeable,
+        billing_rule_id: formData.billing_rule_id || ''
       };
+      let savedId = editingDeliveryId;
       if (editingDeliveryId) {
         await base44.entities.DeliveryLog.update(editingDeliveryId, payload);
         toast({ title: 'Delivery task updated', description: `${driver?.name || 'Driver'} · ${format(new Date(formData.scheduled_date + 'T00:00:00'), 'dd MMM')}.` });
       } else {
         payload.status = 'pending';
-        await base44.entities.DeliveryLog.create(payload);
+        const created = await base44.entities.DeliveryLog.create(payload);
+        savedId = created.id;
         toast({ title: 'Delivery task created', description: `${driver?.name || 'Driver'} assigned for ${format(new Date(formData.scheduled_date + 'T00:00:00'), 'dd MMM')}.` });
       }
+      // Calculate charge via backend function
+      try {
+        const res = await base44.functions.invoke('calculateCharge', {
+          entity_type: 'delivery',
+          billing_rule_id: formData.billing_rule_id || undefined,
+          miles: payload.miles,
+          chargeable: payload.chargeable
+        });
+        const cd = res.data;
+        if (cd && savedId) {
+          await base44.entities.DeliveryLog.update(savedId, {
+            charge_amount: cd.charge_amount || 0,
+            charge_breakdown: JSON.stringify(cd.breakdown || {}),
+            billing_status: cd.billing_status || 'auto',
+            billing_rule_id: cd.billing_rule_id || ''
+          });
+        }
+      } catch (calcErr) { console.error('Charge calc error:', calcErr); }
       queryClient.invalidateQueries({ queryKey: ['job-deliveries', jobId] });
       setFormData({
         delivery_type: 'site_delivery',
@@ -79,7 +108,10 @@ export default function DeliveryManager({ jobId, jobName }) {
         po_number: '',
         scheduled_date: format(new Date(), 'yyyy-MM-dd'),
         vehicle_id: '',
-        notes: ''
+        notes: '',
+        chargeable: true,
+        miles: '',
+        billing_rule_id: ''
       });
       setEditingDeliveryId(null);
       setShowForm(false);
@@ -103,7 +135,10 @@ export default function DeliveryManager({ jobId, jobName }) {
       po_number: d.po_number || '',
       scheduled_date: d.scheduled_date || format(new Date(), 'yyyy-MM-dd'),
       vehicle_id: d.vehicle_id || '',
-      notes: d.notes || ''
+      notes: d.notes || '',
+      chargeable: d.chargeable !== false,
+      miles: d.miles != null ? String(d.miles) : '',
+      billing_rule_id: d.billing_rule_id || ''
     });
     setEditingDeliveryId(d.id);
     setShowForm(true);
@@ -220,6 +255,34 @@ export default function DeliveryManager({ jobId, jobName }) {
             <textarea value={formData.notes} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} rows={2} placeholder="Access instructions, timing, etc."
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 resize-none" />
           </div>
+          {/* Billing section */}
+          <div className="border-t border-slate-200 pt-3 space-y-3">
+            <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide flex items-center gap-1.5"><PoundSterling className="w-3.5 h-3.5" /> Client Billing</p>
+            <button type="button" onClick={() => setFormData(p => ({ ...p, chargeable: !p.chargeable }))}
+              className="flex items-center gap-2 text-sm w-full">
+              {formData.chargeable ? <ToggleRight className="w-7 h-7 text-emerald-600 flex-shrink-0" /> : <ToggleLeft className="w-7 h-7 text-slate-300 flex-shrink-0" />}
+              <span className={formData.chargeable ? 'text-slate-700 font-medium' : 'text-slate-400'}>
+                {formData.chargeable ? 'Charge client for this visit' : 'No charge (goodwill / free visit)'}
+              </span>
+            </button>
+            {formData.chargeable && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1"><Route className="w-3 h-3" /> Miles (round-trip)</label>
+                  <input type="number" min="0" step="0.1" value={formData.miles} onChange={e => setFormData(p => ({ ...p, miles: e.target.value }))}
+                    placeholder="e.g. 25" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Billing Rule</label>
+                  <select value={formData.billing_rule_id} onChange={e => setFormData(p => ({ ...p, billing_rule_id: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600">
+                    <option value="">Auto (no specific rule)</option>
+                    {billingRules.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
           <button type="submit" disabled={saving}
             className="w-full py-2.5 bg-emerald-600 text-white rounded-xl font-semibold text-sm hover:bg-emerald-700 transition active:scale-95 disabled:opacity-50">
             {saving ? 'Saving…' : editingDeliveryId ? 'Update Delivery Task' : 'Create Delivery Task'}
@@ -259,6 +322,14 @@ export default function DeliveryManager({ jobId, jobName }) {
                 </div>
                 {d.signed_by_name && d.status === 'completed' && (
                   <p className="text-xs text-emerald-600 mt-1">Signed by {d.signed_by_name} · {d.completed_at ? format(new Date(d.completed_at), 'dd MMM HH:mm') : ''}</p>
+                )}
+                {d.chargeable && Number(d.charge_amount) > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 mt-1">
+                    <PoundSterling className="w-2.5 h-2.5" /> {fmt(Number(d.charge_amount))}
+                  </span>
+                )}
+                {d.chargeable === false && (
+                  <span className="inline-flex items-center text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-400 mt-1">No charge</span>
                 )}
               </div>
               <div className="flex flex-col gap-1.5 items-end flex-shrink-0">

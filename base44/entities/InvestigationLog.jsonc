@@ -89,6 +89,37 @@
     "created_at": {
       "type": "string",
       "description": "ISO timestamp when this log was created"
+    },
+    "chargeable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this investigation activity is chargeable to the client"
+    },
+    "billing_rule_id": {
+      "type": "string",
+      "description": "BillingRule used to calculate the charge for this activity"
+    },
+    "charge_amount": {
+      "type": "number",
+      "description": "Calculated charge amount in GBP (set by calculateCharge)"
+    },
+    "charge_breakdown": {
+      "type": "string",
+      "description": "JSON breakdown of how the charge was calculated"
+    },
+    "billing_status": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "no_charge",
+        "custom_fee"
+      ],
+      "default": "auto",
+      "description": "How the charge was determined. 'auto' = calculated from rule, 'no_charge' = explicitly not charged, 'custom_fee' = manual override."
+    },
+    "custom_fee": {
+      "type": "number",
+      "description": "Manual fee override in GBP \u2014 used when billing_status is 'custom_fee'"
     }
   },
   "required": [

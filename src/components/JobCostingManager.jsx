@@ -105,6 +105,14 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
     queryKey: ['job-cost-items', job.id],
     queryFn: () => base44.entities.JobCostItem.filter({ job_id: job.id })
   });
+  const { data: deliveries = [] } = useQuery({
+    queryKey: ['job-deliveries-costing', job.id],
+    queryFn: () => base44.entities.DeliveryLog.filter({ job_id: job.id })
+  });
+  const { data: jobTimesheets = [] } = useQuery({
+    queryKey: ['job-timesheets-costing', job.id],
+    queryFn: () => base44.entities.Timesheet.filter({ job_id: job.id })
+  });
 
   const itemNet = (c) => (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
   const itemVat = (c) => c.vat_exempt ? 0 : itemNet(c) * (Number(vatRate) / 100);
@@ -117,7 +125,10 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
   const internalVat = labourVat + equipmentVat;
   const internalTotal = internalNet + internalVat;
   const markupAmount = internalNet * (Number(markup) / 100);
-  const clientNet = internalNet + markupAmount;
+  const deliveryCharges = deliveries.filter(d => d.chargeable !== false).reduce((s, d) => s + (Number(d.charge_amount) || 0), 0);
+  const taskCharges = jobTimesheets.filter(t => t.chargeable && !t.is_break).reduce((s, t) => s + (Number(t.charge_amount) || 0), 0);
+  const additionalCharges = deliveryCharges + taskCharges;
+  const clientNet = internalNet + markupAmount + additionalCharges;
   const clientVat = clientNet * (Number(vatRate) / 100);
   const clientTotal = clientNet + clientVat;
 
@@ -266,6 +277,7 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
             <span>Net: {fmt(clientNet)}</span>
             <span>VAT ({Number(vatRate) || 0}%): {fmt(clientVat)}</span>
             <span>Markup: {Number(markup) || 0}%</span>
+            {additionalCharges > 0 && <span>Delivery & Task Charges: {fmt(additionalCharges)}</span>}
           </div>
         </div>
 
@@ -295,6 +307,15 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
             <p className="text-xs text-slate-400">Markup amount</p>
             <p className="text-base font-bold text-emerald-700 truncate">{fmt(markupAmount)}</p>
           </div>
+          {additionalCharges > 0 && (
+            <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+              <p className="text-xs text-emerald-600">Delivery & Task Charges</p>
+              <p className="text-base font-bold text-emerald-800 truncate">{fmt(additionalCharges)}</p>
+              <p className="text-[10px] text-emerald-500 mt-0.5">
+                {deliveries.filter(d => d.chargeable !== false && Number(d.charge_amount) > 0).length} deliveries · {jobTimesheets.filter(t => t.chargeable && Number(t.charge_amount) > 0).length} chargeable tasks
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Markup & VAT config */}
