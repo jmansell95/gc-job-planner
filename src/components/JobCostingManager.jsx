@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   PoundSterling, Plus, Trash2, Edit2, Check, X, TrendingUp, ChevronDown, ChevronUp,
-  Truck, Wrench, Percent, Calculator, Save, Package, FileCheck, Undo2, Upload, ExternalLink, AlertTriangle, ShoppingCart
+  Truck, Wrench, Percent, Calculator, Save, Package, FileCheck, Undo2, Upload, ExternalLink, AlertTriangle, ShoppingCart,
+  ShieldCheck, ShieldAlert, ShieldX, Clock, MapPin, CheckCircle2
 } from 'lucide-react';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
@@ -17,6 +18,19 @@ const blankForm = () => ({
   unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: '',
   delivery_notes: '', collection_notes: ''
 });
+
+const complianceBadge = {
+  compliant: { label: 'Compliant', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: ShieldCheck },
+  expiring: { label: 'Expiring', cls: 'bg-amber-50 text-amber-700 border-amber-200', icon: ShieldAlert },
+  expired: { label: 'Expired', cls: 'bg-red-50 text-red-700 border-red-200', icon: ShieldX },
+  unknown: { label: 'Check', cls: 'bg-slate-50 text-slate-500 border-slate-200', icon: ShieldAlert }
+};
+
+const deliveryStatusBadge = {
+  planned: { label: 'Planned', cls: 'bg-slate-100 text-slate-500', icon: Clock },
+  on_site: { label: 'On Site', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-200', icon: MapPin },
+  returned: { label: 'Returned', cls: 'bg-blue-50 text-blue-700 border border-blue-200', icon: CheckCircle2 }
+};
 
 function BudgetMarginTracker({ budget, actualNet, clientNet, markup }) {
   const hasBudget = budget > 0;
@@ -112,6 +126,10 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
     queryKey: ['job-deliveries-costing', job.id],
     queryFn: () => base44.entities.DeliveryLog.filter({ job_id: job.id })
   });
+  const { data: siteAssets = [] } = useQuery({
+    queryKey: ['site-assets-costing'],
+    queryFn: () => base44.entities.SiteAsset.list()
+  });
   const { data: jobTimesheets = [] } = useQuery({
     queryKey: ['job-timesheets-costing', job.id],
     queryFn: () => base44.entities.Timesheet.filter({ job_id: job.id })
@@ -145,6 +163,22 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
   const activeItems = items.filter(c => (c.hire_status || 'active') !== 'off_hired');
   const returnedItems = items.filter(c => c.hire_status === 'off_hired');
   const visibleItems = hireFilter === 'active' ? activeItems : returnedItems;
+
+  const getItemDeliveryStatus = (item) => {
+    const linkedDeliveries = deliveries.filter(d => {
+      const ids = (d.linked_cost_item_ids || '').split(',').map(s => s.trim()).filter(Boolean);
+      return ids.includes(item.id) || d.linked_cost_item_id === item.id;
+    });
+    const completedSiteDelivery = linkedDeliveries.find(d => d.delivery_type === 'site_delivery' && d.status === 'completed');
+    if (completedSiteDelivery) {
+      const completedCollection = linkedDeliveries.find(d =>
+        (d.delivery_type === 'supplier_collection' || d.delivery_type === 'item_handover') && d.status === 'completed'
+      );
+      if (completedCollection) return { status: 'returned', delivery: completedCollection };
+      return { status: 'on_site', delivery: completedSiteDelivery };
+    }
+    return { status: 'planned', delivery: null };
+  };
 
   const configDirty = (job.markup_percentage ?? 0) !== (Number(markup) || 0) || (job.vat_rate ?? 20) !== (Number(vatRate) || 0);
 
@@ -575,6 +609,8 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
               {activeItems.map(c => {
                 const supplier = suppliers.find(s => s.id === c.supplier_id);
                 const net = itemNet(c);
+                const linkedAsset = c.site_asset_id ? siteAssets.find(a => a.id === c.site_asset_id) : null;
+                const deliveryStatus = getItemDeliveryStatus(c);
                 return (
                   <div key={c.id} className="border border-slate-200 bg-white rounded-lg p-3 flex items-start gap-3 transition">
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -591,12 +627,31 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                         {c.reference_number && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium font-mono">Ref: {c.reference_number}</span>}
                         {c.vat_exempt && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">VAT exempt</span>}
                         <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">{c.category === 'hired_equipment' ? 'Hired' : c.category === 'purchased_equipment' ? 'Purchased' : 'Internal'}</span>
+                        {linkedAsset && (() => {
+                          const cb = complianceBadge[linkedAsset.compliance_status] || complianceBadge.unknown;
+                          const CIcon = cb.icon;
+                          return <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1 border ${cb.cls}`}><CIcon className="w-2.5 h-2.5" />{cb.label}</span>;
+                        })()}
+                        {(() => {
+                          const sb = deliveryStatusBadge[deliveryStatus.status];
+                          const SIcon = sb.icon;
+                          return <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1 ${sb.cls}`}><SIcon className="w-2.5 h-2.5" />{sb.label}</span>;
+                        })()}
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5">
                         {c.start_date && c.end_date ? `${format(new Date(c.start_date + 'T00:00:00'), 'dd MMM')} → ${format(new Date(c.end_date + 'T00:00:00'), 'dd MMM')}` : ''}
                         {supplier && ` · ${supplier.name}`}
                         {` · ${c.quantity} ${c.unit_label}${c.quantity > 1 ? 's' : ''}`}
                       </p>
+                      {deliveryStatus.delivery && (
+                        <p className="text-xs text-emerald-600 mt-0.5 flex items-center gap-1">
+                          <Truck className="w-3 h-3" />
+                          {deliveryStatus.status === 'on_site' ? 'Delivered to site' : 'Collected from site'}
+                          {' · '}{deliveryStatus.delivery.completed_at ? format(new Date(deliveryStatus.delivery.completed_at), 'dd MMM HH:mm') : format(new Date(deliveryStatus.delivery.scheduled_date + 'T00:00:00'), 'dd MMM')}
+                          {' by '}{deliveryStatus.delivery.driver_staff_name || 'driver'}
+                          {deliveryStatus.delivery.signed_by_name && ` · Signed by ${deliveryStatus.delivery.signed_by_name}`}
+                        </p>
+                      )}
                       {(c.delivery_notes || c.collection_notes) && (
                         <div className="mt-1.5 space-y-1">
                           {c.delivery_notes && (
