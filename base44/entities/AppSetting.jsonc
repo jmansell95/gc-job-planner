@@ -9,6 +9,27 @@
     "app_base_url": {
       "type": "string",
       "description": "Public base URL of the app, used to build links inside automated email alerts"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Company name shown in email banners and footers by default"
+    },
+    "default_accent_color": {
+      "type": "string",
+      "description": "Default accent colour for all automated emails (hex)"
+    },
+    "default_banner_title": {
+      "type": "string",
+      "description": "Default banner title for all automated emails"
+    },
+    "default_show_banner": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to show the email banner by default"
+    },
+    "default_footer_text": {
+      "type": "string",
+      "description": "Default footer text for all automated emails"
     }
   },
   "required": [

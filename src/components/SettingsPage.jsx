@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Users, Truck, HardHat, Building2, CalendarX, Mail, PoundSterling, Package, Timer, Zap, Tag, Wrench, Banknote, Boxes } from 'lucide-react';
+import { Settings, Menu } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import PillTabs from '@/components/PillTabs';
 import StaffManager from '@/components/StaffManager';
 import VehicleManager from '@/components/VehicleManager';
 import ContractorManager from '@/components/ContractorManager';
 import ClientManager from '@/components/ClientManager';
 import AbsenceManager from '@/components/AbsenceManager';
 import EmailAlertsSettings from '@/components/EmailAlertsSettings';
+import GlobalBrandingSettings from '@/components/GlobalBrandingSettings';
 import CostSettings from '@/components/CostSettings';
 import SupplierManager from '@/components/SupplierManager';
 import OvertimeRatesManager from '@/components/OvertimeRatesManager';
@@ -16,68 +16,86 @@ import JobTypeManager from '@/components/JobTypeManager';
 import SiteAssetManager from '@/components/SiteAssetManager';
 import BillingRulesManager from '@/components/BillingRulesManager';
 import CostPresetManager from '@/components/CostPresetManager';
-
-const tabs = [
-  { id: 'staff', label: 'Crew', icon: Users },
-  { id: 'vehicles', label: 'Vehicles', icon: Truck },
-  { id: 'clients', label: 'Clients', icon: Building2 },
-  { id: 'contractors', label: 'Contractors', icon: HardHat },
-  { id: 'suppliers', label: 'Suppliers', icon: Package },
-  { id: 'absences', label: 'Absences', icon: CalendarX },
-  { id: 'costs', label: 'Costs', icon: PoundSterling },
-  { id: 'overtime', label: 'Overtime', icon: Timer },
-  { id: 'email-alerts', label: 'Email Alerts', icon: Mail },
-  { id: 'automations', label: 'Automations', icon: Zap },
-  { id: 'assets', label: 'Assets', icon: Wrench },
-  { id: 'job-types', label: 'Job Types', icon: Tag },
-  { id: 'billing', label: 'Billing Rules', icon: Banknote },
-  { id: 'presets', label: 'Presets', icon: Boxes },
-];
-
-const tabDescriptions = {
-  staff: 'Manage crew, app access and shift times',
-  vehicles: 'Track vehicles, MOTs and service dates',
-  clients: 'Manage client contacts',
-  contractors: 'Manage contractor contacts',
-  suppliers: 'Manage hire & purchase suppliers',
-  absences: 'Approve leave and recurring days off',
-  costs: 'Overtime thresholds and markup defaults',
-  overtime: 'Overtime multipliers by day',
-  'email-alerts': 'Configure automated email alerts',
-  automations: 'View and toggle background automations',
-  'job-types': 'Manage job types and colours',
-  assets: 'Rigs, machinery & trailers — linked to GC Compliance Manager',
-  billing: 'Delivery, task & consumable pricing rules',
-  presets: 'Standard equipment lists — add to any job in one click',
-};
+import SettingsNav, { allSettingsItems } from '@/components/SettingsNav';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 export default function SettingsPage({ initialTab }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'staff');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
-  const active = tabs.find(t => t.id === activeTab);
+
+  const active = allSettingsItems.find(t => t.id === activeTab);
+  const Icon = active?.icon;
+
+  const handleSelect = (id) => {
+    setActiveTab(id);
+    setMobileNavOpen(false);
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'staff': return <StaffManager />;
+      case 'vehicles': return <VehicleManager />;
+      case 'clients': return <ClientManager />;
+      case 'contractors': return <ContractorManager />;
+      case 'suppliers': return <SupplierManager />;
+      case 'absences': return <AbsenceManager />;
+      case 'costs': return <CostSettings />;
+      case 'overtime': return <OvertimeRatesManager />;
+      case 'email-alerts': return <EmailAlertsSettings />;
+      case 'global-branding': return <GlobalBrandingSettings />;
+      case 'automations': return <AutomationCenter />;
+      case 'job-types': return <JobTypeManager />;
+      case 'assets': return <SiteAssetManager />;
+      case 'billing': return <BillingRulesManager />;
+      case 'presets': return <CostPresetManager />;
+      default: return null;
+    }
+  };
 
   return (
     <div>
-      <PageHeader title="Settings" icon={Settings} />
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <PageHeader title="Settings" icon={Settings} />
+        <button onClick={() => setMobileNavOpen(true)} className="lg:hidden flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 shadow-sm">
+          <Menu className="w-4 h-4" />
+          Sections
+        </button>
+      </div>
 
-      <PillTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
+      <div className="flex gap-6 items-start">
+        {/* Desktop sidebar */}
+        <aside className="hidden lg:block w-64 flex-shrink-0">
+          <div className="sticky top-4 bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+            <SettingsNav activeId={activeTab} onChange={handleSelect} />
+          </div>
+        </aside>
 
-      <p className="text-sm text-slate-500 mb-5 -mt-2">{active?.description}</p>
+        {/* Mobile drawer */}
+        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+          <SheetContent side="left" className="w-80 max-w-[85vw] p-4 overflow-y-auto">
+            <SheetHeader className="mb-3">
+              <SheetTitle className="text-left">Settings</SheetTitle>
+            </SheetHeader>
+            <SettingsNav activeId={activeTab} onChange={handleSelect} />
+          </SheetContent>
+        </Sheet>
 
-      {activeTab === 'staff' && <StaffManager />}
-      {activeTab === 'vehicles' && <VehicleManager />}
-      {activeTab === 'clients' && <ClientManager />}
-      {activeTab === 'contractors' && <ContractorManager />}
-      {activeTab === 'suppliers' && <SupplierManager />}
-      {activeTab === 'absences' && <AbsenceManager />}
-      {activeTab === 'costs' && <CostSettings />}
-      {activeTab === 'overtime' && <OvertimeRatesManager />}
-      {activeTab === 'email-alerts' && <EmailAlertsSettings />}
-      {activeTab === 'automations' && <AutomationCenter />}
-      {activeTab === 'job-types' && <JobTypeManager />}
-      {activeTab === 'assets' && <SiteAssetManager />}
-      {activeTab === 'billing' && <BillingRulesManager />}
-      {activeTab === 'presets' && <CostPresetManager />}
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {active && (
+            <div className="flex items-center gap-2 mb-4">
+              {Icon && (
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-4 h-4 text-emerald-700" />
+                </div>
+              )}
+              <p className="text-sm text-slate-500">{active.desc}</p>
+            </div>
+          )}
+          {renderContent()}
+        </div>
+      </div>
     </div>
   );
 }

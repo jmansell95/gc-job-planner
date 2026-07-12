@@ -282,6 +282,50 @@ Deno.serve(async (req) => {
       return Response.json({ sent: true });
     }
 
+    if (action === 'get_global') {
+      const list = await base44.asServiceRole.entities.AppSetting.filter({ key: 'global' });
+      const cfg = list[0] || {};
+      return Response.json({
+        settings: {
+          app_base_url: cfg.app_base_url || '',
+          company_name: cfg.company_name || 'GC Job Planner',
+          default_accent_color: cfg.default_accent_color || '#0e7a4f',
+          default_banner_title: cfg.default_banner_title || 'GC Job Planner',
+          default_show_banner: cfg.default_show_banner !== false,
+          default_footer_text: cfg.default_footer_text || 'GC Job Planner'
+        }
+      });
+    }
+
+    if (action === 'save_global') {
+      const { app_base_url, company_name, default_accent_color, default_banner_title, default_show_banner, default_footer_text } = body;
+      const list = await base44.asServiceRole.entities.AppSetting.filter({ key: 'global' });
+      const data = {
+        key: 'global',
+        app_base_url: app_base_url || '',
+        company_name: company_name || 'GC Job Planner',
+        default_accent_color: default_accent_color || '#0e7a4f',
+        default_banner_title: default_banner_title || 'GC Job Planner',
+        default_show_banner: default_show_banner !== false,
+        default_footer_text: default_footer_text || 'GC Job Planner'
+      };
+      let saved;
+      if (list[0]) {
+        saved = await base44.asServiceRole.entities.AppSetting.update(list[0].id, data);
+      } else {
+        saved = await base44.asServiceRole.entities.AppSetting.create(data);
+      }
+      // Apply branding defaults to all email alert settings
+      const allAlerts = await base44.asServiceRole.entities.EmailAlertSetting.list();
+      const updates = allAlerts.map(function (a) {
+        return { id: a.id, accent_color: data.default_accent_color, banner_title: data.default_banner_title, show_banner: data.default_show_banner, footer_text: data.default_footer_text };
+      });
+      if (updates.length > 0) {
+        await base44.asServiceRole.entities.EmailAlertSetting.bulkUpdate(updates);
+      }
+      return Response.json({ saved: true, settings: saved });
+    }
+
     return Response.json({ error: 'Unknown action' }, { status: 400 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
