@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, HardHat, Sparkles, LogOut } from 'lucide-react';
+import { X, HardHat, Sparkles, LogOut, CalendarClock } from 'lucide-react';
 
-export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant }) {
+export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onScheduling }) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -39,12 +39,19 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
               </button>
             </div>
 
-            <div className="px-4 pt-4 pb-2">
+            <div className="px-4 pt-4 pb-2 space-y-2">
               <button onClick={onAssistant} type="button"
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-sm font-medium hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98] transition shadow-sm touch-manipulation select-none">
                 <Sparkles className="w-4 h-4" />
                 Ask Assistant
               </button>
+              {onScheduling && (
+                <button onClick={onScheduling} type="button"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-800/60 text-emerald-200 text-sm font-medium hover:bg-emerald-800 hover:text-white active:scale-[0.98] transition ring-1 ring-emerald-700/50 touch-manipulation select-none">
+                  <CalendarClock className="w-4 h-4" />
+                  Scheduling AI
+                </button>
+              )}
             </div>
 
             <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto overscroll-contain">

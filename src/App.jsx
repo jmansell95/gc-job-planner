@@ -15,6 +15,7 @@ import ClientPortal from './pages/ClientPortal';
 import DeliveryDashboard from './pages/DeliveryDashboard';
 import HelpGuide from './pages/HelpGuide';
 import { StaffAssistantProvider } from '@/components/StaffAssistantChat';
+import { SchedulingAssistantProvider } from '@/components/SchedulingAssistantChat';
 import AppBaseUrlSync from '@/components/AppBaseUrlSync';
 
 const AuthenticatedApp = () => {
@@ -45,8 +46,9 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <StaffAssistantProvider>
-      <AppBaseUrlSync />
-      <Routes>
+      <SchedulingAssistantProvider>
+        <AppBaseUrlSync />
+        <Routes>
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/" element={<Home />} />
           <Route path="/admin" element={<AdminDashboard />} />
@@ -58,6 +60,7 @@ const AuthenticatedApp = () => {
         <Route path="/client-portal/:token" element={<ClientPortal />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
+      </SchedulingAssistantProvider>
     </StaffAssistantProvider>
   );
 };

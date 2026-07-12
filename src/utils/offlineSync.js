@@ -8,7 +8,8 @@ import { base44 } from '@/api/base44Client';
 
 const STORAGE_KEYS = {
   BRIEFING: 'pending_briefing_signatures',
-  DELIVERY: 'pending_delivery_logs'
+  DELIVERY: 'pending_delivery_logs',
+  ACTIONS: 'pending_offline_actions'
 };
 
 // --- Generic queue helpers ---
@@ -199,15 +200,66 @@ async function syncDeliveryQueue() {
 }
 
 // ============================================================
+// GENERIC ACTION QUEUE — queue any entity create/update while offline
+// ============================================================
+
+export function saveOfflineAction({ entity_name, operation, data, entity_id }) {
+  const pending = getQueue(STORAGE_KEYS.ACTIONS);
+  pending.push({ entity_name, operation, data, entity_id, saved_at: new Date().toISOString() });
+  setQueue(STORAGE_KEYS.ACTIONS, pending);
+}
+
+export function getOfflineActionCount() {
+  return getQueue(STORAGE_KEYS.ACTIONS).length;
+}
+
+async function syncActionQueue() {
+  const pending = getQueue(STORAGE_KEYS.ACTIONS);
+  if (pending.length === 0) return 0;
+
+  const remaining = [];
+  let synced = 0;
+
+  for (const item of pending) {
+    try {
+      const entity = base44.entities[item.entity_name];
+      if (!entity) throw new Error(`Entity ${item.entity_name} not found`);
+
+      if (item.operation === 'create') {
+        await entity.create(item.data);
+      } else if (item.operation === 'update') {
+        await entity.update(item.entity_id, item.data);
+      } else if (item.operation === 'delete') {
+        await entity.delete(item.entity_id);
+      } else {
+        throw new Error(`Unknown operation: ${item.operation}`);
+      }
+      synced++;
+    } catch (err) {
+      console.error(`Sync error for ${item.entity_name} ${item.operation}:`, err);
+      // Keep failed items in queue for retry, but drop after 5 attempts
+      const attempts = (item.attempts || 0) + 1;
+      if (attempts < 5) {
+        remaining.push({ ...item, attempts });
+      }
+    }
+  }
+
+  setQueue(STORAGE_KEYS.ACTIONS, remaining);
+  return synced;
+}
+
+// ============================================================
 // UNIFIED SYNC — call this on the 'online' event
 // ============================================================
 
 export async function syncAllOfflineData() {
-  const [briefings, deliveries] = await Promise.all([
+  const [briefings, deliveries, actions] = await Promise.all([
     syncBriefingQueue(),
-    syncDeliveryQueue()
+    syncDeliveryQueue(),
+    syncActionQueue()
   ]);
-  return { briefings, deliveries, total: briefings + deliveries };
+  return { briefings, deliveries, actions, total: briefings + deliveries + actions };
 }
 
 // Backwards-compatible alias for existing code
@@ -218,5 +270,5 @@ export async function syncPendingBriefings() {
 
 // Total pending count across all queues (for the sync badge)
 export function getTotalOfflineCount() {
-  return getOfflineBriefingCount() + getOfflineDeliveryCount();
+  return getOfflineBriefingCount() + getOfflineDeliveryCount() + getOfflineActionCount();
 }

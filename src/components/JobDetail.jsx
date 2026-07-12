@@ -5,7 +5,8 @@ import {
   ArrowLeft, MapPin, Calendar, Users, Truck, FileText, Briefcase,
   Clock, Eye, Download, User, HardHat, Phone, Mail, Tag, Edit2,
   ShieldCheck, PlayCircle, CheckCircle2, MessageSquare,
-  UsersRound, CalendarClock, Send, AlertCircle, Cog, Wrench, Package
+  UsersRound, CalendarClock, Send, AlertCircle, Cog, Wrench, Package,
+  FileBarChart
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
@@ -75,6 +76,22 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const [editingId, setEditingId] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
+
+  const handleFullReport = async () => {
+    setGeneratingReport(true);
+    try {
+      const res = await base44.functions.invoke('generateJobReport', { jobId: job.id });
+      const win = window.open('', '_blank');
+      win.document.write(res.data.html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => win.print(), 500);
+    } catch (err) {
+      console.error('Report generation error:', err);
+    }
+    setGeneratingReport(false);
+  };
 
   const handleStatusSave = async (data) => {
     await base44.entities.Job.update(job.id, data);
@@ -290,19 +307,22 @@ export default function JobDetail({ job: initialJob, onBack }) {
   return (
     <div>
       {/* Top bar */}
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <button onClick={onBack} className="flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-900 font-medium transition">
           <ArrowLeft className="w-4 h-4" />
           Back to Jobs
         </button>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setShowStatusModal(true)} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
-            <AlertCircle className="w-4 h-4" /> Change Status
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={() => setShowStatusModal(true)} className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
+            <AlertCircle className="w-4 h-4" /> <span className="hidden sm:inline">Change</span> Status
           </button>
-          <button onClick={handleEdit} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-            <Edit2 className="w-4 h-4" /> Edit Job
+          <button onClick={handleEdit} className="flex items-center gap-2 px-3 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
+            <Edit2 className="w-4 h-4" /> Edit
           </button>
-          <PrintReportButton buildHtml={buildJobPrintHtml} label="Print Report" />
+          <PrintReportButton buildHtml={buildJobPrintHtml} label="Print" className="px-3 py-2" />
+          <button onClick={handleFullReport} disabled={generatingReport} className="flex items-center gap-2 px-3 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition text-sm font-medium disabled:opacity-50">
+            <FileBarChart className="w-4 h-4" /> {generatingReport ? 'Generating...' : 'Full Report'}
+          </button>
         </div>
       </div>
 
