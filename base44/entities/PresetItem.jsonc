@@ -1,0 +1,57 @@
+{
+  "name": "PresetItem",
+  "type": "object",
+  "properties": {
+    "preset_id": {
+      "type": "string",
+      "description": "CostPreset this item belongs to"
+    },
+    "description": {
+      "type": "string",
+      "description": "Item description (e.g. 'Casing hire', 'Excavator')"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "internal_equipment",
+        "hired_equipment",
+        "purchased_equipment"
+      ],
+      "default": "hired_equipment",
+      "description": "Equipment category \u2014 matches JobCostItem so items copy across cleanly"
+    },
+    "supplier_id": {
+      "type": "string",
+      "description": "Default supplier for this item (optional)"
+    },
+    "unit_cost": {
+      "type": "number",
+      "description": "Default net cost per unit in GBP"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "description": "Default quantity"
+    },
+    "unit_label": {
+      "type": "string",
+      "default": "day",
+      "description": "Unit label (day, hour, m, each)"
+    },
+    "vat_exempt": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this item is VAT exempt"
+    },
+    "sort_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order within the preset"
+    }
+  },
+  "required": [
+    "preset_id",
+    "description",
+    "unit_cost"
+  ]
+}

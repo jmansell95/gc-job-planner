@@ -6,6 +6,7 @@ import {
   Truck, Wrench, Percent, Calculator, Save, Package, FileCheck, Undo2, Upload, ExternalLink, AlertTriangle, ShoppingCart
 } from 'lucide-react';
 import { format, differenceInCalendarDays } from 'date-fns';
+import { useToast } from '@/components/ui/use-toast';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
@@ -92,6 +93,8 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
   const [form, setForm] = useState(blankForm());
   const [savingItem, setSavingItem] = useState(false);
   const [hireFilter, setHireFilter] = useState('active');
+  const [applyingPreset, setApplyingPreset] = useState(false);
+  const { toast } = useToast();
 
   // Off-hire modal state
   const [offHiringId, setOffHiringId] = useState(null);
@@ -112,6 +115,13 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
   const { data: jobTimesheets = [] } = useQuery({
     queryKey: ['job-timesheets-costing', job.id],
     queryFn: () => base44.entities.Timesheet.filter({ job_id: job.id })
+  });
+  const { data: presets = [] } = useQuery({
+    queryKey: ['cost-presets-active'],
+    queryFn: async () => {
+      const list = await base44.entities.CostPreset.filter({ is_active: true });
+      return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0) || a.name.localeCompare(b.name));
+    }
   });
 
   const itemNet = (c) => (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
@@ -193,6 +203,46 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
       setAdding(false); setEditingId(null); setForm(blankForm());
     } catch (err) { console.error(err); }
     setSavingItem(false);
+  };
+
+  const applyPreset = async (e) => {
+    const presetId = e.target.value;
+    if (!presetId) return;
+    e.target.value = '';
+    setApplyingPreset(true);
+    try {
+      const presetItems = await base44.entities.PresetItem.filter({ preset_id: presetId });
+      if (presetItems.length === 0) {
+        toast({ title: 'Preset is empty', description: 'Add items to this preset in Settings first.' });
+        return;
+      }
+      const preset = presets.find(p => p.id === presetId);
+      const payload = presetItems.map(item => ({
+        job_id: job.id,
+        category: item.category || 'hired_equipment',
+        supplier_id: item.supplier_id || '',
+        description: item.description,
+        reference_number: '',
+        po_number: '',
+        start_date: '',
+        end_date: '',
+        unit_cost: Number(item.unit_cost) || 0,
+        quantity: Number(item.quantity) || 1,
+        unit_label: item.unit_label || 'each',
+        vat_exempt: !!item.vat_exempt,
+        hire_status: 'active',
+        delivery_notes: '',
+        collection_notes: '',
+        notes: ''
+      }));
+      await base44.entities.JobCostItem.bulkCreate(payload);
+      queryClient.invalidateQueries({ queryKey: ['job-cost-items', job.id] });
+      toast({ title: `Added ${payload.length} items`, description: `From "${preset?.name || 'Preset'}" — adjust prices or dates as needed.` });
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Error', description: 'Could not apply preset.' });
+    }
+    setApplyingPreset(false);
   };
 
   const editItem = (c) => {
@@ -344,9 +394,17 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
           <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
             <h3 className="text-sm font-semibold text-slate-800 inline-flex items-center gap-1.5"><Truck className="w-4 h-4 text-emerald-700" /> Equipment & Hire</h3>
             {!adding && (
-              <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition">
-                <Plus className="w-3.5 h-3.5" /> Add item
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition">
+                  <Plus className="w-3.5 h-3.5" /> Add item
+                </button>
+                {presets.length > 0 && (
+                  <select value="" onChange={applyPreset} disabled={applyingPreset} className="text-xs px-2.5 py-1 rounded-lg border border-emerald-200 bg-white text-emerald-700 font-medium hover:bg-emerald-50 cursor-pointer disabled:opacity-50">
+                    <option value="">{applyingPreset ? 'Adding…' : '📋 Add from preset…'}</option>
+                    {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                )}
+              </div>
             )}
           </div>
 

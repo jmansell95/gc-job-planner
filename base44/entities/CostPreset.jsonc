@@ -1,0 +1,31 @@
+{
+  "name": "CostPreset",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Preset name (e.g. 'Rotary Rig Setup', 'Groundworks Starter Kit')"
+    },
+    "description": {
+      "type": "string",
+      "description": "What this preset is for / when to use it"
+    },
+    "category": {
+      "type": "string",
+      "description": "Optional grouping label (e.g. 'drilling', 'groundworks')"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this preset is available for selection on jobs"
+    },
+    "sort_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order (lower = first in dropdowns)"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

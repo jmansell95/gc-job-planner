@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Users, Truck, HardHat, Building2, CalendarX, Mail, PoundSterling, Package, Timer, Zap, Tag, Wrench, Banknote } from 'lucide-react';
+import { Settings, Users, Truck, HardHat, Building2, CalendarX, Mail, PoundSterling, Package, Timer, Zap, Tag, Wrench, Banknote, Boxes } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import PillTabs from '@/components/PillTabs';
 import StaffManager from '@/components/StaffManager';
@@ -15,6 +15,7 @@ import AutomationCenter from '@/components/AutomationCenter';
 import JobTypeManager from '@/components/JobTypeManager';
 import SiteAssetManager from '@/components/SiteAssetManager';
 import BillingRulesManager from '@/components/BillingRulesManager';
+import CostPresetManager from '@/components/CostPresetManager';
 
 const tabs = [
   { id: 'staff', label: 'Crew', icon: Users },
@@ -30,6 +31,7 @@ const tabs = [
   { id: 'assets', label: 'Assets', icon: Wrench },
   { id: 'job-types', label: 'Job Types', icon: Tag },
   { id: 'billing', label: 'Billing Rules', icon: Banknote },
+  { id: 'presets', label: 'Presets', icon: Boxes },
 ];
 
 const tabDescriptions = {
@@ -46,6 +48,7 @@ const tabDescriptions = {
   'job-types': 'Manage job types and colours',
   assets: 'Rigs, machinery & trailers — linked to GC Compliance Manager',
   billing: 'Delivery, task & consumable pricing rules',
+  presets: 'Standard equipment lists — add to any job in one click',
 };
 
 export default function SettingsPage({ initialTab }) {
@@ -74,6 +77,7 @@ export default function SettingsPage({ initialTab }) {
       {activeTab === 'job-types' && <JobTypeManager />}
       {activeTab === 'assets' && <SiteAssetManager />}
       {activeTab === 'billing' && <BillingRulesManager />}
+      {activeTab === 'presets' && <CostPresetManager />}
     </div>
   );
 }
