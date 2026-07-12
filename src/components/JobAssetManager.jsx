@@ -276,14 +276,14 @@ export default function JobAssetManager({ job, isDrillingJob }) {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 px-5 pt-4 border-b border-slate-200">
+      <div className="flex gap-1 px-5 pt-4 border-b border-slate-200 overflow-x-auto no-scrollbar">
         {tabs.map(tabKey => {
           const cfg = tabConfig[tabKey];
           const TabIcon = cfg.icon;
           const count = tabKey === 'rigs' ? rigAssignments.length : tabKey === 'lifting' ? standaloneLifting.length : tabKey === 'trailers' ? standaloneTrailers.length : standaloneMachinery.length;
           return (
             <button key={tabKey} type="button" onClick={() => setActiveTab(tabKey)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition ${activeTab === tabKey ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition flex-shrink-0 whitespace-nowrap ${activeTab === tabKey ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
               <TabIcon className="w-3.5 h-3.5" /> {cfg.label}
               <span className="ml-0.5 text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full">{count}</span>
             </button>
