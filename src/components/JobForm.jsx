@@ -1,9 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Briefcase, CalendarDays, Users, PoundSterling, StickyNote, FileText, Upload, Eye, Download, RefreshCw, X, Ruler, UsersRound, Package } from 'lucide-react';
+import { Briefcase, CalendarDays, Users, PoundSterling, StickyNote, FileText, Upload, Eye, Download, RefreshCw, X, Ruler, UsersRound } from 'lucide-react';
 import { isDrillingJobType } from '@/utils/jobTeams';
-import EquipmentListEditor from '@/components/EquipmentListEditor';
+import EquipmentManager from '@/components/EquipmentManager';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
@@ -154,13 +154,15 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
         </Field>
       </Section>
 
-      {/* Equipment List — only for new jobs */}
+      {/* Equipment & Hire — only for new jobs */}
       {!editingId && (
-        <Section title="Equipment List" icon={Package} className="border-t pt-5 border-slate-100">
-          <Field label="Items to track" full hint="Auto-starts at depot — ready for delivery to site">
-            <EquipmentListEditor items={formData.equipment_items || []} setItems={(items) => setFormData({ ...formData, equipment_items: items })} />
-          </Field>
-        </Section>
+        <div className="border-t pt-5 border-slate-100">
+          <EquipmentManager
+            items={formData.equipment_items || []}
+            onItemsChange={(items) => setFormData({ ...formData, equipment_items: items })}
+            job={formData}
+          />
+        </div>
       )}
 
       {/* Requisition */}

@@ -92,11 +92,18 @@ export default function JobManager({ onNavigateRota }) {
             await base44.entities.JobCostItem.bulkCreate(
               equipment_items.map(item => ({
                 job_id: savedJob.id,
+                category: item.category || 'hired_equipment',
+                supplier_id: item.supplier_id || '',
                 description: item.description,
-                quantity: item.quantity || 1,
-                category: 'hired_equipment',
-                unit_cost: 0,
-                unit_label: 'each',
+                reference_number: item.reference_number || '',
+                po_number: item.po_number || '',
+                start_date: item.start_date || '',
+                end_date: item.end_date || '',
+                unit_cost: Number(item.unit_cost) || 0,
+                quantity: Number(item.quantity) || 1,
+                unit_label: item.unit_label || 'each',
+                vat_exempt: !!item.vat_exempt,
+                notes: item.notes || '',
                 hire_status: 'active',
                 current_location: 'yard'
               }))

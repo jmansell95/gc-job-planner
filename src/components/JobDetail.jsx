@@ -16,6 +16,7 @@ import PortalSectionManager from '@/components/PortalSectionManager';
 import DocumentManager from '@/components/DocumentManager';
 import MilestoneManager from '@/components/MilestoneManager';
 import JobCostingManager from '@/components/JobCostingManager';
+import EquipmentManager from '@/components/EquipmentManager';
 import JobCommentsViewer from '@/components/JobCommentsViewer';
 import JobWorkLog from '@/components/JobWorkLog';
 import JobPhotoGallery from '@/components/JobPhotoGallery';
@@ -758,6 +759,11 @@ export default function JobDetail({ job: initialJob, onBack }) {
 
           {/* Site Photos */}
           <JobPhotoGallery job={job} />
+
+          {/* Equipment & Hire — restricted to admins and managers */}
+          {canSeeCosts && (
+            <EquipmentManager jobId={job.id} job={job} suppliers={suppliers} />
+          )}
 
           {/* Job Costing & Billing — restricted to admins and managers */}
           {canSeeCosts && (
