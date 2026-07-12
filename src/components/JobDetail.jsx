@@ -28,6 +28,7 @@ import JobHotelBookings from '@/components/JobHotelBookings';
 import DeliveryManager from '@/components/delivery/DeliveryManager';
 import JobAssetManager from '@/components/JobAssetManager';
 import InvestigationLogManager from '@/components/InvestigationLogManager';
+import SiteManifest from '@/components/SiteManifest';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-emerald-100', text: 'text-emerald-800', dot: 'bg-emerald-500', border: 'border-emerald-200' },
@@ -55,13 +56,14 @@ const workerTypeBadge = {
 const statusBadge = {
   planning: 'bg-slate-100 text-slate-600',
   in_progress: 'bg-emerald-100 text-emerald-700',
+  decommissioning: 'bg-orange-100 text-orange-700',
   completed: 'bg-teal-100 text-teal-700',
   on_hold: 'bg-amber-100 text-amber-700',
   cancelled: 'bg-red-100 text-red-700',
 };
 
 const statusLabels = {
-  planning: 'Planning', in_progress: 'In Progress', completed: 'Completed', on_hold: 'On Hold', cancelled: 'Cancelled',
+  planning: 'Planning', in_progress: 'In Progress', decommissioning: 'Decommissioning', completed: 'Completed', on_hold: 'On Hold', cancelled: 'Cancelled',
 };
 
 export default function JobDetail({ job: initialJob, onBack }) {
@@ -196,6 +198,11 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const { data: contractors = [] } = useQuery({
     queryKey: ['contractors'],
     queryFn: () => base44.entities.Contractor.list()
+  });
+
+  const { data: suppliers = [] } = useQuery({
+    queryKey: ['suppliers-job-detail'],
+    queryFn: () => base44.entities.Supplier.list()
   });
 
   const { data: rotas = [] } = useQuery({
@@ -424,6 +431,22 @@ export default function JobDetail({ job: initialJob, onBack }) {
               </div>
               <p className="text-[11px] text-slate-500">{job.status === 'in_progress' || job.status === 'completed' ? 'Job activated & staff emailed' : 'Submit the rota week to email staff'}</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Decommissioning guidance banner */}
+      {job.status === 'decommissioning' && (
+        <div className="rounded-2xl p-5 mb-6 bg-gradient-to-br from-orange-50 to-amber-50/60 border border-orange-200">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="w-5 h-5 text-orange-600" />
+            <h3 className="font-bold text-slate-900 text-sm">Site Decommissioning — Collect All Equipment</h3>
+          </div>
+          <p className="text-xs text-slate-600 mb-3">Work is complete. Use the Site Manifest below to track collection of every item from site. Items can be collected during the job too — the manifest shows what's still on site.</p>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setShowStatusModal(true)} className="px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 transition">
+              Mark Completed
+            </button>
           </div>
         </div>
       )}
@@ -730,6 +753,9 @@ export default function JobDetail({ job: initialJob, onBack }) {
 
           {/* Accommodations */}
           <JobHotelBookings job={job} assignedStaff={assignedStaff} allStaff={allStaff} />
+
+          {/* Site Manifest — visual asset lifecycle tracker */}
+          <SiteManifest jobId={job.id} job={job} suppliers={suppliers} contractors={contractors} isDecommissioning={job.status === 'decommissioning'} />
 
           {/* Deliveries & Collections */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">

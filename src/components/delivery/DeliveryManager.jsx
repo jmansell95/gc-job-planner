@@ -134,6 +134,18 @@ export default function DeliveryManager({ jobId, jobName }) {
           });
         }
       } catch (calcErr) { console.error('Charge calc error:', calcErr); }
+      // Auto-update linked cost item locations
+      const linkedIds = Array.isArray(formData.linked_cost_item_ids) ? formData.linked_cost_item_ids : [];
+      if (linkedIds.length > 0 && savedId) {
+        const newLocation = formData.delivery_type === 'supplier_collection' ? 'in_transit' : 'in_transit';
+        try {
+          await base44.entities.JobCostItem.bulkUpdate(
+            linkedIds.map(id => ({ id, current_location: newLocation, location_updated_at: new Date().toISOString() }))
+          );
+          queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', jobId] });
+          queryClient.invalidateQueries({ queryKey: ['job-cost-items', jobId] });
+        } catch (e) { console.error('Item location update error:', e); }
+      }
       queryClient.invalidateQueries({ queryKey: ['job-deliveries', jobId] });
       setFormData({
         delivery_type: 'site_delivery',

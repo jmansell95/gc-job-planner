@@ -22,12 +22,13 @@ const jobTypeBadges = {
 };
 
 const statusLabels = {
-  planning: 'Planning', in_progress: 'In Progress', completed: 'Completed', on_hold: 'On Hold'
+  planning: 'Planning', in_progress: 'In Progress', decommissioning: 'Decommissioning', completed: 'Completed', on_hold: 'On Hold'
 };
 
 const statusColors = {
   planning: 'bg-slate-100 text-slate-600',
   in_progress: 'bg-emerald-100 text-emerald-700',
+  decommissioning: 'bg-orange-100 text-orange-700',
   completed: 'bg-teal-100 text-teal-700',
   on_hold: 'bg-amber-100 text-amber-700'
 };

@@ -183,7 +183,7 @@ export default function DeliveryDashboard() {
         photoUrls = uploaded.join(',');
       }
 
-      await base44.entities.DeliveryLog.update(deliveryId, {
+      const updated = await base44.entities.DeliveryLog.update(deliveryId, {
         status: 'completed',
         completed_at: data.completed_at,
         signature_url: signatureUrl,
@@ -194,6 +194,22 @@ export default function DeliveryDashboard() {
         condition_report: data.condition_report,
         synced_from_offline: false
       });
+
+      // Auto-update linked cost item locations based on delivery type
+      const linkedIds = (updated.linked_cost_item_ids || '').split(',').map(s => s.trim()).filter(Boolean);
+      if (linkedIds.length > 0) {
+        const newLocation = updated.delivery_type === 'supplier_collection' ? 'returned' : 'site';
+        const updates = linkedIds.map(id => ({
+          id,
+          current_location: newLocation,
+          location_updated_at: new Date().toISOString(),
+          ...(newLocation === 'returned' ? {
+            hire_status: 'off_hired',
+            off_hire_date: new Date().toISOString().split('T')[0]
+          } : {})
+        }));
+        try { await base44.entities.JobCostItem.bulkUpdate(updates); } catch (e) { console.error('Item location sync error:', e); }
+      }
 
       queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
       toast({ title: 'Delivery signed off', description: 'Proof of delivery recorded.' });

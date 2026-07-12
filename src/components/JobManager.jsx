@@ -34,13 +34,14 @@ const jobTypeBar = {
 const statusBadge = {
   planning: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
   in_progress: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
+  decommissioning: 'bg-orange-100 text-orange-700 ring-1 ring-orange-200',
   completed: 'bg-teal-100 text-teal-700 ring-1 ring-teal-200',
   on_hold: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
   cancelled: 'bg-red-100 text-red-700 ring-1 ring-red-200',
 };
 
 const statusLabels = {
-  planning: 'Planning', in_progress: 'In Progress', completed: 'Completed', on_hold: 'On Hold', cancelled: 'Cancelled',
+  planning: 'Planning', in_progress: 'In Progress', decommissioning: 'Decommissioning', completed: 'Completed', on_hold: 'On Hold', cancelled: 'Cancelled',
 };
 
 const emptyForm = {

@@ -74,6 +74,25 @@
       "default": "active",
       "description": "Whether hired equipment is still on site or returned to supplier"
     },
+    "current_location": {
+      "type": "string",
+      "enum": [
+        "yard",
+        "in_transit",
+        "site",
+        "returned"
+      ],
+      "default": "yard",
+      "description": "Live tracking of where this item physically is: yard (at depot), in_transit (on a vehicle), site (on the job), returned (collected and returned to depot/supplier/contractor)"
+    },
+    "return_destination": {
+      "type": "string",
+      "description": "Where this item was returned to when collected: 'depot', a supplier_id, or a contractor_id. Set when current_location becomes 'returned'."
+    },
+    "location_updated_at": {
+      "type": "string",
+      "description": "ISO timestamp of when current_location was last changed"
+    },
     "off_hire_date": {
       "type": "string",
       "format": "date",

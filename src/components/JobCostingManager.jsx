@@ -15,8 +15,7 @@ const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outl
 const blankForm = () => ({
   category: 'hired_equipment', supplier_id: '', description: '',
   reference_number: '', po_number: '', start_date: '', end_date: '',
-  unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: '',
-  delivery_notes: '', collection_notes: ''
+  unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: ''
 });
 
 const complianceBadge = {
@@ -26,10 +25,11 @@ const complianceBadge = {
   unknown: { label: 'Check', cls: 'bg-slate-50 text-slate-500 border-slate-200', icon: ShieldAlert }
 };
 
-const deliveryStatusBadge = {
-  planned: { label: 'Planned', cls: 'bg-slate-100 text-slate-500', icon: Clock },
-  on_site: { label: 'On Site', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-200', icon: MapPin },
-  returned: { label: 'Returned', cls: 'bg-blue-50 text-blue-700 border border-blue-200', icon: CheckCircle2 }
+const locationBadge = {
+  yard: { label: 'At Depot', cls: 'bg-slate-100 text-slate-500', icon: Clock },
+  in_transit: { label: 'In Transit', cls: 'bg-blue-50 text-blue-700 border border-blue-200', icon: Truck },
+  site: { label: 'On Site', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-200', icon: MapPin },
+  returned: { label: 'Returned', cls: 'bg-teal-50 text-teal-700 border border-teal-200', icon: CheckCircle2 }
 };
 
 function BudgetMarginTracker({ budget, actualNet, clientNet, markup }) {
@@ -164,20 +164,9 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
   const returnedItems = items.filter(c => c.hire_status === 'off_hired');
   const visibleItems = hireFilter === 'active' ? activeItems : returnedItems;
 
-  const getItemDeliveryStatus = (item) => {
-    const linkedDeliveries = deliveries.filter(d => {
-      const ids = (d.linked_cost_item_ids || '').split(',').map(s => s.trim()).filter(Boolean);
-      return ids.includes(item.id) || d.linked_cost_item_id === item.id;
-    });
-    const completedSiteDelivery = linkedDeliveries.find(d => d.delivery_type === 'site_delivery' && d.status === 'completed');
-    if (completedSiteDelivery) {
-      const completedCollection = linkedDeliveries.find(d =>
-        (d.delivery_type === 'supplier_collection' || d.delivery_type === 'item_handover') && d.status === 'completed'
-      );
-      if (completedCollection) return { status: 'returned', delivery: completedCollection };
-      return { status: 'on_site', delivery: completedSiteDelivery };
-    }
-    return { status: 'planned', delivery: null };
+  const getItemLocation = (item) => {
+    const loc = item.current_location || 'yard';
+    return { status: loc, delivery: null };
   };
 
   const configDirty = (job.markup_percentage ?? 0) !== (Number(markup) || 0) || (job.vat_rate ?? 20) !== (Number(vatRate) || 0);
@@ -224,8 +213,6 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
         quantity: effectiveQty,
         unit_label: form.unit_label,
         vat_exempt: !!form.vat_exempt,
-        delivery_notes: form.delivery_notes || '',
-        collection_notes: form.collection_notes || '',
         notes: form.notes || ''
       };
       if (editingId) {
@@ -266,8 +253,7 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
         unit_label: item.unit_label || 'each',
         vat_exempt: !!item.vat_exempt,
         hire_status: 'active',
-        delivery_notes: '',
-        collection_notes: '',
+        current_location: 'yard',
         notes: ''
       }));
       await base44.entities.JobCostItem.bulkCreate(payload);
@@ -288,7 +274,6 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
       start_date: c.start_date || '', end_date: c.end_date || '',
       unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
       unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt,
-      delivery_notes: c.delivery_notes || '', collection_notes: c.collection_notes || '',
       notes: c.notes || ''
     });
     setAdding(true);
@@ -530,15 +515,9 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                   <input type="checkbox" checked={form.vat_exempt} onChange={(e) => setForm({ ...form, vat_exempt: e.target.checked })} className="rounded border-slate-300 text-emerald-700 focus:ring-emerald-600" />
                   VAT exempt (zero-rated item)
                 </label>
-                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Delivery Notes</label>
-                    <textarea value={form.delivery_notes} onChange={(e) => setForm({ ...form, delivery_notes: e.target.value })} rows="2" placeholder="Delivery address, contact, timing" className={inputCls} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">Collection Notes</label>
-                    <textarea value={form.collection_notes} onChange={(e) => setForm({ ...form, collection_notes: e.target.value })} rows="2" placeholder="Collection date, contact, return condition" className={inputCls} />
-                  </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Notes</label>
+                  <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows="2" placeholder="Any special notes about this item" className={inputCls} />
                 </div>
               </div>
               <div className="flex gap-2">
@@ -610,7 +589,7 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                 const supplier = suppliers.find(s => s.id === c.supplier_id);
                 const net = itemNet(c);
                 const linkedAsset = c.site_asset_id ? siteAssets.find(a => a.id === c.site_asset_id) : null;
-                const deliveryStatus = getItemDeliveryStatus(c);
+                const deliveryStatus = getItemLocation(c);
                 return (
                   <div key={c.id} className="border border-slate-200 bg-white rounded-lg p-3 flex items-start gap-3 transition">
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -633,7 +612,7 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                           return <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1 border ${cb.cls}`}><CIcon className="w-2.5 h-2.5" />{cb.label}</span>;
                         })()}
                         {(() => {
-                          const sb = deliveryStatusBadge[deliveryStatus.status];
+                          const sb = locationBadge[deliveryStatus.status] || locationBadge.yard;
                           const SIcon = sb.icon;
                           return <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1 ${sb.cls}`}><SIcon className="w-2.5 h-2.5" />{sb.label}</span>;
                         })()}
@@ -643,30 +622,14 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                         {supplier && ` · ${supplier.name}`}
                         {` · ${c.quantity} ${c.unit_label}${c.quantity > 1 ? 's' : ''}`}
                       </p>
-                      {deliveryStatus.delivery && (
-                        <p className="text-xs text-emerald-600 mt-0.5 flex items-center gap-1">
-                          <Truck className="w-3 h-3" />
-                          {deliveryStatus.status === 'on_site' ? 'Delivered to site' : 'Collected from site'}
-                          {' · '}{deliveryStatus.delivery.completed_at ? format(new Date(deliveryStatus.delivery.completed_at), 'dd MMM HH:mm') : format(new Date(deliveryStatus.delivery.scheduled_date + 'T00:00:00'), 'dd MMM')}
-                          {' by '}{deliveryStatus.delivery.driver_staff_name || 'driver'}
-                          {deliveryStatus.delivery.signed_by_name && ` · Signed by ${deliveryStatus.delivery.signed_by_name}`}
+                      {deliveryStatus.status !== 'yard' && (
+                        <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                          {deliveryStatus.status === 'in_transit' && <Truck className="w-3 h-3 text-blue-500" />}
+                          {deliveryStatus.status === 'site' && <MapPin className="w-3 h-3 text-emerald-500" />}
+                          {deliveryStatus.status === 'returned' && <CheckCircle2 className="w-3 h-3 text-teal-500" />}
+                          {deliveryStatus.status === 'in_transit' ? 'Loaded on vehicle' : deliveryStatus.status === 'site' ? 'On site' : 'Collected & returned'}
+                          {c.location_updated_at && ` · ${format(new Date(c.location_updated_at), 'dd MMM HH:mm')}`}
                         </p>
-                      )}
-                      {(c.delivery_notes || c.collection_notes) && (
-                        <div className="mt-1.5 space-y-1">
-                          {c.delivery_notes && (
-                            <div className="flex items-start gap-1.5 text-xs text-slate-500">
-                              <Truck className="w-3 h-3 text-amber-500 mt-0.5 flex-shrink-0" />
-                              <span><span className="font-medium text-slate-600">Delivery:</span> {c.delivery_notes}</span>
-                            </div>
-                          )}
-                          {c.collection_notes && (
-                            <div className="flex items-start gap-1.5 text-xs text-slate-500">
-                              <Truck className="w-3 h-3 text-blue-500 mt-0.5 flex-shrink-0" />
-                              <span><span className="font-medium text-slate-600">Collection:</span> {c.collection_notes}</span>
-                            </div>
-                          )}
-                        </div>
                       )}
                       {c.category === 'hired_equipment' && (
                         <button onClick={() => openOffHire(c)} className="mt-2 inline-flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-900 font-medium bg-amber-50 hover:bg-amber-100 px-2.5 py-1.5 rounded-lg transition">

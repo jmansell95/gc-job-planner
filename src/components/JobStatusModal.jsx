@@ -6,7 +6,8 @@ const REASON_REQUIRED = ['on_hold', 'cancelled'];
 const STATUS_OPTIONS = [
   { value: 'planning', label: 'Planning', desc: 'Back to planning stage', tone: 'slate' },
   { value: 'in_progress', label: 'In Progress', desc: 'Work is actively underway', tone: 'emerald' },
-  { value: 'completed', label: 'Completed', desc: 'Job finished', tone: 'teal' },
+  { value: 'decommissioning', label: 'Decommissioning', desc: 'Work done — collecting equipment from site', tone: 'amber' },
+  { value: 'completed', label: 'Completed', desc: 'All equipment returned, job finished', tone: 'teal' },
   { value: 'on_hold', label: 'On Hold', desc: 'Temporarily paused — reason required', tone: 'amber' },
   { value: 'cancelled', label: 'Cancelled', desc: 'Job cancelled — reason required', tone: 'red' },
 ];
@@ -17,6 +18,7 @@ const toneCls = {
   teal: 'border-teal-300 bg-teal-50 text-teal-700',
   amber: 'border-amber-300 bg-amber-50 text-amber-700',
   red: 'border-red-300 bg-red-50 text-red-700',
+  orange: 'border-orange-300 bg-orange-50 text-orange-700',
 };
 
 export default function JobStatusModal({ job, onClose, onSave }) {

@@ -30,12 +30,13 @@
       "enum": [
         "planning",
         "in_progress",
+        "decommissioning",
         "completed",
         "on_hold",
         "cancelled"
       ],
       "default": "planning",
-      "description": "Job status. New jobs start in 'planning', automatically move to 'in_progress' when the rota is published, and can be manually set to 'on_hold', 'completed', or 'cancelled' from the job detail page."
+      "description": "Job status. New jobs start in 'planning', automatically move to 'in_progress' when the rota is published, then to 'decommissioning' when work finishes and equipment is being collected, and finally 'completed' once all items are returned."
     },
     "status_reason": {
       "type": "string",
