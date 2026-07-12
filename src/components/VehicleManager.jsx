@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Truck, Wrench, CalendarClock } from 'lucide-react';
+import { Plus, Trash2, Edit2, Truck, Wrench, CalendarClock, Weight } from 'lucide-react';
 import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
 import { format, differenceInDays } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
@@ -9,7 +9,8 @@ import { TableSkeleton } from '@/components/StateViews';
 
 const emptyForm = {
   name: '', registration_number: '', assigned_staff_id: '', team_id: '',
-  mot_expiry: '', service_due_date: '', last_service_date: ''
+  mot_expiry: '', service_due_date: '', last_service_date: '',
+  max_weight_kg: '', max_volume_m3: ''
 };
 
 function getMaintenanceStatus(vehicle) {
@@ -124,6 +125,16 @@ export default function VehicleManager() {
               <input type="date" value={formData.last_service_date || ''} onChange={e => setFormData({ ...formData, last_service_date: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
             </div>
+            <div>
+              <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1"><Weight className="w-3 h-3" /> Max Weight (kg)</label>
+              <input type="number" min="0" step="1" value={formData.max_weight_kg || ''} onChange={e => setFormData({ ...formData, max_weight_kg: e.target.value === '' ? '' : Number(e.target.value) })}
+                placeholder="e.g. 3500" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Max Volume (m³)</label>
+              <input type="number" min="0" step="0.1" value={formData.max_volume_m3 || ''} onChange={e => setFormData({ ...formData, max_volume_m3: e.target.value === '' ? '' : Number(e.target.value) })}
+                placeholder="e.g. 12.5" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+            </div>
           </div>
           <div className="flex gap-2 mt-5">
             <button type="submit" className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">
@@ -153,6 +164,7 @@ export default function VehicleManager() {
                   <th className="px-4 py-3 text-left font-semibold">Description</th>
                   <th className="px-4 py-3 text-left font-semibold">Team</th>
                   <th className="px-4 py-3 text-left font-semibold">Assigned To</th>
+                  <th className="px-4 py-3 text-left font-semibold">Capacity</th>
                   <th className="px-4 py-3 text-left font-semibold">Maintenance</th>
                   <th className="px-4 py-3 text-left font-semibold w-20">Actions</th>
                 </tr>
@@ -168,6 +180,14 @@ export default function VehicleManager() {
                       <td className="px-4 py-3 text-slate-700">{v.name}</td>
                       <td className="px-4 py-3 text-slate-600">{team?.name || '—'}</td>
                       <td className="px-4 py-3 text-slate-600">{assignedStaff?.name || '—'}</td>
+                      <td className="px-4 py-3 text-slate-600 text-xs">
+                        {v.max_weight_kg || v.max_volume_m3 ? (
+                          <span className="flex flex-col gap-0.5">
+                            {v.max_weight_kg && <span className="flex items-center gap-1"><Weight className="w-3 h-3 text-slate-400" />{Number(v.max_weight_kg).toLocaleString()} kg</span>}
+                            {v.max_volume_m3 && <span>{Number(v.max_volume_m3)} m³</span>}
+                          </span>
+                        ) : <span className="text-slate-300">—</span>}
+                      </td>
                       <td className="px-4 py-3">
                         {issues.length === 0 ? (
                           <span className="text-xs text-emerald-600 flex items-center gap-1"><Wrench className="w-3 h-3" /> Up to date</span>
@@ -226,6 +246,8 @@ export default function VehicleManager() {
                         {issue.label}
                       </span>
                     ))}
+                    {v.max_weight_kg && <span className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full flex items-center gap-1"><Weight className="w-3 h-3" />{Number(v.max_weight_kg).toLocaleString()} kg</span>}
+                    {v.max_volume_m3 && <span className="bg-purple-50 text-purple-600 px-2.5 py-1 rounded-full">{Number(v.max_volume_m3)} m³</span>}
                     {issues.length === 0 && v.mot_expiry && <span className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full">MOT: {format(new Date(v.mot_expiry + 'T00:00:00'), 'dd MMM yy')}</span>}
                   </div>
                 </div>

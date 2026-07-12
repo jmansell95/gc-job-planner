@@ -32,6 +32,14 @@
       "type": "string",
       "format": "date",
       "description": "Date of last service"
+    },
+    "max_weight_kg": {
+      "type": "number",
+      "description": "Maximum payload weight in kg this vehicle can safely carry"
+    },
+    "max_volume_m3": {
+      "type": "number",
+      "description": "Maximum cargo volume in cubic metres this vehicle can hold"
     }
   },
   "required": [

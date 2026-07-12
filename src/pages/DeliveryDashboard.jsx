@@ -257,10 +257,19 @@ export default function DeliveryDashboard() {
   const upcoming = deliveries.filter(d => isFuture(new Date(d.scheduled_date + 'T00:00:00')) && d.scheduled_date !== todayStr && d.status !== 'completed');
   const completed = deliveries.filter(d => d.status === 'completed').sort((a, b) => new Date(b.completed_at || b.scheduled_date) - new Date(a.completed_at || a.scheduled_date)).slice(0, 10);
 
+  const vehicleDateWeightMap = {};
+  deliveries.forEach(d => {
+    if (d.vehicle_id && d.scheduled_date) {
+      const key = `${d.vehicle_id}_${d.scheduled_date}`;
+      vehicleDateWeightMap[key] = (vehicleDateWeightMap[key] || 0) + (Number(d.weight_kg) || 0);
+    }
+  });
+
   const cardProps = (delivery) => ({
     delivery,
     job: jobs.find(j => j.id === delivery.job_id),
     vehicle: vehicles.find(v => v.id === delivery.vehicle_id),
+    vehicleTotalWeight: vehicleDateWeightMap[`${delivery.vehicle_id}_${delivery.scheduled_date}`] || 0,
     onStart: handleStart,
     onComplete: (d) => setCompleteDelivery(d),
     canPerformActions,

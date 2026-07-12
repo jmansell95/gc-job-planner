@@ -42,6 +42,10 @@
       "type": "string",
       "description": "Comma-separated or free-text list of items being delivered/collected"
     },
+    "linked_cost_item_ids": {
+      "type": "string",
+      "description": "Comma-separated IDs of JobCostItem groups linked to this delivery \u2014 used to auto-populate items and track which material sets are on this load"
+    },
     "pickup_address": {
       "type": "string",
       "description": "Where to collect/pick up the items from (supplier yard, depot, etc.)"
@@ -120,10 +124,18 @@
       "type": "string",
       "description": "Vehicle used for this delivery"
     },
+    "weight_kg": {
+      "type": "number",
+      "description": "Weight of this delivery's items in kg \u2014 used for vehicle capacity checks. Manager-only field."
+    },
+    "volume_m3": {
+      "type": "number",
+      "description": "Volume of this delivery's items in cubic metres \u2014 used for vehicle capacity checks. Manager-only field."
+    },
     "chargeable": {
       "type": "boolean",
       "default": true,
-      "description": "Whether this delivery is chargeable to the client. All drives are chargeable by default; toggle off for goodwill/free visits."
+      "description": "Whether this delivery is chargeable to the client. All drives are chargeable by default; toggle off for goodwill/free visits. Internal handovers (item_handover) default to not chargeable."
     },
     "billing_rule_id": {
       "type": "string",

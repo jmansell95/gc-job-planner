@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Navigation, Truck, Package, Clock, CheckCircle2, PlayCircle, Phone, FileText, ChevronDown, CloudOff, Building2, ArrowRightLeft } from 'lucide-react';
+import { MapPin, Navigation, Truck, Package, Clock, CheckCircle2, PlayCircle, Phone, FileText, ChevronDown, CloudOff, Building2, ArrowRightLeft, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 const typeConfig = {
@@ -16,7 +16,7 @@ const statusConfig = {
   failed: { label: 'Failed', icon: Clock, badge: 'bg-red-50 text-red-700 ring-1 ring-red-200' }
 };
 
-export default function DeliveryCard({ delivery, job, vehicle, onStart, onComplete, canPerformActions = true, isOfflinePending = false, defaultExpanded = false }) {
+export default function DeliveryCard({ delivery, job, vehicle, vehicleTotalWeight = 0, onStart, onComplete, canPerformActions = true, isOfflinePending = false, defaultExpanded = false }) {
   const [expanded, setExpanded] = useState(defaultExpanded || delivery.status === 'in_progress');
   const type = typeConfig[delivery.delivery_type] || typeConfig.site_delivery;
   const status = statusConfig[delivery.status] || statusConfig.pending;
@@ -34,6 +34,25 @@ export default function DeliveryCard({ delivery, job, vehicle, onStart, onComple
       className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
     >
       <div className={`h-1.5 ${type.accent}`} />
+
+      {/* Weight safety banner — driver only needs green tick / red cross */}
+      {vehicle?.max_weight_kg && !isCompleted && (
+        <div className={`flex items-center gap-2 px-4 py-2.5 ${vehicleTotalWeight > vehicle.max_weight_kg ? 'bg-red-50 border-b border-red-200' : 'bg-emerald-50 border-b border-emerald-200'}`}>
+          {vehicleTotalWeight > vehicle.max_weight_kg ? (
+            <>
+              <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <p className="text-sm font-bold text-red-700">Overweight — do not drive</p>
+              <span className="ml-auto text-xs font-semibold text-red-500">{Math.round(vehicleTotalWeight)} / {vehicle.max_weight_kg} kg</span>
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+              <p className="text-sm font-bold text-emerald-700">Under weight — safe to drive</p>
+              <span className="ml-auto text-xs font-semibold text-emerald-500">{Math.round(vehicleTotalWeight)} / {vehicle.max_weight_kg} kg</span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Offline pending banner */}
       {isOfflinePending && (
