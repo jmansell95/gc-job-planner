@@ -1,6 +1,6 @@
 import React from 'react';
 import { differenceInCalendarDays } from 'date-fns';
-import { Package, Calendar, HardHat } from 'lucide-react';
+import { Package, Calendar, HardHat, User } from 'lucide-react';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -47,6 +47,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
       category: item.category || form.category,
       supplier_id: item.default_supplier_id || form.supplier_id,
       reference_number: item.reference_number || form.reference_number,
+      responsible_person: item.responsible_person || form.responsible_person,
       unit_cost: String(item.default_unit_cost ?? form.unit_cost),
       unit_label: item.default_unit_label || form.unit_label,
       vat_exempt: !!item.default_vat_exempt,
@@ -110,6 +111,16 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
           <label className="block text-xs font-medium text-slate-600 mb-1">Description *</label>
           <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="e.g. Transformer hire, Excavator 5-ton" className={inputCls} />
         </div>
+
+        {form.responsible_person && (
+          <div className="sm:col-span-2">
+            <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
+              <User className="w-3 h-3 text-slate-400" /> Responsible Person
+            </label>
+            <input value={form.responsible_person} readOnly className={`${inputCls} bg-slate-50 text-slate-500`} />
+            <p className="text-[10px] text-slate-400 mt-1">Synced from GC Compliance Manager</p>
+          </div>
+        )}
 
         {isContractorSupplied ? (
           <div>

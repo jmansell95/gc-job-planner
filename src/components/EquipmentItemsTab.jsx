@@ -338,6 +338,11 @@ export default function EquipmentItemsTab() {
                               {item.default_vat_exempt && ' · VAT exempt'}
                               {item.reference_number && ` · ${item.reference_number}`}
                             </p>
+                            {item.responsible_person && (
+                              <p className="text-xs text-slate-500 inline-flex items-center gap-1 mt-0.5">
+                                <User className="w-3 h-3 text-slate-400" /> {item.responsible_person}
+                              </p>
+                            )}
                           </div>
                           {hasLinked && (
                             <button onClick={() => setExpandedRigId(isExpanded ? null : item.id)} className="p-1 text-slate-400 hover:text-slate-700 rounded transition">

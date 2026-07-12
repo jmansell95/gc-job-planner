@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Truck, Wrench, ShoppingCart, Plus, Trash2, Edit2,
-  Package, FileCheck, Undo2, ExternalLink, AlertTriangle, Boxes, HardHat
+  Package, FileCheck, Undo2, ExternalLink, AlertTriangle, Boxes, HardHat, User
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
@@ -13,7 +13,7 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFracti
 
 const blankForm = () => ({
   category: 'hired_equipment', supplier_id: '', contractor_id: '', description: '',
-  reference_number: '', po_number: '', start_date: '', end_date: '',
+  reference_number: '', responsible_person: '', po_number: '', start_date: '', end_date: '',
   unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: ''
 });
 
@@ -99,6 +99,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
           contractor_id: isContractorItem ? (formData.contractor_id || '') : '',
           description: formData.description,
           reference_number: formData.reference_number || '',
+          responsible_person: formData.responsible_person || '',
           po_number: formData.po_number || '',
           start_date: formData.start_date || '',
           end_date: formData.end_date || '',
@@ -128,6 +129,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
         contractor_id: isContractorItem ? (formData.contractor_id || '') : '',
         description: formData.description,
         reference_number: formData.reference_number || '',
+        responsible_person: formData.responsible_person || '',
         po_number: formData.po_number || '',
         start_date: formData.start_date || '',
         end_date: formData.end_date || '',
@@ -153,7 +155,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
       setEditingId(c.id);
       setForm({
         category: c.category, supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '', description: c.description,
-        reference_number: c.reference_number || '', po_number: c.po_number || '',
+        reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', po_number: c.po_number || '',
         start_date: c.start_date || '', end_date: c.end_date || '',
         unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
         unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt,
@@ -163,7 +165,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
       setEditingId(c.id);
       setForm({
         category: c.category || 'hired_equipment', supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '',
-        description: c.description, reference_number: c.reference_number || '',
+        description: c.description, reference_number: c.reference_number || '', responsible_person: c.responsible_person || '',
         po_number: c.po_number || '', start_date: c.start_date || '', end_date: c.end_date || '',
         unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
         unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt, notes: c.notes || ''
@@ -235,6 +237,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
           supplier_id: rig.default_supplier_id || '',
           description: rig.description,
           reference_number: rig.reference_number || '',
+          responsible_person: rig.responsible_person || '',
           site_asset_id: rig.site_asset_id || '',
           po_number: '', start_date: '', end_date: '',
           unit_cost: Number(rig.default_unit_cost) || 0,
@@ -248,6 +251,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
           supplier_id: g.default_supplier_id || '',
           description: g.description,
           reference_number: g.reference_number || '',
+          responsible_person: g.responsible_person || '',
           site_asset_id: g.site_asset_id || '',
           po_number: '', start_date: '', end_date: '',
           unit_cost: Number(g.default_unit_cost) || 0,
@@ -424,6 +428,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
                       <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">{cfg.label}</span>
                       {c.po_number && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium font-mono inline-flex items-center gap-1"><Package className="w-2.5 h-2.5" />{c.po_number}</span>}
                       {c.reference_number && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium font-mono">Ref: {c.reference_number}</span>}
+                      {c.responsible_person && <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5"><User className="w-2.5 h-2.5" /> {c.responsible_person}</span>}
                       {c.vat_exempt && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">VAT exempt</span>}
                       {isJobMode && locBadge && loc !== 'yard' && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${locBadge.cls}`}>{locBadge.label}</span>}
                     </div>
