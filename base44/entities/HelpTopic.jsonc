@@ -13,7 +13,8 @@
         "compliance",
         "safety",
         "general",
-        "app_usage"
+        "app_usage",
+        "logistics"
       ],
       "default": "general",
       "description": "Category for filtering and grouping topics"

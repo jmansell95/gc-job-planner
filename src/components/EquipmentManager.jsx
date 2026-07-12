@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Truck, Wrench, ShoppingCart, Plus, Trash2, Edit2,
-  Package, FileCheck, Undo2, ExternalLink, AlertTriangle, Boxes
+  Package, FileCheck, Undo2, ExternalLink, AlertTriangle, Boxes, HardHat
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
@@ -12,7 +12,7 @@ import EquipmentForm from '@/components/EquipmentForm';
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const blankForm = () => ({
-  category: 'hired_equipment', supplier_id: '', description: '',
+  category: 'hired_equipment', supplier_id: '', contractor_id: '', description: '',
   reference_number: '', po_number: '', start_date: '', end_date: '',
   unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: ''
 });
@@ -21,6 +21,7 @@ const categoryConfig = {
   hired_equipment: { label: 'Hired', icon: Truck, bg: 'bg-amber-50', text: 'text-amber-600' },
   purchased_equipment: { label: 'Purchased', icon: ShoppingCart, bg: 'bg-purple-50', text: 'text-purple-600' },
   internal_equipment: { label: 'Internal', icon: Wrench, bg: 'bg-blue-50', text: 'text-blue-600' },
+  contractor_supplied: { label: 'Contractor', icon: HardHat, bg: 'bg-indigo-50', text: 'text-indigo-600' },
 };
 
 const locationBadge = {
@@ -43,6 +44,10 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     queryKey: ['suppliers-equip'],
     queryFn: () => base44.entities.Supplier.list(),
     enabled: isJobMode && !externalSuppliers
+  });
+  const { data: contractors = [] } = useQuery({
+    queryKey: ['contractors-equip'],
+    queryFn: () => base44.entities.Contractor.list()
   });
   const { data: presets = [] } = useQuery({
     queryKey: ['cost-presets-active'],
@@ -77,20 +82,23 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     if (isJobMode) {
       setSavingItem(true);
       try {
+        const isContractorItem = formData.category === 'contractor_supplied';
         const payload = {
           job_id: jobId,
           category: formData.category,
-          supplier_id: formData.supplier_id || '',
+          supplier_id: isContractorItem ? '' : (formData.supplier_id || ''),
+          contractor_id: isContractorItem ? (formData.contractor_id || '') : '',
           description: formData.description,
           reference_number: formData.reference_number || '',
           po_number: formData.po_number || '',
           start_date: formData.start_date || '',
           end_date: formData.end_date || '',
-          unit_cost: Number(formData.unit_cost) || 0,
+          unit_cost: isContractorItem ? 0 : (Number(formData.unit_cost) || 0),
           quantity: Number(formData.quantity) || 1,
-          unit_label: formData.unit_label,
-          vat_exempt: !!formData.vat_exempt,
-          notes: formData.notes || ''
+          unit_label: isContractorItem ? 'each' : formData.unit_label,
+          vat_exempt: isContractorItem ? false : !!formData.vat_exempt,
+          notes: formData.notes || '',
+          ...(isContractorItem ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {})
         };
         if (editingId) {
           await base44.entities.JobCostItem.update(editingId, payload);
@@ -103,19 +111,21 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
       } catch (err) { console.error(err); toast({ title: 'Error', description: 'Could not save item.' }); }
       setSavingItem(false);
     } else {
+      const isContractorItem = formData.category === 'contractor_supplied';
       const newItem = {
         id: editingId || `temp-${Date.now()}`,
         category: formData.category,
-        supplier_id: formData.supplier_id || '',
+        supplier_id: isContractorItem ? '' : (formData.supplier_id || ''),
+        contractor_id: isContractorItem ? (formData.contractor_id || '') : '',
         description: formData.description,
         reference_number: formData.reference_number || '',
         po_number: formData.po_number || '',
         start_date: formData.start_date || '',
         end_date: formData.end_date || '',
-        unit_cost: Number(formData.unit_cost) || 0,
+        unit_cost: isContractorItem ? 0 : (Number(formData.unit_cost) || 0),
         quantity: Number(formData.quantity) || 1,
-        unit_label: formData.unit_label,
-        vat_exempt: !!formData.vat_exempt,
+        unit_label: isContractorItem ? 'each' : formData.unit_label,
+        vat_exempt: isContractorItem ? false : !!formData.vat_exempt,
         notes: formData.notes || ''
       };
       if (editingId) {
@@ -133,7 +143,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     if (isJobMode) {
       setEditingId(c.id);
       setForm({
-        category: c.category, supplier_id: c.supplier_id || '', description: c.description,
+        category: c.category, supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '', description: c.description,
         reference_number: c.reference_number || '', po_number: c.po_number || '',
         start_date: c.start_date || '', end_date: c.end_date || '',
         unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
@@ -143,7 +153,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     } else {
       setEditingId(c.id);
       setForm({
-        category: c.category || 'hired_equipment', supplier_id: c.supplier_id || '',
+        category: c.category || 'hired_equipment', supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '',
         description: c.description, reference_number: c.reference_number || '',
         po_number: c.po_number || '', start_date: c.start_date || '', end_date: c.end_date || '',
         unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
@@ -242,7 +252,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
         <Boxes className="w-5 h-5 text-emerald-700" />
         <h2 className="font-semibold text-slate-900">Equipment & Hire</h2>
-        <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{items.length} items · {fmt(totalNet)}</span>
+        <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{items.length} items{items.some(i => i.category !== 'contractor_supplied') ? ` · ${fmt(totalNet)}` : ''}</span>
       </div>
 
       <div className="px-5 py-4 space-y-4">
@@ -269,6 +279,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
             saving={savingItem}
             editing={!!editingId}
             suppliers={suppliers}
+            contractors={contractors}
             defaultDates={defaultDates}
           />
         )}
@@ -337,6 +348,8 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
               const cfg = categoryConfig[c.category] || categoryConfig.hired_equipment;
               const CatIcon = cfg.icon;
               const supplier = suppliers.find(s => s.id === c.supplier_id);
+              const contractor = contractors.find(ct => ct.id === c.contractor_id);
+              const isContractorItem = c.category === 'contractor_supplied';
               const loc = c.current_location || 'yard';
               const locBadge = locationBadge[loc];
               return (
@@ -354,10 +367,20 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
                       {isJobMode && locBadge && loc !== 'yard' && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${locBadge.cls}`}>{locBadge.label}</span>}
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      {c.start_date && c.end_date ? `${format(new Date(c.start_date + 'T00:00:00'), 'dd MMM')} → ${format(new Date(c.end_date + 'T00:00:00'), 'dd MMM')}` : ''}
-                      {supplier && ` · ${supplier.name}`}
-                      {` · ${c.quantity} ${c.unit_label}${c.quantity > 1 ? 's' : ''}`}
-                      {` · ${fmt(Number(c.unit_cost) || 0)}/${c.unit_label}`}
+                      {isContractorItem ? (
+                        <>
+                          {contractor && `${contractor.name}`}
+                          {` · ${c.quantity} ${c.unit_label}${c.quantity > 1 ? 's' : ''}`}
+                          {` · Supplied by contractor`}
+                        </>
+                      ) : (
+                        <>
+                          {c.start_date && c.end_date ? `${format(new Date(c.start_date + 'T00:00:00'), 'dd MMM')} → ${format(new Date(c.end_date + 'T00:00:00'), 'dd MMM')}` : ''}
+                          {supplier && ` · ${supplier.name}`}
+                          {` · ${c.quantity} ${c.unit_label}${c.quantity > 1 ? 's' : ''}`}
+                          {` · ${fmt(Number(c.unit_cost) || 0)}/${c.unit_label}`}
+                        </>
+                      )}
                     </p>
                     {isJobMode && c.category === 'hired_equipment' && (
                       <button onClick={() => openOffHire(c)} className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-900 font-medium bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg transition">
@@ -366,8 +389,14 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
                     )}
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold text-slate-900">{fmt(net)}</p>
-                    <p className="text-[10px] text-slate-400">net</p>
+                    {isContractorItem ? (
+                      <p className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wide">Contractor</p>
+                    ) : (
+                      <>
+                        <p className="text-sm font-bold text-slate-900">{fmt(net)}</p>
+                        <p className="text-[10px] text-slate-400">net</p>
+                      </>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1 flex-shrink-0">
                     <button onClick={() => editItem(c)} className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded transition"><Edit2 className="w-3.5 h-3.5" /></button>

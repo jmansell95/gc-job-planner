@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Warehouse, Truck, MapPin, PackageCheck, Boxes, Loader2, CheckCircle2,
-  ArrowRight, AlertTriangle, Package
+  ArrowRight, AlertTriangle, Package, HardHat
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -28,11 +28,13 @@ export default function SiteManifest({ jobId, job, suppliers = [], contractors =
     enabled: !!jobId
   });
 
+  const logisticsItems = items.filter(i => i.category !== 'contractor_supplied');
+  const contractorItems = items.filter(i => i.category === 'contractor_supplied');
   const counts = locationOrder.reduce((acc, loc) => {
-    acc[loc] = items.filter(i => (i.current_location || 'yard') === loc).length;
+    acc[loc] = logisticsItems.filter(i => (i.current_location || 'yard') === loc).length;
     return acc;
   }, {});
-  const total = items.length;
+  const total = logisticsItems.length;
   const collectedPct = total > 0 ? Math.round((counts.returned / total) * 100) : 0;
   const onSitePct = total > 0 ? Math.round((counts.site / total) * 100) : 0;
 
@@ -66,7 +68,7 @@ export default function SiteManifest({ jobId, job, suppliers = [], contractors =
   };
 
   const bulkCollectAll = async () => {
-    const siteItems = items.filter(i => (i.current_location || 'yard') === 'site');
+    const siteItems = logisticsItems.filter(i => (i.current_location || 'yard') === 'site');
     if (siteItems.length === 0) return;
     setUpdatingIds(new Set(siteItems.map(i => i.id)));
     try {
@@ -101,7 +103,7 @@ export default function SiteManifest({ jobId, job, suppliers = [], contractors =
     );
   }
 
-  if (total === 0) {
+  if (total === 0 && contractorItems.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-slate-200 p-6 text-center">
         <Boxes className="w-10 h-10 text-slate-300 mx-auto mb-2" />
@@ -117,7 +119,7 @@ export default function SiteManifest({ jobId, job, suppliers = [], contractors =
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
         <Boxes className="w-5 h-5 text-emerald-700" />
         <h2 className="font-semibold text-slate-900">Site Manifest</h2>
-        <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{total} items</span>
+        <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{total + contractorItems.length} items</span>
       </div>
 
       {/* Lifecycle progress bar */}
@@ -173,7 +175,7 @@ export default function SiteManifest({ jobId, job, suppliers = [], contractors =
 
       {/* Item list */}
       <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
-        {items.map(item => {
+        {logisticsItems.map(item => {
           const loc = item.current_location || 'yard';
           const cfg = locationConfig[loc];
           const Icon = cfg.icon;
@@ -237,6 +239,39 @@ export default function SiteManifest({ jobId, job, suppliers = [], contractors =
           );
         })}
       </div>
+
+      {/* Contractor-supplied items — informational only, no logistics actions */}
+      {contractorItems.length > 0 && (
+        <div className="border-t border-slate-100 px-5 py-4">
+          <div className="flex items-center gap-2 mb-3">
+            <HardHat className="w-4 h-4 text-indigo-600" />
+            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide">Contractor Supplied</h3>
+            <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-medium">{contractorItems.length}</span>
+          </div>
+          <div className="space-y-2">
+            {contractorItems.map(item => {
+              const contractor = contractors.find(c => c.id === item.contractor_id);
+              return (
+                <div key={item.id} className="flex items-center gap-3 bg-indigo-50/40 border border-indigo-100 rounded-lg p-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                    <HardHat className="w-4 h-4 text-indigo-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-900 truncate">{item.description}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">Contractor</span>
+                      {contractor && <span className="text-[10px] text-slate-500">{contractor.name}</span>}
+                      {item.quantity > 1 && <span className="text-[10px] text-slate-400">×{item.quantity}</span>}
+                      {item.reference_number && <span className="text-[10px] text-slate-400 font-mono">Ref: {item.reference_number}</span>}
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-indigo-500 font-medium flex-shrink-0 hidden sm:inline">Delivered by contractor</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

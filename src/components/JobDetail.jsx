@@ -762,7 +762,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
 
           {/* Equipment & Hire — restricted to admins and managers */}
           {canSeeCosts && (
-            <EquipmentManager jobId={job.id} job={job} suppliers={suppliers} />
+            <EquipmentManager jobId={job.id} job={job} suppliers={suppliers} contractors={contractors} />
           )}
 
           {/* Job Costing & Billing — restricted to admins and managers */}

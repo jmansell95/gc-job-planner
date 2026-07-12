@@ -90,23 +90,27 @@ export default function JobManager({ onNavigateRota }) {
         if (savedJob && equipment_items?.length > 0) {
           try {
             await base44.entities.JobCostItem.bulkCreate(
-              equipment_items.map(item => ({
-                job_id: savedJob.id,
-                category: item.category || 'hired_equipment',
-                supplier_id: item.supplier_id || '',
-                description: item.description,
-                reference_number: item.reference_number || '',
-                po_number: item.po_number || '',
-                start_date: item.start_date || '',
-                end_date: item.end_date || '',
-                unit_cost: Number(item.unit_cost) || 0,
-                quantity: Number(item.quantity) || 1,
-                unit_label: item.unit_label || 'each',
-                vat_exempt: !!item.vat_exempt,
-                notes: item.notes || '',
-                hire_status: 'active',
-                current_location: 'yard'
-              }))
+              equipment_items.map(item => {
+                const isContractor = item.category === 'contractor_supplied';
+                return {
+                  job_id: savedJob.id,
+                  category: item.category || 'hired_equipment',
+                  supplier_id: isContractor ? '' : (item.supplier_id || ''),
+                  contractor_id: isContractor ? (item.contractor_id || '') : '',
+                  description: item.description,
+                  reference_number: item.reference_number || '',
+                  po_number: item.po_number || '',
+                  start_date: item.start_date || '',
+                  end_date: item.end_date || '',
+                  unit_cost: isContractor ? 0 : (Number(item.unit_cost) || 0),
+                  quantity: Number(item.quantity) || 1,
+                  unit_label: isContractor ? 'each' : (item.unit_label || 'each'),
+                  vat_exempt: isContractor ? false : !!item.vat_exempt,
+                  notes: item.notes || '',
+                  hire_status: 'active',
+                  current_location: isContractor ? 'site' : 'yard'
+                };
+              })
             );
           } catch (e) { console.error('Equipment creation error:', e); }
         }

@@ -291,11 +291,11 @@ export default function DeliveryManager({ jobId, jobName }) {
             <textarea value={formData.items} onChange={e => setFormData(p => ({ ...p, items: e.target.value }))} rows={2} placeholder="e.g. 2x Excavator, 1x Transformer, 50m Heras fencing"
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 resize-none" />
           </div>
-          {costItems.length > 0 && (
+          {costItems.filter(ci => ci.category !== 'contractor_supplied').length > 0 && (
             <div>
               <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1"><Boxes className="w-3 h-3" /> Material Groups (from job)</label>
               <div className="flex flex-wrap gap-1.5">
-                {costItems.map(item => {
+                {costItems.filter(ci => ci.category !== 'contractor_supplied').map(item => {
                   const isSelected = (formData.linked_cost_item_ids || []).includes(item.id);
                   return (
                     <button key={item.id} type="button" onClick={() => toggleGroup(item)}
@@ -305,6 +305,9 @@ export default function DeliveryManager({ jobId, jobName }) {
                   );
                 })}
               </div>
+              {costItems.some(ci => ci.category === 'contractor_supplied') && (
+                <p className="text-[10px] text-slate-400 mt-1.5">Contractor-supplied items are hidden — the contractor delivers those directly.</p>
+              )}
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

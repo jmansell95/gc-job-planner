@@ -11,14 +11,19 @@
       "enum": [
         "internal_equipment",
         "hired_equipment",
-        "purchased_equipment"
+        "purchased_equipment",
+        "contractor_supplied"
       ],
       "default": "hired_equipment",
-      "description": "Whether this is your own equipment, hired from a supplier, or purchased for the job"
+      "description": "Whether this is your own equipment, hired from a supplier, purchased for the job, or supplied by the contractor (informational only \u2014 no cost or logistics tracking)"
     },
     "supplier_id": {
       "type": "string",
       "description": "Supplier (for hired or purchased equipment)"
+    },
+    "contractor_id": {
+      "type": "string",
+      "description": "Contractor supplying this item (when category is 'contractor_supplied'). The contractor is responsible for delivering it to site \u2014 no collection or delivery task is created for our drivers."
     },
     "description": {
       "type": "string",
@@ -48,7 +53,7 @@
     },
     "unit_cost": {
       "type": "number",
-      "description": "Net cost per unit (excluding VAT)"
+      "description": "Net cost per unit (excluding VAT). Zero for contractor-supplied items."
     },
     "quantity": {
       "type": "number",
@@ -83,7 +88,7 @@
         "returned"
       ],
       "default": "yard",
-      "description": "Live tracking of where this item physically is: yard (at depot), in_transit (on a vehicle), site (on the job), returned (collected and returned to depot/supplier/contractor)"
+      "description": "Live tracking of where this item physically is: yard (at depot), in_transit (on a vehicle), site (on the job), returned (collected and returned to depot/supplier/contractor). Contractor-supplied items default to 'site' since the contractor delivers directly."
     },
     "return_destination": {
       "type": "string",

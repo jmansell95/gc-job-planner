@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Search, HelpCircle, FileText, Download, ChevronRight, BookOpen, Truck, ShieldCheck, AlertTriangle, Info, ArrowLeft } from 'lucide-react';
+import { Search, HelpCircle, FileText, Download, ChevronRight, BookOpen, Truck, ShieldCheck, AlertTriangle, Info, ArrowLeft, Boxes } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 
 const categoryConfig = {
   delivery: { label: 'Deliveries', icon: Truck, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  logistics: { label: 'Logistics & Equipment', icon: Boxes, color: 'text-teal-600', bg: 'bg-teal-50' },
   compliance: { label: 'Compliance', icon: ShieldCheck, color: 'text-blue-600', bg: 'bg-blue-50' },
   safety: { label: 'Safety', icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50' },
   general: { label: 'General', icon: Info, color: 'text-slate-600', bg: 'bg-slate-50' },
