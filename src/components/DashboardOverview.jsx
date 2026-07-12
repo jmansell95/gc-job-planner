@@ -170,7 +170,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                   <Calendar className="w-4 h-4" /> Build Rota
                 </button>
                 <button onClick={() => setCustomizeMode(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
-                  <Settings2 className="w-4 h-4" /> Edit
+                  <Settings2 className="w-4 h-4" /> Customise
                 </button>
               </>
             ) : (
@@ -184,7 +184,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
       {customizeMode && (
         <div className="mb-6 bg-emerald-50/80 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800">
-          Drag sections by the handle to reorder. Use S / M / L to resize each section, or "Hide" to remove it.
+          Drag sections to reorder them. Tap S, M or L to resize a section, or Hide to remove it from your dashboard.
         </div>
       )}
 
@@ -219,7 +219,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       {/* Hidden widgets — add them back */}
       {customizeMode && hiddenWidgets.length > 0 && (
         <div className="mt-2 bg-white rounded-2xl border border-dashed border-slate-300 p-4">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Hidden Sections — tap to add back</p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Hidden sections — tap to add back</p>
           <div className="flex flex-wrap gap-2">
             {hiddenWidgets.map(widgetId => {
               const config = WIDGET_REGISTRY[widgetId];

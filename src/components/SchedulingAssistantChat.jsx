@@ -95,7 +95,7 @@ export function SchedulingAssistantProvider({ children }) {
                   </div>
                   <div>
                     <p className="text-white font-semibold text-sm">Scheduling Assistant</p>
-                    <p className="text-emerald-100 text-[11px]">Smart rota builder — team & availability aware</p>
+                    <p className="text-emerald-100 text-[11px]">Helps you build rotas and find available crew</p>
                   </div>
                 </div>
                 <button onClick={() => setOpen(false)} className="p-1.5 text-white/80 hover:bg-white/10 rounded-lg transition">

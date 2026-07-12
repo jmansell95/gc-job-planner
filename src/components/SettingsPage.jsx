@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Menu } from 'lucide-react';
+import { Settings, Menu, ChevronDown } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import StaffManager from '@/components/StaffManager';
 import VehicleManager from '@/components/VehicleManager';
@@ -21,7 +21,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 
 export default function SettingsPage({ initialTab }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'staff');
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
 
   const active = allSettingsItems.find(t => t.id === activeTab);
@@ -29,7 +29,7 @@ export default function SettingsPage({ initialTab }) {
 
   const handleSelect = (id) => {
     setActiveTab(id);
-    setMobileNavOpen(false);
+    setNavOpen(false);
   };
 
   const renderContent = () => {
@@ -55,47 +55,36 @@ export default function SettingsPage({ initialTab }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 mb-4">
+      <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
         <PageHeader title="Settings" icon={Settings} />
-        <button onClick={() => setMobileNavOpen(true)} className="lg:hidden flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 shadow-sm">
-          <Menu className="w-4 h-4" />
-          Sections
+        <button onClick={() => setNavOpen(true)}
+          className="flex items-center gap-2.5 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:border-emerald-300 transition">
+          <Menu className="w-4 h-4 text-emerald-700" />
+          <span>{active?.label || 'All Settings'}</span>
+          <ChevronDown className="w-4 h-4 text-slate-400" />
         </button>
       </div>
 
-      <div className="flex gap-6 items-start">
-        {/* Desktop sidebar */}
-        <aside className="hidden lg:block w-64 flex-shrink-0">
-          <div className="sticky top-4 bg-white rounded-xl border border-slate-200 shadow-sm p-3">
-            <SettingsNav activeId={activeTab} onChange={handleSelect} />
-          </div>
-        </aside>
+      <Sheet open={navOpen} onOpenChange={setNavOpen}>
+        <SheetContent side="left" className="w-80 max-w-[85vw] p-4 overflow-y-auto">
+          <SheetHeader className="mb-3">
+            <SheetTitle className="text-left">Settings Menu</SheetTitle>
+          </SheetHeader>
+          <SettingsNav activeId={activeTab} onChange={handleSelect} />
+        </SheetContent>
+      </Sheet>
 
-        {/* Mobile drawer */}
-        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-          <SheetContent side="left" className="w-80 max-w-[85vw] p-4 overflow-y-auto">
-            <SheetHeader className="mb-3">
-              <SheetTitle className="text-left">Settings</SheetTitle>
-            </SheetHeader>
-            <SettingsNav activeId={activeTab} onChange={handleSelect} />
-          </SheetContent>
-        </Sheet>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {active && (
-            <div className="flex items-center gap-2 mb-4">
-              {Icon && (
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-4 h-4 text-emerald-700" />
-                </div>
-              )}
-              <p className="text-sm text-slate-500">{active.desc}</p>
+      {active && (
+        <div className="flex items-center gap-2 mb-4">
+          {Icon && (
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+              <Icon className="w-4 h-4 text-emerald-700" />
             </div>
           )}
-          {renderContent()}
+          <p className="text-sm text-slate-500">{active.desc}</p>
         </div>
-      </div>
+      )}
+      {renderContent()}
     </div>
   );
 }

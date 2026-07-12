@@ -75,7 +75,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         <button onClick={openSchedulingChat} type="button"
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-800/60 text-emerald-200 text-sm font-medium hover:bg-emerald-800 hover:text-white active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-emerald-700/50">
           <CalendarClock className="w-4 h-4" />
-          Scheduling AI
+          Schedule Assistant
         </button>
         {canViewSchedule && (
           <button onClick={() => navigate('/staff-schedule')} type="button"
