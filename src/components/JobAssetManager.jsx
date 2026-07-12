@@ -245,7 +245,11 @@ export default function JobAssetManager({ job, isDrillingJob }) {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            {asset?.compliance_expiry_date && <span className="text-xs text-slate-400">Expires {asset.compliance_expiry_date}</span>}
+            {asset?.compliance_expiry_date 
+              ? <span className="text-xs text-slate-400">Expires {asset.compliance_expiry_date}</span>
+              : (asset?.asset_type === 'machinery' || asset?.asset_type === 'trailer')
+              ? <span className="text-xs text-slate-400">Lifetime CoC</span>
+              : null}
           </div>
         </div>
         <button onClick={() => handleRemove(a.id, a.asset_name)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition flex-shrink-0">

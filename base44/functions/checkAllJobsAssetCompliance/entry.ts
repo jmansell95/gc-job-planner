@@ -30,8 +30,11 @@ Deno.serve(async (req) => {
         const liveStatus = asset?.compliance_status || a.compliance_status || 'unknown';
         const expiry = asset?.compliance_expiry_date || null;
 
+        // Skip date-based derivation for machinery/trailers (CoC lasts lifetime of equipment)
+        const isEvergreen = asset?.asset_type === 'machinery' || asset?.asset_type === 'trailer' ||
+          a.asset_type === 'machinery' || a.asset_type === 'trailer';
         let effectiveStatus = liveStatus;
-        if (expiry && liveStatus !== 'expired') {
+        if (!isEvergreen && expiry && liveStatus !== 'expired') {
           if (expiry < today) {
             effectiveStatus = 'expired';
           } else {

@@ -145,12 +145,13 @@ Deno.serve(async (req) => {
 
       matchedEquipmentIds.add(match.id);
       const status = extractEquipmentStatus(match);
-      const expiryDate = extractExpiry(match);
       const assetType = extractEquipmentAssetType(match);
+      // Machinery & trailers: CoC lasts the lifetime of the equipment — no expiry date
+      const expiryDate = (assetType === 'machinery' || assetType === 'trailer') ? null : (extractExpiry(match) || null);
 
       await base44.asServiceRole.entities.SiteAsset.update(asset.id, {
         compliance_status: status,
-        compliance_expiry_date: expiryDate || null,
+        compliance_expiry_date: expiryDate,
         compliance_last_checked: now,
         external_compliance_id: match.id,
         asset_type: assetType,
@@ -176,7 +177,7 @@ Deno.serve(async (req) => {
         serial_number: serial,
         external_compliance_id: eq.id,
         compliance_status: extractEquipmentStatus(eq),
-        compliance_expiry_date: extractExpiry(eq) || null,
+        compliance_expiry_date: (assetType === 'machinery' || assetType === 'trailer') ? null : (extractExpiry(eq) || null),
         compliance_last_checked: now,
         is_active: true,
         notes: eq.notes || eq.last_test_notes || '',

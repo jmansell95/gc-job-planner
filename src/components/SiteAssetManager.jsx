@@ -321,7 +321,11 @@ export default function SiteAssetManager() {
                 <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg ${compCfg.badge}`}>
                   <CompIcon className="w-4 h-4" />
                   <span className="text-xs font-semibold">{compCfg.label}</span>
-                  {asset.compliance_expiry_date && <span className="text-xs opacity-70 ml-auto">Expires {asset.compliance_expiry_date}</span>}
+                  {asset.compliance_expiry_date 
+                    ? <span className="text-xs opacity-70 ml-auto">Expires {asset.compliance_expiry_date}</span>
+                    : (asset.asset_type === 'machinery' || asset.asset_type === 'trailer')
+                    ? <span className="text-xs opacity-70 ml-auto">Lifetime CoC</span>
+                    : null}
                 </div>
                 {asset.compliance_last_checked && (
                   <p className="text-[10px] text-slate-400 mt-1.5 flex items-center gap-1">
