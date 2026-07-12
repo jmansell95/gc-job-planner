@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { format, startOfWeek } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
+import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
 
 const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB');
 
@@ -154,6 +155,11 @@ ${summary}
       </div>
 
       <p className="text-sm text-slate-500 mb-6">AI-generated action plan based on this week's jobs, rotas, timesheets, budgets and vehicle maintenance. Week of <span className="font-medium text-slate-700">{format(weekStart, 'dd MMMM yyyy')}</span>.</p>
+
+      {/* Profitability Dashboard — always visible */}
+      <div className="mb-6">
+        <ProfitabilityDashboard />
+      </div>
 
       {/* Summary Banner */}
       {loading && !insights && (
