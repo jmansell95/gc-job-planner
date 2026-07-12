@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Package, Plus, X, Trash2, Edit2, Truck, ShoppingCart, Wrench, HardHat, Search, ShieldCheck, Download, Link2, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { Package, Plus, X, Trash2, Edit2, Truck, ShoppingCart, Wrench, HardHat, Search, ShieldCheck, Download, Link2, ChevronDown, ChevronUp, User, Lock } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
@@ -52,8 +53,10 @@ export default function EquipmentItemsTab() {
 
   const q = query.toLowerCase().trim();
   const filtered = q ? items.filter(i => (i.description || '').toLowerCase().includes(q)) : items;
-  const grouped = Object.keys(categoryMeta).reduce((acc, cat) => {
-    acc[cat] = filtered.filter(i => (i.category || 'hired_equipment') === cat);
+  const personGroups = filtered.reduce((acc, item) => {
+    const person = item.responsible_person || 'Unassigned';
+    if (!acc[person]) acc[person] = [];
+    acc[person].push(item);
     return acc;
   }, {});
 
@@ -191,20 +194,28 @@ export default function EquipmentItemsTab() {
               <Download className="w-4 h-4" /> {importing ? 'Importing…' : `Import ${unimportedAssets.length} from GC Compliance`}
             </button>
           )}
-          <button onClick={() => { setEditingId(null); setForm(blankForm()); setShowForm(s => !s); }}
+          <button onClick={() => { setEditingId(null); setForm(blankForm()); setShowForm(true); }}
             className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 text-sm font-semibold transition active:scale-95">
-            {showForm ? <><X className="w-4 h-4" /> Cancel</> : <><Plus className="w-4 h-4" /> New Item</>}
+            <Plus className="w-4 h-4" /> New Item
           </button>
         </div>
       </div>
 
-      {showForm && (
-        <form onSubmit={save} className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
-          <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">{editingId ? 'Edit item' : 'New item'}</p>
+      <Dialog open={showForm} onOpenChange={(open) => { if (!open) { setShowForm(false); setEditingId(null); setForm(blankForm()); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingId ? 'Edit Item' : 'New Item'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={save} className="space-y-3">
+            {form.site_asset_id && (
+              <div className="flex items-center gap-2 text-xs text-blue-700 bg-blue-50 rounded-md px-3 py-2 border border-blue-200">
+                <Lock className="w-3.5 h-3.5 flex-shrink-0" /> Synced from GC Compliance Manager — description, category and reference are locked. Only cost details can be edited.
+              </div>
+            )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-slate-600 mb-1">Link to GC Compliance Asset</label>
-              <select value={form.site_asset_id} onChange={e => selectAsset(e.target.value)} className={inputCls}>
+              <select value={form.site_asset_id} onChange={e => selectAsset(e.target.value)} className={inputCls} disabled={!!editingId}>
                 <option value="">No link — standalone item</option>
                 {assets.filter(a => a.is_active !== false).map(a => <option key={a.id} value={a.id}>{a.name}{a.serial_number ? ` · ${a.serial_number}` : ''} ({a.asset_type})</option>)}
               </select>
@@ -217,11 +228,11 @@ export default function EquipmentItemsTab() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-slate-600 mb-1">Description *</label>
-              <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} required placeholder="e.g. Excavator 5-ton, CP Rig 1" className={inputCls} />
+              <input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} required placeholder="e.g. Excavator 5-ton, CP Rig 1" className={`${inputCls} ${form.site_asset_id ? 'bg-slate-50 text-slate-500' : ''}`} readOnly={!!form.site_asset_id} />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Category</label>
-              <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value, default_unit_label: e.target.value === 'hired_equipment' ? 'day' : 'each', default_supplier_id: ['internal_equipment', 'contractor_supplied'].includes(e.target.value) ? '' : p.default_supplier_id }))} className={inputCls}>
+              <select value={form.category} disabled={!!form.site_asset_id} onChange={e => setForm(p => ({ ...p, category: e.target.value, default_unit_label: e.target.value === 'hired_equipment' ? 'day' : 'each', default_supplier_id: ['internal_equipment', 'contractor_supplied'].includes(e.target.value) ? '' : p.default_supplier_id }))} className={`${inputCls} ${form.site_asset_id ? 'bg-slate-50 text-slate-500' : ''}`}>
                 <option value="hired_equipment">Hired Equipment</option>
                 <option value="purchased_equipment">Purchased Equipment</option>
                 <option value="internal_equipment">Internal Equipment</option>
@@ -250,7 +261,7 @@ export default function EquipmentItemsTab() {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Reference / Serial</label>
-              <input value={form.reference_number} onChange={e => setForm(p => ({ ...p, reference_number: e.target.value }))} placeholder="Auto-filled from linked asset" className={inputCls} />
+              <input value={form.reference_number} onChange={e => setForm(p => ({ ...p, reference_number: e.target.value }))} placeholder="Auto-filled from linked asset" className={`${inputCls} ${form.site_asset_id ? 'bg-slate-50 text-slate-500' : ''}`} readOnly={!!form.site_asset_id} />
             </div>
             <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer self-end pb-2">
               <input type="checkbox" checked={form.default_vat_exempt} onChange={e => setForm(p => ({ ...p, default_vat_exempt: e.target.checked }))} className="rounded border-slate-300 text-emerald-700 focus:ring-emerald-600" />
@@ -282,7 +293,8 @@ export default function EquipmentItemsTab() {
             {saving ? 'Saving…' : editingId ? 'Update Item' : 'Add to Library'}
           </button>
         </form>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {items.length > 0 && (
         <div className="relative">
@@ -301,19 +313,18 @@ export default function EquipmentItemsTab() {
         </div>
       ) : (
         <div className="space-y-4">
-          {Object.entries(grouped).map(([cat, catItems]) => {
-            if (catItems.length === 0) return null;
-            const meta = categoryMeta[cat];
-            const Icon = meta.icon;
+          {Object.entries(personGroups).map(([person, personItems]) => {
             return (
-              <div key={cat}>
-                <div className="flex items-center gap-1.5 mb-2 px-1">
-                  <Icon className={`w-3.5 h-3.5 ${meta.color}`} />
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{meta.label}</p>
-                  <span className="text-xs text-slate-400">({catItems.length})</span>
+              <div key={person}>
+                <div className="flex items-center gap-1.5 mb-2 px-1 sticky top-0 bg-white py-1 z-10">
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{person}</p>
+                  <span className="text-xs text-slate-400">({personItems.length})</span>
                 </div>
                 <div className="space-y-1.5">
-                  {catItems.map(item => {
+                  {personItems.map(item => {
+                    const meta = categoryMeta[item.category] || categoryMeta.hired_equipment;
+                    const Icon = meta.icon;
                     const supplier = item.default_supplier_id ? suppliers.find(s => s.id === item.default_supplier_id) : null;
                     const asset = assetFor(item);
                     const cb = asset ? (complianceBadge[asset.compliance_status] || complianceBadge.unknown) : null;

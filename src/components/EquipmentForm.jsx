@@ -1,12 +1,13 @@
 import React from 'react';
 import { differenceInCalendarDays } from 'date-fns';
-import { Package, Calendar, HardHat, User } from 'lucide-react';
+import { Package, Calendar, HardHat, User, Lock } from 'lucide-react';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function EquipmentForm({ form, setForm, onSubmit, onCancel, saving = false, editing = false, suppliers = [], contractors = [], defaultDates = null, catalogueItems = [] }) {
   const isContractorSupplied = form.category === 'contractor_supplied';
+  const isSynced = !!form.site_asset_id;
 
   const daysFromForm = () => {
     if (form.start_date && form.end_date) {
@@ -48,6 +49,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
       supplier_id: item.default_supplier_id || form.supplier_id,
       reference_number: item.reference_number || form.reference_number,
       responsible_person: item.responsible_person || form.responsible_person,
+      site_asset_id: item.site_asset_id || form.site_asset_id,
       unit_cost: String(item.default_unit_cost ?? form.unit_cost),
       unit_label: item.default_unit_label || form.unit_label,
       vat_exempt: !!item.default_vat_exempt,
@@ -65,10 +67,15 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
           </select>
         </div>
       )}
+      {isSynced && (
+        <div className="flex items-center gap-2 text-xs text-blue-700 bg-blue-50 rounded-md px-3 py-2 border border-blue-200">
+          <Lock className="w-3.5 h-3.5 flex-shrink-0" /> Synced from GC Compliance Manager — description, category and reference are locked. Only cost and hire details can be edited.
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Category</label>
-          <select value={form.category} onChange={(e) => {
+          <select value={form.category} disabled={isSynced} onChange={(e) => {
             const v = e.target.value;
             setForm({
               ...form,
@@ -109,7 +116,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
 
         <div className="sm:col-span-2">
           <label className="block text-xs font-medium text-slate-600 mb-1">Description *</label>
-          <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="e.g. Transformer hire, Excavator 5-ton" className={inputCls} />
+          <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="e.g. Transformer hire, Excavator 5-ton" className={`${inputCls} ${isSynced ? 'bg-slate-50 text-slate-500' : ''}`} readOnly={isSynced} />
         </div>
 
         {form.responsible_person && (
@@ -137,7 +144,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Reference Number</label>
-              <input value={form.reference_number} onChange={(e) => setForm({ ...form, reference_number: e.target.value })} placeholder="Asset tag / serial no." className={inputCls} />
+              <input value={form.reference_number} onChange={(e) => setForm({ ...form, reference_number: e.target.value })} placeholder="Asset tag / serial no." className={`${inputCls} ${isSynced ? 'bg-slate-50 text-slate-500' : ''}`} readOnly={isSynced} />
             </div>
             {form.unit_label === 'day' && (
               <>

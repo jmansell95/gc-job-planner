@@ -5,6 +5,7 @@ import {
   Truck, Wrench, ShoppingCart, Plus, Trash2, Edit2,
   Package, FileCheck, Undo2, ExternalLink, AlertTriangle, Boxes, HardHat, User
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import EquipmentForm from '@/components/EquipmentForm';
@@ -13,7 +14,7 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFracti
 
 const blankForm = () => ({
   category: 'hired_equipment', supplier_id: '', contractor_id: '', description: '',
-  reference_number: '', responsible_person: '', po_number: '', start_date: '', end_date: '',
+  reference_number: '', responsible_person: '', site_asset_id: '', po_number: '', start_date: '', end_date: '',
   unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: ''
 });
 
@@ -155,7 +156,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
       setEditingId(c.id);
       setForm({
         category: c.category, supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '', description: c.description,
-        reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', po_number: c.po_number || '',
+        reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', site_asset_id: c.site_asset_id || '', po_number: c.po_number || '',
         start_date: c.start_date || '', end_date: c.end_date || '',
         unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
         unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt,
@@ -165,7 +166,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
       setEditingId(c.id);
       setForm({
         category: c.category || 'hired_equipment', supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '',
-        description: c.description, reference_number: c.reference_number || '', responsible_person: c.responsible_person || '',
+        description: c.description, reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', site_asset_id: c.site_asset_id || '',
         po_number: c.po_number || '', start_date: c.start_date || '', end_date: c.end_date || '',
         unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
         unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt, notes: c.notes || ''
@@ -303,6 +304,12 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
   const activeItems = isJobMode ? items.filter(c => (c.hire_status || 'active') !== 'off_hired') : items;
   const returnedItems = isJobMode ? items.filter(c => c.hire_status === 'off_hired') : [];
   const visibleItems = isJobMode ? (hireFilter === 'active' ? activeItems : returnedItems) : items;
+  const personGroups = visibleItems.reduce((acc, c) => {
+    const person = c.responsible_person || (c.category === 'contractor_supplied' ? 'Contractor Supplied' : 'Unassigned');
+    if (!acc[person]) acc[person] = [];
+    acc[person].push(c);
+    return acc;
+  }, {});
   const offHiringItem = items.find(c => c.id === offHiringId);
 
   return (
@@ -334,20 +341,25 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
           </div>
         )}
 
-        {adding && (
-          <EquipmentForm
-            form={form}
-            setForm={setForm}
-            onSubmit={handleSubmitItem}
-            onCancel={() => { setAdding(false); setEditingId(null); setForm(blankForm()); }}
-            saving={savingItem}
-            editing={!!editingId}
-            suppliers={suppliers}
-            contractors={contractors}
-            defaultDates={defaultDates}
-            catalogueItems={catalogueItems}
-          />
-        )}
+        <Dialog open={adding} onOpenChange={(open) => { if (!open) { setAdding(false); setEditingId(null); setForm(blankForm()); } }}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingId ? 'Edit Equipment' : 'Add Equipment'}</DialogTitle>
+            </DialogHeader>
+            <EquipmentForm
+              form={form}
+              setForm={setForm}
+              onSubmit={handleSubmitItem}
+              onCancel={() => { setAdding(false); setEditingId(null); setForm(blankForm()); }}
+              saving={savingItem}
+              editing={!!editingId}
+              suppliers={suppliers}
+              contractors={contractors}
+              defaultDates={defaultDates}
+              catalogueItems={catalogueItems}
+            />
+          </DialogContent>
+        </Dialog>
 
         {isJobMode && (activeItems.length > 0 || returnedItems.length > 0) && (
           <div className="flex gap-1 bg-slate-100 p-1 rounded-lg w-full sm:w-auto sm:inline-flex">
@@ -407,9 +419,17 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
         ) : visibleItems.length === 0 && !adding ? (
           <div className="text-center py-6 text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">No active equipment.</div>
         ) : (
-          <div className="space-y-2">
-            {visibleItems.map(c => {
-              const net = itemNet(c);
+          <div className="space-y-4">
+            {Object.entries(personGroups).map(([person, personItems]) => (
+              <div key={person}>
+                <div className="flex items-center gap-1.5 mb-2 px-1">
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{person}</p>
+                  <span className="text-xs text-slate-400">({personItems.length})</span>
+                </div>
+                <div className="space-y-2">
+                  {personItems.map(c => {
+                    const net = itemNet(c);
               const cfg = categoryConfig[c.category] || categoryConfig.hired_equipment;
               const CatIcon = cfg.icon;
               const supplier = suppliers.find(s => s.id === c.supplier_id);
@@ -469,8 +489,11 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
                     <button onClick={() => deleteItem(c.id)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 </div>
-              );
-            })}
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
