@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Users, Calendar, Truck, User, ShieldCheck, PlayCircle, CheckCircle2, MessageSquare, HardHat, Mail, Phone, FileText, Eye, Download } from 'lucide-react';
+import { Users, Calendar, Truck, User, ShieldCheck, PlayCircle, CheckCircle2, MessageSquare, HardHat, Mail, Phone, FileText, Eye, Download, Boxes, ClipboardList, PoundSterling, FolderOpen, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { getCrewLabel } from '@/utils/terminology';
 import JobLogisticsHub from '@/components/logistics/JobLogisticsHub';
@@ -29,12 +29,12 @@ const workerTypeBadge = {
 export default function JobDetailTabs({ job, primaryType, assignedStaff, rotas, allStaff, vehicles, rotasByDate, sortedDates, client, contractor, suppliers, contractors, canSeeCosts, isDrillingJob, totalCost, staffCosts, totalMeterage, hotelBookings }) {
   return (
     <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid w-full grid-cols-3 sm:flex sm:flex-wrap h-auto p-1 gap-1">
-        <TabsTrigger value="overview" className="text-xs sm:text-sm">Overview</TabsTrigger>
-        <TabsTrigger value="logistics" className="text-xs sm:text-sm">Logistics</TabsTrigger>
-        <TabsTrigger value="schedule" className="text-xs sm:text-sm">Schedule</TabsTrigger>
-        {canSeeCosts && <TabsTrigger value="financials" className="text-xs sm:text-sm">Financials</TabsTrigger>}
-        <TabsTrigger value="documents" className="text-xs sm:text-sm">Documents</TabsTrigger>
+      <TabsList className="flex w-full flex-wrap h-auto p-1 gap-1">
+        <TabsTrigger value="overview" className="text-xs sm:text-sm flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5"><Users className="w-3.5 h-3.5" />Overview</TabsTrigger>
+        <TabsTrigger value="logistics" className="text-xs sm:text-sm flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5"><Boxes className="w-3.5 h-3.5" />Logistics</TabsTrigger>
+        <TabsTrigger value="schedule" className="text-xs sm:text-sm flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5"><Calendar className="w-3.5 h-3.5" />Schedule</TabsTrigger>
+        {canSeeCosts && <TabsTrigger value="financials" className="text-xs sm:text-sm flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5"><PoundSterling className="w-3.5 h-3.5" />Financials</TabsTrigger>}
+        <TabsTrigger value="documents" className="text-xs sm:text-sm flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5"><FolderOpen className="w-3.5 h-3.5" />Documents</TabsTrigger>
       </TabsList>
 
       {/* Overview Tab */}

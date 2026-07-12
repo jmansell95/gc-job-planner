@@ -378,6 +378,11 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
           <Truck className="w-5 h-5 text-emerald-700" />
           <h2 className="font-semibold text-slate-900">Deliveries & Collections</h2>
           <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{deliveries.length}</span>
+          {canSeeCosts && (
+            <button onClick={() => setShowLoadPlanner(true)} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition ml-2">
+              <Plus className="w-3.5 h-3.5" /> Add Delivery
+            </button>
+          )}
         </div>
         <div className="p-4 sm:p-5">
           <DeliveryList deliveries={deliveries} jobId={jobId} canSeeCosts={canSeeCosts} />

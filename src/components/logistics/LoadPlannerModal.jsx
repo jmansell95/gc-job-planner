@@ -27,12 +27,13 @@ export default function LoadPlannerModal({ selectedItems = [], staff = [], vehic
 
   const handleSubmit = async () => {
     if (!driverStaffId) { toast({ title: 'Select a driver first' }); return; }
-    if (selectedItems.length === 0) { toast({ title: 'No items selected' }); return; }
     setSaving(true);
     try {
       const driver = staff.find(s => s.id === driverStaffId);
       const itemIds = selectedItems.map(i => i.id);
-      const itemsText = selectedItems.map(i => `${i.quantity > 1 ? `${i.quantity}× ` : ''}${i.description}`).join(', ');
+      const itemsText = selectedItems.length > 0
+        ? selectedItems.map(i => `${i.quantity > 1 ? `${i.quantity}× ` : ''}${i.description}`).join(', ')
+        : (notes || 'Items to be confirmed');
       const payload = {
         job_id: job.id,
         job_name: job.name || '',
@@ -40,7 +41,7 @@ export default function LoadPlannerModal({ selectedItems = [], staff = [], vehic
         driver_staff_name: driver?.name || '',
         delivery_type: deliveryType,
         items: itemsText,
-        linked_cost_item_ids: itemIds.join(','),
+        linked_cost_item_ids: itemIds.length > 0 ? itemIds.join(',') : '',
         pickup_address: pickupAddress,
         delivery_address: deliveryAddress,
         contact_name: contactName,
@@ -62,14 +63,15 @@ export default function LoadPlannerModal({ selectedItems = [], staff = [], vehic
           });
         }
       } catch (e) { console.error('Charge calc error:', e); }
-      await base44.entities.JobCostItem.bulkUpdate(
-        itemIds.map(id => ({ id, current_location: 'in_transit', location_updated_at: new Date().toISOString() }))
-      );
-      queryClient.invalidateQueries({ queryKey: ['job-cost-items', job.id] });
-      queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', job.id] });
+      if (itemIds.length > 0) {
+        await base44.entities.JobCostItem.bulkUpdate(
+          itemIds.map(id => ({ id, current_location: 'in_transit', location_updated_at: new Date().toISOString() }))
+        );
+        queryClient.invalidateQueries({ queryKey: ['job-cost-items', job.id] });
+        queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', job.id] });
+      }
       queryClient.invalidateQueries({ queryKey: ['job-deliveries', job.id] });
-      queryClient.invalidateQueries({ queryKey: ['job-cost-items-delivery', job.id] });
-      toast({ title: 'Load planned', description: `${selectedItems.length} items assigned to ${driver?.name || 'driver'} for ${format(new Date(scheduledDate + 'T00:00:00'), 'dd MMM')}.` });
+      toast({ title: 'Load planned', description: `${selectedItems.length > 0 ? `${selectedItems.length} items assigned to` : 'Delivery created for'} ${driver?.name || 'driver'} for ${format(new Date(scheduledDate + 'T00:00:00'), 'dd MMM')}.` });
       onClose();
     } catch (err) {
       console.error('Load planning error:', err);
@@ -89,15 +91,22 @@ export default function LoadPlannerModal({ selectedItems = [], staff = [], vehic
           <button onClick={() => !saving && onClose()} className="p-1 text-slate-400 hover:text-slate-600 rounded"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-4">
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-            <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1.5">{selectedItems.length} items selected</p>
-            <div className="space-y-0.5">
-              {selectedItems.slice(0, 5).map(i => (
-                <p key={i.id} className="text-xs text-slate-600 truncate">• {i.description}{i.quantity > 1 ? ` ×${i.quantity}` : ''}</p>
-              ))}
-              {selectedItems.length > 5 && <p className="text-xs text-slate-400">+{selectedItems.length - 5} more</p>}
+          {selectedItems.length > 0 && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+              <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1.5">{selectedItems.length} items selected</p>
+              <div className="space-y-0.5">
+                {selectedItems.slice(0, 5).map(i => (
+                  <p key={i.id} className="text-xs text-slate-600 truncate">• {i.description}{i.quantity > 1 ? ` ×${i.quantity}` : ''}</p>
+                ))}
+                {selectedItems.length > 5 && <p className="text-xs text-slate-400">+{selectedItems.length - 5} more</p>}
+              </div>
             </div>
-          </div>
+          )}
+          {selectedItems.length === 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-xs text-blue-700">No equipment items selected — use the notes field below to describe what's being delivered, or select equipment items from the list above first.</p>
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-2">
             {typeOptions.map(o => {
               const Icon = o.icon;
@@ -155,7 +164,7 @@ export default function LoadPlannerModal({ selectedItems = [], staff = [], vehic
         </div>
         <div className="sticky bottom-0 bg-white border-t border-slate-100 px-5 py-3 flex gap-2">
           <button onClick={handleSubmit} disabled={saving || !driverStaffId} className="flex-1 py-2.5 bg-emerald-700 text-white rounded-xl font-semibold text-sm hover:bg-emerald-800 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5">
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Planning…</> : <><Truck className="w-4 h-4" /> Plan Load ({selectedItems.length} items)</>}
+            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Planning…</> : <><Truck className="w-4 h-4" /> {selectedItems.length > 0 ? `Plan Load (${selectedItems.length} items)` : 'Create Delivery'}</>}
           </button>
           <button onClick={() => !saving && onClose()} className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-semibold text-sm hover:bg-slate-200 transition">Cancel</button>
         </div>
