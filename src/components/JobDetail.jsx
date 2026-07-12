@@ -27,6 +27,7 @@ import JobStatusModal from '@/components/JobStatusModal';
 import JobHotelBookings from '@/components/JobHotelBookings';
 import InvestigationLogManager from '@/components/InvestigationLogManager';
 import JobDetailTabs from '@/components/JobDetailTabs';
+import JobScheduleOverview from '@/components/JobScheduleOverview';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-emerald-100', text: 'text-emerald-800', dot: 'bg-emerald-500', border: 'border-emerald-200' },
@@ -618,6 +619,16 @@ export default function JobDetail({ job: initialJob, onBack }) {
           <p className="text-sm text-slate-600 whitespace-pre-wrap">{job.notes}</p>
         </div>
       )}
+
+      <JobScheduleOverview
+        primaryType={primaryType}
+        assignedStaff={assignedStaff}
+        rotas={rotas}
+        allStaff={allStaff}
+        vehicles={vehicles}
+        rotasByDate={rotasByDate}
+        sortedDates={sortedDates}
+      />
 
       <JobDetailTabs
         job={job}
