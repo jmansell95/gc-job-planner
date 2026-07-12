@@ -47,6 +47,20 @@ export default function MaintenanceQuickView({ onNavigate }) {
   const expiredCount = allIssues.filter(i => i.severity === 'expired').length;
   const warningCount = allIssues.filter(i => i.severity === 'warning').length;
 
+  // Per-vehicle due items (MOT, service) — expired or due within 30 days
+  const dueItems = vehicles.flatMap(v => {
+    const items = [];
+    if (v.mot_expiry) {
+      const days = differenceInDays(new Date(v.mot_expiry + 'T00:00:00'), today);
+      if (days <= 30) items.push({ label: 'MOT', date: v.mot_expiry, days, severity: days < 0 ? 'expired' : 'warning', vehicleReg: v.registration_number, vehicleName: v.name });
+    }
+    if (v.service_due_date) {
+      const days = differenceInDays(new Date(v.service_due_date + 'T00:00:00'), today);
+      if (days <= 30) items.push({ label: 'Service', date: v.service_due_date, days, severity: days < 0 ? 'expired' : 'warning', vehicleReg: v.registration_number, vehicleName: v.name });
+    }
+    return items;
+  }).sort((a, b) => a.days - b.days);
+
   // Vehicle compliance items (MOT, insurance, etc. from compliance manager)
   const todayStr = format(today, 'yyyy-MM-dd');
   const vehicleComplianceItems = complianceItems.filter(c => c.status_override !== 'not_required' && c.expiry_date);
@@ -102,6 +116,33 @@ export default function MaintenanceQuickView({ onNavigate }) {
             <button onClick={goToVehicles} className="text-xs text-slate-500 hover:text-emerald-700 font-medium">
               Review →
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Due soon — per-vehicle MOT/service breakdown */}
+      {dueItems.length > 0 && (
+        <div className="px-5 py-3 border-b border-slate-100">
+          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2.5">Due Soon</p>
+          <div className="space-y-2">
+            {dueItems.slice(0, 6).map((item, idx) => (
+              <div key={idx} className="flex items-center gap-3">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${item.severity === 'expired' ? 'bg-red-50' : 'bg-amber-50'}`}>
+                  {item.severity === 'expired' ? <ShieldX className="w-3.5 h-3.5 text-red-600" /> : <CalendarClock className="w-3.5 h-3.5 text-amber-600" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-800">{item.label}</p>
+                  <p className="text-xs text-slate-400 truncate">{item.vehicleReg} · {item.vehicleName}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className={`text-xs font-bold ${item.severity === 'expired' ? 'text-red-600' : 'text-amber-600'}`}>
+                    {item.severity === 'expired' ? 'Expired' : format(new Date(item.date + 'T00:00:00'), 'dd MMM')}
+                  </p>
+                  {item.severity !== 'expired' && <p className="text-[10px] text-slate-400">{item.days}d left</p>}
+                  {item.severity === 'expired' && <p className="text-[10px] text-red-400">{Math.abs(item.days)}d ago</p>}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

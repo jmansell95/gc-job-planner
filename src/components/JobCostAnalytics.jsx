@@ -96,7 +96,7 @@ export default function JobCostAnalytics() {
 
   return (
     <WidgetShell icon={Wallet} title="Cost Analytics" subtitle="Budget vs estimated labour spend"
-      action={<div className="flex items-center gap-2">
+      action={<div className="flex items-center gap-2 flex-wrap justify-end">
         <div className="relative">
           <Filter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <select
