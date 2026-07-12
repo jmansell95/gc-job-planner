@@ -5,7 +5,7 @@ import { Package, Calendar, HardHat } from 'lucide-react';
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export default function EquipmentForm({ form, setForm, onSubmit, onCancel, saving = false, editing = false, suppliers = [], contractors = [], defaultDates = null }) {
+export default function EquipmentForm({ form, setForm, onSubmit, onCancel, saving = false, editing = false, suppliers = [], contractors = [], defaultDates = null, catalogueItems = [] }) {
   const isContractorSupplied = form.category === 'contractor_supplied';
 
   const daysFromForm = () => {
@@ -37,8 +37,33 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
     }
   };
 
+  const selectFromCatalogue = (id) => {
+    if (!id) return;
+    const item = catalogueItems.find(c => c.id === id);
+    if (!item) return;
+    setForm({
+      ...form,
+      description: item.description || form.description,
+      category: item.category || form.category,
+      supplier_id: item.default_supplier_id || form.supplier_id,
+      reference_number: item.reference_number || form.reference_number,
+      unit_cost: String(item.default_unit_cost ?? form.unit_cost),
+      unit_label: item.default_unit_label || form.unit_label,
+      vat_exempt: !!item.default_vat_exempt,
+    });
+  };
+
   return (
     <div onKeyDown={handleKeyDown} className="border border-emerald-200 rounded-lg p-4 space-y-3 bg-emerald-50/30">
+      {catalogueItems.length > 0 && (
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-1">Quick add from catalogue</label>
+          <select value="" onChange={(e) => { selectFromCatalogue(e.target.value); e.target.value = ''; }} className={inputCls}>
+            <option value="">Select from catalogue…</option>
+            {catalogueItems.map(c => <option key={c.id} value={c.id}>{c.description} · {fmt(Number(c.default_unit_cost) || 0)}/{c.default_unit_label || 'each'}</option>)}
+          </select>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Category</label>

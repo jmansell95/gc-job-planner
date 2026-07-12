@@ -13,6 +13,7 @@ export const settingsGroups = [
     label: 'Operations',
     items: [
       { id: 'assets', label: 'Assets', icon: Wrench, desc: 'Rigs, machinery & trailers — linked to GC Compliance Manager' },
+      { id: 'catalogue', label: 'Equipment Catalogue', icon: Package, desc: 'Master list of standard hire items — add to any job in one click' },
       { id: 'vehicles', label: 'Vehicles', icon: Truck, desc: 'Track vehicles, MOTs and service dates' },
       { id: 'job-types', label: 'Job Types', icon: Tag, desc: 'Manage job types and colours' },
       { id: 'automations', label: 'Automations', icon: Zap, desc: 'View and toggle background automations' },

@@ -57,6 +57,13 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     },
     enabled: isJobMode
   });
+  const { data: catalogueItems = [] } = useQuery({
+    queryKey: ['equipment-catalogue-active'],
+    queryFn: async () => {
+      const list = await base44.entities.EquipmentCatalogue.filter({ is_active: true });
+      return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0) || (a.description || '').localeCompare(b.description || ''));
+    }
+  });
 
   const items = isJobMode ? fetchedItems : (externalItems || []);
   const suppliers = externalSuppliers || fetchedSuppliers || [];
@@ -281,6 +288,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
             suppliers={suppliers}
             contractors={contractors}
             defaultDates={defaultDates}
+            catalogueItems={catalogueItems}
           />
         )}
 
