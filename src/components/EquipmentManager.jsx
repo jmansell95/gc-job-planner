@@ -3,12 +3,14 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Truck, Wrench, ShoppingCart, Plus, Trash2, Edit2,
-  Package, FileCheck, Undo2, ExternalLink, AlertTriangle, Boxes, HardHat, User
+  Package, FileCheck, Undo2, ExternalLink, AlertTriangle, Boxes, HardHat, User,
+  ShieldCheck, ShieldAlert, ShieldX
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import EquipmentForm from '@/components/EquipmentForm';
+import EquipmentItemCard from '@/components/EquipmentItemCard';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -29,6 +31,13 @@ const locationBadge = {
   in_transit: { label: 'In Transit', cls: 'bg-blue-50 text-blue-700 border border-blue-200' },
   site: { label: 'On Site', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
   returned: { label: 'Returned', cls: 'bg-teal-50 text-teal-700 border border-teal-200' },
+};
+
+const complianceConfig = {
+  compliant: { label: 'Compliant', icon: ShieldCheck, badge: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
+  expiring: { label: 'Expiring', icon: ShieldAlert, badge: 'bg-amber-50 text-amber-700 border border-amber-200' },
+  expired: { label: 'Expired', icon: ShieldX, badge: 'bg-red-50 text-red-700 border border-red-200' },
+  unknown: { label: 'Unknown', icon: ShieldCheck, badge: 'bg-slate-100 text-slate-500 border border-slate-200' },
 };
 
 export default function EquipmentManager({ jobId, job, items: externalItems, onItemsChange, suppliers: externalSuppliers }) {
@@ -64,6 +73,10 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
       const list = await base44.entities.EquipmentCatalogue.filter({ is_active: true });
       return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0) || (a.description || '').localeCompare(b.description || ''));
     }
+  });
+  const { data: siteAssets = [] } = useQuery({
+    queryKey: ['site-assets-equip'],
+    queryFn: () => base44.entities.SiteAsset.list()
   });
 
   const items = isJobMode ? fetchedItems : (externalItems || []);
@@ -310,6 +323,22 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     acc[person].push(c);
     return acc;
   }, {});
+  const assetMap = {};
+  (siteAssets || []).forEach(a => { assetMap[a.id] = a; });
+  const rigItemLinks = {};
+  const linkedItemIds = new Set();
+  for (const c of visibleItems) {
+    const asset = c.site_asset_id ? assetMap[c.site_asset_id] : null;
+    if (asset && asset.asset_type === 'rig' && asset.linked_equipment_ids?.length) {
+      const linked = visibleItems.filter(other =>
+        other.id !== c.id && other.site_asset_id && asset.linked_equipment_ids.includes(other.site_asset_id)
+      );
+      if (linked.length > 0) {
+        rigItemLinks[c.id] = linked;
+        linked.forEach(li => linkedItemIds.add(li.id));
+      }
+    }
+  }
   const offHiringItem = items.find(c => c.id === offHiringId);
 
   return (
@@ -420,80 +449,37 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
           <div className="text-center py-6 text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">No active equipment.</div>
         ) : (
           <div className="space-y-4">
-            {Object.entries(personGroups).map(([person, personItems]) => (
-              <div key={person}>
-                <div className="flex items-center gap-1.5 mb-2 px-1">
-                  <User className="w-3.5 h-3.5 text-slate-400" />
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{person}</p>
-                  <span className="text-xs text-slate-400">({personItems.length})</span>
-                </div>
-                <div className="space-y-2">
-                  {personItems.map(c => {
-                    const net = itemNet(c);
-              const cfg = categoryConfig[c.category] || categoryConfig.hired_equipment;
-              const CatIcon = cfg.icon;
-              const supplier = suppliers.find(s => s.id === c.supplier_id);
-              const contractor = contractors.find(ct => ct.id === c.contractor_id);
-              const isContractorItem = c.category === 'contractor_supplied';
-              const loc = c.current_location || 'yard';
-              const locBadge = locationBadge[loc];
+            {Object.entries(personGroups).map(([person, personItems]) => {
+              const standalone = personItems.filter(c => !linkedItemIds.has(c.id));
               return (
-                <div key={c.id} className="border border-slate-200 bg-white rounded-lg p-3 flex items-start gap-3 transition">
-                  <div className={`w-9 h-9 rounded-lg ${cfg.bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                    <CatIcon className={`w-4 h-4 ${cfg.text}`} />
+                <div key={person}>
+                  <div className="flex items-center gap-1.5 mb-2 px-1">
+                    <User className="w-3.5 h-3.5 text-slate-400" />
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{person}</p>
+                    <span className="text-xs text-slate-400">({standalone.length})</span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{c.description}</p>
-                      <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">{cfg.label}</span>
-                      {c.po_number && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium font-mono inline-flex items-center gap-1"><Package className="w-2.5 h-2.5" />{c.po_number}</span>}
-                      {c.reference_number && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium font-mono">Ref: {c.reference_number}</span>}
-                      {c.responsible_person && <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5"><User className="w-2.5 h-2.5" /> {c.responsible_person}</span>}
-                      {c.vat_exempt && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">VAT exempt</span>}
-                      {isJobMode && locBadge && loc !== 'yard' && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${locBadge.cls}`}>{locBadge.label}</span>}
-                    </div>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {isContractorItem ? (
-                        <>
-                          {contractor && `${contractor.name}`}
-                          {` · ${c.quantity} ${c.unit_label}${c.quantity > 1 ? 's' : ''}`}
-                          {` · Supplied by contractor`}
-                        </>
-                      ) : (
-                        <>
-                          {c.start_date && c.end_date ? `${format(new Date(c.start_date + 'T00:00:00'), 'dd MMM')} → ${format(new Date(c.end_date + 'T00:00:00'), 'dd MMM')}` : ''}
-                          {supplier && ` · ${supplier.name}`}
-                          {` · ${c.quantity} ${c.unit_label}${c.quantity > 1 ? 's' : ''}`}
-                          {` · ${fmt(Number(c.unit_cost) || 0)}/${c.unit_label}`}
-                        </>
-                      )}
-                    </p>
-                    {isJobMode && c.category === 'hired_equipment' && (
-                      <button onClick={() => openOffHire(c)} className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-900 font-medium bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg transition">
-                        <FileCheck className="w-3.5 h-3.5" /> Return Item
-                      </button>
-                    )}
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    {isContractorItem ? (
-                      <p className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wide">Contractor</p>
-                    ) : (
-                      <>
-                        <p className="text-sm font-bold text-slate-900">{fmt(net)}</p>
-                        <p className="text-[10px] text-slate-400">net</p>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1 flex-shrink-0">
-                    <button onClick={() => editItem(c)} className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded transition"><Edit2 className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => deleteItem(c.id)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <div className="space-y-2">
+                    {standalone.map(c => (
+                      <EquipmentItemCard
+                        key={c.id}
+                        item={c}
+                        linkedItems={rigItemLinks[c.id] || []}
+                        assetMap={assetMap}
+                        suppliers={suppliers}
+                        contractors={contractors}
+                        isJobMode={isJobMode}
+                        categoryConfig={categoryConfig}
+                        locationBadge={locationBadge}
+                        complianceConfig={complianceConfig}
+                        onEdit={editItem}
+                        onDelete={deleteItem}
+                        onOffHire={openOffHire}
+                      />
+                    ))}
                   </div>
                 </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

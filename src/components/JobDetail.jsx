@@ -26,7 +26,6 @@ import { computeStaffOvertime, buildRateMap, getAssignmentMultiplier } from '@/u
 import { canViewCostings } from '@/utils/access';
 import JobStatusModal from '@/components/JobStatusModal';
 import JobHotelBookings from '@/components/JobHotelBookings';
-import JobAssetManager from '@/components/JobAssetManager';
 import InvestigationLogManager from '@/components/InvestigationLogManager';
 import SiteManifest from '@/components/SiteManifest';
 
@@ -744,9 +743,6 @@ export default function JobDetail({ job: initialJob, onBack }) {
               </div>
             )}
           </div>
-
-          {/* Rigs & Equipment */}
-          <JobAssetManager job={job} isDrillingJob={isDrillingJob} />
 
           {/* Investigation Log */}
           <InvestigationLogManager job={job} isDrillingJob={isDrillingJob} />
