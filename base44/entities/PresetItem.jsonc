@@ -6,9 +6,17 @@
       "type": "string",
       "description": "CostPreset this item belongs to"
     },
+    "site_asset_id": {
+      "type": "string",
+      "description": "Linked SiteAsset (rig, machinery, lifting gear) from GC Compliance Manager \u2014 auto-fills description and reference_number when selected"
+    },
     "description": {
       "type": "string",
-      "description": "Item description (e.g. 'Casing hire', 'Excavator')"
+      "description": "Item description (e.g. 'Casing hire', 'Excavator'). Auto-filled from the linked asset name if one is selected."
+    },
+    "reference_number": {
+      "type": "string",
+      "description": "Serial number / asset tag. Auto-filled from the linked SiteAsset when selected."
     },
     "category": {
       "type": "string",

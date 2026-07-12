@@ -28,6 +28,10 @@
       "type": "string",
       "description": "Reference / asset tag / serial number for tracking"
     },
+    "site_asset_id": {
+      "type": "string",
+      "description": "Linked SiteAsset (from GC Compliance Manager) \u2014 keeps this cost item connected to live compliance status"
+    },
     "po_number": {
       "type": "string",
       "description": "Purchase order number for this hire or purchase"

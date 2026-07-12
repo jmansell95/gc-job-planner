@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Boxes, Plus, X, Trash2, Edit2, ChevronDown, ChevronUp, Truck, ShoppingCart, Wrench } from 'lucide-react';
+import { Boxes, Plus, X, Trash2, Edit2, ChevronDown, ChevronUp, Truck, ShoppingCart, Wrench, ShieldCheck } from 'lucide-react';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
 const blankItemForm = () => ({
   description: '', category: 'hired_equipment', supplier_id: '',
-  unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false
+  unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false,
+  site_asset_id: '', reference_number: ''
 });
 
 const categoryMeta = {
@@ -38,6 +39,7 @@ export default function CostPresetManager() {
   });
 
   const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: () => base44.entities.Supplier.list() });
+  const { data: assets = [] } = useQuery({ queryKey: ['site-assets-presets'], queryFn: () => base44.entities.SiteAsset.list() });
 
   const { data: allItems = [] } = useQuery({
     queryKey: ['all-preset-items'],
@@ -96,7 +98,9 @@ export default function CostPresetManager() {
         unit_cost: Number(itemForm.unit_cost) || 0,
         quantity: Number(itemForm.quantity) || 1,
         unit_label: itemForm.unit_label,
-        vat_exempt: !!itemForm.vat_exempt
+        vat_exempt: !!itemForm.vat_exempt,
+        site_asset_id: itemForm.site_asset_id || '',
+        reference_number: itemForm.reference_number || ''
       };
       if (editingItemId) {
         await base44.entities.PresetItem.update(editingItemId, payload);
@@ -116,10 +120,26 @@ export default function CostPresetManager() {
       description: item.description, category: item.category || 'hired_equipment',
       supplier_id: item.supplier_id || '', unit_cost: String(item.unit_cost ?? ''),
       quantity: String(item.quantity ?? '1'), unit_label: item.unit_label || 'day',
-      vat_exempt: !!item.vat_exempt
+      vat_exempt: !!item.vat_exempt,
+      site_asset_id: item.site_asset_id || '',
+      reference_number: item.reference_number || ''
     });
     setEditingItemId(item.id);
     setShowItemForm(true);
+  };
+
+  const selectAsset = (assetId) => {
+    if (!assetId) {
+      setItemForm(p => ({ ...p, site_asset_id: '', reference_number: '' }));
+      return;
+    }
+    const asset = assets.find(a => a.id === assetId);
+    setItemForm(p => ({
+      ...p,
+      site_asset_id: assetId,
+      description: asset?.name || p.description,
+      reference_number: asset?.serial_number || ''
+    }));
   };
 
   const deleteItem = async (id) => {
@@ -212,7 +232,20 @@ export default function CostPresetManager() {
                         <p className="text-xs font-semibold text-emerald-700">{editingItemId ? 'Edit item' : 'Add item to preset'}</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div className="sm:col-span-2">
+                            <label className="block text-xs font-medium text-slate-600 mb-1">Link to Asset (GC Compliance Manager)</label>
+                            <select value={itemForm.site_asset_id} onChange={e => selectAsset(e.target.value)} className={inputCls}>
+                              <option value="">No link — enter manually</option>
+                              {assets.map(a => <option key={a.id} value={a.id}>{a.name}{a.serial_number ? ` · ${a.serial_number}` : ''}</option>)}
+                            </select>
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="block text-xs font-medium text-slate-600 mb-1">Description *</label>
                             <input value={itemForm.description} onChange={e => setItemForm(p => ({ ...p, description: e.target.value }))} required placeholder="Item description *"
+                              className={inputCls} />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <label className="block text-xs font-medium text-slate-600 mb-1">Reference / Serial</label>
+                            <input value={itemForm.reference_number} onChange={e => setItemForm(p => ({ ...p, reference_number: e.target.value }))} placeholder="Auto-filled from linked asset"
                               className={inputCls} />
                           </div>
                           <div>
@@ -299,7 +332,12 @@ export default function CostPresetManager() {
                                   {item.quantity > 1 && ` × ${item.quantity}`}
                                   {' · '}{meta.label}
                                   {item.vat_exempt && ' · VAT exempt'}
+                                  {item.reference_number && ` · ${item.reference_number}`}
                                 </p>
+                                {item.site_asset_id && (() => {
+                                  const la = assets.find(a => a.id === item.site_asset_id);
+                                  return la && <span className="inline-flex items-center gap-0.5 text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-medium mt-1"><ShieldCheck className="w-2.5 h-2.5" /> {la.name}</span>;
+                                })()}
                               </div>
                               <p className="text-sm font-bold text-slate-700 flex-shrink-0">{fmt(net)}</p>
                               <div className="flex items-center gap-0.5 flex-shrink-0">
