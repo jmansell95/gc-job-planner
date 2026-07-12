@@ -49,7 +49,8 @@ const emptyForm = {
   start_date: '', end_date: '', client_id: '', contractor_id: '',
   project_manager: '', site_contact_name: '', site_contact_phone: '',
   notes: '', requisition_list_url: '', requisition_list_name: '',
-  budget_amount: '', actual_cost: '', meterage: '', client_charge: '', client_charge_description: ''
+  budget_amount: '', actual_cost: '', meterage: '', client_charge: '', client_charge_description: '',
+  equipment_items: []
 };
 
 export default function JobManager({ onNavigateRota }) {
@@ -77,7 +78,7 @@ export default function JobManager({ onNavigateRota }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const cleanData = { ...formData };
+      const { equipment_items, ...cleanData } = { ...formData };
       ['budget_amount', 'actual_cost', 'meterage', 'client_charge', 'markup_percentage', 'vat_rate'].forEach(k => {
         if (cleanData[k] === '' || cleanData[k] === undefined || cleanData[k] === null) delete cleanData[k];
       });
@@ -86,6 +87,22 @@ export default function JobManager({ onNavigateRota }) {
         await base44.entities.Job.update(editingId, cleanData);
       } else {
         savedJob = await base44.entities.Job.create(cleanData);
+        if (savedJob && equipment_items?.length > 0) {
+          try {
+            await base44.entities.JobCostItem.bulkCreate(
+              equipment_items.map(item => ({
+                job_id: savedJob.id,
+                description: item.description,
+                quantity: item.quantity || 1,
+                category: 'hired_equipment',
+                unit_cost: 0,
+                unit_label: 'each',
+                hire_status: 'active',
+                current_location: 'yard'
+              }))
+            );
+          } catch (e) { console.error('Equipment creation error:', e); }
+        }
       }
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       setFormData(emptyForm);

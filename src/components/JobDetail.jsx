@@ -25,7 +25,6 @@ import { computeStaffOvertime, buildRateMap, getAssignmentMultiplier } from '@/u
 import { canViewCostings } from '@/utils/access';
 import JobStatusModal from '@/components/JobStatusModal';
 import JobHotelBookings from '@/components/JobHotelBookings';
-import DeliveryManager from '@/components/delivery/DeliveryManager';
 import JobAssetManager from '@/components/JobAssetManager';
 import InvestigationLogManager from '@/components/InvestigationLogManager';
 import SiteManifest from '@/components/SiteManifest';
@@ -756,11 +755,6 @@ export default function JobDetail({ job: initialJob, onBack }) {
 
           {/* Site Manifest — visual asset lifecycle tracker */}
           <SiteManifest jobId={job.id} job={job} suppliers={suppliers} contractors={contractors} isDecommissioning={job.status === 'decommissioning'} />
-
-          {/* Deliveries & Collections */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-            <DeliveryManager jobId={job.id} jobName={job.name} />
-          </div>
 
           {/* Site Photos */}
           <JobPhotoGallery job={job} />

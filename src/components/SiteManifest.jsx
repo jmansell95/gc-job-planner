@@ -106,7 +106,7 @@ export default function SiteManifest({ jobId, job, suppliers = [], contractors =
       <div className="bg-white rounded-xl border border-slate-200 p-6 text-center">
         <Boxes className="w-10 h-10 text-slate-300 mx-auto mb-2" />
         <p className="text-sm font-semibold text-slate-600">No equipment tracked yet</p>
-        <p className="text-xs text-slate-400 mt-1">Add equipment in the Costing section to start tracking its lifecycle.</p>
+        <p className="text-xs text-slate-400 mt-1">Add equipment when creating the job, or add hire items in the Costing section below.</p>
       </div>
     );
   }
