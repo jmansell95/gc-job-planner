@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Package, Plus, X, Trash2, Edit2, Truck, ShoppingCart, Wrench, HardHat, Search, ShieldCheck, Download, Link2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Package, Plus, X, Trash2, Edit2, Truck, ShoppingCart, Wrench, HardHat, Search, ShieldCheck, Download, Link2, ChevronDown, ChevronUp, User } from 'lucide-react';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
@@ -9,7 +9,7 @@ const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outl
 const blankForm = () => ({
   description: '', category: 'hired_equipment', default_supplier_id: '',
   default_unit_cost: '', default_unit_label: 'day', default_vat_exempt: false,
-  reference_number: '', site_asset_id: '', linked_catalogue_ids: []
+  reference_number: '', responsible_person: '', site_asset_id: '', linked_catalogue_ids: []
 });
 
 const categoryMeta = {
@@ -70,6 +70,7 @@ export default function EquipmentItemsTab() {
         default_unit_label: 'day',
         default_vat_exempt: false,
         reference_number: a.serial_number || '',
+        responsible_person: a.responsible_person || '',
         site_asset_id: a.id,
         is_active: true
       }));
@@ -108,6 +109,7 @@ export default function EquipmentItemsTab() {
       site_asset_id: assetId,
       description: asset?.name || p.description,
       reference_number: asset?.serial_number || p.reference_number,
+      responsible_person: asset?.responsible_person || p.responsible_person,
       category: 'internal_equipment'
     }));
   };
@@ -132,6 +134,7 @@ export default function EquipmentItemsTab() {
         default_unit_label: form.default_unit_label,
         default_vat_exempt: !!form.default_vat_exempt,
         reference_number: form.reference_number || '',
+        responsible_person: form.responsible_person || '',
         site_asset_id: form.site_asset_id || '',
         linked_catalogue_ids: form.linked_catalogue_ids || [],
         is_active: true
@@ -156,6 +159,7 @@ export default function EquipmentItemsTab() {
       default_unit_label: item.default_unit_label || 'day',
       default_vat_exempt: !!item.default_vat_exempt,
       reference_number: item.reference_number || '',
+      responsible_person: item.responsible_person || '',
       site_asset_id: item.site_asset_id || '',
       linked_catalogue_ids: item.linked_catalogue_ids || []
     });

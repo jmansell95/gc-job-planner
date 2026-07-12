@@ -73,6 +73,10 @@ Deno.serve(async (req) => {
       return String(e.equipment_type || e.type || e.category || e.type_name || e.category_label || '').trim();
     };
 
+    const extractResponsiblePerson = (e) => {
+      return String(e.responsible_person || e.responsiblePerson || e.owner || e.assigned_to || e.person_responsible || e.operator || e.manager || e.inspector || e.tested_by || e.examiner || '').trim();
+    };
+
     const extractEquipmentAssetType = (e) => {
       const raw = String(e.category || e.equipment_type || e.asset_type || e.type || '').toLowerCase();
       if (raw.includes('trailer')) return 'trailer';
@@ -156,6 +160,7 @@ Deno.serve(async (req) => {
         external_compliance_id: match.id,
         asset_type: assetType,
         equipment_type: extractEquipmentType(match) || asset.equipment_type || '',
+        responsible_person: extractResponsiblePerson(match),
         notes: match.notes || match.last_test_notes || asset.notes || '',
       });
       synced++;
@@ -179,6 +184,7 @@ Deno.serve(async (req) => {
         compliance_status: extractEquipmentStatus(eq),
         compliance_expiry_date: (assetType === 'machinery' || assetType === 'trailer') ? null : (extractExpiry(eq) || null),
         compliance_last_checked: now,
+        responsible_person: extractResponsiblePerson(eq),
         is_active: true,
         notes: eq.notes || eq.last_test_notes || '',
       });
@@ -232,6 +238,7 @@ Deno.serve(async (req) => {
         external_compliance_id: match.id,
         rig_type: extractRigType(match),
         serial_number: match.registration_number || asset.serial_number || '',
+        responsible_person: extractResponsiblePerson(match),
         notes: match.notes || asset.notes || '',
       });
       rigsSynced++;
@@ -250,6 +257,7 @@ Deno.serve(async (req) => {
         compliance_status: extractRigStatus(rig),
         compliance_expiry_date: null,
         compliance_last_checked: now,
+        responsible_person: extractResponsiblePerson(rig),
         is_active: true,
         notes: rig.notes || '',
       });

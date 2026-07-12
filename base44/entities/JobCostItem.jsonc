@@ -33,6 +33,10 @@
       "type": "string",
       "description": "Reference / asset tag / serial number for tracking"
     },
+    "responsible_person": {
+      "type": "string",
+      "description": "Person responsible for this equipment (carried over from the catalogue / GC Compliance Manager)"
+    },
     "site_asset_id": {
       "type": "string",
       "description": "Linked SiteAsset (from GC Compliance Manager) \u2014 keeps this cost item connected to live compliance status"

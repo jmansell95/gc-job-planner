@@ -59,6 +59,10 @@
       "type": "string",
       "description": "ISO timestamp of when the compliance status was last synced from GC Compliance Manager"
     },
+    "responsible_person": {
+      "type": "string",
+      "description": "Person responsible for this asset (synced from GC Compliance Manager)"
+    },
     "tooling_notes": {
       "type": "string",
       "description": "Associated tooling for this rig/equipment (e.g. casing sizes, augers, core barrels)"

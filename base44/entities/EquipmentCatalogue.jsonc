@@ -39,6 +39,10 @@
       "type": "string",
       "description": "Default reference / serial number (optional). Auto-filled from linked SiteAsset."
     },
+    "responsible_person": {
+      "type": "string",
+      "description": "Person responsible for this equipment (auto-filled from linked SiteAsset / GC Compliance Manager)"
+    },
     "site_asset_id": {
       "type": "string",
       "description": "Linked SiteAsset (rig, machinery, trailer, lifting gear) from GC Compliance Manager \u2014 auto-fills description and reference_number, and shows live compliance status"
