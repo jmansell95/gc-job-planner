@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp, X, Car, Briefcase, PoundSterling } from 'lucide-react';
 import { format } from 'date-fns';
+import { canViewCostings } from '@/utils/access';
 
 const TASK_SUGGESTIONS = [
   'Setting up the rig', 'Putting up heras fencing', 'Drilling',
@@ -47,6 +48,8 @@ export default function DailyTaskLog({ staffId }) {
   const { data: todayEntries = [] } = useQuery({ queryKey: ['daily-tasks', staffId, today], queryFn: () => base44.entities.Timesheet.filter({ staff_id: staffId, date: today }), enabled: !!staffId });
   const { data: shifts = [] } = useQuery({ queryKey: ['staff-shifts', staffId], queryFn: () => base44.entities.StaffShift.filter({ staff_id: staffId }), enabled: !!staffId });
   const { data: taskBillingRules = [] } = useQuery({ queryKey: ['billing-rules-task'], queryFn: () => base44.entities.BillingRule.filter({ rule_type: 'task', is_active: true }) });
+  const { data: profile } = useQuery({ queryKey: ['my-staff-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
+  const canSeeCosts = canViewCostings(profile);
 
   const todayAssignments = assignments.filter(a => a.assigned_date === today);
   const todayJobIds = [...new Set(todayAssignments.map(a => a.job_id))];
@@ -307,7 +310,7 @@ export default function DailyTaskLog({ staffId }) {
               )}
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {TASK_SUGGESTIONS.map(s => {
-                  const hasRule = taskBillingRules.some(r => r.name?.toLowerCase().trim() === s.toLowerCase().trim() && r.is_chargeable !== false);
+                  const hasRule = canSeeCosts && taskBillingRules.some(r => r.name?.toLowerCase().trim() === s.toLowerCase().trim() && r.is_chargeable !== false);
                   return (
                     <button type="button" key={s} onClick={() => { setTask(s); setIsLunch(false); setIsOvertime(false); setIsTravel(false); }}
                       className={`text-xs px-2.5 py-1 rounded-full border transition inline-flex items-center gap-1 ${!isLunch && !isOvertime && task === s ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700'}`}>
@@ -399,7 +402,7 @@ export default function DailyTaskLog({ staffId }) {
                             <Ruler className="w-2.5 h-2.5" /> {t.meterage}m
                           </span>
                         )}
-                        {t.chargeable && Number(t.charge_amount) > 0 && (
+                        {canSeeCosts && t.chargeable && Number(t.charge_amount) > 0 && (
                           <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700">
                             <PoundSterling className="w-2.5 h-2.5" /> {Number(t.charge_amount).toFixed(2)}
                           </span>

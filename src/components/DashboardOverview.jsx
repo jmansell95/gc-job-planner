@@ -14,6 +14,7 @@ import { KpiStatsWidget, FieldCrewsWidget, ChartsWidget } from '@/components/das
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
 import SupervisorOverviewWidget from '@/components/dashboard/SupervisorOverviewWidget';
 import JobAssetsWidget from '@/components/dashboard/JobAssetsWidget';
+import { canViewCostings } from '@/utils/access';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [customizeMode, setCustomizeMode] = useState(false);
@@ -90,7 +91,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'supervisor-overview': return <SupervisorOverviewWidget profile={profile} />;
       case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={jobs} vehicles={vehicles} onSelectJob={onSelectJob} onNavigate={onNavigate} />;
       case 'charts': return <ChartsWidget jobs={jobs} staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />;
-      case 'cost-analytics': return <JobCostAnalytics />;
+      case 'cost-analytics': return canViewCostings(profile) ? <JobCostAnalytics /> : null;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
       case 'job-assets': return <JobAssetsWidget onSelectJob={onSelectJob} />;
       default: return null;

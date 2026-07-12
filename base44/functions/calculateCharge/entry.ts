@@ -6,6 +6,22 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Resolve the caller's staff profile to determine their system_role.
+    // This is used to control what financial detail is returned — field staff
+    // and supervisors get the charge amount (needed for entity saves) but NOT
+    // the detailed rate breakdown, which is visible only to admins and managers.
+    let systemRole = null;
+    let isAdmin = user.role === 'admin';
+    if (!isAdmin) {
+      try {
+        const staffList = await base44.entities.Staff.filter({ email: user.email });
+        if (staffList.length > 0) {
+          systemRole = staffList[0].system_role || null;
+        }
+      } catch (_) {}
+    }
+    const canViewCostings = isAdmin || systemRole === 'admin' || systemRole === 'manager';
+
     const body = await req.json();
     const {
       entity_type,       // 'delivery' | 'task' | 'investigation'
@@ -120,7 +136,13 @@ Deno.serve(async (req) => {
     }
 
     const chargeAmount = Math.round(amount * 100) / 100;
-    const breakdown = { rule_name: rule.name, method: rule.charge_method, components, total: chargeAmount };
+
+    // Security: only admins and managers receive the full breakdown with rate
+    // details, rule names, and component labels. Other users get the charge
+    // amount (needed for entity saves) but a redacted breakdown.
+    const breakdown = canViewCostings
+      ? { rule_name: rule.name, method: rule.charge_method, components, total: chargeAmount }
+      : { total: chargeAmount };
 
     return Response.json({
       charge_amount: chargeAmount,

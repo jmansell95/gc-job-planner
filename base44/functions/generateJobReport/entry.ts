@@ -9,6 +9,17 @@ Deno.serve(async (req) => {
     const { jobId } = await req.json();
     if (!jobId) return Response.json({ error: 'jobId is required' }, { status: 400 });
 
+    // Resolve the caller's role — only admins and managers see cost/financial data in reports
+    let systemRole = null;
+    const isAdmin = user.role === 'admin';
+    if (!isAdmin) {
+      try {
+        const staffList = await base44.entities.Staff.filter({ email: user.email });
+        if (staffList.length > 0) systemRole = staffList[0].system_role || null;
+      } catch (_) {}
+    }
+    const canViewCostings = isAdmin || systemRole === 'admin' || systemRole === 'manager';
+
     const job = await base44.entities.Job.get(jobId).catch(() => null);
     if (!job) return Response.json({ error: 'Job not found' }, { status: 404 });
 
@@ -82,7 +93,9 @@ Deno.serve(async (req) => {
     const staffRows = validStaff.map(s => {
       const shifts = rotas.filter(r => r.staff_id === s.id).length;
       const labour = labourByStaff[s.id] || 0;
-      return `<tr><td>${esc(s.name)}</td><td>${fmtRole(s.job_role)}</td><td>${esc(s.worker_type).replace(/_/g,' ')}</td><td>${shifts}</td><td>${fmtGBP(labour)}</td></tr>`;
+      return canViewCostings
+        ? `<tr><td>${esc(s.name)}</td><td>${fmtRole(s.job_role)}</td><td>${esc(s.worker_type).replace(/_/g,' ')}</td><td>${shifts}</td><td>${fmtGBP(labour)}</td></tr>`
+        : `<tr><td>${esc(s.name)}</td><td>${fmtRole(s.job_role)}</td><td>${esc(s.worker_type).replace(/_/g,' ')}</td><td>${shifts}</td></tr>`;
     }).join('');
 
     // --- Equipment cost rows ---
@@ -102,8 +115,8 @@ Deno.serve(async (req) => {
       return `<tr><td>${esc(m.title)}</td><td>${fmtDate(m.target_date)}</td><td>${m.completed ? '✓ Done' : 'Pending'}</td></tr>`;
     }).join('');
 
-    // --- Cost summary block ---
-    const costBlock = `
+    // --- Cost summary block (admins and managers only) ---
+    const costBlock = canViewCostings ? `
       <div class="cost-card">
         <h3>Cost & Profitability Summary</h3>
         <div class="cost-grid">
@@ -116,7 +129,7 @@ Deno.serve(async (req) => {
           <div class="cost-row"><span>Gross Profit</span><strong>${fmtGBP(profit)}</strong></div>
           <div class="cost-row"><span>Margin</span><strong>${margin.toFixed(1)}%</strong></div>
         </div>
-      </div>`;
+      </div>` : '';
 
     const clientInfo = client ? `
       <div class="info-card">
@@ -129,10 +142,10 @@ Deno.serve(async (req) => {
 
     const staffTable = validStaff.length > 0 ? `
       <h2 class="section-title">Staff Assignments</h2>
-      <table><thead><tr><th>Name</th><th>Role</th><th>Type</th><th>Shifts</th><th>Labour Cost</th></tr></thead>
+      <table><thead><tr><th>Name</th><th>Role</th><th>Type</th><th>Shifts</th>${canViewCostings ? '<th>Labour Cost</th>' : ''}</tr></thead>
       <tbody>${staffRows}</tbody></table>` : '';
 
-    const equipTable = costItems.length > 0 ? `
+    const equipTable = (canViewCostings && costItems.length > 0) ? `
       <h2 class="section-title">Equipment & Costs</h2>
       <table><thead><tr><th>Description</th><th>Category</th><th>Qty</th><th>Unit Cost</th><th>Line Cost</th></tr></thead>
       <tbody>${equipRows}</tbody></table>` : '';

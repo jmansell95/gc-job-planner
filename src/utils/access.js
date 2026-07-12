@@ -39,6 +39,13 @@ export function canEdit(profile, isPlatformAdmin) {
   return role === 'admin' || role === 'manager';
 }
 
+// Check if user is authorized to view financial/costing data.
+// Only admins and managers can see cost, billing, and profitability information.
+export function canViewCostings(profile, isPlatformAdmin) {
+  const role = resolveRole(profile, isPlatformAdmin);
+  return role === 'admin' || role === 'manager';
+}
+
 // Check if user is an admin.
 export function isAdmin(profile, isPlatformAdmin) {
   return resolveRole(profile, isPlatformAdmin) === 'admin';

@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format, startOfWeek } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
 import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
+import { canViewCostings } from '@/utils/access';
 
 const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB');
 
@@ -25,6 +26,8 @@ export default function WeeklyInsightsPage() {
     queryKey: ['rotas-this-week', weekStartStr],
     queryFn: async () => (await base44.entities.RotaAssignment.list()).filter(r => r.week_start === weekStartStr)
   });
+  const { data: profile } = useQuery({ queryKey: ['my-staff-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
+  const canSeeCosts = canViewCostings(profile);
 
   const generate = useCallback(async () => {
     if (!staff.length && !jobs.length) return;
@@ -46,7 +49,7 @@ export default function WeeklyInsightsPage() {
         costByJob[r.job_id] = (costByJob[r.job_id] || 0) + cost;
       });
 
-      const jobsOverBudget = activeJobs.filter(j => j.budget_amount && costByJob[j.id] > j.budget_amount);
+      const jobsOverBudget = canSeeCosts ? activeJobs.filter(j => j.budget_amount && costByJob[j.id] > j.budget_amount) : [];
       const unassignedActive = activeJobs.filter(j => !rotas.some(r => r.job_id === j.id));
       const underutilised = staff.filter(s => s.is_active !== false && rotas.filter(r => r.staff_id === s.id).length < 2);
       const pendingTimesheets = timesheets.filter(t => t.status === 'submitted').length;
@@ -64,7 +67,7 @@ export default function WeeklyInsightsPage() {
         `Today: ${todays.length} assignments covering ${new Set(todays.map(r => r.staff_id)).size} staff.`,
         `Jobs with no rota assignments this week: ${unassignedActive.length} (${unassignedActive.map(j => j.name).join(', ') || 'none'}).`,
         `Staff underutilised (<2 shifts): ${underutilised.length} (${underutilised.map(s => s.name).join(', ') || 'none'}).`,
-        `Jobs over budget: ${jobsOverBudget.length} (${jobsOverBudget.map(j => `${j.name} spend ${fmtGBP(costByJob[j.id])} vs budget ${fmtGBP(j.budget_amount)}`).join('; ') || 'none'}).`,
+        ...(canSeeCosts ? [`Jobs over budget: ${jobsOverBudget.length} (${jobsOverBudget.map(j => `${j.name} spend ${fmtGBP(costByJob[j.id])} vs budget ${fmtGBP(j.budget_amount)}`).join('; ') || 'none'}).`] : []),
         `Pending unapproved timesheets: ${pendingTimesheets}.`,
         `Vehicles with maintenance/MOT due within 30 days: ${vehicleAlerts.length} (${vehicleAlerts.map(v => v.name).join(', ') || 'none'}).`,
       ].join(' ');
@@ -156,10 +159,12 @@ ${summary}
 
       <p className="text-sm text-slate-500 mb-6">AI-generated action plan based on this week's jobs, rotas, timesheets, budgets and vehicle maintenance. Week of <span className="font-medium text-slate-700">{format(weekStart, 'dd MMMM yyyy')}</span>.</p>
 
-      {/* Profitability Dashboard — always visible */}
-      <div className="mb-6">
-        <ProfitabilityDashboard />
-      </div>
+      {/* Profitability Dashboard — restricted to admins and managers */}
+      {canSeeCosts && (
+        <div className="mb-6">
+          <ProfitabilityDashboard />
+        </div>
+      )}
 
       {/* Summary Banner */}
       {loading && !insights && (

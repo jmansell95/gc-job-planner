@@ -22,6 +22,7 @@ import JobPhotoGallery from '@/components/JobPhotoGallery';
 import { getJobPrimaryType, isDrillingJob as isDrillingJobByTeams, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import { getCrewLabel } from '@/utils/terminology';
 import { computeStaffOvertime, buildRateMap, getAssignmentMultiplier } from '@/utils/overtime';
+import { canViewCostings } from '@/utils/access';
 import JobStatusModal from '@/components/JobStatusModal';
 import JobHotelBookings from '@/components/JobHotelBookings';
 import DeliveryManager from '@/components/delivery/DeliveryManager';
@@ -77,6 +78,12 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
+
+  const { data: profile } = useQuery({
+    queryKey: ['my-staff-profile'],
+    queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; }
+  });
+  const canSeeCosts = canViewCostings(profile);
 
   const handleFullReport = async () => {
     setGeneratingReport(true);
@@ -732,8 +739,10 @@ export default function JobDetail({ job: initialJob, onBack }) {
           {/* Site Photos */}
           <JobPhotoGallery job={job} />
 
-          {/* Job Costing & Billing */}
-          <JobCostingManager job={job} totalCost={totalCost} staffCosts={staffCosts} isDrillingJob={isDrillingJob} totalMeterage={totalMeterage} />
+          {/* Job Costing & Billing — restricted to admins and managers */}
+          {canSeeCosts && (
+            <JobCostingManager job={job} totalCost={totalCost} staffCosts={staffCosts} isDrillingJob={isDrillingJob} totalMeterage={totalMeterage} />
+          )}
 
           {/* Work Log */}
           <JobWorkLog job={job} />
