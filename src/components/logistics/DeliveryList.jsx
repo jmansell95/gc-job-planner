@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Truck, Package, ClipboardList, Calendar, MapPin, Trash2, PoundSterling, Weight, User } from 'lucide-react';
+import { Truck, Package, ClipboardList, Calendar, MapPin, Trash2, PoundSterling, Weight, User, Navigation } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -79,9 +79,19 @@ export default function DeliveryList({ deliveries = [], jobId, canSeeCosts }) {
                 )}
               </div>
             </div>
-            {d.status === 'pending' && (
-              <button onClick={() => handleDelete(d.id)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition flex-shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
-            )}
+            <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+              {((d.pickup_address && d.delivery_address) || d.delivery_address) && (
+                <a href={d.pickup_address && d.delivery_address
+                  ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(d.pickup_address)}&destination=${encodeURIComponent(d.delivery_address)}`
+                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.delivery_address)}`
+                } target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-emerald-700 hover:text-emerald-900 font-medium px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition">
+                  <Navigation className="w-3 h-3" /> Route
+                </a>
+              )}
+              {d.status === 'pending' && (
+                <button onClick={() => handleDelete(d.id)} className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition"><Trash2 className="w-3.5 h-3.5" /></button>
+              )}
+            </div>
           </div>
         );
       })}

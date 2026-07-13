@@ -12,6 +12,8 @@ import LifecycleBar from '@/components/logistics/LifecycleBar';
 import LogisticsItemRow from '@/components/logistics/LogisticsItemRow';
 import LoadPlannerModal from '@/components/logistics/LoadPlannerModal';
 import DeliveryList from '@/components/logistics/DeliveryList';
+import RigAssemblyGroup from '@/components/logistics/RigAssemblyGroup';
+import RigGearPickerModal from '@/components/logistics/RigGearPickerModal';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -53,6 +55,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   const [hireFilter, setHireFilter] = useState('active');
   const [applyingPreset, setApplyingPreset] = useState(false);
   const [addingRigGear, setAddingRigGear] = useState(false);
+  const [showRigPicker, setShowRigPicker] = useState(false);
   const [updatingIds, setUpdatingIds] = useState(new Set());
   const [offHiringId, setOffHiringId] = useState(null);
   const [offHireDate, setOffHireDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -78,7 +81,21 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     }
   }
 
-  const personGroups = visibleItems.reduce((acc, c) => {
+  const rigAssemblyList = Object.entries(rigItemLinks).map(([rigId, linked]) => {
+    const rig = visibleItems.find(c => c.id === rigId);
+    if (!rig) return null;
+    const asset = rig.site_asset_id ? assetMap[rig.site_asset_id] : null;
+    return { rig, linked, asset };
+  }).filter(Boolean);
+
+  const assemblyItemIds = new Set();
+  rigAssemblyList.forEach(a => {
+    assemblyItemIds.add(a.rig.id);
+    a.linked.forEach(li => assemblyItemIds.add(li.id));
+  });
+
+  const standaloneItems = visibleItems.filter(c => !assemblyItemIds.has(c.id));
+  const personGroups = standaloneItems.reduce((acc, c) => {
     const person = c.responsible_person || (c.category === 'contractor_supplied' ? 'Contractor Supplied' : 'Unassigned');
     if (!acc[person]) acc[person] = [];
     acc[person].push(c);
@@ -135,6 +152,19 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     setAdding(true);
   };
 
+  const deleteRigAssembly = async (rigItem, linkedItems) => {
+    const totalCount = linkedItems.length + 1;
+    if (!confirm(`Delete "${rigItem.description}" and all ${linkedItems.length} linked gear items? This removes ${totalCount} items from the job.`)) return;
+    try {
+      await base44.entities.JobCostItem.delete(rigItem.id);
+      await Promise.all(linkedItems.map(li => base44.entities.JobCostItem.delete(li.id)));
+      queryClient.invalidateQueries({ queryKey: ['job-cost-items', jobId] });
+      queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', jobId] });
+      setSelectedIds(prev => { const s = new Set(prev); s.delete(rigItem.id); linkedItems.forEach(li => s.delete(li.id)); return s; });
+      toast({ title: `Deleted ${totalCount} items`, description: `${rigItem.description} and linked gear removed.` });
+    } catch (e) { console.error(e); toast({ title: 'Error', description: 'Could not delete rig assembly.' }); }
+  };
+
   const deleteItem = async (id) => {
     if (!confirm('Remove this equipment item?')) return;
     try {
@@ -170,10 +200,8 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     setApplyingPreset(false);
   };
 
-  const addRigWithGear = async (e) => {
-    const catId = e.target.value;
+  const addRigWithGear = async (catId) => {
     if (!catId) return;
-    e.target.value = '';
     setAddingRigGear(true);
     try {
       const rig = catalogueItems.find(c => c.id === catId);
@@ -196,6 +224,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       queryClient.invalidateQueries({ queryKey: ['job-cost-items', jobId] });
       queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', jobId] });
       toast({ title: `Added ${payload.length} items`, description: `${rig.description} + ${gear.length} linked items.` });
+      setShowRigPicker(false);
     } catch (err) { console.error(err); toast({ title: 'Error', description: 'Could not add rig and gear.' }); }
     setAddingRigGear(false);
   };
@@ -282,10 +311,9 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
                 </select>
               )}
               {rigsWithGear.length > 0 && (
-                <select value="" onChange={addRigWithGear} disabled={addingRigGear} className="text-xs px-2.5 py-1.5 rounded-lg border border-blue-200 bg-white text-blue-700 font-medium hover:bg-blue-50 cursor-pointer disabled:opacity-50">
-                  <option value="">{addingRigGear ? 'Adding…' : '🚜 Add rig + gear…'}</option>
-                  {rigsWithGear.map(r => <option key={r.id} value={r.id}>{r.description} (+{(r.linked_catalogue_ids || []).length})</option>)}
-                </select>
+                <button onClick={() => setShowRigPicker(true)} disabled={addingRigGear} className="inline-flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 font-medium px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition disabled:opacity-50">
+                  <Plus className="w-3.5 h-3.5" /> Add Rig & Gear
+                </button>
               )}
             </div>
           )}
@@ -345,29 +373,35 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
             <div className="text-center py-6 text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">No active equipment.</div>
           ) : (
             <div className="space-y-4">
-              {Object.entries(personGroups).map(([person, personItems]) => {
-                const standalone = personItems.filter(c => !linkedItemIds.has(c.id));
-                return (
-                  <div key={person}>
-                    <div className="flex items-center gap-1.5 mb-2 px-1">
-                      <User className="w-3.5 h-3.5 text-slate-400" />
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{person}</p>
-                      <span className="text-xs text-slate-400">({standalone.length})</span>
-                    </div>
-                    <div className="space-y-2">
-                      {standalone.map(c => (
-                        <LogisticsItemRow key={c.id} item={c} isSelected={selectedIds.has(c.id)} onToggleSelect={toggleSelect}
-                          asset={c.site_asset_id ? assetMap[c.site_asset_id] : null}
-                          supplier={c.supplier_id ? suppliers.find(s => s.id === c.supplier_id) : null}
-                          contractor={c.contractor_id ? contractors.find(ct => ct.id === c.contractor_id) : null}
-                          linkedItems={rigItemLinks[c.id] || []} isUpdating={updatingIds.has(c.id)}
-                          onEdit={editItem} onDelete={deleteItem} onOffHire={openOffHire} onLocationUpdate={updateLocation}
-                          canSelect={canSeeCosts} canEdit={canSeeCosts} showCost={canSeeCosts} />
-                      ))}
-                    </div>
+              {rigAssemblyList.map(assembly => (
+                <RigAssemblyGroup key={assembly.rig.id} rigItem={assembly.rig} linkedItems={assembly.linked}
+                  asset={assembly.asset} suppliers={suppliers} contractors={contractors}
+                  canSeeCosts={canSeeCosts} canEdit={canSeeCosts}
+                  selectedIds={selectedIds} onToggleSelect={toggleSelect}
+                  onEdit={editItem} onDeleteItem={deleteItem} onDeleteAssembly={deleteRigAssembly}
+                  onOffHire={openOffHire} onLocationUpdate={updateLocation}
+                  updatingIds={updatingIds} assetMap={assetMap} />
+              ))}
+              {Object.entries(personGroups).map(([person, personItems]) => (
+                <div key={person}>
+                  <div className="flex items-center gap-1.5 mb-2 px-1">
+                    <User className="w-3.5 h-3.5 text-slate-400" />
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{person}</p>
+                    <span className="text-xs text-slate-400">({personItems.length})</span>
                   </div>
-                );
-              })}
+                  <div className="space-y-2">
+                    {personItems.map(c => (
+                      <LogisticsItemRow key={c.id} item={c} isSelected={selectedIds.has(c.id)} onToggleSelect={toggleSelect}
+                        asset={c.site_asset_id ? assetMap[c.site_asset_id] : null}
+                        supplier={c.supplier_id ? suppliers.find(s => s.id === c.supplier_id) : null}
+                        contractor={c.contractor_id ? contractors.find(ct => ct.id === c.contractor_id) : null}
+                        linkedItems={[]} isUpdating={updatingIds.has(c.id)}
+                        onEdit={editItem} onDelete={deleteItem} onOffHire={openOffHire} onLocationUpdate={updateLocation}
+                        canSelect={canSeeCosts} canEdit={canSeeCosts} showCost={canSeeCosts} />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -407,6 +441,11 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       {showLoadPlanner && (
         <LoadPlannerModal selectedItems={selectedItems} staff={staff} vehicles={vehicles} job={job}
           onClose={() => { setShowLoadPlanner(false); clearSelection(); }} />
+      )}
+
+      {showRigPicker && (
+        <RigGearPickerModal rigsWithGear={rigsWithGear} catalogueItems={catalogueItems}
+          onAdd={addRigWithGear} onClose={() => setShowRigPicker(false)} adding={addingRigGear} />
       )}
 
       {offHiringId && offHiringItem && (
