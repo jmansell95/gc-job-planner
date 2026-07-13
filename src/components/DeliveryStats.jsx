@@ -33,7 +33,7 @@ export default function DeliveryStats({ onNavigate }) {
   if (isLoading) {
     return (
       <WidgetShell icon={PackageCheck} title="Deliveries & Collections" subtitle="Today's delivery activity">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 lg:gap-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:gap-4">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 sm:h-24 rounded-xl" />)}
         </div>
       </WidgetShell>
@@ -49,7 +49,7 @@ export default function DeliveryStats({ onNavigate }) {
           No deliveries or collections scheduled for today
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 lg:gap-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:gap-4">
           {cards.map((stat, i) => {
             const Icon = stat.icon;
             return (

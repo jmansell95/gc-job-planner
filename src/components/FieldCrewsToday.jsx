@@ -69,7 +69,7 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
           <button onClick={() => onNavigate('rota')} className="mt-2 text-xs text-emerald-700 hover:text-emerald-900 font-medium">Build this week's rota →</button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 max-h-[420px] overflow-y-auto">
+        <div className="grid grid-cols-1 gap-3 p-4 max-h-[420px] overflow-y-auto">
           {todaysRotas.map(r => {
             const member = staff.find(s => s.id === r.staff_id);
             const job = jobs.find(j => j.id === r.job_id);

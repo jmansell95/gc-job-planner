@@ -104,7 +104,7 @@ export default function SupervisorOverviewWidget({ profile }) {
 
       <div className="p-5">
         {/* Summary row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div className="grid grid-cols-2 gap-3 mb-5">
           <div className="bg-slate-50 rounded-xl p-3 text-center">
             <Users className="w-4 h-4 text-slate-400 mx-auto mb-1" />
             <p className="text-lg font-bold text-slate-900">{totalOnSite}</p>

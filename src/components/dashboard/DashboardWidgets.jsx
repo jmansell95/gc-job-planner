@@ -13,7 +13,7 @@ const cardVariants = {
 export function KpiStatsWidget({ stats, onNavigate }) {
   return (
     <WidgetShell icon={Grid3x3} title="Key Metrics" subtitle="Today's operational snapshot">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (
@@ -46,12 +46,10 @@ export function FieldCrewsWidget({ todaysRotas, staff, jobs, vehicles, onSelectJ
 export function ChartsWidget({ jobs, staff, rotas, weekDays }) {
   return (
     <WidgetShell icon={BarChart3} title="Charts" subtitle="Jobs, types & crew utilisation">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         <JobStatusChart jobs={jobs} />
         <JobTypeBreakdownChart jobs={jobs} />
-        <div className="lg:col-span-2">
-          <StaffUtilizationChart staff={staff} rotas={rotas} weekDays={weekDays} />
-        </div>
+        <StaffUtilizationChart staff={staff} rotas={rotas} weekDays={weekDays} />
       </div>
     </WidgetShell>
   );

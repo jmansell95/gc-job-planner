@@ -82,7 +82,7 @@ export default function ComplianceOverviewWidget({ onNavigate }) {
         View All <ArrowRight className="w-3.5 h-3.5" />
       </button>}>
       {/* Staff compliance summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         {summaryCards.map(card => {
           const Icon = card.icon;
           const t = toneMap[card.tone];

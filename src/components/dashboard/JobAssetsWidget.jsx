@@ -68,7 +68,7 @@ export default function JobAssetsWidget({ onSelectJob }) {
           No rigs or equipment assigned to jobs yet
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 max-h-[480px] overflow-y-auto">
+        <div className="grid grid-cols-1 gap-3 p-4 max-h-[480px] overflow-y-auto">
           {jobEntries.map(({ job, assets }) => {
             const rigs = assets.filter(a => a.asset_type === 'rig');
             const machinery = assets.filter(a => a.asset_type === 'machinery');

@@ -155,7 +155,7 @@ export default function MaintenanceQuickView({ onNavigate }) {
           No maintenance booked yet
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
+        <div className="grid grid-cols-1 gap-3 p-4">
           {nextFour.map(b => {
             const vehicle = vehicles.find(v => v.id === b.vehicle_id);
             const typeLabel = TYPE_LABELS[b.booking_type] || 'Maintenance';
@@ -180,7 +180,7 @@ export default function MaintenanceQuickView({ onNavigate }) {
             );
           })}
           {upcoming.length > 4 && (
-            <div className="md:col-span-2 text-center pt-1">
+            <div className="text-center pt-1">
               <button onClick={goToVehicles} className="text-xs text-slate-500 hover:text-emerald-700 font-medium">
                 +{upcoming.length - 4} more upcoming
               </button>
