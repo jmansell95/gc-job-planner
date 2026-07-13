@@ -145,7 +145,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   const sizeColSpan = (size) => {
     if (size === 'sm') return 'col-span-1';
-    if (size === 'lg') return 'col-span-1 lg:col-span-3';
+    if (size === 'lg') return 'col-span-1 lg:col-span-4';
     return 'col-span-1 lg:col-span-2';
   };
 
@@ -210,7 +210,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="dashboard-widgets">
           {(provided) => (
-            <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+            <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
               {widgetOrder.filter(id => WIDGET_TO_TAB[id] === activeTab).map((widgetId, index) => (
                 <Draggable key={widgetId} draggableId={widgetId} index={index} isDragDisabled={!customizeMode}>
                   {(provided) => (
