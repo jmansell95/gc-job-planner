@@ -90,14 +90,14 @@ export default function SupervisorOverviewWidget({ profile }) {
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-2">
+      <div className="px-4 sm:px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-            <Shield className="w-4 h-4 text-indigo-700" />
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <Shield className="w-4 h-4 text-emerald-700" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-slate-900">Supervisor Overview</h2>
-            <p className="text-xs text-slate-400">{managedTeams.length} {managedTeams.length === 1 ? 'crew' : 'crews'} · {isSupervisor ? 'under your supervision' : 'across all teams'}</p>
+            <h2 className="text-sm font-bold text-slate-900 truncate">Supervisor Overview</h2>
+            <p className="text-xs text-slate-400 truncate">{managedTeams.length} {managedTeams.length === 1 ? 'crew' : 'crews'} · {isSupervisor ? 'under your supervision' : 'across all teams'}</p>
           </div>
         </div>
       </div>
