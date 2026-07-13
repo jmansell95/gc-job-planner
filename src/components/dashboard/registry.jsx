@@ -37,7 +37,7 @@ export const WIDGET_TO_TAB = Object.fromEntries(
 );
 
 export const DEFAULT_WIDGET_SIZES = {
-  'kpi-stats': 'lg',
+  'kpi-stats': 'md',
   'field-crews': 'lg',
   'charts': 'lg',
   'supervisor-overview': 'lg',
