@@ -172,6 +172,38 @@ async function syncDeliveryQueue() {
     }
 
     try {
+      // Verify server status first — if already completed, a previous sync
+      // succeeded but didn't clear the queue. Drop it instead of re-uploading.
+      let serverRecord = null;
+      try {
+        serverRecord = await base44.entities.DeliveryLog.get(item.delivery_id);
+      } catch (fetchErr) {
+        // If we can't even read the record, the network is down — keep in queue
+        console.warn('Cannot reach server to verify delivery status:', fetchErr.message);
+        remaining.push(item);
+        continue;
+      }
+
+      if (serverRecord && serverRecord.status === 'completed') {
+        // Already synced — just update linked cost items if they weren't set
+        const linkedIds = (item.linked_cost_item_ids || serverRecord.linked_cost_item_ids || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (linkedIds.length > 0) {
+          const newLocation = (item.delivery_type || serverRecord.delivery_type) === 'supplier_collection' ? 'returned' : 'site';
+          const updates = linkedIds.map(id => ({
+            id,
+            current_location: newLocation,
+            location_updated_at: new Date().toISOString(),
+            ...(newLocation === 'returned' ? {
+              hire_status: 'off_hired',
+              off_hire_date: new Date().toISOString().split('T')[0]
+            } : {})
+          }));
+          try { await base44.entities.JobCostItem.bulkUpdate(updates); } catch (e) { console.error('Item location sync error:', e); }
+        }
+        synced++;
+        continue; // Skip re-upload — already done
+      }
+
       let signatureUrl = item.signature_url || '';
       if (item.signature_data_url) {
         signatureUrl = await uploadDataURL(item.signature_data_url, `delivery_sig_${item.delivery_id}.png`);

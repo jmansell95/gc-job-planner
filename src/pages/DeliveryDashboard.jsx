@@ -198,6 +198,12 @@ export default function DeliveryDashboard() {
         try { await base44.entities.JobCostItem.bulkUpdate(updates); } catch (e) { console.error('Item location sync error:', e); }
       }
 
+      // Clean up any stale offline queue entry for this delivery (previous failed attempt)
+      const queue = JSON.parse(localStorage.getItem('pending_delivery_logs') || '[]');
+      if (queue.some(p => p.delivery_id === deliveryId)) {
+        localStorage.setItem('pending_delivery_logs', JSON.stringify(queue.filter(p => p.delivery_id !== deliveryId)));
+        setOfflineDeliveryIds(getOfflineDeliveryIds());
+      }
       queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
       toast({ title: 'Delivery signed off', description: 'Proof of delivery recorded.' });
     } catch (e) {
