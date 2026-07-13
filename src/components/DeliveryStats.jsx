@@ -33,8 +33,8 @@ export default function DeliveryStats({ onNavigate }) {
   if (isLoading) {
     return (
       <WidgetShell icon={PackageCheck} title="Deliveries & Collections" subtitle="Today's delivery activity">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 lg:gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 sm:h-24 rounded-xl" />)}
         </div>
       </WidgetShell>
     );
@@ -49,18 +49,18 @@ export default function DeliveryStats({ onNavigate }) {
           No deliveries or collections scheduled for today
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 lg:gap-4">
           {cards.map((stat, i) => {
             const Icon = stat.icon;
             return (
               <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, duration: 0.3 }}
-                className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl ${stat.gradient} flex items-center justify-center flex-shrink-0 shadow-sm`}>
-                  <Icon className="w-5 h-5 text-white" />
+                className="bg-slate-50 border border-slate-100 rounded-xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3">
+                <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${stat.gradient} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xl font-bold text-slate-900 leading-tight">{stat.value}</p>
-                  <p className="text-xs text-slate-500 font-medium">{stat.label}</p>
+                  <p className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">{stat.value}</p>
+                  <p className="text-xs text-slate-500 font-medium truncate">{stat.label}</p>
                   <p className="text-[11px] text-slate-400 truncate">{stat.sub}</p>
                 </div>
               </motion.div>
