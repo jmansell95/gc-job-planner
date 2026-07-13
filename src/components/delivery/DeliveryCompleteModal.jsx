@@ -71,7 +71,9 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
       photo_data_urls: photoDataUrls,
       gps_coordinates: gps || '',
       notes: notes.trim(),
-      condition_report: condition.trim()
+      condition_report: condition.trim(),
+      delivery_type: delivery.delivery_type || '',
+      linked_cost_item_ids: delivery.linked_cost_item_ids || ''
     });
 
     setSubmitting(false);

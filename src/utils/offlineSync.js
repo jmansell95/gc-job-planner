@@ -163,8 +163,15 @@ async function syncDeliveryQueue() {
 
   const remaining = [];
   let synced = 0;
+  const MAX_ATTEMPTS = 5;
 
   for (const item of pending) {
+    // Skip items without a valid delivery ID — they can never sync
+    if (!item.delivery_id) {
+      console.warn('Skipping delivery queue item with no delivery_id');
+      continue;
+    }
+
     try {
       let signatureUrl = item.signature_url || '';
       if (item.signature_data_url) {
@@ -176,7 +183,7 @@ async function syncDeliveryQueue() {
         photoUrls = await uploadDataURLs(item.photo_data_urls, `delivery_photo_${item.delivery_id}`);
       }
 
-      const updated = await base44.entities.DeliveryLog.update(item.delivery_id, {
+      await base44.entities.DeliveryLog.update(item.delivery_id, {
         status: 'completed',
         completed_at: item.completed_at,
         signature_url: signatureUrl,
@@ -189,9 +196,9 @@ async function syncDeliveryQueue() {
       });
 
       // Auto-update linked cost item locations (same as online completion path)
-      const linkedIds = (updated.linked_cost_item_ids || '').split(',').map(s => s.trim()).filter(Boolean);
+      const linkedIds = (item.linked_cost_item_ids || '').split(',').map(s => s.trim()).filter(Boolean);
       if (linkedIds.length > 0) {
-        const newLocation = updated.delivery_type === 'supplier_collection' ? 'returned' : 'site';
+        const newLocation = item.delivery_type === 'supplier_collection' ? 'returned' : 'site';
         const updates = linkedIds.map(id => ({
           id,
           current_location: newLocation,
@@ -207,7 +214,12 @@ async function syncDeliveryQueue() {
       synced++;
     } catch (err) {
       console.error('Sync error for delivery item:', err);
-      remaining.push(item);
+      const attempts = (item.attempts || 0) + 1;
+      if (attempts < MAX_ATTEMPTS) {
+        remaining.push({ ...item, attempts });
+      } else {
+        console.error(`Delivery ${item.delivery_id} dropped after ${MAX_ATTEMPTS} failed attempts`);
+      }
     }
   }
 
