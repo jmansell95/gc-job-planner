@@ -155,11 +155,12 @@ export default function DeliveryDashboard() {
 
       queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
       toast({ title: 'Delivery signed off', description: 'Proof of delivery recorded.' });
+      setCompleteDelivery(null);
+      return true;
     } catch (e) {
       console.error('Error completing delivery:', e);
       toast({ title: 'Could not sign off', description: 'Check your connection and try again.' });
-    } finally {
-      setCompleteDelivery(null);
+      return false;
     }
   };
 

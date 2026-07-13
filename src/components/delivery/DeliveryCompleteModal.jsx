@@ -61,7 +61,7 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
     const completedAt = new Date().toISOString();
     const photoDataUrls = photos.map(p => p.data_url).join(',');
 
-    await onComplete({
+    const success = await onComplete({
       delivery_id: delivery.id,
       completed_at: completedAt,
       signature_data_url: signature,
@@ -74,7 +74,11 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
       linked_cost_item_ids: delivery.linked_cost_item_ids || ''
     });
 
-    setSubmitting(false);
+    // Only stop the spinner if the sign-off failed — on success the modal closes.
+    // This keeps all form data (signature, photos, notes) intact so the driver can retry.
+    if (!success) {
+      setSubmitting(false);
+    }
   };
 
   const canSubmit = signature && !submitting;
