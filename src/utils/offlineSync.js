@@ -163,7 +163,6 @@ async function syncDeliveryQueue() {
 
   const remaining = [];
   let synced = 0;
-  const MAX_ATTEMPTS = 5;
 
   for (const item of pending) {
     // Skip items without a valid delivery ID — they can never sync
@@ -214,12 +213,8 @@ async function syncDeliveryQueue() {
       synced++;
     } catch (err) {
       console.error('Sync error for delivery item:', err);
-      const attempts = (item.attempts || 0) + 1;
-      if (attempts < MAX_ATTEMPTS) {
-        remaining.push({ ...item, attempts });
-      } else {
-        console.error(`Delivery ${item.delivery_id} dropped after ${MAX_ATTEMPTS} failed attempts`);
-      }
+      // Keep in queue — will retry on next sync cycle. Never drop data.
+      remaining.push(item);
     }
   }
 
@@ -265,11 +260,7 @@ async function syncActionQueue() {
       synced++;
     } catch (err) {
       console.error(`Sync error for ${item.entity_name} ${item.operation}:`, err);
-      // Keep failed items in queue for retry, but drop after 5 attempts
-      const attempts = (item.attempts || 0) + 1;
-      if (attempts < 5) {
-        remaining.push({ ...item, attempts });
-      }
+      remaining.push(item);
     }
   }
 

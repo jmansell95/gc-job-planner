@@ -40,7 +40,6 @@ export default function DeliveryDashboard() {
   const queryClient = useQueryClient();
 
   const runSync = useCallback(() => {
-    if (!navigator.onLine) return;
     if (getTotalOfflineCount() === 0) return;
     setIsSyncing(true);
     syncAllOfflineData().then(result => {
@@ -133,35 +132,10 @@ export default function DeliveryDashboard() {
 
   const handleComplete = async (data) => {
     const deliveryId = data.delivery_id;
-    const wasOnline = navigator.onLine;
     setCompleteDelivery(null);
 
-    if (!wasOnline) {
-      // Save to offline queue
-      saveOfflineDelivery(data);
-      // Optimistically mark as completed locally so UI updates
-      queryClient.setQueryData(['my-deliveries', staff?.id], (old = []) =>
-        old.map(d => d.id === deliveryId ? {
-          ...d,
-          status: 'completed',
-          completed_at: data.completed_at,
-          signed_by_name: data.signed_by_name,
-          condition_report: data.condition_report,
-          notes: data.notes,
-          synced_from_offline: true
-        } : d)
-      );
-      setOfflineDeliveryIds(getOfflineDeliveryIds());
-      // Immediately attempt sync — navigator.onLine can be wrong (shows offline but has connectivity)
-      runSync();
-      toast({
-        title: 'Saved offline',
-        description: 'Signature and photos will sync automatically when you get signal.'
-      });
-      return;
-    }
-
-    // Online: upload files and update entity
+    // Always try the online path first — navigator.onLine is unreliable.
+    // If the network request fails, the catch block saves it offline.
     try {
       let signatureUrl = '';
       if (data.signature_data_url) {
@@ -230,19 +204,26 @@ export default function DeliveryDashboard() {
       console.error('Error completing delivery:', e);
       // Fallback: save offline so data isn't lost
       saveOfflineDelivery(data);
+      // Optimistically mark as completed locally so UI updates
+      queryClient.setQueryData(['my-deliveries', staff?.id], (old = []) =>
+        old.map(d => d.id === deliveryId ? {
+          ...d,
+          status: 'completed',
+          completed_at: data.completed_at,
+          signed_by_name: data.signed_by_name,
+          condition_report: data.condition_report,
+          notes: data.notes,
+          synced_from_offline: true
+        } : d)
+      );
       setOfflineDeliveryIds(getOfflineDeliveryIds());
       // Immediately attempt sync — the upload may have failed but connectivity might still work
       runSync();
       toast({ title: 'Saved offline', description: 'Network error — will sync when reconnected.' });
-      queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
     }
   };
 
   const handleManualSync = async () => {
-    if (!navigator.onLine) {
-      toast({ title: 'Still offline', description: 'Reconnect to sync your data.' });
-      return;
-    }
     setIsSyncing(true);
     try {
       const result = await syncAllOfflineData();
