@@ -69,12 +69,8 @@ export default function LogisticsItemRow({ item: c, isSelected, onToggleSelect, 
             )}
           </p>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            {!isContractorItem && isUpdating ? (
+            {!isContractorItem && isUpdating && (
               <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
-            ) : !isContractorItem && (
-              <button onClick={() => onLocationUpdate(c.id, locCfg.nextLoc)} className={`text-[10px] px-2 py-1 rounded-lg font-medium transition inline-flex items-center gap-0.5 ${locCfg.actionBg}`}>
-                <locCfg.actionIcon className="w-3 h-3" /> {locCfg.actionLabel}
-              </button>
             )}
             {!isContractorItem && canEdit && c.category === 'hired_equipment' && (c.hire_status || 'active') === 'active' && (
               <button onClick={() => onOffHire(c)} className="text-[10px] px-2 py-1 rounded-lg font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 transition inline-flex items-center gap-0.5">

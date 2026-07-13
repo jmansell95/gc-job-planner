@@ -103,13 +103,8 @@ export default function RigAssemblyGroup({ rigItem, linkedItems, asset, supplier
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    {isUpdating ? (
+                    {isUpdating && (
                       <Loader2 className="w-3 h-3 text-slate-400 animate-spin" />
-                    ) : canEdit && (
-                      <button onClick={() => onLocationUpdate(li.id, locCfg.nextLoc)}
-                        className={`text-[9px] px-1.5 py-0.5 rounded font-medium transition ${locCfg.actionBg}`}>
-                        {locCfg.actionLabel}
-                      </button>
                     )}
                     {canSeeCosts && <span className="text-xs text-slate-400">{fmt(net)}</span>}
                     {canEdit && (

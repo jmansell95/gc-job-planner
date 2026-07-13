@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -103,11 +103,21 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   }, {});
 
   const rigsWithGear = catalogueItems.filter(c => (c.linked_catalogue_ids || []).length > 0);
-  const formCatalogueItems = isDrillingJob ? catalogueItems : catalogueItems.filter(c => {
+  const formCatalogueItems = catalogueItems.filter(c => {
     const linkedAsset = c.site_asset_id ? assetMap[c.site_asset_id] : null;
-    return !linkedAsset || linkedAsset.asset_type !== 'lifting';
+    if (linkedAsset?.asset_type === 'rig') return false;
+    if (!isDrillingJob && linkedAsset?.asset_type === 'lifting') return false;
+    return true;
   });
   const defaultDates = job ? { start: job.start_date, end: job.end_date } : null;
+
+  // Auto-select all items at the yard so the Plan Load bar appears automatically
+  useEffect(() => {
+    const yardIds = activeItems
+      .filter(i => (i.current_location || 'yard') === 'yard')
+      .map(i => i.id);
+    setSelectedIds(new Set(yardIds));
+  }, [items]);
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s; });
