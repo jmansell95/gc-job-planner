@@ -60,8 +60,8 @@ export default function EquipmentItemCard({ item: c, linkedItems = [], assetMap 
             <p className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wide">Contractor</p>
           ) : (
             <>
-              <p className="text-sm font-bold text-slate-900">{fmt(net)}</p>
-              <p className="text-[10px] text-slate-400">net</p>
+              <p className="text-sm font-bold text-emerald-700">{fmt(net)}</p>
+              <p className="text-[10px] text-slate-400">revenue</p>
             </>
           )}
         </div>

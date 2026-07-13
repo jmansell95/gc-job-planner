@@ -16,6 +16,8 @@ import JobTypeManager from '@/components/JobTypeManager';
 import SiteAssetManager from '@/components/SiteAssetManager';
 import BillingRulesManager from '@/components/BillingRulesManager';
 import EquipmentLibraryManager from '@/components/EquipmentLibraryManager';
+import TeamManager from '@/components/TeamManager';
+import AssetPandaSettings from '@/components/AssetPandaSettings';
 import SettingsNav, { allSettingsItems } from '@/components/SettingsNav';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
@@ -35,6 +37,8 @@ export default function SettingsPage({ initialTab }) {
   const renderContent = () => {
     switch (activeTab) {
       case 'staff': return <StaffManager />;
+      case 'teams': return <TeamManager />;
+      case 'asset-panda': return <AssetPandaSettings />;
       case 'vehicles': return <VehicleManager />;
       case 'clients': return <ClientManager />;
       case 'contractors': return <ContractorManager />;

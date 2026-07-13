@@ -23,10 +23,26 @@ const JOB_TYPE_LABELS = {
   enabling_works: 'Enabling Works', depot: 'Depot'
 };
 
+const REVENUE_STREAMS = [
+  { value: 'none', label: 'Per asset/task only', desc: 'Revenue tracked from equipment, deliveries & logged tasks — no crew-level billing.' },
+  { value: 'drilling_meterage', label: 'Drilling Meterage (£/m)', desc: 'Crew billed per metre drilled on drilling jobs.' },
+  { value: 'groundworks_unit', label: 'Groundworks Unit (£/pit)', desc: 'Crew billed per trial pit, charger or unit installed.' },
+  { value: 'day_rate', label: 'Daily Crew Rate', desc: 'Fixed daily rate for the whole crew on a job.' },
+  { value: 'flat_fee', label: 'Flat Project Fee', desc: "Single agreed fee for the whole crew's work on the job." },
+];
+
+const ASSET_TYPE_OPTIONS = [
+  { value: 'rig', label: 'Rigs' },
+  { value: 'machinery', label: 'Machinery' },
+  { value: 'trailer', label: 'Trailers' },
+  { value: 'vehicle', label: 'Vehicles' },
+  { value: 'lifting', label: 'Lifting Gear' },
+];
+
 export default function TeamManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
+  const [formData, setFormData] = useState({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], revenue_stream_type: '', billing_default_markup: 0, compatible_asset_types: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
   const [presetParent, setPresetParent] = useState(null);
   const [collapsed, setCollapsed] = useState({});
 
@@ -60,7 +76,7 @@ export default function TeamManager() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const payload = { name: formData.name, description: formData.description, parent_team_id: formData.parent_team_id || '', job_type: formData.job_type || '', category: formData.category || '', default_landing_page: formData.default_landing_page || '', allowed_tool_access: formData.allowed_tool_access || [], is_supervisor_team: formData.is_supervisor_team || false, supervisor_staff_id: formData.supervisor_staff_id || '', managed_team_ids: formData.managed_team_ids || [] };
+    const payload = { name: formData.name, description: formData.description, parent_team_id: formData.parent_team_id || '', job_type: formData.job_type || '', category: formData.category || '', default_landing_page: formData.default_landing_page || '', allowed_tool_access: formData.allowed_tool_access || [], revenue_stream_type: formData.revenue_stream_type || '', billing_default_markup: Number(formData.billing_default_markup) || 0, compatible_asset_types: formData.compatible_asset_types || [], is_supervisor_team: formData.is_supervisor_team || false, supervisor_staff_id: formData.supervisor_staff_id || '', managed_team_ids: formData.managed_team_ids || [] };
     try {
       if (editingId) {
         await base44.entities.Team.update(editingId, payload);
@@ -68,7 +84,7 @@ export default function TeamManager() {
         await base44.entities.Team.create(payload);
       }
       queryClient.invalidateQueries({ queryKey: ['teams'] });
-      setFormData({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
+      setFormData({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], revenue_stream_type: '', billing_default_markup: 0, compatible_asset_types: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
       setShowForm(false);
       setEditingId(null);
       setPresetParent(null);
@@ -78,7 +94,7 @@ export default function TeamManager() {
   };
 
   const handleEdit = (team) => {
-    setFormData({ name: team.name, description: team.description || '', parent_team_id: team.parent_team_id || '', job_type: team.job_type || '', category: team.category || '', default_landing_page: team.default_landing_page || '', allowed_tool_access: team.allowed_tool_access || [], is_supervisor_team: team.is_supervisor_team || false, supervisor_staff_id: team.supervisor_staff_id || '', managed_team_ids: team.managed_team_ids || [] });
+    setFormData({ name: team.name, description: team.description || '', parent_team_id: team.parent_team_id || '', job_type: team.job_type || '', category: team.category || '', default_landing_page: team.default_landing_page || '', allowed_tool_access: team.allowed_tool_access || [], revenue_stream_type: team.revenue_stream_type || '', billing_default_markup: team.billing_default_markup ?? 0, compatible_asset_types: team.compatible_asset_types || [], is_supervisor_team: team.is_supervisor_team || false, supervisor_staff_id: team.supervisor_staff_id || '', managed_team_ids: team.managed_team_ids || [] });
     setEditingId(team.id);
     setShowForm(true);
     setPresetParent(null);
@@ -163,6 +179,17 @@ export default function TeamManager() {
                 )}
                 {team.job_type && (
                   <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium">{JOB_TYPE_LABELS[team.job_type] || team.job_type}</span>
+                )}
+                {team.revenue_stream_type && team.revenue_stream_type !== 'none' && (
+                  <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+                    £ {REVENUE_STREAMS.find(r => r.value === team.revenue_stream_type)?.label.split(' (')[0] || team.revenue_stream_type}
+                    {team.billing_default_markup > 0 && ` · +${team.billing_default_markup}%`}
+                  </span>
+                )}
+                {team.compatible_asset_types && team.compatible_asset_types.length > 0 && (
+                  <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">
+                    {team.compatible_asset_types.map(t => ASSET_TYPE_OPTIONS.find(o => o.value === t)?.label || t).join(', ')}
+                  </span>
                 )}
                 {team.is_supervisor_team && (
                   <span className="inline-flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium">
@@ -262,6 +289,50 @@ export default function TeamManager() {
               </select>
               <p className="text-xs text-slate-400 mt-1">Crew members in this crew can only be assigned to matching job types. Leave flexible for supervisors/managers.</p>
             </div>
+
+            <div className="border-t border-slate-100 pt-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-3">Revenue & Billing</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1.5">Revenue Stream</label>
+                  <select value={formData.revenue_stream_type} onChange={(e) => setFormData({ ...formData, revenue_stream_type: e.target.value })}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
+                    {REVENUE_STREAMS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                  {formData.revenue_stream_type && (
+                    <p className="text-xs text-slate-400 mt-1">{REVENUE_STREAMS.find(r => r.value === formData.revenue_stream_type)?.desc}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1.5">Default Billing Markup %</label>
+                  <input type="number" min="0" step="0.1" value={formData.billing_default_markup} onChange={(e) => setFormData({ ...formData, billing_default_markup: e.target.value })}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600" placeholder="0" />
+                  <p className="text-xs text-slate-400 mt-1">Applied as the starting markup when this crew is assigned to a job.</p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <label className="block text-xs font-medium text-slate-500 mb-2">Compatible Asset Types</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {ASSET_TYPE_OPTIONS.map(opt => {
+                    const checked = (formData.compatible_asset_types || []).includes(opt.value);
+                    return (
+                      <button type="button" key={opt.value} onClick={() => {
+                        const next = checked ? (formData.compatible_asset_types || []).filter(v => v !== opt.value) : [...(formData.compatible_asset_types || []), opt.value];
+                        setFormData({ ...formData, compatible_asset_types: next });
+                      }}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition text-left ${checked ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                        <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${checked ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
+                          {checked && <Check className="w-2.5 h-2.5 text-white" />}
+                        </span>
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-slate-400 mt-2">Only compatible assets are offered when this crew's equipment is selected on a job.</p>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Crew Description</label>
               <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}

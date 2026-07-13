@@ -69,7 +69,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
       )}
       {isSynced && (
         <div className="flex items-center gap-2 text-xs text-blue-700 bg-blue-50 rounded-md px-3 py-2 border border-blue-200">
-          <Lock className="w-3.5 h-3.5 flex-shrink-0" /> Synced from GC Compliance Manager — description, category and reference are locked. Only cost and hire details can be edited.
+          <Lock className="w-3.5 h-3.5 flex-shrink-0" /> Synced from GC Compliance Manager — description, category and reference are locked. Only billing and hire details can be edited.
         </div>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -164,7 +164,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
               </>
             )}
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Unit cost (net) *</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Billing rate (net) *</label>
               <input type="number" min="0" step="0.01" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" className={inputCls} />
             </div>
             <div>
@@ -188,7 +188,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
 
       {!isContractorSupplied && Number(form.unit_cost) > 0 && (
         <div className="text-xs text-slate-600 bg-white rounded-md px-3 py-2 border border-slate-200 flex items-center justify-between">
-          <span>Line total (net): {effectiveQty} × {fmt(Number(form.unit_cost) || 0)}</span>
+          <span>Line revenue: {effectiveQty} × {fmt(Number(form.unit_cost) || 0)}</span>
           <span className="font-bold text-slate-900">{fmt(lineTotal)}</span>
         </div>
       )}

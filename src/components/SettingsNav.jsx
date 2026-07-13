@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, PoundSterling, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, PoundSterling, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database } from 'lucide-react';
 
 export const settingsGroups = [
   {
     label: 'People & Teams',
     items: [
-      { id: 'staff', label: 'Crew', icon: Users, desc: 'Manage crew, app access and shift times' },
+      { id: 'staff', label: 'Crew Members', icon: Users, desc: 'Manage crew members, app access and shift times' },
+      { id: 'teams', label: 'Crews & Teams', icon: Users, desc: 'Add, edit and remove crews, sub-crews and revenue streams' },
       { id: 'absences', label: 'Absences', icon: CalendarX, desc: 'Approve leave and recurring days off' },
     ],
   },
@@ -13,6 +14,7 @@ export const settingsGroups = [
     label: 'Operations',
     items: [
       { id: 'assets', label: 'Assets', icon: Wrench, desc: 'Rigs, machinery & trailers — linked to GC Compliance Manager' },
+      { id: 'asset-panda', label: 'Asset Panda Sync', icon: Database, desc: 'Sync inventory, stock levels and billing rates from Asset Panda' },
       { id: 'equipment-library', label: 'Equipment Library', icon: Package, desc: 'Master equipment list, rigs from GC Compliance & pre-built sets — one place to manage everything' },
       { id: 'vehicles', label: 'Vehicles', icon: Truck, desc: 'Track vehicles, MOTs and service dates' },
       { id: 'job-types', label: 'Job Types', icon: Tag, desc: 'Manage job types and colours' },

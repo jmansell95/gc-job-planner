@@ -209,7 +209,7 @@ export default function EquipmentItemsTab() {
           <form onSubmit={save} className="space-y-3">
             {form.site_asset_id && (
               <div className="flex items-center gap-2 text-xs text-blue-700 bg-blue-50 rounded-md px-3 py-2 border border-blue-200">
-                <Lock className="w-3.5 h-3.5 flex-shrink-0" /> Synced from GC Compliance Manager — description, category and reference are locked. Only cost details can be edited.
+                <Lock className="w-3.5 h-3.5 flex-shrink-0" /> Synced from GC Compliance Manager — description, category and reference are locked. Only billing rate details can be edited.
               </div>
             )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -247,7 +247,7 @@ export default function EquipmentItemsTab() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Default Unit Cost £ *</label>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Default Billing Rate £ *</label>
               <input type="number" min="0" step="0.01" value={form.default_unit_cost} onChange={e => setForm(p => ({ ...p, default_unit_cost: e.target.value }))} required placeholder="0.00" className={inputCls} />
             </div>
             <div>

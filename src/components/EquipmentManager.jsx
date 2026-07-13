@@ -345,7 +345,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
         <Boxes className="w-5 h-5 text-emerald-700" />
-        <h2 className="font-semibold text-slate-900">Equipment & Hire</h2>
+        <h2 className="font-semibold text-slate-900">Equipment & Revenue</h2>
         <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{items.length} items{items.some(i => i.category !== 'contractor_supplied') ? ` · ${fmt(totalNet)}` : ''}</span>
       </div>
 

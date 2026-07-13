@@ -130,8 +130,8 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
         <PoundSterling className="w-5 h-5 text-emerald-700" />
-        <h2 className="font-semibold text-slate-900">Costing & Billing</h2>
-        <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{items.length} cost items</span>
+        <h2 className="font-semibold text-slate-900">Revenue Breakdown</h2>
+        <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{items.length} billing items</span>
       </div>
 
       <div className="px-5 py-4 space-y-5">
