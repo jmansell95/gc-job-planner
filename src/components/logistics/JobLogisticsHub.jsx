@@ -23,7 +23,7 @@ const blankForm = () => ({
   unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: ''
 });
 
-export default function JobLogisticsHub({ jobId, job, suppliers: externalSuppliers = [], contractors = [], canSeeCosts = true }) {
+export default function JobLogisticsHub({ jobId, job, suppliers: externalSuppliers = [], contractors = [], canSeeCosts = true, isDrillingJob = false }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -103,6 +103,10 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   }, {});
 
   const rigsWithGear = catalogueItems.filter(c => (c.linked_catalogue_ids || []).length > 0);
+  const formCatalogueItems = isDrillingJob ? catalogueItems : catalogueItems.filter(c => {
+    const linkedAsset = c.site_asset_id ? assetMap[c.site_asset_id] : null;
+    return !linkedAsset || linkedAsset.asset_type !== 'lifting';
+  });
   const defaultDates = job ? { start: job.start_date, end: job.end_date } : null;
 
   const toggleSelect = (id) => {
@@ -310,7 +314,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
                   {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               )}
-              {rigsWithGear.length > 0 && (
+              {isDrillingJob && rigsWithGear.length > 0 && (
                 <button onClick={() => setShowRigPicker(true)} disabled={addingRigGear} className="inline-flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 font-medium px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition disabled:opacity-50">
                   <Plus className="w-3.5 h-3.5" /> Add Rig & Gear
                 </button>
@@ -324,7 +328,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
               <EquipmentForm form={form} setForm={setForm} onSubmit={handleSubmitItem}
                 onCancel={() => { setAdding(false); setEditingId(null); setForm(blankForm()); }}
                 saving={savingItem} editing={!!editingId} suppliers={suppliers} contractors={contractors}
-                defaultDates={defaultDates} catalogueItems={catalogueItems} />
+                defaultDates={defaultDates} catalogueItems={formCatalogueItems} />
             </DialogContent>
           </Dialog>
 

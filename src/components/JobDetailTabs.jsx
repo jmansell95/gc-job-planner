@@ -25,7 +25,7 @@ export default function JobDetailTabs({ job, primaryType, assignedStaff, allStaf
 
       {/* Logistics Tab */}
       <TabsContent value="logistics" className="space-y-6 mt-4">
-        <JobLogisticsHub jobId={job.id} job={job} suppliers={suppliers} contractors={contractors} canSeeCosts={canSeeCosts} />
+        <JobLogisticsHub jobId={job.id} job={job} suppliers={suppliers} contractors={contractors} canSeeCosts={canSeeCosts} isDrillingJob={isDrillingJob} />
       </TabsContent>
 
       {/* Schedule Tab */}
