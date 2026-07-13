@@ -73,9 +73,9 @@ export default function DeliveryCard({ delivery, job, vehicle, vehicleTotalWeigh
               <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500">PO: {delivery.po_number}</span>
             )}
           </div>
-          <h3 className="text-base font-bold text-slate-900 leading-tight">{delivery.items || delivery.job_name || 'Delivery task'}</h3>
-          {delivery.job_name && delivery.items && (
-            <p className="text-xs text-slate-400 mt-0.5 truncate">{delivery.job_name}</p>
+          <h3 className="text-base font-bold text-slate-900 leading-tight">{delivery.job_name || delivery.delivery_address || 'Delivery task'}</h3>
+          {delivery.delivery_address && delivery.job_name && (
+            <p className="text-xs text-slate-400 mt-0.5 truncate">{delivery.delivery_address}</p>
           )}
           <div className="flex flex-wrap items-center gap-1.5 mt-2">
             <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs">

@@ -10,7 +10,7 @@ import DeliveryCard from '@/components/delivery/DeliveryCard';
 import DeliveryCompleteModal from '@/components/delivery/DeliveryCompleteModal';
 import SyncStatusBadge from '@/components/delivery/SyncStatusBadge';
 import { useToast } from '@/components/ui/use-toast';
-import { saveOfflineDelivery, getOfflineDeliveryIds, syncAllOfflineData, hasOfflineDelivery } from '@/utils/offlineSync';
+import { saveOfflineDelivery, getOfflineDeliveryIds, syncAllOfflineData, hasOfflineDelivery, getTotalOfflineCount } from '@/utils/offlineSync';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
@@ -36,6 +36,7 @@ export default function DeliveryDashboard() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [completeDelivery, setCompleteDelivery] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [offlineDeliveryIds, setOfflineDeliveryIds] = useState(getOfflineDeliveryIds());
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -57,11 +58,11 @@ export default function DeliveryDashboard() {
     }
     loadStaff();
 
-    const handleOnline = () => {
-      setIsOnline(true);
+    const runSync = () => {
       setIsSyncing(true);
       syncAllOfflineData().then(result => {
         setIsSyncing(false);
+        setOfflineDeliveryIds(getOfflineDeliveryIds());
         if (result.total > 0) {
           queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
           toast({
@@ -74,6 +75,9 @@ export default function DeliveryDashboard() {
         console.error('Sync error:', err);
       });
     };
+    const handleOnline = () => { setIsOnline(true); runSync(); };
+    // Auto-sync on mount if already online with pending items (online event may have been missed)
+    if (navigator.onLine && getTotalOfflineCount() > 0) { runSync(); }
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -105,7 +109,6 @@ export default function DeliveryDashboard() {
   const { data: jobs = [] } = useQuery({ queryKey: ['delivery-jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['delivery-vehicles'], queryFn: () => base44.entities.Vehicle.list() });
 
-  const offlineDeliveryIds = getOfflineDeliveryIds();
   const canPerformActions = isWithinSiteHours() || isBeforeSiteOpen() || staff?.is_admin;
 
   const handleStart = async (deliveryId) => {
@@ -231,6 +234,7 @@ export default function DeliveryDashboard() {
     try {
       const result = await syncAllOfflineData();
       setIsSyncing(false);
+      setOfflineDeliveryIds(getOfflineDeliveryIds());
       if (result.total > 0) {
         queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
         toast({ title: 'Synced', description: `${result.total} record${result.total > 1 ? 's' : ''} uploaded.` });
