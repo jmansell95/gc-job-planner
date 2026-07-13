@@ -47,7 +47,32 @@
       "items": {
         "type": "string"
       },
-      "description": "Admin sections this team can access when viewing the admin dashboard. Keys: overview, jobs, rota, calendar, timesheets, compliance, insights, teams, settings, staff_schedule. Empty = no admin access (field teams that only see their schedule)."
+      "description": "Admin sections this team can access when viewing the admin dashboard."
+    },
+    "revenue_stream_type": {
+      "type": "string",
+      "enum": [
+        "none",
+        "drilling_meterage",
+        "groundworks_unit",
+        "day_rate",
+        "flat_fee"
+      ],
+      "default": "none",
+      "description": "How revenue is calculated for jobs handled by this crew. 'drilling_meterage' = \u00a3/metre drilled, 'groundworks_unit' = \u00a3/trial pit or unit, 'day_rate' = fixed daily crew rate, 'flat_fee' = single project fee, 'none' = revenue tracked per asset/task only."
+    },
+    "billing_default_markup": {
+      "type": "number",
+      "default": 0,
+      "description": "Default markup % applied to this crew's jobs when assigned. Used as the starting markup for revenue calculations."
+    },
+    "compatible_asset_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Asset types this crew is qualified to operate (e.g. ['rig','lifting']). When assigning equipment, only compatible assets are offered to this crew; mismatches show a soft warning."
     },
     "supervisor_staff_id": {
       "type": "string",
@@ -56,14 +81,14 @@
     "is_supervisor_team": {
       "type": "boolean",
       "default": false,
-      "description": "True when this is a supervisor team that oversees other crews (e.g. a Drilling Supervisor team managing all CP and Rotary crews). Supervisor teams see a production overview of their reporting crews."
+      "description": "True when this is a supervisor team that oversees other crews (e.g. a Drilling Supervisor team managing all CP and Rotary crews)."
     },
     "managed_team_ids": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "IDs of teams that this supervisor team oversees. Used to build the supervisor's consolidated production view."
+      "description": "IDs of teams that this supervisor team oversees."
     }
   },
   "required": [

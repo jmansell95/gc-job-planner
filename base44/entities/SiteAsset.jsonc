@@ -39,6 +39,41 @@
       "type": "string",
       "description": "ID of this asset in the GC Compliance Manager app \u2014 used to cross-reference compliance records"
     },
+    "panda_asset_id": {
+      "type": "string",
+      "description": "ID of this asset in Asset Panda \u2014 used by the scheduled sync to match inventory records and pull live stock levels and billing rates."
+    },
+    "daily_billing_rate": {
+      "type": "number",
+      "description": "Daily billing rate in GBP charged to the client when this asset is deployed on a job. Synced from Asset Panda; auto-fills the billing rate when this asset is added to a job's equipment."
+    },
+    "stock_level": {
+      "type": "string",
+      "enum": [
+        "in_stock",
+        "low_stock",
+        "out_of_stock",
+        "needs_service",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Live stock/condition quality from Asset Panda. 'needs_service' or 'out_of_stock' items are auto-deactivated and cannot be added to jobs."
+    },
+    "sync_status": {
+      "type": "string",
+      "enum": [
+        "synced",
+        "pending",
+        "failed",
+        "never"
+      ],
+      "default": "never",
+      "description": "Last Asset Panda sync outcome. 'synced' = latest data pulled, 'pending' = queued, 'failed' = last sync errored, 'never' = not yet synced."
+    },
+    "last_sync_timestamp": {
+      "type": "string",
+      "description": "ISO timestamp of the last successful Asset Panda sync for this asset."
+    },
     "compliance_status": {
       "type": "string",
       "enum": [
@@ -78,7 +113,7 @@
     "is_active": {
       "type": "boolean",
       "default": true,
-      "description": "Whether this asset is available for job assignment"
+      "description": "Whether this asset is available for job assignment. Automatically set to false when Asset Panda reports it out of stock or needing service."
     },
     "notes": {
       "type": "string",
