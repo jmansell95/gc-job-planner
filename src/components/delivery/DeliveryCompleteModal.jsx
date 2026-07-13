@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle2, Camera, MapPin, FileText, ShieldCheck, AlertTriangle, CloudOff } from 'lucide-react';
+import { X, CheckCircle2, Camera, MapPin, FileText, ShieldCheck, AlertTriangle } from 'lucide-react';
 import SignaturePad from '@/components/staff/SignaturePad';
 import { format } from 'date-fns';
 
@@ -14,8 +14,6 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
   const [gpsLoading, setGpsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef(null);
-
-  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
   // Reset state when modal opens for a new delivery
   useEffect(() => {
@@ -110,17 +108,6 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
           </div>
 
           <div className="px-5 py-4 space-y-5">
-            {/* Offline notice */}
-            {!isOnline && (
-              <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                <CloudOff className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-amber-900">You're offline</p>
-                  <p className="text-xs text-amber-700 mt-0.5">Your signature and photos will be saved on this device and synced automatically when you reconnect.</p>
-                </div>
-              </div>
-            )}
-
             {/* GPS status */}
             {gps && (
               <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
@@ -247,7 +234,7 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
               ) : (
                 <>
                   <ShieldCheck className="w-5 h-5" />
-                  {isOnline ? 'Complete & Sign' : 'Save Offline'}
+                  Complete & Sign
                 </>
               )}
             </button>

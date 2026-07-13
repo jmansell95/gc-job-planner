@@ -1,16 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Truck, Package, ArrowRightLeft, Calendar, WifiOff, CheckCircle2, Clock, HardHat, HelpCircle } from 'lucide-react';
+import { Truck, Package, ArrowRightLeft, Calendar, CheckCircle2, Clock, HardHat, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isToday } from 'date-fns';
-import { motion } from 'framer-motion';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 import DeliveryCard from '@/components/delivery/DeliveryCard';
 import DeliveryCompleteModal from '@/components/delivery/DeliveryCompleteModal';
-import SyncStatusBadge from '@/components/delivery/SyncStatusBadge';
 import { useToast } from '@/components/ui/use-toast';
-import { saveOfflineDelivery, getOfflineDeliveryIds, syncAllOfflineData, hasOfflineDelivery, getTotalOfflineCount } from '@/utils/offlineSync';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
@@ -33,27 +30,8 @@ export default function DeliveryDashboard() {
   const { toast } = useToast();
   const [staff, setStaff] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [completeDelivery, setCompleteDelivery] = useState(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [offlineDeliveryIds, setOfflineDeliveryIds] = useState(getOfflineDeliveryIds());
   const queryClient = useQueryClient();
-
-  const runSync = useCallback(() => {
-    if (getTotalOfflineCount() === 0) return;
-    setIsSyncing(true);
-    syncAllOfflineData().then(result => {
-      setIsSyncing(false);
-      setOfflineDeliveryIds(getOfflineDeliveryIds());
-      if (result.total > 0) {
-        queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
-        toast({ title: 'Offline data synced', description: `${result.total} record${result.total > 1 ? 's' : ''} uploaded.` });
-      }
-    }).catch(err => {
-      setIsSyncing(false);
-      console.error('Sync error:', err);
-    });
-  }, [queryClient, toast]);
 
   useEffect(() => {
     async function loadStaff() {
@@ -73,25 +51,7 @@ export default function DeliveryDashboard() {
       }
     }
     loadStaff();
-
-    const handleOnline = () => { setIsOnline(true); runSync(); };
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    // Auto-sync on mount (online event may have already fired before page loaded)
-    runSync();
-
-    // Poll every 10s — catches cases where the online event didn't fire
-    // (navigator.onLine was wrong, or connectivity returned silently)
-    const pollInterval = setInterval(() => { runSync(); }, 10000);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      clearInterval(pollInterval);
-    };
-  }, [runSync]);
+  }, [navigate]);
 
   // Real-time subscription
   useEffect(() => {
@@ -132,21 +92,16 @@ export default function DeliveryDashboard() {
 
   const handleComplete = async (data) => {
     const deliveryId = data.delivery_id;
-    setCompleteDelivery(null);
 
-    // Always try the online path first — navigator.onLine is unreliable.
-    // If the network request fails, the catch block saves it offline.
     try {
       let signatureUrl = '';
       if (data.signature_data_url) {
-        const blob = await (async () => {
-          const [meta, base64] = data.signature_data_url.split(',');
-          const mime = meta.match(/:(.*?);/)[1];
-          const bytes = atob(base64);
-          const arr = new Uint8Array(bytes.length);
-          for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
-          return new Blob([arr], { type: mime });
-        })();
+        const [meta, base64] = data.signature_data_url.split(',');
+        const mime = meta.match(/:(.*?);/)[1];
+        const bytes = atob(base64);
+        const arr = new Uint8Array(bytes.length);
+        for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+        const blob = new Blob([arr], { type: mime });
         const file = new File([blob], `delivery_sig_${deliveryId}.png`, { type: 'image/png' });
         const res = await base44.integrations.Core.UploadFile({ file });
         signatureUrl = res.file_url;
@@ -198,53 +153,13 @@ export default function DeliveryDashboard() {
         try { await base44.entities.JobCostItem.bulkUpdate(updates); } catch (e) { console.error('Item location sync error:', e); }
       }
 
-      // Clean up any stale offline queue entry for this delivery (previous failed attempt)
-      const queue = JSON.parse(localStorage.getItem('pending_delivery_logs') || '[]');
-      if (queue.some(p => p.delivery_id === deliveryId)) {
-        localStorage.setItem('pending_delivery_logs', JSON.stringify(queue.filter(p => p.delivery_id !== deliveryId)));
-        setOfflineDeliveryIds(getOfflineDeliveryIds());
-      }
       queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
       toast({ title: 'Delivery signed off', description: 'Proof of delivery recorded.' });
     } catch (e) {
       console.error('Error completing delivery:', e);
-      // Fallback: save offline so data isn't lost
-      saveOfflineDelivery(data);
-      // Optimistically mark as completed locally so UI updates
-      queryClient.setQueryData(['my-deliveries', staff?.id], (old = []) =>
-        old.map(d => d.id === deliveryId ? {
-          ...d,
-          status: 'completed',
-          completed_at: data.completed_at,
-          signed_by_name: data.signed_by_name,
-          condition_report: data.condition_report,
-          notes: data.notes,
-          synced_from_offline: true
-        } : d)
-      );
-      setOfflineDeliveryIds(getOfflineDeliveryIds());
-      // Immediately attempt sync — the upload may have failed but connectivity might still work
-      runSync();
-      toast({ title: 'Saved offline', description: 'Network error — will sync when reconnected.' });
-    }
-  };
-
-  const handleManualSync = async () => {
-    setIsSyncing(true);
-    try {
-      const result = await syncAllOfflineData();
-      setIsSyncing(false);
-      setOfflineDeliveryIds(getOfflineDeliveryIds());
-      if (result.total > 0) {
-        queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
-        toast({ title: 'Synced', description: `${result.total} record${result.total > 1 ? 's' : ''} uploaded.` });
-      } else {
-        toast({ title: 'Nothing to sync', description: 'All data is up to date.' });
-      }
-    } catch (e) {
-      setIsSyncing(false);
-      console.error('Manual sync error:', e);
-      toast({ title: 'Sync failed', description: 'Try again later.' });
+      toast({ title: 'Could not sign off', description: 'Check your connection and try again.' });
+    } finally {
+      setCompleteDelivery(null);
     }
   };
 
@@ -292,8 +207,7 @@ export default function DeliveryDashboard() {
     vehicleTotalWeight: vehicleDateWeightMap[`${delivery.vehicle_id}_${delivery.scheduled_date}`] || 0,
     onStart: handleStart,
     onComplete: (d) => setCompleteDelivery(d),
-    canPerformActions,
-    isOfflinePending: offlineDeliveryIds.includes(delivery.id)
+    canPerformActions
   });
 
   return (
@@ -312,7 +226,6 @@ export default function DeliveryDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <SyncStatusBadge onSync={handleManualSync} isSyncing={isSyncing} />
               <button onClick={() => navigate('/help')} type="button"
                 className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
                 <HelpCircle className="w-5 h-5" />
@@ -347,13 +260,6 @@ export default function DeliveryDashboard() {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
-        {!isOnline && (
-          <div className="mb-5 flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
-            <WifiOff className="w-4 h-4 flex-shrink-0" />
-            You're offline. You can still sign off deliveries — everything syncs when you reconnect.
-          </div>
-        )}
-
         {/* My Deliveries Today heading */}
         <div className="flex items-center gap-2.5 mb-3 md:mb-4">
           <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
