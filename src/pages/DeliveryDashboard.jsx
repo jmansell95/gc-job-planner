@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Truck, Package, ArrowRightLeft, Calendar, WifiOff, CheckCircle2, Clock, HardHat, HelpCircle } from 'lucide-react';
@@ -39,6 +39,23 @@ export default function DeliveryDashboard() {
   const [offlineDeliveryIds, setOfflineDeliveryIds] = useState(getOfflineDeliveryIds());
   const queryClient = useQueryClient();
 
+  const runSync = useCallback(() => {
+    if (!navigator.onLine) return;
+    if (getTotalOfflineCount() === 0) return;
+    setIsSyncing(true);
+    syncAllOfflineData().then(result => {
+      setIsSyncing(false);
+      setOfflineDeliveryIds(getOfflineDeliveryIds());
+      if (result.total > 0) {
+        queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
+        toast({ title: 'Offline data synced', description: `${result.total} record${result.total > 1 ? 's' : ''} uploaded.` });
+      }
+    }).catch(err => {
+      setIsSyncing(false);
+      console.error('Sync error:', err);
+    });
+  }, [queryClient, toast]);
+
   useEffect(() => {
     async function loadStaff() {
       try {
@@ -58,34 +75,24 @@ export default function DeliveryDashboard() {
     }
     loadStaff();
 
-    const runSync = () => {
-      setIsSyncing(true);
-      syncAllOfflineData().then(result => {
-        setIsSyncing(false);
-        setOfflineDeliveryIds(getOfflineDeliveryIds());
-        if (result.total > 0) {
-          queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
-          toast({
-            title: 'Offline data synced',
-            description: `${result.total} record${result.total > 1 ? 's' : ''} uploaded (${result.briefings} briefing${result.briefings !== 1 ? 's' : ''}, ${result.deliveries} deliver${result.deliveries !== 1 ? 'ies' : 'y'}).`
-          });
-        }
-      }).catch(err => {
-        setIsSyncing(false);
-        console.error('Sync error:', err);
-      });
-    };
     const handleOnline = () => { setIsOnline(true); runSync(); };
-    // Auto-sync on mount if already online with pending items (online event may have been missed)
-    if (navigator.onLine && getTotalOfflineCount() > 0) { runSync(); }
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+
+    // Auto-sync on mount (online event may have already fired before page loaded)
+    runSync();
+
+    // Poll every 10s — catches cases where the online event didn't fire
+    // (navigator.onLine was wrong, or connectivity returned silently)
+    const pollInterval = setInterval(() => { runSync(); }, 10000);
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearInterval(pollInterval);
     };
-  }, []);
+  }, [runSync]);
 
   // Real-time subscription
   useEffect(() => {
@@ -144,6 +151,9 @@ export default function DeliveryDashboard() {
           synced_from_offline: true
         } : d)
       );
+      setOfflineDeliveryIds(getOfflineDeliveryIds());
+      // Immediately attempt sync — navigator.onLine can be wrong (shows offline but has connectivity)
+      runSync();
       toast({
         title: 'Saved offline',
         description: 'Signature and photos will sync automatically when you get signal.'
@@ -220,6 +230,9 @@ export default function DeliveryDashboard() {
       console.error('Error completing delivery:', e);
       // Fallback: save offline so data isn't lost
       saveOfflineDelivery(data);
+      setOfflineDeliveryIds(getOfflineDeliveryIds());
+      // Immediately attempt sync — the upload may have failed but connectivity might still work
+      runSync();
       toast({ title: 'Saved offline', description: 'Network error — will sync when reconnected.' });
       queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
     }
