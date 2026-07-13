@@ -24,6 +24,18 @@ export const DEFAULT_WIDGET_ORDER = [
   'job-assets',
 ];
 
+// Tabbed groups for the dashboard. Each widget is assigned to one tab.
+export const DASHBOARD_TABS = [
+  { id: 'operations', label: 'Operations', icon: Grid3x3, widgets: ['kpi-stats', 'field-crews', 'job-assets', 'delivery-stats', 'supervisor-overview'] },
+  { id: 'insights', label: 'Insights', icon: BarChart3, widgets: ['charts', 'cost-analytics'] },
+  { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'maintenance-quick-view'] },
+];
+
+// Map of widget id -> tab id (derived from DASHBOARD_TABS).
+export const WIDGET_TO_TAB = Object.fromEntries(
+  DASHBOARD_TABS.flatMap(t => t.widgets.map(w => [w, t.id]))
+);
+
 export const DEFAULT_WIDGET_SIZES = {
   'kpi-stats': 'lg',
   'field-crews': 'lg',
