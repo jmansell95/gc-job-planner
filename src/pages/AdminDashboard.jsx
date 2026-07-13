@@ -26,9 +26,10 @@ export default function AdminDashboard() {
     })();
   }, []);
 
-  // Guard: reset to overview if the active section isn't accessible to this user's role
+  // Guard: reset to overview if the active section isn't accessible to this user's role.
+  // 'job-detail' is a sub-view reached from the dashboard, not a nav section — skip the guard for it.
   useEffect(() => {
-    if (profile && !canAccessSection(profile, activeSection)) {
+    if (profile && activeSection !== 'job-detail' && !canAccessSection(profile, activeSection)) {
       setActiveSection('overview');
     }
   }, [profile, activeSection]);
