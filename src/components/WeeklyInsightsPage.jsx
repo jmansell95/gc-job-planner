@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format, startOfWeek } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
 import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
+import AssetCrewProfitability from '@/components/AssetCrewProfitability';
 import { canViewCostings } from '@/utils/access';
 
 const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB');
@@ -153,9 +154,14 @@ ${summary}
 
       {/* Profitability Dashboard — restricted to admins and managers */}
       {canSeeCosts && (
-        <div className="mb-6">
-          <ProfitabilityDashboard />
-        </div>
+        <>
+          <div className="mb-6">
+            <ProfitabilityDashboard />
+          </div>
+          <div className="mb-6">
+            <AssetCrewProfitability />
+          </div>
+        </>
       )}
 
       {/* Summary Banner */}
