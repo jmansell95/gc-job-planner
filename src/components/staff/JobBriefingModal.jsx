@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Briefcase, FileText, ExternalLink, ShieldCheck, Clock, PlayCircle, CheckCircle2, Loader2, ChevronRight, ChevronLeft, HeartPulse, Flame, AlertTriangle, Users, WifiOff, PenLine, Info, Car, Navigation } from 'lucide-react';
+import { X, MapPin, Briefcase, FileText, ExternalLink, ShieldCheck, Clock, PlayCircle, CheckCircle2, Loader2, ChevronRight, ChevronLeft, HeartPulse, Flame, AlertTriangle, Users, WifiOff, PenLine, Info, Car, Navigation, ClipboardCheck } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import SignaturePad from '@/components/staff/SignaturePad';
 import { saveOfflineBriefing } from '@/utils/offlineSync';
+
+const POWRA_URL = 'https://app.safetyculture.com/inspection/audit_349a23db07de4cfba675bb2a0a9f7bd8?page=1&isNew=true&holisticOnboarding=false';
 
 export default function JobBriefingModal({ assignment, job, client, staff, crewAssignments = [], onSigned, onClose }) {
   const [phase, setPhase] = useState(assignment.briefing_start_at ? 'documents' : 'intro');
@@ -14,6 +16,7 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
   const [elapsedLabel, setElapsedLabel] = useState('');
   const [reviewedDocIds, setReviewedDocIds] = useState(new Set());
   const [inductionConfirmed, setInductionConfirmed] = useState(false);
+  const [powraConfirmed, setPowraConfirmed] = useState(false);
   const [signatureDataUrl, setSignatureDataUrl] = useState(null);
   const [offlineSaved, setOfflineSaved] = useState(false);
   const [travelDepartHome, setTravelDepartHome] = useState('');
@@ -100,11 +103,13 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
     if (phase === 'intro') setPhase('travel');
     else if (phase === 'travel') setPhase(briefingDocs.length > 0 ? 'documents' : 'induction');
     else if (phase === 'documents') setPhase('induction');
-    else if (phase === 'induction') setPhase('sign');
+    else if (phase === 'induction') setPhase('risk');
+    else if (phase === 'risk') setPhase('sign');
   };
 
   const goPrev = () => {
-    if (phase === 'sign') setPhase('induction');
+    if (phase === 'sign') setPhase('risk');
+    else if (phase === 'risk') setPhase('induction');
     else if (phase === 'induction') setPhase(briefingDocs.length > 0 ? 'documents' : 'travel');
     else if (phase === 'documents') setPhase('travel');
     else if (phase === 'travel') setPhase('intro');
@@ -187,9 +192,9 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
 
   if (!job) return null;
 
-  const stepLabels = ['Briefing', 'Travel', briefingDocs.length > 0 ? 'Documents' : null, 'Induction', 'Sign'].filter(Boolean);
+  const stepLabels = ['Briefing', 'Travel', briefingDocs.length > 0 ? 'Documents' : null, 'Induction', 'Safety', 'Sign'].filter(Boolean);
   const docOffset = briefingDocs.length > 0 ? 1 : 0;
-  const activeStep = phase === 'intro' ? 0 : phase === 'travel' ? 1 : phase === 'documents' ? 2 : phase === 'induction' ? (2 + docOffset) : (3 + docOffset);
+  const activeStep = phase === 'intro' ? 0 : phase === 'travel' ? 1 : phase === 'documents' ? 2 : phase === 'induction' ? (2 + docOffset) : phase === 'risk' ? (3 + docOffset) : (4 + docOffset);
 
   return (
     <AnimatePresence>
@@ -445,6 +450,53 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
                 </div>
                 {!inductionConfirmed && (
                   <p className="text-xs text-amber-600 text-center">Please confirm the induction to continue.</p>
+                )}
+              </div>
+            )}
+
+            {/* RISK / POWRA */}
+            {phase === 'risk' && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">Point of Work Risk Assessment</h3>
+                  <p className="text-sm text-slate-500">Before any work starts, complete your Point of Work Risk Assessment (POWRA) on Safety Culture. Click the link below to action this.</p>
+                </div>
+
+                <a href={POWRA_URL} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-3 p-4 bg-emerald-50 rounded-xl border-2 border-emerald-200 hover:bg-emerald-100 transition">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center flex-shrink-0">
+                      <ClipboardCheck className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-emerald-900 text-sm">Open POWRA on Safety Culture</p>
+                      <p className="text-xs text-emerald-600 flex items-center gap-1">Tap to start the inspection <ExternalLink className="w-3 h-3" /></p>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                </a>
+
+                <button onClick={() => setPowraConfirmed(!powraConfirmed)}
+                  className={`flex items-start gap-2.5 w-full text-left rounded-xl border-2 p-3.5 transition ${powraConfirmed ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${powraConfirmed ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
+                    {powraConfirmed && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                  </div>
+                  <span className={`text-sm font-medium ${powraConfirmed ? 'text-emerald-700' : 'text-slate-600'}`}>
+                    I have completed the Point of Work Risk Assessment on Safety Culture.
+                  </span>
+                </button>
+
+                <div className="flex gap-2 pt-1">
+                  <button onClick={goPrev} className="flex items-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">
+                    <ChevronLeft className="w-4 h-4" /> Back
+                  </button>
+                  <button onClick={goNext} disabled={!powraConfirmed}
+                    className="flex items-center justify-center gap-1.5 flex-1 px-4 py-3 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation">
+                    Next <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+                {!powraConfirmed && (
+                  <p className="text-xs text-amber-600 text-center">Please confirm the POWRA is complete to continue.</p>
                 )}
               </div>
             )}

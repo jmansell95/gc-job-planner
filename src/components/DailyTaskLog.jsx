@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp, X, Car, Briefcase, PoundSterling } from 'lucide-react';
+import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp, X, Car, Briefcase, PoundSterling, ShieldAlert, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { canViewCostings } from '@/utils/access';
+
+const SAFETY_REPORT_URL = 'https://app.safetyculture.com/inspection/audit_3f1be1e08438431a9bacaab5137107f7?page=1&isNew=true&holisticOnboarding=false';
 
 const TASK_SUGGESTIONS = [
   'Setting up the rig', 'Putting up heras fencing', 'Drilling',
@@ -243,6 +245,21 @@ export default function DailyTaskLog({ staffId }) {
       </div>
 
       <div className="p-4 md:p-6 space-y-4">
+        {/* Report a safety issue */}
+        <a href={SAFETY_REPORT_URL} target="_blank" rel="noopener noreferrer"
+          className="flex items-center justify-between gap-3 p-3.5 bg-red-50 rounded-xl border border-red-200 hover:bg-red-100 transition">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center flex-shrink-0">
+              <ShieldAlert className="w-5 h-5 text-white" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-red-900 text-sm">Action a Safety Issue on Site</p>
+              <p className="text-xs text-red-600">Tap to open a Safety Culture report for any safety issues on site.</p>
+            </div>
+          </div>
+          <ExternalLink className="w-4 h-4 text-red-500 flex-shrink-0" />
+        </a>
+
         {/* Shift reference */}
         {todayShift && todayShift.start_time && todayShift.end_time && (
           <div className="flex items-center gap-2 flex-wrap text-xs bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
