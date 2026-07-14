@@ -6,7 +6,7 @@ export const settingsGroups = [
     label: 'People & Teams',
     items: [
       { id: 'staff', label: 'Crew Members', icon: Users, desc: 'Manage crew members, app access and shift times' },
-      { id: 'teams', label: 'Crews & Teams', icon: Users, desc: 'Add, edit and remove crews, sub-crews and revenue streams' },
+      { id: 'teams', label: 'Crews', icon: Users, desc: 'Add, edit and remove crews, sub-crews and revenue streams' },
       { id: 'absences', label: 'Absences', icon: CalendarX, desc: 'Approve leave and recurring days off' },
     ],
   },

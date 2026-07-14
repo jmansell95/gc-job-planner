@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Clock, Bell, HardHat, Sparkles, Lightbulb, ShieldCheck, Menu, CalendarClock, HelpCircle, PoundSterling } from 'lucide-react';
+import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Clock, Bell, HardHat, Sparkles, Lightbulb, ShieldCheck, Menu, CalendarClock, HelpCircle, PoundSterling } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -46,7 +46,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck },
     { id: 'insights', label: 'Insights', icon: Lightbulb },
     { id: 'finance', label: 'Finance', icon: PoundSterling },
-    { id: 'teams', label: 'Crews', icon: Users },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 

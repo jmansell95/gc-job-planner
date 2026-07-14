@@ -5,7 +5,6 @@ import { canAccessSection } from '@/utils/access';
 import AdminNav from '@/components/AdminNav';
 import DashboardOverview from '@/components/DashboardOverview';
 import JobManager from '@/components/JobManager';
-import TeamManager from '@/components/TeamManager';
 import WeeklyRotaBuilder from '@/components/WeeklyRotaBuilder';
 import SettingsPage from '@/components/SettingsPage';
 import JobDetail from '@/components/JobDetail';
@@ -73,7 +72,7 @@ export default function AdminDashboard() {
             {activeSection === 'rota' && <WeeklyRotaBuilder />}
             {activeSection === 'timesheets' && <TimesheetManager />}
             {activeSection === 'calendar' && <CalendarView />}
-            {activeSection === 'teams' && <TeamManager />}
+            {activeSection === 'teams' && <SettingsPage initialTab="teams" />}
             {activeSection === 'compliance' && <ComplianceManager />}
             {activeSection === 'insights' && <WeeklyInsightsPage />}
             {activeSection === 'finance' && <ProfitabilityHub profile={profile} />}
