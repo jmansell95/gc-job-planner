@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, Briefcase, FileText, ExternalLink, ShieldCheck, Clock, PlayCircle, CheckCircle2, Loader2, ChevronRight, ChevronLeft, HeartPulse, Flame, AlertTriangle, Users, WifiOff, PenLine, Info, Car, Navigation } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import SignaturePad from '@/components/staff/SignaturePad';
@@ -18,6 +18,11 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
   const [offlineSaved, setOfflineSaved] = useState(false);
   const [travelDepartHome, setTravelDepartHome] = useState('');
   const [travelArriveSite, setTravelArriveSite] = useState('');
+  const [editStartOpen, setEditStartOpen] = useState(false);
+  const [pendingStartTime, setPendingStartTime] = useState(
+    briefingStartAt ? format(new Date(briefingStartAt), 'HH:mm') : format(new Date(), 'HH:mm')
+  );
+  const [savingStart, setSavingStart] = useState(false);
 
   const { data: briefingDocs = [] } = useQuery({
     queryKey: ['briefing-docs', job?.id],
@@ -32,19 +37,42 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
     if (assignment.briefing_start_at) {
       setBriefingStartAt(assignment.briefing_start_at);
       setPhase('documents');
-      return;
     }
-    const startNow = async () => {
-      const ts = new Date().toISOString();
-      setBriefingStartAt(ts);
-      try {
-        await base44.entities.RotaAssignment.update(assignment.id, { briefing_start_at: ts });
-      } catch (err) {
-        console.error('Error recording briefing start:', err);
-      }
-    };
-    startNow();
   }, [assignment.id, assignment.briefing_start_at]);
+
+  // Build an ISO timestamp from today's date + a HH:mm string (local time)
+  const buildTimestampFromTime = (hhmm) => {
+    const [h, m] = hhmm.split(':').map(Number);
+    const d = new Date();
+    d.setHours(h || 0, m || 0, 0, 0);
+    return d.toISOString();
+  };
+
+  const handleBeginBriefing = async () => {
+    const ts = buildTimestampFromTime(pendingStartTime);
+    setBriefingStartAt(ts);
+    setSavingStart(true);
+    try {
+      await base44.entities.RotaAssignment.update(assignment.id, { briefing_start_at: ts });
+    } catch (err) {
+      console.error('Error recording briefing start:', err);
+    }
+    setSavingStart(false);
+    setPhase('travel');
+  };
+
+  const handleSaveEditedStart = async () => {
+    const ts = buildTimestampFromTime(pendingStartTime);
+    setBriefingStartAt(ts);
+    setSavingStart(true);
+    try {
+      await base44.entities.RotaAssignment.update(assignment.id, { briefing_start_at: ts });
+    } catch (err) {
+      console.error('Error updating briefing start:', err);
+    }
+    setSavingStart(false);
+    setEditStartOpen(false);
+  };
 
   useEffect(() => {
     if (!briefingStartAt) return;
@@ -181,17 +209,37 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="hero-gradient px-5 py-4 flex items-center justify-between flex-shrink-0">
+          <div className="hero-gradient px-5 py-4 flex items-center justify-between flex-shrink-0 relative">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center flex-shrink-0">
                 <ShieldCheck className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0">
                 <h2 className="text-lg font-bold text-white leading-tight">Site Briefing</h2>
-                <p className="text-emerald-100 text-xs flex items-center gap-1.5">
+                <p className="text-emerald-100 text-xs flex items gap-1.5">
                   <Clock className="w-3 h-3" /> {elapsedLabel || 'just started'}
+                  {briefingStartAt && (
+                    <button onClick={() => { setPendingStartTime(format(new Date(briefingStartAt), 'HH:mm')); setEditStartOpen(o => !o); }}
+                      className="ml-1 inline-flex items-center gap-1 text-emerald-50/80 hover:text-white underline-offset-2 hover:underline transition">
+                      <PenLine className="w-3 h-3" /> edit
+                    </button>
+                  )}
                   {crewTotal > 1 && <><span className="mx-0.5">·</span><Users className="w-3 h-3" />{crewSignedCount}/{crewTotal} crew</>}
                 </p>
+                {editStartOpen && briefingStartAt && (
+                  <div className="absolute right-4 top-16 z-10 bg-white rounded-xl shadow-xl border border-slate-200 p-3 flex flex-col gap-2 w-56">
+                    <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Started at</label>
+                    <input type="time" value={pendingStartTime} onChange={e => setPendingStartTime(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+                    <div className="flex gap-2">
+                      <button onClick={() => setEditStartOpen(false)} className="flex-1 px-3 py-2 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-200">Cancel</button>
+                      <button onClick={handleSaveEditedStart} disabled={savingStart}
+                        className="flex-1 px-3 py-2 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 disabled:opacity-50">
+                        {savingStart ? 'Saving…' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             {!signing && (
@@ -241,16 +289,26 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
                   )}
                 </div>
                 {crewTotal > 1 && (
-                  <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-2.5 mb-5 text-left">
+                  <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-2.5 mb-4 text-left">
                     <Users className="w-4 h-4 text-blue-600 flex-shrink-0" />
                     <p className="text-xs text-blue-800 font-medium">
                       {crewTotal} crew members assigned today. Everyone must complete their briefing before the shift can start.
                     </p>
                   </div>
                 )}
-                <button onClick={goNext}
-                  className="flex items-center justify-center gap-2 w-full px-5 py-3.5 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-bold touch-manipulation">
-                  <PlayCircle className="w-5 h-5" /> Begin Briefing
+                {/* Briefing start time picker */}
+                <div className="mb-4 bg-slate-50 rounded-xl p-4 border border-slate-200 text-left">
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Briefing Start Time</label>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    <input type="time" value={pendingStartTime} onChange={e => setPendingStartTime(e.target.value)}
+                      className="flex-1 px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white" />
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1.5">Change this if you got on site earlier or had to wait before starting the briefing.</p>
+                </div>
+                <button onClick={handleBeginBriefing} disabled={savingStart}
+                  className="flex items-center justify-center gap-2 w-full px-5 py-3.5 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-bold touch-manipulation disabled:opacity-50">
+                  {savingStart ? <Loader2 className="w-5 h-5 animate-spin" /> : <PlayCircle className="w-5 h-5" />} Begin Briefing
                 </button>
               </div>
             )}
