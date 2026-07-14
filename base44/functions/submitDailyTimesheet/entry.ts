@@ -123,11 +123,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Notify manager for each summary
+    // Send ONE consolidated daily notification (not one per task or per job)
     try {
-      for (const summary of summaries) {
-        await base44.asServiceRole.functions.invoke('notifyTimesheetSubmitted', { data: summary });
-      }
+      await base44.asServiceRole.functions.invoke('notifyTimesheetSubmitted', { summaries, staff_id: staff_id, date });
     } catch (e) { /* notification failure shouldn't block submission */ }
 
     return Response.json({ success: true, summaries, merged_count: allDraftIds.length });

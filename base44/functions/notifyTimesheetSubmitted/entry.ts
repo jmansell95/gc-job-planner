@@ -25,22 +25,39 @@ async function getAppBaseUrl(base44) {
   try { const list = await base44.asServiceRole.entities.AppSetting.filter({ key: 'global' }); return (list[0] && list[0].app_base_url) || ''; } catch (e) { return ''; }
 }
 
+function fmtHours(mins) {
+  const m = Math.round(Number(mins) || 0);
+  const h = Math.floor(m / 60), r = m % 60;
+  if (h && r) return h + 'h ' + r + 'm';
+  if (h) return h + 'h';
+  return m > 0 ? r + 'm' : '—';
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const ts = body.data || body;
 
     const ctrl = await base44.asServiceRole.entities.AutomationControl.filter({ automation_key: 'timesheet_submitted' });
     const ac = ctrl[0];
     if (ac && ac.enabled === false) return Response.json({ skipped: true, reason: 'Automation disabled' });
 
-    if (!ts || !ts.staff_id) return Response.json({ skipped: true, reason: 'No timesheet data' });
+    // Consolidated daily mode: { summaries: [...], staff_id, date }
+    // Single-entry mode (backward compat): { data: {...} }
+    let summaries = body.summaries;
+    let staffId = body.staff_id;
+    let date = body.date;
 
-    const staffList = await base44.asServiceRole.entities.Staff.filter({ id: ts.staff_id });
+    if (!summaries && body.data) {
+      summaries = [body.data];
+      staffId = staffId || body.data.staff_id;
+      date = date || body.data.date;
+    }
+
+    if (!summaries || summaries.length === 0 || !staffId) return Response.json({ skipped: true, reason: 'No timesheet data' });
+
+    const staffList = await base44.asServiceRole.entities.Staff.filter({ id: staffId });
     const staff = staffList[0];
-    const jobList = await base44.asServiceRole.entities.Job.filter({ id: ts.job_id });
-    const job = jobList[0];
 
     let recipients = [];
     if (staff && staff.manager_id) {
@@ -54,26 +71,54 @@ Deno.serve(async (req) => {
     if (recipients.length === 0) return Response.json({ skipped: true, reason: 'No recipients' });
 
     const staffName = staff ? staff.name : 'Unknown crew member';
-    const jobName = job ? job.name : 'Unknown job';
-    const hours = ts.total_hours != null ? ts.total_hours + 'h' : ((ts.task_duration_minutes ? (ts.task_duration_minutes / 60).toFixed(1) + 'h' : '—'));
+
+    // Resolve job names for each summary
+    const jobIds = [...new Set(summaries.map(s => s.job_id).filter(Boolean))];
+    const jobs = [];
+    for (let i = 0; i < jobIds.length; i++) {
+      const jl = await base44.asServiceRole.entities.Job.filter({ id: jobIds[i] });
+      if (jl[0]) jobs.push(jl[0]);
+    }
+    const jobNameOf = (jid) => { const j = jobs.find(x => x.id === jid); return j ? j.name : 'Unknown job'; };
+
+    const totalMins = summaries.reduce((s, t) => s + (Number(t.task_duration_minutes) || (t.total_hours ? t.total_hours * 60 : 0)), 0);
+    const totalMeterage = summaries.reduce((s, t) => s + (Number(t.meterage) || 0), 0);
 
     const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'timesheet_submitted' });
     const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
     if (cfg.enabled === false) return Response.json({ skipped: true, reason: 'Email alert disabled' });
 
-    const taskDesc = ts.task_description || '';
-    const tsNotes = ts.notes || '';
+    const dateStr = date || summaries[0].date || '—';
+
+    // Build a consolidated daily summary body
+    const jobLines = summaries.map(s => {
+      const jobName = jobNameOf(s.job_id);
+      const mins = Number(s.task_duration_minutes) || (s.total_hours ? s.total_hours * 60 : 0);
+      const meterage = Number(s.meterage) || 0;
+      let line = '• Job: ' + jobName + ' — ' + fmtHours(mins);
+      if (meterage > 0) line += ' · ' + meterage + 'm';
+      if (s.is_overtime) line += ' (overtime)';
+      return line;
+    }).join('\n');
+
     let text;
     if (cfg.template) {
       text = cfg.template
-        .replace(/\{staff_name\}/g, staffName).replace(/\{job_name\}/g, jobName)
-        .replace(/\{date\}/g, ts.date || '—').replace(/\{hours\}/g, hours)
-        .replace(/\{task_description\}/g, taskDesc).replace(/\{notes\}/g, tsNotes);
+        .replace(/\{staff_name\}/g, staffName).replace(/\{date\}/g, dateStr)
+        .replace(/\{total_hours\}/g, fmtHours(totalMins))
+        .replace(/\{job_summary\}/g, jobLines);
     } else {
       const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
-      text = intro + 'A timesheet has been submitted for approval:\n\nCrew: ' + staffName + '\nJob: ' + jobName + '\nDate: ' + (ts.date || '—') + '\nHours: ' + hours + (taskDesc ? '\nTask: ' + taskDesc : '') + (tsNotes ? '\nNotes: ' + tsNotes : '') + '\n\nReview and approve it in the planner.\n\nGC Job Planner';
+      text = intro + 'A daily timesheet has been submitted for approval:\n\n' +
+        'Crew: ' + staffName + '\n' +
+        'Date: ' + dateStr + '\n' +
+        'Total Hours: ' + fmtHours(totalMins) + (totalMeterage > 0 ? ' · ' + totalMeterage + 'm drilled' : '') + '\n\n' +
+        'Jobs:\n' + jobLines + '\n\n' +
+        'Review and approve it in the planner.\n\nGC Job Planner';
     }
-    const subject = cfg.subject ? cfg.subject.replace(/\{staff_name\}/g, staffName).replace(/\{job_name\}/g, jobName) : 'Timesheet submitted by ' + staffName;
+    const subject = cfg.subject
+      ? cfg.subject.replace(/\{staff_name\}/g, staffName).replace(/\{date\}/g, dateStr)
+      : 'Daily timesheet submitted by ' + staffName + ' (' + dateStr + ')';
 
     const baseUrl = await getAppBaseUrl(base44);
     const bodyHtml = escapeHtml(text).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open planner');

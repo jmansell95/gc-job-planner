@@ -65,36 +65,29 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
       <button onClick={() => setExpanded(e => !e)} className="w-full text-left p-4 flex items-start gap-3 hover:bg-slate-50/60 transition">
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-bold text-slate-900 leading-tight truncate">{job.name}</h3>
-          <div className="mt-2">
-            <div className="flex items-center gap-1.5 mb-2">
-              <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${jobTypeBadgeColors[job.job_type]}`}>{formatJobType(job.job_type)}</span>
-              {assignment.is_overtime && (
-                <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">
-                  OT{assignment.rate_multiplier ? ` ${Number(assignment.rate_multiplier)}x` : ''}
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Date</span>
-                <span className="font-medium text-slate-700">{format(new Date(assignment.assigned_date), 'EEE dd MMM')}</span>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${jobTypeBadgeColors[job.job_type]}`}>{formatJobType(job.job_type)}</span>
+            {assignment.is_overtime && (
+              <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">
+                OT{assignment.rate_multiplier ? ` ${Number(assignment.rate_multiplier)}x` : ''}
               </span>
-              {assignment.start_time && (
-                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs">
-                  <Clock className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Time</span>
-                  <span className="font-medium text-slate-700">{assignment.start_time}{assignment.end_time ? `–${assignment.end_time}` : ''}</span>
-                </span>
-              )}
-              {vehicle && (
-                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 text-xs">
-                  <Truck className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Vehicle</span>
-                  <span className="font-mono font-medium text-slate-700">{vehicle.registration_number}</span>
-                </span>
-              )}
-            </div>
+            )}
+            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+              <span className="font-medium">{format(new Date(assignment.assigned_date), 'EEE dd MMM')}</span>
+            </span>
+            {assignment.start_time && (
+              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <span className="font-medium">{assignment.start_time}{assignment.end_time ? `–${assignment.end_time}` : ''}</span>
+              </span>
+            )}
+            {vehicle && (
+              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                <Truck className="w-3.5 h-3.5 text-slate-400" />
+                <span className="font-mono font-medium">{vehicle.registration_number}</span>
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
