@@ -74,6 +74,10 @@
       "default": "day",
       "description": "Unit label e.g. day, each, m, hour"
     },
+    "men": {
+      "type": "number",
+      "description": "Number of men in the crew (labour items only). When set, the total daily cost is calculated as unit_cost \u00d7 men for per-day items. Auto-filled from the linked RateCardItem."
+    },
     "vat_exempt": {
       "type": "boolean",
       "default": false,

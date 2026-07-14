@@ -17,7 +17,7 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFracti
 const blankForm = () => ({
   category: 'hired_equipment', supplier_id: '', contractor_id: '', description: '',
   reference_number: '', responsible_person: '', site_asset_id: '', rate_card_item_id: '', po_number: '', start_date: '', end_date: '',
-  unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: ''
+  unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: '', men: ''
 });
 
 const categoryConfig = {
@@ -119,6 +119,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
           supplier_id: isNoCost ? '' : (formData.supplier_id || ''),
           contractor_id: formData.category === 'contractor_supplied' ? (formData.contractor_id || '') : '',
           rate_card_item_id: formData.rate_card_item_id || '',
+          men: formData.men ? Number(formData.men) : null,
           description: formData.description,
           reference_number: formData.reference_number || '',
           responsible_person: formData.responsible_person || '',
@@ -182,7 +183,8 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
         start_date: c.start_date || '', end_date: c.end_date || '',
         unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
         unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt,
-        notes: c.notes || ''
+        notes: c.notes || '',
+        men: c.men != null ? String(c.men) : ''
       });
     } else {
       setEditingId(c.id);
@@ -226,6 +228,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
         job_id: jobId,
         category: item.category || 'hired_equipment',
         supplier_id: item.supplier_id || '',
+        rate_card_item_id: item.rate_card_item_id || '',
         description: item.description,
         reference_number: item.reference_number || '',
         po_number: '', site_asset_id: item.site_asset_id || '',

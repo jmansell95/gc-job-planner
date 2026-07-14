@@ -1,7 +1,7 @@
 import React from 'react';
 import { differenceInCalendarDays } from 'date-fns';
 import {
-  Package, Calendar, HardHat, User, Lock, Receipt, Boxes, Building2
+  Package, Calendar, HardHat, User, Lock, Receipt, Boxes, Building2, Users
 } from 'lucide-react';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
@@ -54,9 +54,14 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
       unit_label: item.unit || form.unit_label || 'day',
       vat_exempt: false,
       rate_card_item_id: item.id,
+      men: item.men != null ? String(item.men) : (form.men || ''),
       notes: item.notes || form.notes,
     });
   };
+
+  // Daily cost for men-based labour items: unit_cost × men (when unit is day)
+  const menCount = Number(form.men) || 1;
+  const dailyCostTotal = form.unit_label === 'day' ? (Number(form.unit_cost) || 0) * menCount : 0;
 
   const pickOwnedAsset = (id) => {
     if (!id) return;
@@ -225,6 +230,10 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
                 <option value="each">each</option>
               </select>
             </div>
+            <div>
+              <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1"><Users className="w-3 h-3 text-slate-400" /> Men</label>
+              <input type="number" min="0" step="1" value={form.men || ''} onChange={(e) => setForm({ ...form, men: e.target.value })} placeholder="—" className={inputCls} />
+            </div>
             {form.unit_label !== 'day' && (
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Quantity</label>
@@ -237,8 +246,14 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
 
       {!isNoCost && Number(form.unit_cost) > 0 && (
         <div className="text-xs text-slate-600 bg-white rounded-md px-3 py-2 border border-slate-200 flex items-center justify-between">
-          <span>Line revenue: {effectiveQty} × {fmt(Number(form.unit_cost) || 0)}</span>
+          <span>Line revenue: {effectiveQty} × {fmt(Number(form.unit_cost) || 0)}{menCount > 1 ? ` × ${menCount} men` : ''}</span>
           <span className="font-bold text-slate-900">{fmt(lineTotal)}</span>
+        </div>
+      )}
+      {!isNoCost && form.unit_label === 'day' && menCount > 1 && Number(form.unit_cost) > 0 && (
+        <div className="text-xs text-emerald-700 bg-emerald-50 rounded-md px-3 py-2 border border-emerald-200 flex items-center justify-between">
+          <span>Daily cost ({menCount} men): {fmt(Number(form.unit_cost) || 0)} × {menCount}</span>
+          <span className="font-bold">{fmt(dailyCostTotal)}/day</span>
         </div>
       )}
       {form.rate_card_item_id && !isNoCost && (

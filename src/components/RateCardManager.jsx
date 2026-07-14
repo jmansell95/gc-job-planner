@@ -29,6 +29,9 @@ function RateItemRow({ item, subcategory, onUpdate }) {
   });
   const [saving, setSaving] = useState(false);
 
+  // Calculated daily cost: if the item has men (e.g. 2-man crew), the daily rate is price × men.
+  const dailyCost = item.men && item.men > 0 && item.price != null ? item.price * item.men : null;
+
   const save = async () => {
     setSaving(true);
     try {
@@ -82,15 +85,30 @@ function RateItemRow({ item, subcategory, onUpdate }) {
           </div>
         </div>
       ) : (
-        <div className="flex items-start gap-3 px-4 py-2.5 hover:bg-slate-50/50 transition group">
+        <div className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50/50 transition group">
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-slate-800">{item.description}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-medium text-slate-800">{item.description}</p>
+              {item.men != null && item.men > 0 && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                  <Users className="w-2.5 h-2.5" /> {item.men} man{item.men > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
             {item.notes && <p className="text-xs text-slate-400 mt-0.5">{item.notes}</p>}
+            {dailyCost != null && (
+              <p className="text-xs text-emerald-600 font-semibold mt-1 inline-flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md">
+                <PoundSterling className="w-3 h-3" /> {fmt(dailyCost)}/day total
+                <span className="text-slate-400 font-normal">({fmt(item.price)} × {item.men})</span>
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
-            {item.men != null && <span className="text-xs text-slate-400">{item.men} man{item.men > 1 ? 's' : ''}</span>}
             {item.unit && <span className="text-xs text-slate-400">/{item.unit}</span>}
-            <span className={`text-sm font-semibold tabular-nums w-20 text-right ${item.price != null ? 'text-slate-900' : 'text-slate-400 italic'}`}>{priceDisplay}</span>
+            <div className="text-right">
+              <span className={`text-sm font-semibold tabular-nums block ${item.price != null ? 'text-slate-900' : 'text-slate-400 italic'}`}>{priceDisplay}</span>
+              {dailyCost != null && <span className="text-[10px] text-slate-400 block">{fmt(dailyCost)}/day</span>}
+            </div>
             <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '' }); setEditing(true); }} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-emerald-700 transition">
               <Pencil className="w-3.5 h-3.5" />
             </button>

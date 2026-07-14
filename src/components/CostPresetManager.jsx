@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Boxes, Plus, X, Trash2, Edit2, ChevronDown, ChevronUp, Truck, ShoppingCart, Wrench, ShieldCheck } from 'lucide-react';
+import { Boxes, Plus, X, Trash2, Edit2, ChevronDown, ChevronUp, Truck, ShoppingCart, Wrench, ShieldCheck, Receipt, Users } from 'lucide-react';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
@@ -9,7 +9,8 @@ const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outl
 const blankItemForm = () => ({
   description: '', category: 'hired_equipment', supplier_id: '',
   unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false,
-  site_asset_id: '', reference_number: ''
+  site_asset_id: '', reference_number: '',
+  rate_card_item_id: '', men: ''
 });
 
 const categoryMeta = {
@@ -40,6 +41,7 @@ export default function CostPresetManager() {
 
   const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: () => base44.entities.Supplier.list() });
   const { data: assets = [] } = useQuery({ queryKey: ['site-assets-presets'], queryFn: () => base44.entities.SiteAsset.list() });
+  const { data: rateCardItems = [] } = useQuery({ queryKey: ['rate-card-items-presets'], queryFn: () => base44.entities.RateCardItem.list('-created_date', 500) });
 
   const { data: allItems = [] } = useQuery({
     queryKey: ['all-preset-items'],
@@ -48,6 +50,38 @@ export default function CostPresetManager() {
 
   const itemsFor = (presetId) => allItems.filter(i => i.preset_id === presetId).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const presetTotal = (presetId) => itemsFor(presetId).reduce((s, i) => s + (Number(i.unit_cost) || 0) * (Number(i.quantity) || 1), 0);
+
+  // Daily cost: for per-day items, unit_cost × (men or 1). This shows what a set costs per day.
+  const itemDailyCost = (item) => {
+    if (item.unit_label !== 'day') return 0;
+    const men = Number(item.men) || 1;
+    return (Number(item.unit_cost) || 0) * men;
+  };
+  const presetDailyTotal = (presetId) => itemsFor(presetId).reduce((s, i) => s + itemDailyCost(i), 0);
+
+  // Rate card items scoped by supplier (our company if no supplier selected)
+  const scopedRateItems = useMemo(() => {
+    return (rateCardItems || []).filter(i => {
+      if (i.is_active === false) return false;
+      if (!itemForm.supplier_id) return i.rate_card_source !== 'supplier';
+      return i.rate_card_source === 'supplier' && i.supplier_id === itemForm.supplier_id;
+    });
+  }, [rateCardItems, itemForm.supplier_id]);
+
+  const pickFromRateCard = (id) => {
+    if (!id) return;
+    const rc = (rateCardItems || []).find(r => r.id === id);
+    if (!rc) return;
+    setItemForm(p => ({
+      ...p,
+      description: rc.description || p.description,
+      unit_cost: String(rc.price ?? ''),
+      unit_label: rc.unit || p.unit_label || 'day',
+      men: rc.men != null ? String(rc.men) : p.men,
+      rate_card_item_id: rc.id,
+      notes: rc.notes || p.notes,
+    }));
+  };
 
   const savePreset = async (e) => {
     e.preventDefault();
@@ -95,6 +129,8 @@ export default function CostPresetManager() {
         description: itemForm.description,
         category: itemForm.category,
         supplier_id: itemForm.supplier_id || '',
+        rate_card_item_id: itemForm.rate_card_item_id || '',
+        men: itemForm.men === '' ? null : Number(itemForm.men),
         unit_cost: Number(itemForm.unit_cost) || 0,
         quantity: Number(itemForm.quantity) || 1,
         unit_label: itemForm.unit_label,
@@ -122,7 +158,9 @@ export default function CostPresetManager() {
       quantity: String(item.quantity ?? '1'), unit_label: item.unit_label || 'day',
       vat_exempt: !!item.vat_exempt,
       site_asset_id: item.site_asset_id || '',
-      reference_number: item.reference_number || ''
+      reference_number: item.reference_number || '',
+      rate_card_item_id: item.rate_card_item_id || '',
+      men: item.men != null ? String(item.men) : ''
     });
     setEditingItemId(item.id);
     setShowItemForm(true);
@@ -231,6 +269,22 @@ export default function CostPresetManager() {
                       <form onSubmit={saveItem} className="bg-white rounded-lg border border-emerald-200 p-3 space-y-2">
                         <p className="text-xs font-semibold text-emerald-700">{editingItemId ? 'Edit item' : 'Add item to preset'}</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {/* Rate card quick-pick — auto-fills description, cost, unit and men */}
+                          {scopedRateItems.length > 0 && (
+                            <div className="sm:col-span-2">
+                              <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
+                                <Receipt className="w-3 h-3 text-emerald-700" /> Pick from rate card {itemForm.supplier_id ? '(this supplier)' : '(our rate card)'}
+                              </label>
+                              <select value="" onChange={(e) => { pickFromRateCard(e.target.value); e.target.value = ''; }} className={inputCls}>
+                                <option value="">Select a rate to auto-fill…</option>
+                                {scopedRateItems.map(r => (
+                                  <option key={r.id} value={r.id}>
+                                    {r.description} · {r.price != null ? fmt(r.price) : (r.price_text || 'POA')}{r.unit ? `/${r.unit}` : ''}{r.men ? ` · ${r.men} men` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                           <div className="sm:col-span-2">
                             <label className="block text-xs font-medium text-slate-600 mb-1">Link to Asset (GC Compliance Manager)</label>
                             <select value={itemForm.site_asset_id} onChange={e => selectAsset(e.target.value)} className={inputCls}>
@@ -280,6 +334,19 @@ export default function CostPresetManager() {
                                 className={`${inputCls} w-20`} />
                             )}
                           </div>
+                          {/* Men field — for labour items, calculates total daily cost */}
+                          <div>
+                            <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1"><Users className="w-3 h-3 text-slate-400" /> Men (crew size)</label>
+                            <input type="number" min="0" step="1" value={itemForm.men} onChange={e => setItemForm(p => ({ ...p, men: e.target.value }))} placeholder="1"
+                              className={inputCls} />
+                          </div>
+                          {/* Live daily cost preview */}
+                          {itemForm.unit_label === 'day' && Number(itemForm.unit_cost) > 0 && (
+                            <div className="sm:col-span-2 text-xs text-emerald-700 bg-emerald-50 rounded-md px-3 py-2 border border-emerald-200 flex items-center justify-between">
+                              <span>Daily cost: {fmt(Number(itemForm.unit_cost) || 0)}{Number(itemForm.men) > 1 ? ` × ${itemForm.men} men` : ''}</span>
+                              <span className="font-bold">{fmt((Number(itemForm.unit_cost) || 0) * (Number(itemForm.men) || 1))}/day</span>
+                            </div>
+                          )}
                           <label className="flex items-center gap-2 text-xs text-slate-600 sm:col-span-2 cursor-pointer">
                             <input type="checkbox" checked={itemForm.vat_exempt} onChange={e => setItemForm(p => ({ ...p, vat_exempt: e.target.checked }))} className="rounded border-slate-300 text-emerald-700 focus:ring-emerald-600" />
                             VAT exempt
@@ -310,6 +377,12 @@ export default function CostPresetManager() {
                         </div>
                       </div>
                     )}
+                    {items.length > 0 && presetDailyTotal(p.id) > 0 && (
+                      <div className="text-xs text-slate-500 bg-blue-50 rounded-lg px-3 py-2 border border-blue-100 flex items-center justify-between">
+                        <span className="font-medium">Set daily cost (per-day items only)</span>
+                        <span className="font-bold text-blue-700">{fmt(presetDailyTotal(p.id))}/day</span>
+                      </div>
+                    )}
 
                     {/* Item list */}
                     {items.length === 0 ? (
@@ -326,7 +399,19 @@ export default function CostPresetManager() {
                                 <Icon className={`w-3.5 h-3.5 ${meta.color}`} />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-slate-900 truncate">{item.description}</p>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="text-sm font-medium text-slate-900 truncate">{item.description}</p>
+                                  {item.men != null && item.men > 0 && (
+                                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                      <Users className="w-2.5 h-2.5" /> {item.men} man{item.men > 1 ? 's' : ''}
+                                    </span>
+                                  )}
+                                  {item.rate_card_item_id && (
+                                    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+                                      <Receipt className="w-2.5 h-2.5" /> Rate card
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-xs text-slate-400">
                                   {fmt(item.unit_cost)} / {item.unit_label}
                                   {item.quantity > 1 && ` × ${item.quantity}`}
@@ -334,6 +419,9 @@ export default function CostPresetManager() {
                                   {item.vat_exempt && ' · VAT exempt'}
                                   {item.reference_number && ` · ${item.reference_number}`}
                                 </p>
+                                {item.unit_label === 'day' && item.men > 1 && (
+                                  <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">{fmt((Number(item.unit_cost) || 0) * item.men)}/day total</p>
+                                )}
                                 {item.site_asset_id && (() => {
                                   const la = assets.find(a => a.id === item.site_asset_id);
                                   return la && <span className="inline-flex items-center gap-0.5 text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-medium mt-1"><ShieldCheck className="w-2.5 h-2.5" /> {la.name}</span>;

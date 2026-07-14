@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, Trash2, FileCheck, Package } from 'lucide-react';
+import { Edit2, Trash2, FileCheck, Package, Users, Receipt } from 'lucide-react';
 import { format } from 'date-fns';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -16,6 +16,8 @@ export default function EquipmentItemCard({ item: c, linkedItems = [], assetMap 
   const asset = c.site_asset_id ? assetMap[c.site_asset_id] : null;
   const cb = asset ? (complianceConfig[asset.compliance_status] || complianceConfig.unknown) : null;
   const ComplianceIcon = cb?.icon;
+  const menCount = Number(c.men) || 0;
+  const dailyCost = menCount > 0 && c.unit_label === 'day' ? (Number(c.unit_cost) || 0) * menCount : 0;
 
   return (
     <div className={`border rounded-lg p-3 transition ${linkedItems.length > 0 ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 bg-white'}`}>
@@ -30,6 +32,8 @@ export default function EquipmentItemCard({ item: c, linkedItems = [], assetMap 
             {cb && ComplianceIcon && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 ${cb.badge}`}><ComplianceIcon className="w-2.5 h-2.5" /> {cb.label}</span>}
             {c.po_number && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium font-mono inline-flex items-center gap-1"><Package className="w-2.5 h-2.5" />{c.po_number}</span>}
             {c.reference_number && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium font-mono">Ref: {c.reference_number}</span>}
+            {menCount > 0 && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 border border-emerald-100"><Users className="w-2.5 h-2.5" />{menCount} man{menCount > 1 ? 's' : ''}</span>}
+            {c.rate_card_item_id && <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 border border-amber-100"><Receipt className="w-2.5 h-2.5" />Rate card</span>}
             {c.vat_exempt && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">VAT exempt</span>}
             {isJobMode && locBadge && loc !== 'yard' && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${locBadge.cls}`}>{locBadge.label}</span>}
           </div>
@@ -49,6 +53,9 @@ export default function EquipmentItemCard({ item: c, linkedItems = [], assetMap 
               </>
             )}
           </p>
+          {dailyCost > 0 && (
+            <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">{fmt(dailyCost)}/day total ({fmt(Number(c.unit_cost) || 0)} × {menCount})</p>
+          )}
           {isJobMode && c.category === 'hired_equipment' && (
             <button onClick={() => onOffHire(c)} className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-900 font-medium bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg transition">
               <FileCheck className="w-3.5 h-3.5" /> Return Item

@@ -32,6 +32,10 @@
       "type": "string",
       "description": "Default supplier for this item (optional)"
     },
+    "rate_card_item_id": {
+      "type": "string",
+      "description": "Linked RateCardItem from the Master Price List \u2014 set automatically when an item is picked from the rate card. Keeps the description, unit cost and unit label in sync with the source rate, and marks the item as chargeable to the client."
+    },
     "unit_cost": {
       "type": "number",
       "description": "Default net cost per unit in GBP"
@@ -45,6 +49,10 @@
       "type": "string",
       "default": "day",
       "description": "Unit label (day, hour, m, each)"
+    },
+    "men": {
+      "type": "number",
+      "description": "Number of men in the crew (labour items only). Used to calculate the total daily cost: unit_cost \u00d7 men for per-day items."
     },
     "vat_exempt": {
       "type": "boolean",

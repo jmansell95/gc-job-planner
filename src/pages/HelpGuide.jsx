@@ -198,14 +198,16 @@ export default function HelpGuide() {
                       <button
                         key={topic.id}
                         onClick={() => setSelectedTopic(topic)}
-                        className="w-full text-left bg-white rounded-xl border border-slate-200 p-4 hover:border-emerald-300 hover:shadow-md transition group"
+                        className="w-full text-left bg-white rounded-xl border border-slate-200 p-4 hover:border-emerald-300 hover:shadow-md hover:bg-emerald-50/20 transition group"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
-                            <h3 className="font-bold text-slate-900 text-sm">{topic.title}</h3>
-                            {topic.summary && <p className="text-xs text-slate-400 mt-1 line-clamp-2">{topic.summary}</p>}
+                            <h3 className="font-bold text-slate-900 text-sm group-hover:text-emerald-800 transition">{topic.title}</h3>
+                            {topic.summary && <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">{topic.summary}</p>}
                           </div>
-                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 flex-shrink-0 mt-1 transition" />
+                          <div className="w-7 h-7 rounded-lg bg-slate-50 group-hover:bg-emerald-100 flex items-center justify-center flex-shrink-0 transition">
+                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 transition" />
+                          </div>
                         </div>
                       </button>
                     ))}
@@ -235,20 +237,37 @@ export default function HelpGuide() {
               className="bg-white rounded-t-3xl md:rounded-2xl w-full md:max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl"
               onClick={e => e.stopPropagation()}
             >
-              <div className="sticky top-0 bg-white border-b border-slate-100 px-5 py-4 flex items-center justify-between z-10">
+              <div className="sticky top-0 bg-white border-b border-slate-100 px-5 sm:px-7 py-4 flex items-center justify-between z-10">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">{categoryConfig[selectedTopic.category]?.label}</p>
-                  <h2 className="text-lg font-bold text-slate-900 truncate">{selectedTopic.title}</h2>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    {(() => { const c = categoryConfig[selectedTopic.category]; return c && <span className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">{c.label}</span>; })()}
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 truncate leading-tight">{selectedTopic.title}</h2>
                 </div>
-                <button onClick={() => setSelectedTopic(null)} className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition ml-3 flex-shrink-0">
-                  <span className="text-slate-500 font-bold">✕</span>
+                <button onClick={() => setSelectedTopic(null)} className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition ml-3 flex-shrink-0 flex-shrink-0">
+                  <span className="text-slate-500 font-bold text-lg">✕</span>
                 </button>
               </div>
-              <div className="px-5 py-5">
+              <div className="px-5 sm:px-7 py-5 sm:py-6">
                 {selectedTopic.summary && (
-                  <p className="text-sm text-slate-400 italic mb-4 pb-4 border-b border-slate-100">{selectedTopic.summary}</p>
+                  <div className="mb-5 pb-4 border-b border-slate-100">
+                    <p className="text-sm text-slate-500 leading-relaxed">{selectedTopic.summary}</p>
+                  </div>
                 )}
-                <ReactMarkdown className="prose prose-sm prose-slate max-w-none prose-headings:text-slate-900 prose-h2:text-base prose-h2:font-bold prose-h2:mt-5 prose-h2:mb-2 prose-p:text-slate-600 prose-p:leading-relaxed prose-li:text-slate-600 prose-a:text-emerald-600 prose-strong:text-slate-700">
+                <ReactMarkdown
+                  components={{
+                    h2: ({ children }) => <h2 className="text-lg font-bold text-slate-900 mt-6 mb-2.5 pb-1.5 border-b border-slate-100">{children}</h2>,
+                    h3: ({ children }) => <h3 className="text-base font-semibold text-slate-800 mt-4 mb-2">{children}</h3>,
+                    p: ({ children }) => <p className="text-sm text-slate-600 leading-relaxed mb-3.5">{children}</p>,
+                    li: ({ children }) => <li className="text-sm text-slate-600 leading-relaxed mb-1.5 ml-1">{children}</li>,
+                    ul: ({ children }) => <ul className="list-disc list-outside space-y-1 mb-4 ml-4 text-slate-600 marker:text-emerald-400 marker:text-xs">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal list-outside space-y-1 mb-4 ml-4 text-slate-600 marker:text-emerald-500 marker:font-semibold">{children}</ol>,
+                    strong: ({ children }) => <strong className="font-semibold text-slate-800 bg-emerald-50/60 px-1 rounded">{children}</strong>,
+                    a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-600 font-medium underline decoration-emerald-300 underline-offset-2 hover:text-emerald-700">{children}</a>,
+                    code: ({ children }) => <code className="text-xs font-mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-md border border-slate-200">{children}</code>,
+                    blockquote: ({ children }) => <blockquote className="border-l-3 border-emerald-300 pl-4 my-4 text-sm text-slate-500 italic bg-emerald-50/40 py-2.5 pr-3 rounded-r-lg">{children}</blockquote>,
+                  }}
+                >
                   {selectedTopic.content || ''}
                 </ReactMarkdown>
               </div>
