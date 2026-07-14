@@ -105,6 +105,11 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
 
   const itemNet = (c) => (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
   const totalNet = items.reduce((s, c) => s + itemNet(c), 0);
+  const dailyTotal = items
+    .filter(c => (c.hire_status || 'active') !== 'off_hired')
+    .filter(c => c.category !== 'contractor_supplied' && c.category !== 'client_supplied')
+    .filter(c => c.unit_label === 'day')
+    .reduce((s, c) => s + (Number(c.unit_cost) || 0) * (Number(c.men) || 1), 0);
   const defaultDates = job ? { start: job.start_date, end: job.end_date } : null;
   const rigsWithGear = catalogueItems.filter(c => (c.linked_catalogue_ids || []).length > 0);
 
@@ -358,7 +363,8 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
         <Boxes className="w-5 h-5 text-emerald-700" />
         <h2 className="font-semibold text-slate-900">Equipment & Revenue</h2>
-        <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{items.length} items{items.some(i => i.category !== 'contractor_supplied') ? ` · ${fmt(totalNet)}` : ''}</span>
+        {dailyTotal > 0 && <span className="ml-auto text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">{fmt(dailyTotal)}/day</span>}
+        <span className={`text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium ${dailyTotal > 0 ? 'ml-1' : 'ml-auto'}`}>{items.length} items{items.some(i => i.category !== 'contractor_supplied') ? ` · ${fmt(totalNet)}` : ''}</span>
       </div>
 
       <div className="px-5 py-4 space-y-4">
