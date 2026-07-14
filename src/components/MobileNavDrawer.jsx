@@ -1,8 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, HardHat, Sparkles, LogOut, CalendarClock } from 'lucide-react';
+import { X, HardHat, Sparkles, LogOut, CalendarClock, HelpCircle } from 'lucide-react';
 
-export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onScheduling }) {
+export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onScheduling, onHelp }) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -73,7 +73,14 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
               })}
             </nav>
 
-            <div className="p-3 border-t border-emerald-800/50">
+            <div className="p-3 border-t border-emerald-800/50 space-y-1">
+              {onHelp && (
+                <button type="button" onClick={onHelp}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-emerald-200 hover:bg-emerald-800/50 hover:text-white transition touch-manipulation select-none">
+                  <HelpCircle className="w-5 h-5 flex-shrink-0" />
+                  <span>Help & Guide</span>
+                </button>
+              )}
               <button type="button" onClick={onLogout}
                 className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-emerald-300 hover:bg-emerald-800/50 hover:text-white transition touch-manipulation select-none">
                 <LogOut className="w-5 h-5 flex-shrink-0" />

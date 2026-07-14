@@ -23,18 +23,6 @@
       ],
       "description": "Type of worker"
     },
-    "job_role": {
-      "type": "string",
-      "enum": [
-        "groundworker",
-        "cp_driller",
-        "rotary_driller",
-        "enabling_crew",
-        "depot",
-        "supervisor"
-      ],
-      "description": "Legacy job role \u2014 no longer used; team assignment drives job eligibility instead"
-    },
     "team_id": {
       "type": "string",
       "description": "Team/group assignment \u2014 determines which jobs this staff member can be assigned to"

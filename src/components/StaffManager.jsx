@@ -44,9 +44,6 @@ export default function StaffManager() {
     ['default_vehicle_id', 'manager_id', 'team_id', 'system_role'].forEach(k => {
       if (cleaned[k] === '') delete cleaned[k];
     });
-    delete cleaned.job_role;
-    delete cleaned.day_rate;
-    delete cleaned.meterage_rate;
     return cleaned;
   };
 

@@ -123,7 +123,7 @@ export default function HelpGuide() {
                 <Download className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Print PDF</span>
               </button>
-              <button onClick={() => navigate('/staff-schedule')} type="button"
+              <button onClick={() => navigate(-1)} type="button"
                 className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-xs sm:text-sm font-medium active:scale-95 transition touch-manipulation">
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Back</span>

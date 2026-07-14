@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Clock, Bell, HardHat, Sparkles, Lightbulb, ShieldCheck, Menu, CalendarClock } from 'lucide-react';
+import { Users, Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Clock, Bell, HardHat, Sparkles, Lightbulb, ShieldCheck, Menu, CalendarClock, HelpCircle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -112,9 +112,14 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           );
         })}
       </div>
-      <div className="p-4 border-t border-emerald-800/50">
+      <div className="p-4 border-t border-emerald-800/50 space-y-1">
+        <button type="button" onClick={() => navigate('/help')}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-emerald-200 hover:bg-emerald-800/50 hover:text-white transition cursor-pointer touch-manipulation select-none">
+          <HelpCircle className="w-5 h-5 flex-shrink-0" />
+          <span>Help & Guide</span>
+        </button>
         <button type="button" onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-lg text-sm font-medium text-emerald-300 hover:bg-emerald-800/50 hover:text-white transition cursor-pointer touch-manipulation select-none">
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-emerald-300 hover:bg-emerald-800/50 hover:text-white transition cursor-pointer touch-manipulation select-none">
           <LogOut className="w-5 h-5 flex-shrink-0" />
           <span>Logout</span>
         </button>
@@ -177,6 +182,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         onLogout={handleLogout}
         onAssistant={openChat}
         onScheduling={openSchedulingChat}
+        onHelp={() => { navigate('/help'); setDrawerOpen(false); }}
       />
 
       <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} onNavigate={setActiveSection} notifications={notifications} />
