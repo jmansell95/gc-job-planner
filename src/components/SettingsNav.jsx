@@ -13,8 +13,8 @@ export const settingsGroups = [
   {
     label: 'Operations',
     items: [
-      { id: 'assets', label: 'Assets', icon: Wrench, desc: 'Rigs, machinery & trailers — linked to GC Compliance Manager' },
-      { id: 'asset-panda', label: 'Asset Panda Sync', icon: Database, desc: 'Sync inventory, stock levels and billing rates from Asset Panda' },
+      { id: 'assets', label: 'GC Compliance Sync Data', icon: Wrench, desc: 'Rigs, machinery & trailers — linked to GC Compliance Manager' },
+      { id: 'asset-panda', label: 'Asset Panda Sync Data', icon: Database, desc: 'Sync inventory, stock levels and billing rates from Asset Panda' },
       { id: 'equipment-library', label: 'Equipment Library', icon: Package, desc: 'Master equipment list, rigs from GC Compliance & pre-built sets — one place to manage everything' },
       { id: 'vehicles', label: 'Vehicles', icon: Truck, desc: 'Track vehicles, MOTs and service dates' },
       { id: 'job-types', label: 'Job Types', icon: Tag, desc: 'Manage job types and colours' },
