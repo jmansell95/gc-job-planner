@@ -119,17 +119,20 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
                 <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold">
                   <Clock className="w-3.5 h-3.5 flex-shrink-0" /> {isBeforeSiteOpen() ? 'Early access — work actions unlock at 8:00 AM' : 'Outside working hours (8am–5pm) — come back tomorrow'}
                 </div>
-              ) : canStart ? (
-                deadlinePassed ? (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-xl text-xs font-semibold ring-1 ring-red-200">
-                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> Check-in deadline passed (8:15 AM) — contact your supervisor
-                  </div>
-                ) : needsBriefing ? (
+              ) : needsBriefing ? (
+                <div className="flex flex-col gap-2 w-full">
+                  {deadlinePassed && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-xl text-xs font-semibold ring-1 ring-red-200">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> Check-in deadline passed (8:15 AM) — contact your supervisor
+                    </div>
+                  )}
                   <button onClick={() => onStart(assignment.id)}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
+                    className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 active:scale-95 transition text-sm font-semibold touch-manipulation self-start">
                     <ShieldCheck className="w-4 h-4" /> Begin Briefing
                   </button>
-                ) : !allCrewSigned && crewTotal > 1 ? (
+                </div>
+              ) : canStart ? (
+                !allCrewSigned && crewTotal > 1 ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 text-amber-700 rounded-xl text-xs font-semibold ring-1 ring-amber-200">
                     <ShieldCheck className="w-3.5 h-3.5" /> {crewSignedCount}/{crewTotal} crew briefed
                   </span>
