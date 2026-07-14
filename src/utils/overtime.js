@@ -63,8 +63,9 @@ export function weekKey(dateStr) {
 }
 
 // Given all timesheet entries for ONE staff (across all jobs), compute per-entry OT breakdown.
-// Returns: { [entryId]: { regularMins, otMins, multiplier, cost, isOvertime } }
-export function computeStaffOvertime(allStaffEntries, rateMap, thresholdHours, hourlyRate) {
+// Payroll cost is handled outside this system — only hours & overtime multipliers are tracked here.
+// Returns: { [entryId]: { regularMins, otMins, multiplier, isOvertime } }
+export function computeStaffOvertime(allStaffEntries, rateMap, thresholdHours) {
   const thresholdMins = (Number(thresholdHours) || 40) * 60;
   const byWeek = {};
   (allStaffEntries || []).forEach(t => {
@@ -90,9 +91,7 @@ export function computeStaffOvertime(allStaffEntries, rateMap, thresholdHours, h
       cumulative += mins;
       const day = new Date(t.date + 'T00:00:00').getDay();
       const mult = explicitOT && t.rate_multiplier != null && t.rate_multiplier !== '' ? Number(t.rate_multiplier) : (rateMap[day] ?? 1.0);
-      const regCost = (regularMins / 60) * hourlyRate;
-      const otCost = (otMins / 60) * hourlyRate * mult;
-      result[t.id] = { regularMins, otMins, multiplier: mult, cost: regCost + otCost, isOvertime: otMins > 0 };
+      result[t.id] = { regularMins, otMins, multiplier: mult, isOvertime: otMins > 0 };
     });
   });
   return result;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, CheckCircle2, XCircle, Ruler, PoundSterling, TrendingUp, Users, Search, CalendarDays, FileText, RotateCcw, Trash2 } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, Ruler, TrendingUp, Users, Search, CalendarDays, FileText, RotateCcw, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
 import WithdrawnAcknowledgementPanel from '@/components/WithdrawnAcknowledgementPanel';
@@ -26,7 +26,6 @@ const fmtMins = (m) => {
   if (h) return `${h}h`;
   return mm > 0 ? `${r}m` : '—';
 };
-const fmtCost = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
 const meterageOf = (t) => Number(t?.meterage) || 0;
 
 function StatBox({ icon: Icon, label, value, accent, sub }) {
@@ -67,14 +66,12 @@ export default function TimesheetManager() {
   const otBreakdowns = {};
   staff.forEach(s => {
     const entries = timesheets.filter(t => t.staff_id === s.id && (t.status === 'submitted' || t.status === 'approved'));
-    const hourlyRate = s.day_rate ? s.day_rate / 8 : 0;
-    otBreakdowns[s.id] = computeStaffOvertime(entries, otRateMap, otThreshold, hourlyRate);
+    otBreakdowns[s.id] = computeStaffOvertime(entries, otRateMap, otThreshold);
   });
 
   const approved = workTimesheets.filter(t => t.status === 'approved');
   const approvedMins = approved.reduce((s, t) => s + minsOf(t), 0);
   const approvedOtMins = approved.reduce((s, t) => s + (otBreakdowns[t.staff_id]?.[t.id]?.otMins || 0), 0);
-  const approvedCost = approved.reduce((s, t) => s + (otBreakdowns[t.staff_id]?.[t.id]?.cost || 0), 0);
   const approvedMeterage = approved.reduce((s, t) => s + meterageOf(t), 0);
   const pendingCount = workTimesheets.filter(t => t.status === 'submitted').length;
   const statusCounts = {
@@ -91,16 +88,15 @@ export default function TimesheetManager() {
   const staffSummary = staff.map(s => {
     const entries = approved.filter(t => t.staff_id === s.id);
     if (entries.length === 0) return null;
-    let stdMins = 0, otMins = 0, cost = 0;
+    let stdMins = 0, otMins = 0;
     entries.forEach(t => {
       const b = otBreakdowns[s.id]?.[t.id] || {};
       stdMins += b.regularMins || 0;
       otMins += b.otMins || 0;
-      cost += b.cost || 0;
     });
     const approvers = [...new Set(entries.map(t => t.approved_by_name).filter(Boolean))];
-    return { id: s.id, name: s.name, role: s.job_role, shifts: entries.length, stdMins, otMins, cost, meterage: entries.reduce((x, t) => x + meterageOf(t), 0), approvers };
-  }).filter(Boolean).sort((a, b) => b.cost - a.cost);
+    return { id: s.id, name: s.name, role: s.job_role, shifts: entries.length, stdMins, otMins, meterage: entries.reduce((x, t) => x + meterageOf(t), 0), approvers };
+  }).filter(Boolean).sort((a, b) => b.otMins - a.otMins || b.stdMins - a.stdMins);
 
   const filtered = workTimesheets.filter(t => {
     if (statusFilter !== 'all' && t.status !== statusFilter) return false;
@@ -160,7 +156,6 @@ export default function TimesheetManager() {
         <StatBox icon={Clock} label="Pending Approval" value={pendingCount} accent="bg-amber-100 text-amber-700" />
         <StatBox icon={CheckCircle2} label="Approved Hours" value={fmtMins(approvedMins)} accent="bg-emerald-100 text-emerald-700" />
         <StatBox icon={TrendingUp} label="Approved Overtime" value={fmtMins(approvedOtMins)} accent="bg-orange-100 text-orange-700" sub="across all crew" />
-        <StatBox icon={PoundSterling} label="Approved Cost" value={fmtCost(approvedCost)} accent="bg-blue-100 text-blue-700" sub="incl. overtime" />
         <StatBox icon={FileText} label="Total Timesheets" value={workTimesheets.length} accent="bg-slate-100 text-slate-600" />
         {approvedMeterage > 0 && (
           <StatBox icon={Ruler} label="Approved Meterage" value={`${approvedMeterage}m`} accent="bg-purple-100 text-purple-700" />
@@ -193,7 +188,6 @@ export default function TimesheetManager() {
                 <div className="flex items-center gap-3 sm:gap-4 text-sm flex-wrap justify-end">
                   <div className="text-right"><p className="text-[10px] text-slate-400 uppercase">Standard</p><p className="font-semibold text-slate-900">{fmtMins(p.stdMins)}</p></div>
                   <div className="text-right"><p className="text-[10px] text-slate-400 uppercase">Overtime</p><p className={`font-semibold ${p.otMins > 0 ? 'text-amber-600' : 'text-slate-300'}`}>{fmtMins(p.otMins)}</p></div>
-                  <div className="text-right"><p className="text-[10px] text-slate-400 uppercase">Cost</p><p className="font-semibold text-emerald-700">{fmtCost(p.cost)}</p></div>
                 </div>
               </div>
             ))}
@@ -272,7 +266,6 @@ export default function TimesheetManager() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Task</th>
                     <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Hours</th>
                     <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide">Overtime</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Cost</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
                   </tr>
@@ -284,7 +277,6 @@ export default function TimesheetManager() {
                     const status = statusConfig[ts.status] || statusConfig.draft;
                     const mins = minsOf(ts);
                     const b = otBreakdowns[ts.staff_id]?.[ts.id] || {};
-                    const cost = b.cost != null ? b.cost : 0;
                     const mtr = meterageOf(ts);
                     return (
                       <tr key={ts.id} className="hover:bg-slate-50/60 transition-colors">
@@ -318,9 +310,6 @@ export default function TimesheetManager() {
                           {b.isOvertime
                             ? <span className="inline-flex items-center gap-1 text-amber-600 font-medium"><TrendingUp className="w-3 h-3" />{fmtMins(b.otMins)} <span className="text-[10px]">×{b.multiplier}</span></span>
                             : <span className="text-slate-300">—</span>}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-slate-900 text-right whitespace-nowrap">
-                          {member?.day_rate ? fmtCost(cost) : <span className="text-slate-300">—</span>}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${status.badge}`}>{status.label}</span>
@@ -368,7 +357,6 @@ export default function TimesheetManager() {
                 const status = statusConfig[ts.status] || statusConfig.draft;
                 const mins = minsOf(ts);
                 const b = otBreakdowns[ts.staff_id]?.[ts.id] || {};
-                const cost = b.cost != null ? b.cost : 0;
                 const mtr = meterageOf(ts);
                 return (
                   <div key={ts.id} className="p-4">
@@ -398,11 +386,6 @@ export default function TimesheetManager() {
                       {b.isOvertime && (
                         <span className="inline-flex items-center gap-1 text-amber-600 font-medium">
                           <TrendingUp className="w-3 h-3" />{fmtMins(b.otMins)} ×{b.multiplier}
-                        </span>
-                      )}
-                      {member?.day_rate && (
-                        <span className="inline-flex items-center gap-1 text-slate-600 font-medium">
-                          <PoundSterling className="w-3 h-3" />{fmtCost(cost)}
                         </span>
                       )}
                       {ts.status === 'approved' && ts.approved_by_name && (

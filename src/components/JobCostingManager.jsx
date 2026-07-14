@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   PoundSterling, TrendingUp, Percent, Calculator, Save, Check,
-  ChevronDown, ChevronUp, AlertTriangle
+  AlertTriangle
 } from 'lucide-react';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -78,7 +78,6 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
   const [vatRate, setVatRate] = useState(job.vat_rate ?? 20);
   const [savingConfig, setSavingConfig] = useState(false);
   const [configSaved, setConfigSaved] = useState(false);
-  const [showLabour, setShowLabour] = useState(false);
 
   const { data: items = [] } = useQuery({
     queryKey: ['job-cost-items', job.id],
@@ -97,10 +96,9 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
   const itemVat = (c) => c.vat_exempt ? 0 : itemNet(c) * (Number(vatRate) / 100);
   const equipmentNet = items.reduce((s, c) => s + itemNet(c), 0);
   const equipmentVat = items.reduce((s, c) => s + itemVat(c), 0);
-  const labourNet = Number(totalCost) || 0;
-  const labourVat = labourNet * (Number(vatRate) / 100);
-  const internalNet = labourNet + equipmentNet;
-  const internalVat = labourVat + equipmentVat;
+  // Labour cost tracking removed — payroll handled outside this system.
+  const internalNet = equipmentNet;
+  const internalVat = equipmentVat;
   const internalTotal = internalNet + internalVat;
   const markupAmount = internalNet * (Number(markup) / 100);
   const deliveryCharges = deliveries.filter(d => d.chargeable !== false).reduce((s, d) => s + (Number(d.charge_amount) || 0), 0);
@@ -155,12 +153,6 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
 
         {/* Internal cost summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {Number(labourNet) > 0 && (
-          <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-xs text-slate-400">Labour (net)</p>
-            <p className="text-base font-bold text-slate-900 truncate">{fmt(labourNet)}</p>
-          </div>
-          )}
           <div className="bg-slate-50 rounded-lg p-3">
             <p className="text-xs text-slate-400">Equipment (net)</p>
             <p className="text-base font-bold text-slate-900 truncate">{fmt(equipmentNet)}</p>
@@ -205,36 +197,6 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
           </div>
         </div>
 
-        {/* Labour breakdown */}
-        {staffCosts && staffCosts.length > 0 && Number(totalCost) > 0 && (
-          <div className="border-t border-slate-100 pt-3">
-            <button onClick={() => setShowLabour(!showLabour)} className="flex items-center justify-between w-full text-sm font-medium text-slate-700 hover:text-emerald-700 transition">
-              <span className="inline-flex items-center gap-2"><Calculator className="w-3.5 h-3.5" /> Labour breakdown ({staffCosts.length} staff)</span>
-              {showLabour ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-            {showLabour && (
-              <div className="mt-3 space-y-2">
-                {staffCosts.map((sc, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <div className="min-w-0">
-                      <span className="font-medium text-slate-900">{sc.name}</span>
-                      {sc.costType === 'meterage'
-                        ? <span className="text-xs text-slate-400 ml-2">{sc.meterage}m × £{sc.meterageRate}/m</span>
-                        : sc.costType === 'timesheet'
-                        ? <span className="text-xs text-slate-400 ml-2">{(sc.timesheetMinutes / 60).toFixed(1)}h × £{sc.hourlyRate.toFixed(0)}/h</span>
-                        : <span className="text-xs text-slate-400 ml-2">{sc.shifts} shifts × £{sc.dayRate}</span>}
-                    </div>
-                    <span className="font-semibold text-slate-700 flex-shrink-0">{fmt(sc.cost)}</span>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                  <span className="font-semibold text-slate-900">Labour total</span>
-                  <span className="font-bold text-emerald-700">{fmt(totalCost)}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

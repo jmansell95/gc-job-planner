@@ -26,10 +26,9 @@ export default function JobCostAnalytics() {
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: rotas = [] } = useQuery({ queryKey: ['all-rotas'], queryFn: () => base44.entities.RotaAssignment.list() });
 
-  const { costByJob, rows } = useMemo(() => {
-    const costByJob = {};
-    // Labour cost tracking removed — payroll is handled outside this system.
-    // Budget tracking remains for comparing against manually recorded actual costs.
+  const { rows } = useMemo(() => {
+    // Labour cost tracking removed — payroll handled outside this system.
+    // Budget tracking remains for comparing against recorded equipment spend.
     const rows = jobs.map(j => ({
       id: j.id,
       name: j.name,
@@ -39,7 +38,7 @@ export default function JobCostAnalytics() {
       spend: 0,
       variance: (j.budget_amount || 0)
     })).filter(r => r.budget > 0);
-    return { costByJob, rows };
+    return { rows };
   }, [jobs, staff, rotas]);
 
   const isAll = selectedJobId === 'all';
@@ -56,7 +55,7 @@ export default function JobCostAnalytics() {
 
   const stats = [
     { label: 'Total Budget', value: fmtGBP(totalBudget), icon: Wallet, gradient: 'stat-gradient-emerald' },
-    { label: 'Est. Labour Spend', value: fmtGBP(totalSpend), icon: TrendingUp, gradient: 'stat-gradient-blue' },
+    { label: 'Recorded Spend', value: fmtGBP(totalSpend), icon: TrendingUp, gradient: 'stat-gradient-blue' },
     { label: totalVariance >= 0 ? 'Under Budget' : 'Over Budget', value: fmtGBP(Math.abs(totalVariance)), icon: totalVariance >= 0 ? PiggyBank : TrendingDown, gradient: totalVariance >= 0 ? 'stat-gradient-amber' : 'stat-gradient-rose' },
     { label: isAll ? 'Jobs Over Budget' : 'Status', value: isAll ? overBudget : (selectedRow?.variance < 0 ? 'Over' : selectedRow?.variance === 0 ? 'On target' : 'Under'), icon: TrendingDown, gradient: (!isAll && selectedRow?.variance < 0) || (isAll && overBudget > 0) ? 'stat-gradient-rose' : 'stat-gradient-slate' }
   ];
@@ -70,7 +69,7 @@ export default function JobCostAnalytics() {
   const handleExportCsv = () => {
     setExporting(true);
     try {
-      const header = 'Job,Type,Budget (GBP),Est. Spend (GBP),Variance (GBP)';
+      const header = 'Job,Type,Budget (GBP),Recorded Spend (GBP),Variance (GBP)';
       const lines = displayRows.map(r => `"${r.name.replace(/"/g, '""')}","${r.type}",${r.budget.toFixed(2)},${r.spend.toFixed(2)},${r.variance.toFixed(2)}`);
       const csv = [header, ...lines].join('\n');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -88,7 +87,7 @@ export default function JobCostAnalytics() {
   };
 
   return (
-    <WidgetShell icon={Wallet} title="Cost Analytics" subtitle="Budget vs estimated labour spend"
+    <WidgetShell icon={Wallet} title="Cost Analytics" subtitle="Budget vs recorded spend"
       action={<div className="flex items-center gap-2 flex-wrap justify-end">
         <div className="relative">
           <Filter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />

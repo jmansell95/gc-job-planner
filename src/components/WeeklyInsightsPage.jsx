@@ -38,19 +38,11 @@ export default function WeeklyInsightsPage() {
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       const todays = rotas.filter(r => r.assigned_date === todayStr);
 
-      const costByJob = {};
-      rotas.forEach(r => {
-        const member = staff.find(s => s.id === r.staff_id);
-        if (!member) return;
-        const isDriller = member.job_role === 'cp_driller' || member.job_role === 'rotary_driller';
-        let cost = 0;
-        if (isDriller && r.meterage && member.meterage_rate) cost = r.meterage * member.meterage_rate;
-        else if (member.day_rate) cost = member.day_rate;
-        costByJob[r.job_id] = (costByJob[r.job_id] || 0) + cost;
-      });
-
-      const jobsOverBudget = canSeeCosts ? activeJobs.filter(j => j.budget_amount && costByJob[j.id] > j.budget_amount) : [];
-      const unassignedActive = activeJobs.filter(j => !rotas.some(r => r.job_id === j.id));
+      // Staff labour cost tracking removed — payroll handled outside this system.
+      // Insights focus on rota coverage, revenue output and operational gaps.
+      const totalMeterage = rotas.reduce((sum, r) => sum + (Number(r.meterage) || 0), 0);
+      const jobsWithRotas = [...new Set(rotas.map(r => r.job_id))];
+      const unassignedActive = activeJobs.filter(j => !jobsWithRotas.includes(j.id));
       const underutilised = staff.filter(s => s.is_active !== false && rotas.filter(r => r.staff_id === s.id).length < 2);
       const pendingTimesheets = timesheets.filter(t => t.status === 'submitted').length;
 
@@ -65,9 +57,9 @@ export default function WeeklyInsightsPage() {
         `Week starting ${weekStartStr}.`,
         `${activeJobs.length} active jobs of ${jobs.length} total.`,
         `Today: ${todays.length} assignments covering ${new Set(todays.map(r => r.staff_id)).size} staff.`,
+        `Total meterage logged this week: ${totalMeterage}m.`,
         `Jobs with no rota assignments this week: ${unassignedActive.length} (${unassignedActive.map(j => j.name).join(', ') || 'none'}).`,
         `Staff underutilised (<2 shifts): ${underutilised.length} (${underutilised.map(s => s.name).join(', ') || 'none'}).`,
-        ...(canSeeCosts ? [`Jobs over budget: ${jobsOverBudget.length} (${jobsOverBudget.map(j => `${j.name} spend ${fmtGBP(costByJob[j.id])} vs budget ${fmtGBP(j.budget_amount)}`).join('; ') || 'none'}).`] : []),
         `Pending unapproved timesheets: ${pendingTimesheets}.`,
         `Vehicles with maintenance/MOT due within 30 days: ${vehicleAlerts.length} (${vehicleAlerts.map(v => v.name).join(', ') || 'none'}).`,
       ].join(' ');

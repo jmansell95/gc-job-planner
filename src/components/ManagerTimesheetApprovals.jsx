@@ -38,8 +38,7 @@ export default function ManagerTimesheetApprovals({ staffId }) {
   const breakdowns = {};
   reporters.forEach(s => {
     const entries = timesheets.filter(t => t.staff_id === s.id && (t.status === 'submitted' || t.status === 'approved'));
-    const hourlyRate = s.day_rate ? s.day_rate / 8 : 0;
-    breakdowns[s.id] = computeStaffOvertime(entries, rateMap, threshold, hourlyRate);
+    breakdowns[s.id] = computeStaffOvertime(entries, rateMap, threshold);
   });
 
   const handleApprove = async (id) => {

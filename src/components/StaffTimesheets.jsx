@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Clock, CheckCircle2, XCircle, FileText, Trash2, Edit2, Save, Send, PoundSterling, X, TrendingUp, RotateCcw, AlertTriangle, Coffee } from 'lucide-react';
+import { Plus, Clock, CheckCircle2, XCircle, FileText, Trash2, Edit2, Save, Send, X, TrendingUp, RotateCcw, AlertTriangle, Coffee } from 'lucide-react';
 import { format } from 'date-fns';
 import { computeStaffOvertime, buildRateMap, weekKey, entryMinutes } from '@/utils/overtime';
 
@@ -39,8 +39,6 @@ const fmtDur = (mins) => {
   if (h) return `${h}h`;
   return m > 0 ? `${r}m` : '—';
 };
-
-const fmtCost = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
 export default function StaffTimesheets({ staffId, staffName }) {
   const [showForm, setShowForm] = useState(false);
@@ -81,7 +79,6 @@ export default function StaffTimesheets({ staffId, staffName }) {
   const assignedJobIds = [...new Set(assignments.map(a => a.job_id))];
   const availableJobs = jobs.filter(j => assignedJobIds.includes(j.id));
 
-  const hourlyRate = staffRecord?.day_rate ? staffRecord.day_rate / 8 : 0;
   const durationMins = (() => {
     if (!form.start_time || !form.end_time) return 0;
     const [sh, sm] = form.start_time.split(':').map(Number);
@@ -94,11 +91,10 @@ export default function StaffTimesheets({ staffId, staffName }) {
 
   const visibleTimesheets = timesheets.filter(t => t.status !== 'deleted' && t.status !== 'merged');
   const countedTimesheets = visibleTimesheets.filter(t => t.status !== 'rejected');
-  const otBreakdown = computeStaffOvertime(countedTimesheets, otRateMap, otThreshold, hourlyRate);
+  const otBreakdown = computeStaffOvertime(countedTimesheets, otRateMap, otThreshold);
   const previewEntry = { id: '__preview__', date: form.date, task_duration_minutes: durationMins, created_date: new Date().toISOString() };
-  const previewBreakdown = computeStaffOvertime([...countedTimesheets, previewEntry], otRateMap, otThreshold, hourlyRate);
+  const previewBreakdown = computeStaffOvertime([...countedTimesheets, previewEntry], otRateMap, otThreshold);
   const previewResult = previewBreakdown['__preview__'] || {};
-  const previewCost = previewResult.cost != null ? previewResult.cost : (durationMins / 60) * hourlyRate;
   const previewOT = previewResult.isOvertime;
   const currentWeekKey = weekKey(format(new Date(), 'yyyy-MM-dd'));
   const weekMins = countedTimesheets.filter(t => weekKey(t.date) === currentWeekKey).reduce((s, t) => s + entryMinutes(t), 0);
@@ -219,7 +215,6 @@ export default function StaffTimesheets({ staffId, staffName }) {
     const StatusIcon = status.icon;
     const mins = minsFromEntry(t);
     const ot = otBreakdown[t.id] || {};
-    const cost = ot.cost != null ? ot.cost : (mins / 60) * hourlyRate;
     const isOT = ot.isOvertime;
     return (
       <div key={t.id} className="p-3 bg-white rounded-xl border border-slate-100 flex items-center gap-3">
@@ -344,6 +339,7 @@ export default function StaffTimesheets({ staffId, staffName }) {
               {previewOT && <span className="text-amber-700 font-medium text-xs">Overtime · ×{previewResult.multiplier}</span>}
             </div>
           )}
+          {/* unused fmtCost removed — payroll cost handled outside the system */}
           <div className="flex flex-wrap gap-2">
             <button type="submit" disabled={submitting} className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-semibold disabled:opacity-50 touch-manipulation">
               <Send className="w-3.5 h-3.5" /> {editingId ? 'Update & Submit' : 'Submit'}

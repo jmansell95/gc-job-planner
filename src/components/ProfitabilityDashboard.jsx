@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
-import { Wallet, TrendingUp, TrendingDown, PoundSterling, PiggyBank, Filter, HardHat, Wrench, Receipt, ArrowRight } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PoundSterling, PiggyBank, Filter, Wrench, Receipt, ArrowRight } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 
 const tooltipStyle = {
@@ -29,8 +29,6 @@ export default function ProfitabilityDashboard() {
 
   const { jobRows, totals } = useMemo(() => {
     // Labour cost tracking removed — payroll is handled outside this system.
-    const labourByJob = {};
-
     // Equipment cost per job
     const equipByJob = {};
     costItems.forEach(c => {
@@ -39,9 +37,8 @@ export default function ProfitabilityDashboard() {
     });
 
     const jobRows = jobs.map(j => {
-      const labour = labourByJob[j.id] || 0;
       const equip = equipByJob[j.id] || 0;
-      const netCost = j.actual_cost || (labour + equip);
+      const netCost = j.actual_cost || equip;
       const markupPct = j.markup_percentage || 0;
       const markupAmt = netCost * (markupPct / 100);
       const subtotal = netCost + markupAmt;
@@ -53,19 +50,18 @@ export default function ProfitabilityDashboard() {
       const budget = j.budget_amount || 0;
       return {
         id: j.id, name: j.name, status: j.status, job_type: j.job_type,
-        labour, equip, netCost, markupPct, markupAmt, vatAmt, clientPrice, profit, margin,
+        equip, netCost, markupPct, markupAmt, vatAmt, clientPrice, profit, margin,
         budget, budgetVariance: budget - netCost,
       };
     }).filter(r => r.netCost > 0 || r.budget > 0);
 
     const totals = jobRows.reduce((acc, r) => ({
-      labour: acc.labour + r.labour,
       equip: acc.equip + r.equip,
       netCost: acc.netCost + r.netCost,
       clientPrice: acc.clientPrice + r.clientPrice,
       profit: acc.profit + r.profit,
       budget: acc.budget + r.budget,
-    }), { labour: 0, equip: 0, netCost: 0, clientPrice: 0, profit: 0, budget: 0 });
+    }), { equip: 0, netCost: 0, clientPrice: 0, profit: 0, budget: 0 });
 
     return { jobRows, totals };
   }, [jobs, staff, rotas, costItems]);
@@ -73,16 +69,15 @@ export default function ProfitabilityDashboard() {
   const isAll = selectedJobId === 'all';
   const displayRows = isAll ? jobRows : jobRows.filter(r => r.id === selectedJobId);
   const displayTotals = isAll ? totals : displayRows.reduce((acc, r) => ({
-    labour: acc.labour + r.labour, equip: acc.equip + r.equip, netCost: acc.netCost + r.netCost,
+    equip: acc.equip + r.equip, netCost: acc.netCost + r.netCost,
     clientPrice: acc.clientPrice + r.clientPrice, profit: acc.profit + r.profit, budget: acc.budget + r.budget,
-  }), { labour: 0, equip: 0, netCost: 0, clientPrice: 0, profit: 0, budget: 0 });
+  }), { equip: 0, netCost: 0, clientPrice: 0, profit: 0, budget: 0 });
 
   const overallMargin = displayTotals.clientPrice > 0 ? (displayTotals.profit / displayTotals.clientPrice) * 100 : 0;
   const scopeLabel = isAll ? 'All Jobs' : (jobs.find(j => j.id === selectedJobId)?.name || 'Selected');
 
-  // Cost breakdown pie data
+  // Cost breakdown pie data (equipment only — payroll tracked externally)
   const pieData = [
-    { name: 'Labour', value: Math.round(displayTotals.labour) },
     { name: 'Equipment', value: Math.round(displayTotals.equip) },
   ].filter(d => d.value > 0);
 
@@ -105,7 +100,7 @@ export default function ProfitabilityDashboard() {
   }
 
   const stats = [
-    { label: 'Net Cost', value: fmtGBP(displayTotals.netCost), icon: Wallet, gradient: 'stat-gradient-blue', sub: `Labour ${fmtGBP(displayTotals.labour)} · Equip ${fmtGBP(displayTotals.equip)}` },
+    { label: 'Net Cost', value: fmtGBP(displayTotals.netCost), icon: Wallet, gradient: 'stat-gradient-blue', sub: `Equipment ${fmtGBP(displayTotals.equip)}` },
     { label: 'Client Price', value: fmtGBP(displayTotals.clientPrice), icon: PoundSterling, gradient: 'stat-gradient-emerald', sub: `incl. VAT` },
     { label: 'Gross Profit', value: fmtGBP(displayTotals.profit), icon: displayTotals.profit >= 0 ? PiggyBank : TrendingDown, gradient: displayTotals.profit >= 0 ? 'stat-gradient-amber' : 'stat-gradient-rose', sub: `Markup applied` },
     { label: 'Margin', value: overallMargin.toFixed(1) + '%', icon: TrendingUp, gradient: overallMargin >= 20 ? 'stat-gradient-emerald' : overallMargin >= 10 ? 'stat-gradient-amber' : 'stat-gradient-rose', sub: overallMargin >= 20 ? 'Healthy' : overallMargin >= 10 ? 'Moderate' : 'Low' },
@@ -242,7 +237,6 @@ export default function ProfitabilityDashboard() {
               <thead className="bg-slate-50/50 text-slate-500">
                 <tr>
                   <th className="text-left px-4 py-2.5 font-medium">Job</th>
-                  <th className="text-right px-4 py-2.5 font-medium">Labour</th>
                   <th className="text-right px-4 py-2.5 font-medium">Equipment</th>
                   <th className="text-right px-4 py-2.5 font-medium">Net Cost</th>
                   <th className="text-right px-4 py-2.5 font-medium">Markup</th>
@@ -256,7 +250,6 @@ export default function ProfitabilityDashboard() {
                 ) : displayRows.map(r => (
                   <tr key={r.id} className="hover:bg-emerald-50/20 transition">
                     <td className="px-4 py-3 font-medium text-slate-800 max-w-[200px] truncate">{r.name}</td>
-                    <td className="px-4 py-3 text-right text-slate-600">{fmtGBP(r.labour)}</td>
                     <td className="px-4 py-3 text-right text-slate-600">{fmtGBP(r.equip)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-slate-800">{fmtGBP(r.netCost)}</td>
                     <td className="px-4 py-3 text-right text-slate-500">{r.markupPct}%</td>
@@ -284,8 +277,6 @@ export default function ProfitabilityDashboard() {
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                  <span className="inline-flex items-center gap-1"><HardHat className="w-3 h-3" />{fmtGBP(r.labour)}</span>
-                  <span className="text-slate-300">·</span>
                   <span className="inline-flex items-center gap-1"><Wrench className="w-3 h-3" />{fmtGBP(r.equip)}</span>
                 </div>
                 <div className="flex items-center justify-between pt-1 border-t border-slate-100">

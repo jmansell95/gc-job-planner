@@ -50,7 +50,6 @@ Deno.serve(async (req) => {
 
     // --- Calculate costs ---
     // Labour cost tracking removed — payroll is handled outside this system.
-    const totalLabour = 0;
     const totalEquip = costItems.reduce((a, c) => a + (c.unit_cost || 0) * (c.quantity || 1), 0);
     const netCost = job.actual_cost || totalEquip;
     const markupPct = job.markup_percentage || 0;
@@ -108,7 +107,6 @@ Deno.serve(async (req) => {
       <div class="cost-card">
         <h3>Cost & Profitability Summary</h3>
         <div class="cost-grid">
-          <div class="cost-row"><span>Labour Cost</span><strong>${fmtGBP(totalLabour)}</strong></div>
           <div class="cost-row"><span>Equipment Cost</span><strong>${fmtGBP(totalEquip)}</strong></div>
           <div class="cost-row total"><span>Net Cost</span><strong>${fmtGBP(netCost)}</strong></div>
           <div class="cost-row"><span>Markup (${markupPct}%)</span><strong>${fmtGBP(markupAmt)}</strong></div>
