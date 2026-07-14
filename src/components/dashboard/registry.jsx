@@ -1,4 +1,4 @@
-import { Truck, Grid3x3, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Shield, Boxes } from 'lucide-react';
+import { Truck, Grid3x3, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Shield, Boxes, Sparkles, TrendingUp, HardHat } from 'lucide-react';
 
 export const WIDGET_REGISTRY = {
   'delivery-stats': { title: 'Delivery & Collection', icon: Truck },
@@ -10,6 +10,9 @@ export const WIDGET_REGISTRY = {
   'cost-analytics': { title: 'Cost Analytics', icon: PoundSterling },
   'maintenance-quick-view': { title: 'Fleet Compliance', icon: CalendarClock },
   'job-assets': { title: 'Job Equipment', icon: Boxes },
+  'ai-insights': { title: 'AI Weekly Insights', icon: Sparkles },
+  'job-profitability': { title: 'Job Profitability', icon: PoundSterling },
+  'asset-crew-profitability': { title: 'Assets & Crews', icon: TrendingUp },
 };
 
 export const DEFAULT_WIDGET_ORDER = [
@@ -22,12 +25,16 @@ export const DEFAULT_WIDGET_ORDER = [
   'cost-analytics',
   'maintenance-quick-view',
   'job-assets',
+  'ai-insights',
+  'job-profitability',
+  'asset-crew-profitability',
 ];
 
 // Tabbed groups for the dashboard. Each widget is assigned to one tab.
 export const DASHBOARD_TABS = [
   { id: 'operations', label: 'Operations', icon: Grid3x3, widgets: ['kpi-stats', 'field-crews', 'job-assets', 'delivery-stats', 'supervisor-overview'] },
-  { id: 'insights', label: 'Insights', icon: BarChart3, widgets: ['charts', 'cost-analytics'] },
+  { id: 'insights', label: 'Insights', icon: BarChart3, widgets: ['charts', 'cost-analytics', 'ai-insights'] },
+  { id: 'finance', label: 'Finance', icon: PoundSterling, widgets: ['job-profitability', 'asset-crew-profitability'] },
   { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'maintenance-quick-view'] },
 ];
 
@@ -46,4 +53,10 @@ export const DEFAULT_WIDGET_SIZES = {
   'delivery-stats': 'md',
   'maintenance-quick-view': 'md',
   'job-assets': 'md',
+  'ai-insights': 'lg',
+  'job-profitability': 'lg',
+  'asset-crew-profitability': 'lg',
 };
+
+// Widgets that require costing permission (admin / manager only).
+export const COST_WIDGETS = ['cost-analytics', 'job-profitability', 'asset-crew-profitability'];

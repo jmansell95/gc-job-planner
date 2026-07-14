@@ -10,9 +10,7 @@ import SettingsPage from '@/components/SettingsPage';
 import JobDetail from '@/components/JobDetail';
 import TimesheetManager from '@/components/TimesheetManager';
 import CalendarView from '@/components/CalendarView';
-import WeeklyInsightsPage from '@/components/WeeklyInsightsPage';
 import ComplianceManager from '@/components/ComplianceManager';
-import ProfitabilityHub from '@/components/ProfitabilityHub';
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -74,8 +72,6 @@ export default function AdminDashboard() {
             {activeSection === 'calendar' && <CalendarView />}
             {activeSection === 'teams' && <SettingsPage initialTab="teams" />}
             {activeSection === 'compliance' && <ComplianceManager />}
-            {activeSection === 'insights' && <WeeklyInsightsPage />}
-            {activeSection === 'finance' && <ProfitabilityHub profile={profile} />}
             {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} />}
           </motion.div>
         </div>

@@ -9,11 +9,14 @@ import MaintenanceQuickView from '@/components/MaintenanceQuickView';
 import JobCostAnalytics from '@/components/JobCostAnalytics';
 import DeliveryStats from '@/components/DeliveryStats';
 import WidgetCard from '@/components/dashboard/WidgetCard';
-import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES, DASHBOARD_TABS, WIDGET_TO_TAB } from '@/components/dashboard/registry';
+import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES, DASHBOARD_TABS, WIDGET_TO_TAB, COST_WIDGETS } from '@/components/dashboard/registry';
 import { KpiStatsWidget, FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
 import SupervisorOverviewWidget from '@/components/dashboard/SupervisorOverviewWidget';
 import JobAssetsWidget from '@/components/dashboard/JobAssetsWidget';
+import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
+import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
+import AssetCrewProfitability from '@/components/AssetCrewProfitability';
 import PillTabs from '@/components/PillTabs';
 import { canViewCostings } from '@/utils/access';
 
@@ -85,6 +88,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     { label: 'Vehicles', value: vehicles.length, sub: 'in fleet', icon: Truck, gradient: 'stat-gradient-amber', nav: 'settings' },
   ];
 
+  const canViewCosts = canViewCostings(profile);
+
   const renderWidget = (widgetId) => {
     switch (widgetId) {
       case 'delivery-stats': return <DeliveryStats onNavigate={onNavigate} />;
@@ -93,9 +98,12 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'supervisor-overview': return <SupervisorOverviewWidget profile={profile} />;
       case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={jobs} vehicles={vehicles} onSelectJob={onSelectJob} onNavigate={onNavigate} />;
       case 'charts': return <ChartsWidget jobs={jobs} staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />;
-      case 'cost-analytics': return canViewCostings(profile) ? <JobCostAnalytics /> : null;
+      case 'cost-analytics': return canViewCosts ? <JobCostAnalytics /> : null;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
       case 'job-assets': return <JobAssetsWidget onSelectJob={onSelectJob} />;
+      case 'ai-insights': return <AiInsightsWidget />;
+      case 'job-profitability': return canViewCosts ? <ProfitabilityDashboard /> : null;
+      case 'asset-crew-profitability': return canViewCosts ? <AssetCrewProfitability /> : null;
       default: return null;
     }
   };
@@ -156,6 +164,18 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   const hiddenWidgets = DEFAULT_WIDGET_ORDER.filter(id => !widgetOrder.includes(id));
 
+  // Hide cost-gated widgets from users who can't view financials.
+  const canShowWidget = (id) => canViewCosts || !COST_WIDGETS.includes(id);
+  const visibleOrder = widgetOrder.filter(canShowWidget);
+  const visibleHidden = hiddenWidgets.filter(canShowWidget);
+  const visibleTabs = DASHBOARD_TABS.filter(t => t.widgets.some(w => visibleOrder.includes(w) || visibleHidden.includes(w)));
+
+  useEffect(() => {
+    if (visibleTabs.length && !visibleTabs.some(t => t.id === activeTab)) {
+      setActiveTab(visibleTabs[0].id);
+    }
+  }, [visibleTabs, activeTab]);
+
   return (
     <div>
       {/* Hero header */}
@@ -202,7 +222,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       )}
 
       <PillTabs
-        tabs={DASHBOARD_TABS.filter(t => t.widgets.some(w => widgetOrder.includes(w) || hiddenWidgets.includes(w)))}
+        tabs={visibleTabs}
         activeId={activeTab}
         onChange={setActiveTab}
       />
@@ -211,7 +231,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         <Droppable droppableId="dashboard-widgets">
           {(provided) => (
             <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
-              {widgetOrder.filter(id => WIDGET_TO_TAB[id] === activeTab).map((widgetId, index) => (
+              {visibleOrder.filter(id => WIDGET_TO_TAB[id] === activeTab).map((widgetId, index) => (
                 <Draggable key={widgetId} draggableId={widgetId} index={index} isDragDisabled={!customizeMode}>
                   {(provided) => (
                     <div ref={provided.innerRef} {...provided.draggableProps} className={sizeColSpan(getWidgetSize(widgetId))}>
@@ -236,11 +256,11 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       </DragDropContext>
 
       {/* Hidden widgets — add them back */}
-      {customizeMode && hiddenWidgets.length > 0 && (
+      {customizeMode && visibleHidden.length > 0 && (
         <div className="mt-2 bg-white rounded-2xl border border-dashed border-slate-300 p-4">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Hidden sections — tap to add back</p>
           <div className="flex flex-wrap gap-2">
-            {hiddenWidgets.map(widgetId => {
+            {visibleHidden.map(widgetId => {
               const config = WIDGET_REGISTRY[widgetId];
               if (!config) return null;
               const Icon = config.icon;
