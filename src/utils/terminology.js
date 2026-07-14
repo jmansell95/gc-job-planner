@@ -18,7 +18,10 @@ export function getCrewMemberLabel(jobType) {
     case 'rotary_drilling':
       return 'Driller';
     case 'groundworks':
+    case 'trial_pit':
       return 'Groundworker';
+    case 'coring':
+      return 'Corer';
     case 'enabling_works':
       return 'Operative';
     case 'depot':
@@ -41,6 +44,10 @@ export function getCrewLabel(jobType, count) {
       return plural ? 'Rotary Crew' : 'Rotary Driller';
     case 'groundworks':
       return plural ? 'Groundworks Crew' : 'Groundworker';
+    case 'trial_pit':
+      return plural ? 'Trial Pit Crew' : 'Groundworker';
+    case 'coring':
+      return plural ? 'Coring Crew' : 'Corer';
     case 'enabling_works':
       return plural ? 'Enabling Crew' : 'Operative';
     case 'depot':
@@ -69,7 +76,10 @@ export function getWorkLabel(jobType) {
     case 'rotary_drilling':
       return 'drilling';
     case 'groundworks':
+    case 'trial_pit':
       return 'groundworks';
+    case 'coring':
+      return 'coring';
     case 'enabling_works':
       return 'enabling works';
     case 'depot':

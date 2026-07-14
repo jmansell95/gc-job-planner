@@ -43,6 +43,19 @@
       "type": "string",
       "description": "Additional notes about this rate item (inclusions, conditions, minimum hire periods)."
     },
+    "rate_card_source": {
+      "type": "string",
+      "enum": [
+        "our_company",
+        "supplier"
+      ],
+      "default": "our_company",
+      "description": "Which rate card this item belongs to. 'our_company' = your own chargeable schedule of rates (everything you supply is billed to the client using this). 'supplier' = a hire supplier's own rate card, ingested from their uploaded file."
+    },
+    "supplier_id": {
+      "type": "string",
+      "description": "Linked Supplier \u2014 set when rate_card_source is 'supplier'. Blank for your own company rate card."
+    },
     "sort_order": {
       "type": "number",
       "default": 0,

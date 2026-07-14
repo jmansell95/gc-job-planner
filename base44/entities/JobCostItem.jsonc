@@ -12,10 +12,11 @@
         "internal_equipment",
         "hired_equipment",
         "purchased_equipment",
-        "contractor_supplied"
+        "contractor_supplied",
+        "client_supplied"
       ],
       "default": "hired_equipment",
-      "description": "Whether this is your own equipment, hired from a supplier, purchased for the job, or supplied by the contractor (informational only \u2014 no cost or logistics tracking)"
+      "description": "How this item reaches site. 'internal_equipment' = owned by you (synced from Asset Panda), 'hired_equipment' = hired from a supplier, 'purchased_equipment' = bought for the job, 'contractor_supplied' = supplied by the contractor (no cost/logistics), 'client_supplied' = supplied by the client and delivered to site (informational only \u2014 no cost or charge)."
     },
     "supplier_id": {
       "type": "string",
@@ -24,6 +25,10 @@
     "contractor_id": {
       "type": "string",
       "description": "Contractor supplying this item (when category is 'contractor_supplied'). The contractor is responsible for delivering it to site \u2014 no collection or delivery task is created for our drivers."
+    },
+    "rate_card_item_id": {
+      "type": "string",
+      "description": "Linked RateCardItem from the Master Price List \u2014 set automatically when an item is picked from the rate card. Keeps the description, unit cost and unit label in sync with the source rate, and marks the item as chargeable to the client."
     },
     "description": {
       "type": "string",
@@ -39,7 +44,7 @@
     },
     "site_asset_id": {
       "type": "string",
-      "description": "Linked SiteAsset (from GC Compliance Manager) \u2014 keeps this cost item connected to live compliance status"
+      "description": "Linked SiteAsset (from GC Compliance Manager / Asset Panda) \u2014 keeps this cost item connected to live compliance status. Used for rigs and owned equipment."
     },
     "po_number": {
       "type": "string",
@@ -57,7 +62,7 @@
     },
     "unit_cost": {
       "type": "number",
-      "description": "Net cost per unit (excluding VAT). Zero for contractor-supplied items."
+      "description": "Net cost per unit (excluding VAT). Zero for contractor/client-supplied items. Auto-filled from the linked RateCardItem when picked from the Master Price List."
     },
     "quantity": {
       "type": "number",
@@ -92,7 +97,7 @@
         "returned"
       ],
       "default": "yard",
-      "description": "Live tracking of where this item physically is: yard (at depot), in_transit (on a vehicle), site (on the job), returned (collected and returned to depot/supplier/contractor). Contractor-supplied items default to 'site' since the contractor delivers directly."
+      "description": "Live tracking of where this item physically is: yard (at depot), in_transit (on a vehicle), site (on the job), returned (collected and returned to depot/supplier/contractor). Contractor/client-supplied items default to 'site' since they are delivered directly."
     },
     "return_destination": {
       "type": "string",

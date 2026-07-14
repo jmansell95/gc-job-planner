@@ -16,15 +16,16 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFracti
 
 const blankForm = () => ({
   category: 'hired_equipment', supplier_id: '', contractor_id: '', description: '',
-  reference_number: '', responsible_person: '', site_asset_id: '', po_number: '', start_date: '', end_date: '',
+  reference_number: '', responsible_person: '', site_asset_id: '', rate_card_item_id: '', po_number: '', start_date: '', end_date: '',
   unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: ''
 });
 
 const categoryConfig = {
   hired_equipment: { label: 'Hired', icon: Truck, bg: 'bg-amber-50', text: 'text-amber-600' },
   purchased_equipment: { label: 'Purchased', icon: ShoppingCart, bg: 'bg-purple-50', text: 'text-purple-600' },
-  internal_equipment: { label: 'Internal', icon: Wrench, bg: 'bg-blue-50', text: 'text-blue-600' },
+  internal_equipment: { label: 'Owned', icon: Wrench, bg: 'bg-blue-50', text: 'text-blue-600' },
   contractor_supplied: { label: 'Contractor', icon: HardHat, bg: 'bg-indigo-50', text: 'text-indigo-600' },
+  client_supplied: { label: 'Client', icon: Boxes, bg: 'bg-slate-100', text: 'text-slate-600' },
 };
 
 const locationBadge = {
@@ -78,9 +79,15 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     queryKey: ['site-assets-equip'],
     queryFn: () => base44.entities.SiteAsset.list()
   });
+  const { data: rateCardItems = [] } = useQuery({
+    queryKey: ['rate-card-items-equip'],
+    queryFn: () => base44.entities.RateCardItem.list('-created_date', 500)
+  });
 
   const items = isJobMode ? fetchedItems : (externalItems || []);
   const suppliers = externalSuppliers || fetchedSuppliers || [];
+  // Owned equipment from Asset Panda — non-rig, active & available
+  const ownedAssets = (siteAssets || []).filter(a => a.asset_type !== 'rig' && a.is_active !== false && a.stock_level !== 'out_of_stock' && a.stock_level !== 'needs_service');
 
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -105,24 +112,25 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     if (isJobMode) {
       setSavingItem(true);
       try {
-        const isContractorItem = formData.category === 'contractor_supplied';
+        const isNoCost = formData.category === 'contractor_supplied' || formData.category === 'client_supplied';
         const payload = {
           job_id: jobId,
           category: formData.category,
-          supplier_id: isContractorItem ? '' : (formData.supplier_id || ''),
-          contractor_id: isContractorItem ? (formData.contractor_id || '') : '',
+          supplier_id: isNoCost ? '' : (formData.supplier_id || ''),
+          contractor_id: formData.category === 'contractor_supplied' ? (formData.contractor_id || '') : '',
+          rate_card_item_id: formData.rate_card_item_id || '',
           description: formData.description,
           reference_number: formData.reference_number || '',
           responsible_person: formData.responsible_person || '',
           po_number: formData.po_number || '',
           start_date: formData.start_date || '',
           end_date: formData.end_date || '',
-          unit_cost: isContractorItem ? 0 : (Number(formData.unit_cost) || 0),
+          unit_cost: isNoCost ? 0 : (Number(formData.unit_cost) || 0),
           quantity: Number(formData.quantity) || 1,
-          unit_label: isContractorItem ? 'each' : formData.unit_label,
-          vat_exempt: isContractorItem ? false : !!formData.vat_exempt,
+          unit_label: isNoCost ? 'each' : formData.unit_label,
+          vat_exempt: isNoCost ? false : !!formData.vat_exempt,
           notes: formData.notes || '',
-          ...(isContractorItem ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {})
+          ...(isNoCost ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {})
         };
         if (editingId) {
           await base44.entities.JobCostItem.update(editingId, payload);
@@ -135,22 +143,23 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
       } catch (err) { console.error(err); toast({ title: 'Error', description: 'Could not save item.' }); }
       setSavingItem(false);
     } else {
-      const isContractorItem = formData.category === 'contractor_supplied';
+      const isNoCost = formData.category === 'contractor_supplied' || formData.category === 'client_supplied';
       const newItem = {
         id: editingId || `temp-${Date.now()}`,
         category: formData.category,
-        supplier_id: isContractorItem ? '' : (formData.supplier_id || ''),
-        contractor_id: isContractorItem ? (formData.contractor_id || '') : '',
+        supplier_id: isNoCost ? '' : (formData.supplier_id || ''),
+        contractor_id: formData.category === 'contractor_supplied' ? (formData.contractor_id || '') : '',
+        rate_card_item_id: formData.rate_card_item_id || '',
         description: formData.description,
         reference_number: formData.reference_number || '',
         responsible_person: formData.responsible_person || '',
         po_number: formData.po_number || '',
         start_date: formData.start_date || '',
         end_date: formData.end_date || '',
-        unit_cost: isContractorItem ? 0 : (Number(formData.unit_cost) || 0),
+        unit_cost: isNoCost ? 0 : (Number(formData.unit_cost) || 0),
         quantity: Number(formData.quantity) || 1,
-        unit_label: isContractorItem ? 'each' : formData.unit_label,
-        vat_exempt: isContractorItem ? false : !!formData.vat_exempt,
+        unit_label: isNoCost ? 'each' : formData.unit_label,
+        vat_exempt: isNoCost ? false : !!formData.vat_exempt,
         notes: formData.notes || ''
       };
       if (editingId) {
@@ -169,7 +178,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
       setEditingId(c.id);
       setForm({
         category: c.category, supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '', description: c.description,
-        reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', site_asset_id: c.site_asset_id || '', po_number: c.po_number || '',
+        reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', site_asset_id: c.site_asset_id || '', rate_card_item_id: c.rate_card_item_id || '', po_number: c.po_number || '',
         start_date: c.start_date || '', end_date: c.end_date || '',
         unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
         unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt,
@@ -179,7 +188,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
       setEditingId(c.id);
       setForm({
         category: c.category || 'hired_equipment', supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '',
-        description: c.description, reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', site_asset_id: c.site_asset_id || '',
+        description: c.description, reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', site_asset_id: c.site_asset_id || '', rate_card_item_id: c.rate_card_item_id || '',
         po_number: c.po_number || '', start_date: c.start_date || '', end_date: c.end_date || '',
         unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
         unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt, notes: c.notes || ''
@@ -386,6 +395,8 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
               contractors={contractors}
               defaultDates={defaultDates}
               catalogueItems={catalogueItems}
+              rateCardItems={rateCardItems}
+              ownedAssets={ownedAssets}
             />
           </DialogContent>
         </Dialog>

@@ -26,13 +26,13 @@ export const settingsGroups = [
     items: [
       { id: 'clients', label: 'Clients', icon: Building2, desc: 'Manage client contacts' },
       { id: 'contractors', label: 'Contractors', icon: HardHat, desc: 'Manage contractor contacts' },
-      { id: 'suppliers', label: 'Suppliers', icon: Package, desc: 'Manage hire & purchase suppliers' },
+      { id: 'suppliers', label: 'Suppliers', icon: Package, desc: 'Suppliers & their rate cards — upload to auto-populate job costing' },
     ],
   },
   {
     label: 'Finance & Billing',
     items: [
-      { id: 'rate-card', label: 'Schedule of Rates', icon: Receipt, desc: 'Labour, plant & material rates — used to calculate rig costs against job budgets' },
+      { id: 'rate-card', label: 'Master Price List', icon: Receipt, desc: 'Your chargeable rate card plus each supplier\'s ingested rate card — auto-populates job costing' },
       { id: 'billing', label: 'Billing Rules', icon: Banknote, desc: 'Delivery, task & consumable pricing rules' },
       { id: 'overtime', label: 'Overtime', icon: Timer, desc: 'Overtime multipliers by day' },
     ],

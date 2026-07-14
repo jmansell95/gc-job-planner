@@ -21,6 +21,23 @@
     "notes": {
       "type": "string",
       "description": "Notes e.g. usual hire terms, account number"
+    },
+    "rate_card_file_url": {
+      "type": "string",
+      "description": "URL of the uploaded rate card file (Excel/CSV/PDF) for this supplier. Used to auto-populate their line items into the Master Price List."
+    },
+    "rate_card_file_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded supplier rate card."
+    },
+    "rate_card_synced_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last successful rate card ingest for this supplier."
+    },
+    "rate_card_item_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of rate card line items currently linked to this supplier (set automatically after ingest)."
     }
   },
   "required": [

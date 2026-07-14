@@ -12,18 +12,20 @@
     },
     "parent_team_id": {
       "type": "string",
-      "description": "Parent team ID \u2014 set when this is a sub-team under a team group"
+      "description": "Parent team ID \u2014 set when this is a sub-team under a team group (e.g. Coring and Trial Pit crews sit under the Groundworks parent)."
     },
     "job_type": {
       "type": "string",
       "enum": [
         "groundworks",
+        "coring",
+        "trial_pit",
         "cp_drilling",
         "rotary_drilling",
         "enabling_works",
         "depot"
       ],
-      "description": "Job type this team handles \u2014 staff in this team can only be assigned to matching jobs. Blank/absent = flexible (any job type, e.g. supervisors)."
+      "description": "Job type this team handles \u2014 staff in this team can only be assigned to matching jobs. Blank/absent = flexible (any job type, e.g. supervisors). Coring and Trial Pit crews are specialised sub-teams of Groundworks."
     },
     "category": {
       "type": "string",
@@ -55,11 +57,13 @@
         "none",
         "drilling_meterage",
         "groundworks_unit",
+        "coring_unit",
+        "trial_pit_unit",
         "day_rate",
         "flat_fee"
       ],
       "default": "none",
-      "description": "How revenue is calculated for jobs handled by this crew. 'drilling_meterage' = \u00a3/metre drilled, 'groundworks_unit' = \u00a3/trial pit or unit, 'day_rate' = fixed daily crew rate, 'flat_fee' = single project fee, 'none' = revenue tracked per asset/task only."
+      "description": "How revenue is calculated for jobs handled by this crew. 'drilling_meterage' = \u00a3/metre drilled, 'groundworks_unit' = \u00a3/trial pit or unit, 'coring_unit' = \u00a3/core run or metre cored, 'trial_pit_unit' = \u00a3/trial pit, 'day_rate' = fixed daily crew rate, 'flat_fee' = single project fee, 'none' = revenue tracked per asset/task only."
     },
     "billing_default_markup": {
       "type": "number",

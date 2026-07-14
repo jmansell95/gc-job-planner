@@ -19,14 +19,21 @@ const statusDot = {
   none: 'bg-slate-300',
 };
 const JOB_TYPE_LABELS = {
-  groundworks: 'Groundworks', cp_drilling: 'CP Drilling', rotary_drilling: 'Rotary Drilling',
-  enabling_works: 'Enabling Works', depot: 'Depot'
+  groundworks: 'Groundworks',
+  coring: 'Coring (under Groundworks)',
+  trial_pit: 'Trial Pit (under Groundworks)',
+  cp_drilling: 'CP Drilling',
+  rotary_drilling: 'Rotary Drilling',
+  enabling_works: 'Enabling Works',
+  depot: 'Depot'
 };
 
 const REVENUE_STREAMS = [
   { value: 'none', label: 'Per asset/task only', desc: 'Revenue tracked from equipment, deliveries & logged tasks — no crew-level billing.' },
   { value: 'drilling_meterage', label: 'Drilling Meterage (£/m)', desc: 'Crew billed per metre drilled on drilling jobs.' },
   { value: 'groundworks_unit', label: 'Groundworks Unit (£/pit)', desc: 'Crew billed per trial pit, charger or unit installed.' },
+  { value: 'coring_unit', label: 'Coring Unit (£/core run)', desc: 'Crew billed per core run or metre cored.' },
+  { value: 'trial_pit_unit', label: 'Trial Pit Unit (£/pit)', desc: 'Crew billed per trial pit excavated.' },
   { value: 'day_rate', label: 'Daily Crew Rate', desc: 'Fixed daily rate for the whole crew on a job.' },
   { value: 'flat_fee', label: 'Flat Project Fee', desc: "Single agreed fee for the whole crew's work on the job." },
 ];
@@ -281,13 +288,9 @@ export default function TeamManager() {
               <select value={formData.job_type} onChange={(e) => setFormData({ ...formData, job_type: e.target.value })}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
                 <option value="">Flexible (any job type)</option>
-                <option value="groundworks">Groundworks</option>
-                <option value="cp_drilling">CP Drilling</option>
-                <option value="rotary_drilling">Rotary Drilling</option>
-                <option value="enabling_works">Enabling Works</option>
-                <option value="depot">Depot</option>
+                {Object.entries(JOB_TYPE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
               </select>
-              <p className="text-xs text-slate-400 mt-1">Crew members in this crew can only be assigned to matching job types. Leave flexible for supervisors/managers.</p>
+              <p className="text-xs text-slate-400 mt-1">Crew members in this crew can only be assigned to matching job types. Leave flexible for supervisors/managers. Coring & Trial Pit crews sit under the Groundworks parent.</p>
             </div>
 
             <div className="border-t border-slate-100 pt-4">

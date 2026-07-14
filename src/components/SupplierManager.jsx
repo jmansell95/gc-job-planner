@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Package, Plus, Edit2, Trash2, Check, X, Mail, Phone, User, Search } from 'lucide-react';
+import {
+  Package, Plus, Edit2, Trash2, Mail, Phone, Search,
+  Upload, FileSpreadsheet, Loader2, RefreshCw
+} from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import { useToast } from '@/components/ui/use-toast';
+import { format } from 'date-fns';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
@@ -10,11 +15,15 @@ const blank = { name: '', contact_name: '', contact_email: '', contact_phone: ''
 
 export default function SupplierManager() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const [ingestingId, setIngestingId] = useState(null);
+  const fileRef = useRef(null);
+  const [uploadTargetId, setUploadTargetId] = useState(null);
 
   const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: () => base44.entities.Supplier.list() });
 
@@ -24,7 +33,10 @@ export default function SupplierManager() {
   );
 
   const startAdd = () => { setForm(blank); setEditingId(null); setAdding(true); };
-  const startEdit = (s) => { setForm({ name: s.name, contact_name: s.contact_name || '', contact_email: s.contact_email || '', contact_phone: s.contact_phone || '', notes: s.notes || '' }); setEditingId(s.id); setAdding(true); };
+  const startEdit = (s) => {
+    setForm({ name: s.name, contact_name: s.contact_name || '', contact_email: s.contact_email || '', contact_phone: s.contact_phone || '', notes: s.notes || '' });
+    setEditingId(s.id); setAdding(true);
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -42,9 +54,49 @@ export default function SupplierManager() {
   };
 
   const remove = async (id) => {
-    if (!confirm('Delete this supplier?')) return;
+    if (!confirm('Delete this supplier? Their ingested rate card items will also be removed.')) return;
+    try {
+      await base44.entities.RateCardItem.deleteMany({ rate_card_source: 'supplier', supplier_id: id });
+    } catch (e) { console.error(e); }
     await base44.entities.Supplier.delete(id);
     queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+    queryClient.invalidateQueries({ queryKey: ['rate-card-items'] });
+  };
+
+  const handleUploadClick = (supplierId) => {
+    setUploadTargetId(supplierId);
+    if (fileRef.current) fileRef.current.value = '';
+    fileRef.current?.click();
+  };
+
+  const handleFilePicked = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadTargetId) return;
+    setIngestingId(uploadTargetId);
+    try {
+      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      await base44.entities.Supplier.update(uploadTargetId, {
+        rate_card_file_url: uploadRes.file_url,
+        rate_card_file_name: file.name
+      });
+      const res = await base44.functions.invoke('processRateCardUpload', {
+        supplier_id: uploadTargetId,
+        file_url: uploadRes.file_url
+      });
+      const data = res.data || res;
+      if (data && data.status === 'success') {
+        toast({ title: `Ingested ${data.ingested} rate card items`, description: file.name });
+      } else {
+        toast({ title: 'Ingest failed', description: data?.error || 'Could not read the rate card file', variant: 'destructive' });
+      }
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['rate-card-items'] });
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Ingest failed', description: err.message, variant: 'destructive' });
+    }
+    setIngestingId(null);
+    setUploadTargetId(null);
   };
 
   return (
@@ -55,6 +107,12 @@ export default function SupplierManager() {
           <Plus className="w-4 h-4" /> Add Supplier
         </button>
       </div>
+
+      <p className="text-sm text-slate-500 -mt-4 mb-4 max-w-2xl">
+        Upload each supplier's rate card (Excel, CSV or PDF) and it's auto-ingested into the Master Price List. When you add equipment to a job and select that supplier, their rates populate automatically.
+      </p>
+
+      <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.pdf" className="hidden" onChange={handleFilePicked} />
 
       {adding && (
         <form onSubmit={submit} className="bg-white rounded-xl border border-emerald-200 shadow-sm p-5 mb-4 space-y-4">
@@ -95,7 +153,7 @@ export default function SupplierManager() {
       {filtered.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-10 text-center">
           <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-          <p className="text-slate-400 text-sm">No suppliers yet. Add your first hire supplier to speed up job costing entry.</p>
+          <p className="text-slate-400 text-sm">No suppliers yet. Add your first hire supplier and upload their rate card to auto-populate job costing.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -116,10 +174,44 @@ export default function SupplierManager() {
                   <button onClick={() => remove(s.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
-              <div className="space-y-1 text-xs text-slate-500">
+              <div className="space-y-1 text-xs text-slate-500 mb-3">
                 {s.contact_email && <div className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {s.contact_email}</div>}
                 {s.contact_phone && <div className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> {s.contact_phone}</div>}
-                {s.notes && <p className="text-slate-400 pt-1">{s.notes}</p>}
+              </div>
+
+              {/* Rate card section */}
+              <div className="border-t border-slate-100 pt-3">
+                {s.rate_card_file_url ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-xs">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                        <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-slate-700 truncate">{s.rate_card_file_name || 'Rate card file'}</p>
+                        <p className="text-slate-400">
+                          {s.rate_card_item_count ? `${s.rate_card_item_count} items ingested` : 'Not yet ingested'}
+                          {s.rate_card_synced_at && ` · ${format(new Date(s.rate_card_synced_at), 'dd MMM yyyy')}`}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleUploadClick(s.id)}
+                      disabled={ingestingId === s.id}
+                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition border border-emerald-200 disabled:opacity-50">
+                      {ingestingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                      {ingestingId === s.id ? 'Re-ingesting…' : 'Re-upload & re-ingest'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleUploadClick(s.id)}
+                    disabled={ingestingId === s.id}
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2.5 border-2 border-dashed border-slate-200 text-slate-500 rounded-lg text-xs font-semibold hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50/50 transition disabled:opacity-50">
+                    {ingestingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                    {ingestingId === s.id ? 'Ingesting…' : 'Upload rate card'}
+                  </button>
+                )}
               </div>
             </div>
           ))}
