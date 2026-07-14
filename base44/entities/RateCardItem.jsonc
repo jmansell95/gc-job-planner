@@ -1,0 +1,61 @@
+{
+  "name": "RateCardItem",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "enum": [
+        "labour",
+        "plant",
+        "materials"
+      ],
+      "description": "Which rate card section this item belongs to \u2014 labour (crews, mobilisation, supervision), plant (hire equipment), or materials (consumables and installations)."
+    },
+    "subcategory": {
+      "type": "string",
+      "description": "Sub-section heading within the rate card (e.g. 'Mobilisation', 'Rotary Crews', 'Coreliner', 'HDPE', 'COVERS'). Used for grouping in the UI."
+    },
+    "description": {
+      "type": "string",
+      "description": "Item description as it appears on the schedule of rates."
+    },
+    "price": {
+      "type": "number",
+      "description": "Net price in GBP. Null when the price is not a simple number (POA, 'Cost + Fee', 'included in delivery rate')."
+    },
+    "price_text": {
+      "type": "string",
+      "description": "Raw price text when the price is not a simple number (e.g. 'POA', 'Cost + Fee', 'included in delivery rate', 'x1.5')."
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unit of measure (e.g. 'day', 'sum', 'hour', 'mile', 'week', 'each', 'm')."
+    },
+    "men": {
+      "type": "number",
+      "description": "Number of men in the crew (labour items only)."
+    },
+    "size": {
+      "type": "string",
+      "description": "Size specification (materials only, e.g. '25Kg', '10Mm')."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about this rate item (inclusions, conditions, minimum hire periods)."
+    },
+    "sort_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order within the rate card."
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this rate is current and available for use."
+    }
+  },
+  "required": [
+    "category",
+    "description"
+  ]
+}

@@ -17,6 +17,7 @@ import BillingRulesManager from '@/components/BillingRulesManager';
 import EquipmentLibraryManager from '@/components/EquipmentLibraryManager';
 import TeamManager from '@/components/TeamManager';
 import AssetPandaSettings from '@/components/AssetPandaSettings';
+import RateCardManager from '@/components/RateCardManager';
 import SettingsNav, { allSettingsItems } from '@/components/SettingsNav';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
@@ -49,6 +50,7 @@ export default function SettingsPage({ initialTab }) {
       case 'automations': return <AutomationCenter />;
       case 'job-types': return <JobTypeManager />;
       case 'assets': return <SiteAssetManager />;
+      case 'rate-card': return <RateCardManager />;
       case 'billing': return <BillingRulesManager />;
       case 'equipment-library': return <EquipmentLibraryManager />;
       default: return null;
