@@ -5,6 +5,7 @@ import {
   PoundSterling, TrendingUp, Percent, Calculator, Save, Check,
   AlertTriangle
 } from 'lucide-react';
+import RigCostAnalysis from '@/components/RigCostAnalysis';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
@@ -150,6 +151,9 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
 
         {/* Budget & Margin tracker */}
         <BudgetMarginTracker budget={Number(job.budget_amount) || 0} actualNet={internalNet} clientNet={clientNet} markup={Number(markup) || 0} />
+
+        {/* Rig & crew cost analysis from schedule of rates */}
+        <RigCostAnalysis job={job} />
 
         {/* Internal cost summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
