@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 export const REPORT_TYPES = [
   { key: 'staff', label: 'Staff Overtime & Hours', icon: 'Users' },
   { key: 'weekly', label: 'Weekly Hours Matrix', icon: 'CalendarRange' },
-  { key: 'job', label: 'Job Labour Cost', icon: 'Briefcase' },
+  { key: 'job', label: 'Job Hours & Meterage', icon: 'Briefcase' },
   { key: 'ledger', label: 'Timesheet Ledger', icon: 'FileText' },
 ];
 
@@ -12,7 +12,6 @@ const fmtHours = (m) => {
   const mm = Math.round(Number(m) || 0);
   return mm > 0 ? (mm / 60).toFixed(1) + 'h' : '—';
 };
-const fmtCost = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
 export function buildReport(type, ctx) {
   switch (type) {
@@ -31,35 +30,31 @@ function staffReport({ entries, staff, otBreakdowns }) {
     { key: 'std', label: 'Std Hours', align: 'right' },
     { key: 'ot', label: 'OT Hours', align: 'right' },
     { key: 'total', label: 'Total', align: 'right' },
-    { key: 'cost', label: 'Cost', align: 'right' },
   ];
   const byStaff = {};
   entries.forEach(t => { (byStaff[t.staff_id] = byStaff[t.staff_id] || []).push(t); });
   const rows = [];
-  let tStd = 0, tOt = 0, tCost = 0;
+  let tStd = 0, tOt = 0;
   const nameOf = (id) => staff.find(s => s.id === id)?.name || 'Unknown';
   Object.keys(byStaff).sort((a, b) => nameOf(a).localeCompare(nameOf(b))).forEach(sid => {
-    const member = staff.find(s => s.id === sid);
     const byWeek = {};
     byStaff[sid].forEach(t => { const wk = weekKey(t.date); (byWeek[wk] = byWeek[wk] || []).push(t); });
     Object.keys(byWeek).sort().forEach(wk => {
-      let std = 0, ot = 0, cost = 0;
+      let std = 0, ot = 0;
       byWeek[wk].forEach(t => {
         const b = otBreakdowns[sid]?.[t.id] || {};
         std += b.regularMins || 0;
         ot += b.otMins || 0;
-        cost += b.cost || 0;
       });
       rows.push([
-        member?.name || 'Unknown',
+        nameOf(sid),
         `w/c ${format(new Date(wk + 'T00:00:00'), 'dd MMM yyyy')}`,
         fmtHours(std), fmtHours(ot), fmtHours(std + ot),
-        member?.day_rate ? fmtCost(cost) : '—',
       ]);
-      tStd += std; tOt += ot; tCost += cost;
+      tStd += std; tOt += ot;
     });
   });
-  const totals = ['Total', '', fmtHours(tStd), fmtHours(tOt), fmtHours(tStd + tOt), fmtCost(tCost)];
+  const totals = ['Total', '', fmtHours(tStd), fmtHours(tOt), fmtHours(tStd + tOt)];
   return { title: 'Staff Overtime & Hours', columns, rows, totals };
 }
 
@@ -107,23 +102,21 @@ function jobReport({ entries, staff, jobs, otBreakdowns }) {
     { key: 'hours', label: 'Total Hours', align: 'right' },
     { key: 'ot', label: 'OT Hours', align: 'right' },
     { key: 'meterage', label: 'Meterage', align: 'right' },
-    { key: 'cost', label: 'Labour Cost', align: 'right' },
   ];
   const byJob = {};
   entries.forEach(t => { const jid = t.job_id || 'none'; (byJob[jid] = byJob[jid] || []).push(t); });
   const rows = [];
-  let tHours = 0, tOt = 0, tMeter = 0, tCost = 0;
+  let tHours = 0, tOt = 0, tMeter = 0;
   Object.keys(byJob).forEach(jid => {
     const job = jobs.find(j => j.id === jid);
     const staffSet = new Set();
-    let mins = 0, ot = 0, meter = 0, cost = 0;
+    let mins = 0, ot = 0, meter = 0;
     byJob[jid].forEach(t => {
       staffSet.add(t.staff_id);
       const b = otBreakdowns[t.staff_id]?.[t.id] || {};
       mins += entryMinutes(t);
       ot += b.otMins || 0;
       meter += Number(t.meterage) || 0;
-      cost += b.cost || 0;
     });
     rows.push([
       job?.name || '—',
@@ -131,13 +124,12 @@ function jobReport({ entries, staff, jobs, otBreakdowns }) {
       staffSet.size,
       fmtHours(mins), fmtHours(ot),
       meter > 0 ? `${meter}m` : '—',
-      fmtCost(cost),
     ]);
-    tHours += mins; tOt += ot; tMeter += meter; tCost += cost;
+    tHours += mins; tOt += ot; tMeter += meter;
   });
   rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-  const totals = ['Total', '', '', fmtHours(tHours), fmtHours(tOt), tMeter > 0 ? `${tMeter}m` : '—', fmtCost(tCost)];
-  return { title: 'Job Labour Cost', columns, rows, totals };
+  const totals = ['Total', '', '', fmtHours(tHours), fmtHours(tOt), tMeter > 0 ? `${tMeter}m` : '—'];
+  return { title: 'Job Hours & Meterage', columns, rows, totals };
 }
 
 function ledgerReport({ entries, staff, jobs, otBreakdowns }) {
@@ -148,7 +140,6 @@ function ledgerReport({ entries, staff, jobs, otBreakdowns }) {
     { key: 'task', label: 'Task', align: 'left' },
     { key: 'hours', label: 'Hours', align: 'right' },
     { key: 'ot', label: 'OT', align: 'right' },
-    { key: 'cost', label: 'Cost', align: 'right' },
     { key: 'status', label: 'Status', align: 'left' },
   ];
   const sorted = [...entries].sort((a, b) => {
@@ -168,13 +159,12 @@ function ledgerReport({ entries, staff, jobs, otBreakdowns }) {
       t.task_description || '—',
       fmtHours(entryMinutes(t)),
       b.otMins > 0 ? `${fmtHours(b.otMins)} ×${b.multiplier}` : '—',
-      member?.day_rate ? fmtCost(b.cost || 0) : '—',
       t.status,
     ];
   });
-  let tMins = 0, tCost = 0;
-  entries.forEach(t => { tMins += entryMinutes(t); tCost += otBreakdowns[t.staff_id]?.[t.id]?.cost || 0; });
-  const totals = ['Total', '', '', '', fmtHours(tMins), '', fmtCost(tCost), ''];
+  let tMins = 0;
+  entries.forEach(t => { tMins += entryMinutes(t); });
+  const totals = ['Total', '', '', '', fmtHours(tMins), '', ''];
   return { title: 'Timesheet Ledger', columns, rows, totals };
 }
 

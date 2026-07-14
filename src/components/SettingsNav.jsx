@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, PoundSterling, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database } from 'lucide-react';
 
 export const settingsGroups = [
   {
@@ -33,7 +33,6 @@ export const settingsGroups = [
     label: 'Finance & Billing',
     items: [
       { id: 'billing', label: 'Billing Rules', icon: Banknote, desc: 'Delivery, task & consumable pricing rules' },
-      { id: 'costs', label: 'Costs', icon: PoundSterling, desc: 'Staff day rates and meterage rates' },
       { id: 'overtime', label: 'Overtime', icon: Timer, desc: 'Overtime multipliers by day' },
     ],
   },

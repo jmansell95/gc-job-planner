@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Users, CalendarRange, Briefcase, FileText, Printer, Mail, BarChart3, X, Send, Clock, TrendingUp, PoundSterling } from 'lucide-react';
+import { Users, CalendarRange, Briefcase, FileText, Printer, Mail, BarChart3, X, Send, Clock, TrendingUp } from 'lucide-react';
 import { format, subWeeks } from 'date-fns';
 import PillTabs from '@/components/PillTabs';
 import ReportTable from '@/components/reports/ReportTable';
@@ -11,7 +11,6 @@ import { computeStaffOvertime, buildRateMap, entryMinutes } from '@/utils/overti
 const ICONS = { Users, CalendarRange, Briefcase, FileText };
 
 const fmtHours = (m) => { const mm = Math.round(Number(m) || 0); return (mm / 60).toFixed(1) + 'h'; };
-const fmtCost = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
 export default function ComplianceReports() {
   const [reportType, setReportType] = useState('staff');
@@ -38,8 +37,7 @@ export default function ComplianceReports() {
     const map = {};
     staff.forEach(s => {
       const all = timesheets.filter(t => t.staff_id === s.id && !t.is_break && ['submitted', 'approved'].includes(t.status));
-      const hourly = s.day_rate ? s.day_rate / 8 : 0;
-      map[s.id] = computeStaffOvertime(all, rateMap, threshold, hourly);
+      map[s.id] = computeStaffOvertime(all, rateMap, threshold, 0);
     });
     return map;
   }, [staff, timesheets, rateMap, threshold]);
@@ -53,14 +51,13 @@ export default function ComplianceReports() {
   const report = useMemo(() => buildReport(reportType, { entries, staff, jobs, otBreakdowns, dateFrom, dateTo }), [reportType, entries, staff, jobs, otBreakdowns, dateFrom, dateTo]);
 
   const summary = useMemo(() => {
-    let mins = 0, otMins = 0, cost = 0;
+    let mins = 0, otMins = 0;
     entries.forEach(t => {
       mins += entryMinutes(t);
       const b = otBreakdowns[t.staff_id]?.[t.id] || {};
       otMins += b.otMins || 0;
-      cost += b.cost || 0;
     });
-    return { entries: entries.length, hours: fmtHours(mins), ot: fmtHours(otMins), cost: fmtCost(cost) };
+    return { entries: entries.length, hours: fmtHours(mins), ot: fmtHours(otMins) };
   }, [entries, otBreakdowns]);
 
   const handlePrint = () => {
@@ -131,12 +128,11 @@ export default function ComplianceReports() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
         {[
           { icon: FileText, label: 'Entries', value: summary.entries, accent: 'bg-slate-100 text-slate-600' },
           { icon: Clock, label: 'Total Hours', value: summary.hours, accent: 'bg-emerald-100 text-emerald-700' },
           { icon: TrendingUp, label: 'Overtime', value: summary.ot, accent: 'bg-amber-100 text-amber-700' },
-          { icon: PoundSterling, label: 'Labour Cost', value: summary.cost, accent: 'bg-blue-100 text-blue-700' },
         ].map((s, i) => {
           const Icon = s.icon;
           return (

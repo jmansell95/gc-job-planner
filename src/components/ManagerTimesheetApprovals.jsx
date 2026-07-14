@@ -12,7 +12,7 @@ const fmtDur = (mins) => {
   if (h) return `${h}h`;
   return m > 0 ? `${r}m` : '—';
 };
-const fmtCost = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 });
+
 
 export default function ManagerTimesheetApprovals({ staffId }) {
   const queryClient = useQueryClient();

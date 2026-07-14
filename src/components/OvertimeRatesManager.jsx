@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Timer, Save, Check, Info, TrendingUp, Clock, PoundSterling, Users } from 'lucide-react';
+import { Timer, Save, Check, Info, TrendingUp, Clock, Users } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { DAY_LABELS, buildRateMap, computeStaffOvertime } from '@/utils/overtime';
 
@@ -40,23 +40,19 @@ export default function OvertimeRatesManager() {
   const perPerson = staff.map(s => {
     const entries = approvedTs.filter(t => t.staff_id === s.id);
     if (entries.length === 0) return null;
-    const hourlyRate = s.day_rate ? s.day_rate / 8 : 0;
-    const bd = computeStaffOvertime(entries, savedRateMap, savedThreshold, hourlyRate);
-    let stdMins = 0, otMins = 0, otCost = 0;
+    const bd = computeStaffOvertime(entries, savedRateMap, savedThreshold, 0);
+    let stdMins = 0, otMins = 0;
     entries.forEach(t => {
       const b = bd[t.id] || {};
       stdMins += b.regularMins || 0;
       otMins += b.otMins || 0;
-      otCost += ((b.otMins || 0) / 60) * hourlyRate * (b.multiplier || 1);
     });
-    return { name: s.name, role: s.job_role, stdMins, otMins, otCost };
+    return { name: s.name, role: s.job_role, stdMins, otMins };
   }).filter(Boolean);
   const totalStdMins = perPerson.reduce((s, p) => s + p.stdMins, 0);
   const totalOtMins = perPerson.reduce((s, p) => s + p.otMins, 0);
-  const totalOtCost = perPerson.reduce((s, p) => s + p.otCost, 0);
   const otStaffCount = perPerson.filter(p => p.otMins > 0).length;
   const fmtH = (mins) => (mins / 60).toFixed(1) + 'h';
-  const fmtC = (n) => '£' + (n || 0).toLocaleString('en-GB', { maximumFractionDigits: 2 });
 
   const save = async () => {
     setSaving(true);
@@ -117,10 +113,6 @@ export default function OvertimeRatesManager() {
               <p className="text-2xl font-bold text-amber-600 mt-1">{fmtH(totalOtMins)}</p>
             </div>
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-              <div className="flex items-center gap-2"><PoundSterling className="w-4 h-4 text-emerald-700" /><p className="text-xs text-slate-500 font-medium">OT cost</p></div>
-              <p className="text-2xl font-bold text-emerald-700 mt-1">{fmtC(totalOtCost)}</p>
-            </div>
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
               <div className="flex items-center gap-2"><Users className="w-4 h-4 text-blue-700" /><p className="text-xs text-slate-500 font-medium">Staff with OT</p></div>
               <p className="text-2xl font-bold text-blue-700 mt-1">{otStaffCount}</p>
             </div>
@@ -140,7 +132,6 @@ export default function OvertimeRatesManager() {
                   <div className="flex items-center gap-4 text-sm flex-shrink-0">
                     <div className="text-right"><p className="text-xs text-slate-400">Standard</p><p className="font-semibold text-slate-900">{fmtH(p.stdMins)}</p></div>
                     <div className="text-right"><p className="text-xs text-slate-400">Overtime</p><p className={`font-semibold ${p.otMins > 0 ? 'text-amber-600' : 'text-slate-300'}`}>{fmtH(p.otMins)}</p></div>
-                    <div className="text-right"><p className="text-xs text-slate-400">OT cost</p><p className={`font-semibold ${p.otCost > 0 ? 'text-emerald-700' : 'text-slate-300'}`}>{fmtC(p.otCost)}</p></div>
                   </div>
                 </div>
               ))}

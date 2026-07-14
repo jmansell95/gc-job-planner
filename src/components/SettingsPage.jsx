@@ -8,7 +8,6 @@ import ClientManager from '@/components/ClientManager';
 import AbsenceManager from '@/components/AbsenceManager';
 import EmailAlertsSettings from '@/components/EmailAlertsSettings';
 import GlobalBrandingSettings from '@/components/GlobalBrandingSettings';
-import CostSettings from '@/components/CostSettings';
 import SupplierManager from '@/components/SupplierManager';
 import OvertimeRatesManager from '@/components/OvertimeRatesManager';
 import AutomationCenter from '@/components/AutomationCenter';
@@ -44,7 +43,6 @@ export default function SettingsPage({ initialTab }) {
       case 'contractors': return <ContractorManager />;
       case 'suppliers': return <SupplierManager />;
       case 'absences': return <AbsenceManager />;
-      case 'costs': return <CostSettings />;
       case 'overtime': return <OvertimeRatesManager />;
       case 'email-alerts': return <EmailAlertsSettings />;
       case 'global-branding': return <GlobalBrandingSettings />;
