@@ -49,19 +49,10 @@ Deno.serve(async (req) => {
     const validAssets = assets.filter(Boolean);
 
     // --- Calculate costs ---
-    const labourByStaff = {};
-    rotas.forEach(r => {
-      const member = validStaff.find(s => s.id === r.staff_id);
-      if (!member) return;
-      const isDriller = member.job_role === 'cp_driller' || member.job_role === 'rotary_driller';
-      let cost = 0;
-      if (isDriller && r.meterage && member.meterage_rate) cost = r.meterage * member.meterage_rate;
-      else if (member.day_rate) cost = member.day_rate;
-      labourByStaff[r.staff_id] = (labourByStaff[r.staff_id] || 0) + cost;
-    });
-    const totalLabour = Object.values(labourByStaff).reduce((a, b) => a + b, 0);
+    // Labour cost tracking removed — payroll is handled outside this system.
+    const totalLabour = 0;
     const totalEquip = costItems.reduce((a, c) => a + (c.unit_cost || 0) * (c.quantity || 1), 0);
-    const netCost = job.actual_cost || (totalLabour + totalEquip);
+    const netCost = job.actual_cost || totalEquip;
     const markupPct = job.markup_percentage || 0;
     const markupAmt = netCost * (markupPct / 100);
     const subtotal = netCost + markupAmt;
@@ -92,10 +83,7 @@ Deno.serve(async (req) => {
     // --- Staff table rows ---
     const staffRows = validStaff.map(s => {
       const shifts = rotas.filter(r => r.staff_id === s.id).length;
-      const labour = labourByStaff[s.id] || 0;
-      return canViewCostings
-        ? `<tr><td>${esc(s.name)}</td><td>${fmtRole(s.job_role)}</td><td>${esc(s.worker_type).replace(/_/g,' ')}</td><td>${shifts}</td><td>${fmtGBP(labour)}</td></tr>`
-        : `<tr><td>${esc(s.name)}</td><td>${fmtRole(s.job_role)}</td><td>${esc(s.worker_type).replace(/_/g,' ')}</td><td>${shifts}</td></tr>`;
+      return `<tr><td>${esc(s.name)}</td><td>${fmtRole(s.job_role)}</td><td>${esc(s.worker_type).replace(/_/g,' ')}</td><td>${shifts}</td></tr>`;
     }).join('');
 
     // --- Equipment cost rows ---
@@ -142,7 +130,7 @@ Deno.serve(async (req) => {
 
     const staffTable = validStaff.length > 0 ? `
       <h2 class="section-title">Staff Assignments</h2>
-      <table><thead><tr><th>Name</th><th>Role</th><th>Type</th><th>Shifts</th>${canViewCostings ? '<th>Labour Cost</th>' : ''}</tr></thead>
+      <table><thead><tr><th>Name</th><th>Role</th><th>Type</th><th>Shifts</th></tr></thead>
       <tbody>${staffRows}</tbody></table>` : '';
 
     const equipTable = (canViewCostings && costItems.length > 0) ? `

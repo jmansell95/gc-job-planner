@@ -28,17 +28,8 @@ export default function ProfitabilityDashboard() {
   const { data: costItems = [] } = useQuery({ queryKey: ['all-cost-items'], queryFn: () => base44.entities.JobCostItem.list() });
 
   const { jobRows, totals } = useMemo(() => {
-    // Labour cost per job
+    // Labour cost tracking removed — payroll is handled outside this system.
     const labourByJob = {};
-    rotas.forEach(r => {
-      const member = staff.find(s => s.id === r.staff_id);
-      if (!member) return;
-      const isDriller = member.job_role === 'cp_driller' || member.job_role === 'rotary_driller';
-      let cost = 0;
-      if (isDriller && r.meterage && member.meterage_rate) cost = r.meterage * member.meterage_rate;
-      else if (member.day_rate) cost = member.day_rate;
-      labourByJob[r.job_id] = (labourByJob[r.job_id] || 0) + cost;
-    });
 
     // Equipment cost per job
     const equipByJob = {};

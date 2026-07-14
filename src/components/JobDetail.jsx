@@ -260,42 +260,28 @@ export default function JobDetail({ job: initialJob, onBack }) {
   });
   const otRateMap = buildRateMap(overtimeRates);
   const otThreshold = overtimeSetting?.weekly_threshold_hours ?? 40;
+  // Labour cost tracking removed — payroll is handled outside this system.
+  // staffCosts retains shift/meterage data for display but no longer carries a cost figure.
   const staffCosts = assignedStaff.map(member => {
     const memberRotas = rotas.filter(r => r.staff_id === member.id);
     const memberMeterage = memberRotas.reduce((sum, r) => sum + (r.meterage || 0), 0);
-    const meterageRate = member.meterage_rate || 0;
-    const dayRate = member.day_rate || 0;
-    const usesMeterage = isDrillingJob && meterageRate > 0;
     const meterage = useJobMeterage ? jobMeterage : memberMeterage;
-    const ts = timesheetByStaff[member.id];
-    const hourlyRate = dayRate > 0 ? dayRate / 8 : 0;
-    const staffAllEntries = (allTimesheets || []).filter(t => t.staff_id === member.id && (t.status === 'submitted' || t.status === 'approved'));
-    const otBreakdown = computeStaffOvertime(staffAllEntries, otRateMap, otThreshold, hourlyRate);
-    const jobEntryCost = validTimesheets.filter(t => t.staff_id === member.id).reduce((sum, t) => sum + (otBreakdown[t.id]?.cost || 0), 0);
-    const usesTimesheet = !usesMeterage && jobEntryCost > 0;
-    const overtimeShifts = memberRotas.filter(r => r.is_overtime);
-    const dayRateCost = memberRotas.reduce((sum, r) => {
-      const mult = r.is_overtime ? getAssignmentMultiplier(r, otRateMap) : 1;
-      return sum + dayRate * mult;
-    }, 0);
     return {
       name: member.name,
       role: roleLabels[member.job_role] || member.job_role,
       shifts: memberRotas.length,
-      overtimeShifts: overtimeShifts.length,
-      dayRate,
+      overtimeShifts: memberRotas.filter(r => r.is_overtime).length,
+      dayRate: 0,
       meterage,
-      meterageRate,
-      costType: usesMeterage ? 'meterage' : (usesTimesheet ? 'timesheet' : 'day_rate'),
-      timesheetMinutes: ts ? ts.minutes : 0,
-      timesheetCount: ts ? ts.count : 0,
-      hourlyRate,
-      cost: usesMeterage ? meterage * meterageRate
-        : usesTimesheet ? jobEntryCost
-        : dayRateCost
+      meterageRate: 0,
+      costType: 'none',
+      timesheetMinutes: 0,
+      timesheetCount: 0,
+      hourlyRate: 0,
+      cost: 0
     };
   });
-  const totalCost = staffCosts.reduce((sum, s) => sum + s.cost, 0);
+  const totalCost = 0;
   const totalMeterage = useJobMeterage ? jobMeterage : staffCosts.reduce((sum, s) => sum + s.meterage, 0);
 
   const startDate = job.start_date ? new Date(job.start_date + 'T00:00:00') : null;

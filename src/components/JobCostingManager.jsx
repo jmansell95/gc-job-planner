@@ -155,10 +155,12 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
 
         {/* Internal cost summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {Number(labourNet) > 0 && (
           <div className="bg-slate-50 rounded-lg p-3">
             <p className="text-xs text-slate-400">Labour (net)</p>
             <p className="text-base font-bold text-slate-900 truncate">{fmt(labourNet)}</p>
           </div>
+          )}
           <div className="bg-slate-50 rounded-lg p-3">
             <p className="text-xs text-slate-400">Equipment (net)</p>
             <p className="text-base font-bold text-slate-900 truncate">{fmt(equipmentNet)}</p>
@@ -204,7 +206,7 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
         </div>
 
         {/* Labour breakdown */}
-        {staffCosts && staffCosts.length > 0 && (
+        {staffCosts && staffCosts.length > 0 && Number(totalCost) > 0 && (
           <div className="border-t border-slate-100 pt-3">
             <button onClick={() => setShowLabour(!showLabour)} className="flex items-center justify-between w-full text-sm font-medium text-slate-700 hover:text-emerald-700 transition">
               <span className="inline-flex items-center gap-2"><Calculator className="w-3.5 h-3.5" /> Labour breakdown ({staffCosts.length} staff)</span>

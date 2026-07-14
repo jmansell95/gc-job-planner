@@ -35,20 +35,18 @@ export default function StaffManager() {
   const [shiftOpenId, setShiftOpenId] = useState(null);
   const [complianceStaff, setComplianceStaff] = useState(null);
   const [hotelStaff, setHotelStaff] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: '' });
 
   const queryClient = useQueryClient();
 
   const cleanPayload = (data) => {
     const cleaned = { ...data };
-    ['day_rate', 'meterage_rate'].forEach(k => {
-      if (cleaned[k] === '' || cleaned[k] == null) delete cleaned[k];
-      else cleaned[k] = Number(cleaned[k]);
-    });
     ['default_vehicle_id', 'manager_id', 'team_id', 'system_role'].forEach(k => {
       if (cleaned[k] === '') delete cleaned[k];
     });
     delete cleaned.job_role;
+    delete cleaned.day_rate;
+    delete cleaned.meterage_rate;
     return cleaned;
   };
 
@@ -89,7 +87,7 @@ export default function StaffManager() {
       }
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
-      setFormData({ name: '', email: '', phone: '', worker_type: 'direct_employee', job_role: 'groundworker', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: '' });
+      setFormData({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: '' });
       setShowForm(false);
       setEditingId(null);
     } catch (error) {
@@ -172,7 +170,7 @@ export default function StaffManager() {
   const resetForm = () => {
     setShowForm(!showForm);
     setEditingId(null);
-    setFormData({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', day_rate: '', meterage_rate: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: '' });
+    setFormData({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: '' });
   };
 
   const activeCount = staff.filter(s => getUserForStaff(s)).length;
@@ -263,16 +261,6 @@ export default function StaffManager() {
                 <option value="">None (Optional)</option>
                 {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} — {v.name}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Day Rate (GBP)</label>
-              <input type="number" min="0" step="0.01" value={formData.day_rate || ''} onChange={e => setFormData({ ...formData, day_rate: e.target.value ? parseFloat(e.target.value) : '' })}
-                placeholder="0.00" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Meterage Rate £/m (Drillers)</label>
-              <input type="number" min="0" step="0.01" value={formData.meterage_rate || ''} onChange={e => setFormData({ ...formData, meterage_rate: e.target.value ? parseFloat(e.target.value) : '' })}
-                placeholder="0.00" className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Timesheet Manager</label>
@@ -394,14 +382,6 @@ export default function StaffManager() {
                     </span>
                   )}
                 </div>
-
-                {(member.day_rate || member.meterage_rate) && (
-                  <div className="text-xs text-slate-400 mb-3">
-                    {member.day_rate && <span>£{member.day_rate}/day</span>}
-                    {member.day_rate && member.meterage_rate && <span> · </span>}
-                    {member.meterage_rate && <span>£{member.meterage_rate}/m</span>}
-                  </div>
-                )}
 
                 {member.manager_id && staff.find(s => s.id === member.manager_id) && (
                   <div className="text-xs text-slate-400 mb-3">Approves to: <span className="text-slate-600 font-medium">{staff.find(s => s.id === member.manager_id).name}</span></div>

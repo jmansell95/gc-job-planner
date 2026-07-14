@@ -28,24 +28,17 @@ export default function JobCostAnalytics() {
 
   const { costByJob, rows } = useMemo(() => {
     const costByJob = {};
-    rotas.forEach(r => {
-      const member = staff.find(s => s.id === r.staff_id);
-      if (!member) return;
-      const isDriller = member.job_role === 'cp_driller' || member.job_role === 'rotary_driller';
-      let cost = 0;
-      if (isDriller && r.meterage && member.meterage_rate) cost = r.meterage * member.meterage_rate;
-      else if (member.day_rate) cost = member.day_rate;
-      costByJob[r.job_id] = (costByJob[r.job_id] || 0) + cost;
-    });
+    // Labour cost tracking removed — payroll is handled outside this system.
+    // Budget tracking remains for comparing against manually recorded actual costs.
     const rows = jobs.map(j => ({
       id: j.id,
       name: j.name,
       type: j.job_type,
       status: j.status,
       budget: j.budget_amount || 0,
-      spend: costByJob[j.id] || 0,
-      variance: (j.budget_amount || 0) - (costByJob[j.id] || 0)
-    })).filter(r => r.budget > 0 || r.spend > 0);
+      spend: 0,
+      variance: (j.budget_amount || 0)
+    })).filter(r => r.budget > 0);
     return { costByJob, rows };
   }, [jobs, staff, rotas]);
 

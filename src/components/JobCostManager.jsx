@@ -149,7 +149,7 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
             )}
           </div>
           <p className="text-sm text-slate-500">
-            {usingManual ? 'Manual entry applied' : <span className="inline-flex items-center gap-1"><Calculator className="w-3.5 h-3.5" /> Calculated from staff rates & meterage</span>}
+            {usingManual ? 'Manual entry applied' : <span className="inline-flex items-center gap-1"><Calculator className="w-3.5 h-3.5" /> Calculated from equipment & charges</span>}
           </p>
         </div>
 
@@ -182,7 +182,7 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
         )}
 
         {/* Breakdown toggle */}
-        {staffCosts.length > 0 && (
+        {staffCosts.length > 0 && Number(totalCost) > 0 && (
           <div className="border-t border-slate-100 pt-3">
             <button onClick={() => setShowBreakdown(!showBreakdown)} className="flex items-center justify-between w-full text-sm font-medium text-slate-700 hover:text-emerald-700 transition">
               <span className="inline-flex items-center gap-2"><RefreshCw className="w-3.5 h-3.5" /> Calculated cost breakdown</span>
