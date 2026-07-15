@@ -45,6 +45,8 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   });
   const { data: fetchedSuppliers = [] } = useQuery({ queryKey: ['suppliers-logistics'], queryFn: () => base44.entities.Supplier.list(), enabled: !externalSuppliers || externalSuppliers.length === 0 });
   const suppliers = externalSuppliers.length > 0 ? externalSuppliers : fetchedSuppliers;
+  const { data: rateCardItems = [] } = useQuery({ queryKey: ['rate-card-items-logistics'], queryFn: () => base44.entities.RateCardItem.list('-created_date', 500) });
+  const ownedAssets = (siteAssets || []).filter(a => a.is_active && a.asset_type !== 'rig');
 
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showLoadPlanner, setShowLoadPlanner] = useState(false);
@@ -338,7 +340,8 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
               <EquipmentForm form={form} setForm={setForm} onSubmit={handleSubmitItem}
                 onCancel={() => { setAdding(false); setEditingId(null); setForm(blankForm()); }}
                 saving={savingItem} editing={!!editingId} suppliers={suppliers} contractors={contractors}
-                defaultDates={defaultDates} catalogueItems={formCatalogueItems} />
+                defaultDates={defaultDates} catalogueItems={formCatalogueItems}
+                rateCardItems={rateCardItems} ownedAssets={ownedAssets} />
             </DialogContent>
           </Dialog>
 
