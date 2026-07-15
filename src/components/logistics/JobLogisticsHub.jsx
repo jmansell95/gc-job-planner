@@ -46,7 +46,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   const { data: fetchedSuppliers = [] } = useQuery({ queryKey: ['suppliers-logistics'], queryFn: () => base44.entities.Supplier.list(), enabled: !externalSuppliers || externalSuppliers.length === 0 });
   const suppliers = externalSuppliers.length > 0 ? externalSuppliers : fetchedSuppliers;
   const { data: rateCardItems = [] } = useQuery({ queryKey: ['rate-card-items-logistics'], queryFn: () => base44.entities.RateCardItem.list('-created_date', 500) });
-  const ownedAssets = (siteAssets || []).filter(a => a.is_active && a.asset_type !== 'rig');
+  const ownedAssets = (siteAssets || []).filter(a => a.is_active && a.asset_type !== 'rig' && a.stock_level !== 'out_of_stock' && a.stock_level !== 'needs_service');
 
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showLoadPlanner, setShowLoadPlanner] = useState(false);
