@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
+import { differenceInCalendarDays } from 'date-fns';
 import { categoryConfig } from './equipment/shared';
 import HiredEquipmentFields from './equipment/HiredEquipmentFields';
 import PurchasedEquipmentFields from './equipment/PurchasedEquipmentFields';
@@ -42,6 +43,13 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
     }
     if (isPurchased) {
       payload = { ...payload, start_date: '', end_date: '' };
+    }
+    // For day-rate hired/owned items, store effective quantity = items × days
+    if ((isHired || isInternal) && form.unit_label === 'day' && form.start_date && form.end_date) {
+      const d = differenceInCalendarDays(new Date(form.end_date + 'T00:00:00'), new Date(form.start_date + 'T00:00:00')) + 1;
+      if (d > 0) {
+        payload.quantity = String((Number(form.quantity) || 1) * d);
+      }
     }
     onSubmit(payload);
   };

@@ -25,6 +25,7 @@ export default function HiredEquipmentFields({ form, setForm, suppliers = [], ra
   };
 
   const isHiredByDay = form.unit_label === 'day';
+  const itemCount = Number(form.quantity) || 1;
   const daysFromForm = () => {
     if (form.start_date && form.end_date) {
       const d = differenceInCalendarDays(new Date(form.end_date + 'T00:00:00'), new Date(form.start_date + 'T00:00:00')) + 1;
@@ -32,8 +33,8 @@ export default function HiredEquipmentFields({ form, setForm, suppliers = [], ra
     }
     return null;
   };
-  const effectiveQty = isHiredByDay ? daysFromForm() ?? (Number(form.quantity) || 1) : Number(form.quantity) || 1;
-  const lineTotal = (Number(form.unit_cost) || 0) * effectiveQty;
+  const days = isHiredByDay ? (daysFromForm() ?? 1) : 1;
+  const lineTotal = (Number(form.unit_cost) || 0) * itemCount * days;
 
   return (
     <div className="space-y-3">
@@ -132,12 +133,10 @@ export default function HiredEquipmentFields({ form, setForm, suppliers = [], ra
             <option value="each">each</option>
           </select>
         </div>
-        {form.unit_label !== 'day' && (
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Quantity</label>
-            <input type="number" min="0" step="0.01" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} className={inputCls} />
-          </div>
-        )}
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-1">Quantity{isHiredByDay ? ' (items to hire)' : ''}</label>
+          <input type="number" min="1" step="1" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="1" className={inputCls} />
+        </div>
       </div>
 
       <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
@@ -147,7 +146,7 @@ export default function HiredEquipmentFields({ form, setForm, suppliers = [], ra
 
       {Number(form.unit_cost) > 0 && (
         <div className="text-xs text-slate-600 bg-white rounded-md px-3 py-2 border border-slate-200 flex items-center justify-between">
-          <span>Line revenue: {effectiveQty} × {fmt(Number(form.unit_cost) || 0)}</span>
+          <span>Line revenue: {itemCount} item{itemCount > 1 ? 's' : ''}{isHiredByDay && days > 1 ? ` × ${days} days` : ''} × {fmt(Number(form.unit_cost) || 0)}</span>
           <span className="font-bold text-slate-900">{fmt(lineTotal)}</span>
         </div>
       )}
