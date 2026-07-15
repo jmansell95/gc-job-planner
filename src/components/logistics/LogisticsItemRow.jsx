@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, FileCheck, Package, Truck, MapPin, PackageCheck, Warehouse, Loader2, ShieldCheck, ShieldAlert, ShieldX, Wrench, ShoppingCart, HardHat, ChevronDown, ChevronUp } from 'lucide-react';
+import { Edit2, Trash2, FileCheck, Package, Truck, MapPin, PackageCheck, Warehouse, Loader2, ShieldCheck, ShieldAlert, ShieldX, Wrench, ShoppingCart, HardHat, ChevronDown, ChevronUp, FileText, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -76,6 +76,11 @@ export default function LogisticsItemRow({ item: c, isSelected, onToggleSelect, 
               <button onClick={() => onOffHire(c)} className="text-[10px] px-2 py-1 rounded-lg font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 transition inline-flex items-center gap-0.5">
                 <FileCheck className="w-3 h-3" /> Return
               </button>
+            )}
+            {c.order_slip_url && (
+              <a href={c.order_slip_url} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2 py-1 rounded-lg font-medium bg-purple-50 text-purple-700 hover:bg-purple-100 transition inline-flex items-center gap-0.5">
+                <FileText className="w-3 h-3" /> Order slip <ExternalLink className="w-2.5 h-2.5" />
+              </a>
             )}
             {hasLinked && (
               <button onClick={() => setExpanded(!expanded)} className="text-[10px] px-2 py-1 rounded-lg font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 transition inline-flex items-center gap-0.5">

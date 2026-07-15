@@ -19,8 +19,8 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFracti
 
 const blankForm = () => ({
   category: 'hired_equipment', supplier_id: '', contractor_id: '', description: '',
-  reference_number: '', responsible_person: '', site_asset_id: '', po_number: '', start_date: '', end_date: '',
-  unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: ''
+  reference_number: '', responsible_person: '', site_asset_id: '', po_number: '', order_slip_url: '', order_slip_name: '',
+  start_date: '', end_date: '', unit_cost: '', quantity: '1', unit_label: 'day', men: '', vat_exempt: false, notes: ''
 });
 
 export default function JobLogisticsHub({ jobId, job, suppliers: externalSuppliers = [], contractors = [], canSeeCosts = true, isDrillingJob = false }) {
@@ -138,11 +138,16 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
         description: formData.description,
         reference_number: formData.reference_number || '',
         responsible_person: formData.responsible_person || '',
+        site_asset_id: formData.site_asset_id || '',
+        rate_card_item_id: formData.rate_card_item_id || '',
         po_number: formData.po_number || '',
+        order_slip_url: formData.order_slip_url || '',
+        order_slip_name: formData.order_slip_name || '',
         start_date: formData.start_date || '', end_date: formData.end_date || '',
         unit_cost: isContractorItem ? 0 : (Number(formData.unit_cost) || 0),
         quantity: Number(formData.quantity) || 1,
         unit_label: isContractorItem ? 'each' : formData.unit_label,
+        men: isContractorItem ? '' : (formData.men ? Number(formData.men) : ''),
         vat_exempt: isContractorItem ? false : !!formData.vat_exempt,
         notes: formData.notes || '',
         ...(isContractorItem ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {})
@@ -160,9 +165,10 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     setEditingId(c.id);
     setForm({
       category: c.category, supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '', description: c.description,
-      reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', site_asset_id: c.site_asset_id || '', po_number: c.po_number || '',
-      start_date: c.start_date || '', end_date: c.end_date || '',
-      unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
+      reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', site_asset_id: c.site_asset_id || '',
+      po_number: c.po_number || '', order_slip_url: c.order_slip_url || '', order_slip_name: c.order_slip_name || '',
+      rate_card_item_id: c.rate_card_item_id || '', start_date: c.start_date || '', end_date: c.end_date || '',
+      unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'), men: c.men ? String(c.men) : '',
       unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt, notes: c.notes || ''
     });
     setAdding(true);

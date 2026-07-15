@@ -16,7 +16,7 @@
         "client_supplied"
       ],
       "default": "hired_equipment",
-      "description": "How this item reaches site. 'internal_equipment' = owned by you (synced from Asset Panda), 'hired_equipment' = hired from a supplier, 'purchased_equipment' = bought for the job, 'contractor_supplied' = supplied by the contractor (no cost/logistics), 'client_supplied' = supplied by the client and delivered to site (informational only \u2014 no cost or charge)."
+      "description": "How this item reaches site. 'internal_equipment' = owned by you (synced from Asset Panda), 'hired_equipment' = hired from a supplier, 'purchased_equipment' = bought for the job (requires PO number and order slip), 'contractor_supplied' = supplied by the contractor (no cost/logistics), 'client_supplied' = supplied by the client and delivered to site (informational only \u2014 no cost or charge)."
     },
     "supplier_id": {
       "type": "string",
@@ -48,7 +48,15 @@
     },
     "po_number": {
       "type": "string",
-      "description": "Purchase order number for this hire or purchase"
+      "description": "Purchase order number for this hire or purchase. Required when category is 'purchased_equipment'."
+    },
+    "order_slip_url": {
+      "type": "string",
+      "description": "URL of the uploaded order slip / purchase document. Required for purchased equipment to evidence the supplier order."
+    },
+    "order_slip_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded order slip."
     },
     "start_date": {
       "type": "string",
@@ -76,7 +84,7 @@
     },
     "men": {
       "type": "number",
-      "description": "Number of men in the crew (labour items only). When set, the total daily cost is calculated as unit_cost \u00d7 men for per-day items. Auto-filled from the linked RateCardItem."
+      "description": "Crew size auto-filled from the linked RateCardItem (labour items only). The total daily cost is calculated as unit_cost \u00d7 men for per-day items. Not manually editable \u2014 sourced from the rate card."
     },
     "vat_exempt": {
       "type": "boolean",
