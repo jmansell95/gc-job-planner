@@ -327,7 +327,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
           {canSeeCosts && !adding && (
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition">
-                <Plus className="w-3.5 h-3.5" /> Add equipment
+                <Plus className="w-3.5 h-3.5" /> Add Equipment
               </button>
               {presets.length > 0 && (
                 <select value="" onChange={applyPreset} disabled={applyingPreset} className="text-xs px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white text-emerald-700 font-medium hover:bg-emerald-50 cursor-pointer disabled:opacity-50">
