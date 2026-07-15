@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch all SiteAssets in this app
-    const siteAssets = await base44.asServiceRole.entities.SiteAsset.list();
+    const siteAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
 
     // === Helpers for Equipment records ===
 
@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
     }
 
     // === Sync linked equipment — group equipment records by rig_id ===
-    const freshSiteAssets = await base44.asServiceRole.entities.SiteAsset.list();
+    const freshSiteAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
     let linksUpdated = 0;
 
     const equipmentByRigId = {};

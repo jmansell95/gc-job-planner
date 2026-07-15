@@ -37,7 +37,7 @@ export default function SiteAssetManager() {
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
-    queryFn: () => base44.entities.SiteAsset.list(),
+    queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
   });
 
   const handleEdit = (asset) => {

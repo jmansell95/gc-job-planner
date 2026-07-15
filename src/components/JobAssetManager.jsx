@@ -56,7 +56,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
 
   const { data: assets = [] } = useQuery({
     queryKey: ['site-assets'],
-    queryFn: () => base44.entities.SiteAsset.list(),
+    queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
   });
 
   const { data: profile } = useQuery({

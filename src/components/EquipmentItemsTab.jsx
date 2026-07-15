@@ -45,7 +45,7 @@ export default function EquipmentItemsTab() {
     }
   });
   const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers-catalogue'], queryFn: () => base44.entities.Supplier.list() });
-  const { data: assets = [] } = useQuery({ queryKey: ['site-assets-catalogue'], queryFn: () => base44.entities.SiteAsset.list() });
+  const { data: assets = [] } = useQuery({ queryKey: ['site-assets-catalogue'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
 
   const catalogueByAssetId = (assetId) => items.find(i => i.site_asset_id === assetId);
   const linkedItems = (item) => (item.linked_catalogue_ids || []).map(id => items.find(i => i.id === id)).filter(Boolean);

@@ -40,7 +40,7 @@ export default function CostPresetManager() {
   });
 
   const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: () => base44.entities.Supplier.list() });
-  const { data: assets = [] } = useQuery({ queryKey: ['site-assets-presets'], queryFn: () => base44.entities.SiteAsset.list() });
+  const { data: assets = [] } = useQuery({ queryKey: ['site-assets-presets'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
   const { data: rateCardItems = [] } = useQuery({ queryKey: ['rate-card-items-presets'], queryFn: () => base44.entities.RateCardItem.list('-created_date', 500) });
 
   const { data: allItems = [] } = useQuery({
