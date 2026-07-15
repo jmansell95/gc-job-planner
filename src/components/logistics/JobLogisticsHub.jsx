@@ -223,6 +223,31 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     setApplyingPreset(false);
   };
 
+  // Match a rig catalogue item to its RateCardItem (Our Rate Card).
+  // 1. Explicit link via rate_card_item_id (set in Equipment Library settings).
+  // 2. Auto-match by rig model number against Rotary/Cable Percussive Crew entries.
+  // 3. Fall back to the catalogue default_unit_cost.
+  const findRigRateCardItem = (rig) => {
+    if (rig.rate_card_item_id) {
+      const linked = rateCardItems.find(r => r.id === rig.rate_card_item_id);
+      if (linked) return linked;
+    }
+    const asset = rig.site_asset_id ? assetMap[rig.site_asset_id] : null;
+    const rigType = asset?.rig_type;
+    const numMatch = (rig.description || '').match(/(\d{2,4})/);
+    if (!numMatch) return null;
+    const num = numMatch[1];
+    const subcats = rigType === 'rotary' ? ['Rotary Crews']
+      : rigType === 'cp' ? ['Cable Percussive Crews']
+      : ['Rotary Crews', 'Cable Percussive Crews'];
+    return rateCardItems.find(r =>
+      r.category === 'labour' &&
+      subcats.includes(r.subcategory) &&
+      (r.description || '').includes(num) &&
+      !/additional|3rd|enabling/i.test(r.description || '')
+    );
+  };
+
   const addRigWithGear = async (catId) => {
     if (!catId) return;
     setAddingRigGear(true);
@@ -230,14 +255,16 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       const rig = catalogueItems.find(c => c.id === catId);
       if (!rig) return;
       const gear = (rig.linked_catalogue_ids || []).map(id => catalogueItems.find(c => c.id === id)).filter(Boolean);
-      // One combined day rate for the rig + its linked gear (gear items are £0 — included in the rig rate)
-      const combinedDayRate = (Number(rig.default_unit_cost) || 0) + gear.reduce((s, g) => s + (Number(g.default_unit_cost) || 0), 0);
+      // Pull the day rate from Our Rate Card; gear items are £0 (included in the rig rate)
+      const rateCardItem = findRigRateCardItem(rig);
+      const rigDayRate = rateCardItem ? (Number(rateCardItem.price) || 0) : (Number(rig.default_unit_cost) || 0);
+      const rigUnit = rateCardItem?.unit || rig.default_unit_label || 'day';
       const payload = [
         { job_id: jobId, category: rig.category, supplier_id: rig.default_supplier_id || '', description: rig.description,
           reference_number: rig.reference_number || '', responsible_person: rig.responsible_person || '', site_asset_id: rig.site_asset_id || '',
-          po_number: '', start_date: '', end_date: '', unit_cost: combinedDayRate,
-          quantity: 1, unit_label: rig.default_unit_label || 'day', vat_exempt: !!rig.default_vat_exempt,
-          hire_status: 'active', current_location: 'yard', notes: `Combined day rate — includes ${gear.length} linked gear item(s)` },
+          rate_card_item_id: rateCardItem?.id || '', po_number: '', start_date: '', end_date: '', unit_cost: rigDayRate,
+          quantity: 1, unit_label: rigUnit, vat_exempt: !!rig.default_vat_exempt,
+          hire_status: 'active', current_location: 'yard', notes: rateCardItem ? `Day rate from Our Rate Card — includes ${gear.length} linked gear item(s)` : `Combined day rate — includes ${gear.length} linked gear item(s)` },
         ...gear.map(g => ({
           job_id: jobId, category: g.category, supplier_id: g.default_supplier_id || '', description: g.description,
           reference_number: g.reference_number || '', responsible_person: g.responsible_person || '', site_asset_id: g.site_asset_id || '',
@@ -248,7 +275,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       await base44.entities.JobCostItem.bulkCreate(payload);
       queryClient.invalidateQueries({ queryKey: ['job-cost-items', jobId] });
       queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', jobId] });
-      toast({ title: `Added ${rig.description}`, description: `Rig + ${gear.length} gear items · ${fmt(combinedDayRate)}/day combined rate.` });
+      toast({ title: `Added ${rig.description}`, description: `Rig + ${gear.length} gear items · ${fmt(rigDayRate)}/${rigUnit} rate from Our Rate Card.` });
       setShowRigPicker(false);
     } catch (err) { console.error(err); toast({ title: 'Error', description: 'Could not add rig and gear.' }); }
     setAddingRigGear(false);
@@ -470,7 +497,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       )}
 
       {showRigPicker && (
-        <RigGearPickerModal rigsWithGear={rigsWithGear} catalogueItems={catalogueItems}
+        <RigGearPickerModal rigsWithGear={rigsWithGear} catalogueItems={catalogueItems} rateCardItems={rateCardItems}
           onAdd={addRigWithGear} onClose={() => setShowRigPicker(false)} adding={addingRigGear} />
       )}
 
