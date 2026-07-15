@@ -227,9 +227,10 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   };
 
   // Match a rig catalogue item to its RateCardItem (Our Rate Card).
-  // 1. Explicit link via rate_card_item_id (set in Equipment Library settings).
-  // 2. Auto-match by rig model number against Rotary/Cable Percussive Crew entries.
-  // 3. Fall back to the catalogue default_unit_cost.
+  // 1. Explicit link via rate_card_item_id (set in Equipment Library settings or by sync).
+  // 2. CP rigs — match by type (cutdown vs standard), since rate card has no model numbers.
+  // 3. Rotary rigs — auto-match by rig model number against Rotary Crew entries.
+  // 4. Fall back to the catalogue default_unit_cost.
   const findRigRateCardItem = (rig) => {
     if (rig.rate_card_item_id) {
       const linked = rateCardItems.find(r => r.id === rig.rate_card_item_id);
@@ -237,18 +238,49 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     }
     const asset = rig.site_asset_id ? assetMap[rig.site_asset_id] : null;
     const rigType = asset?.rig_type;
-    const numMatch = (rig.description || '').match(/(\d{2,4})/);
-    if (!numMatch) return null;
-    const num = numMatch[1];
-    const subcats = rigType === 'rotary' ? ['Rotary Crews']
-      : rigType === 'cp' ? ['Cable Percussive Crews']
-      : ['Rotary Crews', 'Cable Percussive Crews'];
-    return rateCardItems.find(r =>
-      r.category === 'labour' &&
-      subcats.includes(r.subcategory) &&
-      (r.description || '').includes(num) &&
-      !/additional|3rd|enabling/i.test(r.description || '')
-    );
+    const desc = String(rig.description || '').toLowerCase();
+    const isCutdown = /cut\s*down|cutdown/i.test(desc);
+
+    // CP rigs — rate card entries have no model numbers, match by type
+    const looksCp = rigType === 'cp' || ((!rigType || rigType === 'n/a') && (isCutdown || /dando|percussive|cable/i.test(desc)));
+    if (looksCp) {
+      if (isCutdown) {
+        const isElectric = /electric/i.test(desc);
+        const cutdown = rateCardItems.find(r =>
+          r.subcategory === 'Cable Percussive Crews' &&
+          /cutdown/i.test(r.description) &&
+          !/enabling/i.test(r.description) &&
+          (isElectric ? /electric/i.test(r.description) : /diesel/i.test(r.description))
+        );
+        if (cutdown) return cutdown;
+        const anyCutdown = rateCardItems.find(r =>
+          r.subcategory === 'Cable Percussive Crews' &&
+          /cutdown/i.test(r.description) &&
+          !/enabling/i.test(r.description)
+        );
+        if (anyCutdown) return anyCutdown;
+      }
+      const cpCrew = rateCardItems.find(r =>
+        r.subcategory === 'Cable Percussive Crews' &&
+        /^cable percussive crew$/i.test(String(r.description || '').trim())
+      );
+      if (cpCrew) return cpCrew;
+    }
+
+    // Rotary rigs — match by model number in description
+    const numMatch = desc.match(/(\d{2,4})/);
+    if (numMatch) {
+      const num = numMatch[1];
+      const match = rateCardItems.find(r =>
+        r.category === 'labour' &&
+        r.subcategory === 'Rotary Crews' &&
+        (r.description || '').includes(num) &&
+        !/additional|3rd|enabling/i.test(r.description || '')
+      );
+      if (match) return match;
+    }
+
+    return null;
   };
 
   const addRigWithGear = async (catId) => {
@@ -500,7 +532,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       )}
 
       {showRigPicker && (
-        <RigGearPickerModal rigs={allRigs} catalogueItems={catalogueItems} rateCardItems={rateCardItems}
+        <RigGearPickerModal rigs={allRigs} catalogueItems={catalogueItems} rateCardItems={rateCardItems} assetMap={assetMap}
           onAdd={addRigWithGear} onClose={() => setShowRigPicker(false)} adding={addingRigGear} />
       )}
 

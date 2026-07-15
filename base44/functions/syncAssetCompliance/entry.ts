@@ -378,6 +378,82 @@ Deno.serve(async (req) => {
       }
     }
 
+    // === Auto-link rig catalogue entries to Our Rate Card items and set day rate ===
+    let rateCardLinksSet = 0;
+    let rateCardCostsSet = 0;
+    const rateCardItems = await base44.asServiceRole.entities.RateCardItem.filter({ category: 'labour' });
+
+    const matchRigRateCard = (rigCat, asset) => {
+      // 1. Explicit link already set — respect it
+      if (rigCat.rate_card_item_id) {
+        const linked = rateCardItems.find(r => r.id === rigCat.rate_card_item_id);
+        if (linked) return linked;
+      }
+      const rigType = asset?.rig_type;
+      const desc = String(rigCat.description || '').toLowerCase();
+      const isCutdown = /cut\s*down|cutdown/i.test(desc);
+
+      // 2. CP rigs — rate card entries have no model numbers, match by type
+      const looksCp = rigType === 'cp' || ((!rigType || rigType === 'n/a') && (isCutdown || /dando|percussive|cable/i.test(desc)));
+      if (looksCp) {
+        if (isCutdown) {
+          const isElectric = /electric/i.test(desc);
+          const cutdown = rateCardItems.find(r =>
+            r.subcategory === 'Cable Percussive Crews' &&
+            /cutdown/i.test(r.description) &&
+            !/enabling/i.test(r.description) &&
+            (isElectric ? /electric/i.test(r.description) : /diesel/i.test(r.description))
+          );
+          if (cutdown) return cutdown;
+          // Fallback to any cutdown crew
+          const anyCutdown = rateCardItems.find(r =>
+            r.subcategory === 'Cable Percussive Crews' &&
+            /cutdown/i.test(r.description) &&
+            !/enabling/i.test(r.description)
+          );
+          if (anyCutdown) return anyCutdown;
+        }
+        // Standard CP crew (exact: "Cable Percussive Crew")
+        const cpCrew = rateCardItems.find(r =>
+          r.subcategory === 'Cable Percussive Crews' &&
+          /^cable percussive crew$/i.test(String(r.description || '').trim())
+        );
+        if (cpCrew) return cpCrew;
+      }
+
+      // 3. Rotary rigs — match by model number in description
+      const numMatch = desc.match(/(\d{2,4})/);
+      if (numMatch) {
+        const num = numMatch[1];
+        const match = rateCardItems.find(r =>
+          r.category === 'labour' &&
+          r.subcategory === 'Rotary Crews' &&
+          (r.description || '').includes(num) &&
+          !/additional|3rd|enabling/i.test(r.description || '')
+        );
+        if (match) return match;
+      }
+
+      return null;
+    };
+
+    for (const c of allCatalogue) {
+      const asset = c.site_asset_id ? freshSiteAssets.find(a => a.id === c.site_asset_id) : null;
+      if (!asset || asset.asset_type !== 'rig') continue;
+
+      const rateCardItem = matchRigRateCard(c, asset);
+      if (rateCardItem) {
+        const needsLink = c.rate_card_item_id !== rateCardItem.id;
+        const needsCost = (Number(c.default_unit_cost) || 0) === 0;
+        if (needsLink || needsCost) {
+          const update = {};
+          if (needsLink) { update.rate_card_item_id = rateCardItem.id; rateCardLinksSet++; }
+          if (needsCost) { update.default_unit_cost = Number(rateCardItem.price) || 0; rateCardCostsSet++; }
+          await base44.asServiceRole.entities.EquipmentCatalogue.update(c.id, update);
+        }
+      }
+    }
+
     return Response.json({
       success: true,
       total_equipment_records: equipmentRecords.length,
@@ -390,6 +466,8 @@ Deno.serve(async (req) => {
       links_updated: linksUpdated,
       catalogue_created: catalogueCreated,
       catalogue_links_updated: catalogueLinksUpdated,
+      rate_card_links_set: rateCardLinksSet,
+      rate_card_costs_set: rateCardCostsSet,
       unmatched_assets: unmatchedAssets,
       synced_at: now,
     });
