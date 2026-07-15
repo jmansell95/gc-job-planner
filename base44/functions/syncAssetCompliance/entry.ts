@@ -309,6 +309,75 @@ Deno.serve(async (req) => {
       }
     }
 
+    // === Auto-provision EquipmentCatalogue entries for SiteAssets not yet in the catalogue ===
+    let catalogueCreated = 0;
+    let catalogueLinksUpdated = 0;
+
+    const existingCatalogue = await base44.asServiceRole.entities.EquipmentCatalogue.list('-created_date', 500);
+    const catByAssetId = {};
+    for (const c of existingCatalogue) {
+      if (c.site_asset_id) catByAssetId[c.site_asset_id] = c;
+    }
+
+    const importableTypes = ['rig', 'machinery', 'trailer', 'lifting'];
+    const newCatalogueEntries = [];
+    for (const a of freshSiteAssets) {
+      if (a.is_active === false) continue;
+      if (!importableTypes.includes(a.asset_type)) continue;
+      if (catByAssetId[a.id]) continue;
+      newCatalogueEntries.push({
+        description: a.name,
+        category: 'internal_equipment',
+        default_supplier_id: '',
+        default_unit_cost: 0,
+        default_unit_label: 'day',
+        default_vat_exempt: false,
+        reference_number: a.serial_number || '',
+        responsible_person: a.responsible_person || '',
+        site_asset_id: a.id,
+        is_active: true,
+      });
+    }
+
+    let allCatalogue = existingCatalogue;
+    if (newCatalogueEntries.length > 0) {
+      try {
+        const createdCat = await base44.asServiceRole.entities.EquipmentCatalogue.bulkCreate(newCatalogueEntries);
+        catalogueCreated = createdCat.length;
+        allCatalogue = [...existingCatalogue, ...createdCat];
+      } catch (catCreateErr) {
+        console.error('Error creating catalogue entries:', catCreateErr.message);
+      }
+    }
+
+    // Rebuild map with any newly created entries
+    const catByAssetIdFresh = {};
+    for (const c of allCatalogue) {
+      if (c.site_asset_id) catByAssetIdFresh[c.site_asset_id] = c;
+    }
+
+    // === Sync linked_catalogue_ids on rig catalogue items from SiteAsset linked_equipment_ids ===
+    for (const a of freshSiteAssets) {
+      if (a.asset_type !== 'rig') continue;
+      if (!a.linked_equipment_ids || a.linked_equipment_ids.length === 0) continue;
+      const rigCat = catByAssetIdFresh[a.id];
+      if (!rigCat) continue;
+
+      const linkedCatIds = a.linked_equipment_ids
+        .map(lid => catByAssetIdFresh[lid]?.id)
+        .filter(Boolean);
+
+      const current = rigCat.linked_catalogue_ids || [];
+      const currentSet = new Set(current);
+      const needsUpdate = linkedCatIds.some(id => !currentSet.has(id)) || linkedCatIds.length !== current.length;
+      if (needsUpdate && linkedCatIds.length > 0) {
+        await base44.asServiceRole.entities.EquipmentCatalogue.update(rigCat.id, {
+          linked_catalogue_ids: linkedCatIds,
+        });
+        catalogueLinksUpdated++;
+      }
+    }
+
     return Response.json({
       success: true,
       total_equipment_records: equipmentRecords.length,
@@ -319,6 +388,8 @@ Deno.serve(async (req) => {
       rigs_synced: rigsSynced,
       rigs_created: rigsCreated,
       links_updated: linksUpdated,
+      catalogue_created: catalogueCreated,
+      catalogue_links_updated: catalogueLinksUpdated,
       unmatched_assets: unmatchedAssets,
       synced_at: now,
     });

@@ -104,7 +104,10 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     return acc;
   }, {});
 
-  const rigsWithGear = catalogueItems.filter(c => (c.linked_catalogue_ids || []).length > 0);
+  const allRigs = catalogueItems.filter(c => {
+    const linkedAsset = c.site_asset_id ? assetMap[c.site_asset_id] : null;
+    return linkedAsset?.asset_type === 'rig';
+  });
   const formCatalogueItems = catalogueItems.filter(c => {
     const linkedAsset = c.site_asset_id ? assetMap[c.site_asset_id] : null;
     if (linkedAsset?.asset_type === 'rig') return false;
@@ -362,7 +365,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
                   {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               )}
-              {isDrillingJob && rigsWithGear.length > 0 && (
+              {isDrillingJob && allRigs.length > 0 && (
                 <button onClick={() => setShowRigPicker(true)} disabled={addingRigGear} className="inline-flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 font-medium px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition disabled:opacity-50">
                   <Plus className="w-3.5 h-3.5" /> Add Rig & Gear
                 </button>
@@ -497,7 +500,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       )}
 
       {showRigPicker && (
-        <RigGearPickerModal rigsWithGear={rigsWithGear} catalogueItems={catalogueItems} rateCardItems={rateCardItems}
+        <RigGearPickerModal rigs={allRigs} catalogueItems={catalogueItems} rateCardItems={rateCardItems}
           onAdd={addRigWithGear} onClose={() => setShowRigPicker(false)} adding={addingRigGear} />
       )}
 

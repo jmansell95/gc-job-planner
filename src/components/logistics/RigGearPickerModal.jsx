@@ -20,7 +20,7 @@ const findRigRateCardItem = (rig, rateCardItems = []) => {
   );
 };
 
-export default function RigGearPickerModal({ rigsWithGear = [], catalogueItems = [], rateCardItems = [], onAdd, onClose, adding = false }) {
+export default function RigGearPickerModal({ rigs = [], catalogueItems = [], rateCardItems = [], onAdd, onClose, adding = false }) {
   const [selectedRig, setSelectedRig] = useState(null);
 
   const handleAdd = () => {
@@ -42,7 +42,7 @@ export default function RigGearPickerModal({ rigsWithGear = [], catalogueItems =
         </div>
         <div className="p-5 space-y-3">
           <p className="text-sm text-slate-500">Select a rig to add it and all its linked gear to the job. The day rate is pulled automatically from Our Rate Card — gear items are included at no extra cost.</p>
-          {rigsWithGear.map(rig => {
+          {rigs.map(rig => {
             const gear = (rig.linked_catalogue_ids || []).map(id => catalogueItems.find(c => c.id === id)).filter(Boolean);
             const isSelected = selectedRig === rig.id;
             const rateCardItem = findRigRateCardItem(rig, rateCardItems);
@@ -54,20 +54,29 @@ export default function RigGearPickerModal({ rigsWithGear = [], catalogueItems =
                 <div className="flex items-center gap-2 mb-1">
                   <Layers className={`w-4 h-4 flex-shrink-0 ${isSelected ? 'text-blue-700' : 'text-slate-400'}`} />
                   <p className="text-sm font-bold text-slate-900 flex-1 truncate">{rig.description}</p>
+                  {rig.reference_number && <span className="text-[10px] text-slate-400 font-normal truncate">{rig.reference_number}</span>}
                   {rateCardItem && <span className="text-[10px] font-medium text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full flex-shrink-0">Rate Card</span>}
                   {isSelected && <Check className="w-4 h-4 text-blue-700 flex-shrink-0" />}
                 </div>
                 <div className="ml-6 space-y-0.5">
-                  {gear.map(g => (
-                    <div key={g.id} className="flex items-center gap-1.5 text-xs text-slate-500">
+                  {gear.length === 0 ? (
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400 italic">
                       <Package className="w-3 h-3 text-slate-300 flex-shrink-0" />
-                      <span className="truncate">{g.description}</span>
-                      <span className="text-slate-400 ml-auto flex-shrink-0">included</span>
+                      <span>No linked gear yet — add links in GC Compliance Manager and sync</span>
                     </div>
-                  ))}
+                  ) : (
+                    gear.map(g => (
+                      <div key={g.id} className="flex items-center gap-1.5 text-xs text-slate-500">
+                        <Package className="w-3 h-3 text-slate-300 flex-shrink-0" />
+                        <span className="truncate">{g.description}</span>
+                        {g.reference_number && <span className="text-slate-400 flex-shrink-0">({g.reference_number})</span>}
+                        <span className="text-slate-400 ml-auto flex-shrink-0">included</span>
+                      </div>
+                    ))
+                  )}
                 </div>
                 <div className="ml-6 mt-1.5 flex items-center gap-2 text-xs">
-                  <span className="text-slate-400">{gear.length} gear items included</span>
+                  <span className="text-slate-400">{gear.length} gear item{gear.length !== 1 ? 's' : ''} included</span>
                   <span className="text-slate-300">·</span>
                   <span className="font-semibold text-blue-700">{fmt(dayRate)} / {unit}</span>
                   {rateCardItem && <span className="text-slate-400 truncate">({rateCardItem.description})</span>}
