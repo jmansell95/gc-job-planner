@@ -24,7 +24,7 @@ export default function RigGearPickerModal({ rigsWithGear = [], catalogueItems =
           </button>
         </div>
         <div className="p-5 space-y-3">
-          <p className="text-sm text-slate-500">Select a rig to add it and all its linked gear to the job. The rig and gear will be grouped together as an assembly.</p>
+          <p className="text-sm text-slate-500">Select a rig to add it and all its linked gear to the job. One combined day rate is charged for the whole assembly — gear items are included at no extra cost.</p>
           {rigsWithGear.map(rig => {
             const gear = (rig.linked_catalogue_ids || []).map(id => catalogueItems.find(c => c.id === id)).filter(Boolean);
             const isSelected = selectedRig === rig.id;
@@ -47,9 +47,9 @@ export default function RigGearPickerModal({ rigsWithGear = [], catalogueItems =
                   ))}
                 </div>
                 <div className="ml-6 mt-1.5 flex items-center gap-2 text-xs">
-                  <span className="text-slate-400">{gear.length + 1} items total</span>
+                  <span className="text-slate-400">{gear.length} gear items included</span>
                   <span className="text-slate-300">·</span>
-                  <span className="font-semibold text-slate-600">{fmt(totalCost)} / day</span>
+                  <span className="font-semibold text-blue-700">{fmt(totalCost)} / day (combined rig rate)</span>
                 </div>
               </button>
             );

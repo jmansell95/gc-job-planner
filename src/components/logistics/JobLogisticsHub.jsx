@@ -156,6 +156,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       else { await base44.entities.JobCostItem.create(payload); }
       queryClient.invalidateQueries({ queryKey: ['job-cost-items', jobId] });
       queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', jobId] });
+      toast({ title: editingId ? 'Item updated' : 'Item added', description: payload.description });
       setAdding(false); setEditingId(null); setForm(blankForm());
     } catch (err) { console.error(err); toast({ title: 'Error', description: 'Could not save item.' }); }
     setSavingItem(false);
@@ -229,23 +230,25 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       const rig = catalogueItems.find(c => c.id === catId);
       if (!rig) return;
       const gear = (rig.linked_catalogue_ids || []).map(id => catalogueItems.find(c => c.id === id)).filter(Boolean);
+      // One combined day rate for the rig + its linked gear (gear items are £0 — included in the rig rate)
+      const combinedDayRate = (Number(rig.default_unit_cost) || 0) + gear.reduce((s, g) => s + (Number(g.default_unit_cost) || 0), 0);
       const payload = [
         { job_id: jobId, category: rig.category, supplier_id: rig.default_supplier_id || '', description: rig.description,
           reference_number: rig.reference_number || '', responsible_person: rig.responsible_person || '', site_asset_id: rig.site_asset_id || '',
-          po_number: '', start_date: '', end_date: '', unit_cost: Number(rig.default_unit_cost) || 0,
+          po_number: '', start_date: '', end_date: '', unit_cost: combinedDayRate,
           quantity: 1, unit_label: rig.default_unit_label || 'day', vat_exempt: !!rig.default_vat_exempt,
-          hire_status: 'active', current_location: 'yard', notes: '' },
+          hire_status: 'active', current_location: 'yard', notes: `Combined day rate — includes ${gear.length} linked gear item(s)` },
         ...gear.map(g => ({
           job_id: jobId, category: g.category, supplier_id: g.default_supplier_id || '', description: g.description,
           reference_number: g.reference_number || '', responsible_person: g.responsible_person || '', site_asset_id: g.site_asset_id || '',
-          po_number: '', start_date: '', end_date: '', unit_cost: Number(g.default_unit_cost) || 0,
+          po_number: '', start_date: '', end_date: '', unit_cost: 0,
           quantity: 1, unit_label: g.default_unit_label || 'day', vat_exempt: !!g.default_vat_exempt,
-          hire_status: 'active', current_location: 'yard', notes: '' }))
+          hire_status: 'active', current_location: 'yard', notes: 'Included in rig day rate' }))
       ];
       await base44.entities.JobCostItem.bulkCreate(payload);
       queryClient.invalidateQueries({ queryKey: ['job-cost-items', jobId] });
       queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', jobId] });
-      toast({ title: `Added ${payload.length} items`, description: `${rig.description} + ${gear.length} linked items.` });
+      toast({ title: `Added ${rig.description}`, description: `Rig + ${gear.length} gear items · ${fmt(combinedDayRate)}/day combined rate.` });
       setShowRigPicker(false);
     } catch (err) { console.error(err); toast({ title: 'Error', description: 'Could not add rig and gear.' }); }
     setAddingRigGear(false);

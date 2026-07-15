@@ -83,6 +83,24 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
     });
   };
 
+  const pickFromCatalogue = (id) => {
+    if (!id) return;
+    const item = (catalogueItems || []).find(c => c.id === id);
+    if (!item) return;
+    setForm({
+      ...form,
+      category: item.category || form.category,
+      description: item.description || form.description,
+      reference_number: item.reference_number || form.reference_number,
+      responsible_person: item.responsible_person || form.responsible_person,
+      site_asset_id: item.site_asset_id || form.site_asset_id,
+      supplier_id: item.default_supplier_id || form.supplier_id,
+      unit_cost: String(item.default_unit_cost ?? ''),
+      unit_label: item.default_unit_label || form.unit_label || 'day',
+      vat_exempt: !!item.default_vat_exempt,
+    });
+  };
+
   // Validation per step
   const stepValid = useMemo(() => {
     if (step === 1) {
@@ -214,6 +232,23 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
               })}
             </div>
           </div>
+
+          {/* Equipment catalogue picker */}
+          {!isNoCost && (catalogueItems || []).length > 0 && !isSynced && (
+            <div>
+              <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
+                <Package className="w-3 h-3 text-emerald-700" /> Pick from equipment catalogue
+              </label>
+              <select value="" onChange={(e) => { pickFromCatalogue(e.target.value); e.target.value = ''; }} className={inputCls}>
+                <option value="">Select a catalogue item to auto-fill…</option>
+                {catalogueItems.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.description}{c.default_unit_cost ? ` · ${fmt(c.default_unit_cost)}/${c.default_unit_label || 'day'}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Source selection */}
           {isContractorSupplied && (
