@@ -37,7 +37,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   const { data: siteAssets = [] } = useQuery({ queryKey: ['site-assets-logistics'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
   const { data: catalogueItems = [] } = useQuery({
     queryKey: ['equipment-catalogue-active'],
-    queryFn: async () => { const list = await base44.entities.EquipmentCatalogue.filter({ is_active: true }); return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0) || (a.description || '').localeCompare(b.description || '')); }
+    queryFn: async () => { const list = await base44.entities.EquipmentCatalogue.filter({ is_active: true }, '-created_date', 500); return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0) || (a.description || '').localeCompare(b.description || '')); }
   });
   const { data: presets = [] } = useQuery({
     queryKey: ['cost-presets-active'],

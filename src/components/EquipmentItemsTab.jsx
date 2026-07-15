@@ -40,7 +40,7 @@ export default function EquipmentItemsTab() {
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['equipment-catalogue'],
     queryFn: async () => {
-      const list = await base44.entities.EquipmentCatalogue.list();
+      const list = await base44.entities.EquipmentCatalogue.list('-created_date', 500);
       return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0) || (a.description || '').localeCompare(b.description || ''));
     }
   });
