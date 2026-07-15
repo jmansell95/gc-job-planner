@@ -55,6 +55,10 @@
       "default": [],
       "description": "IDs of other EquipmentCatalogue items linked to this rig (lifting gear, trailers, machinery) \u2014 shown when adding to a job for quick bulk assignment as a set"
     },
+    "rate_card_item_id": {
+      "type": "string",
+      "description": "Linked RateCardItem from the Master Price List \u2014 for rigs this pulls the crew day rate automatically when the rig is added to a job. If blank, the system auto-matches by rig model number against the rate card crew entries."
+    },
     "is_active": {
       "type": "boolean",
       "default": true,
