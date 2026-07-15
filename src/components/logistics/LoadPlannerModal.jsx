@@ -30,6 +30,14 @@ export default function LoadPlannerModal({ selectedItems = [], staff = [], vehic
   const [contactPhone, setContactPhone] = useState(job?.site_contact_phone || '');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [useJobAddress, setUseJobAddress] = useState(true);
+
+  const jobLocation = job?.location || '';
+  const jobContactName = job?.site_contact_name || '';
+  const jobContactPhone = job?.site_contact_phone || '';
+  const effectiveDeliveryAddress = useJobAddress ? jobLocation : deliveryAddress;
+  const effectiveContactName = useJobAddress ? jobContactName : contactName;
+  const effectiveContactPhone = useJobAddress ? jobContactPhone : contactPhone;
 
   const selectedVehicle = vehicles.find(v => v.id === vehicleId);
   const totalWeight = selectedItems.reduce((s, i) => s + (Number(i.weight_kg) || 0), 0);
@@ -39,10 +47,10 @@ export default function LoadPlannerModal({ selectedItems = [], staff = [], vehic
   const overWeight = selectedVehicle?.max_weight_kg && totalWeight > selectedVehicle.max_weight_kg;
   const overVolume = selectedVehicle?.max_volume_m3 && totalVolume > selectedVehicle.max_volume_m3;
 
-  const mapsLink = pickupAddress && deliveryAddress
-    ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(pickupAddress)}&destination=${encodeURIComponent(deliveryAddress)}`
-    : deliveryAddress
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deliveryAddress)}`
+  const mapsLink = pickupAddress && effectiveDeliveryAddress
+    ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(pickupAddress)}&destination=${encodeURIComponent(effectiveDeliveryAddress)}`
+    : effectiveDeliveryAddress
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(effectiveDeliveryAddress)}`
     : null;
 
   const handleSubmit = async () => {
@@ -63,9 +71,9 @@ export default function LoadPlannerModal({ selectedItems = [], staff = [], vehic
         items: itemsText,
         linked_cost_item_ids: itemIds.length > 0 ? itemIds.join(',') : '',
         pickup_address: pickupAddress,
-        delivery_address: deliveryAddress,
-        contact_name: contactName,
-        contact_phone: contactPhone,
+        delivery_address: effectiveDeliveryAddress,
+        contact_name: effectiveContactName,
+        contact_phone: effectiveContactPhone,
         scheduled_date: scheduledDate,
         vehicle_id: vehicleId,
         notes,
@@ -222,6 +230,10 @@ export default function LoadPlannerModal({ selectedItems = [], staff = [], vehic
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">4. Route & Contact</p>
             <div className="space-y-3">
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer select-none">
+                <input type="checkbox" checked={useJobAddress} onChange={e => setUseJobAddress(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                Use job location & contact details
+              </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1"><Navigation className="w-3 h-3" /> Pickup from</label>
@@ -229,7 +241,7 @@ export default function LoadPlannerModal({ selectedItems = [], staff = [], vehic
                 </div>
                 <div>
                   <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1"><MapPin className="w-3 h-3" /> Deliver to</label>
-                  <input type="text" value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} placeholder="Site address" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+                  <input type="text" value={effectiveDeliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} disabled={useJobAddress} placeholder="Site address" className={`w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 ${useJobAddress ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`} />
                 </div>
               </div>
               {mapsLink && (
@@ -240,11 +252,11 @@ export default function LoadPlannerModal({ selectedItems = [], staff = [], vehic
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Contact name</label>
-                  <input type="text" value={contactName} onChange={e => setContactName(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+                  <input type="text" value={effectiveContactName} onChange={e => setContactName(e.target.value)} disabled={useJobAddress} className={`w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 ${useJobAddress ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`} />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600 mb-1">Contact phone</label>
-                  <input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+                  <input type="tel" value={effectiveContactPhone} onChange={e => setContactPhone(e.target.value)} disabled={useJobAddress} className={`w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 ${useJobAddress ? 'bg-slate-50 text-slate-500 cursor-not-allowed' : ''}`} />
                 </div>
               </div>
               <div>
