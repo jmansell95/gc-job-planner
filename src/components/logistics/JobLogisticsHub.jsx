@@ -46,6 +46,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   const { data: fetchedSuppliers = [] } = useQuery({ queryKey: ['suppliers-logistics'], queryFn: () => base44.entities.Supplier.list(), enabled: !externalSuppliers || externalSuppliers.length === 0 });
   const suppliers = externalSuppliers.length > 0 ? externalSuppliers : fetchedSuppliers;
   const { data: rateCardItems = [] } = useQuery({ queryKey: ['rate-card-items-logistics'], queryFn: () => base44.entities.RateCardItem.list('-created_date', 500) });
+  const { data: equipmentCompliance = [] } = useQuery({ queryKey: ['equipment-compliance-logistics'], queryFn: () => base44.entities.ComplianceItem.filter({ category: 'equipment' }) });
   const ownedAssets = (siteAssets || []).filter(a => a.is_active && a.asset_type !== 'rig' && a.stock_level !== 'out_of_stock' && a.stock_level !== 'needs_service');
 
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -67,6 +68,13 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
 
   const assetMap = {};
   (siteAssets || []).forEach(a => { assetMap[a.id] = a; });
+  const complianceByAssetId = {};
+  (equipmentCompliance || []).forEach(ci => {
+    if (ci.reference_id) {
+      if (!complianceByAssetId[ci.reference_id]) complianceByAssetId[ci.reference_id] = [];
+      complianceByAssetId[ci.reference_id].push(ci);
+    }
+  });
 
   const activeItems = items.filter(c => (c.hire_status || 'active') !== 'off_hired');
   const returnedItems = items.filter(c => c.hire_status === 'off_hired');
@@ -468,7 +476,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
                   selectedIds={selectedIds} onToggleSelect={toggleSelect}
                   onEdit={editItem} onDeleteItem={deleteItem} onDeleteAssembly={deleteRigAssembly}
                   onOffHire={openOffHire} onLocationUpdate={updateLocation}
-                  updatingIds={updatingIds} assetMap={assetMap} />
+                  updatingIds={updatingIds} assetMap={assetMap} complianceByAssetId={complianceByAssetId} />
               ))}
               {Object.entries(personGroups).map(([person, personItems]) => (
                 <div key={person}>
@@ -485,7 +493,8 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
                         contractor={c.contractor_id ? contractors.find(ct => ct.id === c.contractor_id) : null}
                         linkedItems={[]} isUpdating={updatingIds.has(c.id)}
                         onEdit={editItem} onDelete={deleteItem} onOffHire={openOffHire} onLocationUpdate={updateLocation}
-                        canSelect={canSeeCosts} canEdit={canSeeCosts} showCost={canSeeCosts} />
+                        canSelect={canSeeCosts} canEdit={canSeeCosts} showCost={canSeeCosts}
+                        complianceItems={c.site_asset_id ? (complianceByAssetId[c.site_asset_id] || []) : []} />
                     ))}
                   </div>
                 </div>

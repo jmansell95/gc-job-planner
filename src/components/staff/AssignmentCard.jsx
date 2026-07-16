@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle, PauseCircle, AlertTriangle, Phone, Hotel, Navigation } from 'lucide-react';
 import { format } from 'date-fns';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
+import EquipmentComplianceSection from '@/components/staff/EquipmentComplianceSection';
 import { formatJobType } from '@/utils/format';
 import { isCheckInDeadlinePassed, isWithinSiteHours, isBeforeSiteOpen } from '@/utils/siteHours';
 
@@ -33,7 +34,7 @@ const statusConfig = {
   completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' }
 };
 
-export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange, tasksSubmitted = false, needsBriefing = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true, hotelBooking = null, onAdHocVisit }) {
+export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, meterage, onMeterageChange, tasksSubmitted = false, needsBriefing = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true, hotelBooking = null, onAdHocVisit, jobAssets = [], assetMap = {}, complianceItems = [] }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [progressNote, setProgressNote] = useState(assignment.progress_notes || '');
   const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
@@ -281,6 +282,20 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               {hotelBooking.notes && <p className="text-xs text-slate-500 mt-2 leading-relaxed">{hotelBooking.notes}</p>}
             </div>
           )}
+
+          {/* Equipment & Certificates */}
+          {jobAssets.length > 0 && (() => {
+            const assets = jobAssets.map(a => assetMap[a.asset_id] || a).filter(Boolean);
+            return (
+              <div className="bg-slate-50/60 rounded-xl border border-slate-200 p-3.5">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Equipment & Certificates</p>
+                </div>
+                <EquipmentComplianceSection assets={assets} complianceItems={complianceItems} />
+              </div>
+            );
+          })()}
 
           {/* Briefing status + photos */}
           <div className="pt-3 border-t border-slate-100 space-y-3">

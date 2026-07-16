@@ -25,7 +25,7 @@ const complianceConfig = {
   unknown: { label: 'Unknown', icon: ShieldCheck, badge: 'bg-slate-100 text-slate-500 border border-slate-200' },
 };
 
-export default function LogisticsItemRow({ item: c, isSelected, onToggleSelect, asset = null, supplier = null, contractor = null, linkedItems = [], isUpdating, onEdit, onDelete, onOffHire, onLocationUpdate, canSelect = true, canEdit = true, showCost = true }) {
+export default function LogisticsItemRow({ item: c, isSelected, onToggleSelect, asset = null, supplier = null, contractor = null, linkedItems = [], isUpdating, onEdit, onDelete, onOffHire, onLocationUpdate, canSelect = true, canEdit = true, showCost = true, complianceItems = [] }) {
   const [expanded, setExpanded] = useState(false);
   const isContractorItem = c.category === 'contractor_supplied';
   const loc = c.current_location || 'yard';
@@ -37,6 +37,7 @@ export default function LogisticsItemRow({ item: c, isSelected, onToggleSelect, 
   const ComplianceIcon = cb?.icon;
   const net = (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
   const hasLinked = linkedItems.length > 0;
+  const cert = complianceItems.find(ci => ci.document_url);
 
   return (
     <div className={`border rounded-lg p-3 transition ${hasLinked ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 bg-white'}`}>
@@ -80,6 +81,11 @@ export default function LogisticsItemRow({ item: c, isSelected, onToggleSelect, 
             {c.order_slip_url && (
               <a href={c.order_slip_url} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2 py-1 rounded-lg font-medium bg-purple-50 text-purple-700 hover:bg-purple-100 transition inline-flex items-center gap-0.5">
                 <FileText className="w-3 h-3" /> Order slip <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            )}
+            {cert && (
+              <a href={cert.document_url} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2 py-1 rounded-lg font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition inline-flex items-center gap-0.5">
+                <FileText className="w-3 h-3" /> Certificate <ExternalLink className="w-2.5 h-2.5" />
               </a>
             )}
             {hasLinked && (

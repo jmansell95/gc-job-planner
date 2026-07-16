@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, ChevronDown, ChevronUp, Layers, ShieldCheck, ShieldAlert, ShieldX, Truck, MapPin, PackageCheck, Warehouse, Loader2 } from 'lucide-react';
+import { Edit2, Trash2, ChevronDown, ChevronUp, Layers, ShieldCheck, ShieldAlert, ShieldX, Truck, MapPin, PackageCheck, Warehouse, Loader2, FileText, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import LogisticsItemRow from '@/components/logistics/LogisticsItemRow';
 
@@ -19,13 +19,14 @@ const gearLocConfig = {
   returned: { label: 'Returned', bg: 'bg-teal-50', color: 'text-teal-600', nextLoc: 'site', actionLabel: 'Revert', actionBg: 'text-slate-400 hover:text-slate-600' },
 };
 
-export default function RigAssemblyGroup({ rigItem, linkedItems, asset, suppliers, contractors, canSeeCosts, canEdit, selectedIds, onToggleSelect, onEdit, onDeleteItem, onDeleteAssembly, onOffHire, onLocationUpdate, updatingIds, assetMap }) {
+export default function RigAssemblyGroup({ rigItem, linkedItems, asset, suppliers, contractors, canSeeCosts, canEdit, selectedIds, onToggleSelect, onEdit, onDeleteItem, onDeleteAssembly, onOffHire, onLocationUpdate, updatingIds, assetMap, complianceByAssetId = {} }) {
   const [expanded, setExpanded] = useState(true);
   const assemblyTotal = (Number(rigItem.unit_cost) || 0) * (Number(rigItem.quantity) || 1) + linkedItems.reduce((s, li) => s + (Number(li.unit_cost) || 0) * (Number(li.quantity) || 1), 0);
   const rigAsset = rigItem.site_asset_id ? assetMap[rigItem.site_asset_id] : null;
   const complianceStatus = rigAsset?.compliance_status || 'unknown';
   const cb = complianceBadge[complianceStatus] || complianceBadge.unknown;
   const ComplianceIcon = cb.icon;
+  const rigCert = (rigItem.site_asset_id && complianceByAssetId[rigItem.site_asset_id] || []).find(ci => ci.document_url);
 
   return (
     <div className="border-2 border-blue-200 rounded-xl overflow-hidden bg-blue-50/20">
@@ -42,6 +43,12 @@ export default function RigAssemblyGroup({ rigItem, linkedItems, asset, supplier
             <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 ${cb.cls}`}>
               <ComplianceIcon className="w-2.5 h-2.5" /> {cb.label}
             </span>
+            {rigCert && (
+              <a href={rigCert.document_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 inline-flex items-center gap-0.5">
+                <FileText className="w-2.5 h-2.5" /> Cert <ExternalLink className="w-2 h-2" />
+              </a>
+            )}
           </div>
         </div>
         {canSeeCosts && (
@@ -76,6 +83,7 @@ export default function RigAssemblyGroup({ rigItem, linkedItems, asset, supplier
             canSelect={canSeeCosts}
             canEdit={canEdit}
             showCost={canSeeCosts}
+            complianceItems={rigItem.site_asset_id ? (complianceByAssetId[rigItem.site_asset_id] || []) : []}
           />
 
           {/* Linked gear rows */}
@@ -100,6 +108,15 @@ export default function RigAssemblyGroup({ rigItem, linkedItems, asset, supplier
                       <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${locCfg.bg} ${locCfg.color}`}>{locCfg.label}</span>
                       {li.reference_number && <span className="text-[9px] font-mono text-slate-400">Ref: {li.reference_number}</span>}
                       {li.po_number && <span className="text-[9px] font-mono text-emerald-600">PO: {li.po_number}</span>}
+                      {li.site_asset_id && complianceByAssetId[li.site_asset_id] && (() => {
+                        const cert = complianceByAssetId[li.site_asset_id].find(ci => ci.document_url);
+                        return cert ? (
+                          <a href={cert.document_url} target="_blank" rel="noopener noreferrer"
+                            className="text-[9px] px-1.5 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 inline-flex items-center gap-0.5">
+                            <FileText className="w-2.5 h-2.5" /> Cert <ExternalLink className="w-2 h-2" />
+                          </a>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
