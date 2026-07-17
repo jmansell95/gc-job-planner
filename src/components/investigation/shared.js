@@ -230,6 +230,7 @@ export function getAnomalyFlags(log) {
   if (log.coring_rqd != null && log.coring_rqd < 25) flags.push('Low RQD');
   if (log.pit_stability_rating === 'collapse') flags.push('Pit collapse reported');
   if (log.service_encounter_type && log.service_encounter_type !== 'none' && !log.service_encounter_gps) flags.push('Service found without GPS');
+  if (log.service_encounter_type && log.service_encounter_type !== 'none' && log.service_check_by_type && log.service_check_by_type !== 'internal_staff' && !log.service_check_by_name) flags.push('Service check name missing');
   if (log.drilling_fluid_loss === 'total' || log.fluid_return_quality === 'lost') flags.push('Total fluid loss');
   if (log.refusal_encountered) flags.push('Refusal encountered');
   if (log.obstruction_type === 'void') flags.push('Void encountered');

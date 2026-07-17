@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { MapPin, Package, Wrench, Ruler, Send, Trash2, Plus, X, ShieldAlert, Gauge, Waves, MapPinned, Undo2, Droplet, Layers, Search, Beaker } from 'lucide-react';
+import { MapPin, Package, Wrench, Ruler, Send, Trash2, Plus, X, ShieldAlert, Gauge, Waves, MapPinned, Undo2, Droplet, Layers, Search, Beaker, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { strataOptions, pitStabilityOptions, serviceEncounterOptions, serviceEncounterConfig, reinstatementOptions, mixerTypeOptions } from './shared';
 import CompletedBySelector from './CompletedBySelector';
 import CollapsibleSection from './CollapsibleSection';
+import ServiceCheckBySelector from './ServiceCheckBySelector';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100 bg-white";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
@@ -60,6 +61,9 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
     standpipe_ref: '',
     standpipe_reading_m: '',
     standpipe_dip_depth_m: '',
+    service_check_by_type: 'internal_staff',
+    service_check_by_name: '',
+    service_check_at: '',
   });
 
   const { data: todayLogs = [] } = useQuery({
@@ -111,6 +115,10 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
       toast({ title: 'GPS required', description: 'GPS coordinates required when a service is encountered.', variant: 'destructive' });
       return;
     }
+    if (form.service_encounter_type && form.service_encounter_type !== 'none' && form.service_check_by_type && form.service_check_by_type !== 'internal_staff' && !form.service_check_by_name.trim()) {
+      toast({ title: 'Checker name required', description: 'Enter the name of the person who performed the service check.', variant: 'destructive' });
+      return;
+    }
     if ((form.log_type === 'pit_excavation' || form.log_type === 'inspection_pit') && (!form.pit_stability_rating || form.pit_stability_rating === 'not_assessed')) {
       toast({ title: 'Stability required', description: 'Please assess pit wall stability before saving.', variant: 'destructive' });
       return;
@@ -152,6 +160,9 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
         pit_stability_rating: form.pit_stability_rating || 'not_assessed',
         service_encounter_type: form.service_encounter_type || 'none',
         service_encounter_gps: form.service_encounter_gps || '',
+        service_check_by_type: form.service_check_by_type || 'internal_staff',
+        service_check_by_name: form.service_check_by_type === 'internal_staff' ? '' : (form.service_check_by_name || ''),
+        service_check_at: (form.service_encounter_type && form.service_encounter_type !== 'none') ? new Date().toISOString() : '',
         cbr_value: form.cbr_value ? parseFloat(form.cbr_value) : null,
         vane_strength: form.vane_strength ? parseFloat(form.vane_strength) : null,
         units_completed: form.units_completed ? parseFloat(form.units_completed) : null,
@@ -195,6 +206,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
         reinstatement_type: 'none', backfill_material: '', verification_photo_urls: '',
         grout_volume: '', mixer_type: 'none', grout_mix_ratio: '',
         standpipe_ref: '', standpipe_reading_m: '', standpipe_dip_depth_m: '',
+        service_check_by_type: 'internal_staff', service_check_by_name: '',
         completed_by_name: '',
       });
       setShowForm(false);
@@ -286,6 +298,11 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
                     )}
                     {log.service_encounter_type && log.service_encounter_type !== 'none' && (
                       <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${svcCfg.color}`}>{svcCfg.label}</span>
+                    )}
+                    {log.service_encounter_type && log.service_encounter_type !== 'none' && log.service_check_by_type && log.service_check_by_type !== 'internal_staff' && (
+                      <span className="text-xs bg-red-50 text-red-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+                        <ShieldCheck className="w-2.5 h-2.5" /> {log.service_check_by_type === 'client' ? 'Client' : 'Contractor'}{log.service_check_by_name ? ` · ${log.service_check_by_name}` : ''}
+                      </span>
                     )}
                     {log.cbr_value != null && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">CBR {log.cbr_value}%</span>}
                     {log.vane_strength != null && <span className="text-xs bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">Vane {log.vane_strength}kPa</span>}
@@ -428,22 +445,31 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
           {/* ── Trial Pit optional sections (collapsible, clean) ── */}
           {isPit && (
             <div className="space-y-2">
-              <CollapsibleSection icon={Waves} title="Service Encounter" hint="Tap if services found" accent="red">
+              <CollapsibleSection icon={Waves} title="Service Encounter" hint="Tap if services found" accent="red" defaultOpen={isServiceFound}>
                 <select value={form.service_encounter_type} onChange={e => setForm({ ...form, service_encounter_type: e.target.value, service_encounter_gps: e.target.value === 'none' ? '' : form.service_encounter_gps })} className={inputCls}>
                   {serviceEncounterOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
                 {isServiceFound && (
-                  <div>
-                    <label className={labelCls}><MapPinned className="w-3 h-3 inline" /> GPS Coordinates (Required)</label>
-                    <div className="flex gap-2">
-                      <input type="text" value={form.service_encounter_gps} readOnly placeholder="Capture GPS…"
-                        className={`${inputCls} flex-1 bg-slate-50 text-slate-500`} />
-                      <button type="button" onClick={captureGps} disabled={gettingGps}
-                        className="px-3 py-2 bg-red-700 text-white rounded-xl text-xs font-semibold hover:bg-red-800 transition disabled:opacity-50 whitespace-nowrap">
-                        {gettingGps ? '…' : 'Capture'}
-                      </button>
+                  <>
+                    <div>
+                      <label className={labelCls}><MapPinned className="w-3 h-3 inline" /> GPS Coordinates (Required)</label>
+                      <div className="flex gap-2">
+                        <input type="text" value={form.service_encounter_gps} readOnly placeholder="Capture GPS…"
+                          className={`${inputCls} flex-1 bg-slate-50 text-slate-500`} />
+                        <button type="button" onClick={captureGps} disabled={gettingGps}
+                          className="px-3 py-2 bg-red-700 text-white rounded-xl text-xs font-semibold hover:bg-red-800 transition disabled:opacity-50 whitespace-nowrap">
+                          {gettingGps ? '…' : 'Capture'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                    <ServiceCheckBySelector
+                      value={form.service_check_by_type}
+                      onChange={(v) => setForm({ ...form, service_check_by_type: v, service_check_by_name: v === 'internal_staff' ? '' : form.service_check_by_name })}
+                      nameValue={form.service_check_by_name}
+                      onNameChange={(v) => setForm({ ...form, service_check_by_name: v })}
+                      staffName={staffName}
+                    />
+                  </>
                 )}
               </CollapsibleSection>
 
@@ -496,17 +522,26 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
                 {serviceEncounterOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
               {isServiceFound && (
-                <div>
-                  <label className={labelCls}><MapPinned className="w-3 h-3 inline" /> GPS Coordinates (Required)</label>
-                  <div className="flex gap-2">
-                    <input type="text" value={form.service_encounter_gps} readOnly placeholder="Capture GPS…"
-                      className={`${inputCls} flex-1 bg-slate-50 text-slate-500`} />
-                    <button type="button" onClick={captureGps} disabled={gettingGps}
-                      className="px-3 py-2 bg-red-700 text-white rounded-xl text-xs font-semibold hover:bg-red-800 transition disabled:opacity-50 whitespace-nowrap">
-                      {gettingGps ? '…' : 'Capture'}
-                    </button>
+                <>
+                  <div>
+                    <label className={labelCls}><MapPinned className="w-3 h-3 inline" /> GPS Coordinates (Required)</label>
+                    <div className="flex gap-2">
+                      <input type="text" value={form.service_encounter_gps} readOnly placeholder="Capture GPS…"
+                        className={`${inputCls} flex-1 bg-slate-50 text-slate-500`} />
+                      <button type="button" onClick={captureGps} disabled={gettingGps}
+                        className="px-3 py-2 bg-red-700 text-white rounded-xl text-xs font-semibold hover:bg-red-800 transition disabled:opacity-50 whitespace-nowrap">
+                        {gettingGps ? '…' : 'Capture'}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                  <ServiceCheckBySelector
+                    value={form.service_check_by_type}
+                    onChange={(v) => setForm({ ...form, service_check_by_type: v, service_check_by_name: v === 'internal_staff' ? '' : form.service_check_by_name })}
+                    nameValue={form.service_check_by_name}
+                    onNameChange={(v) => setForm({ ...form, service_check_by_name: v })}
+                    staffName={staffName}
+                  />
+                </>
               )}
             </CollapsibleSection>
           )}

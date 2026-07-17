@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   FlaskConical, Layers, Ruler, TestTube, Wrench, MapPin, Package, ClipboardList, ArrowDownToLine,
-  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban, Beaker, Radar, Boxes
+  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban, Beaker, Radar, Boxes, ShieldCheck
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import {
@@ -258,6 +258,11 @@ function LogEntryCard({ log }) {
           {svc && log.service_encounter_type !== 'none' && (
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 ${svc.color}`}>
               <Waves className="w-2.5 h-2.5" /> {svc.label}
+            </span>
+          )}
+          {log.service_encounter_type && log.service_encounter_type !== 'none' && log.service_check_by_type && log.service_check_by_type !== 'internal_staff' && (
+            <span className="text-xs bg-red-50 text-red-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+              <ShieldCheck className="w-2.5 h-2.5" /> Check: {log.service_check_by_type === 'client' ? 'Client' : 'Contractor'}{log.service_check_by_name ? ` · ${log.service_check_by_name}` : ''}{log.service_check_at ? ` @ ${format(new Date(log.service_check_at), 'HH:mm')}` : ''}
             </span>
           )}
           {log.cbr_value != null && (
