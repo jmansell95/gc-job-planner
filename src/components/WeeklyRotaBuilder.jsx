@@ -7,7 +7,6 @@ import {
   MapPin, Truck, Clock, CheckCircle2, PlayCircle, ClipboardCheck,
   Users, Briefcase, Search, Filter, StickyNote, Save, Send, Loader2, CalendarDays
 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
 import AssignmentModal from '@/components/AssignmentModal';
 import { EmptyState, ErrorState, RotaSkeleton, Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatJobType } from '@/utils/format';
@@ -326,26 +325,38 @@ export default function WeeklyRotaBuilder() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <PageHeader title="Weekly Rota Builder" icon={Calendar} />
-        <div className="flex flex-wrap items-center gap-2">
-          <button onClick={handleSmartFill} disabled={smartFillLoading}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50">
-            <Copy className="w-4 h-4" /> {smartFillLoading ? 'Copying...' : 'Copy Last Week'}
-          </button>
-          <button onClick={() => setModal({ isOpen: true, assignment: null, defaultStaffId: '', defaultDate: '' })}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-            <Plus className="w-4 h-4" /> Add Assignment
-          </button>
-          <button onClick={handleSaveDraft} disabled={savingDraft}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 transition text-sm font-medium">
-            {savingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Draft
-          </button>
-          <button onClick={handleSubmitWeek} disabled={publishing}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition text-sm font-medium disabled:opacity-50">
-            {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} {isPublished ? 'Resend' : 'Publish Week'}
-          </button>
+      {/* Hero header */}
+      <div className="hero-gradient relative overflow-hidden rounded-2xl mb-6">
+        <div className="relative px-5 md:px-7 py-5 md:py-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Weekly Rota Builder</h1>
+                <p className="text-emerald-100 text-xs md:text-sm mt-0.5">Drag shifts, auto-fit multi-job days, no overlaps</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button onClick={handleSmartFill} disabled={smartFillLoading}
+                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium disabled:opacity-50 backdrop-blur-sm">
+                <Copy className="w-4 h-4" /> {smartFillLoading ? 'Copying...' : 'Copy Last Week'}
+              </button>
+              <button onClick={() => setModal({ isOpen: true, assignment: null, defaultStaffId: '', defaultDate: '' })}
+                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
+                <Plus className="w-4 h-4" /> Add Shift
+              </button>
+              <button onClick={handleSaveDraft} disabled={savingDraft}
+                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium disabled:opacity-50 backdrop-blur-sm">
+                {savingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Draft
+              </button>
+              <button onClick={handleSubmitWeek} disabled={publishing}
+                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-400 transition text-sm font-semibold disabled:opacity-50 shadow-sm">
+                {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} {isPublished ? 'Resend' : 'Publish Week'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -436,6 +447,26 @@ export default function WeeklyRotaBuilder() {
 
       <RotaWarningsPanel warnings={rotaWarnings} />
 
+      {/* Per-day capacity strip */}
+      <div className="hidden lg:flex gap-2 mb-3 pl-[180px]">
+        {days.map(day => {
+          const dayStr = format(day, 'yyyy-MM-dd');
+          const dayRotas = rotas.filter(r => r.assigned_date === dayStr);
+          const overlaps = dayRotas.length > 1
+            ? dayRotas.filter(r => r.start_time && r.end_time && dayRotas.some(o => o.id !== r.id && o.start_time && o.end_time && (() => { const a = r.start_time.replace(':',''), b = r.end_time.replace(':',''), c = o.start_time.replace(':',''), d = o.end_time.replace(':',''); return a < d && c < b; })())).length
+            : 0;
+          const isToday = dayStr === todayStr;
+          return (
+            <div key={dayStr} className={`flex-1 min-w-[130px] rounded-lg border px-2 py-1.5 text-center ${isToday ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
+              <p className={`text-[10px] font-bold uppercase ${isToday ? 'text-emerald-700' : 'text-slate-400'}`}>{format(day, 'EEE')}</p>
+              <p className="text-sm font-bold text-slate-800 leading-tight">{dayRotas.length}</p>
+              <p className="text-[9px] text-slate-400">shifts</p>
+              {overlaps > 0 && <p className="text-[9px] text-red-600 font-semibold mt-0.5">⚠ {overlaps} clash</p>}
+            </div>
+          );
+        })}
+      </div>
+
       {/* Assignment Modal */}
       <AssignmentModal
         isOpen={modal.isOpen}
@@ -460,12 +491,12 @@ export default function WeeklyRotaBuilder() {
         <div className="overflow-x-auto">
           <DragDropContext onDragEnd={onDragEnd}><table className="w-full border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-emerald-800 text-white">
-                <th className="px-4 py-3 text-left font-semibold text-sm w-44 sticky left-0 z-10 bg-emerald-800">Staff</th>
+              <tr className="bg-gradient-to-r from-emerald-800 to-emerald-700 text-white">
+                <th className="px-4 py-3 text-left font-semibold text-sm w-44 sticky left-0 z-10 bg-gradient-to-r from-emerald-800 to-emerald-700">Staff</th>
                 {days.map(day => {
                   const isToday = format(day, 'yyyy-MM-dd') === todayStr;
                   return (
-                    <th key={day.toISOString()} className={`px-3 py-3 text-center font-semibold text-sm whitespace-nowrap ${isToday ? 'bg-emerald-600' : ''} ${isDateLocked(format(day, 'yyyy-MM-dd')) ? 'opacity-50' : ''}`}>
+                    <th key={day.toISOString()} className={`px-3 py-3 text-center font-semibold text-sm whitespace-nowrap ${isToday ? 'bg-emerald-600 ring-2 ring-emerald-400 ring-inset' : ''} ${isDateLocked(format(day, 'yyyy-MM-dd')) ? 'opacity-50' : ''}`}>
                       <div className="text-xs font-normal opacity-80">{format(day, 'EEE')}</div>
                       <div>{format(day, 'dd')}</div>
                     </th>

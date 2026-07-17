@@ -244,7 +244,7 @@ export default function HelpGuide() {
                   </div>
                   <h2 className="text-lg sm:text-xl font-bold text-slate-900 truncate leading-tight">{selectedTopic.title}</h2>
                 </div>
-                <button onClick={() => setSelectedTopic(null)} className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition ml-3 flex-shrink-0 flex-shrink-0">
+                <button onClick={() => setSelectedTopic(null)} className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition ml-3 flex-shrink-0">
                   <span className="text-slate-500 font-bold text-lg">✕</span>
                 </button>
               </div>

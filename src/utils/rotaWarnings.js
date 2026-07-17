@@ -1,4 +1,5 @@
 import { format, addDays } from 'date-fns';
+import { timeToMinutes, detectOverlaps, SITE_OPEN_TIME_MIN, SITE_CLOSE_TIME_MIN } from '@/utils/rotaScheduling';
 
 /**
  * Compute smart warnings for a published/draft rota week.
@@ -8,6 +9,9 @@ import { format, addDays } from 'date-fns';
  *  1. Double-booking — same staff assigned to 2+ different jobs on the same date
  *  2. Unstaffed active jobs — jobs requiring teams but with no assignments this week
  *  3. Leave conflicts — staff scheduled on an approved-leave or recurring day-off
+ *  4. Time overlaps — two shifts for the same person on the same day with overlapping times
+ *  5. Out-of-hours — a shift starting before 08:00 or ending after 17:00
+ *  6. Excessive hours — a staff member with more than 9 worked hours in a day
  */
 export function computeRotaWarnings({ weekStartStr, rotas = [], staff = [], jobs = [], absences = [], recurring = [] }) {
   const warnings = [];
@@ -76,6 +80,54 @@ export function computeRotaWarnings({ weekStartStr, rotas = [], staff = [], jobs
         type: 'leave_conflict',
         title: `${member?.name || 'Staff member'} scheduled during ${ls}`,
         message: `Assigned on ${format(new Date(r.assigned_date + 'T00:00:00'), 'EEE dd MMM')} but marked as ${ls.toLowerCase()}.`,
+      });
+    }
+  });
+
+  // 4. Time overlaps (same staff, same date, overlapping start/end)
+  Object.entries(byStaffDate).forEach(([key, items]) => {
+    const [staffId, date] = key.split('|');
+    const overlaps = detectOverlaps(items, staffId, date);
+    if (overlaps.length > 0) {
+      const member = staffMap[staffId];
+      const jobIds = [...new Set(overlaps.flatMap(o => [o.a.job_id, o.b.job_id]))];
+      const jobNames = jobIds.map(id => jobs.find(j => j.id === id)?.name).filter(Boolean);
+      warnings.push({
+        severity: 'critical',
+        type: 'time_overlap',
+        title: `${member?.name || 'Staff member'} — overlapping shifts`,
+        message: `On ${format(new Date(date + 'T00:00:00'), 'EEE dd MMM')}, two shifts overlap (${jobNames.join(' / ') || 'same time'}). Adjust the times so they don't clash.`,
+      });
+    }
+  });
+
+  // 5 & 6. Out-of-hours and excessive hours per staff/date
+  Object.entries(byStaffDate).forEach(([key, items]) => {
+    const [staffId, date] = key.split('|');
+    let totalMins = 0;
+    items.forEach(r => {
+      const s = timeToMinutes(r.start_time);
+      const e = timeToMinutes(r.end_time);
+      if (s == null || e == null) return;
+      if (e > s) totalMins += (e - s);
+      if (s < SITE_OPEN_TIME_MIN || e > SITE_CLOSE_TIME_MIN) {
+        const member = staffMap[staffId];
+        warnings.push({
+          severity: 'warning',
+          type: 'out_of_hours',
+          title: `${member?.name || 'Staff member'} — outside site hours`,
+          message: `Shift on ${format(new Date(date + 'T00:00:00'), 'EEE dd MMM')} runs ${r.start_time}–${r.end_time}. Site hours are 08:00–17:00.`,
+        });
+      }
+    });
+    if (totalMins > 540) { // >9h
+      const member = staffMap[staffId];
+      const hrs = (totalMins / 60).toFixed(1);
+      warnings.push({
+        severity: 'warning',
+        type: 'excessive_hours',
+        title: `${member?.name || 'Staff member'} — long day (${hrs}h)`,
+        message: `Total scheduled time on ${format(new Date(date + 'T00:00:00'), 'EEE dd MMM')} is ${hrs} hours. Consider splitting or marking as overtime.`,
       });
     }
   });

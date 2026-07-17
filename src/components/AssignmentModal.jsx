@@ -6,10 +6,12 @@ import { format, differenceInDays, addDays } from 'date-fns';
 import { isStaffOutsideJobTeams, getJobTeamIds } from '@/utils/jobTeams';
 import { isWeekend, buildRateMap } from '@/utils/overtime';
 import { getCurrentTimeStr, SITE_CLOSE_TIME } from '@/utils/siteHours';
+import { findConflict, suggestAutoTimes, getDailyShiftSummary } from '@/utils/rotaScheduling';
 
 export default function AssignmentModal({ isOpen, onClose, assignment, defaultStaffId, defaultDate, weekStartStr, staff, jobs, vehicles, existingRotas }) {
   const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '', notes: '', is_overtime: false, rate_multiplier: '', start_delayed: false, actual_start_date: '' });
   const [conflictWarnings, setConflictWarnings] = useState([]);
+  const [timeConflict, setTimeConflict] = useState(null);
   const [resetting, setResetting] = useState(false);
   const queryClient = useQueryClient();
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
@@ -73,27 +75,37 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
         });
       }
       setConflictWarnings([]);
+      setTimeConflict(null);
     }
   }, [isOpen, assignment, defaultStaffId, defaultDate]);
 
   if (!isOpen) return null;
 
-  const checkConflicts = (staffId, date, vehicleId) => {
+  const checkConflicts = (staffId, date, vehicleId, startTime, endTime) => {
     const warnings = [];
+    let timeConflict = null;
     if (staffId && date) {
       const dup = existingRotas.some(r => r.staff_id === staffId && r.assigned_date === date && r.id !== assignment?.id);
-      if (dup) warnings.push('This staff member already has an assignment on this date — multi-job days are supported. Confirm to add another.');
+      if (dup) warnings.push('This staff member already has an assignment on this date — multi-job days are supported. The times below auto-adjust so they won\'t overlap.');
       const dow = new Date(date + 'T00:00:00').getDay();
       const rec = recurring.find(r => r.staff_id === staffId && r.is_active !== false && Array.isArray(r.days_of_week) && r.days_of_week.includes(dow));
       if (rec) warnings.push(`Staff is regularly off (${rec.label || 'Day Off'}) on this day.`);
       const onLeave = absences.some(a => a.staff_id === staffId && a.status === 'approved' && a.start_date <= date && a.end_date >= date);
       if (onLeave) warnings.push('Staff has an approved absence (leave) on this date.');
+      // Time overlap (hard block)
+      if (startTime && endTime) {
+        timeConflict = findConflict(existingRotas, staffId, date, startTime, endTime, assignment?.id);
+        if (timeConflict) {
+          const cj = jobs.find(j => j.id === timeConflict.job_id);
+          warnings.push(`Time clash with "${cj?.name || 'another shift'}" (${timeConflict.start_time}–${timeConflict.end_time}). Pick a different time or the clash must be resolved.`);
+        }
+      }
     }
     if (vehicleId && date) {
       const vehClash = existingRotas.some(r => r.vehicle_id === vehicleId && r.assigned_date === date && r.id !== assignment?.id && r.staff_id !== staffId);
       if (vehClash) warnings.push('This vehicle is already assigned to another staff member on this date.');
     }
-    return warnings;
+    return { warnings, timeConflict };
   };
 
   const getStaffDefaultTimes = (staffId) => {
@@ -106,11 +118,21 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   };
 
   const handleStaffChange = (staffId) => {
-    const defaults = isEditing ? {} : getStaffDefaultTimes(staffId);
+    // When the staff already has a shift this date, auto-suggest a non-overlapping slot.
+    let suggested = null;
+    if (!isEditing && staffId && formData.assigned_date) {
+      const dayCount = existingRotas.filter(r => r.staff_id === staffId && r.assigned_date === formData.assigned_date).length;
+      if (dayCount > 0) {
+        suggested = suggestAutoTimes(existingRotas, staffId, formData.assigned_date);
+      }
+    }
+    const defaults = isEditing ? {} : (suggested || getStaffDefaultTimes(staffId));
     setFormData(prev => ({ ...prev, staff_id: staffId, ...defaults }));
     if (staffId && formData.assigned_date) {
-      setConflictWarnings(checkConflicts(staffId, formData.assigned_date, formData.vehicle_id));
-    } else setConflictWarnings([]);
+      const res = checkConflicts(staffId, formData.assigned_date, formData.vehicle_id, formData.start_time, formData.end_time);
+      setConflictWarnings(res.warnings);
+      setTimeConflict(res.timeConflict);
+    } else { setConflictWarnings([]); setTimeConflict(null); }
   };
 
   const handleJobChange = (jobId) => {
@@ -131,9 +153,12 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
       return next;
     });
     if (plannedStart && formData.staff_id) {
-      setConflictWarnings(checkConflicts(formData.staff_id, plannedStart, formData.vehicle_id));
+      const res = checkConflicts(formData.staff_id, plannedStart, formData.vehicle_id, formData.start_time, formData.end_time);
+      setConflictWarnings(res.warnings);
+      setTimeConflict(res.timeConflict);
     } else {
       setConflictWarnings([]);
+      setTimeConflict(null);
     }
   };
 
@@ -147,10 +172,11 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
 
   const handleDateChange = (date) => {
     const weekend = isWeekend(date);
+    const dayCount = formData.staff_id ? existingRotas.filter(r => r.staff_id === formData.staff_id && r.assigned_date === date && r.id !== assignment?.id).length : 0;
+    const suggested = (dayCount > 0 && !isEditing) ? suggestAutoTimes(existingRotas, formData.staff_id, date) : null;
     setFormData(prev => {
-      // Auto-enable overtime + default rate when a weekend is picked (unless the
-      // user previously turned it off for this same edit session).
       const next = { ...prev, assigned_date: date };
+      if (suggested) { next.start_time = suggested.start_time; next.end_time = suggested.end_time; }
       if (weekend && !prev.is_overtime && prev.rate_multiplier === '') {
         next.is_overtime = true;
         next.rate_multiplier = String(rateMap[new Date(date + 'T00:00:00').getDay()] ?? 1.5);
@@ -160,7 +186,14 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
       }
       return next;
     });
-    setConflictWarnings(date && formData.staff_id ? checkConflicts(formData.staff_id, date, formData.vehicle_id) : []);
+    if (date && formData.staff_id) {
+      const res = checkConflicts(formData.staff_id, date, formData.vehicle_id, suggested?.start_time || formData.start_time, suggested?.end_time || formData.end_time);
+      setConflictWarnings(res.warnings);
+      setTimeConflict(res.timeConflict);
+    } else {
+      setConflictWarnings([]);
+      setTimeConflict(null);
+    }
   };
 
   const toggleOvertime = (on) => {
@@ -176,8 +209,30 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
 
   const handleVehicleChange = (vehicleId) => {
     setFormData(prev => ({ ...prev, vehicle_id: vehicleId }));
-    setConflictWarnings(formData.staff_id && formData.assigned_date ? checkConflicts(formData.staff_id, formData.assigned_date, vehicleId) : []);
+    if (formData.staff_id && formData.assigned_date) {
+      const res = checkConflicts(formData.staff_id, formData.assigned_date, vehicleId, formData.start_time, formData.end_time);
+      setConflictWarnings(res.warnings);
+      setTimeConflict(res.timeConflict);
+    }
   };
+
+  const handleTimeChange = (field, value) => {
+    setFormData(prev => {
+      const next = { ...prev, [field]: value };
+      if (next.staff_id && next.assigned_date && next.start_time && next.end_time) {
+        const res = checkConflicts(next.staff_id, next.assigned_date, next.vehicle_id, next.start_time, next.end_time);
+        setConflictWarnings(res.warnings);
+        setTimeConflict(res.timeConflict);
+      }
+      return next;
+    });
+  };
+
+  // Live day summary for the selected staff+date (multi-job indicator)
+  const daySummary = (formData.staff_id && formData.assigned_date)
+    ? getDailyShiftSummary(existingRotas, formData.staff_id, formData.assigned_date)
+    : null;
+  const showAutoSuggest = daySummary && daySummary.assignments.length > 0 && !isEditing;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -196,6 +251,11 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
     }
     if (teamMismatch) {
       if (!confirm(`This staff member (${selectedStaffTeamName}) is not in the required teams for this job (${requiredTeamNames.join(', ')}).\n\nAssign anyway?`)) return;
+    }
+    // Hard block: overlapping shift times can't be saved.
+    if (timeConflict) {
+      alert(`This shift's times overlap with another shift for the same person on this date. Adjust the start/end time first.`);
+      return;
     }
     if (conflictWarnings.length > 0) {
       if (!confirm('There are scheduling conflicts:\n\n' + conflictWarnings.map(w => '• ' + w).join('\n') + '\n\nAdd anyway?')) return;
@@ -438,19 +498,35 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} — {v.name}</option>)}
               </select>
             </div>
-            <div className="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-emerald-700" />
-                <div>
-                  <p className="text-xs font-semibold text-slate-800">Shift Hours (auto from team)</p>
-                  <p className="text-[11px] text-slate-400">{selectedStaff ? (teams.find(t => t.id === selectedStaff.team_id)?.name || 'No team') : 'Select staff to apply team hours'}</p>
+            <div className="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 space-y-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-emerald-700" />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-800">Shift Hours</p>
+                    <p className="text-[11px] text-slate-400">Site hours 08:00–17:00{daySummary ? ` · ${daySummary.assignments.length} shift${daySummary.assignments.length !== 1 ? 's' : ''} today` : ''}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="time" value={formData.start_time} onChange={(e) => handleTimeChange('start_time', e.target.value)}
+                    className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-600" />
+                  <span className="text-slate-300">→</span>
+                  <input type="time" value={formData.end_time} onChange={(e) => handleTimeChange('end_time', e.target.value)}
+                    className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-md text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-600" />
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
-                <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-md">{formData.start_time || '—'}</span>
-                <span className="text-slate-300">→</span>
-                <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-md">{formData.end_time || '—'}</span>
-              </div>
+              {showAutoSuggest && (
+                <div className="flex items-center gap-1.5 text-[11px] text-blue-700 bg-blue-50 border border-blue-100 rounded-md px-2 py-1.5">
+                  <CalendarClock className="w-3.5 h-3.5 flex-shrink-0" />
+                  This is the {daySummary.assignments.length + 1}{['st','nd','rd'][Math.min(daySummary.assignments.length, 2)] || 'th'} job today — times auto-fit to avoid overlapping.
+                </div>
+              )}
+              {daySummary && daySummary.hasOverlap && (
+                <div className="flex items-center gap-1.5 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-md px-2 py-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                  Existing shifts on this day overlap — resolve before publishing.
+                </div>
+              )}
             </div>
             {/* Overtime */}
             <div className="sm:col-span-2 rounded-lg border border-slate-200 p-3">
