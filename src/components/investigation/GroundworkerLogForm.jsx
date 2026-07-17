@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { MapPin, Package, Wrench, Ruler, Send, Trash2, Plus, X, ShieldAlert, Gauge, Waves, MapPinned } from 'lucide-react';
+import { MapPin, Package, Wrench, Ruler, Send, Trash2, Plus, X, ShieldAlert, Gauge, Waves, MapPinned, Undo2, Droplet, Layers } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { strataOptions, pitStabilityOptions, serviceEncounterOptions, serviceEncounterConfig } from './shared';
+import { strataOptions, pitStabilityOptions, serviceEncounterOptions, serviceEncounterConfig, reinstatementOptions } from './shared';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100 bg-white";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
@@ -13,6 +13,7 @@ const groundworksLogTypes = [
   { value: 'pit_excavation', label: 'Trial Pit', icon: MapPin },
   { value: 'installation', label: 'Install', icon: Package },
   { value: 'site_setup', label: 'Setup', icon: Wrench },
+  { value: 'reinstatement', label: 'Reinstate', icon: Undo2 },
 ];
 
 export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) {
@@ -41,6 +42,11 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
     units_label: '',
     description: '',
     photo_urls: '',
+    groundwater_strike_depth: '',
+    groundwater_static_level: '',
+    reinstatement_type: 'none',
+    backfill_material: '',
+    verification_photo_urls: '',
   });
 
   const { data: todayLogs = [] } = useQuery({
@@ -117,6 +123,11 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
         units_label: form.units_label || '',
         description: form.description || '',
         photo_urls: form.photo_urls || '',
+        groundwater_strike_depth: form.groundwater_strike_depth ? parseFloat(form.groundwater_strike_depth) : null,
+        groundwater_static_level: form.groundwater_static_level ? parseFloat(form.groundwater_static_level) : null,
+        reinstatement_type: form.reinstatement_type || 'none',
+        backfill_material: form.backfill_material || '',
+        verification_photo_urls: form.verification_photo_urls || '',
         created_at: new Date().toISOString(),
         manager_review_status: 'pending',
       };
@@ -133,6 +144,8 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
         cbr_value: '', vane_strength: '',
         units_completed: '', units_label: '',
         description: '', photo_urls: '',
+        groundwater_strike_depth: '', groundwater_static_level: '',
+        reinstatement_type: 'none', backfill_material: '', verification_photo_urls: '',
       });
       setShowForm(false);
     } catch (e) {
@@ -153,8 +166,24 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
 
   const isPit = form.log_type === 'pit_excavation';
   const isInstallation = form.log_type === 'installation';
+  const isReinstatement = form.log_type === 'reinstatement';
   const isServiceFound = form.service_encounter_type && form.service_encounter_type !== 'none';
   const photos = form.photo_urls ? form.photo_urls.split(',').filter(Boolean) : [];
+  const verificationPhotos = form.verification_photo_urls ? form.verification_photo_urls.split(',').filter(Boolean) : [];
+
+  const handleVerificationPhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const res = await base44.integrations.Core.UploadFile({ file });
+      const existing = form.verification_photo_urls ? form.verification_photo_urls.split(',').filter(Boolean) : [];
+      existing.push(res.file_url);
+      setForm({ ...form, verification_photo_urls: existing.join(',') });
+      toast({ title: 'Verification photo attached' });
+    } catch (err) { toast({ title: 'Upload failed', variant: 'destructive' }); }
+    setUploadingPhoto(false);
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
@@ -163,8 +192,8 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
           <MapPin className="w-4 h-4 text-amber-700" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-bold text-slate-900">Trial Pit Log</h3>
-          <p className="text-xs text-slate-400">Pit mapping · Stability · Services · CBR</p>
+          <h3 className="text-sm font-bold text-slate-900">Trial Pit & Inspection Log</h3>
+          <p className="text-xs text-slate-400">Pit mapping · Stability · Services · Groundwater · Reinstatement</p>
         </div>
         {todayLogs.length > 0 && (
           <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">{todayLogs.length} today</span>
@@ -193,6 +222,8 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
                     )}
                     {log.cbr_value != null && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">CBR {log.cbr_value}%</span>}
                     {log.vane_strength != null && <span className="text-xs bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">Vane {log.vane_strength}kPa</span>}
+                    {log.groundwater_strike_depth != null && <span className="text-xs bg-cyan-50 text-cyan-700 px-1.5 py-0.5 rounded-full font-medium">💧 GW {log.groundwater_strike_depth}m</span>}
+                    {log.reinstatement_type && log.reinstatement_type !== 'none' && <span className="text-xs bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium">{reinstatementOptions.find(r => r.value === log.reinstatement_type)?.label || log.reinstatement_type}</span>}
                   </div>
                   {log.strata_description_detail && <p className="text-xs text-slate-600 mt-0.5">{log.strata_description_detail}</p>}
                   {log.description && <p className="text-xs text-slate-500 mt-0.5">{log.description}</p>}
@@ -209,7 +240,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
       {showForm ? (
         <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-slate-700">New Pit / Installation Entry</p>
+            <p className="text-xs font-semibold text-slate-700">{isReinstatement ? 'New Reinstatement Entry' : 'New Pit / Inspection Entry'}</p>
             <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
           </div>
 
@@ -226,12 +257,12 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
             })}
           </div>
 
-          {(isPit || isInstallation) && (
+          {(isPit || isInstallation || isReinstatement) && (
             <>
               <div>
-                <label className={labelCls}>{isPit ? 'Pit Reference' : 'Location Ref'}</label>
+                <label className={labelCls}>{isPit ? 'Pit Reference' : isReinstatement ? 'Pit / Location Ref' : 'Location Ref'}</label>
                 <input type="text" value={form.borehole_ref} onChange={e => setForm({ ...form, borehole_ref: e.target.value })}
-                  placeholder={isPit ? "TP-01" : "e.g. Area A"} className={inputCls} />
+                  placeholder={isPit ? "TP-01" : isReinstatement ? "TP-01" : "e.g. Area A"} className={inputCls} />
               </div>
 
               {isPit && (
@@ -320,6 +351,72 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
                         className={inputCls} placeholder="—" />
                     </div>
                   </div>
+
+                  {/* Groundwater */}
+                  <div className="p-2.5 bg-blue-50 rounded-lg border border-blue-100">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Droplet className="w-3.5 h-3.5 text-blue-600" />
+                      <p className="text-xs font-semibold text-blue-700">Groundwater</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className={labelCls}>Strike Depth (m)</label>
+                        <input type="number" step="0.05" min="0" value={form.groundwater_strike_depth} onChange={e => setForm({ ...form, groundwater_strike_depth: e.target.value })}
+                          className={inputCls} placeholder="e.g. 1.2" />
+                      </div>
+                      <div>
+                        <label className={labelCls}>Static Level (m)</label>
+                        <input type="number" step="0.05" min="0" value={form.groundwater_static_level} onChange={e => setForm({ ...form, groundwater_static_level: e.target.value })}
+                          className={inputCls} placeholder="after 24h" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Reinstatement (optional, same visit) */}
+                  <div className="p-2.5 bg-emerald-50 rounded-lg border border-emerald-100">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Undo2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <p className="text-xs font-semibold text-emerald-700">Reinstatement <span className="font-normal text-emerald-500/70">(if backfilled this visit)</span></p>
+                    </div>
+                    <div className="space-y-2">
+                      <select value={form.reinstatement_type} onChange={e => setForm({ ...form, reinstatement_type: e.target.value })} className={inputCls}>
+                        {reinstatementOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                      </select>
+                      {form.reinstatement_type && form.reinstatement_type !== 'none' && form.reinstatement_type !== 'left_open' && (
+                        <input type="text" value={form.backfill_material} onChange={e => setForm({ ...form, backfill_material: e.target.value })}
+                          placeholder="Backfill material e.g. Type 1 granular, site-won clay" className={inputCls} />
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {isReinstatement && (
+                <>
+                  <div className="p-2.5 bg-emerald-50 rounded-lg border border-emerald-100">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Undo2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <p className="text-xs font-semibold text-emerald-700">Reinstatement Details</p>
+                    </div>
+                    <div className="space-y-2">
+                      <select value={form.reinstatement_type} onChange={e => setForm({ ...form, reinstatement_type: e.target.value })} className={inputCls}>
+                        {reinstatementOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                      </select>
+                      {form.reinstatement_type && form.reinstatement_type !== 'none' && form.reinstatement_type !== 'left_open' && (
+                        <input type="text" value={form.backfill_material} onChange={e => setForm({ ...form, backfill_material: e.target.value })}
+                          placeholder="Backfill material e.g. Type 1 granular, site-won clay" className={inputCls} />
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelCls}><Layers className="w-3 h-3 inline" /> Verification Photos (pre & post)</label>
+                    <label className="flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-slate-300 rounded-xl text-xs text-slate-500 hover:border-emerald-400 hover:text-emerald-600 cursor-pointer transition">
+                      {uploadingPhoto ? 'Uploading…' : <><Plus className="w-3.5 h-3.5" /> Attach Verification Photo</>}
+                      <input type="file" accept="image/*" capture="environment" onChange={handleVerificationPhotoUpload} className="hidden" disabled={uploadingPhoto} />
+                    </label>
+                    {verificationPhotos.length > 0 && <p className="text-xs text-emerald-700 mt-1">{verificationPhotos.length} verification photo(s)</p>}
+                  </div>
                 </>
               )}
 
@@ -365,7 +462,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
       ) : (
         <button onClick={() => setShowForm(true)}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 text-amber-700 rounded-xl hover:bg-amber-100 active:scale-95 transition text-sm font-semibold border border-amber-200 touch-manipulation">
-          <Plus className="w-4 h-4" /> Log Pit / Installation
+          <Plus className="w-4 h-4" /> Log Pit / Activity
         </button>
       )}
     </div>
