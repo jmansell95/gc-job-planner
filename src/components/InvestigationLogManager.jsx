@@ -196,7 +196,7 @@ function LogEntryCard({ log }) {
             {log.completed_by_type && log.completed_by_type !== 'internal_staff' ? (
               <>
                 <span className="bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full font-medium">{log.completed_by_type === 'client' ? 'Client' : 'Contractor'}</span>
-                {log.completed_by_name || ''}
+                {log.completed_by_name || ''}{log.created_at ? ` @ ${format(new Date(log.created_at), 'HH:mm')}` : ''}
               </>
             ) : log.staff_name}
           </span>

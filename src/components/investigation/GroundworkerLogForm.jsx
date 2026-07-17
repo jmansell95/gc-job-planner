@@ -119,11 +119,11 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
       toast({ title: 'Checker name required', description: 'Enter the name of the person who performed the service check.', variant: 'destructive' });
       return;
     }
-    if ((form.log_type === 'pit_excavation' || form.log_type === 'inspection_pit') && (!form.pit_stability_rating || form.pit_stability_rating === 'not_assessed')) {
+    if (form.completed_by_type === 'internal_staff' && (form.log_type === 'pit_excavation' || form.log_type === 'inspection_pit') && (!form.pit_stability_rating || form.pit_stability_rating === 'not_assessed')) {
       toast({ title: 'Stability required', description: 'Please assess pit wall stability before saving.', variant: 'destructive' });
       return;
     }
-    if (form.log_type === 'grouting_works') {
+    if (form.completed_by_type === 'internal_staff' && form.log_type === 'grouting_works') {
       if (!form.mixer_type || form.mixer_type === 'none') {
         toast({ title: 'Mixer type required', description: 'Select the mixing method used.', variant: 'destructive' });
         return;
@@ -133,7 +133,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
         return;
       }
     }
-    if (form.log_type === 'standpipe_reading') {
+    if (form.completed_by_type === 'internal_staff' && form.log_type === 'standpipe_reading') {
       if (!form.standpipe_ref) {
         toast({ title: 'Piezometer ref required', description: 'Enter the piezometer / standpipe reference.', variant: 'destructive' });
         return;
@@ -233,6 +233,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
   const isReinstatement = form.log_type === 'reinstatement';
   const isGrouting = form.log_type === 'grouting_works';
   const isServiceFound = form.service_encounter_type && form.service_encounter_type !== 'none';
+  const isExternalParty = form.completed_by_type !== 'internal_staff';
   const photos = form.photo_urls ? form.photo_urls.split(',').filter(Boolean) : [];
   const verificationPhotos = form.verification_photo_urls ? form.verification_photo_urls.split(',').filter(Boolean) : [];
 
@@ -310,7 +311,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
                     {log.reinstatement_type && log.reinstatement_type !== 'none' && <span className="text-xs bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium">{reinstatementOptions.find(r => r.value === log.reinstatement_type)?.label || log.reinstatement_type}</span>}
                     {log.completed_by_type && log.completed_by_type !== 'internal_staff' && (
                       <span className="text-xs bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full font-medium">
-                        {log.completed_by_type === 'client' ? 'Client' : 'Contractor'}{log.completed_by_name ? ` · ${log.completed_by_name}` : ''}
+                        {log.completed_by_type === 'client' ? 'Client' : 'Contractor'}{log.completed_by_name ? ` · ${log.completed_by_name}` : ''}{log.created_at ? ` @ ${format(new Date(log.created_at), 'HH:mm')}` : ''}
                       </span>
                     )}
                   </div>
@@ -367,7 +368,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
           )}
 
           {/* ── Piezometer reading ── */}
-          {isPiezometer && (
+          {isPiezometer && !isExternalParty && (
             <div className="p-3 bg-cyan-50 rounded-xl border border-cyan-100 space-y-2">
               <div className="flex items-center gap-1.5 mb-1">
                 <Gauge className="w-3.5 h-3.5 text-cyan-700" />
@@ -389,7 +390,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
           )}
 
           {/* ── Dimensions & depth (pit / grouting only) ── */}
-          {(isPit || isInspectionPit || isGrouting) && (
+          {(isPit || isInspectionPit || isGrouting) && !isExternalParty && (
             <>
               <div>
                 <label className={labelCls}>{isGrouting ? 'Hole / Void Dimensions' : 'Dimensions'}</label>
@@ -412,7 +413,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
           )}
 
           {/* ── Trial Pit: strata + stability (core) ── */}
-          {isPit && (
+          {isPit && !isExternalParty && (
             <>
               <div>
                 <label className={labelCls}>Strata Classification</label>
@@ -430,7 +431,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
           )}
 
           {/* ── Pit stability (mandatory for both pit types) ── */}
-          {(isPit || isInspectionPit) && (
+          {(isPit || isInspectionPit) && !isExternalParty && (
             <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-100">
               <div className="flex items-center gap-1.5 mb-2">
                 <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
@@ -443,7 +444,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
           )}
 
           {/* ── Trial Pit optional sections (collapsible, clean) ── */}
-          {isPit && (
+          {isPit && !isExternalParty && (
             <div className="space-y-2">
               <CollapsibleSection icon={Waves} title="Service Encounter" hint="Tap if services found" accent="red" defaultOpen={isServiceFound}>
                 <select value={form.service_encounter_type} onChange={e => setForm({ ...form, service_encounter_type: e.target.value, service_encounter_gps: e.target.value === 'none' ? '' : form.service_encounter_gps })} className={inputCls}>
@@ -516,7 +517,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
           )}
 
           {/* ── Inspection Pit: services only (kept simple) ── */}
-          {isInspectionPit && (
+          {isInspectionPit && !isExternalParty && (
             <CollapsibleSection icon={Waves} title="Service Encounter" hint="Tap if services found" accent="red" defaultOpen={isServiceFound}>
               <select value={form.service_encounter_type} onChange={e => setForm({ ...form, service_encounter_type: e.target.value, service_encounter_gps: e.target.value === 'none' ? '' : form.service_encounter_gps })} className={inputCls}>
                 {serviceEncounterOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -547,7 +548,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
           )}
 
           {/* ── Reinstatement (dedicated) ── */}
-          {isReinstatement && (
+          {isReinstatement && !isExternalParty && (
             <>
               <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100">
                 <div className="flex items-center gap-1.5 mb-2">
@@ -576,7 +577,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
           )}
 
           {/* ── Installation ── */}
-          {isInstallation && (
+          {isInstallation && !isExternalParty && (
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className={labelCls}>Units Completed</label>
@@ -592,7 +593,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
           )}
 
           {/* ── Grouting ── */}
-          {isGrouting && (
+          {isGrouting && !isExternalParty && (
             <div className="p-2.5 bg-rose-50 rounded-xl border border-rose-100">
               <div className="flex items-center gap-1.5 mb-2">
                 <Beaker className="w-3.5 h-3.5 text-rose-600" />

@@ -30,8 +30,11 @@ export default function CompletedBySelector({ value, onChange, nameValue, onName
         ))}
       </div>
       {value !== 'internal_staff' && (
-        <input type="text" value={nameValue} onChange={e => onNameChange(e.target.value)}
-          placeholder="Representative name (required)" className={`${inputCls} mt-2`} />
+        <>
+          <input type="text" value={nameValue} onChange={e => onNameChange(e.target.value)}
+            placeholder="Representative name (required)" className={`${inputCls} mt-2`} />
+          <p className="text-[11px] text-slate-400 mt-1">Date &amp; time captured automatically. Detailed fields are hidden — just add a description below.</p>
+        </>
       )}
     </div>
   );

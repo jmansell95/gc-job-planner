@@ -59,7 +59,7 @@ export default function EnablingLogForm({ staffId, jobId, job, staffName }) {
       toast({ title: 'Name required', description: 'Enter the client/contractor representative name.', variant: 'destructive' });
       return;
     }
-    if (form.log_type === 'reinstatement') {
+    if (form.completed_by_type === 'internal_staff' && form.log_type === 'reinstatement') {
       if (!form.verification_photo_urls) {
         toast({ title: 'Photos required', description: 'Pre/Post-dig verification photos are mandatory.', variant: 'destructive' });
         return;
@@ -121,6 +121,7 @@ export default function EnablingLogForm({ staffId, jobId, job, staffName }) {
   };
 
   const isReinstatement = form.log_type === 'reinstatement';
+  const isExternalParty = form.completed_by_type !== 'internal_staff';
   const verificationPhotos = form.verification_photo_urls ? form.verification_photo_urls.split(',').filter(Boolean) : [];
   const evidencePhotos = form.photo_urls ? form.photo_urls.split(',').filter(Boolean) : [];
 
@@ -157,7 +158,7 @@ export default function EnablingLogForm({ staffId, jobId, job, staffName }) {
                   )}
                   {log.completed_by_type && log.completed_by_type !== 'internal_staff' && (
                     <span className="text-xs bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full font-medium">
-                      {log.completed_by_type === 'client' ? 'Client' : 'Contractor'}{log.completed_by_name ? ` · ${log.completed_by_name}` : ''}
+                      {log.completed_by_type === 'client' ? 'Client' : 'Contractor'}{log.completed_by_name ? ` · ${log.completed_by_name}` : ''}{log.created_at ? ` @ ${format(new Date(log.created_at), 'HH:mm')}` : ''}
                     </span>
                   )}
                 </div>
@@ -200,7 +201,7 @@ export default function EnablingLogForm({ staffId, jobId, job, staffName }) {
             accent="teal"
           />
 
-          {isReinstatement && (
+          {isReinstatement && !isExternalParty && (
             <>
               <div>
                 <label className={labelCls}>Location Ref (optional)</label>

@@ -88,7 +88,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
       toast({ title: 'Name required', description: 'Enter the client/contractor representative name.', variant: 'destructive' });
       return;
     }
-    if (form.log_type === 'standpipe_reading') {
+    if (form.completed_by_type === 'internal_staff' && form.log_type === 'standpipe_reading') {
       if (!form.standpipe_ref) {
         toast({ title: 'Standpipe ref required', variant: 'destructive' });
         return;
@@ -98,15 +98,15 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
         return;
       }
     }
-    if (form.log_type === 'geophysical_probing' && !form.sensor_type) {
+    if (form.completed_by_type === 'internal_staff' && form.log_type === 'geophysical_probing' && !form.sensor_type) {
       toast({ title: 'Sensor type required', variant: 'destructive' });
       return;
     }
-    if (form.log_type === 'borehole_decommissioning' && !form.backfill_material) {
+    if (form.completed_by_type === 'internal_staff' && form.log_type === 'borehole_decommissioning' && !form.backfill_material) {
       toast({ title: 'Backfill material required', description: 'Record the seal/backfill material used.', variant: 'destructive' });
       return;
     }
-    if (form.log_type === 'core_inspection' && !form.core_box_number) {
+    if (form.completed_by_type === 'internal_staff' && form.log_type === 'core_inspection' && !form.core_box_number) {
       toast({ title: 'Core box number required', variant: 'destructive' });
       return;
     }
@@ -222,6 +222,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
   const isGeophysical = form.log_type === 'geophysical_probing';
   const isDecommissioning = form.log_type === 'borehole_decommissioning';
   const isCoreInspection = form.log_type === 'core_inspection';
+  const isExternalParty = form.completed_by_type !== 'internal_staff';
   const isCoring = job?.job_type === 'rotary_drilling' && isBorehole;
   const photos = form.photo_urls ? form.photo_urls.split(',').filter(Boolean) : [];
 
@@ -296,7 +297,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
                   )}
                   {log.completed_by_type && log.completed_by_type !== 'internal_staff' && (
                     <span className="text-xs bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full font-medium">
-                      {log.completed_by_type === 'client' ? 'Client' : 'Contractor'}{log.completed_by_name ? ` · ${log.completed_by_name}` : ''}
+                      {log.completed_by_type === 'client' ? 'Client' : 'Contractor'}{log.completed_by_name ? ` · ${log.completed_by_name}` : ''}{log.created_at ? ` @ ${format(new Date(log.created_at), 'HH:mm')}` : ''}
                     </span>
                   )}
                 </div>
@@ -339,7 +340,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
             accent="blue"
           />
 
-          {isStandpipe && (
+          {isStandpipe && !isExternalParty && (
             <div className="p-2.5 bg-cyan-50 rounded-lg border border-cyan-100">
               <div className="flex items-center gap-1.5 mb-2">
                 <Gauge className="w-3.5 h-3.5 text-cyan-600" />
@@ -360,7 +361,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
             </div>
           )}
 
-          {(isBorehole || isSample || isWindowSampling) && (
+          {(isBorehole || isSample || isWindowSampling) && !isExternalParty && (
             <>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -396,7 +397,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
             </>
           )}
 
-          {isGeophysical && (
+          {isGeophysical && !isExternalParty && (
             <div className="p-2.5 bg-violet-50 rounded-lg border border-violet-100">
               <div className="flex items-center gap-1.5 mb-2">
                 <Radar className="w-3.5 h-3.5 text-violet-600" />
@@ -424,7 +425,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
             </div>
           )}
 
-          {isDecommissioning && (
+          {isDecommissioning && !isExternalParty && (
             <div className="p-2.5 bg-stone-50 rounded-lg border border-stone-200">
               <div className="flex items-center gap-1.5 mb-2">
                 <Ban className="w-3.5 h-3.5 text-stone-600" />
@@ -457,7 +458,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
             </div>
           )}
 
-          {isCoreInspection && (
+          {isCoreInspection && !isExternalParty && (
             <div className="p-2.5 bg-fuchsia-50 rounded-lg border border-fuchsia-100">
               <div className="flex items-center gap-1.5 mb-2">
                 <Boxes className="w-3.5 h-3.5 text-fuchsia-600" />
@@ -492,7 +493,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
             </div>
           )}
 
-          {(isBorehole || isWindowSampling) && (
+          {(isBorehole || isWindowSampling) && !isExternalParty && (
             <>
               {/* Strata classification */}
               <div>
@@ -606,7 +607,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
             </>
           )}
 
-          {isSample && (
+          {isSample && !isExternalParty && (
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className={labelCls}>Sample Type</label>
