@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Boxes, PoundSterling, FolderOpen, FileText, Eye, Download } from 'lucide-react';
+import { Boxes, PoundSterling, FolderOpen, FileText, Eye, Download, Activity } from 'lucide-react';
 import JobLogisticsHub from '@/components/logistics/JobLogisticsHub';
 import InvestigationLogManager from '@/components/InvestigationLogManager';
 import JobHotelBookings from '@/components/JobHotelBookings';
@@ -16,10 +16,10 @@ export default function JobDetailTabs({ job, primaryType, assignedStaff, allStaf
   return (
     <Tabs defaultValue="logistics" className="w-full">
       <TabsList className="flex w-full flex-wrap h-auto p-1 gap-1">
-        <TabsTrigger value="logistics" className="text-xs sm:text-sm flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5"><Boxes className="w-3.5 h-3.5" />Logistics</TabsTrigger>
-        <TabsTrigger value="schedule" className="text-xs sm:text-sm flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5"><FileText className="w-3.5 h-3.5" />Activity</TabsTrigger>
-        {canSeeCosts && <TabsTrigger value="financials" className="text-xs sm:text-sm flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5"><PoundSterling className="w-3.5 h-3.5" />Financials</TabsTrigger>}
-        <TabsTrigger value="documents" className="text-xs sm:text-sm flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5"><FolderOpen className="w-3.5 h-3.5" />Documents</TabsTrigger>
+        <TabsTrigger value="logistics" className="text-xs sm:text-sm flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5"><Boxes className="w-3.5 h-3.5 shrink-0" />Logistics</TabsTrigger>
+        <TabsTrigger value="schedule" className="text-xs sm:text-sm flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5"><Activity className="w-3.5 h-3.5 shrink-0" />Activity</TabsTrigger>
+        {canSeeCosts && <TabsTrigger value="financials" className="text-xs sm:text-sm flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5"><PoundSterling className="w-3.5 h-3.5 shrink-0" />Financials</TabsTrigger>}
+        <TabsTrigger value="documents" className="text-xs sm:text-sm flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5"><FolderOpen className="w-3.5 h-3.5 shrink-0" />Documents</TabsTrigger>
       </TabsList>
 
       {/* Logistics Tab */}
