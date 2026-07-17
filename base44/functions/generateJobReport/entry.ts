@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
         <td>${esc(l.strata_description_detail || '—')}</td>
         <td>${blows}</td>
         <td>${l.spt_n_value != null ? l.spt_n_value : '—'}</td>
-        <td>${l.groundwater_strike_depth != null ? fmtNum(l.groundwater_depth || l.groundwater_strike_depth) + 'm' : '—'}</td>
+        <td>${l.groundwater_strike_depth != null ? fmtNum(l.groundwater_strike_depth) + 'm' : '—'}</td>
         <td>${l.coring_recovery != null ? l.coring_recovery + '%' : '—'}</td>
         <td>${l.coring_rqd != null ? l.coring_rqd + '%' : '—'}</td>
         <td>${l.sample_id ? esc(l.sample_id) + ' (' + esc(l.sample_type || '') + ')' : '—'}</td>
