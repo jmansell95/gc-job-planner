@@ -28,6 +28,7 @@ import JobHotelBookings from '@/components/JobHotelBookings';
 import InvestigationLogManager from '@/components/InvestigationLogManager';
 import JobDetailTabs from '@/components/JobDetailTabs';
 import JobScheduleOverview from '@/components/JobScheduleOverview';
+import JobWarningsBanner from '@/components/JobWarningsBanner';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-emerald-100', text: 'text-emerald-800', dot: 'bg-emerald-500', border: 'border-emerald-200' },
@@ -379,6 +380,9 @@ export default function JobDetail({ job: initialJob, onBack }) {
           </div>
         </div>
       </div>
+
+      {/* Intelligent warnings — crew requirements, compliance, missing data */}
+      <JobWarningsBanner job={job} assignedStaffCount={assignedStaff.length} />
 
       {/* Workflow guidance banner */}
       {job.status === 'planning' && (
