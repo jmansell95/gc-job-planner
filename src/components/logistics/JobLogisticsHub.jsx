@@ -237,7 +237,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
 
   // Match a rig catalogue item to its RateCardItem (Our Rate Card).
   // Uses the shared rigRateMatcher module — supports CP, Rotary, and Window Sampling rigs.
-  const findRigRateCardItem = (rig) => findRigRateCardItem(rig, rateCardItems, assetMap);
+  const matchRigRateCard = (rig) => findRigRateCardItem(rig, rateCardItems, assetMap);
 
   const addRigWithGear = async (catId) => {
     if (!catId) return;
@@ -247,7 +247,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       if (!rig) return;
       const gear = (rig.linked_catalogue_ids || []).map(id => catalogueItems.find(c => c.id === id)).filter(Boolean);
       // Pull the day rate from Our Rate Card; gear items are £0 (included in the rig rate)
-      const rateCardItem = findRigRateCardItem(rig);
+      const rateCardItem = matchRigRateCard(rig);
       const rigDayRate = rateCardItem ? (Number(rateCardItem.price) || 0) : (Number(rig.default_unit_cost) || 0);
       const rigUnit = rateCardItem?.unit || rig.default_unit_label || 'day';
       const payload = [
