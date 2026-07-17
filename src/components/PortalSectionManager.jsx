@@ -64,8 +64,11 @@ export default function PortalSectionManager({ job }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-        <ShieldCheck className="w-5 h-5 text-emerald-700" />
-        <h2 className="font-semibold text-slate-900">Portal Visibility</h2>
+        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><ShieldCheck className="w-4 h-4 text-emerald-700" /></div>
+        <div>
+          <h2 className="font-semibold text-slate-900">Client Portal Visibility</h2>
+          <p className="text-xs text-slate-400">Choose what your client can see</p>
+        </div>
         <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{enabledCount}/{SECTIONS.length} shown</span>
       </div>
       <div className="px-5 py-3 bg-slate-50/60 border-b border-slate-100 flex items-start gap-2">

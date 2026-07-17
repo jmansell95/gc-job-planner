@@ -6,7 +6,7 @@ import {
   Clock, Eye, Download, User, HardHat, Phone, Mail, Tag, Edit2,
   ShieldCheck, PlayCircle, CheckCircle2, MessageSquare,
   UsersRound, CalendarClock, Send, AlertCircle, Cog, Wrench, Package,
-  FileBarChart
+  FileBarChart, PoundSterling, Ruler
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
@@ -29,6 +29,7 @@ import InvestigationLogManager from '@/components/InvestigationLogManager';
 import JobDetailTabs from '@/components/JobDetailTabs';
 import JobScheduleOverview from '@/components/JobScheduleOverview';
 import JobWarningsBanner from '@/components/JobWarningsBanner';
+import StaffActivityBreakdown from '@/components/StaffActivityBreakdown';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-emerald-100', text: 'text-emerald-800', dot: 'bg-emerald-500', border: 'border-emerald-200' },
@@ -326,58 +327,92 @@ export default function JobDetail({ job: initialJob, onBack }) {
         </div>
       </div>
 
-      {/* Hero header */}
-      <div className={`rounded-2xl p-5 md:p-6 border ${colors.border} ${colors.bg} mb-6`}>
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
-                <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
-                {getJobTypeLabel(primaryType, jobTypes)}
-              </span>
-              <button
-                onClick={() => setShowStatusModal(true)}
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']} hover:opacity-80 transition cursor-pointer`}
-                title="Click to change status"
-              >
-                {statusLabels[job.status || 'planning']}
-              </button>
+      {/* Hero header — modern gradient band */}
+      <div className="rounded-2xl overflow-hidden mb-6 shadow-sm border border-slate-200">
+        <div className={`px-5 md:px-7 py-5 md:py-6 ${colors.bg} ${colors.border} border-b`}>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/80 ${colors.text}`}>
+                  <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
+                  {getJobTypeLabel(primaryType, jobTypes)}
+                </span>
+                <button
+                  onClick={() => setShowStatusModal(true)}
+                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']} hover:opacity-80 transition cursor-pointer`}
+                  title="Click to change status"
+                >
+                  {statusLabels[job.status || 'planning']}
+                </button>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 leading-tight">{job.name}</h1>
+              <div className="flex items-center gap-2 mt-2 text-slate-700">
+                <MapPin className="w-4 h-4 flex-shrink-0" />
+                <span className="text-sm md:text-base">{job.location}</span>
+                {job.job_reference && (
+                  <>
+                    <span className="text-slate-400">·</span>
+                    <span className="text-sm text-slate-600">Ref: {job.job_reference}</span>
+                  </>
+                )}
+              </div>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{job.name}</h1>
-            <div className="flex items-center gap-2 mt-2 text-slate-600">
-              <MapPin className="w-4 h-4 flex-shrink-0" />
-              <span className="text-sm md:text-base">{job.location}</span>
+            <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-slate-700 md:justify-end">
+              {startDate && (
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4" />
+                  <span>{format(startDate, 'dd MMM yyyy')} → {endDate ? format(endDate, 'dd MMM yyyy') : 'TBC'}</span>
+                </div>
+              )}
+              {startDate && endDate && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/70 rounded-lg border border-slate-200/60">
+                  <CalendarClock className="w-4 h-4 text-emerald-700" />
+                  <span className="font-bold text-slate-900">{Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1)}</span>
+                  <span className="text-slate-500">day job</span>
+                </div>
+              )}
+              {startDate && !endDate && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/70 rounded-lg border border-slate-200/60">
+                  <CalendarClock className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm text-amber-700 font-medium">End date not set</span>
+                </div>
+              )}
             </div>
           </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-slate-600 md:justify-end">
-            {startDate && (
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />
-                <span>{format(startDate, 'dd MMM yyyy')} → {endDate ? format(endDate, 'dd MMM yyyy') : 'TBC'}</span>
-              </div>
-            )}
-            {startDate && endDate && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/70 rounded-lg border border-slate-200/60">
-                <CalendarClock className="w-4 h-4 text-emerald-700" />
-                <span className="font-bold text-slate-900">{Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1)}</span>
-                <span className="text-slate-500">day job</span>
-              </div>
-            )}
-            {startDate && !endDate && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/70 rounded-lg border border-slate-200/60">
-                <CalendarClock className="w-4 h-4 text-amber-600" />
-                <span className="text-sm text-amber-700 font-medium">End date not set</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1.5">
-              <Users className="w-4 h-4" />
-              <span>{assignedStaff.length} {assignedStaff.length === 1 ? getCrewLabel(primaryType, 1).toLowerCase() : 'crew'}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Clock className="w-4 h-4" />
-              <span>{rotas.length} {rotas.length === 1 ? 'shift' : 'shifts'}</span>
-            </div>
+        </div>
+        {/* Metric chips strip */}
+        <div className="px-5 md:px-7 py-3 bg-white border-t border-slate-100 flex items-center gap-2 md:gap-4 flex-wrap">
+          <div className="flex items-center gap-1.5 text-sm">
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center"><Users className="w-3.5 h-3.5 text-emerald-700" /></div>
+            <span className="font-bold text-slate-900">{assignedStaff.length}</span>
+            <span className="text-slate-500">{assignedStaff.length === 1 ? getCrewLabel(primaryType, 1).toLowerCase() : 'crew'}</span>
           </div>
+          <div className="h-6 w-px bg-slate-200" />
+          <div className="flex items-center gap-1.5 text-sm">
+            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center"><Clock className="w-3.5 h-3.5 text-blue-700" /></div>
+            <span className="font-bold text-slate-900">{rotas.length}</span>
+            <span className="text-slate-500">{rotas.length === 1 ? 'shift' : 'shifts'}</span>
+          </div>
+          {isDrillingJob && totalMeterage > 0 && (
+            <>
+              <div className="h-6 w-px bg-slate-200" />
+              <div className="flex items-center gap-1.5 text-sm">
+                <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center"><Ruler className="w-3.5 h-3.5 text-amber-700" /></div>
+                <span className="font-bold text-slate-900">{totalMeterage}m</span>
+                <span className="text-slate-500">drilled</span>
+              </div>
+            </>
+          )}
+          {canSeeCosts && job.budget_amount != null && (
+            <>
+              <div className="h-6 w-px bg-slate-200" />
+              <div className="flex items-center gap-1.5 text-sm">
+                <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center"><PoundSterling className="w-3.5 h-3.5 text-violet-700" /></div>
+                <span className="font-bold text-slate-900">£{Number(job.budget_amount).toLocaleString()}</span>
+                <span className="text-slate-500">budget</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -445,7 +480,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
         {/* Job Info */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Briefcase className="w-4 h-4 text-emerald-700" />
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center"><Briefcase className="w-3.5 h-3.5 text-emerald-700" /></div>
             <h3 className="font-semibold text-slate-900 text-sm">Job Info</h3>
           </div>
           <div className="space-y-2.5 text-sm">
@@ -489,7 +524,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
         {/* Contacts */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-3">
-            <User className="w-4 h-4 text-emerald-700" />
+            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center"><User className="w-3.5 h-3.5 text-blue-700" /></div>
             <h3 className="font-semibold text-slate-900 text-sm">Contacts</h3>
           </div>
           <div className="space-y-2.5 text-sm">
@@ -527,7 +562,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
         {(client || contractor) ? (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
             <div className="flex items-center gap-2 mb-3">
-              <HardHat className="w-4 h-4 text-emerald-700" />
+              <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center"><HardHat className="w-3.5 h-3.5 text-amber-700" /></div>
               <h3 className="font-semibold text-slate-900 text-sm">Client</h3>
             </div>
             <div className="space-y-2.5 text-sm">
@@ -553,7 +588,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
         ) : (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
             <div className="flex items-center gap-2 mb-3">
-              <FileText className="w-4 h-4 text-emerald-700" />
+              <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center"><FileText className="w-3.5 h-3.5 text-slate-600" /></div>
               <h3 className="font-semibold text-slate-900 text-sm">Notes</h3>
             </div>
             {job.notes ? (
@@ -567,7 +602,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
         {/* Vehicles */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Truck className="w-4 h-4 text-emerald-700" />
+            <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center"><Truck className="w-3.5 h-3.5 text-violet-700" /></div>
             <h3 className="font-semibold text-slate-900 text-sm">Vehicles</h3>
             {assignedVehicles.length > 0 && (
               <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{assignedVehicles.length}</span>
@@ -603,12 +638,17 @@ export default function JobDetail({ job: initialJob, onBack }) {
       {job.notes && (client || contractor) && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
           <div className="flex items-center gap-2 mb-2">
-            <FileText className="w-4 h-4 text-emerald-700" />
+            <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center"><FileText className="w-3.5 h-3.5 text-slate-600" /></div>
             <h3 className="font-semibold text-slate-900 text-sm">Job Notes</h3>
           </div>
           <p className="text-sm text-slate-600 whitespace-pre-wrap">{job.notes}</p>
         </div>
       )}
+
+      {/* Client Portal Visibility — surfaced for easy show/hide control */}
+      <div className="mb-6">
+        <PortalSectionManager job={job} />
+      </div>
 
       <JobScheduleOverview
         primaryType={primaryType}
@@ -619,6 +659,9 @@ export default function JobDetail({ job: initialJob, onBack }) {
         rotasByDate={rotasByDate}
         sortedDates={sortedDates}
       />
+
+      {/* Staff Activity Breakdown — per-person daily tasks & site activities */}
+      <StaffActivityBreakdown job={job} assignedStaff={assignedStaff} primaryType={primaryType} />
 
       <JobDetailTabs
         job={job}

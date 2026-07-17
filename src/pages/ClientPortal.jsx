@@ -5,7 +5,8 @@ import { base44 } from '@/api/base44Client';
 import {
   Calendar, MapPin, CheckCircle2, Clock, PlayCircle, Briefcase, Building2,
   Activity, Ruler, Camera, FileText, Target, CheckCircle, Circle,
-  AlertTriangle, RefreshCw, Users, User, Phone, HardHat, PoundSterling, UserCircle
+  AlertTriangle, RefreshCw, Users, User, Phone, HardHat, PoundSterling, UserCircle,
+  StickyNote
 } from 'lucide-react';
 import { format, isToday, parseISO } from 'date-fns';
 import PortalComments from '@/components/PortalComments';
@@ -44,6 +45,20 @@ const roleLabels = {
 
 const portalContainer = { hidden: {}, show: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } } };
 const portalItem = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } } };
+
+// Colored icon background per portal section for visual variety
+const sectionAccent = {
+  progress: 'bg-emerald-50 text-emerald-700',
+  team: 'bg-blue-50 text-blue-700',
+  client_info: 'bg-amber-50 text-amber-700',
+  schedule: 'bg-violet-50 text-violet-700',
+  notes: 'bg-slate-50 text-slate-600',
+  photos: 'bg-rose-50 text-rose-700',
+  milestones: 'bg-teal-50 text-teal-700',
+  documents: 'bg-sky-50 text-sky-700',
+  comments: 'bg-orange-50 text-orange-700',
+  client_charge: 'bg-emerald-50 text-emerald-700',
+};
 
 function ProgressRing({ pct }) {
   const r = 26, c = 2 * Math.PI * r;
@@ -202,7 +217,7 @@ export default function ClientPortal() {
         {visible('progress') && (
           <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6">
             <div className="flex items-center gap-2 mb-4">
-              <Activity className="w-5 h-5 text-emerald-700" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${sectionAccent.progress}`}><Activity className="w-4 h-4" /></div>
               <h2 className="font-semibold text-slate-900">Project Progress</h2>
             </div>
             <div className="flex items-center gap-4 sm:hidden mb-4">
@@ -266,7 +281,7 @@ export default function ClientPortal() {
         {visible('team') && team && team.length > 0 && (
           <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-              <Users className="w-5 h-5 text-emerald-700" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${sectionAccent.team}`}><Users className="w-4 h-4" /></div>
               <h2 className="font-semibold text-slate-900">Project Team</h2>
               <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{team.length} people</span>
             </div>
@@ -294,7 +309,7 @@ export default function ClientPortal() {
         {visible('client_info') && (
           <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-emerald-700" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${sectionAccent.client_info}`}><Briefcase className="w-4 h-4" /></div>
               <h2 className="font-semibold text-slate-900">Contacts</h2>
             </div>
             <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -347,7 +362,7 @@ export default function ClientPortal() {
         {visible('schedule') && (
           <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-emerald-700" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${sectionAccent.schedule}`}><Calendar className="w-4 h-4" /></div>
               <h2 className="font-semibold text-slate-900">Work Schedule</h2>
               <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{sortedDates.length} days</span>
             </div>
@@ -393,7 +408,7 @@ export default function ClientPortal() {
         {visible('client_charge') && data.billing && data.billing.total > 0 && (
           <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-              <PoundSterling className="w-5 h-5 text-emerald-700" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${sectionAccent.client_charge}`}><PoundSterling className="w-4 h-4" /></div>
               <h2 className="font-semibold text-slate-900">{data.billing.quote_label || 'Project Investment'}</h2>
             </div>
             <div className="px-5 py-4">
@@ -435,7 +450,10 @@ export default function ClientPortal() {
         {/* Notes */}
         {visible('notes') && job.notes && (
           <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 md:p-6">
-            <h2 className="font-semibold text-slate-900 mb-3">Project Notes</h2>
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${sectionAccent.notes}`}><StickyNote className="w-4 h-4" /></div>
+              <h2 className="font-semibold text-slate-900">Project Notes</h2>
+            </div>
             <p className="text-sm text-slate-600 whitespace-pre-wrap">{job.notes}</p>
           </motion.div>
         )}
@@ -444,7 +462,7 @@ export default function ClientPortal() {
         {visible('milestones') && data.milestones && data.milestones.length > 0 && (
           <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-              <Target className="w-5 h-5 text-emerald-700" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${sectionAccent.milestones}`}><Target className="w-4 h-4" /></div>
               <h2 className="font-semibold text-slate-900">Project Milestones</h2>
               <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
                 {data.milestones.filter(m => m.completed).length}/{data.milestones.length}
@@ -476,7 +494,7 @@ export default function ClientPortal() {
         {visible('photos') && data.photos && data.photos.length > 0 && (
           <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-              <Camera className="w-5 h-5 text-emerald-700" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${sectionAccent.photos}`}><Camera className="w-4 h-4" /></div>
               <h2 className="font-semibold text-slate-900">Site Photos</h2>
               <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{data.photos.length}</span>
             </div>

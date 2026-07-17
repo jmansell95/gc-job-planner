@@ -11,7 +11,6 @@ import JobCommentsViewer from '@/components/JobCommentsViewer';
 import JobWorkLog from '@/components/JobWorkLog';
 import MilestoneManager from '@/components/MilestoneManager';
 import PortalLinkManager from '@/components/PortalLinkManager';
-import PortalSectionManager from '@/components/PortalSectionManager';
 
 export default function JobDetailTabs({ job, primaryType, assignedStaff, allStaff, suppliers, contractors, canSeeCosts, isDrillingJob, totalCost, staffCosts, totalMeterage }) {
   return (
@@ -68,7 +67,6 @@ export default function JobDetailTabs({ job, primaryType, assignedStaff, allStaf
           </div>
         )}
         <PortalLinkManager job={job} />
-        <PortalSectionManager job={job} />
       </TabsContent>
     </Tabs>
   );
