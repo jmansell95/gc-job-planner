@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Users, ChevronDown, ChevronRight, GitBranch, UserCircle2, UserMinus, Check, Shield } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, ChevronDown, ChevronRight, GitBranch, UserCircle2, UserMinus, Check, Shield, GraduationCap } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatWorkerType } from '@/utils/format';
@@ -46,10 +46,26 @@ const ASSET_TYPE_OPTIONS = [
   { value: 'lifting', label: 'Lifting Gear' },
 ];
 
+const QUALIFICATION_OPTIONS = [
+  { value: 'cscs_card', label: 'CSCS Card', critical: true },
+  { value: 'cpcs_card', label: 'CPCS Card' },
+  { value: 'npors_card', label: 'NPORS Card' },
+  { value: 'first_aid_cert', label: 'First Aid Certificate' },
+  { value: 'driver_license', label: 'Driver License' },
+  { value: 'dbs_certificate', label: 'DBS Certificate' },
+  { value: 'forklift', label: 'Forklift Training' },
+  { value: 'sts_triple', label: 'STS Triple (STS)' },
+  { value: 'confined_space', label: 'Confined Space' },
+  { value: 'asbestos_awareness', label: 'Asbestos Awareness' },
+  { value: 'manual_handling', label: 'Manual Handling' },
+  { value: 'working_at_height', label: 'Working at Height' },
+  { value: 'other', label: 'Other' },
+];
+
 export default function TeamManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], revenue_stream_type: '', billing_default_markup: 0, compatible_asset_types: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
+  const [formData, setFormData] = useState({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], revenue_stream_type: '', billing_default_markup: 0, compatible_asset_types: [], required_qualifications: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
   const [presetParent, setPresetParent] = useState(null);
   const [collapsed, setCollapsed] = useState({});
 
@@ -76,14 +92,14 @@ export default function TeamManager() {
 
   const openCreate = (parentId = null) => {
     setEditingId(null);
-    setFormData({ name: '', description: '', parent_team_id: parentId || '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
+    setFormData({ name: '', description: '', parent_team_id: parentId || '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], required_qualifications: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
     setPresetParent(parentId);
     setShowForm(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const payload = { name: formData.name, description: formData.description, parent_team_id: formData.parent_team_id || '', job_type: formData.job_type || '', category: formData.category || '', default_landing_page: formData.default_landing_page || '', allowed_tool_access: formData.allowed_tool_access || [], revenue_stream_type: formData.revenue_stream_type || '', billing_default_markup: Number(formData.billing_default_markup) || 0, compatible_asset_types: formData.compatible_asset_types || [], is_supervisor_team: formData.is_supervisor_team || false, supervisor_staff_id: formData.supervisor_staff_id || '', managed_team_ids: formData.managed_team_ids || [] };
+    const payload = { name: formData.name, description: formData.description, parent_team_id: formData.parent_team_id || '', job_type: formData.job_type || '', category: formData.category || '', default_landing_page: formData.default_landing_page || '', allowed_tool_access: formData.allowed_tool_access || [], revenue_stream_type: formData.revenue_stream_type || '', billing_default_markup: Number(formData.billing_default_markup) || 0, compatible_asset_types: formData.compatible_asset_types || [], required_qualifications: formData.required_qualifications || [], is_supervisor_team: formData.is_supervisor_team || false, supervisor_staff_id: formData.supervisor_staff_id || '', managed_team_ids: formData.managed_team_ids || [] };
     try {
       if (editingId) {
         await base44.entities.Team.update(editingId, payload);
@@ -91,7 +107,7 @@ export default function TeamManager() {
         await base44.entities.Team.create(payload);
       }
       queryClient.invalidateQueries({ queryKey: ['teams'] });
-      setFormData({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], revenue_stream_type: '', billing_default_markup: 0, compatible_asset_types: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
+      setFormData({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], revenue_stream_type: '', billing_default_markup: 0, compatible_asset_types: [], required_qualifications: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
       setShowForm(false);
       setEditingId(null);
       setPresetParent(null);
@@ -101,7 +117,7 @@ export default function TeamManager() {
   };
 
   const handleEdit = (team) => {
-    setFormData({ name: team.name, description: team.description || '', parent_team_id: team.parent_team_id || '', job_type: team.job_type || '', category: team.category || '', default_landing_page: team.default_landing_page || '', allowed_tool_access: team.allowed_tool_access || [], revenue_stream_type: team.revenue_stream_type || '', billing_default_markup: team.billing_default_markup ?? 0, compatible_asset_types: team.compatible_asset_types || [], is_supervisor_team: team.is_supervisor_team || false, supervisor_staff_id: team.supervisor_staff_id || '', managed_team_ids: team.managed_team_ids || [] });
+    setFormData({ name: team.name, description: team.description || '', parent_team_id: team.parent_team_id || '', job_type: team.job_type || '', category: team.category || '', default_landing_page: team.default_landing_page || '', allowed_tool_access: team.allowed_tool_access || [], revenue_stream_type: team.revenue_stream_type || '', billing_default_markup: team.billing_default_markup ?? 0, compatible_asset_types: team.compatible_asset_types || [], required_qualifications: team.required_qualifications || [], is_supervisor_team: team.is_supervisor_team || false, supervisor_staff_id: team.supervisor_staff_id || '', managed_team_ids: team.managed_team_ids || [] });
     setEditingId(team.id);
     setShowForm(true);
     setPresetParent(null);
@@ -196,6 +212,11 @@ export default function TeamManager() {
                 {team.compatible_asset_types && team.compatible_asset_types.length > 0 && (
                   <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">
                     {team.compatible_asset_types.map(t => ASSET_TYPE_OPTIONS.find(o => o.value === t)?.label || t).join(', ')}
+                  </span>
+                )}
+                {team.required_qualifications && team.required_qualifications.length > 0 && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full font-medium">
+                    <GraduationCap className="w-3 h-3" /> {team.required_qualifications.length} qual{team.required_qualifications.length !== 1 ? 's' : ''}
                   </span>
                 )}
                 {team.is_supervisor_team && (
@@ -333,11 +354,37 @@ export default function TeamManager() {
                   })}
                 </div>
                 <p className="text-xs text-slate-400 mt-2">Only compatible assets are offered when this crew's equipment is selected on a job.</p>
-              </div>
-            </div>
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Crew Description</label>
+                {/* Required Qualifications */}
+                <div className="mt-4">
+                <label className="block text-xs font-medium text-slate-500 mb-2 flex items-center gap-1.5">
+                  <GraduationCap className="w-3.5 h-3.5" /> Required Qualifications & Training
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {QUALIFICATION_OPTIONS.map(opt => {
+                    const checked = (formData.required_qualifications || []).includes(opt.value);
+                    return (
+                      <button type="button" key={opt.value} onClick={() => {
+                        const next = checked ? (formData.required_qualifications || []).filter(v => v !== opt.value) : [...(formData.required_qualifications || []), opt.value];
+                        setFormData({ ...formData, required_qualifications: next });
+                      }}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition text-left ${checked ? 'border-violet-600 bg-violet-50 text-violet-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                        <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${checked ? 'bg-violet-600 border-violet-600' : 'border-slate-300'}`}>
+                          {checked && <Check className="w-2.5 h-2.5 text-white" />}
+                        </span>
+                        {opt.label}
+                        {opt.critical && <span className="text-[9px] text-red-500 font-bold">●</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-slate-400 mt-2">Staff missing these qualifications are flagged in the Training Gaps dashboard. Red dot = critical (e.g. CSCS card required on site).</p>
+                </div>
+                </div>
+
+                <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Crew Description</label>
               <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600" rows="3" />
             </div>

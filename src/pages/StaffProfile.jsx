@@ -9,6 +9,7 @@ import WorkHistory from '@/components/staff/WorkHistory';
 import StaffBookings from '@/components/staff/StaffBookings';
 import ProfileStats from '@/components/staff/ProfileStats';
 import ComplianceWallet from '@/components/staff/ComplianceWallet';
+import TrainingHistory from '@/components/staff/TrainingHistory';
 import TeamMiniFeed from '@/components/staff/TeamMiniFeed';
 import EmailNotificationToggle from '@/components/staff/EmailNotificationToggle';
 import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
@@ -200,6 +201,9 @@ export default function StaffProfile() {
 
         {/* Compliance Wallet */}
         <ComplianceWallet staffId={staff.id} staffName={staff.name} />
+
+        {/* Training History */}
+        <TrainingHistory staffId={staff.id} staffName={staff.name} />
 
         {/* Team Mini Feed */}
         {staff.team_id && (

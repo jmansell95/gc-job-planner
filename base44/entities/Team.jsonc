@@ -78,6 +78,29 @@
       "default": [],
       "description": "Asset types this crew is qualified to operate (e.g. ['rig','lifting']). When assigning equipment, only compatible assets are offered to this crew; mismatches show a soft warning."
     },
+    "required_qualifications": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "cscs_card",
+          "cpcs_card",
+          "npors_card",
+          "first_aid_cert",
+          "driver_license",
+          "dbs_certificate",
+          "forklift",
+          "sts_triple",
+          "confined_space",
+          "asbestos_awareness",
+          "manual_handling",
+          "working_at_height",
+          "other"
+        ]
+      },
+      "default": [],
+      "description": "Qualifications/training required for this crew. Staff without these are flagged in the Training Gap Analysis. Includes standard compliance items plus additional site safety training (STS Triple, confined space, etc.)."
+    },
     "supervisor_staff_id": {
       "type": "string",
       "description": "Staff member ID of the supervisor who manages this team. The supervisor gets a consolidated view of all crews reporting to them."

@@ -15,6 +15,7 @@ import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewW
 import SupervisorOverviewWidget from '@/components/dashboard/SupervisorOverviewWidget';
 import JobAssetsWidget from '@/components/dashboard/JobAssetsWidget';
 import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
+import SiteHazardMapWidget from '@/components/dashboard/SiteHazardMapWidget';
 import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
 import AssetCrewProfitability from '@/components/AssetCrewProfitability';
 import PillTabs from '@/components/PillTabs';
@@ -104,6 +105,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'ai-insights': return <AiInsightsWidget />;
       case 'job-profitability': return canViewCosts ? <ProfitabilityDashboard /> : null;
       case 'asset-crew-profitability': return canViewCosts ? <AssetCrewProfitability /> : null;
+      case 'site-hazards': return <SiteHazardMapWidget onNavigate={onNavigate} />;
       default: return null;
     }
   };

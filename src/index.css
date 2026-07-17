@@ -140,3 +140,7 @@
   .stat-gradient-rose { background: linear-gradient(135deg, #f43f5e, #be123c); }
   .stat-gradient-slate { background: linear-gradient(135deg, #94a3b8, #64748b); }
 }
+
+/* Leaflet map — ensure it renders above dashboard widgets but below modals */
+.leaflet-container { z-index: 1; }
+.hazard-map-marker { background: transparent; border: none; }

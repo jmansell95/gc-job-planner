@@ -1,4 +1,4 @@
-import { Truck, Grid3x3, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Shield, Boxes, Sparkles, TrendingUp, HardHat } from 'lucide-react';
+import { Truck, Grid3x3, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Shield, Boxes, Sparkles, TrendingUp, HardHat, Waves } from 'lucide-react';
 
 export const WIDGET_REGISTRY = {
   'delivery-stats': { title: 'Delivery & Collection', icon: Truck },
@@ -13,6 +13,7 @@ export const WIDGET_REGISTRY = {
   'ai-insights': { title: 'AI Weekly Insights', icon: Sparkles },
   'job-profitability': { title: 'Job Profitability', icon: PoundSterling },
   'asset-crew-profitability': { title: 'Assets & Crews', icon: TrendingUp },
+  'site-hazards': { title: 'Site Hazard Map', icon: Waves },
 };
 
 export const DEFAULT_WIDGET_ORDER = [
@@ -28,11 +29,12 @@ export const DEFAULT_WIDGET_ORDER = [
   'ai-insights',
   'job-profitability',
   'asset-crew-profitability',
+  'site-hazards',
 ];
 
 // Tabbed groups for the dashboard. Each widget is assigned to one tab.
 export const DASHBOARD_TABS = [
-  { id: 'operations', label: 'Operations', icon: Grid3x3, widgets: ['kpi-stats', 'field-crews', 'job-assets', 'delivery-stats', 'supervisor-overview'] },
+  { id: 'operations', label: 'Operations', icon: Grid3x3, widgets: ['kpi-stats', 'field-crews', 'job-assets', 'delivery-stats', 'supervisor-overview', 'site-hazards'] },
   { id: 'insights', label: 'Insights', icon: BarChart3, widgets: ['charts', 'cost-analytics', 'ai-insights'] },
   { id: 'finance', label: 'Finance', icon: PoundSterling, widgets: ['job-profitability', 'asset-crew-profitability'] },
   { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'maintenance-quick-view'] },
@@ -56,6 +58,7 @@ export const DEFAULT_WIDGET_SIZES = {
   'ai-insights': 'lg',
   'job-profitability': 'lg',
   'asset-crew-profitability': 'lg',
+  'site-hazards': 'lg',
 };
 
 // Widgets that require costing permission (admin / manager only).
