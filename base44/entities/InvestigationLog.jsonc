@@ -31,13 +31,14 @@
         "pit_excavation",
         "installation",
         "site_setup",
+        "reinstatement",
         "other"
       ],
-      "description": "Type of investigation activity. Drilling jobs use borehole_progress/sample_collection; groundworks use pit_excavation/installation/site_setup."
+      "description": "Type of investigation activity. Drilling jobs use borehole_progress/sample_collection; groundworks use pit_excavation/installation/site_setup; enabling crews use site_setup/reinstatement."
     },
     "borehole_ref": {
       "type": "string",
-      "description": "Borehole reference (e.g. BH-01, CP-03) \u2014 for drilling logs"
+      "description": "Borehole or pit reference (e.g. BH-01, CP-03, TP-02) \u2014 used for both drilling and trial pit logs"
     },
     "depth_from": {
       "type": "number",
@@ -89,6 +90,153 @@
     "created_at": {
       "type": "string",
       "description": "ISO timestamp when this log was created"
+    },
+    "spt_blows": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "default": [],
+      "description": "SPT blow counts at each 75mm increment (e.g. [3, 4, 5] = N-value 9 for the final two increments). BS 5930 standard."
+    },
+    "spt_n_value": {
+      "type": "number",
+      "description": "Calculated SPT N-value (sum of blows for the 2nd and 3rd increments). Auto-calculated from spt_blows if not manually set."
+    },
+    "groundwater_strike_depth": {
+      "type": "number",
+      "description": "Depth in metres at which groundwater was first encountered during drilling or excavation"
+    },
+    "groundwater_static_level": {
+      "type": "number",
+      "description": "Depth in metres to the stabilised groundwater level, measured after allowing time for equilibrium (usually 24h)"
+    },
+    "strata_descriptor": {
+      "type": "string",
+      "enum": [
+        "topsoil",
+        "made_ground",
+        "clay_soft",
+        "clay_firm",
+        "clay_stiff",
+        "sand_loose",
+        "sand_medium_dense",
+        "sand_dense",
+        "gravel",
+        "silt",
+        "peat",
+        "chalk",
+        "mudstone",
+        "sandstone",
+        "limestone",
+        "granite",
+        "concrete",
+        "tarmac",
+        "other"
+      ],
+      "default": "other",
+      "description": "Standardised strata classification per BS 5930 for consistent borehole and pit logging"
+    },
+    "strata_description_detail": {
+      "type": "string",
+      "description": "Free-text detail supplementing the standardised strata descriptor (e.g. 'firm grey slightly sandy CLAY with gravel pockets')"
+    },
+    "coring_rqd": {
+      "type": "number",
+      "description": "Rock Quality Designation percentage \u2014 sum of intact core pieces \u2265100mm divided by total core run length. Used for rotary coring only."
+    },
+    "coring_recovery": {
+      "type": "number",
+      "description": "Core recovery percentage \u2014 length of recovered core divided by total core run length. Used for rotary coring only."
+    },
+    "core_run_number": {
+      "type": "string",
+      "description": "Core run reference (e.g. C1, C2) for rotary coring logs"
+    },
+    "pit_stability_rating": {
+      "type": "string",
+      "enum": [
+        "stable",
+        "minor_slumping",
+        "collapse",
+        "not_assessed"
+      ],
+      "default": "not_assessed",
+      "description": "Wall stability assessment for trial pits \u2014 'stable' = no movement, 'minor_slumping' = some material falling, 'collapse' = significant sidewall failure. Mandatory for trial pit logs."
+    },
+    "service_encounter_type": {
+      "type": "string",
+      "enum": [
+        "none",
+        "gas",
+        "water",
+        "electric",
+        "telecom",
+        "drainage",
+        "unknown"
+      ],
+      "default": "none",
+      "description": "Type of underground service encountered during excavation. 'none' = no services found; any other value forces a GPS coordinate capture for the hazard map."
+    },
+    "service_encounter_gps": {
+      "type": "string",
+      "description": "GPS coordinates (lat,lng) of any service encountered \u2014 mandatory when service_encounter_type is not 'none'. Used for the live site hazard map."
+    },
+    "cbr_value": {
+      "type": "number",
+      "description": "California Bearing Ratio test result (%) \u2014 in-situ strength testing performed in trial pits or at formation level"
+    },
+    "vane_strength": {
+      "type": "number",
+      "description": "Hand vane shear strength test result (kPa) \u2014 in-situ strength testing of cohesive soils"
+    },
+    "verification_photo_urls": {
+      "type": "string",
+      "description": "Comma-separated URLs of pre-dig and post-dig verification photos \u2014 used by enabling crews for reinstatement evidence"
+    },
+    "reinstatement_type": {
+      "type": "string",
+      "enum": [
+        "none",
+        "backfilled",
+        "granular_fill",
+        "concrete",
+        "tarmac",
+        "left_open",
+        "other"
+      ],
+      "default": "none",
+      "description": "Type of reinstatement carried out after the investigation \u2014 for enabling/reinstatement logs"
+    },
+    "backfill_material": {
+      "type": "string",
+      "description": "Material used for backfilling (e.g. 'Type 1 granular', 'site-won clay', 'foam concrete')"
+    },
+    "site_passport_id": {
+      "type": "string",
+      "description": "Links this log to the Site Passport / Permit to Dig record \u2014 ensures work was permitted before the log could be created. Set automatically when the crew's briefing confirms PTD sign-off."
+    },
+    "manager_review_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "queried"
+      ],
+      "default": "pending",
+      "description": "Manager review status. 'pending' = awaiting review, 'approved' = verified for reporting, 'queried' = flagged for investigation (anomalous data, missing mandatory fields, etc.)"
+    },
+    "manager_review_note": {
+      "type": "string",
+      "description": "Note from the manager when querying or approving this log entry"
+    },
+    "manager_reviewed_by": {
+      "type": "string",
+      "description": "Name of the manager who reviewed this log entry"
+    },
+    "manager_reviewed_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the manager reviewed this log entry"
     },
     "chargeable": {
       "type": "boolean",

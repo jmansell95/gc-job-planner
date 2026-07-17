@@ -11,6 +11,7 @@ import JobDetail from '@/components/JobDetail';
 import TimesheetManager from '@/components/TimesheetManager';
 import CalendarView from '@/components/CalendarView';
 import ComplianceManager from '@/components/ComplianceManager';
+import LogQualityControl from '@/components/investigation/LogQualityControl';
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -72,6 +73,7 @@ export default function AdminDashboard() {
             {activeSection === 'calendar' && <CalendarView />}
             {activeSection === 'teams' && <SettingsPage initialTab="teams" />}
             {activeSection === 'compliance' && <ComplianceManager />}
+            {activeSection === 'log-qc' && <LogQualityControl />}
             {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} />}
           </motion.div>
         </div>

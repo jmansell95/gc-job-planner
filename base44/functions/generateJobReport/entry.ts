@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     if (!job) return Response.json({ error: 'Job not found' }, { status: 404 });
 
     // Fetch all related data in parallel
-    const [rotas, costItems, assignments, milestones, documents, photos, complianceItems] = await Promise.all([
+    const [rotas, costItems, assignments, milestones, documents, photos, complianceItems, investigationLogs] = await Promise.all([
       base44.entities.RotaAssignment.filter({ job_id: jobId }).catch(() => []),
       base44.entities.JobCostItem.filter({ job_id: jobId }).catch(() => []),
       base44.entities.JobAssetAssignment.filter({ job_id: jobId }).catch(() => []),
@@ -32,6 +32,7 @@ Deno.serve(async (req) => {
       base44.entities.JobDocument.filter({ job_id: jobId }).catch(() => []),
       base44.entities.SitePhoto.filter({ job_id: jobId }).catch(() => []),
       base44.entities.ComplianceItem.filter({ reference_id: jobId }).catch(() => []),
+      base44.entities.InvestigationLog.filter({ job_id: jobId }).catch(() => []),
     ]);
 
     // Fetch related staff
@@ -76,6 +77,14 @@ Deno.serve(async (req) => {
     const fmtJobType = (t) => jobTypeLabels[t] || esc(t).replace(/_/g,' ');
     const fmtStatus = (t) => statusLabels[t] || esc(t).replace(/_/g,' ');
     const fmtRole = (r) => roleLabels[r] || esc(r).replace(/_/g,' ');
+
+    const strataLabels = {topsoil:'Topsoil',made_ground:'Made Ground',clay_soft:'Soft Clay',clay_firm:'Firm Clay',clay_stiff:'Stiff Clay',sand_loose:'Loose Sand',sand_medium_dense:'Medium Dense Sand',sand_dense:'Dense Sand',gravel:'Gravel',silt:'Silt',peat:'Peat',chalk:'Chalk',mudstone:'Mudstone',sandstone:'Sandstone',limestone:'Limestone',granite:'Granite',concrete:'Concrete',tarmac:'Tarmac',other:'Other'};
+    const pitStabilityLabels = {stable:'Stable',minor_slumping:'Minor slumping',collapse:'Collapse',not_assessed:'Not assessed'};
+    const serviceLabels = {none:'None',gas:'Gas',water:'Water',electric:'Electric',telecom:'Telecom',drainage:'Drainage',unknown:'Unknown'};
+    const reinstatementLabels = {none:'None',backfilled:'Backfilled',granular_fill:'Granular fill',concrete:'Concrete',tarmac:'Tarmac',left_open:'Left open',other:'Other'};
+    const reviewLabels = {pending:'Pending',approved:'Approved',queried:'Queried'};
+    const fmtStrata = (t) => strataLabels[t] || '—';
+    const fmtNum = (n) => n != null ? Number(n).toFixed(n % 1 === 0 ? 0 : 1) : '—';
 
     const genDate = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -146,6 +155,76 @@ Deno.serve(async (req) => {
       <table><thead><tr><th>Milestone</th><th>Target Date</th><th>Status</th></tr></thead>
       <tbody>${milestoneRows}</tbody></table>` : '';
 
+    // --- Geotechnical Investigation Logs ---
+    const sortedLogs = investigationLogs.sort((a, b) => {
+      const d = (a.date || '').localeCompare(b.date || '');
+      if (d !== 0) return d;
+      return (a.depth_from || 0) - (b.depth_from || 0);
+    });
+
+    const isDrillingType = job.job_type === 'cp_drilling' || job.job_type === 'rotary_drilling';
+    const approvedLogs = sortedLogs.filter(l => l.manager_review_status === 'approved');
+    const pendingLogs = sortedLogs.filter(l => (l.manager_review_status || 'pending') === 'pending');
+
+    // Borehole log rows
+    const boreholeLogs = sortedLogs.filter(l => l.log_type === 'borehole_progress' || l.log_type === 'sample_collection');
+    const boreholeRows = boreholeLogs.map(l => {
+      const blows = l.spt_blows && l.spt_blows.length > 0 ? l.spt_blows.join(' / ') : '—';
+      return `<tr>
+        <td>${esc(l.borehole_ref || '—')}</td>
+        <td>${l.depth_from != null ? fmtNum(l.depth_from) : '—'}</td>
+        <td>${l.depth_to != null ? fmtNum(l.depth_to) : '—'}</td>
+        <td>${fmtStrata(l.strata_descriptor)}</td>
+        <td>${esc(l.strata_description_detail || '—')}</td>
+        <td>${blows}</td>
+        <td>${l.spt_n_value != null ? l.spt_n_value : '—'}</td>
+        <td>${l.groundwater_strike_depth != null ? fmtNum(l.groundwater_depth || l.groundwater_strike_depth) + 'm' : '—'}</td>
+        <td>${l.coring_recovery != null ? l.coring_recovery + '%' : '—'}</td>
+        <td>${l.coring_rqd != null ? l.coring_rqd + '%' : '—'}</td>
+        <td>${l.sample_id ? esc(l.sample_id) + ' (' + esc(l.sample_type || '') + ')' : '—'}</td>
+        <td><span class="review-${l.manager_review_status || 'pending'}">${reviewLabels[l.manager_review_status || 'pending']}</span></td>
+      </tr>`;
+    }).join('');
+
+    // Trial pit / groundworks rows
+    const pitLogs = sortedLogs.filter(l => l.log_type === 'pit_excavation' || l.log_type === 'installation' || l.log_type === 'site_setup' || l.log_type === 'reinstatement');
+    const pitRows = pitLogs.map(l => {
+      const service = l.service_encounter_type && l.service_encounter_type !== 'none'
+        ? `${serviceLabels[l.service_encounter_type] || l.service_encounter_type}${l.service_encounter_gps ? ' (' + esc(l.service_encounter_gps) + ')' : ''}`
+        : 'None';
+      const photos = (l.photo_urls || l.verification_photo_urls || '').split(',').filter(Boolean).length;
+      return `<tr>
+        <td>${esc(l.borehole_ref || '—')}</td>
+        <td>${l.log_type === 'pit_excavation' ? 'Trial Pit' : l.log_type === 'installation' ? 'Installation' : l.log_type === 'reinstatement' ? 'Reinstatement' : 'Site Setup'}</td>
+        <td>${esc(l.dimensions || (l.depth_from != null && l.depth_to != null ? fmtNum(l.depth_from) + '-' + fmtNum(l.depth_to) + 'm' : '—'))}</td>
+        <td>${pitStabilityLabels[l.pit_stability_rating] || '—'}</td>
+        <td>${service}</td>
+        <td>${l.cbr_value != null ? l.cbr_value + '%' : '—'}</td>
+        <td>${l.vane_strength != null ? l.vane_strength + ' kPa' : '—'}</td>
+        <td>${reinstatementLabels[l.reinstatement_type] || '—'}</td>
+        <td>${esc(l.backfill_material || '—')}</td>
+        <td>${photos > 0 ? photos + ' photo' + (photos > 1 ? 's' : '') : '—'}</td>
+        <td>${esc(l.description || l.strata_description_detail || '—')}</td>
+        <td><span class="review-${l.manager_review_status || 'pending'}">${reviewLabels[l.manager_review_status || 'pending']}</span></td>
+      </tr>`;
+    }).join('');
+
+    const boreholeTable = (canViewCostings || true) && boreholeLogs.length > 0 ? `
+      <h2 class="section-title">Geotechnical Borehole Log</h2>
+      <table><thead><tr><th>Borehole</th><th>From (m)</th><th>To (m)</th><th>Strata</th><th>Description</th><th>SPT Blows</th><th>N-Value</th><th>Water Strike</th><th>Recovery</th><th>RQD</th><th>Sample</th><th>Review</th></tr></thead>
+      <tbody>${boreholeRows}</tbody></table>` : '';
+
+    const pitTable = pitLogs.length > 0 ? `
+      <h2 class="section-title">Trial Pit & Groundworks Log</h2>
+      <table><thead><tr><th>Ref</th><th>Type</th><th>Dimensions</th><th>Stability</th><th>Services</th><th>CBR</th><th>Vane</th><th>Reinstatement</th><th>Backfill</th><th>Photos</th><th>Description</th><th>Review</th></tr></thead>
+      <tbody>${pitRows}</tbody></table>` : '';
+
+    const qcSummary = sortedLogs.length > 0 ? `
+      <div class="info-card" style="background:#f0f9ff;border-color:#bae6fd;margin-bottom:20px">
+        <h3 style="color:#0369a1">Geotechnical Data Quality</h3>
+        <p>${sortedLogs.length} total log entries · ${approvedLogs.length} approved · ${pendingLogs.length} pending review · ${sortedLogs.filter(l => l.manager_review_status === 'queried').length} queried</p>
+      </div>` : '';
+
     const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8">
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
@@ -176,7 +255,10 @@ Deno.serve(async (req) => {
       .notes h3{font-size:11px;text-transform:uppercase;color:#92400e;margin-bottom:6px}
       .footer{margin-top:28px;padding-top:16px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:11px;color:#94a3b8}
       .footer-brand{font-weight:600;color:#065f46}
-      @media print{body{padding:12px}.header,.cost-card,th,tr:nth-child(even) td{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+      .review-pending{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:#fef3c7;color:#92400e}
+      .review-approved{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:#d1fae5;color:#065f46}
+      .review-queried{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:#fee2e2;color:#991b1b}
+      @media print{body{padding:12px}.header,.cost-card,th,tr:nth-child(even) td,.review-pending,.review-approved,.review-queried{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
     </style></head><body>
     <div class="header">
       <div>
@@ -212,6 +294,10 @@ Deno.serve(async (req) => {
     ${equipTable}
     ${assetTable}
     ${milestoneTable}
+
+    ${qcSummary}
+    ${boreholeTable}
+    ${pitTable}
 
     <div class="footer"><span>Generated ${genDate} · ${rotas.length} assignments · ${validStaff.length} staff · ${costItems.length} cost items</span><span class="footer-brand">GC Job Planner</span></div>
     </body></html>`;

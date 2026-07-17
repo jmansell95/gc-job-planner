@@ -640,7 +640,7 @@ export default function StaffDashboard() {
                           {isActive && isStarted && (
                             <div className="mt-3 space-y-3">
                               <DailyTaskLog staffId={staff.id} />
-                              <InvestigationLogEntry staffId={staff.id} jobId={a.job_id} job={jobs.find(j => j.id === a.job_id)} />
+                              <InvestigationLogEntry staffId={staff.id} staffName={staff.name} jobId={a.job_id} job={jobs.find(j => j.id === a.job_id)} />
                             </div>
                           )}
                         </div>
