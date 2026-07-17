@@ -148,7 +148,14 @@ function LogEntryCard({ log }) {
           {log.borehole_ref && <span className="text-xs font-mono font-bold text-blue-700">{log.borehole_ref}</span>}
           {log.sample_id && <span className="text-xs font-mono font-bold text-purple-700">{log.sample_id}</span>}
           {log.core_run_number && <span className="text-xs font-mono text-purple-600">Run {log.core_run_number}</span>}
-          <span className="text-xs text-slate-400 ml-auto">{log.staff_name}</span>
+          <span className="text-xs text-slate-400 ml-auto inline-flex items-center gap-1">
+            {log.completed_by_type && log.completed_by_type !== 'internal_staff' ? (
+              <>
+                <span className="bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full font-medium">{log.completed_by_type === 'client' ? 'Client' : 'Contractor'}</span>
+                {log.completed_by_name || ''}
+              </>
+            ) : log.staff_name}
+          </span>
         </div>
 
         {/* Geotechnical data badges */}

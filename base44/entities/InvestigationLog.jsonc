@@ -18,6 +18,20 @@
       "type": "string",
       "description": "Staff member name (for display)"
     },
+    "completed_by_type": {
+      "type": "string",
+      "enum": [
+        "internal_staff",
+        "client",
+        "contractor"
+      ],
+      "default": "internal_staff",
+      "description": "Who performed the logged activity. 'internal_staff' (default) = our own crew; 'client' = work carried out by the client's own personnel; 'contractor' = work carried out by another contractor on site. The log timestamp is captured automatically in created_at."
+    },
+    "completed_by_name": {
+      "type": "string",
+      "description": "Name of the client/contractor representative who performed the work. Blank for internal staff (uses staff_name)."
+    },
     "date": {
       "type": "string",
       "format": "date",

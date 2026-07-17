@@ -16,6 +16,12 @@ const groundworksLogTypes = [
   { value: 'reinstatement', label: 'Reinstate', icon: Undo2 },
 ];
 
+const completedByOptions = [
+  { value: 'internal_staff', label: 'Our Staff' },
+  { value: 'client', label: 'Client' },
+  { value: 'contractor', label: 'Contractor' },
+];
+
 export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) {
   const [showForm, setShowForm] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -27,6 +33,8 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
 
   const [form, setForm] = useState({
     log_type: 'pit_excavation',
+    completed_by_type: 'internal_staff',
+    completed_by_name: '',
     borehole_ref: '',
     depth_from: '',
     depth_to: '',
@@ -90,6 +98,11 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
   };
 
   const handleAdd = async () => {
+    // Third-party representative name enforcement
+    if (form.completed_by_type && form.completed_by_type !== 'internal_staff' && !form.completed_by_name.trim()) {
+      toast({ title: 'Name required', description: 'Enter the client/contractor representative name.', variant: 'destructive' });
+      return;
+    }
     // Service encounter GPS enforcement
     if (form.service_encounter_type && form.service_encounter_type !== 'none' && !form.service_encounter_gps) {
       toast({ title: 'GPS required', description: 'GPS coordinates required when a service is encountered.', variant: 'destructive' });
@@ -130,6 +143,12 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
         verification_photo_urls: form.verification_photo_urls || '',
         created_at: new Date().toISOString(),
         manager_review_status: 'pending',
+        completed_by_type: form.completed_by_type || 'internal_staff',
+        completed_by_name: form.completed_by_type === 'internal_staff'
+          ? (staffName || '')
+          : (form.completed_by_name || ''),
+        chargeable: form.completed_by_type !== 'client',
+        billing_status: form.completed_by_type === 'client' ? 'no_charge' : 'auto',
       };
       await base44.entities.InvestigationLog.create(payload);
       queryClient.invalidateQueries({ queryKey: ['investigation-logs-today', jobId, staffId, todayStr] });
@@ -146,6 +165,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
         description: '', photo_urls: '',
         groundwater_strike_depth: '', groundwater_static_level: '',
         reinstatement_type: 'none', backfill_material: '', verification_photo_urls: '',
+        completed_by_name: '',
       });
       setShowForm(false);
     } catch (e) {
@@ -224,6 +244,11 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
                     {log.vane_strength != null && <span className="text-xs bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">Vane {log.vane_strength}kPa</span>}
                     {log.groundwater_strike_depth != null && <span className="text-xs bg-cyan-50 text-cyan-700 px-1.5 py-0.5 rounded-full font-medium">💧 GW {log.groundwater_strike_depth}m</span>}
                     {log.reinstatement_type && log.reinstatement_type !== 'none' && <span className="text-xs bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium">{reinstatementOptions.find(r => r.value === log.reinstatement_type)?.label || log.reinstatement_type}</span>}
+                    {log.completed_by_type && log.completed_by_type !== 'internal_staff' && (
+                      <span className="text-xs bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full font-medium">
+                        {log.completed_by_type === 'client' ? 'Client' : 'Contractor'}{log.completed_by_name ? ` · ${log.completed_by_name}` : ''}
+                      </span>
+                    )}
                   </div>
                   {log.strata_description_detail && <p className="text-xs text-slate-600 mt-0.5">{log.strata_description_detail}</p>}
                   {log.description && <p className="text-xs text-slate-500 mt-0.5">{log.description}</p>}
@@ -255,6 +280,22 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
                 </button>
               );
             })}
+          </div>
+
+          <div>
+            <label className={labelCls}>Activity Completed By</label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {completedByOptions.map(o => (
+                <button key={o.value} type="button" onClick={() => setForm({ ...form, completed_by_type: o.value, completed_by_name: o.value === 'internal_staff' ? '' : form.completed_by_name })}
+                  className={`py-1.5 rounded-lg text-[11px] font-medium border transition ${form.completed_by_type === o.value ? 'border-slate-700 bg-slate-100 text-slate-800' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            {form.completed_by_type !== 'internal_staff' && (
+              <input type="text" value={form.completed_by_name} onChange={e => setForm({ ...form, completed_by_name: e.target.value })}
+                placeholder="Representative name (required)" className={`${inputCls} mt-2`} />
+            )}
           </div>
 
           {(isPit || isInstallation || isReinstatement) && (
