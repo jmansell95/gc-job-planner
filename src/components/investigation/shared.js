@@ -56,6 +56,27 @@ export const reinstatementOptions = [
   { value: 'other', label: 'Other' },
 ];
 
+export const fluidLossOptions = [
+  { value: 'none', label: 'No loss (full return)' },
+  { value: 'partial', label: 'Partial loss' },
+  { value: 'total', label: 'Total loss' },
+];
+
+export const fluidReturnOptions = [
+  { value: 'full', label: 'Full return' },
+  { value: 'partial', label: 'Partial return' },
+  { value: 'lost', label: 'No return' },
+];
+
+export const obstructionOptions = [
+  { value: 'none', label: 'None' },
+  { value: 'boulder', label: 'Boulder / Cobble' },
+  { value: 'concrete', label: 'Concrete' },
+  { value: 'utilities', label: 'Utilities / Services' },
+  { value: 'void', label: 'Void' },
+  { value: 'other', label: 'Other' },
+];
+
 export const reviewStatusConfig = {
   pending: { label: 'Pending', badge: 'bg-amber-100 text-amber-700 border border-amber-200', dot: 'bg-amber-500' },
   approved: { label: 'Approved', badge: 'bg-emerald-100 text-emerald-700 border border-emerald-200', dot: 'bg-emerald-500' },
@@ -101,6 +122,21 @@ export const pitStabilityConfig = {
   not_assessed: { label: 'Not assessed', badge: 'bg-slate-100 text-slate-500' },
 };
 
+export const fluidLossConfig = {
+  none: { label: 'Full return', badge: 'bg-emerald-100 text-emerald-700' },
+  partial: { label: 'Partial loss', badge: 'bg-amber-100 text-amber-700' },
+  total: { label: 'Total fluid loss', badge: 'bg-red-100 text-red-700' },
+};
+
+export const obstructionConfig = {
+  none: { label: 'None', badge: 'bg-slate-100 text-slate-500' },
+  boulder: { label: 'Boulder', badge: 'bg-stone-100 text-stone-700' },
+  concrete: { label: 'Concrete', badge: 'bg-slate-200 text-slate-700' },
+  utilities: { label: 'Utilities', badge: 'bg-red-100 text-red-700' },
+  void: { label: 'Void', badge: 'bg-purple-100 text-purple-700' },
+  other: { label: 'Other', badge: 'bg-slate-100 text-slate-600' },
+};
+
 export const logTypeConfig = {
   borehole_progress: { label: 'Borehole Progress', icon: 'ArrowDownToLine', badge: 'bg-blue-100 text-blue-700' },
   sample_collection: { label: 'Sample', icon: 'TestTube', badge: 'bg-purple-100 text-purple-700' },
@@ -108,6 +144,7 @@ export const logTypeConfig = {
   installation: { label: 'Installation', icon: 'Package', badge: 'bg-emerald-100 text-emerald-700' },
   site_setup: { label: 'Site Setup', icon: 'Wrench', badge: 'bg-slate-100 text-slate-600' },
   reinstatement: { label: 'Reinstatement', icon: 'Undo2', badge: 'bg-teal-100 text-teal-700' },
+  standpipe_reading: { label: 'Standpipe Reading', icon: 'Gauge', badge: 'bg-cyan-100 text-cyan-700' },
   other: { label: 'Other', icon: 'ClipboardList', badge: 'bg-slate-100 text-slate-600' },
 };
 
@@ -135,6 +172,16 @@ export function getMissingFields(log) {
     if (!log.verification_photo_urls) missing.push('Verification photos');
     if (!log.reinstatement_type || log.reinstatement_type === 'none') missing.push('Reinstatement type');
   }
+  if (log.log_type === 'standpipe_reading') {
+    if (!log.standpipe_ref) missing.push('Standpipe ref');
+    if (log.standpipe_reading_m == null && log.standpipe_dip_depth_m == null) missing.push('Water level reading');
+  }
+  if (log.refusal_encountered && (!log.obstruction_type || log.obstruction_type === 'none') && !log.description) {
+    missing.push('Refusal cause');
+  }
+  if (log.completed_by_type && log.completed_by_type !== 'internal_staff' && !log.completed_by_name) {
+    missing.push('Rep name');
+  }
   return missing;
 }
 
@@ -146,5 +193,9 @@ export function getAnomalyFlags(log) {
   if (log.coring_rqd != null && log.coring_rqd < 25) flags.push('Low RQD');
   if (log.pit_stability_rating === 'collapse') flags.push('Pit collapse reported');
   if (log.service_encounter_type && log.service_encounter_type !== 'none' && !log.service_encounter_gps) flags.push('Service found without GPS');
+  if (log.drilling_fluid_loss === 'total' || log.fluid_return_quality === 'lost') flags.push('Total fluid loss');
+  if (log.refusal_encountered) flags.push('Refusal encountered');
+  if (log.obstruction_type === 'void') flags.push('Void encountered');
+  if (log.obstruction_type === 'utilities') flags.push('Utility clash');
   return flags;
 }

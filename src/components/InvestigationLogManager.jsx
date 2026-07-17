@@ -4,11 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   FlaskConical, Layers, Ruler, TestTube, Wrench, MapPin, Package, ClipboardList, ArrowDownToLine,
-  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle
+  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import {
   strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig,
+  fluidLossConfig, obstructionConfig,
   getMissingFields, getAnomalyFlags
 } from '@/components/investigation/shared';
 
@@ -35,6 +36,14 @@ export default function InvestigationLogManager({ job, isDrillingJob }) {
   const uniqueBoreholes = [...new Set(logs.filter(l => l.borehole_ref).map(l => l.borehole_ref))];
   const pendingReview = logs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
   const queried = logs.filter(l => l.manager_review_status === 'queried').length;
+  const standpipeReadings = logs.filter(l => l.log_type === 'standpipe_reading' || l.standpipe_ref);
+  const standpipesByRef = {};
+  standpipeReadings.forEach(l => {
+    const ref = l.standpipe_ref || l.borehole_ref || '—';
+    if (!standpipesByRef[ref]) standpipesByRef[ref] = [];
+    standpipesByRef[ref].push(l);
+  });
+  const standpipeRefs = Object.keys(standpipesByRef).sort();
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -99,6 +108,33 @@ export default function InvestigationLogManager({ job, isDrillingJob }) {
       )}
 
       <div className="p-5">
+        {standpipeRefs.length > 0 && (
+          <div className="mb-5 p-4 bg-cyan-50 rounded-xl border border-cyan-100">
+            <div className="flex items-center gap-2 mb-3">
+              <Gauge className="w-4 h-4 text-cyan-700" />
+              <h3 className="text-sm font-bold text-cyan-900">Water Level Monitoring</h3>
+              <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full font-medium">{standpipeRefs.length} standpipe{standpipeRefs.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="space-y-2">
+              {standpipeRefs.map(ref => {
+                const readings = standpipesByRef[ref].sort((a, b) => new Date(a.date) - new Date(b.date));
+                const latest = readings[readings.length - 1];
+                return (
+                  <div key={ref} className="flex items-center gap-3 text-xs">
+                    <span className="font-mono font-bold text-cyan-800 w-28 truncate">{ref}</span>
+                    <div className="flex items-center gap-1.5 flex-1 flex-wrap">
+                      {readings.map(r => (
+                        <span key={r.id} className={`px-1.5 py-0.5 rounded-full font-medium ${r.id === latest.id ? 'bg-cyan-200 text-cyan-900' : 'bg-white text-cyan-700 border border-cyan-100'}`}>
+                          {format(new Date(r.date), 'dd MMM')}: {r.standpipe_reading_m != null ? `${r.standpipe_reading_m}m` : '—'}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {isLoading ? (
           <Skeleton className="h-32 w-full rounded-lg" />
         ) : logs.length === 0 ? (
@@ -185,6 +221,26 @@ function LogEntryCard({ log }) {
           )}
           {log.coring_rqd != null && (
             <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">RQD {log.coring_rqd}%</span>
+          )}
+          {log.standpipe_ref && (
+            <span className="text-xs bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+              <Gauge className="w-2.5 h-2.5" /> {log.standpipe_ref}{log.standpipe_reading_m != null ? ` · ${log.standpipe_reading_m}m` : ''}
+            </span>
+          )}
+          {log.drilling_fluid_loss && log.drilling_fluid_loss !== 'none' && fluidLossConfig[log.drilling_fluid_loss] && (
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${fluidLossConfig[log.drilling_fluid_loss].badge}`}>
+              {fluidLossConfig[log.drilling_fluid_loss].label}
+            </span>
+          )}
+          {log.refusal_encountered && (
+            <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+              <Ban className="w-2.5 h-2.5" /> Refusal
+            </span>
+          )}
+          {log.obstruction_type && log.obstruction_type !== 'none' && obstructionConfig[log.obstruction_type] && (
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${obstructionConfig[log.obstruction_type].badge}`}>
+              {obstructionConfig[log.obstruction_type].label}
+            </span>
           )}
           {stability && log.pit_stability_rating !== 'not_assessed' && (
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${stability.badge} inline-flex items-center gap-0.5`}>

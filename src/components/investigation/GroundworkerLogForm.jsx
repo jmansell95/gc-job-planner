@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { MapPin, Package, Wrench, Ruler, Send, Trash2, Plus, X, ShieldAlert, Gauge, Waves, MapPinned, Undo2, Droplet, Layers } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { strataOptions, pitStabilityOptions, serviceEncounterOptions, serviceEncounterConfig, reinstatementOptions } from './shared';
+import CompletedBySelector from './CompletedBySelector';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100 bg-white";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
@@ -14,12 +15,6 @@ const groundworksLogTypes = [
   { value: 'installation', label: 'Install', icon: Package },
   { value: 'site_setup', label: 'Setup', icon: Wrench },
   { value: 'reinstatement', label: 'Reinstate', icon: Undo2 },
-];
-
-const completedByOptions = [
-  { value: 'internal_staff', label: 'Our Staff' },
-  { value: 'client', label: 'Client' },
-  { value: 'contractor', label: 'Contractor' },
 ];
 
 export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) {
@@ -282,21 +277,13 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
             })}
           </div>
 
-          <div>
-            <label className={labelCls}>Activity Completed By</label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {completedByOptions.map(o => (
-                <button key={o.value} type="button" onClick={() => setForm({ ...form, completed_by_type: o.value, completed_by_name: o.value === 'internal_staff' ? '' : form.completed_by_name })}
-                  className={`py-1.5 rounded-lg text-[11px] font-medium border transition ${form.completed_by_type === o.value ? 'border-slate-700 bg-slate-100 text-slate-800' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                  {o.label}
-                </button>
-              ))}
-            </div>
-            {form.completed_by_type !== 'internal_staff' && (
-              <input type="text" value={form.completed_by_name} onChange={e => setForm({ ...form, completed_by_name: e.target.value })}
-                placeholder="Representative name (required)" className={`${inputCls} mt-2`} />
-            )}
-          </div>
+          <CompletedBySelector
+            value={form.completed_by_type}
+            onChange={(v) => setForm({ ...form, completed_by_type: v })}
+            nameValue={form.completed_by_name}
+            onNameChange={(v) => setForm({ ...form, completed_by_name: v })}
+            accent="amber"
+          />
 
           {(isPit || isInstallation || isReinstatement) && (
             <>

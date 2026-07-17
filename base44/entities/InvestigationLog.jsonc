@@ -46,9 +46,10 @@
         "installation",
         "site_setup",
         "reinstatement",
+        "standpipe_reading",
         "other"
       ],
-      "description": "Type of investigation activity. Drilling jobs use borehole_progress/sample_collection; groundworks use pit_excavation/installation/site_setup; enabling crews use site_setup/reinstatement."
+      "description": "Type of investigation activity. Drilling jobs use borehole_progress/sample_collection/standpipe_reading; groundworks use pit_excavation/installation/site_setup; enabling crews use site_setup/reinstatement."
     },
     "borehole_ref": {
       "type": "string",
@@ -124,6 +125,56 @@
     "groundwater_static_level": {
       "type": "number",
       "description": "Depth in metres to the stabilised groundwater level, measured after allowing time for equilibrium (usually 24h)"
+    },
+    "drilling_fluid_loss": {
+      "type": "string",
+      "enum": [
+        "none",
+        "partial",
+        "total"
+      ],
+      "default": "none",
+      "description": "Drilling fluid (bentonite/water) loss during rotary or cable percussion drilling. 'none' = full return, 'partial' = reduced return, 'total' = complete loss of circulation (indicates open void or highly fractured ground)."
+    },
+    "fluid_return_quality": {
+      "type": "string",
+      "enum": [
+        "full",
+        "partial",
+        "lost"
+      ],
+      "default": "full",
+      "description": "Quality of drilling fluid return to surface. 'full' = normal return, 'partial' = reduced return, 'lost' = no return. Used alongside drilling_fluid_loss for borehole stability assessment."
+    },
+    "refusal_encountered": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether drilling or probing refusal was encountered (could not advance further). When true, obstruction_type and description should record the cause (boulder, obstructions, services, etc.)."
+    },
+    "obstruction_type": {
+      "type": "string",
+      "enum": [
+        "none",
+        "boulder",
+        "concrete",
+        "utilities",
+        "void",
+        "other"
+      ],
+      "default": "none",
+      "description": "Type of obstruction encountered during drilling or excavation. 'boulder' = large cobble/boulder, 'concrete' = concrete obstruction, 'utilities' = service/utility clash, 'void' = void encountered, 'other' = see description."
+    },
+    "standpipe_ref": {
+      "type": "string",
+      "description": "Standpipe piezometer reference (e.g. SP-01, BH-02/SP1). Used for standpipe_reading log type to track water level monitoring over time."
+    },
+    "standpipe_reading_m": {
+      "type": "number",
+      "description": "Standpipe water level reading in metres below ground level (mBGL). Recorded during monitoring visits to track groundwater levels over time."
+    },
+    "standpipe_dip_depth_m": {
+      "type": "number",
+      "description": "Depth to water measured from the top of the standpipe casing (m below TOC). Used when borehole casing elevation isn't known, converted to mBGL later."
     },
     "strata_descriptor": {
       "type": "string",

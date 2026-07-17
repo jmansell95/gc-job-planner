@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { ArrowDownToLine, TestTube, Wrench, Ruler, Send, Trash2, Plus, X, Droplets, Calculator, Layers } from 'lucide-react';
+import { ArrowDownToLine, TestTube, Wrench, Ruler, Send, Trash2, Plus, X, Droplets, Calculator, Layers, Gauge, Ban, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { strataOptions, sampleTypes, calculateSptN } from './shared';
+import { strataOptions, sampleTypes, calculateSptN, fluidLossOptions, fluidReturnOptions, obstructionOptions } from './shared';
+import CompletedBySelector from './CompletedBySelector';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 bg-white";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
@@ -12,6 +13,7 @@ const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
 const drillingLogTypes = [
   { value: 'borehole_progress', label: 'Borehole', icon: ArrowDownToLine },
   { value: 'sample_collection', label: 'Sample', icon: TestTube },
+  { value: 'standpipe_reading', label: 'Standpipe', icon: Gauge },
   { value: 'site_setup', label: 'Setup', icon: Wrench },
 ];
 
@@ -25,6 +27,8 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
 
   const [form, setForm] = useState({
     log_type: 'borehole_progress',
+    completed_by_type: 'internal_staff',
+    completed_by_name: '',
     borehole_ref: '',
     depth_from: '',
     depth_to: '',
@@ -38,6 +42,12 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
     coring_rqd: '',
     sample_id: '',
     sample_type: 'none',
+    drilling_fluid_loss: 'none',
+    fluid_return_quality: 'full',
+    refusal_encountered: false,
+    obstruction_type: 'none',
+    standpipe_ref: '',
+    standpipe_reading_m: '',
     description: '',
     photo_urls: '',
   });
@@ -62,6 +72,20 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
   };
 
   const handleAdd = async () => {
+    if (form.completed_by_type !== 'internal_staff' && !form.completed_by_name.trim()) {
+      toast({ title: 'Name required', description: 'Enter the client/contractor representative name.', variant: 'destructive' });
+      return;
+    }
+    if (form.log_type === 'standpipe_reading') {
+      if (!form.standpipe_ref) {
+        toast({ title: 'Standpipe ref required', variant: 'destructive' });
+        return;
+      }
+      if (!form.standpipe_reading_m && form.standpipe_reading_m !== 0) {
+        toast({ title: 'Reading required', description: 'Enter the water level reading in metres.', variant: 'destructive' });
+        return;
+      }
+    }
     setAdding(true);
     try {
       const blows = [form.spt_blows_1, form.spt_blows_2, form.spt_blows_3]
@@ -89,10 +113,22 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
         coring_rqd: form.coring_rqd ? parseFloat(form.coring_rqd) : null,
         sample_id: form.sample_id || '',
         sample_type: form.sample_type || 'none',
+        drilling_fluid_loss: form.drilling_fluid_loss || 'none',
+        fluid_return_quality: form.fluid_return_quality || 'full',
+        refusal_encountered: !!form.refusal_encountered,
+        obstruction_type: form.obstruction_type || 'none',
+        standpipe_ref: form.log_type === 'standpipe_reading' ? (form.standpipe_ref || form.borehole_ref) : (form.standpipe_ref || ''),
+        standpipe_reading_m: form.standpipe_reading_m !== '' ? parseFloat(form.standpipe_reading_m) : null,
         description: form.description || '',
         photo_urls: form.photo_urls || '',
         created_at: new Date().toISOString(),
         manager_review_status: 'pending',
+        completed_by_type: form.completed_by_type || 'internal_staff',
+        completed_by_name: form.completed_by_type === 'internal_staff'
+          ? (staffName || '')
+          : (form.completed_by_name || ''),
+        chargeable: form.completed_by_type !== 'client',
+        billing_status: form.completed_by_type === 'client' ? 'no_charge' : 'auto',
       };
       await base44.entities.InvestigationLog.create(payload);
       queryClient.invalidateQueries({ queryKey: ['investigation-logs-today', jobId, staffId, todayStr] });
@@ -115,6 +151,12 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
         core_run_number: '',
         groundwater_strike_depth: '',
         groundwater_static_level: '',
+        drilling_fluid_loss: 'none',
+        fluid_return_quality: 'full',
+        refusal_encountered: false,
+        obstruction_type: 'none',
+        standpipe_reading_m: '',
+        completed_by_name: '',
       });
       setShowForm(false);
     } catch (e) {
@@ -135,6 +177,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
 
   const isBorehole = form.log_type === 'borehole_progress';
   const isSample = form.log_type === 'sample_collection';
+  const isStandpipe = form.log_type === 'standpipe_reading';
   const isCoring = job?.job_type === 'rotary_drilling' && isBorehole;
   const photos = form.photo_urls ? form.photo_urls.split(',').filter(Boolean) : [];
 
@@ -174,6 +217,26 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
                       <Droplets className="w-2.5 h-2.5" /> {log.groundwater_strike_depth}m
                     </span>
                   )}
+                  {log.log_type === 'standpipe_reading' && log.standpipe_ref && (
+                    <span className="text-xs bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+                      <Gauge className="w-2.5 h-2.5" /> {log.standpipe_ref}{log.standpipe_reading_m != null ? ` ${log.standpipe_reading_m}m` : ''}
+                    </span>
+                  )}
+                  {log.drilling_fluid_loss && log.drilling_fluid_loss !== 'none' && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${log.drilling_fluid_loss === 'total' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {log.drilling_fluid_loss === 'total' ? 'Fluid loss' : 'Part. loss'}
+                    </span>
+                  )}
+                  {log.refusal_encountered && (
+                    <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+                      <Ban className="w-2.5 h-2.5" /> Refusal
+                    </span>
+                  )}
+                  {log.completed_by_type && log.completed_by_type !== 'internal_staff' && (
+                    <span className="text-xs bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full font-medium">
+                      {log.completed_by_type === 'client' ? 'Client' : 'Contractor'}{log.completed_by_name ? ` · ${log.completed_by_name}` : ''}
+                    </span>
+                  )}
                 </div>
                 {log.strata_description_detail && <p className="text-xs text-slate-600 mt-0.5">{log.strata_description_detail}</p>}
                 {log.description && <p className="text-xs text-slate-500 mt-0.5">{log.description}</p>}
@@ -205,6 +268,35 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
               );
             })}
           </div>
+
+          <CompletedBySelector
+            value={form.completed_by_type}
+            onChange={(v) => setForm({ ...form, completed_by_type: v })}
+            nameValue={form.completed_by_name}
+            onNameChange={(v) => setForm({ ...form, completed_by_name: v })}
+            accent="blue"
+          />
+
+          {isStandpipe && (
+            <div className="p-2.5 bg-cyan-50 rounded-lg border border-cyan-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Gauge className="w-3.5 h-3.5 text-cyan-600" />
+                <p className="text-xs font-semibold text-cyan-700">Standpipe / Piezometer Reading</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={labelCls}>Standpipe Ref *</label>
+                  <input type="text" value={form.standpipe_ref} onChange={e => setForm({ ...form, standpipe_ref: e.target.value })}
+                    placeholder="e.g. SP-01, BH-02/SP1" className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Water Level (mBGL) *</label>
+                  <input type="number" step="0.01" min="0" value={form.standpipe_reading_m} onChange={e => setForm({ ...form, standpipe_reading_m: e.target.value })}
+                    placeholder="e.g. 2.40" className={inputCls} />
+                </div>
+              </div>
+            </div>
+          )}
 
           {(isBorehole || isSample) && (
             <>
@@ -312,6 +404,41 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
                   </div>
                 </div>
               )}
+
+              {/* Drilling fluid / return */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={labelCls}>Fluid Loss</label>
+                  <select value={form.drilling_fluid_loss} onChange={e => setForm({ ...form, drilling_fluid_loss: e.target.value })} className={inputCls}>
+                    {fluidLossOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Fluid Return</label>
+                  <select value={form.fluid_return_quality} onChange={e => setForm({ ...form, fluid_return_quality: e.target.value })} className={inputCls}>
+                    {fluidReturnOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              {/* Refusal / obstruction */}
+              <div className="p-2.5 bg-red-50 rounded-lg border border-red-100">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={form.refusal_encountered} onChange={e => setForm({ ...form, refusal_encountered: e.target.checked })}
+                    className="w-4 h-4 rounded border-red-300 text-red-600 focus:ring-red-400" />
+                  <span className="text-xs font-semibold text-red-700 inline-flex items-center gap-1">
+                    <Ban className="w-3.5 h-3.5" /> Refusal encountered (could not advance)
+                  </span>
+                </label>
+                {form.refusal_encountered && (
+                  <div className="mt-2">
+                    <label className={labelCls}>Obstruction Type</label>
+                    <select value={form.obstruction_type} onChange={e => setForm({ ...form, obstruction_type: e.target.value })} className={inputCls}>
+                      {obstructionOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
             </>
           )}
 

@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { Wrench, Undo2, Send, Trash2, Plus, X, Camera, CheckCircle2, MapPin } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { reinstatementOptions } from './shared';
+import CompletedBySelector from './CompletedBySelector';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 bg-white";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
@@ -24,6 +25,8 @@ export default function EnablingLogForm({ staffId, jobId, job, staffName }) {
 
   const [form, setForm] = useState({
     log_type: 'reinstatement',
+    completed_by_type: 'internal_staff',
+    completed_by_name: '',
     borehole_ref: '',
     reinstatement_type: 'none',
     backfill_material: '',
@@ -52,6 +55,10 @@ export default function EnablingLogForm({ staffId, jobId, job, staffName }) {
   };
 
   const handleAdd = async () => {
+    if (form.completed_by_type !== 'internal_staff' && !form.completed_by_name.trim()) {
+      toast({ title: 'Name required', description: 'Enter the client/contractor representative name.', variant: 'destructive' });
+      return;
+    }
     if (form.log_type === 'reinstatement') {
       if (!form.verification_photo_urls) {
         toast({ title: 'Photos required', description: 'Pre/Post-dig verification photos are mandatory.', variant: 'destructive' });
@@ -78,6 +85,12 @@ export default function EnablingLogForm({ staffId, jobId, job, staffName }) {
         verification_photo_urls: form.verification_photo_urls || '',
         created_at: new Date().toISOString(),
         manager_review_status: 'pending',
+        completed_by_type: form.completed_by_type || 'internal_staff',
+        completed_by_name: form.completed_by_type === 'internal_staff'
+          ? (staffName || '')
+          : (form.completed_by_name || ''),
+        chargeable: form.completed_by_type !== 'client',
+        billing_status: form.completed_by_type === 'client' ? 'no_charge' : 'auto',
       };
       await base44.entities.InvestigationLog.create(payload);
       queryClient.invalidateQueries({ queryKey: ['investigation-logs-today', jobId, staffId, todayStr] });
@@ -88,6 +101,7 @@ export default function EnablingLogForm({ staffId, jobId, job, staffName }) {
         ...form,
         borehole_ref: '', reinstatement_type: 'none', backfill_material: '',
         description: '', photo_urls: '', verification_photo_urls: '',
+        completed_by_name: '',
       });
       setShowForm(false);
     } catch (e) {
@@ -141,6 +155,11 @@ export default function EnablingLogForm({ staffId, jobId, job, staffName }) {
                       <CheckCircle2 className="w-2.5 h-2.5" /> Verified
                     </span>
                   )}
+                  {log.completed_by_type && log.completed_by_type !== 'internal_staff' && (
+                    <span className="text-xs bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full font-medium">
+                      {log.completed_by_type === 'client' ? 'Client' : 'Contractor'}{log.completed_by_name ? ` · ${log.completed_by_name}` : ''}
+                    </span>
+                  )}
                 </div>
                 {log.backfill_material && <p className="text-xs text-slate-600 mt-0.5">Backfill: {log.backfill_material}</p>}
                 {log.description && <p className="text-xs text-slate-500 mt-0.5">{log.description}</p>}
@@ -172,6 +191,14 @@ export default function EnablingLogForm({ staffId, jobId, job, staffName }) {
               );
             })}
           </div>
+
+          <CompletedBySelector
+            value={form.completed_by_type}
+            onChange={(v) => setForm({ ...form, completed_by_type: v })}
+            nameValue={form.completed_by_name}
+            onNameChange={(v) => setForm({ ...form, completed_by_name: v })}
+            accent="teal"
+          />
 
           {isReinstatement && (
             <>
