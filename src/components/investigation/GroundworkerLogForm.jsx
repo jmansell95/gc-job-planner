@@ -6,6 +6,7 @@ import { MapPin, Package, Wrench, Ruler, Send, Trash2, Plus, X, ShieldAlert, Gau
 import { useToast } from '@/components/ui/use-toast';
 import { strataOptions, pitStabilityOptions, serviceEncounterOptions, serviceEncounterConfig, reinstatementOptions, mixerTypeOptions } from './shared';
 import CompletedBySelector from './CompletedBySelector';
+import CollapsibleSection from './CollapsibleSection';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100 bg-white";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
@@ -13,6 +14,7 @@ const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
 const groundworksLogTypes = [
   { value: 'pit_excavation', label: 'Trial Pit', icon: MapPin },
   { value: 'inspection_pit', label: 'Insp. Pit', icon: Search },
+  { value: 'standpipe_reading', label: 'Piezometer', icon: Gauge },
   { value: 'installation', label: 'Install', icon: Package },
   { value: 'grouting_works', label: 'Grouting', icon: Beaker },
   { value: 'site_setup', label: 'Setup', icon: Wrench },
@@ -55,6 +57,9 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
     grout_volume: '',
     mixer_type: 'none',
     grout_mix_ratio: '',
+    standpipe_ref: '',
+    standpipe_reading_m: '',
+    standpipe_dip_depth_m: '',
   });
 
   const { data: todayLogs = [] } = useQuery({
@@ -98,22 +103,18 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
   };
 
   const handleAdd = async () => {
-    // Third-party representative name enforcement
     if (form.completed_by_type && form.completed_by_type !== 'internal_staff' && !form.completed_by_name.trim()) {
       toast({ title: 'Name required', description: 'Enter the client/contractor representative name.', variant: 'destructive' });
       return;
     }
-    // Service encounter GPS enforcement
     if (form.service_encounter_type && form.service_encounter_type !== 'none' && !form.service_encounter_gps) {
       toast({ title: 'GPS required', description: 'GPS coordinates required when a service is encountered.', variant: 'destructive' });
       return;
     }
-    // Pit stability enforcement
     if ((form.log_type === 'pit_excavation' || form.log_type === 'inspection_pit') && (!form.pit_stability_rating || form.pit_stability_rating === 'not_assessed')) {
       toast({ title: 'Stability required', description: 'Please assess pit wall stability before saving.', variant: 'destructive' });
       return;
     }
-    // Grouting enforcement
     if (form.log_type === 'grouting_works') {
       if (!form.mixer_type || form.mixer_type === 'none') {
         toast({ title: 'Mixer type required', description: 'Select the mixing method used.', variant: 'destructive' });
@@ -121,6 +122,16 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
       }
       if (!form.grout_volume) {
         toast({ title: 'Grout volume required', description: 'Enter the volume of grout mixed/placed.', variant: 'destructive' });
+        return;
+      }
+    }
+    if (form.log_type === 'standpipe_reading') {
+      if (!form.standpipe_ref) {
+        toast({ title: 'Piezometer ref required', description: 'Enter the piezometer / standpipe reference.', variant: 'destructive' });
+        return;
+      }
+      if (!form.standpipe_reading_m && !form.standpipe_dip_depth_m) {
+        toast({ title: 'Reading required', description: 'Enter a water level reading (mBGL or dip depth).', variant: 'destructive' });
         return;
       }
     }
@@ -155,6 +166,9 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
         grout_volume: form.grout_volume !== '' ? parseFloat(form.grout_volume) : null,
         mixer_type: form.mixer_type || 'none',
         grout_mix_ratio: form.grout_mix_ratio || '',
+        standpipe_ref: form.standpipe_ref || '',
+        standpipe_reading_m: form.standpipe_reading_m ? parseFloat(form.standpipe_reading_m) : null,
+        standpipe_dip_depth_m: form.standpipe_dip_depth_m ? parseFloat(form.standpipe_dip_depth_m) : null,
         created_at: new Date().toISOString(),
         manager_review_status: 'pending',
         completed_by_type: form.completed_by_type || 'internal_staff',
@@ -180,6 +194,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
         groundwater_strike_depth: '', groundwater_static_level: '',
         reinstatement_type: 'none', backfill_material: '', verification_photo_urls: '',
         grout_volume: '', mixer_type: 'none', grout_mix_ratio: '',
+        standpipe_ref: '', standpipe_reading_m: '', standpipe_dip_depth_m: '',
         completed_by_name: '',
       });
       setShowForm(false);
@@ -201,6 +216,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
 
   const isPit = form.log_type === 'pit_excavation';
   const isInspectionPit = form.log_type === 'inspection_pit';
+  const isPiezometer = form.log_type === 'standpipe_reading';
   const isInstallation = form.log_type === 'installation';
   const isReinstatement = form.log_type === 'reinstatement';
   const isGrouting = form.log_type === 'grouting_works';
@@ -222,6 +238,9 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
     setUploadingPhoto(false);
   };
 
+  const refLabel = isPit ? 'Pit Reference' : isInspectionPit ? 'Inspection Pit Ref' : isPiezometer ? 'Piezometer Ref' : isGrouting ? 'Location / Hole Ref' : isReinstatement ? 'Pit / Location Ref' : 'Location Ref';
+  const refPlaceholder = isPit ? "TP-01" : isInspectionPit ? "IP-01" : isPiezometer ? "PZ-01 / BH-02/SP1" : isGrouting ? "e.g. BH-03 / Area B" : isReinstatement ? "TP-01" : "e.g. Area A";
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
       <div className="flex items-center gap-2.5 mb-4">
@@ -229,8 +248,8 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
           <MapPin className="w-4 h-4 text-amber-700" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-bold text-slate-900">Trial Pit & Inspection Log</h3>
-          <p className="text-xs text-slate-400">Pit mapping · Stability · Services · Groundwater · Reinstatement</p>
+          <h3 className="text-sm font-bold text-slate-900">Groundworks &amp; Investigation Log</h3>
+          <p className="text-xs text-slate-400">Trial pits · Inspection pits · Piezometers · Grouting · Installs</p>
         </div>
         {todayLogs.length > 0 && (
           <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">{todayLogs.length} today</span>
@@ -249,6 +268,11 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
                     {log.log_type === 'inspection_pit' && (
                       <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium">Insp. Pit</span>
                     )}
+                    {log.log_type === 'standpipe_reading' && (
+                      <span className="text-xs bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+                        <Gauge className="w-2.5 h-2.5" /> PZ{log.standpipe_reading_m != null ? ` ${log.standpipe_reading_m}m` : ''}
+                      </span>
+                    )}
                     {log.log_type === 'grouting_works' && (
                       <span className="text-xs bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
                         <Beaker className="w-2.5 h-2.5" /> Grout{log.grout_volume != null ? ` ${log.grout_volume}L` : ''}
@@ -261,9 +285,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
                       </span>
                     )}
                     {log.service_encounter_type && log.service_encounter_type !== 'none' && (
-                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${svcCfg.color}`}>
-                        {svcCfg.label}
-                      </span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${svcCfg.color}`}>{svcCfg.label}</span>
                     )}
                     {log.cbr_value != null && <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">CBR {log.cbr_value}%</span>}
                     {log.vane_strength != null && <span className="text-xs bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">Vane {log.vane_strength}kPa</span>}
@@ -290,16 +312,19 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
       {showForm ? (
         <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-slate-700">{isReinstatement ? 'New Reinstatement Entry' : 'New Pit / Inspection Entry'}</p>
+            <p className="text-xs font-semibold text-slate-700">
+              {isReinstatement ? 'New Reinstatement' : isPiezometer ? 'New Piezometer Reading' : 'New Entry'}
+            </p>
             <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
           </div>
 
-          <div className="flex gap-1.5">
+          {/* Activity type selector */}
+          <div className="grid grid-cols-4 gap-1.5">
             {groundworksLogTypes.map(t => {
               const Icon = t.icon;
               return (
                 <button key={t.value} type="button" onClick={() => setForm({ ...form, log_type: t.value })}
-                  className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg text-[10px] font-medium border transition ${form.log_type === t.value ? 'border-amber-600 bg-amber-50 text-amber-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                  className={`flex flex-col items-center gap-1 py-2 rounded-lg text-[10px] font-medium border transition ${form.log_type === t.value ? 'border-amber-600 bg-amber-50 text-amber-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
                   <Icon className="w-4 h-4" />
                   {t.label}
                 </button>
@@ -315,235 +340,275 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
             accent="amber"
           />
 
-          {(isPit || isInspectionPit || isInstallation || isReinstatement || isGrouting) && (
+          {/* Reference */}
+          {(isPit || isInspectionPit || isPiezometer || isInstallation || isReinstatement || isGrouting) && (
+            <div>
+              <label className={labelCls}>{refLabel}</label>
+              <input type="text" value={form.borehole_ref} onChange={e => setForm({ ...form, borehole_ref: e.target.value })}
+                placeholder={refPlaceholder} className={inputCls} />
+            </div>
+          )}
+
+          {/* ── Piezometer reading ── */}
+          {isPiezometer && (
+            <div className="p-3 bg-cyan-50 rounded-xl border border-cyan-100 space-y-2">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Gauge className="w-3.5 h-3.5 text-cyan-700" />
+                <p className="text-xs font-semibold text-cyan-700">Water Level Reading</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={labelCls}>Reading mBGL</label>
+                  <input type="number" step="0.01" min="0" value={form.standpipe_reading_m} onChange={e => setForm({ ...form, standpipe_reading_m: e.target.value })}
+                    className={inputCls} placeholder="e.g. 1.85" />
+                </div>
+                <div>
+                  <label className={labelCls}>Dip Depth (from TOC)</label>
+                  <input type="number" step="0.01" min="0" value={form.standpipe_dip_depth_m} onChange={e => setForm({ ...form, standpipe_dip_depth_m: e.target.value })}
+                    className={inputCls} placeholder="e.g. 2.10" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Dimensions & depth (pit / grouting only) ── */}
+          {(isPit || isInspectionPit || isGrouting) && (
             <>
               <div>
-                <label className={labelCls}>{isPit ? 'Pit Reference' : isInspectionPit ? 'Inspection Pit Ref' : isGrouting ? 'Location / Hole Ref' : isReinstatement ? 'Pit / Location Ref' : 'Location Ref'}</label>
-                <input type="text" value={form.borehole_ref} onChange={e => setForm({ ...form, borehole_ref: e.target.value })}
-                  placeholder={isPit ? "TP-01" : isInspectionPit ? "IP-01" : isGrouting ? "e.g. BH-03 / Area B" : isReinstatement ? "TP-01" : "e.g. Area A"} className={inputCls} />
+                <label className={labelCls}>{isGrouting ? 'Hole / Void Dimensions' : 'Dimensions'}</label>
+                <input type="text" value={form.dimensions} onChange={e => setForm({ ...form, dimensions: e.target.value })}
+                  placeholder={isGrouting ? "e.g. 150mm dia x 3m deep" : "1.2m x 0.8m x 1.5m deep"} className={inputCls} />
               </div>
-
-              {(isPit || isInspectionPit || isGrouting) && (
-                <>
-                  <div>
-                    <label className={labelCls}>{isGrouting ? 'Hole / Void Dimensions' : 'Dimensions'}</label>
-                    <input type="text" value={form.dimensions} onChange={e => setForm({ ...form, dimensions: e.target.value })}
-                      placeholder={isGrouting ? "e.g. 150mm dia x 3m deep" : "1.2m x 0.8m x 1.5m deep"} className={inputCls} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className={labelCls}><Ruler className="w-3 h-3 inline" /> {isGrouting ? 'Depth From (m)' : 'Depth From (m)'}</label>
-                      <input type="number" step="0.1" min="0" value={form.depth_from} onChange={e => setForm({ ...form, depth_from: e.target.value })}
-                        className={inputCls} placeholder="0.0" />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Depth To (m)</label>
-                      <input type="number" step="0.1" min="0" value={form.depth_to} onChange={e => setForm({ ...form, depth_to: e.target.value })}
-                        className={inputCls} placeholder="1.5" />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {(isPit || isInspectionPit) && (
-                <>
-                  {/* Strata */}
-                  <div>
-                    <label className={labelCls}>Strata Classification</label>
-                    <select value={form.strata_descriptor} onChange={e => setForm({ ...form, strata_descriptor: e.target.value })} className={inputCls}>
-                      {strataOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={labelCls}>Strata Description</label>
-                    <textarea value={form.strata_description_detail} onChange={e => setForm({ ...form, strata_description_detail: e.target.value })} rows={2}
-                      placeholder="e.g. brown sandy topsoil with rootlets"
-                      className={`${inputCls} resize-none`} />
-                  </div>
-
-                  {/* Pit stability — MANDATORY */}
-                  <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-100">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
-                      <p className="text-xs font-semibold text-amber-700">Wall Stability (Required)</p>
-                    </div>
-                    <select value={form.pit_stability_rating} onChange={e => setForm({ ...form, pit_stability_rating: e.target.value })} className={inputCls}>
-                      {pitStabilityOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                    </select>
-                  </div>
-
-                  {/* Service encounter — forces GPS */}
-                  <div className="p-2.5 bg-red-50 rounded-lg border border-red-100">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Waves className="w-3.5 h-3.5 text-red-600" />
-                      <p className="text-xs font-semibold text-red-700">Service Encounter</p>
-                    </div>
-                    <select value={form.service_encounter_type} onChange={e => setForm({ ...form, service_encounter_type: e.target.value, service_encounter_gps: e.target.value === 'none' ? '' : form.service_encounter_gps })} className={inputCls}>
-                      {serviceEncounterOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                    </select>
-                    {isServiceFound && (
-                      <div className="mt-2">
-                        <label className={labelCls}><MapPinned className="w-3 h-3 inline" /> GPS Coordinates (Required)</label>
-                        <div className="flex gap-2">
-                          <input type="text" value={form.service_encounter_gps} readOnly placeholder="Capture GPS…"
-                            className={`${inputCls} flex-1 bg-slate-50 text-slate-500`} />
-                          <button type="button" onClick={captureGps} disabled={gettingGps}
-                            className="px-3 py-2 bg-red-700 text-white rounded-xl text-xs font-semibold hover:bg-red-800 transition disabled:opacity-50 whitespace-nowrap">
-                            {gettingGps ? '…' : 'Capture'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* In-situ testing */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className={labelCls}><Gauge className="w-3 h-3 inline" /> CBR (%)</label>
-                      <input type="number" step="0.1" min="0" value={form.cbr_value} onChange={e => setForm({ ...form, cbr_value: e.target.value })}
-                        className={inputCls} placeholder="—" />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Hand Vane (kPa)</label>
-                      <input type="number" step="1" min="0" value={form.vane_strength} onChange={e => setForm({ ...form, vane_strength: e.target.value })}
-                        className={inputCls} placeholder="—" />
-                    </div>
-                  </div>
-
-                  {/* Groundwater */}
-                  <div className="p-2.5 bg-blue-50 rounded-lg border border-blue-100">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Droplet className="w-3.5 h-3.5 text-blue-600" />
-                      <p className="text-xs font-semibold text-blue-700">Groundwater</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className={labelCls}>Strike Depth (m)</label>
-                        <input type="number" step="0.05" min="0" value={form.groundwater_strike_depth} onChange={e => setForm({ ...form, groundwater_strike_depth: e.target.value })}
-                          className={inputCls} placeholder="e.g. 1.2" />
-                      </div>
-                      <div>
-                        <label className={labelCls}>Static Level (m)</label>
-                        <input type="number" step="0.05" min="0" value={form.groundwater_static_level} onChange={e => setForm({ ...form, groundwater_static_level: e.target.value })}
-                          className={inputCls} placeholder="after 24h" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Reinstatement (optional, same visit) */}
-                  <div className="p-2.5 bg-emerald-50 rounded-lg border border-emerald-100">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Undo2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <p className="text-xs font-semibold text-emerald-700">Reinstatement <span className="font-normal text-emerald-500/70">(if backfilled this visit)</span></p>
-                    </div>
-                    <div className="space-y-2">
-                      <select value={form.reinstatement_type} onChange={e => setForm({ ...form, reinstatement_type: e.target.value })} className={inputCls}>
-                        {reinstatementOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                      </select>
-                      {form.reinstatement_type && form.reinstatement_type !== 'none' && form.reinstatement_type !== 'left_open' && (
-                        <input type="text" value={form.backfill_material} onChange={e => setForm({ ...form, backfill_material: e.target.value })}
-                          placeholder="Backfill material e.g. Type 1 granular, site-won clay" className={inputCls} />
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {isReinstatement && (
-                <>
-                  <div className="p-2.5 bg-emerald-50 rounded-lg border border-emerald-100">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Undo2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <p className="text-xs font-semibold text-emerald-700">Reinstatement Details</p>
-                    </div>
-                    <div className="space-y-2">
-                      <select value={form.reinstatement_type} onChange={e => setForm({ ...form, reinstatement_type: e.target.value })} className={inputCls}>
-                        {reinstatementOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                      </select>
-                      {form.reinstatement_type && form.reinstatement_type !== 'none' && form.reinstatement_type !== 'left_open' && (
-                        <input type="text" value={form.backfill_material} onChange={e => setForm({ ...form, backfill_material: e.target.value })}
-                          placeholder="Backfill material e.g. Type 1 granular, site-won clay" className={inputCls} />
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className={labelCls}><Layers className="w-3 h-3 inline" /> Verification Photos (pre & post)</label>
-                    <label className="flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-slate-300 rounded-xl text-xs text-slate-500 hover:border-emerald-400 hover:text-emerald-600 cursor-pointer transition">
-                      {uploadingPhoto ? 'Uploading…' : <><Plus className="w-3.5 h-3.5" /> Attach Verification Photo</>}
-                      <input type="file" accept="image/*" capture="environment" onChange={handleVerificationPhotoUpload} className="hidden" disabled={uploadingPhoto} />
-                    </label>
-                    {verificationPhotos.length > 0 && <p className="text-xs text-emerald-700 mt-1">{verificationPhotos.length} verification photo(s)</p>}
-                  </div>
-                </>
-              )}
-
-              {isInstallation && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className={labelCls}>Units Completed</label>
-                    <input type="number" min="0" step="1" value={form.units_completed} onChange={e => setForm({ ...form, units_completed: e.target.value })}
-                      placeholder="e.g. 2" className={inputCls} />
-                  </div>
-                  <div>
-                    <label className={labelCls}>Unit Label</label>
-                    <input type="text" value={form.units_label} onChange={e => setForm({ ...form, units_label: e.target.value })}
-                      placeholder="e.g. EV chargers" className={inputCls} />
-                  </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className={labelCls}><Ruler className="w-3 h-3 inline" /> Depth From (m)</label>
+                  <input type="number" step="0.1" min="0" value={form.depth_from} onChange={e => setForm({ ...form, depth_from: e.target.value })}
+                    className={inputCls} placeholder="0.0" />
                 </div>
-              )}
-
-              {isGrouting && (
-                <div className="p-2.5 bg-rose-50 rounded-lg border border-rose-100">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Beaker className="w-3.5 h-3.5 text-rose-600" />
-                    <p className="text-xs font-semibold text-rose-700">Grouting (Machine Mixer)</p>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className={labelCls}>Mixer Type *</label>
-                        <select value={form.mixer_type} onChange={e => setForm({ ...form, mixer_type: e.target.value })} className={inputCls}>
-                          {mixerTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className={labelCls}>Grout Volume (L) *</label>
-                        <input type="number" step="0.5" min="0" value={form.grout_volume} onChange={e => setForm({ ...form, grout_volume: e.target.value })}
-                          placeholder="e.g. 25" className={inputCls} />
-                      </div>
-                    </div>
-                    <div>
-                      <label className={labelCls}>Mix Ratio / Spec</label>
-                      <input type="text" value={form.grout_mix_ratio} onChange={e => setForm({ ...form, grout_mix_ratio: e.target.value })}
-                        placeholder="e.g. 1:1 cement:bentonite, Cement 25kg + 12L water" className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Backfill / Seal Material</label>
-                      <input type="text" value={form.backfill_material} onChange={e => setForm({ ...form, backfill_material: e.target.value })}
-                        placeholder="e.g. cement-bentonite grout, bentonite pellets" className={inputCls} />
-                    </div>
-                  </div>
+                <div>
+                  <label className={labelCls}>Depth To (m)</label>
+                  <input type="number" step="0.1" min="0" value={form.depth_to} onChange={e => setForm({ ...form, depth_to: e.target.value })}
+                    className={inputCls} placeholder="1.5" />
                 </div>
-              )}
-
-              <div>
-                <label className={labelCls}>Description / Observations</label>
-                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2}
-                  placeholder="Ground conditions, observations, obstructions..."
-                  className={`${inputCls} resize-none`} />
-              </div>
-
-              {/* Photo upload */}
-              <div>
-                <label className={labelCls}>Evidence Photos</label>
-                <label className="flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-slate-300 rounded-xl text-xs text-slate-500 hover:border-amber-400 hover:text-amber-600 cursor-pointer transition">
-                  {uploadingPhoto ? 'Uploading…' : <><Plus className="w-3.5 h-3.5" /> Attach Photo</>}
-                  <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} className="hidden" disabled={uploadingPhoto} />
-                </label>
-                {photos.length > 0 && <p className="text-xs text-emerald-700 mt-1">{photos.length} photo(s) attached</p>}
               </div>
             </>
+          )}
+
+          {/* ── Trial Pit: strata + stability (core) ── */}
+          {isPit && (
+            <>
+              <div>
+                <label className={labelCls}>Strata Classification</label>
+                <select value={form.strata_descriptor} onChange={e => setForm({ ...form, strata_descriptor: e.target.value })} className={inputCls}>
+                  {strataOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Strata Description</label>
+                <textarea value={form.strata_description_detail} onChange={e => setForm({ ...form, strata_description_detail: e.target.value })} rows={2}
+                  placeholder="e.g. brown sandy topsoil with rootlets"
+                  className={`${inputCls} resize-none`} />
+              </div>
+            </>
+          )}
+
+          {/* ── Pit stability (mandatory for both pit types) ── */}
+          {(isPit || isInspectionPit) && (
+            <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+                <p className="text-xs font-semibold text-amber-700">Wall Stability (Required)</p>
+              </div>
+              <select value={form.pit_stability_rating} onChange={e => setForm({ ...form, pit_stability_rating: e.target.value })} className={inputCls}>
+                {pitStabilityOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* ── Trial Pit optional sections (collapsible, clean) ── */}
+          {isPit && (
+            <div className="space-y-2">
+              <CollapsibleSection icon={Waves} title="Service Encounter" hint="Tap if services found" accent="red">
+                <select value={form.service_encounter_type} onChange={e => setForm({ ...form, service_encounter_type: e.target.value, service_encounter_gps: e.target.value === 'none' ? '' : form.service_encounter_gps })} className={inputCls}>
+                  {serviceEncounterOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+                {isServiceFound && (
+                  <div>
+                    <label className={labelCls}><MapPinned className="w-3 h-3 inline" /> GPS Coordinates (Required)</label>
+                    <div className="flex gap-2">
+                      <input type="text" value={form.service_encounter_gps} readOnly placeholder="Capture GPS…"
+                        className={`${inputCls} flex-1 bg-slate-50 text-slate-500`} />
+                      <button type="button" onClick={captureGps} disabled={gettingGps}
+                        className="px-3 py-2 bg-red-700 text-white rounded-xl text-xs font-semibold hover:bg-red-800 transition disabled:opacity-50 whitespace-nowrap">
+                        {gettingGps ? '…' : 'Capture'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </CollapsibleSection>
+
+              <CollapsibleSection icon={Gauge} title="In-situ Testing (CBR / Vane)" hint="Optional" accent="slate">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={labelCls}>CBR (%)</label>
+                    <input type="number" step="0.1" min="0" value={form.cbr_value} onChange={e => setForm({ ...form, cbr_value: e.target.value })}
+                      className={inputCls} placeholder="—" />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Hand Vane (kPa)</label>
+                    <input type="number" step="1" min="0" value={form.vane_strength} onChange={e => setForm({ ...form, vane_strength: e.target.value })}
+                      className={inputCls} placeholder="—" />
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              <CollapsibleSection icon={Droplet} title="Groundwater" hint="Optional" accent="blue">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={labelCls}>Strike Depth (m)</label>
+                    <input type="number" step="0.05" min="0" value={form.groundwater_strike_depth} onChange={e => setForm({ ...form, groundwater_strike_depth: e.target.value })}
+                      className={inputCls} placeholder="e.g. 1.2" />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Static Level (m)</label>
+                    <input type="number" step="0.05" min="0" value={form.groundwater_static_level} onChange={e => setForm({ ...form, groundwater_static_level: e.target.value })}
+                      className={inputCls} placeholder="after 24h" />
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              <CollapsibleSection icon={Undo2} title="Reinstatement (if backfilled)" hint="Optional" accent="amber">
+                <select value={form.reinstatement_type} onChange={e => setForm({ ...form, reinstatement_type: e.target.value })} className={inputCls}>
+                  {reinstatementOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                </select>
+                {form.reinstatement_type && form.reinstatement_type !== 'none' && form.reinstatement_type !== 'left_open' && (
+                  <input type="text" value={form.backfill_material} onChange={e => setForm({ ...form, backfill_material: e.target.value })}
+                    placeholder="Backfill material e.g. Type 1 granular, site-won clay" className={inputCls} />
+                )}
+              </CollapsibleSection>
+            </div>
+          )}
+
+          {/* ── Inspection Pit: services only (kept simple) ── */}
+          {isInspectionPit && (
+            <CollapsibleSection icon={Waves} title="Service Encounter" hint="Tap if services found" accent="red" defaultOpen={isServiceFound}>
+              <select value={form.service_encounter_type} onChange={e => setForm({ ...form, service_encounter_type: e.target.value, service_encounter_gps: e.target.value === 'none' ? '' : form.service_encounter_gps })} className={inputCls}>
+                {serviceEncounterOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+              {isServiceFound && (
+                <div>
+                  <label className={labelCls}><MapPinned className="w-3 h-3 inline" /> GPS Coordinates (Required)</label>
+                  <div className="flex gap-2">
+                    <input type="text" value={form.service_encounter_gps} readOnly placeholder="Capture GPS…"
+                      className={`${inputCls} flex-1 bg-slate-50 text-slate-500`} />
+                    <button type="button" onClick={captureGps} disabled={gettingGps}
+                      className="px-3 py-2 bg-red-700 text-white rounded-xl text-xs font-semibold hover:bg-red-800 transition disabled:opacity-50 whitespace-nowrap">
+                      {gettingGps ? '…' : 'Capture'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </CollapsibleSection>
+          )}
+
+          {/* ── Reinstatement (dedicated) ── */}
+          {isReinstatement && (
+            <>
+              <div className="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Undo2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <p className="text-xs font-semibold text-emerald-700">Reinstatement Details</p>
+                </div>
+                <div className="space-y-2">
+                  <select value={form.reinstatement_type} onChange={e => setForm({ ...form, reinstatement_type: e.target.value })} className={inputCls}>
+                    {reinstatementOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                  {form.reinstatement_type && form.reinstatement_type !== 'none' && form.reinstatement_type !== 'left_open' && (
+                    <input type="text" value={form.backfill_material} onChange={e => setForm({ ...form, backfill_material: e.target.value })}
+                      placeholder="Backfill material e.g. Type 1 granular, site-won clay" className={inputCls} />
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}><Layers className="w-3 h-3 inline" /> Verification Photos (pre & post)</label>
+                <label className="flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-slate-300 rounded-xl text-xs text-slate-500 hover:border-emerald-400 hover:text-emerald-600 cursor-pointer transition">
+                  {uploadingPhoto ? 'Uploading…' : <><Plus className="w-3.5 h-3.5" /> Attach Verification Photo</>}
+                  <input type="file" accept="image/*" capture="environment" onChange={handleVerificationPhotoUpload} className="hidden" disabled={uploadingPhoto} />
+                </label>
+                {verificationPhotos.length > 0 && <p className="text-xs text-emerald-700 mt-1">{verificationPhotos.length} verification photo(s)</p>}
+              </div>
+            </>
+          )}
+
+          {/* ── Installation ── */}
+          {isInstallation && (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className={labelCls}>Units Completed</label>
+                <input type="number" min="0" step="1" value={form.units_completed} onChange={e => setForm({ ...form, units_completed: e.target.value })}
+                  placeholder="e.g. 2" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Unit Label</label>
+                <input type="text" value={form.units_label} onChange={e => setForm({ ...form, units_label: e.target.value })}
+                  placeholder="e.g. EV chargers" className={inputCls} />
+              </div>
+            </div>
+          )}
+
+          {/* ── Grouting ── */}
+          {isGrouting && (
+            <div className="p-2.5 bg-rose-50 rounded-xl border border-rose-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Beaker className="w-3.5 h-3.5 text-rose-600" />
+                <p className="text-xs font-semibold text-rose-700">Grouting (Machine Mixer)</p>
+              </div>
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={labelCls}>Mixer Type *</label>
+                    <select value={form.mixer_type} onChange={e => setForm({ ...form, mixer_type: e.target.value })} className={inputCls}>
+                      {mixerTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Grout Volume (L) *</label>
+                    <input type="number" step="0.5" min="0" value={form.grout_volume} onChange={e => setForm({ ...form, grout_volume: e.target.value })}
+                      placeholder="e.g. 25" className={inputCls} />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelCls}>Mix Ratio / Spec</label>
+                  <input type="text" value={form.grout_mix_ratio} onChange={e => setForm({ ...form, grout_mix_ratio: e.target.value })}
+                    placeholder="e.g. 1:1 cement:bentonite, Cement 25kg + 12L water" className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Backfill / Seal Material</label>
+                  <input type="text" value={form.backfill_material} onChange={e => setForm({ ...form, backfill_material: e.target.value })}
+                    placeholder="e.g. cement-bentonite grout, bentonite pellets" className={inputCls} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Description (all except site_setup which only needs this) */}
+          <div>
+            <label className={labelCls}>Description / Observations</label>
+            <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2}
+              placeholder="Ground conditions, observations, obstructions..."
+              className={`${inputCls} resize-none`} />
+          </div>
+
+          {/* Photo upload (not for piezometer which is just a reading) */}
+          {!isPiezometer && (
+            <div>
+              <label className={labelCls}>Evidence Photos</label>
+              <label className="flex items-center justify-center gap-1.5 px-3 py-2 border border-dashed border-slate-300 rounded-xl text-xs text-slate-500 hover:border-amber-400 hover:text-amber-600 cursor-pointer transition">
+                {uploadingPhoto ? 'Uploading…' : <><Plus className="w-3.5 h-3.5" /> Attach Photo</>}
+                <input type="file" accept="image/*" capture="environment" onChange={handlePhotoUpload} className="hidden" disabled={uploadingPhoto} />
+              </label>
+              {photos.length > 0 && <p className="text-xs text-emerald-700 mt-1">{photos.length} photo(s) attached</p>}
+            </div>
           )}
 
           <button onClick={handleAdd} disabled={adding}
@@ -554,7 +619,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
       ) : (
         <button onClick={() => setShowForm(true)}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 text-amber-700 rounded-xl hover:bg-amber-100 active:scale-95 transition text-sm font-semibold border border-amber-200 touch-manipulation">
-          <Plus className="w-4 h-4" /> Log Pit / Activity
+          <Plus className="w-4 h-4" /> Log Activity
         </button>
       )}
     </div>

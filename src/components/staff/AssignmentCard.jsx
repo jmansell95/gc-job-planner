@@ -64,6 +64,7 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
 
       {/* Compact header — always visible */}
       <button onClick={() => setExpanded(e => !e)} className="w-full text-left p-4 flex items-start gap-3 hover:bg-slate-50/60 transition">
+        <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${assignment.status === 'completed' ? 'bg-emerald-500' : assignment.status === 'started' ? 'bg-blue-500' : 'bg-slate-300'}`} />
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-bold text-slate-900 leading-tight truncate">{job.name}</h3>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
