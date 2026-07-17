@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { ArrowDownToLine, TestTube, Wrench, Ruler, Send, Trash2, Plus, X, Droplets, Calculator, Layers, Gauge, Ban, AlertTriangle } from 'lucide-react';
+import { ArrowDownToLine, TestTube, Wrench, Ruler, Send, Trash2, Plus, X, Droplets, Calculator, Layers, Gauge, Ban, AlertTriangle, Radar, Boxes, Beaker } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { strataOptions, sampleTypes, calculateSptN, fluidLossOptions, fluidReturnOptions, obstructionOptions } from './shared';
+import { strataOptions, sampleTypes, calculateSptN, fluidLossOptions, fluidReturnOptions, obstructionOptions, mixerTypeOptions, sensorTypeOptions, reinstatementOptions } from './shared';
 import CompletedBySelector from './CompletedBySelector';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 bg-white";
@@ -13,7 +13,11 @@ const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
 const drillingLogTypes = [
   { value: 'borehole_progress', label: 'Borehole', icon: ArrowDownToLine },
   { value: 'sample_collection', label: 'Sample', icon: TestTube },
+  { value: 'window_sampling', label: 'Win Samp', icon: Layers },
   { value: 'standpipe_reading', label: 'Standpipe', icon: Gauge },
+  { value: 'geophysical_probing', label: 'Geophys', icon: Radar },
+  { value: 'core_inspection', label: 'Core', icon: Boxes },
+  { value: 'borehole_decommissioning', label: 'Decomm', icon: Ban },
   { value: 'site_setup', label: 'Setup', icon: Wrench },
 ];
 
@@ -40,6 +44,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
     core_run_number: '',
     coring_recovery: '',
     coring_rqd: '',
+    core_box_number: '',
     sample_id: '',
     sample_type: 'none',
     drilling_fluid_loss: 'none',
@@ -48,6 +53,13 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
     obstruction_type: 'none',
     standpipe_ref: '',
     standpipe_reading_m: '',
+    probe_depth: '',
+    sensor_type: '',
+    seal_depth: '',
+    backfill_material: '',
+    grout_volume: '',
+    mixer_type: 'none',
+    grout_mix_ratio: '',
     description: '',
     photo_urls: '',
   });
@@ -86,6 +98,18 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
         return;
       }
     }
+    if (form.log_type === 'geophysical_probing' && !form.sensor_type) {
+      toast({ title: 'Sensor type required', variant: 'destructive' });
+      return;
+    }
+    if (form.log_type === 'borehole_decommissioning' && !form.backfill_material) {
+      toast({ title: 'Backfill material required', description: 'Record the seal/backfill material used.', variant: 'destructive' });
+      return;
+    }
+    if (form.log_type === 'core_inspection' && !form.core_box_number) {
+      toast({ title: 'Core box number required', variant: 'destructive' });
+      return;
+    }
     setAdding(true);
     try {
       const blows = [form.spt_blows_1, form.spt_blows_2, form.spt_blows_3]
@@ -111,6 +135,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
         core_run_number: form.core_run_number || '',
         coring_recovery: form.coring_recovery ? parseFloat(form.coring_recovery) : null,
         coring_rqd: form.coring_rqd ? parseFloat(form.coring_rqd) : null,
+        core_box_number: form.core_box_number || '',
         sample_id: form.sample_id || '',
         sample_type: form.sample_type || 'none',
         drilling_fluid_loss: form.drilling_fluid_loss || 'none',
@@ -119,6 +144,13 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
         obstruction_type: form.obstruction_type || 'none',
         standpipe_ref: form.log_type === 'standpipe_reading' ? (form.standpipe_ref || form.borehole_ref) : (form.standpipe_ref || ''),
         standpipe_reading_m: form.standpipe_reading_m !== '' ? parseFloat(form.standpipe_reading_m) : null,
+        probe_depth: form.probe_depth !== '' ? parseFloat(form.probe_depth) : null,
+        sensor_type: form.sensor_type || '',
+        seal_depth: form.seal_depth !== '' ? parseFloat(form.seal_depth) : null,
+        backfill_material: form.backfill_material || '',
+        grout_volume: form.grout_volume !== '' ? parseFloat(form.grout_volume) : null,
+        mixer_type: form.mixer_type || 'none',
+        grout_mix_ratio: form.grout_mix_ratio || '',
         description: form.description || '',
         photo_urls: form.photo_urls || '',
         created_at: new Date().toISOString(),
@@ -156,6 +188,14 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
         refusal_encountered: false,
         obstruction_type: 'none',
         standpipe_reading_m: '',
+        core_box_number: '',
+        probe_depth: '',
+        sensor_type: '',
+        seal_depth: '',
+        backfill_material: '',
+        grout_volume: '',
+        mixer_type: 'none',
+        grout_mix_ratio: '',
         completed_by_name: '',
       });
       setShowForm(false);
@@ -178,6 +218,10 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
   const isBorehole = form.log_type === 'borehole_progress';
   const isSample = form.log_type === 'sample_collection';
   const isStandpipe = form.log_type === 'standpipe_reading';
+  const isWindowSampling = form.log_type === 'window_sampling';
+  const isGeophysical = form.log_type === 'geophysical_probing';
+  const isDecommissioning = form.log_type === 'borehole_decommissioning';
+  const isCoreInspection = form.log_type === 'core_inspection';
   const isCoring = job?.job_type === 'rotary_drilling' && isBorehole;
   const photos = form.photo_urls ? form.photo_urls.split(',').filter(Boolean) : [];
 
@@ -220,6 +264,24 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
                   {log.log_type === 'standpipe_reading' && log.standpipe_ref && (
                     <span className="text-xs bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
                       <Gauge className="w-2.5 h-2.5" /> {log.standpipe_ref}{log.standpipe_reading_m != null ? ` ${log.standpipe_reading_m}m` : ''}
+                    </span>
+                  )}
+                  {log.log_type === 'window_sampling' && (
+                    <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">Window Samp</span>
+                  )}
+                  {log.log_type === 'geophysical_probing' && (
+                    <span className="text-xs bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+                      <Radar className="w-2.5 h-2.5" /> {log.sensor_type || 'Probe'}{log.probe_depth != null ? ` ${log.probe_depth}m` : ''}
+                    </span>
+                  )}
+                  {log.log_type === 'borehole_decommissioning' && (
+                    <span className="text-xs bg-stone-200 text-stone-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+                      <Ban className="w-2.5 h-2.5" /> Decommissioned{log.seal_depth != null ? ` ${log.seal_depth}m` : ''}
+                    </span>
+                  )}
+                  {log.log_type === 'core_inspection' && (
+                    <span className="text-xs bg-fuchsia-100 text-fuchsia-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+                      <Boxes className="w-2.5 h-2.5" /> {log.core_box_number || 'Core'}
                     </span>
                   )}
                   {log.drilling_fluid_loss && log.drilling_fluid_loss !== 'none' && (
@@ -298,19 +360,25 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
             </div>
           )}
 
-          {(isBorehole || isSample) && (
+          {(isBorehole || isSample || isWindowSampling) && (
             <>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className={labelCls}>Borehole Ref</label>
+                  <label className={labelCls}>{isWindowSampling ? 'Sample Ref' : 'Borehole Ref'}</label>
                   <input type="text" value={form.borehole_ref} onChange={e => setForm({ ...form, borehole_ref: e.target.value })}
-                    placeholder="BH-01" className={inputCls} />
+                    placeholder={isWindowSampling ? "WS-01" : "BH-01"} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>{isSample ? 'Sample ID' : 'Core Run'}</label>
-                  <input type="text" value={isSample ? form.sample_id : form.core_run_number}
-                    onChange={e => isSample ? setForm({ ...form, sample_id: e.target.value }) : setForm({ ...form, core_run_number: e.target.value })}
-                    placeholder={isSample ? 'S-01' : 'C1'} className={inputCls} />
+                  <label className={labelCls}>{isSample ? 'Sample ID' : isWindowSampling ? 'Sample Type' : 'Core Run'}</label>
+                  {isWindowSampling ? (
+                    <select value={form.sample_type} onChange={e => setForm({ ...form, sample_type: e.target.value })} className={inputCls}>
+                      {sampleTypes.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
+                  ) : (
+                    <input type="text" value={isSample ? form.sample_id : form.core_run_number}
+                      onChange={e => isSample ? setForm({ ...form, sample_id: e.target.value }) : setForm({ ...form, core_run_number: e.target.value })}
+                      placeholder={isSample ? 'S-01' : 'C1'} className={inputCls} />
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -328,7 +396,103 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
             </>
           )}
 
-          {isBorehole && (
+          {isGeophysical && (
+            <div className="p-2.5 bg-violet-50 rounded-lg border border-violet-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Radar className="w-3.5 h-3.5 text-violet-600" />
+                <p className="text-xs font-semibold text-violet-700">Geophysical Probing</p>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <label className={labelCls}>Location Ref</label>
+                  <input type="text" value={form.borehole_ref} onChange={e => setForm({ ...form, borehole_ref: e.target.value })}
+                    placeholder="e.g. GP-01" className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Sensor / Probe Type *</label>
+                  <select value={form.sensor_type} onChange={e => setForm({ ...form, sensor_type: e.target.value })} className={inputCls}>
+                    <option value="">Select…</option>
+                    {sensorTypeOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Probe Depth (m)</label>
+                  <input type="number" step="0.1" min="0" value={form.probe_depth} onChange={e => setForm({ ...form, probe_depth: e.target.value })}
+                    placeholder="e.g. 3.0" className={inputCls} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isDecommissioning && (
+            <div className="p-2.5 bg-stone-50 rounded-lg border border-stone-200">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Ban className="w-3.5 h-3.5 text-stone-600" />
+                <p className="text-xs font-semibold text-stone-700">Borehole Decommissioning</p>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <label className={labelCls}>Borehole Ref</label>
+                  <input type="text" value={form.borehole_ref} onChange={e => setForm({ ...form, borehole_ref: e.target.value })}
+                    placeholder="BH-01" className={inputCls} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={labelCls}>Depth From (m)</label>
+                    <input type="number" step="0.1" min="0" value={form.depth_from} onChange={e => setForm({ ...form, depth_from: e.target.value })}
+                      placeholder="0.0" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Seal Depth (m) *</label>
+                    <input type="number" step="0.1" min="0" value={form.seal_depth} onChange={e => setForm({ ...form, seal_depth: e.target.value })}
+                      placeholder="e.g. 5.0" className={inputCls} />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelCls}>Backfill / Seal Material *</label>
+                  <input type="text" value={form.backfill_material} onChange={e => setForm({ ...form, backfill_material: e.target.value })}
+                    placeholder="e.g. bentonite pellets, cement-bentonite grout" className={inputCls} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isCoreInspection && (
+            <div className="p-2.5 bg-fuchsia-50 rounded-lg border border-fuchsia-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Boxes className="w-3.5 h-3.5 text-fuchsia-600" />
+                <p className="text-xs font-semibold text-fuchsia-700">Core Inspection</p>
+              </div>
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={labelCls}>Borehole Ref</label>
+                    <input type="text" value={form.borehole_ref} onChange={e => setForm({ ...form, borehole_ref: e.target.value })}
+                      placeholder="BH-01" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Core Box No. *</label>
+                    <input type="text" value={form.core_box_number} onChange={e => setForm({ ...form, core_box_number: e.target.value })}
+                      placeholder="e.g. CB-03" className={inputCls} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={labelCls}>Recovery %</label>
+                    <input type="number" step="1" min="0" max="100" value={form.coring_recovery} onChange={e => setForm({ ...form, coring_recovery: e.target.value })}
+                      className={inputCls} placeholder="—" />
+                  </div>
+                  <div>
+                    <label className={labelCls}>RQD %</label>
+                    <input type="number" step="1" min="0" max="100" value={form.coring_rqd} onChange={e => setForm({ ...form, coring_rqd: e.target.value })}
+                      className={inputCls} placeholder="—" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {(isBorehole || isWindowSampling) && (
             <>
               {/* Strata classification */}
               <div>

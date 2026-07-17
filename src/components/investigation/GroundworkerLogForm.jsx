@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { MapPin, Package, Wrench, Ruler, Send, Trash2, Plus, X, ShieldAlert, Gauge, Waves, MapPinned, Undo2, Droplet, Layers } from 'lucide-react';
+import { MapPin, Package, Wrench, Ruler, Send, Trash2, Plus, X, ShieldAlert, Gauge, Waves, MapPinned, Undo2, Droplet, Layers, Search, Beaker } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { strataOptions, pitStabilityOptions, serviceEncounterOptions, serviceEncounterConfig, reinstatementOptions } from './shared';
+import { strataOptions, pitStabilityOptions, serviceEncounterOptions, serviceEncounterConfig, reinstatementOptions, mixerTypeOptions } from './shared';
 import CompletedBySelector from './CompletedBySelector';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100 bg-white";
@@ -12,7 +12,9 @@ const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
 
 const groundworksLogTypes = [
   { value: 'pit_excavation', label: 'Trial Pit', icon: MapPin },
+  { value: 'inspection_pit', label: 'Insp. Pit', icon: Search },
   { value: 'installation', label: 'Install', icon: Package },
+  { value: 'grouting_works', label: 'Grouting', icon: Beaker },
   { value: 'site_setup', label: 'Setup', icon: Wrench },
   { value: 'reinstatement', label: 'Reinstate', icon: Undo2 },
 ];
@@ -50,6 +52,9 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
     reinstatement_type: 'none',
     backfill_material: '',
     verification_photo_urls: '',
+    grout_volume: '',
+    mixer_type: 'none',
+    grout_mix_ratio: '',
   });
 
   const { data: todayLogs = [] } = useQuery({
@@ -104,9 +109,20 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
       return;
     }
     // Pit stability enforcement
-    if (form.log_type === 'pit_excavation' && (!form.pit_stability_rating || form.pit_stability_rating === 'not_assessed')) {
+    if ((form.log_type === 'pit_excavation' || form.log_type === 'inspection_pit') && (!form.pit_stability_rating || form.pit_stability_rating === 'not_assessed')) {
       toast({ title: 'Stability required', description: 'Please assess pit wall stability before saving.', variant: 'destructive' });
       return;
+    }
+    // Grouting enforcement
+    if (form.log_type === 'grouting_works') {
+      if (!form.mixer_type || form.mixer_type === 'none') {
+        toast({ title: 'Mixer type required', description: 'Select the mixing method used.', variant: 'destructive' });
+        return;
+      }
+      if (!form.grout_volume) {
+        toast({ title: 'Grout volume required', description: 'Enter the volume of grout mixed/placed.', variant: 'destructive' });
+        return;
+      }
     }
     setAdding(true);
     try {
@@ -136,6 +152,9 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
         reinstatement_type: form.reinstatement_type || 'none',
         backfill_material: form.backfill_material || '',
         verification_photo_urls: form.verification_photo_urls || '',
+        grout_volume: form.grout_volume !== '' ? parseFloat(form.grout_volume) : null,
+        mixer_type: form.mixer_type || 'none',
+        grout_mix_ratio: form.grout_mix_ratio || '',
         created_at: new Date().toISOString(),
         manager_review_status: 'pending',
         completed_by_type: form.completed_by_type || 'internal_staff',
@@ -160,6 +179,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
         description: '', photo_urls: '',
         groundwater_strike_depth: '', groundwater_static_level: '',
         reinstatement_type: 'none', backfill_material: '', verification_photo_urls: '',
+        grout_volume: '', mixer_type: 'none', grout_mix_ratio: '',
         completed_by_name: '',
       });
       setShowForm(false);
@@ -180,8 +200,10 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
   };
 
   const isPit = form.log_type === 'pit_excavation';
+  const isInspectionPit = form.log_type === 'inspection_pit';
   const isInstallation = form.log_type === 'installation';
   const isReinstatement = form.log_type === 'reinstatement';
+  const isGrouting = form.log_type === 'grouting_works';
   const isServiceFound = form.service_encounter_type && form.service_encounter_type !== 'none';
   const photos = form.photo_urls ? form.photo_urls.split(',').filter(Boolean) : [];
   const verificationPhotos = form.verification_photo_urls ? form.verification_photo_urls.split(',').filter(Boolean) : [];
@@ -224,6 +246,14 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-xs font-mono font-bold text-amber-700">{log.borehole_ref || '—'}</span>
+                    {log.log_type === 'inspection_pit' && (
+                      <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium">Insp. Pit</span>
+                    )}
+                    {log.log_type === 'grouting_works' && (
+                      <span className="text-xs bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+                        <Beaker className="w-2.5 h-2.5" /> Grout{log.grout_volume != null ? ` ${log.grout_volume}L` : ''}
+                      </span>
+                    )}
                     {log.dimensions && <span className="text-xs text-slate-600">{log.dimensions}</span>}
                     {log.pit_stability_rating && log.pit_stability_rating !== 'not_assessed' && (
                       <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${log.pit_stability_rating === 'stable' ? 'bg-emerald-100 text-emerald-700' : log.pit_stability_rating === 'minor_slumping' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
@@ -285,24 +315,24 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
             accent="amber"
           />
 
-          {(isPit || isInstallation || isReinstatement) && (
+          {(isPit || isInspectionPit || isInstallation || isReinstatement || isGrouting) && (
             <>
               <div>
-                <label className={labelCls}>{isPit ? 'Pit Reference' : isReinstatement ? 'Pit / Location Ref' : 'Location Ref'}</label>
+                <label className={labelCls}>{isPit ? 'Pit Reference' : isInspectionPit ? 'Inspection Pit Ref' : isGrouting ? 'Location / Hole Ref' : isReinstatement ? 'Pit / Location Ref' : 'Location Ref'}</label>
                 <input type="text" value={form.borehole_ref} onChange={e => setForm({ ...form, borehole_ref: e.target.value })}
-                  placeholder={isPit ? "TP-01" : isReinstatement ? "TP-01" : "e.g. Area A"} className={inputCls} />
+                  placeholder={isPit ? "TP-01" : isInspectionPit ? "IP-01" : isGrouting ? "e.g. BH-03 / Area B" : isReinstatement ? "TP-01" : "e.g. Area A"} className={inputCls} />
               </div>
 
-              {isPit && (
+              {(isPit || isInspectionPit || isGrouting) && (
                 <>
                   <div>
-                    <label className={labelCls}>Dimensions</label>
+                    <label className={labelCls}>{isGrouting ? 'Hole / Void Dimensions' : 'Dimensions'}</label>
                     <input type="text" value={form.dimensions} onChange={e => setForm({ ...form, dimensions: e.target.value })}
-                      placeholder="1.2m x 0.8m x 1.5m deep" className={inputCls} />
+                      placeholder={isGrouting ? "e.g. 150mm dia x 3m deep" : "1.2m x 0.8m x 1.5m deep"} className={inputCls} />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className={labelCls}><Ruler className="w-3 h-3 inline" /> Depth From (m)</label>
+                      <label className={labelCls}><Ruler className="w-3 h-3 inline" /> {isGrouting ? 'Depth From (m)' : 'Depth From (m)'}</label>
                       <input type="number" step="0.1" min="0" value={form.depth_from} onChange={e => setForm({ ...form, depth_from: e.target.value })}
                         className={inputCls} placeholder="0.0" />
                     </div>
@@ -315,7 +345,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
                 </>
               )}
 
-              {isPit && (
+              {(isPit || isInspectionPit) && (
                 <>
                   {/* Strata */}
                   <div>
@@ -459,6 +489,40 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
                     <label className={labelCls}>Unit Label</label>
                     <input type="text" value={form.units_label} onChange={e => setForm({ ...form, units_label: e.target.value })}
                       placeholder="e.g. EV chargers" className={inputCls} />
+                  </div>
+                </div>
+              )}
+
+              {isGrouting && (
+                <div className="p-2.5 bg-rose-50 rounded-lg border border-rose-100">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Beaker className="w-3.5 h-3.5 text-rose-600" />
+                    <p className="text-xs font-semibold text-rose-700">Grouting (Machine Mixer)</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className={labelCls}>Mixer Type *</label>
+                        <select value={form.mixer_type} onChange={e => setForm({ ...form, mixer_type: e.target.value })} className={inputCls}>
+                          {mixerTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Grout Volume (L) *</label>
+                        <input type="number" step="0.5" min="0" value={form.grout_volume} onChange={e => setForm({ ...form, grout_volume: e.target.value })}
+                          placeholder="e.g. 25" className={inputCls} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className={labelCls}>Mix Ratio / Spec</label>
+                      <input type="text" value={form.grout_mix_ratio} onChange={e => setForm({ ...form, grout_mix_ratio: e.target.value })}
+                        placeholder="e.g. 1:1 cement:bentonite, Cement 25kg + 12L water" className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Backfill / Seal Material</label>
+                      <input type="text" value={form.backfill_material} onChange={e => setForm({ ...form, backfill_material: e.target.value })}
+                        placeholder="e.g. cement-bentonite grout, bentonite pellets" className={inputCls} />
+                    </div>
                   </div>
                 </div>
               )}

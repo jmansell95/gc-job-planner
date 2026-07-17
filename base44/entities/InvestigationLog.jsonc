@@ -42,14 +42,20 @@
       "enum": [
         "borehole_progress",
         "sample_collection",
+        "window_sampling",
         "pit_excavation",
+        "inspection_pit",
         "installation",
+        "grouting_works",
         "site_setup",
         "reinstatement",
         "standpipe_reading",
+        "geophysical_probing",
+        "borehole_decommissioning",
+        "core_inspection",
         "other"
       ],
-      "description": "Type of investigation activity. Drilling jobs use borehole_progress/sample_collection/standpipe_reading; groundworks use pit_excavation/installation/site_setup; enabling crews use site_setup/reinstatement."
+      "description": "Type of investigation activity. Drilling jobs use borehole_progress/sample_collection/window_sampling/standpipe_reading/geophysical_probing/borehole_decommissioning/core_inspection; groundworks use pit_excavation/inspection_pit/installation/grouting_works; enabling crews use site_setup/reinstatement."
     },
     "borehole_ref": {
       "type": "string",
@@ -218,6 +224,10 @@
       "type": "string",
       "description": "Core run reference (e.g. C1, C2) for rotary coring logs"
     },
+    "core_box_number": {
+      "type": "string",
+      "description": "Core box number for core_inspection logs \u2014 used to track and photograph boxed core from rotary drilling for laboratory dispatch."
+    },
     "pit_stability_rating": {
       "type": "string",
       "enum": [
@@ -227,7 +237,7 @@
         "not_assessed"
       ],
       "default": "not_assessed",
-      "description": "Wall stability assessment for trial pits \u2014 'stable' = no movement, 'minor_slumping' = some material falling, 'collapse' = significant sidewall failure. Mandatory for trial pit logs."
+      "description": "Wall stability assessment for trial pits \u2014 'stable' = no movement, 'minor_slumping' = some material falling, 'collapse' = significant sidewall failure. Mandatory for trial pit and inspection pit logs."
     },
     "service_encounter_type": {
       "type": "string",
@@ -275,7 +285,38 @@
     },
     "backfill_material": {
       "type": "string",
-      "description": "Material used for backfilling (e.g. 'Type 1 granular', 'site-won clay', 'foam concrete')"
+      "description": "Material used for backfilling (e.g. 'Type 1 granular', 'site-won clay', 'foam concrete', 'bentonite pellets')"
+    },
+    "grout_volume": {
+      "type": "number",
+      "description": "Volume of grout mixed/placed in litres (grouting_works log type). Used for material consumption tracking and billing."
+    },
+    "mixer_type": {
+      "type": "string",
+      "enum": [
+        "machine_mixer",
+        "hand_mix",
+        "ready_mixed",
+        "none"
+      ],
+      "default": "none",
+      "description": "Mixing method used for grouting. 'machine_mixer' = powered colloidal/paddle mixer, 'hand_mix' = manual mixing, 'ready_mixed' = delivered premixed, 'none' = not applicable."
+    },
+    "grout_mix_ratio": {
+      "type": "string",
+      "description": "Grout mix ratio (e.g. '1:1 cement:bentonite', 'Cement 25kg + 12L water'). Recorded for grouting works to ensure consistency with specification."
+    },
+    "seal_depth": {
+      "type": "number",
+      "description": "Depth in metres to which a borehole was sealed/backfilled during decommissioning. Used with backfill_material to record the environmental seal."
+    },
+    "probe_depth": {
+      "type": "number",
+      "description": "Depth reached by geophysical probing (m). Used for geophysical_probing logs."
+    },
+    "sensor_type": {
+      "type": "string",
+      "description": "Type of sensor/probe used for geophysical probing (e.g. 'cone penetrometer', 'resistivity', 'MASW'). Used for geophysical_probing logs."
     },
     "site_passport_id": {
       "type": "string",

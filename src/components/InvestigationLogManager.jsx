@@ -4,12 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   FlaskConical, Layers, Ruler, TestTube, Wrench, MapPin, Package, ClipboardList, ArrowDownToLine,
-  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban
+  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban, Beaker, Radar, Boxes
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import {
   strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig,
-  fluidLossConfig, obstructionConfig,
+  fluidLossConfig, obstructionConfig, logTypeConfig,
   getMissingFields, getAnomalyFlags
 } from '@/components/investigation/shared';
 

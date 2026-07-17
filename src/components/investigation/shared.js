@@ -77,6 +77,21 @@ export const obstructionOptions = [
   { value: 'other', label: 'Other' },
 ];
 
+export const mixerTypeOptions = [
+  { value: 'none', label: 'Not applicable' },
+  { value: 'machine_mixer', label: 'Machine mixer' },
+  { value: 'hand_mix', label: 'Hand mix' },
+  { value: 'ready_mixed', label: 'Ready mixed' },
+];
+
+export const sensorTypeOptions = [
+  { value: 'cone_penetrometer', label: 'Cone Penetrometer (CPT)' },
+  { value: 'resistivity', label: 'Resistivity' },
+  { value: 'masw', label: 'MASW' },
+  { value: 'gpr', label: 'Ground Penetrating Radar' },
+  { value: 'other', label: 'Other' },
+];
+
 export const reviewStatusConfig = {
   pending: { label: 'Pending', badge: 'bg-amber-100 text-amber-700 border border-amber-200', dot: 'bg-amber-500' },
   approved: { label: 'Approved', badge: 'bg-emerald-100 text-emerald-700 border border-emerald-200', dot: 'bg-emerald-500' },
@@ -140,11 +155,17 @@ export const obstructionConfig = {
 export const logTypeConfig = {
   borehole_progress: { label: 'Borehole Progress', icon: 'ArrowDownToLine', badge: 'bg-blue-100 text-blue-700' },
   sample_collection: { label: 'Sample', icon: 'TestTube', badge: 'bg-purple-100 text-purple-700' },
+  window_sampling: { label: 'Window Sampling', icon: 'Layers', badge: 'bg-indigo-100 text-indigo-700' },
   pit_excavation: { label: 'Trial Pit', icon: 'MapPin', badge: 'bg-amber-100 text-amber-700' },
+  inspection_pit: { label: 'Inspection Pit', icon: 'Search', badge: 'bg-orange-100 text-orange-700' },
   installation: { label: 'Installation', icon: 'Package', badge: 'bg-emerald-100 text-emerald-700' },
+  grouting_works: { label: 'Grouting', icon: 'Beaker', badge: 'bg-rose-100 text-rose-700' },
   site_setup: { label: 'Site Setup', icon: 'Wrench', badge: 'bg-slate-100 text-slate-600' },
   reinstatement: { label: 'Reinstatement', icon: 'Undo2', badge: 'bg-teal-100 text-teal-700' },
   standpipe_reading: { label: 'Standpipe Reading', icon: 'Gauge', badge: 'bg-cyan-100 text-cyan-700' },
+  geophysical_probing: { label: 'Geophysical Probing', icon: 'Radar', badge: 'bg-violet-100 text-violet-700' },
+  borehole_decommissioning: { label: 'Decommissioning', icon: 'Ban', badge: 'bg-stone-100 text-stone-700' },
+  core_inspection: { label: 'Core Inspection', icon: 'Boxes', badge: 'bg-fuchsia-100 text-fuchsia-700' },
   other: { label: 'Other', icon: 'ClipboardList', badge: 'bg-slate-100 text-slate-600' },
 };
 
@@ -160,12 +181,12 @@ export function calculateSptN(blows) {
 // Check if a log has incomplete mandatory geotechnical data
 export function getMissingFields(log) {
   const missing = [];
-  if (log.log_type === 'borehole_progress') {
+  if (log.log_type === 'borehole_progress' || log.log_type === 'window_sampling') {
     if (!log.strata_descriptor || log.strata_descriptor === 'other') {
       if (!log.strata_description_detail) missing.push('Strata description');
     }
   }
-  if (log.log_type === 'pit_excavation') {
+  if (log.log_type === 'pit_excavation' || log.log_type === 'inspection_pit') {
     if (!log.pit_stability_rating || log.pit_stability_rating === 'not_assessed') missing.push('Pit stability');
   }
   if (log.log_type === 'reinstatement') {
@@ -175,6 +196,22 @@ export function getMissingFields(log) {
   if (log.log_type === 'standpipe_reading') {
     if (!log.standpipe_ref) missing.push('Standpipe ref');
     if (log.standpipe_reading_m == null && log.standpipe_dip_depth_m == null) missing.push('Water level reading');
+  }
+  if (log.log_type === 'grouting_works') {
+    if (!log.mixer_type || log.mixer_type === 'none') missing.push('Mixer type');
+    if (log.grout_volume == null) missing.push('Grout volume');
+  }
+  if (log.log_type === 'geophysical_probing') {
+    if (!log.sensor_type) missing.push('Sensor type');
+    if (log.probe_depth == null) missing.push('Probe depth');
+  }
+  if (log.log_type === 'borehole_decommissioning') {
+    if (!log.backfill_material) missing.push('Backfill/seal material');
+    if (log.seal_depth == null) missing.push('Seal depth');
+  }
+  if (log.log_type === 'core_inspection') {
+    if (!log.core_box_number) missing.push('Core box number');
+    if (!log.photo_urls) missing.push('Core photo');
   }
   if (log.refusal_encountered && (!log.obstruction_type || log.obstruction_type === 'none') && !log.description) {
     missing.push('Refusal cause');
@@ -197,5 +234,7 @@ export function getAnomalyFlags(log) {
   if (log.refusal_encountered) flags.push('Refusal encountered');
   if (log.obstruction_type === 'void') flags.push('Void encountered');
   if (log.obstruction_type === 'utilities') flags.push('Utility clash');
+  if (log.log_type === 'grouting_works' && log.grout_volume != null && log.grout_volume < 5) flags.push('Low grout volume');
+  if (log.log_type === 'borehole_decommissioning' && log.seal_depth != null && log.depth_from != null && log.seal_depth < log.depth_from) flags.push('Seal above borehole base');
   return flags;
 }
