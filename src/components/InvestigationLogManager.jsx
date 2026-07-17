@@ -32,7 +32,11 @@ export default function InvestigationLogManager({ job, isDrillingJob }) {
   }, 0);
   const totalSamples = logs.filter(l => l.sample_type && l.sample_type !== 'none').length;
   const totalPits = logs.filter(l => l.log_type === 'pit_excavation').length;
+  const totalInspectionPits = logs.filter(l => l.log_type === 'inspection_pit').length;
   const totalInstallations = logs.filter(l => l.log_type === 'installation').reduce((sum, l) => sum + (l.units_completed || 0), 0);
+  const totalGroutLitres = logs.filter(l => l.log_type === 'grouting_works').reduce((sum, l) => sum + (l.grout_volume || 0), 0);
+  const totalProbeRuns = logs.filter(l => l.log_type === 'geophysical_probing').length;
+  const totalDecommissioning = logs.filter(l => l.log_type === 'borehole_decommissioning').length;
   const uniqueBoreholes = [...new Set(logs.filter(l => l.borehole_ref).map(l => l.borehole_ref))];
   const pendingReview = logs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
   const queried = logs.filter(l => l.manager_review_status === 'queried').length;
@@ -91,16 +95,16 @@ export default function InvestigationLogManager({ job, isDrillingJob }) {
                 <p className="text-lg font-bold text-amber-700">{totalPits}</p>
               </div>
               <div className="text-center">
+                <p className="text-xs text-slate-400 uppercase font-medium">Inspection Pits</p>
+                <p className="text-lg font-bold text-orange-700">{totalInspectionPits}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-400 uppercase font-medium">Grout (L)</p>
+                <p className="text-lg font-bold text-rose-700">{totalGroutLitres}</p>
+              </div>
+              <div className="text-center">
                 <p className="text-xs text-slate-400 uppercase font-medium">Installations</p>
                 <p className="text-lg font-bold text-emerald-700">{totalInstallations}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-slate-400 uppercase font-medium">Log Entries</p>
-                <p className="text-lg font-bold text-slate-800">{logs.length}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-slate-400 uppercase font-medium">Days Logged</p>
-                <p className="text-lg font-bold text-slate-800">{sortedDates.length}</p>
               </div>
             </>
           )}
@@ -181,9 +185,13 @@ function LogEntryCard({ log }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${rc.badge}`}>{rc.label}</span>
+          {logTypeConfig[log.log_type] && (
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${logTypeConfig[log.log_type].badge}`}>{logTypeConfig[log.log_type].label}</span>
+          )}
           {log.borehole_ref && <span className="text-xs font-mono font-bold text-blue-700">{log.borehole_ref}</span>}
           {log.sample_id && <span className="text-xs font-mono font-bold text-purple-700">{log.sample_id}</span>}
           {log.core_run_number && <span className="text-xs font-mono text-purple-600">Run {log.core_run_number}</span>}
+          {log.core_box_number && <span className="text-xs font-mono font-bold text-fuchsia-700 inline-flex items-center gap-0.5"><Boxes className="w-2.5 h-2.5" /> {log.core_box_number}</span>}
           <span className="text-xs text-slate-400 ml-auto inline-flex items-center gap-1">
             {log.completed_by_type && log.completed_by_type !== 'internal_staff' ? (
               <>
@@ -263,6 +271,22 @@ function LogEntryCard({ log }) {
           {log.reinstatement_type && log.reinstatement_type !== 'none' && (
             <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
               <Undo2 className="w-2.5 h-2.5" /> {log.reinstatement_type.replace(/_/g, ' ')}
+            </span>
+          )}
+          {log.mixer_type && log.mixer_type !== 'none' && (
+            <span className="text-xs bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+              <Beaker className="w-2.5 h-2.5" /> {log.mixer_type === 'machine_mixer' ? 'Machine' : log.mixer_type === 'hand_mix' ? 'Hand' : 'Premix'}
+              {log.grout_volume != null ? ` · ${log.grout_volume}L` : ''}
+            </span>
+          )}
+          {log.sensor_type && (
+            <span className="text-xs bg-violet-50 text-violet-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+              <Radar className="w-2.5 h-2.5" /> {log.sensor_type}{log.probe_depth != null ? ` · ${log.probe_depth}m` : ''}
+            </span>
+          )}
+          {log.seal_depth != null && (
+            <span className="text-xs bg-stone-100 text-stone-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+              <Ban className="w-2.5 h-2.5" /> Seal {log.seal_depth}m
             </span>
           )}
           {photos.length > 0 && (
