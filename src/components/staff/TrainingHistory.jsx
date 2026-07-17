@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { GraduationCap, CheckCircle2, XCircle, Clock, FileText, ExternalLink, Calendar, Award } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
+import CertificateLink from './CertificateLink';
 
 const BOOKING_STATUS = {
   booked: { label: 'Booked', color: 'bg-blue-100 text-blue-700', icon: Clock },
@@ -91,11 +92,7 @@ export default function TrainingHistory({ staffId, staffName }) {
                     </div>
                     {/* Certificate link for passed courses */}
                     {b.status === 'passed' && b.certificate_url && (
-                      <a href={b.certificate_url} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-emerald-700 font-medium mt-1.5 hover:underline">
-                        <Award className="w-3.5 h-3.5" /> View Certificate
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                      <CertificateLink url={b.certificate_url} icon={Award} />
                     )}
                     {b.status === 'passed' && b.expiry_date && (
                       <span className="inline-flex items-center gap-1 text-xs text-slate-500 mt-1 ml-2">

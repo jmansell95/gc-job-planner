@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Wrench, GraduationCap, Calendar, Clock, MapPin, Phone, FileText, CheckCircle2, XCircle, CalendarClock } from 'lucide-react';
 import { format, isFuture, isToday, isPast } from 'date-fns';
 import { Skeleton, EmptyState } from '@/components/StateViews';
+import CertificateLink from './CertificateLink';
 
 export default function StaffBookings({ staffId, compact = false }) {
   const { data: maintenanceBookings = [], isLoading: mbLoading } = useQuery({
@@ -112,9 +113,7 @@ export default function StaffBookings({ staffId, compact = false }) {
             {course.venue && <p className="text-xs text-slate-500 mt-1 flex items-center gap-1"><MapPin className="w-3 h-3" />{course.venue}{course.address ? `, ${course.address}` : ''}</p>}
             {course.provider && <p className="text-xs text-slate-400 mt-1">Provider: {course.provider}</p>}
             {b.status === 'passed' && b.certificate_url && (
-              <a href={b.certificate_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-emerald-700 font-medium mt-1.5 hover:underline">
-                <FileText className="w-3 h-3" />View Certificate
-              </a>
+              <CertificateLink url={b.certificate_url} icon={FileText} />
             )}
             {b.status === 'failed' && b.failure_reason && <p className="text-xs text-red-500 mt-1">Reason: {b.failure_reason}</p>}
             {course.description && b.status === 'booked' && <p className="text-xs text-slate-400 mt-1.5 italic">{course.description}</p>}
