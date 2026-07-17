@@ -1,61 +1,8 @@
 import React, { useState } from 'react';
 import { X, Layers, Plus, Loader2, Check, Package } from 'lucide-react';
+import { findRigRateCardItem } from './rigRateMatcher';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-// Match a rig catalogue item to its RateCardItem (Our Rate Card).
-const findRigRateCardItem = (rig, rateCardItems = [], assetMap = {}) => {
-  // 1. Explicit link set in Equipment Library settings or by sync
-  if (rig.rate_card_item_id) {
-    const linked = rateCardItems.find(r => r.id === rig.rate_card_item_id);
-    if (linked) return linked;
-  }
-  const asset = rig.site_asset_id ? assetMap[rig.site_asset_id] : null;
-  const rigType = asset?.rig_type;
-  const desc = String(rig.description || '').toLowerCase();
-  const isCutdown = /cut\s*down|cutdown/i.test(desc);
-
-  // 2. CP rigs — rate card entries have no model numbers, match by type
-  const looksCp = rigType === 'cp' || ((!rigType || rigType === 'n/a') && (isCutdown || /dando|percussive|cable/i.test(desc)));
-  if (looksCp) {
-    if (isCutdown) {
-      const isElectric = /electric/i.test(desc);
-      const cutdown = rateCardItems.find(r =>
-        r.subcategory === 'Cable Percussive Crews' &&
-        /cutdown/i.test(r.description) &&
-        !/enabling/i.test(r.description) &&
-        (isElectric ? /electric/i.test(r.description) : /diesel/i.test(r.description))
-      );
-      if (cutdown) return cutdown;
-      const anyCutdown = rateCardItems.find(r =>
-        r.subcategory === 'Cable Percussive Crews' &&
-        /cutdown/i.test(r.description) &&
-        !/enabling/i.test(r.description)
-      );
-      if (anyCutdown) return anyCutdown;
-    }
-    const cpCrew = rateCardItems.find(r =>
-      r.subcategory === 'Cable Percussive Crews' &&
-      /^cable percussive crew$/i.test(String(r.description || '').trim())
-    );
-    if (cpCrew) return cpCrew;
-  }
-
-  // 3. Rotary rigs — match by model number in description
-  const numMatch = desc.match(/(\d{2,4})/);
-  if (numMatch) {
-    const num = numMatch[1];
-    const match = rateCardItems.find(r =>
-      r.category === 'labour' &&
-      r.subcategory === 'Rotary Crews' &&
-      (r.description || '').includes(num) &&
-      !/additional|3rd|enabling/i.test(r.description || '')
-    );
-    if (match) return match;
-  }
-
-  return null;
-};
 
 export default function RigGearPickerModal({ rigs = [], catalogueItems = [], rateCardItems = [], assetMap = {}, onAdd, onClose, adding = false }) {
   const [selectedRig, setSelectedRig] = useState(null);

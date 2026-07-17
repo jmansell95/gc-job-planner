@@ -155,6 +155,14 @@
       "type": "number",
       "description": "Total meters drilled for drilling jobs (CP / rotary); overrides shift-level meterage for costing when set"
     },
+    "meterage_rate": {
+      "type": "number",
+      "description": "Per-metre charge rate in GBP. When set, meterage revenue = total metres drilled \u00d7 this rate. Used for jobs billed on meterage instead of crew day rates."
+    },
+    "meterage_target": {
+      "type": "number",
+      "description": "Target total metres to drill for this job. Used to track progress and completion percentage against the agreed scope."
+    },
     "markup_percentage": {
       "type": "number",
       "default": 0,

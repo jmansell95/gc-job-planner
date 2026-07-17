@@ -36,7 +36,20 @@ export default function RigCostAnalysis({ job }) {
     }
   });
 
-  const autoMatchRate = (rigType) => {
+  const autoMatchRate = (rigType, rigName = '') => {
+    const name = String(rigName || '').toLowerCase();
+    // Window sampling rigs — match by name keywords (tracked, modular, terrier)
+    const wsEntries = rateItems.filter(r => r.subcategory === 'Window Sampling');
+    if (wsEntries.length > 0) {
+      if (/modular/i.test(name)) {
+        const m = wsEntries.find(r => /modular/i.test(r.description) && !/additional/i.test(r.description));
+        if (m) return m.id;
+      }
+      if (/tracked|terrier/i.test(name)) {
+        const t = wsEntries.find(r => /tracked/i.test(r.description));
+        if (t) return t.id;
+      }
+    }
     if (rigType === 'rotary') return rateItems.find(r => /rotary crew/i.test(r.description))?.id;
     if (rigType === 'cp') return rateItems.find(r => /^cable percussive crew$/i.test(r.description.trim()))?.id;
     return null;
@@ -49,7 +62,7 @@ export default function RigCostAnalysis({ job }) {
       let changed = false;
       rigAssignments.forEach(a => {
         if (!next[a.id]) {
-          const match = autoMatchRate(a.rig_type);
+          const match = autoMatchRate(a.rig_type, a.asset_name);
           if (match) { next[a.id] = match; changed = true; }
         }
       });

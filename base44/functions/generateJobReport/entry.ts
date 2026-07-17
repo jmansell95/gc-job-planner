@@ -88,6 +88,29 @@ Deno.serve(async (req) => {
 
     const genDate = new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+    // --- Meterage calculation (drilling jobs billed per metre) ---
+    const meterageRate = Number(job.meterage_rate) || 0;
+    const boreholeProgressLogs = investigationLogs.filter(l => l.log_type === 'borehole_progress' || l.log_type === 'sample_collection');
+    const loggedMeterage = boreholeProgressLogs.reduce((sum, l) => {
+      if (l.depth_from != null && l.depth_to != null) return sum + (l.depth_to - l.depth_from);
+      return sum;
+    }, 0);
+    const totalMeters = (job.meterage != null && job.meterage !== '') ? Number(job.meterage) : loggedMeterage;
+    const meterageRevenue = totalMeters * meterageRate;
+    const meterageTarget = Number(job.meterage_target) || 0;
+
+    // Per-borehole meterage breakdown
+    const boreholeMeterage = {};
+    boreholeProgressLogs.forEach(l => {
+      const ref = l.borehole_ref || 'Unspecified';
+      if (!boreholeMeterage[ref]) boreholeMeterage[ref] = 0;
+      if (l.depth_from != null && l.depth_to != null) boreholeMeterage[ref] += (l.depth_to - l.depth_from);
+    });
+    const boreholeMeterageRows = Object.entries(boreholeMeterage)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([ref, depth]) => `<tr><td>${esc(ref)}</td><td>${depth.toFixed(1)}m</td><td>${meterageRate > 0 ? fmtGBP(depth * meterageRate) : '—'}</td></tr>`)
+      .join('');
+
     // --- Staff table rows ---
     const staffRows = validStaff.map(s => {
       const shifts = rotas.filter(r => r.staff_id === s.id).length;
@@ -125,6 +148,23 @@ Deno.serve(async (req) => {
           <div class="cost-row"><span>Margin</span><strong>${margin.toFixed(1)}%</strong></div>
         </div>
       </div>` : '';
+
+    // --- Meterage block (drilling jobs billed per metre) ---
+    const meterageBlock = (meterageRate > 0 || meterageTarget > 0 || loggedMeterage > 0) ? `
+      <div class="cost-card" style="background:#eff6ff;border-color:#bfdbfe">
+        <h3 style="color:#1e40af">Meterage Summary</h3>
+        <div class="cost-grid">
+          <div class="cost-row"><span>Total Drilled</span><strong>${totalMeters.toFixed(1)}m</strong></div>
+          <div class="cost-row"><span>Rate / metre</span><strong>${meterageRate > 0 ? fmtGBP(meterageRate) : '—'}</strong></div>
+          <div class="cost-row total highlight" style="color:#1e40af"><span>Meterage Revenue</span><strong>${fmtGBP(meterageRevenue)}</strong></div>
+          ${meterageTarget > 0 ? `<div class="cost-row"><span>Target</span><strong>${meterageTarget}m</strong></div>` : ''}
+          ${meterageTarget > 0 ? `<div class="cost-row"><span>Progress</span><strong>${((totalMeters / meterageTarget) * 100).toFixed(0)}%</strong></div>` : ''}
+          <div class="cost-row"><span>Source</span><strong>${(job.meterage != null && job.meterage !== '') ? 'Manual override' : 'From borehole logs'}</strong></div>
+        </div>
+      </div>${boreholeMeterageRows ? `
+      <h2 class="section-title">Per-Borehole Meterage</h2>
+      <table><thead><tr><th>Borehole Ref</th><th>Depth Drilled</th><th>Revenue</th></tr></thead>
+      <tbody>${boreholeMeterageRows}</tbody></table>` : ''}` : '';
 
     const clientInfo = client ? `
       <div class="info-card">
@@ -289,6 +329,7 @@ Deno.serve(async (req) => {
     ${job.notes ? `<div class="notes"><h3>Job Notes</h3><p>${esc(job.notes)}</p></div>` : ''}
 
     ${costBlock}
+    ${meterageBlock}
 
     ${staffTable}
     ${equipTable}
