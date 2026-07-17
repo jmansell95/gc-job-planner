@@ -21,6 +21,7 @@ import NextJobPrompt from '@/components/staff/NextJobPrompt';
 import AdHocVisitModal from '@/components/staff/AdHocVisitModal';
 import StaffBookings from '@/components/staff/StaffBookings';
 import InvestigationLogEntry from '@/components/staff/InvestigationLogEntry';
+import TodayPrepStrip from '@/components/staff/TodayPrepStrip';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -608,6 +609,15 @@ export default function StaffDashboard() {
             {todaysSorted.length > 0 && (
               <div>
                 <SectionHeader icon={Clock} title="Today" count={todaysSorted.length} />
+                {!todaysAllDone && (
+                  <TodayPrepStrip
+                    todaysSorted={todaysSorted}
+                    jobs={jobs}
+                    myCompliance={myCompliance}
+                    myHotelBookings={myHotelBookings}
+                    staffId={staff.id}
+                  />
+                )}
                 {todaysAllDone ? (
                   <EndOfDayCard />
                 ) : (

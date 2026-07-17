@@ -15,6 +15,8 @@ import { getJobPrimaryType } from '@/utils/jobTeams';
 import { getCrewLabel } from '@/utils/terminology';
 import { getCurrentTimeStr, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { computeRotaWarnings } from '@/utils/rotaWarnings';
+import RotaWarningsPanel from '@/components/RotaWarningsPanel';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-emerald-50', border: 'border-emerald-400', text: 'text-emerald-800', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
@@ -240,6 +242,15 @@ export default function WeeklyRotaBuilder() {
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
+  const rotaWarnings = computeRotaWarnings({
+    weekStartStr,
+    rotas,
+    staff,
+    jobs,
+    absences,
+    recurring,
+  });
+
   const renderAssignmentCard = (assignment) => {
     const job = jobs.find(j => j.id === assignment.job_id);
     const vehicle = vehicles.find(v => v.id === assignment.vehicle_id);
@@ -422,6 +433,8 @@ export default function WeeklyRotaBuilder() {
           </span>
         )}
       </div>
+
+      <RotaWarningsPanel warnings={rotaWarnings} />
 
       {/* Assignment Modal */}
       <AssignmentModal
