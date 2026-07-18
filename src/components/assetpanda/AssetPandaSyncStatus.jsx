@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, AlertCircle, Info, Clock } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, Clock, Database } from 'lucide-react';
 
 const stockBadge = {
   in_stock: { label: 'In Stock', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
@@ -17,35 +17,32 @@ const syncBadge = {
 };
 
 export default function AssetPandaSyncStatus({ assets, config, isLoading, lastSync }) {
-  const syncedCount = assets.filter(a => a.panda_asset_id).length;
-  const syncedRecently = assets.filter(a => a.sync_status === 'synced').length;
-  const neverSyncedCount = assets.filter(a => !a.sync_status || a.sync_status === 'never').length;
-  const issuesCount = assets.filter(a => a.stock_level === 'out_of_stock' || a.stock_level === 'needs_service').length;
+  const pandaAssets = assets.filter(a => a.panda_asset_id);
+  const syncedCount = pandaAssets.length;
+  const syncedRecently = pandaAssets.filter(a => a.sync_status === 'synced').length;
+  const issuesCount = pandaAssets.filter(a => a.stock_level === 'out_of_stock' || a.stock_level === 'needs_service').length;
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <p className="text-xs text-slate-500 font-medium">Linked Assets</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{syncedCount}</p>
-          <p className="text-[11px] text-slate-400">with Asset Panda ID</p>
+      {syncedCount > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <p className="text-xs text-slate-500 font-medium">Linked Assets</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{syncedCount}</p>
+            <p className="text-[11px] text-slate-400">from Asset Panda</p>
+          </div>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <p className="text-xs text-slate-500 font-medium">Synced</p>
+            <p className="text-2xl font-bold text-emerald-700 mt-1">{syncedRecently}</p>
+            <p className="text-[11px] text-slate-400">latest data pulled</p>
+          </div>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <p className="text-xs text-slate-500 font-medium">Stock Issues</p>
+            <p className="text-2xl font-bold text-red-600 mt-1">{issuesCount}</p>
+            <p className="text-[11px] text-slate-400">out of stock / service</p>
+          </div>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <p className="text-xs text-slate-500 font-medium">Synced</p>
-          <p className="text-2xl font-bold text-emerald-700 mt-1">{syncedRecently}</p>
-          <p className="text-[11px] text-slate-400">latest data pulled</p>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <p className="text-xs text-slate-500 font-medium">Never Synced</p>
-          <p className="text-2xl font-bold text-amber-600 mt-1">{neverSyncedCount}</p>
-          <p className="text-[11px] text-slate-400">need linking</p>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <p className="text-xs text-slate-500 font-medium">Stock Issues</p>
-          <p className="text-2xl font-bold text-red-600 mt-1">{issuesCount}</p>
-          <p className="text-[11px] text-slate-400">out of stock / service</p>
-        </div>
-      </div>
+      )}
 
       {config?.last_sync_summary && (
         <div className={`flex items-start gap-2.5 rounded-xl p-4 border ${config.last_sync_status === 'failed' ? 'bg-red-50 border-red-200' : 'bg-emerald-50 border-emerald-200'}`}>
@@ -71,15 +68,21 @@ export default function AssetPandaSyncStatus({ assets, config, isLoading, lastSy
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-900">Asset Sync Status</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Asset Panda Inventory</h3>
         </div>
         {isLoading ? (
           <div className="p-6 text-center text-slate-400 text-sm">Loading assets…</div>
-        ) : assets.length === 0 ? (
-          <div className="p-6 text-center text-slate-400 text-sm">No site assets yet. Run a sync once your credentials are saved to pull them in from Asset Panda.</div>
+        ) : pandaAssets.length === 0 ? (
+          <div className="p-8 text-center">
+            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Database className="w-6 h-6 text-slate-300" />
+            </div>
+            <h3 className="text-sm font-semibold text-slate-900">No Asset Panda data synced yet</h3>
+            <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">Configure your credentials and group ID, then click "Sync Now" to import your inventory from Asset Panda.</p>
+          </div>
         ) : (
           <div className="divide-y divide-slate-50 max-h-96 overflow-y-auto">
-            {assets.map(a => {
+            {pandaAssets.map(a => {
               const sb = stockBadge[a.stock_level || 'unknown'] || stockBadge.unknown;
               const sy = syncBadge[a.sync_status || 'never'] || syncBadge.never;
               const SyncIcon = sy.icon;
@@ -88,7 +91,7 @@ export default function AssetPandaSyncStatus({ assets, config, isLoading, lastSy
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-slate-900 truncate">{a.name}</p>
                     <p className="text-xs text-slate-400 truncate">
-                      {a.serial_number || 'No serial'}{a.panda_asset_id ? ' · Linked to Panda' : ' · Not linked'}{a.is_rig ? ' · Rig' : ''}
+                      {a.serial_number || 'No serial'}{a.is_rig ? ' · Rig' : ''}
                     </p>
                   </div>
                   {a.daily_billing_rate != null && (
