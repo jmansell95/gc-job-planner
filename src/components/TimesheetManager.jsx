@@ -28,15 +28,15 @@ const fmtMins = (m) => {
 };
 const meterageOf = (t) => Number(t?.meterage) || 0;
 
-function StatBox({ icon: Icon, label, value, accent, sub }) {
+function StatBox({ icon: Icon, label, value, gradient = 'stat-gradient-slate', sub }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+    <div className={`${gradient} rounded-xl shadow-md p-4 text-white relative overflow-hidden`}>
       <div className="flex items-center gap-2">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${accent}`}><Icon className="w-4 h-4" /></div>
-        <p className="text-xs text-slate-500 font-medium">{label}</p>
+        <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0"><Icon className="w-4 h-4 text-white" /></div>
+        <p className="text-xs text-white/80 font-medium">{label}</p>
       </div>
-      <p className="text-2xl font-bold text-slate-900 mt-2">{value}</p>
-      {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+      <p className="text-2xl font-bold text-white mt-2">{value}</p>
+      {sub && <p className="text-xs text-white/70 mt-0.5">{sub}</p>}
     </div>
   );
 }
@@ -153,12 +153,12 @@ export default function TimesheetManager() {
 
       {/* Stat boxes */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-        <StatBox icon={Clock} label="Pending Approval" value={pendingCount} accent="bg-amber-100 text-amber-700" />
-        <StatBox icon={CheckCircle2} label="Approved Hours" value={fmtMins(approvedMins)} accent="bg-emerald-100 text-emerald-700" />
-        <StatBox icon={TrendingUp} label="Approved Overtime" value={fmtMins(approvedOtMins)} accent="bg-orange-100 text-orange-700" sub="across all crew" />
-        <StatBox icon={FileText} label="Total Timesheets" value={workTimesheets.length} accent="bg-slate-100 text-slate-600" />
+        <StatBox icon={Clock} label="Pending Approval" value={pendingCount} gradient="stat-gradient-amber" />
+        <StatBox icon={CheckCircle2} label="Approved Hours" value={fmtMins(approvedMins)} gradient="stat-gradient-emerald" />
+        <StatBox icon={TrendingUp} label="Approved Overtime" value={fmtMins(approvedOtMins)} gradient="stat-gradient-rose" sub="across all crew" />
+        <StatBox icon={FileText} label="Total Timesheets" value={workTimesheets.length} gradient="stat-gradient-slate" />
         {approvedMeterage > 0 && (
-          <StatBox icon={Ruler} label="Approved Meterage" value={`${approvedMeterage}m`} accent="bg-purple-100 text-purple-700" />
+          <StatBox icon={Ruler} label="Approved Meterage" value={`${approvedMeterage}m`} gradient="stat-gradient-violet" />
         )}
       </div>
 

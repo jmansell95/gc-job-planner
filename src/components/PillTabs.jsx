@@ -19,7 +19,7 @@ export default function PillTabs({ tabs, activeId, onChange, className = '' }) {
                 onClick={() => onChange(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition flex-shrink-0 whitespace-nowrap border active:scale-[0.97] ${
                   isActive
-                    ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm shadow-emerald-200/60'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-600 shadow-sm shadow-emerald-200/60'
                     : 'bg-transparent text-slate-600 border-transparent hover:border-emerald-300 hover:text-emerald-700'
                 }`}
               >
