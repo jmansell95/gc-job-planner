@@ -1,15 +1,19 @@
-import React from 'react';
-import { Boxes, Calendar, Lock, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Boxes, Calendar, Lock, User, Receipt, Database } from 'lucide-react';
 import { differenceInCalendarDays } from 'date-fns';
 import { inputCls, fmt } from './shared';
+import { resolveAssetPrice } from '@/components/logistics/rigRateMatcher';
 
-export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], defaultDates }) {
+export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], defaultDates, rateCardItems = [] }) {
   const isSynced = !!form.site_asset_id;
+  const [priceSource, setPriceSource] = useState('');
 
   const pickOwnedAsset = (id) => {
     if (!id) return;
     const asset = (ownedAssets || []).find((a) => a.id === id);
     if (!asset) return;
+    const resolved = resolveAssetPrice(asset, rateCardItems);
+    setPriceSource(resolved.source);
     setForm({
       ...form,
       category: 'internal_equipment',
@@ -17,10 +21,10 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
       reference_number: asset.serial_number || form.reference_number,
       responsible_person: asset.responsible_person || form.responsible_person,
       site_asset_id: asset.id,
-      unit_cost: String(asset.daily_billing_rate ?? ''),
-      unit_label: 'day',
+      unit_cost: String(resolved.cost || ''),
+      unit_label: resolved.unit || 'day',
       supplier_id: '',
-      rate_card_item_id: '',
+      rate_card_item_id: resolved.rateCardItem?.id || '',
     });
   };
 
@@ -100,6 +104,12 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Billing rate (net) *</label>
           <input type="number" min="0" step="0.01" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" className={inputCls} />
+          {priceSource === 'rate-card' && (
+            <p className="text-[11px] text-blue-700 mt-1 inline-flex items-center gap-1"><Receipt className="w-3 h-3" /> Price from Our Rate Card</p>
+          )}
+          {priceSource === 'asset-panda' && (
+            <p className="text-[11px] text-slate-500 mt-1 inline-flex items-center gap-1"><Database className="w-3 h-3" /> Price from Asset Panda</p>
+          )}
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Unit</label>

@@ -91,3 +91,73 @@ export function findRigRateCardItem(rigAsset, rateCardItems = []) {
 export function rigFallbackDayRate(rigAsset) {
   return Number(rigAsset?.daily_billing_rate) || 0;
 }
+
+/**
+ * Match ANY owned asset (rigs, machinery, trailers, lifting gear) to a rate card
+ * item from Our Rate Card (rate_card_source !== 'supplier').
+ *
+ * - Rigs delegate to findRigRateCardItem (keyword / model-number matching).
+ * - Other assets match by description against our company rate card entries.
+ */
+export function findOwnedAssetRateCardItem(asset, rateCardItems = []) {
+  if (!asset) return null;
+
+  // Rigs use the dedicated matcher (crew day rate logic).
+  if (asset.is_rig === true || asset.asset_type === 'rig') {
+    return findRigRateCardItem(asset, rateCardItems);
+  }
+
+  const ourRates = (rateCardItems || []).filter(
+    (r) => r.is_active !== false && r.rate_card_source !== 'supplier'
+  );
+  if (ourRates.length === 0) return null;
+
+  const norm = (s) => String(s || '').toLowerCase().trim();
+  const name = norm(asset.name);
+  const eqType = norm(asset.equipment_type);
+
+  // 1. Exact description match on asset name.
+  if (name) {
+    const exact = ourRates.find((r) => norm(r.description) === name);
+    if (exact && exact.price != null) return exact;
+  }
+  // 2. Exact match on equipment_type (more specific catalogue label).
+  if (eqType) {
+    const exactType = ourRates.find((r) => norm(r.description) === eqType);
+    if (exactType && exactType.price != null) return exactType;
+  }
+  // 3. Rate card description contains the asset name.
+  if (name) {
+    const contains = ourRates.find((r) => {
+      const d = norm(r.description);
+      return d && d.includes(name) && r.price != null;
+    });
+    if (contains) return contains;
+  }
+  return null;
+}
+
+/**
+ * Resolve the billing price for an owned asset with priority:
+ * 1. Our Rate Card (via findOwnedAssetRateCardItem)
+ * 2. Asset Panda daily_billing_rate
+ * 3. Zero fallback
+ *
+ * Returns { cost, unit, rateCardItem, source } where source is
+ * 'rate-card' | 'asset-panda' | 'none'.
+ */
+export function resolveAssetPrice(asset, rateCardItems = []) {
+  if (!asset) return { cost: 0, unit: 'day', rateCardItem: null, source: 'none' };
+
+  const rc = findOwnedAssetRateCardItem(asset, rateCardItems);
+  if (rc && rc.price != null) {
+    return { cost: Number(rc.price) || 0, unit: rc.unit || 'day', rateCardItem: rc, source: 'rate-card' };
+  }
+
+  const panda = Number(asset.daily_billing_rate) || 0;
+  if (panda > 0) {
+    return { cost: panda, unit: 'day', rateCardItem: null, source: 'asset-panda' };
+  }
+
+  return { cost: 0, unit: 'day', rateCardItem: null, source: 'none' };
+}

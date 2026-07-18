@@ -115,7 +115,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
     if (step === 2) {
       if (isHired) return <HiredEquipmentFields form={form} setForm={setForm} suppliers={suppliers} rateCardItems={rateCardItems} defaultDates={defaultDates} />;
       if (isPurchased) return <PurchasedEquipmentFields form={form} setForm={setForm} suppliers={suppliers} />;
-      if (isInternal) return <OwnedEquipmentFields form={form} setForm={setForm} ownedAssets={ownedAssets} defaultDates={defaultDates} />;
+      if (isInternal) return <OwnedEquipmentFields form={form} setForm={setForm} ownedAssets={ownedAssets} defaultDates={defaultDates} rateCardItems={rateCardItems} />;
       if (isNoCost) return <NoCostFields form={form} setForm={setForm} contractors={contractors} clients={clients} isContractor={isContractorSupplied} />;
     }
     if (step === 3) return <ReviewStep form={form} suppliers={suppliers} contractors={contractors} clients={clients} />;

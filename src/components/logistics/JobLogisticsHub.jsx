@@ -15,7 +15,6 @@ import DeliveryList from '@/components/logistics/DeliveryList';
 import RigAssemblyGroup from '@/components/logistics/RigAssemblyGroup';
 import RigGearPickerModal from '@/components/logistics/RigGearPickerModal';
 import { findRigRateCardItem } from '@/components/logistics/rigRateMatcher';
-import JobAssetManager from '@/components/JobAssetManager';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -343,12 +342,6 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
           </span>
         </div>
         <div className="p-4 sm:p-5 space-y-4">
-          {canSeeCosts && (
-            <>
-              <JobAssetManager job={job} isDrillingJob={isDrillingJob} embedded />
-              <div className="border-t border-slate-100 -mx-4 sm:-mx-5" />
-            </>
-          )}
           {canSeeCosts && !adding && (
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition">
@@ -392,7 +385,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
 
           {items.length === 0 && !adding ? (
             <div className="text-center py-6 text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">
-              {canSeeCosts ? 'No billable items yet. Click "Add Billable Item" or use a preset to get started. Rigs & owned equipment go in the Asset Assignment section above.' : 'No equipment added to this job yet.'}
+              {canSeeCosts ? 'No equipment on this job yet. Click "Add Billable Item" to add rigs, machinery, trailers, lifting gear, consumables or hire items.' : 'No equipment added to this job yet.'}
             </div>
           ) : hireFilter === 'off_hired' ? (
             returnedItems.length === 0 ? (
