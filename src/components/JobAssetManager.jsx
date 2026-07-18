@@ -43,7 +43,7 @@ const goToAssets = () => {
   window.dispatchEvent(new CustomEvent('app-navigate', { detail: { section: 'settings', settingsTab: 'assets' } }));
 };
 
-export default function JobAssetManager({ job, isDrillingJob }) {
+export default function JobAssetManager({ job, isDrillingJob, embedded = false }) {
   const [showForm, setShowForm] = useState(false);
   const [activeTab, setActiveTab] = useState(isDrillingJob ? 'rigs' : 'machinery');
   const { toast } = useToast();
@@ -262,15 +262,15 @@ export default function JobAssetManager({ job, isDrillingJob }) {
   const emptyIcon = activeTab === 'rigs' ? Cog : activeTab === 'lifting' ? Anchor : activeTab === 'trailers' ? Package : Wrench;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+    <div className={embedded ? "" : "bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"}>
+      <div className={embedded ? "flex items-center gap-2 mb-3 pt-1" : "px-5 py-4 border-b border-slate-100 flex items-center gap-2"}>
         <Cog className="w-5 h-5 text-emerald-700" />
-        <h2 className="font-semibold text-slate-900">Equipment</h2>
+        <h2 className="font-semibold text-slate-900">Asset Assignment</h2>
         <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{assignments.length}</span>
       </div>
 
       {hasNonCompliant && (
-        <div className="flex items-start gap-2 bg-red-50 border-b border-red-100 px-5 py-3">
+        <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 mb-3">
           <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-semibold text-red-800">Non-compliant asset assigned</p>
@@ -280,7 +280,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 px-5 pt-4 border-b border-slate-200 overflow-x-auto no-scrollbar">
+      <div className={embedded ? "flex gap-1 mb-3 border-b border-slate-200 overflow-x-auto no-scrollbar" : "flex gap-1 px-5 pt-4 border-b border-slate-200 overflow-x-auto no-scrollbar"}>
         {tabs.map(tabKey => {
           const cfg = tabConfig[tabKey];
           const TabIcon = cfg.icon;
@@ -295,7 +295,7 @@ export default function JobAssetManager({ job, isDrillingJob }) {
         })}
       </div>
 
-      <div className="p-5">
+      <div className={embedded ? "" : "p-5"}>
         {isLoading ? (
           <Skeleton className="h-20 w-full rounded-lg" />
         ) : currentAssignments.length === 0 ? (

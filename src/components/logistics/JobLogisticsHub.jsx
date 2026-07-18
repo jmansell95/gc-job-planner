@@ -333,19 +333,22 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     <div className="space-y-4">
       <LifecycleBar items={items} isDecommissioning={job?.status === 'decommissioning'} onBulkCollect={bulkCollectAll} />
 
-      {/* Asset Assignment — rigs & owned equipment tracked via JobAssetAssignment (physical/compliance tracking) */}
-      {canSeeCosts && <JobAssetManager job={job} isDrillingJob={isDrillingJob} />}
-
-      {/* Billable Items & Hire — hired/purchased/contractor/client cost items (revenue & hire costs) */}
+      {/* Equipment & Assets — unified section: physical asset assignments (compliance) + billable hire items */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-4 sm:px-5 py-3 border-b border-slate-100 flex items-center gap-2 flex-wrap">
           <Boxes className="w-5 h-5 text-emerald-700" />
-          <h2 className="font-semibold text-slate-900">Billable Items & Hire</h2>
+          <h2 className="font-semibold text-slate-900">Equipment & Assets</h2>
           <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
             {items.length} items{canSeeCosts && items.some(i => i.category !== 'contractor_supplied') ? ` · ${fmt(totalNet)}` : ''}
           </span>
         </div>
         <div className="p-4 sm:p-5 space-y-4">
+          {canSeeCosts && (
+            <>
+              <JobAssetManager job={job} isDrillingJob={isDrillingJob} embedded />
+              <div className="border-t border-slate-100 -mx-4 sm:-mx-5" />
+            </>
+          )}
           {canSeeCosts && !adding && (
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition">
