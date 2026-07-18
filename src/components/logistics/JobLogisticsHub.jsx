@@ -19,7 +19,7 @@ import { findRigRateCardItem } from '@/components/logistics/rigRateMatcher';
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const blankForm = () => ({
-  category: 'hired_equipment', supplier_id: '', contractor_id: '', description: '',
+  category: 'hired_equipment', supplier_id: '', contractor_id: '', client_id: '', description: '',
   reference_number: '', responsible_person: '', site_asset_id: '', po_number: '', order_slip_url: '', order_slip_name: '',
   start_date: '', end_date: '', unit_cost: '', quantity: '1', unit_label: 'day', men: '', vat_exempt: false, notes: ''
 });
@@ -142,10 +142,14 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     setSavingItem(true);
     try {
       const isContractorItem = formData.category === 'contractor_supplied';
+      const isClientItem = formData.category === 'client_supplied';
+      // Number (men) and date fields must be null — not "" — when unset, otherwise
+      // schema validation rejects the record ("Could not save item").
       const payload = {
         job_id: jobId, category: formData.category,
-        supplier_id: isContractorItem ? '' : (formData.supplier_id || ''),
+        supplier_id: (isContractorItem || isClientItem) ? '' : (formData.supplier_id || ''),
         contractor_id: isContractorItem ? (formData.contractor_id || '') : '',
+        client_id: isClientItem ? (formData.client_id || '') : '',
         description: formData.description,
         reference_number: formData.reference_number || '',
         responsible_person: formData.responsible_person || '',
@@ -154,14 +158,14 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
         po_number: formData.po_number || '',
         order_slip_url: formData.order_slip_url || '',
         order_slip_name: formData.order_slip_name || '',
-        start_date: formData.start_date || '', end_date: formData.end_date || '',
-        unit_cost: isContractorItem ? 0 : (Number(formData.unit_cost) || 0),
+        start_date: formData.start_date || null, end_date: formData.end_date || null,
+        unit_cost: (isContractorItem || isClientItem) ? 0 : (Number(formData.unit_cost) || 0),
         quantity: Number(formData.quantity) || 1,
         unit_label: isContractorItem ? 'each' : formData.unit_label,
-        men: isContractorItem ? '' : (formData.men ? Number(formData.men) : ''),
-        vat_exempt: isContractorItem ? false : !!formData.vat_exempt,
+        men: (isContractorItem || isClientItem || !formData.men) ? null : Number(formData.men),
+        vat_exempt: (isContractorItem || isClientItem) ? false : !!formData.vat_exempt,
         notes: formData.notes || '',
-        ...(isContractorItem ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {})
+        ...((isContractorItem || isClientItem) ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {})
       };
       if (editingId) { await base44.entities.JobCostItem.update(editingId, payload); }
       else { await base44.entities.JobCostItem.create(payload); }
@@ -176,7 +180,8 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   const editItem = (c) => {
     setEditingId(c.id);
     setForm({
-      category: c.category, supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '', description: c.description,
+      category: c.category, supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '', client_id: c.client_id || '',
+      description: c.description,
       reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', site_asset_id: c.site_asset_id || '',
       po_number: c.po_number || '', order_slip_url: c.order_slip_url || '', order_slip_name: c.order_slip_name || '',
       rate_card_item_id: c.rate_card_item_id || '', start_date: c.start_date || '', end_date: c.end_date || '',
