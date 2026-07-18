@@ -517,10 +517,10 @@ export default function StaffDashboard() {
             ].map((stat) => (
               <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2.5 ring-1 ring-white/15">
                 <div className="flex items-center gap-1.5">
-                  <stat.icon className="w-3.5 h-3.5 text-emerald-200" />
-                  <p className="text-[10px] md:text-xs font-medium text-emerald-100 uppercase tracking-wide">{stat.label}</p>
+                  <stat.icon className="w-4 h-4 text-emerald-200" />
+                  <p className="text-xs md:text-sm font-medium text-emerald-100 uppercase tracking-wide">{stat.label}</p>
                 </div>
-                <p className="text-xl md:text-2xl font-bold text-white mt-0.5">{stat.value}</p>
+                <p className="text-2xl md:text-3xl font-bold text-white mt-0.5">{stat.value}</p>
               </div>
             ))}
           </div>
