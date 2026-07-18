@@ -3,8 +3,9 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   PoundSterling, Search, Plus, Pencil, Check, X, Users, Wrench, Package,
-  Loader2, Receipt, Building2
+  Loader2, Receipt, Building2, TrendingUp, Percent
 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -174,10 +175,15 @@ function AddRateForm({ category, subcategory, source, supplierId, onAdded }) {
 }
 
 export default function RateCardManager() {
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeRateCard, setActiveRateCard] = useState('our_company'); // 'our_company' or supplier_id
   const [activeCategory, setActiveCategory] = useState('labour');
   const [query, setQuery] = useState('');
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkPct, setBulkPct] = useState('');
+  const [bulkScope, setBulkScope] = useState('category');
+  const [bulkApplying, setBulkApplying] = useState(false);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['rate-card-items'],
@@ -238,6 +244,44 @@ export default function RateCardManager() {
 
   const totalForCard = counts.labour + counts.plant + counts.materials;
 
+  const applyBulkAdjustment = async () => {
+    const pct = parseFloat(bulkPct);
+    if (isNaN(pct)) {
+      toast({ title: 'Enter a valid percentage', variant: 'destructive' });
+      return;
+    }
+    const multiplier = 1 + pct / 100;
+    let targetItems;
+    if (bulkScope === 'category') {
+      targetItems = filtered.filter(i => i.price != null);
+    } else {
+      const scoped = isOurCard
+        ? items.filter(i => i.rate_card_source !== 'supplier')
+        : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeRateCard);
+      targetItems = scoped.filter(i => i.price != null);
+    }
+    if (targetItems.length === 0) {
+      toast({ title: 'No adjustable rates', description: 'Only items with a numeric price can be bulk-adjusted.', variant: 'destructive' });
+      return;
+    }
+    if (!confirm(`Apply ${pct > 0 ? '+' : ''}${pct}% to ${targetItems.length} rate${targetItems.length === 1 ? '' : 's'} (${bulkScope === 'category' ? CATEGORY_META[activeCategory].label : 'all categories'})?`)) return;
+    setBulkApplying(true);
+    try {
+      const updates = targetItems.map(i => ({
+        id: i.id,
+        price: Math.round(i.price * multiplier * 100) / 100,
+      }));
+      await base44.entities.RateCardItem.bulkUpdate(updates);
+      toast({ title: 'Rates updated', description: `${updates.length} rate${updates.length === 1 ? '' : 's'} adjusted by ${pct > 0 ? '+' : ''}${pct}%.` });
+      setBulkOpen(false);
+      setBulkPct('');
+      refresh();
+    } catch (e) {
+      toast({ title: 'Could not apply adjustment', description: e?.message, variant: 'destructive' });
+    }
+    setBulkApplying(false);
+  };
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
@@ -279,12 +323,36 @@ export default function RateCardManager() {
         })}
       </div>
 
-      {/* Search */}
-      <div className="px-4 py-3 border-b border-slate-100">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder={`Search ${CATEGORY_META[activeCategory].label.toLowerCase()} rates...`} className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+      {/* Search + Bulk Adjust */}
+      <div className="px-4 py-3 border-b border-slate-100 space-y-2.5">
+        <div className="flex flex-col sm:flex-row gap-2.5">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input value={query} onChange={e => setQuery(e.target.value)} placeholder={`Search ${CATEGORY_META[activeCategory].label.toLowerCase()} rates...`} className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+          </div>
+          <button onClick={() => setBulkOpen(!bulkOpen)} className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition w-full sm:w-auto flex-shrink-0 ${bulkOpen ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+            <TrendingUp className="w-4 h-4" /> Bulk Adjust
+          </button>
         </div>
+        {bulkOpen && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2.5">
+            <div className="flex items-center gap-2 text-xs font-semibold text-amber-800">
+              <Percent className="w-3.5 h-3.5" /> Bulk Percentage Adjustment
+            </div>
+            <p className="text-xs text-amber-700">Apply a percentage increase or decrease to all rates with a numeric price. Use a negative value to decrease (e.g. -5 for -5%). Items with "POA" or text-only prices are skipped.</p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <select value={bulkScope} onChange={e => setBulkScope(e.target.value)} className="px-3 py-2 border border-amber-300 rounded-lg text-sm bg-white focus:outline-none focus:border-amber-500">
+                <option value="category">This category only ({CATEGORY_META[activeCategory].label})</option>
+                <option value="card">Entire rate card ({isOurCard ? 'Our Rate Card' : activeSupplier?.name || 'Supplier'})</option>
+              </select>
+              <input type="number" step="0.1" value={bulkPct} onChange={e => setBulkPct(e.target.value)} placeholder="e.g. 5 or -3" className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm bg-white focus:outline-none focus:border-amber-500" />
+              <button onClick={applyBulkAdjustment} disabled={bulkApplying} className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 disabled:opacity-50 transition">
+                {bulkApplying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Apply
+              </button>
+              <button onClick={() => { setBulkOpen(false); setBulkPct(''); }} className="px-3 py-2 text-amber-700 hover:bg-amber-100 rounded-lg text-sm font-medium transition">Cancel</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* List */}

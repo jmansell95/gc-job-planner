@@ -196,21 +196,21 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                 <p className="text-emerald-100/80 text-xs mt-0.5">{thisWeekRotas.length} {thisWeekRotas.length === 1 ? 'shift' : 'shifts'} this week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               {!customizeMode ? (
                 <>
-                  <button onClick={() => onNavigate('jobs')} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm">
+                  <button onClick={() => onNavigate('jobs')} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm w-full sm:w-auto">
                     <Plus className="w-4 h-4" /> Add Job
                   </button>
-                  <button onClick={() => onNavigate('rota')} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
+                  <button onClick={() => onNavigate('rota')} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm w-full sm:w-auto">
                     <Calendar className="w-4 h-4" /> Build Rota
                   </button>
-                  <button onClick={() => setCustomizeMode(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm">
+                  <button onClick={() => setCustomizeMode(true)} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm w-full sm:w-auto">
                     <Settings2 className="w-4 h-4" /> Customise
                   </button>
                 </>
               ) : (
-                <button onClick={handleExitCustomize} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
+                <button onClick={handleExitCustomize} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm w-full sm:w-auto">
                   <Check className="w-4 h-4" /> Done
                 </button>
               )}

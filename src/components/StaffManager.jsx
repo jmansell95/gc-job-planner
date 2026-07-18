@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, BellOff, ShieldCheck, Hotel, Truck } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, BellOff, ShieldCheck, Hotel, Truck, KeyRound } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import StaffComplianceEditor from '@/components/staff/StaffComplianceEditor';
 import HotelBookingsManager from '@/components/staff/HotelBookingsManager';
@@ -154,6 +154,24 @@ export default function StaffManager() {
     } catch (error) {
       toast({ title: 'Could not update', description: error?.message, variant: 'destructive' });
     }
+  };
+
+  const [resetLoading, setResetLoading] = useState(null);
+
+  const handlePasswordReset = async (member) => {
+    if (!member.email) {
+      toast({ title: 'No email on file', description: 'Add an email address to this crew member first.', variant: 'destructive' });
+      return;
+    }
+    if (!confirm(`Send a password reset link to ${member.email}?`)) return;
+    setResetLoading(member.id);
+    try {
+      await base44.auth.resetPasswordRequest(member.email);
+      toast({ title: 'Password reset link sent', description: `Check ${member.email} for instructions.` });
+    } catch (error) {
+      toast({ title: 'Could not send reset link', description: error?.message || 'Please try again.', variant: 'destructive' });
+    }
+    setResetLoading(null);
   };
 
   const buildStaffPrintHtml = () => {
@@ -444,6 +462,7 @@ export default function StaffManager() {
 
                   <div className="flex gap-1 justify-end mt-auto">
                     <button onClick={() => handleToggleDelivery(member)} className={`p-2 rounded-lg transition ${member.delivery_dashboard_enabled ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:bg-slate-100'}`} title="Delivery dashboard access"><Truck className="w-4 h-4" /></button>
+                    <button onClick={() => handlePasswordReset(member)} disabled={resetLoading === member.id} className="p-2 rounded-lg transition text-amber-600 hover:bg-amber-50 disabled:opacity-50" title="Send password reset link"><KeyRound className="w-4 h-4" /></button>
                     <button onClick={() => setHotelStaff(member)} className="p-2 rounded-lg transition text-blue-600 hover:bg-blue-50" title="Hotel bookings"><Hotel className="w-4 h-4" /></button>
                     <button onClick={() => setComplianceStaff(member)} className="p-2 rounded-lg transition text-emerald-600 hover:bg-emerald-50" title="Compliance"><ShieldCheck className="w-4 h-4" /></button>
                     <button onClick={() => setShiftOpenId(shiftOpenId === member.id ? null : member.id)} className={`p-2 rounded-lg transition ${shiftOpenId === member.id ? 'text-emerald-600 bg-emerald-50' : 'text-slate-500 hover:bg-slate-100'}`} title="Shift times"><Clock className="w-4 h-4" /></button>

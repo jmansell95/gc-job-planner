@@ -18,11 +18,12 @@ import EquipmentLibraryManager from '@/components/EquipmentLibraryManager';
 import TeamManager from '@/components/TeamManager';
 import AssetPandaSettings from '@/components/AssetPandaSettings';
 import RateCardManager from '@/components/RateCardManager';
+import SettingsHubOverview from '@/components/SettingsHubOverview';
 import SettingsNav, { allSettingsItems } from '@/components/SettingsNav';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 export default function SettingsPage({ initialTab }) {
-  const [activeTab, setActiveTab] = useState(initialTab || 'staff');
+  const [activeTab, setActiveTab] = useState(initialTab || 'hub');
   const [navOpen, setNavOpen] = useState(false);
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
 
@@ -36,6 +37,7 @@ export default function SettingsPage({ initialTab }) {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'hub': return <SettingsHubOverview onNavigate={setActiveTab} />;
       case 'staff': return <StaffManager />;
       case 'teams': return <TeamManager />;
       case 'asset-panda': return <AssetPandaSettings />;

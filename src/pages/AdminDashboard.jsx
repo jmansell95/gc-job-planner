@@ -16,7 +16,7 @@ import LogQualityControl from '@/components/investigation/LogQualityControl';
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
   const [selectedJob, setSelectedJob] = useState(null);
-  const [settingsTab, setSettingsTab] = useState('staff');
+  const [settingsTab, setSettingsTab] = useState('hub');
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Package, Plus, X, Trash2, Edit2, Truck, ShoppingCart, Wrench, HardHat, Search, ShieldCheck, Download, Link2, ChevronDown, ChevronUp, User, Lock } from 'lucide-react';
+import { Package, Plus, X, Trash2, Edit2, Truck, ShoppingCart, Wrench, HardHat, Search, ShieldCheck, Download, Link2, ChevronDown, ChevronUp, User, Lock, Power, PowerOff } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/use-toast';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
@@ -28,14 +29,18 @@ const complianceBadge = {
 };
 
 export default function EquipmentItemsTab() {
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(blankForm());
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [activeFilter, setActiveFilter] = useState('all');
   const [expandedRigId, setExpandedRigId] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [bulkActive, setBulkActive] = useState(false);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['equipment-catalogue'],
@@ -52,13 +57,37 @@ export default function EquipmentItemsTab() {
   const assetFor = (item) => item.site_asset_id ? assets.find(a => a.id === item.site_asset_id) : null;
 
   const q = query.toLowerCase().trim();
-  const filtered = q ? items.filter(i => (i.description || '').toLowerCase().includes(q)) : items;
+  const filtered = items.filter(i => {
+    const matchesSearch = !q || (i.description || '').toLowerCase().includes(q) || (i.reference_number || '').toLowerCase().includes(q);
+    const matchesCategory = categoryFilter === 'all' || i.category === categoryFilter;
+    const matchesActive = activeFilter === 'all' || (activeFilter === 'active' ? i.is_active !== false : i.is_active === false);
+    return matchesSearch && matchesCategory && matchesActive;
+  });
   const personGroups = filtered.reduce((acc, item) => {
     const person = item.responsible_person || 'Unassigned';
     if (!acc[person]) acc[person] = [];
     acc[person].push(item);
     return acc;
   }, {});
+
+  const bulkSetActive = async (active) => {
+    const targets = filtered.filter(i => i.is_active !== active);
+    if (targets.length === 0) {
+      toast({ title: 'Nothing to update', description: `All filtered items are already ${active ? 'active' : 'inactive'}.` });
+      return;
+    }
+    if (!confirm(`${active ? 'Activate' : 'Deactivate'} ${targets.length} item${targets.length === 1 ? '' : 's'}?`)) return;
+    setBulkActive(true);
+    try {
+      await base44.entities.EquipmentCatalogue.bulkUpdate(targets.map(i => ({ id: i.id, is_active: active })));
+      toast({ title: `${targets.length} item${targets.length === 1 ? '' : 's'} ${active ? 'activated' : 'deactivated'}` });
+      queryClient.invalidateQueries({ queryKey: ['equipment-catalogue'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment-catalogue-active'] });
+    } catch (e) {
+      toast({ title: 'Bulk update failed', description: e?.message, variant: 'destructive' });
+    }
+    setBulkActive(false);
+  };
 
   const unimportedAssets = assets.filter(a => a.is_active !== false && !catalogueByAssetId(a.id) && ['rig', 'machinery', 'trailer', 'lifting'].includes(a.asset_type));
 
@@ -297,9 +326,38 @@ export default function EquipmentItemsTab() {
       </Dialog>
 
       {items.length > 0 && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search items..." className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+        <div className="space-y-2.5">
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search items or reference..." className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+            </div>
+            <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-emerald-600 flex-shrink-0">
+              <option value="all">All Categories</option>
+              <option value="hired_equipment">Hired</option>
+              <option value="purchased_equipment">Purchased</option>
+              <option value="internal_equipment">Internal</option>
+              <option value="contractor_supplied">Contractor</option>
+            </select>
+            <select value={activeFilter} onChange={e => setActiveFilter(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-emerald-600 flex-shrink-0">
+              <option value="all">All Status</option>
+              <option value="active">Active Only</option>
+              <option value="inactive">Inactive Only</option>
+            </select>
+          </div>
+          {filtered.length > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs text-slate-500">
+              <span className="font-medium">Showing {filtered.length} of {items.length} items</span>
+              <div className="flex gap-1.5 sm:ml-auto">
+                <button onClick={() => bulkSetActive(true)} disabled={bulkActive} className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg font-medium hover:bg-emerald-100 transition disabled:opacity-50">
+                  <Power className="w-3.5 h-3.5" /> Activate All
+                </button>
+                <button onClick={() => bulkSetActive(false)} disabled={bulkActive} className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 text-slate-600 rounded-lg font-medium hover:bg-slate-200 transition disabled:opacity-50">
+                  <PowerOff className="w-3.5 h-3.5" /> Deactivate All
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
