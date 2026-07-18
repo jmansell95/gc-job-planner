@@ -3,14 +3,22 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, HardHat, Mail, Phone } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import SearchFilterBar from '@/components/SearchFilterBar';
 
 export default function ContractorManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({ name: '', contact_name: '', contact_email: '', contact_phone: '', notes: '' });
+  const [searchQuery, setSearchQuery] = useState('');
 
   const queryClient = useQueryClient();
   const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list() });
+
+  const filteredContractors = contractors.filter(c => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (c.name?.toLowerCase().includes(q) || c.contact_name?.toLowerCase().includes(q) || c.contact_email?.toLowerCase().includes(q));
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,8 +42,8 @@ export default function ContractorManager() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <PageHeader title="Manage Contractors" icon={HardHat} />
         <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ name: '', contact_name: '', contact_email: '', contact_phone: '', notes: '' }); }}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-          <Plus className="w-4 h-4" /> Add Client
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium w-full sm:w-auto">
+          <Plus className="w-4 h-4" /> Add Contractor
         </button>
       </div>
 
@@ -84,68 +92,83 @@ export default function ContractorManager() {
         <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">No clients yet. Add your first client above.</div>
       ) : (
         <>
-          {/* Desktop table */}
-          <div className="hidden lg:block rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-emerald-800 text-white">
-                  <th className="px-4 py-3 text-left font-semibold">Company</th>
-                  <th className="px-4 py-3 text-left font-semibold">Contact</th>
-                  <th className="px-4 py-3 text-left font-semibold">Email</th>
-                  <th className="px-4 py-3 text-left font-semibold">Phone</th>
-                  <th className="px-4 py-3 text-left font-semibold w-20">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {contractors.map((c, idx) => (
-                  <tr key={c.id} className={`border-b border-slate-100 hover:bg-emerald-50 transition ${idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}`}>
-                    <td className="px-4 py-3 font-semibold text-slate-900">{c.name}</td>
-                    <td className="px-4 py-3 text-slate-600">{c.contact_name || '—'}</td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">{c.contact_email || '—'}</td>
-                    <td className="px-4 py-3 text-slate-600">{c.contact_phone || '—'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        <button onClick={() => handleEdit(c)} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
-                        <button onClick={() => handleDelete(c.id)} className="p-1.5 text-red-500 hover:bg-red-100 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mb-5">
+            <SearchFilterBar
+              searchValue={searchQuery}
+              onSearchChange={setSearchQuery}
+              searchPlaceholder="Search by name, contact or email..."
+              showCount
+              totalCount={filteredContractors.length}
+            />
           </div>
-
-          {/* Mobile/tablet cards */}
-          <div className="lg:hidden space-y-3">
-            {contractors.map(c => (
-              <div key={c.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-slate-900">{c.name}</p>
-                    {c.contact_name && <p className="text-sm text-slate-600 mt-0.5">{c.contact_name}</p>}
-                  </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <button onClick={() => handleEdit(c)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(c.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                </div>
-                <div className="mt-3 space-y-1">
-                  {c.contact_email && (
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="truncate">{c.contact_email}</span>
-                    </div>
-                  )}
-                  {c.contact_phone && (
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <Phone className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span>{c.contact_phone}</span>
-                    </div>
-                  )}
-                </div>
+          {filteredContractors.length === 0 ? (
+            <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">No contractors match your search.</div>
+          ) : (
+            <>
+              {/* Desktop table */}
+              <div className="hidden lg:block rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-emerald-800 text-white">
+                      <th className="px-4 py-3 text-left font-semibold">Company</th>
+                      <th className="px-4 py-3 text-left font-semibold">Contact</th>
+                      <th className="px-4 py-3 text-left font-semibold">Email</th>
+                      <th className="px-4 py-3 text-left font-semibold">Phone</th>
+                      <th className="px-4 py-3 text-left font-semibold w-20">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredContractors.map((c, idx) => (
+                      <tr key={c.id} className={`border-b border-slate-100 hover:bg-emerald-50 transition ${idx % 2 === 1 ? 'bg-slate-50/50' : 'bg-white'}`}>
+                        <td className="px-4 py-3 font-semibold text-slate-900">{c.name}</td>
+                        <td className="px-4 py-3 text-slate-600">{c.contact_name || '—'}</td>
+                        <td className="px-4 py-3 text-slate-500 text-xs">{c.contact_email || '—'}</td>
+                        <td className="px-4 py-3 text-slate-600">{c.contact_phone || '—'}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1">
+                            <button onClick={() => handleEdit(c)} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
+                            <button onClick={() => handleDelete(c.id)} className="p-1.5 text-red-500 hover:bg-red-100 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
+
+              {/* Mobile/tablet cards */}
+              <div className="lg:hidden space-y-3">
+                {filteredContractors.map(c => (
+                  <div key={c.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-900">{c.name}</p>
+                        {c.contact_name && <p className="text-sm text-slate-600 mt-0.5">{c.contact_name}</p>}
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <button onClick={() => handleEdit(c)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
+                        <button onClick={() => handleDelete(c.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                    <div className="mt-3 space-y-1">
+                      {c.contact_email && (
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="truncate">{c.contact_email}</span>
+                        </div>
+                      )}
+                      {c.contact_phone && (
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <Phone className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span>{c.contact_phone}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

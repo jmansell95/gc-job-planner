@@ -35,6 +35,15 @@ export default function VehicleManager() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [view, setView] = useState('vehicles'); // 'vehicles' | 'maintenance'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [teamFilter, setTeamFilter] = useState('all');
+
+  const filteredVehicles = vehicles.filter(v => {
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch = !q || (v.name?.toLowerCase().includes(q) || v.registration_number?.toLowerCase().includes(q));
+    const matchesTeam = teamFilter === 'all' || v.team_id === teamFilter;
+    return matchesSearch && matchesTeam;
+  });
 
   const queryClient = useQueryClient();
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
@@ -76,7 +85,7 @@ export default function VehicleManager() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <PageHeader title="Manage Vehicles" icon={Truck} />
         <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium w-full sm:w-auto">
           <Plus className="w-4 h-4" /> Add Vehicle
         </button>
       </div>
@@ -156,6 +165,21 @@ export default function VehicleManager() {
         <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">No vehicles yet. Add your first vehicle above.</div>
       ) : (
         <>
+          <div className="mb-5">
+            <SearchFilterBar
+              searchValue={searchQuery}
+              onSearchChange={setSearchQuery}
+              searchPlaceholder="Search by reg or description..."
+              showCount
+              totalCount={filteredVehicles.length}
+              filters={[
+                {
+                  value: teamFilter, onChange: setTeamFilter,
+                  options: [{ value: 'all', label: 'All Teams' }, ...teams.map(t => ({ value: t.id, label: t.name }))]
+                },
+              ]}
+            />
+          </div>
           {/* Desktop table */}
           <div className="hidden lg:block rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <table className="w-full border-collapse text-sm">
@@ -171,7 +195,7 @@ export default function VehicleManager() {
                 </tr>
               </thead>
               <tbody>
-                {vehicles.map((v, idx) => {
+                {filteredVehicles.map((v, idx) => {
                   const assignedStaff = staff.find(s => s.id === v.assigned_staff_id);
                   const team = teams.find(t => t.id === v.team_id);
                   const issues = getMaintenanceStatus(v);
@@ -217,7 +241,7 @@ export default function VehicleManager() {
 
           {/* Mobile/tablet cards */}
           <div className="lg:hidden space-y-3">
-            {vehicles.map(v => {
+            {filteredVehicles.map(v => {
               const assignedStaff = staff.find(s => s.id === v.assigned_staff_id);
               const team = teams.find(t => t.id === v.team_id);
               const issues = getMaintenanceStatus(v);
