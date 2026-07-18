@@ -99,9 +99,10 @@
   }
 
   /* Mobile-first readable controls: 16px prevents iOS auto-zoom on focus.
-     Inputs with an explicit Tailwind text-* class still override this. */
-  input, select, textarea {
-    font-size: 16px;
+     Enforced on phones so utility classes (text-sm etc.) can't shrink inputs
+     below the accessibility threshold. Desktop keeps the compact 14px default. */
+  @media (max-width: 639px) {
+    input, select, textarea { font-size: 16px !important; }
   }
   @media (min-width: 640px) {
     input, select, textarea { font-size: 14px; }
