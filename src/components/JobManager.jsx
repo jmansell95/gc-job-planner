@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, Calendar } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import SearchFilterBar from '@/components/SearchFilterBar';
 import { EmptyState, ErrorState, CardGridSkeleton } from '@/components/StateViews';
 import JobDetail from '@/components/JobDetail';
 import JobForm from '@/components/JobForm';
@@ -60,6 +61,8 @@ export default function JobManager({ onNavigateRota }) {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [clientFilter, setClientFilter] = useState('all');
   const [formData, setFormData] = useState(emptyForm);
   const [createdJob, setCreatedJob] = useState(null);
 
@@ -174,10 +177,22 @@ export default function JobManager({ onNavigateRota }) {
   const filteredJobs = jobs.filter(job => {
     const matchesSearch = !searchQuery ||
       job.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.location.toLowerCase().includes(searchQuery.toLowerCase());
+      job.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (job.job_reference || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || (job.status || 'planning') === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesClient = clientFilter === 'all' || job.client_id === clientFilter;
+    const primaryType = getJobPrimaryType(job, teams);
+    const matchesType = typeFilter === 'all' || primaryType === typeFilter;
+    return matchesSearch && matchesStatus && matchesClient && matchesType;
   });
+
+  // Summary stats — reflect the current filter context
+  const stats = {
+    total: filteredJobs.length,
+    in_progress: filteredJobs.filter(j => (j.status || 'planning') === 'in_progress').length,
+    planning: filteredJobs.filter(j => (j.status || 'planning') === 'planning').length,
+    completed: filteredJobs.filter(j => j.status === 'completed').length,
+  };
 
   if (selectedJob) {
     return <JobDetail job={selectedJob} onBack={() => setSelectedJob(null)} />;
@@ -185,17 +200,23 @@ export default function JobManager({ onNavigateRota }) {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-        <PageHeader title="Manage Jobs" icon={Briefcase} />
-        <div className="flex items-center gap-2">
-          <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Jobs List" />
-          <button
-            onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition"
-          >
-            <Plus className="w-4 h-4" /> Add Job
-          </button>
-        </div>
+      <div className="mb-6">
+        <PageHeader
+          title="Manage Jobs"
+          icon={Briefcase}
+          subtitle={`${jobs.length} job${jobs.length === 1 ? '' : 's'} in total`}
+          actions={
+            <>
+              <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Jobs List" />
+              <button
+                onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-semibold shadow-sm"
+              >
+                <Plus className="w-4 h-4" /> Add Job
+              </button>
+            </>
+          }
+        />
       </div>
 
       {showForm && (
@@ -214,19 +235,66 @@ export default function JobManager({ onNavigateRota }) {
 
       {/* Search & Filter */}
       {jobs.length > 0 && (
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search jobs by name or location..." className="w-full pl-9 pr-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white" />
+        <>
+          {/* Summary stats — reflect active filters */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <div className="stat-gradient-slate rounded-xl shadow-md p-4 text-white">
+              <p className="text-xs text-white/80 font-medium">Showing</p>
+              <p className="text-2xl font-bold text-white mt-0.5">{stats.total}</p>
+            </div>
+            <div className="stat-gradient-emerald rounded-xl shadow-md p-4 text-white">
+              <p className="text-xs text-white/80 font-medium">In Progress</p>
+              <p className="text-2xl font-bold text-white mt-0.5">{stats.in_progress}</p>
+            </div>
+            <div className="stat-gradient-blue rounded-xl shadow-md p-4 text-white">
+              <p className="text-xs text-white/80 font-medium">Planning</p>
+              <p className="text-2xl font-bold text-white mt-0.5">{stats.planning}</p>
+            </div>
+            <div className="stat-gradient-cyan rounded-xl shadow-md p-4 text-white">
+              <p className="text-xs text-white/80 font-medium">Completed</p>
+              <p className="text-2xl font-bold text-white mt-0.5">{stats.completed}</p>
+            </div>
           </div>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white">
-            <option value="all">All Statuses</option>
-            <option value="planning">Planning</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="on_hold">On Hold</option>
-          </select>
-        </div>
+          <SearchFilterBar
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search jobs by name, location or reference..."
+            showCount
+            totalCount={filteredJobs.length}
+            filters={[
+              {
+                value: statusFilter, onChange: setStatusFilter,
+                options: [
+                  { value: 'all', label: 'All Statuses' },
+                  { value: 'planning', label: 'Planning' },
+                  { value: 'in_progress', label: 'In Progress' },
+                  { value: 'decommissioning', label: 'Decommissioning' },
+                  { value: 'completed', label: 'Completed' },
+                  { value: 'on_hold', label: 'On Hold' },
+                  { value: 'cancelled', label: 'Cancelled' },
+                ]
+              },
+              {
+                value: typeFilter, onChange: setTypeFilter,
+                options: [
+                  { value: 'all', label: 'All Types' },
+                  { value: 'groundworks', label: 'Groundworks' },
+                  { value: 'cp_drilling', label: 'CP Drilling' },
+                  { value: 'rotary_drilling', label: 'Rotary Drilling' },
+                  { value: 'enabling_works', label: 'Enabling Works' },
+                  { value: 'depot', label: 'Depot' },
+                ]
+              },
+              {
+                value: clientFilter, onChange: setClientFilter,
+                options: [
+                  { value: 'all', label: 'All Clients' },
+                  ...clients.map(c => ({ value: c.id, label: c.name }))
+                ]
+              },
+            ]}
+          />
+        </>
       )}
 
       {/* Jobs Grid */}

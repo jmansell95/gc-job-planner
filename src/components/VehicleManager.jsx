@@ -5,6 +5,7 @@ import { Plus, Trash2, Edit2, Truck, Wrench, CalendarClock, Weight } from 'lucid
 import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
 import { format, differenceInDays } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
+import SearchFilterBar from '@/components/SearchFilterBar';
 import { TableSkeleton } from '@/components/StateViews';
 
 const emptyForm = {

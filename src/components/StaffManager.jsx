@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import StaffComplianceEditor from '@/components/staff/StaffComplianceEditor';
 import HotelBookingsManager from '@/components/staff/HotelBookingsManager';
 import PageHeader from '@/components/PageHeader';
+import SearchFilterBar from '@/components/SearchFilterBar';
 import PrintReportButton from '@/components/PrintReportButton';
 import { CardGridSkeleton } from '@/components/StateViews';
 import StaffShiftEditor from '@/components/StaffShiftEditor';
@@ -35,6 +36,9 @@ export default function StaffManager() {
   const [shiftOpenId, setShiftOpenId] = useState(null);
   const [complianceStaff, setComplianceStaff] = useState(null);
   const [hotelStaff, setHotelStaff] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [teamFilter, setTeamFilter] = useState('all');
+  const [workerFilter, setWorkerFilter] = useState('all');
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: '' });
 
   const queryClient = useQueryClient();
@@ -174,16 +178,31 @@ export default function StaffManager() {
   const awaitingCount = staff.filter(s => !getUserForStaff(s) && s.invite_sent).length;
   const pendingCount = staff.filter(s => !getUserForStaff(s) && !s.invite_sent).length;
 
+  const filteredStaff = staff.filter(member => {
+    const matchesSearch = !searchQuery ||
+      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      member.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTeam = teamFilter === 'all' || member.team_id === teamFilter;
+    const matchesWorker = workerFilter === 'all' || member.worker_type === workerFilter;
+    return matchesSearch && matchesTeam && matchesWorker;
+  });
+
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <PageHeader title="Manage Crew" icon={Users} />
-        <div className="flex items-center gap-2">
-          <PrintReportButton buildHtml={buildStaffPrintHtml} label="Print" />
-          <button onClick={resetForm} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-            <Plus className="w-4 h-4" /> Add Crew Member
-          </button>
-        </div>
+      <div className="mb-6">
+        <PageHeader
+          title="Manage Crew"
+          icon={Users}
+          subtitle={`${staff.length} crew member${staff.length === 1 ? '' : 's'} in total`}
+          actions={
+            <>
+              <PrintReportButton buildHtml={buildStaffPrintHtml} label="Print" />
+              <button onClick={resetForm} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-semibold shadow-sm">
+                <Plus className="w-4 h-4" /> Add Crew Member
+              </button>
+            </>
+          }
+        />
       </div>
 
       {/* Stats */}
@@ -316,104 +335,131 @@ export default function StaffManager() {
       ) : staff.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm">No crew yet. Add your first crew member above.</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {staff.map(member => {
-            const linkedUser = getUserForStaff(member);
-            return (
-              <div key={member.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition p-4 flex flex-col">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-bold text-sm">{member.name.charAt(0)}</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-900 truncate">{member.name}</p>
-                      <p className="text-xs text-slate-500 truncate">{member.email}</p>
+        <div className="space-y-5">
+          <SearchFilterBar
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search crew by name or email..."
+            showCount
+            totalCount={filteredStaff.length}
+            filters={[
+              {
+                value: teamFilter, onChange: setTeamFilter,
+                options: [{ value: 'all', label: 'All Crews' }, ...teams.map(t => {
+                  const parent = teams.find(p => p.id === t.parent_team_id);
+                  return { value: t.id, label: parent ? `${parent.name} — ${t.name}` : t.name };
+                })]
+              },
+              {
+                value: workerFilter, onChange: setWorkerFilter,
+                options: [
+                  { value: 'all', label: 'All Worker Types' },
+                  { value: 'direct_employee', label: 'Direct Employee' },
+                  { value: 'subcontractor', label: 'Subcontractor' },
+                  { value: 'agency', label: 'Agency Worker' },
+                ]
+              },
+            ]}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filteredStaff.map(member => {
+              const linkedUser = getUserForStaff(member);
+              return (
+                <div key={member.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition p-4 flex flex-col">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-sm">{member.name.charAt(0)}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900 truncate">{member.name}</p>
+                        <p className="text-xs text-slate-500 truncate">{member.email}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="mb-3 flex items-center gap-2">
-                  {linkedUser ? (
-                    <>
-                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200">
-                        <CheckCircle2 className="w-3 h-3" /> Active
+                  <div className="mb-3 flex items-center gap-2">
+                    {linkedUser ? (
+                      <>
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200">
+                          <CheckCircle2 className="w-3 h-3" /> Active
+                        </span>
+                        <select value={linkedUser.role || 'user'} onChange={e => handleRoleChange(linkedUser.id, e.target.value)}
+                          className="text-xs px-2 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600">
+                          <option value="viewer">Viewer</option>
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </>
+                    ) : member.invite_sent ? (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium border border-blue-200">
+                        <Mail className="w-3 h-3" /> Awaiting Confirmation
                       </span>
-                      <select value={linkedUser.role || 'user'} onChange={e => handleRoleChange(linkedUser.id, e.target.value)}
-                        className="text-xs px-2 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600">
-                        <option value="viewer">Viewer</option>
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </>
-                  ) : member.invite_sent ? (
-                    <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium border border-blue-200">
-                      <Mail className="w-3 h-3" /> Awaiting Confirmation
-                    </span>
+                    ) : (
+                      <button onClick={() => handleInvite(member)} disabled={inviteLoading === member.id}
+                        className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-medium border border-amber-200 hover:bg-amber-100 transition disabled:opacity-50">
+                        <UserPlus className="w-3 h-3" /> {inviteLoading === member.id ? 'Sending...' : 'Send app invite'}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${workerBadge[member.worker_type] || 'bg-slate-100 text-slate-600'}`}>{formatWorkerType(member.worker_type)}</span>
+                    {teams.find(t => t.id === member.team_id) && (
+                      <span className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">{teams.find(t => t.id === member.team_id).name}</span>
+                    )}
+                    {member.email_notifications_enabled === false && (
+                      <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-slate-100 text-slate-500 flex items-center gap-1">
+                        <BellOff className="w-3 h-3" /> Emails off
+                      </span>
+                    )}
+                    {member.delivery_dashboard_enabled && (
+                      <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-blue-50 text-blue-700 flex items-center gap-1 border border-blue-200">
+                        <Truck className="w-3 h-3" /> Driver
+                      </span>
+                    )}
+                    {member.system_role && (
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${roleBadge[member.system_role] || 'bg-slate-100 text-slate-600'}`}>
+                        {member.system_role}
+                      </span>
+                    )}
+                  </div>
+
+                  {member.manager_id && staff.find(s => s.id === member.manager_id) && (
+                    <div className="text-xs text-slate-400 mb-3">Approves to: <span className="text-slate-600 font-medium">{staff.find(s => s.id === member.manager_id).name}</span></div>
+                  )}
+
+                  {/* Schedule acknowledgement status */}
+                  {member.last_acknowledged_week ? (
+                    <div className="text-xs text-slate-400 mb-3 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                      <span>Schedule acknowledged: <span className="text-slate-600 font-medium">{format(new Date(member.last_acknowledged_week + 'T00:00:00'), 'dd MMM yyyy')}</span>{member.schedule_acknowledged_at && <span className="text-slate-400"> at {format(new Date(member.schedule_acknowledged_at), 'HH:mm')}</span>}</span>
+                    </div>
                   ) : (
-                    <button onClick={() => handleInvite(member)} disabled={inviteLoading === member.id}
-                      className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-medium border border-amber-200 hover:bg-amber-100 transition disabled:opacity-50">
-                      <UserPlus className="w-3 h-3" /> {inviteLoading === member.id ? 'Sending...' : 'Send app invite'}
-                    </button>
+                    <div className="text-xs text-slate-400 mb-3 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                      <span>Schedule not yet acknowledged</span>
+                    </div>
+                  )}
+
+                  <div className="flex gap-1 justify-end mt-auto">
+                    <button onClick={() => handleToggleDelivery(member)} className={`p-2 rounded-lg transition ${member.delivery_dashboard_enabled ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:bg-slate-100'}`} title="Delivery dashboard access"><Truck className="w-4 h-4" /></button>
+                    <button onClick={() => setHotelStaff(member)} className="p-2 rounded-lg transition text-blue-600 hover:bg-blue-50" title="Hotel bookings"><Hotel className="w-4 h-4" /></button>
+                    <button onClick={() => setComplianceStaff(member)} className="p-2 rounded-lg transition text-emerald-600 hover:bg-emerald-50" title="Compliance"><ShieldCheck className="w-4 h-4" /></button>
+                    <button onClick={() => setShiftOpenId(shiftOpenId === member.id ? null : member.id)} className={`p-2 rounded-lg transition ${shiftOpenId === member.id ? 'text-emerald-600 bg-emerald-50' : 'text-slate-500 hover:bg-slate-100'}`} title="Shift times"><Clock className="w-4 h-4" /></button>
+                    <button onClick={() => handleEdit(member)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
+                    <button onClick={() => handleDelete(member)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                  {shiftOpenId === member.id && (
+                    <div className="mt-3 pt-3 border-t border-slate-100">
+                      <p className="text-xs font-semibold text-slate-500 mb-1.5">Shift times</p>
+                      <StaffShiftEditor staffId={member.id} />
+                    </div>
                   )}
                 </div>
-
-                <div className="flex flex-wrap gap-2 mb-3">
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${workerBadge[member.worker_type] || 'bg-slate-100 text-slate-600'}`}>{formatWorkerType(member.worker_type)}</span>
-                  {teams.find(t => t.id === member.team_id) && (
-                    <span className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full">{teams.find(t => t.id === member.team_id).name}</span>
-                  )}
-                  {member.email_notifications_enabled === false && (
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-slate-100 text-slate-500 flex items-center gap-1">
-                      <BellOff className="w-3 h-3" /> Emails off
-                    </span>
-                  )}
-                  {member.delivery_dashboard_enabled && (
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-blue-50 text-blue-700 flex items-center gap-1 border border-blue-200">
-                      <Truck className="w-3 h-3" /> Driver
-                    </span>
-                  )}
-                  {member.system_role && (
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${roleBadge[member.system_role] || 'bg-slate-100 text-slate-600'}`}>
-                      {member.system_role}
-                    </span>
-                  )}
-                </div>
-
-                {member.manager_id && staff.find(s => s.id === member.manager_id) && (
-                  <div className="text-xs text-slate-400 mb-3">Approves to: <span className="text-slate-600 font-medium">{staff.find(s => s.id === member.manager_id).name}</span></div>
-                )}
-
-                {/* Schedule acknowledgement status */}
-                {member.last_acknowledged_week ? (
-                  <div className="text-xs text-slate-400 mb-3 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                    <span>Schedule acknowledged: <span className="text-slate-600 font-medium">{format(new Date(member.last_acknowledged_week + 'T00:00:00'), 'dd MMM yyyy')}</span>{member.schedule_acknowledged_at && <span className="text-slate-400"> at {format(new Date(member.schedule_acknowledged_at), 'HH:mm')}</span>}</span>
-                  </div>
-                ) : (
-                  <div className="text-xs text-slate-400 mb-3 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                    <span>Schedule not yet acknowledged</span>
-                  </div>
-                )}
-
-                <div className="flex gap-1 justify-end mt-auto">
-                  <button onClick={() => handleToggleDelivery(member)} className={`p-2 rounded-lg transition ${member.delivery_dashboard_enabled ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:bg-slate-100'}`} title="Delivery dashboard access"><Truck className="w-4 h-4" /></button>
-                  <button onClick={() => setHotelStaff(member)} className="p-2 rounded-lg transition text-blue-600 hover:bg-blue-50" title="Hotel bookings"><Hotel className="w-4 h-4" /></button>
-                  <button onClick={() => setComplianceStaff(member)} className="p-2 rounded-lg transition text-emerald-600 hover:bg-emerald-50" title="Compliance"><ShieldCheck className="w-4 h-4" /></button>
-                  <button onClick={() => setShiftOpenId(shiftOpenId === member.id ? null : member.id)} className={`p-2 rounded-lg transition ${shiftOpenId === member.id ? 'text-emerald-600 bg-emerald-50' : 'text-slate-500 hover:bg-slate-100'}`} title="Shift times"><Clock className="w-4 h-4" /></button>
-                  <button onClick={() => handleEdit(member)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
-                  <button onClick={() => handleDelete(member)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
-                </div>
-                {shiftOpenId === member.id && (
-                  <div className="mt-3 pt-3 border-t border-slate-100">
-                    <p className="text-xs font-semibold text-slate-500 mb-1.5">Shift times</p>
-                    <StaffShiftEditor staffId={member.id} />
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
