@@ -8,8 +8,8 @@ import OwnedEquipmentFields from './equipment/OwnedEquipmentFields';
 import NoCostFields from './equipment/NoCostFields';
 import ReviewStep from './equipment/ReviewStep';
 
-export default function EquipmentForm({ form, setForm, onSubmit, onCancel, saving = false, editing = false, suppliers = [], contractors = [], defaultDates = null, catalogueItems = [], rateCardItems = [], ownedAssets = [] }) {
-  const [step, setStep] = useState(1);
+export default function EquipmentForm({ form, setForm, onSubmit, onCancel, saving = false, editing = false, suppliers = [], contractors = [], clients = [], defaultDates = null, catalogueItems = [], rateCardItems = [], ownedAssets = [] }) {
+  const [step, setStep] = useState(editing ? 2 : 1);
 
   const isContractorSupplied = form.category === 'contractor_supplied';
   const isClientSupplied = form.category === 'client_supplied';
@@ -25,6 +25,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
     if (step === 2) {
       if (!form.description?.trim()) return false;
       if (isContractorSupplied && !form.contractor_id) return false;
+      if (isClientSupplied && !form.client_id) return false;
       if (isHired && (!form.supplier_id || !form.unit_cost)) return false;
       if (isPurchased && (!form.po_number?.trim() || !form.unit_cost || !form.order_slip_url)) return false;
       if (isInternal && !form.unit_cost) return false;
@@ -37,9 +38,9 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
     if (!form.description?.trim()) return;
     let payload = { ...form };
     if (isNoCost) {
-      payload = { ...payload, unit_cost: 0, supplier_id: '', contractor_id: isContractorSupplied ? form.contractor_id : '', vat_exempt: false, order_slip_url: '', order_slip_name: '' };
+      payload = { ...payload, unit_cost: 0, supplier_id: '', contractor_id: isContractorSupplied ? form.contractor_id : '', client_id: isClientSupplied ? form.client_id : '', vat_exempt: false, order_slip_url: '', order_slip_name: '' };
     } else {
-      payload = { ...payload, contractor_id: '' };
+      payload = { ...payload, contractor_id: '', client_id: '' };
     }
     if (isPurchased) {
       payload = { ...payload, start_date: '', end_date: '' };
@@ -61,6 +62,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
       unit_label: v === 'hired_equipment' || v === 'internal_equipment' ? 'day' : 'each',
       supplier_id: (v === 'internal_equipment' || v === 'contractor_supplied' || v === 'client_supplied') ? '' : form.supplier_id,
       contractor_id: v === 'contractor_supplied' ? form.contractor_id : '',
+      client_id: v === 'client_supplied' ? form.client_id : '',
       unit_cost: (v === 'contractor_supplied' || v === 'client_supplied') ? 0 : form.unit_cost,
       rate_card_item_id: (v === 'contractor_supplied' || v === 'client_supplied' || v === 'internal_equipment') ? '' : form.rate_card_item_id,
       po_number: v === 'purchased_equipment' ? form.po_number : '',
@@ -68,7 +70,8 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
       end_date: v === 'purchased_equipment' ? '' : form.end_date,
       site_asset_id: v === 'internal_equipment' ? form.site_asset_id : '',
     });
-    setStep(1);
+    // Auto-advance to the details step once a category is chosen
+    setStep(2);
   };
 
   const handleKeyDown = (e) => {
@@ -113,9 +116,9 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
       if (isHired) return <HiredEquipmentFields form={form} setForm={setForm} suppliers={suppliers} rateCardItems={rateCardItems} defaultDates={defaultDates} />;
       if (isPurchased) return <PurchasedEquipmentFields form={form} setForm={setForm} suppliers={suppliers} />;
       if (isInternal) return <OwnedEquipmentFields form={form} setForm={setForm} ownedAssets={ownedAssets} defaultDates={defaultDates} />;
-      if (isNoCost) return <NoCostFields form={form} setForm={setForm} contractors={contractors} isContractor={isContractorSupplied} />;
+      if (isNoCost) return <NoCostFields form={form} setForm={setForm} contractors={contractors} clients={clients} isContractor={isContractorSupplied} />;
     }
-    if (step === 3) return <ReviewStep form={form} suppliers={suppliers} contractors={contractors} />;
+    if (step === 3) return <ReviewStep form={form} suppliers={suppliers} contractors={contractors} clients={clients} />;
     return null;
   };
 

@@ -4,13 +4,15 @@ import { format } from 'date-fns';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export default function EquipmentItemCard({ item: c, linkedItems = [], assetMap = {}, suppliers = [], contractors = [], isJobMode, categoryConfig, locationBadge, complianceConfig, onEdit, onDelete, onOffHire }) {
+export default function EquipmentItemCard({ item: c, linkedItems = [], assetMap = {}, suppliers = [], contractors = [], clients = [], isJobMode, categoryConfig, locationBadge, complianceConfig, onEdit, onDelete, onOffHire }) {
   const net = (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
   const cfg = categoryConfig[c.category] || categoryConfig.hired_equipment;
   const CatIcon = cfg.icon;
   const supplier = suppliers.find(s => s.id === c.supplier_id);
   const contractor = contractors.find(ct => ct.id === c.contractor_id);
+  const client = clients.find(cl => cl.id === c.client_id);
   const isContractorItem = c.category === 'contractor_supplied';
+  const isClientItem = c.category === 'client_supplied';
   const loc = c.current_location || 'yard';
   const locBadge = locationBadge[loc];
   const asset = c.site_asset_id ? assetMap[c.site_asset_id] : null;
@@ -43,6 +45,12 @@ export default function EquipmentItemCard({ item: c, linkedItems = [], assetMap 
                 {contractor && `${contractor.name}`}
                 {` · ${c.quantity} ${c.unit_label}${c.quantity > 1 ? 's' : ''}`}
                 {` · Supplied by contractor`}
+              </>
+            ) : isClientItem ? (
+              <>
+                {client && `${client.name}`}
+                {` · ${c.quantity} ${c.unit_label}${c.quantity > 1 ? 's' : ''}`}
+                {` · Supplied by client`}
               </>
             ) : (
               <>

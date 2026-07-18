@@ -26,6 +26,10 @@
       "type": "string",
       "description": "Contractor supplying this item (when category is 'contractor_supplied'). The contractor is responsible for delivering it to site \u2014 no collection or delivery task is created for our drivers."
     },
+    "client_id": {
+      "type": "string",
+      "description": "Client supplying this item (when category is 'client_supplied'). The client delivers it directly to site \u2014 no cost, charge, or driver collection is tracked."
+    },
     "rate_card_item_id": {
       "type": "string",
       "description": "Linked RateCardItem from the Master Price List \u2014 set automatically when an item is picked from the rate card. Keeps the description, unit cost and unit label in sync with the source rate, and marks the item as chargeable to the client."

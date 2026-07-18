@@ -2,7 +2,7 @@ import React from 'react';
 import { FileText, HardHat, Building2 } from 'lucide-react';
 import { fmt, categoryConfig } from './shared';
 
-export default function ReviewStep({ form, suppliers = [], contractors = [] }) {
+export default function ReviewStep({ form, suppliers = [], contractors = [], clients = [] }) {
   const isNoCost = form.category === 'contractor_supplied' || form.category === 'client_supplied';
   const isPurchased = form.category === 'purchased_equipment';
   const isContractorSupplied = form.category === 'contractor_supplied';
@@ -17,6 +17,7 @@ export default function ReviewStep({ form, suppliers = [], contractors = [] }) {
         <div className="flex justify-between"><span className="text-slate-500">Description</span><span className="font-medium text-slate-800 text-right">{form.description}</span></div>
         {!isNoCost && form.supplier_id && <div className="flex justify-between"><span className="text-slate-500">Supplier</span><span className="font-medium text-slate-800">{suppliers.find((s) => s.id === form.supplier_id)?.name || '—'}</span></div>}
         {isContractorSupplied && <div className="flex justify-between"><span className="text-slate-500">Contractor</span><span className="font-medium text-slate-800">{contractors.find((c) => c.id === form.contractor_id)?.name || '—'}</span></div>}
+        {isClientSupplied && <div className="flex justify-between"><span className="text-slate-500">Client</span><span className="font-medium text-slate-800">{clients.find((c) => c.id === form.client_id)?.name || '—'}</span></div>}
         {isPurchased && form.po_number && <div className="flex justify-between"><span className="text-slate-500">PO Number</span><span className="font-medium text-slate-800 font-mono">{form.po_number}</span></div>}
         {!isNoCost && Number(form.unit_cost) > 0 && <div className="flex justify-between"><span className="text-slate-500">Line total</span><span className="font-bold text-slate-900">{fmt(lineTotal)}</span></div>}
         {form.order_slip_url && <div className="flex items-center gap-1.5 text-emerald-700"><FileText className="w-3.5 h-3.5" /> <span className="text-xs">Order slip attached</span></div>}

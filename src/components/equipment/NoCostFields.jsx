@@ -1,8 +1,9 @@
 import React from 'react';
-import { HardHat } from 'lucide-react';
+import { HardHat, Building2 } from 'lucide-react';
 import { inputCls } from './shared';
 
-export default function NoCostFields({ form, setForm, contractors = [], isContractor }) {
+export default function NoCostFields({ form, setForm, contractors = [], clients = [], isContractor }) {
+  const isClient = !isContractor;
   return (
     <div className="space-y-3">
       {isContractor && (
@@ -11,6 +12,16 @@ export default function NoCostFields({ form, setForm, contractors = [], isContra
           <select value={form.contractor_id || ''} onChange={(e) => setForm({ ...form, contractor_id: e.target.value })} className={inputCls}>
             <option value="">Select contractor…</option>
             {contractors.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+      )}
+
+      {isClient && (
+        <div>
+          <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1"><Building2 className="w-3 h-3 text-emerald-600" /> Client *</label>
+          <select value={form.client_id || ''} onChange={(e) => setForm({ ...form, client_id: e.target.value })} className={inputCls}>
+            <option value="">Select client…</option>
+            {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
       )}

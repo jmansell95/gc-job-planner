@@ -15,7 +15,7 @@ import EquipmentItemCard from '@/components/EquipmentItemCard';
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const blankForm = () => ({
-  category: 'hired_equipment', supplier_id: '', contractor_id: '', description: '',
+  category: 'hired_equipment', supplier_id: '', contractor_id: '', client_id: '', description: '',
   reference_number: '', responsible_person: '', site_asset_id: '', rate_card_item_id: '', po_number: '', start_date: '', end_date: '',
   unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: '', men: ''
 });
@@ -59,6 +59,10 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
   const { data: contractors = [] } = useQuery({
     queryKey: ['contractors-equip'],
     queryFn: () => base44.entities.Contractor.list()
+  });
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients-equip'],
+    queryFn: () => base44.entities.Client.list()
   });
   const { data: presets = [] } = useQuery({
     queryKey: ['cost-presets-active'],
@@ -123,6 +127,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
           category: formData.category,
           supplier_id: isNoCost ? '' : (formData.supplier_id || ''),
           contractor_id: formData.category === 'contractor_supplied' ? (formData.contractor_id || '') : '',
+          client_id: formData.category === 'client_supplied' ? (formData.client_id || '') : '',
           rate_card_item_id: formData.rate_card_item_id || '',
           men: formData.men ? Number(formData.men) : null,
           description: formData.description,
@@ -155,6 +160,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
         category: formData.category,
         supplier_id: isNoCost ? '' : (formData.supplier_id || ''),
         contractor_id: formData.category === 'contractor_supplied' ? (formData.contractor_id || '') : '',
+        client_id: formData.category === 'client_supplied' ? (formData.client_id || '') : '',
         rate_card_item_id: formData.rate_card_item_id || '',
         description: formData.description,
         reference_number: formData.reference_number || '',
@@ -183,7 +189,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     if (isJobMode) {
       setEditingId(c.id);
       setForm({
-        category: c.category, supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '', description: c.description,
+        category: c.category, supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '', client_id: c.client_id || '', description: c.description,
         reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', site_asset_id: c.site_asset_id || '', rate_card_item_id: c.rate_card_item_id || '', po_number: c.po_number || '',
         start_date: c.start_date || '', end_date: c.end_date || '',
         unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
@@ -194,7 +200,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     } else {
       setEditingId(c.id);
       setForm({
-        category: c.category || 'hired_equipment', supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '',
+        category: c.category || 'hired_equipment', supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '', client_id: c.client_id || '',
         description: c.description, reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', site_asset_id: c.site_asset_id || '', rate_card_item_id: c.rate_card_item_id || '',
         po_number: c.po_number || '', start_date: c.start_date || '', end_date: c.end_date || '',
         unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
@@ -335,7 +341,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
   const returnedItems = isJobMode ? items.filter(c => c.hire_status === 'off_hired') : [];
   const visibleItems = isJobMode ? (hireFilter === 'active' ? activeItems : returnedItems) : items;
   const personGroups = visibleItems.reduce((acc, c) => {
-    const person = c.responsible_person || (c.category === 'contractor_supplied' ? 'Contractor Supplied' : 'Unassigned');
+    const person = c.responsible_person || (c.category === 'contractor_supplied' ? 'Contractor Supplied' : c.category === 'client_supplied' ? 'Client Supplied' : 'Unassigned');
     if (!acc[person]) acc[person] = [];
     acc[person].push(c);
     return acc;
@@ -402,6 +408,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
               editing={!!editingId}
               suppliers={suppliers}
               contractors={contractors}
+              clients={clients}
               defaultDates={defaultDates}
               catalogueItems={catalogueItems}
               rateCardItems={rateCardItems}
@@ -487,6 +494,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
                         assetMap={assetMap}
                         suppliers={suppliers}
                         contractors={contractors}
+                        clients={clients}
                         isJobMode={isJobMode}
                         categoryConfig={categoryConfig}
                         locationBadge={locationBadge}
