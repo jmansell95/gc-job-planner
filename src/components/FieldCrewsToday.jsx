@@ -44,10 +44,10 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
       className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-            <Clock className="w-4 h-4 text-emerald-700" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <Clock className="w-5 h-5 text-white" />
           </div>
-          <h2 className="text-sm font-bold text-slate-900 truncate">Crews On Site Today</h2>
+          <h2 className="text-base font-bold text-slate-900 truncate">Crews On Site Today</h2>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full font-semibold ring-1 ring-emerald-200 whitespace-nowrap">
