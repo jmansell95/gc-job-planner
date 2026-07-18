@@ -114,10 +114,9 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     return acc;
   }, {});
 
-  const allRigs = catalogueItems.filter(c => {
-    const linkedAsset = c.site_asset_id ? assetMap[c.site_asset_id] : null;
-    return linkedAsset?.asset_type === 'rig';
-  });
+  // Rigs sourced from SiteAsset (synced from Asset Panda) — excludes non-rig equipment.
+  // Accepts both the new is_rig flag and the legacy asset_type === 'rig' classification.
+  const allRigs = (siteAssets || []).filter(a => (a.is_rig === true || a.asset_type === 'rig') && a.is_active !== false);
   const formCatalogueItems = catalogueItems.filter(c => {
     const linkedAsset = c.site_asset_id ? assetMap[c.site_asset_id] : null;
     if (linkedAsset?.asset_type === 'rig') return false;
@@ -236,38 +235,38 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     setApplyingPreset(false);
   };
 
-  // Match a rig catalogue item to its RateCardItem (Our Rate Card).
+  // Match a rig (SiteAsset) to its RateCardItem (Our Rate Card).
   // Uses the shared rigRateMatcher module — supports CP, Rotary, and Window Sampling rigs.
-  const matchRigRateCard = (rig) => findRigRateCardItem(rig, rateCardItems, assetMap);
+  const matchRigRateCard = (rigAsset) => findRigRateCardItem(rigAsset, rateCardItems);
 
-  const addRigWithGear = async (catId) => {
-    if (!catId) return;
+  const addRigWithGear = async (rigId) => {
+    if (!rigId) return;
     setAddingRigGear(true);
     try {
-      const rig = catalogueItems.find(c => c.id === catId);
+      const rig = (siteAssets || []).find(a => a.id === rigId);
       if (!rig) return;
-      const gear = (rig.linked_catalogue_ids || []).map(id => catalogueItems.find(c => c.id === id)).filter(Boolean);
+      const gear = (rig.linked_equipment_ids || []).map(id => (siteAssets || []).find(a => a.id === id)).filter(Boolean);
       // Pull the day rate from Our Rate Card; gear items are £0 (included in the rig rate)
       const rateCardItem = matchRigRateCard(rig);
-      const rigDayRate = rateCardItem ? (Number(rateCardItem.price) || 0) : (Number(rig.default_unit_cost) || 0);
-      const rigUnit = rateCardItem?.unit || rig.default_unit_label || 'day';
+      const rigDayRate = rateCardItem ? (Number(rateCardItem.price) || 0) : (Number(rig.daily_billing_rate) || 0);
+      const rigUnit = rateCardItem?.unit || 'day';
       const payload = [
-        { job_id: jobId, category: rig.category, supplier_id: rig.default_supplier_id || '', description: rig.description,
-          reference_number: rig.reference_number || '', responsible_person: rig.responsible_person || '', site_asset_id: rig.site_asset_id || '',
+        { job_id: jobId, category: 'internal_equipment', supplier_id: '', description: rig.name,
+          reference_number: rig.serial_number || '', responsible_person: rig.responsible_person || '', site_asset_id: rig.id,
           rate_card_item_id: rateCardItem?.id || '', po_number: '', start_date: '', end_date: '', unit_cost: rigDayRate,
-          quantity: 1, unit_label: rigUnit, vat_exempt: !!rig.default_vat_exempt,
-          hire_status: 'active', current_location: 'yard', notes: rateCardItem ? `Day rate from Our Rate Card — includes ${gear.length} linked gear item(s)` : `Combined day rate — includes ${gear.length} linked gear item(s)` },
+          quantity: 1, unit_label: rigUnit, vat_exempt: false,
+          hire_status: 'active', current_location: 'yard', notes: rateCardItem ? `Day rate from Our Rate Card — includes ${gear.length} linked gear item(s)` : `Day rate from Asset Panda — includes ${gear.length} linked gear item(s)` },
         ...gear.map(g => ({
-          job_id: jobId, category: g.category, supplier_id: g.default_supplier_id || '', description: g.description,
-          reference_number: g.reference_number || '', responsible_person: g.responsible_person || '', site_asset_id: g.site_asset_id || '',
+          job_id: jobId, category: 'internal_equipment', supplier_id: '', description: g.name,
+          reference_number: g.serial_number || '', responsible_person: g.responsible_person || '', site_asset_id: g.id,
           po_number: '', start_date: '', end_date: '', unit_cost: 0,
-          quantity: 1, unit_label: g.default_unit_label || 'day', vat_exempt: !!g.default_vat_exempt,
+          quantity: 1, unit_label: 'day', vat_exempt: false,
           hire_status: 'active', current_location: 'yard', notes: 'Included in rig day rate' }))
       ];
       await base44.entities.JobCostItem.bulkCreate(payload);
       queryClient.invalidateQueries({ queryKey: ['job-cost-items', jobId] });
       queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', jobId] });
-      toast({ title: `Added ${rig.description}`, description: `Rig + ${gear.length} gear items · ${fmt(rigDayRate)}/${rigUnit} rate from Our Rate Card.` });
+      toast({ title: `Added ${rig.name}`, description: `Rig + ${gear.length} gear items · ${fmt(rigDayRate)}/${rigUnit} ${rateCardItem ? 'from Our Rate Card' : 'from Asset Panda'}.` });
       setShowRigPicker(false);
     } catch (err) { console.error(err); toast({ title: 'Error', description: 'Could not add rig and gear.' }); }
     setAddingRigGear(false);
@@ -494,7 +493,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       )}
 
       {showRigPicker && (
-        <RigGearPickerModal rigs={allRigs} catalogueItems={catalogueItems} rateCardItems={rateCardItems} assetMap={assetMap}
+        <RigGearPickerModal rigs={allRigs} assets={siteAssets} rateCardItems={rateCardItems}
           onAdd={addRigWithGear} onClose={() => setShowRigPicker(false)} adding={addingRigGear} />
       )}
 

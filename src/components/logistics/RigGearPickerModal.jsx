@@ -1,16 +1,27 @@
 import React, { useState } from 'react';
-import { X, Layers, Plus, Loader2, Check, Package } from 'lucide-react';
-import { findRigRateCardItem } from './rigRateMatcher';
+import { X, Layers, Plus, Loader2, Check, Package, Cog } from 'lucide-react';
+import { findRigRateCardItem, rigFallbackDayRate } from './rigRateMatcher';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export default function RigGearPickerModal({ rigs = [], catalogueItems = [], rateCardItems = [], assetMap = {}, onAdd, onClose, adding = false }) {
+/**
+ * Pick a rig (SiteAsset with is_rig) and add it plus its linked gear to the job.
+ * Rigs = SiteAsset records (is_rig === true, active).
+ * Gear = SiteAsset records referenced by the rig's linked_equipment_ids.
+ * Day rate is pulled from Our Rate Card via findRigRateCardItem, falling back
+ * to the rig's daily_billing_rate (synced from Asset Panda).
+ */
+export default function RigGearPickerModal({ rigs = [], assets = [], rateCardItems = [], onAdd, onClose, adding = false }) {
   const [selectedRig, setSelectedRig] = useState(null);
 
   const handleAdd = () => {
     if (!selectedRig) return;
     onAdd(selectedRig);
   };
+
+  const gearFor = (rig) => (rig.linked_equipment_ids || [])
+    .map(id => assets.find(a => a.id === id))
+    .filter(Boolean);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={() => !adding && onClose()}>
@@ -26,19 +37,25 @@ export default function RigGearPickerModal({ rigs = [], catalogueItems = [], rat
         </div>
         <div className="p-5 space-y-3">
           <p className="text-sm text-slate-500">Select a rig to add it and all its linked gear to the job. The day rate is pulled automatically from Our Rate Card — gear items are included at no extra cost.</p>
+          {rigs.length === 0 && (
+            <div className="text-center py-6 text-sm text-slate-400">
+              <Cog className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              No rigs available. Sync rigs from Asset Panda and link their gear in Settings → Asset Compliance first.
+            </div>
+          )}
           {rigs.map(rig => {
-            const gear = (rig.linked_catalogue_ids || []).map(id => catalogueItems.find(c => c.id === id)).filter(Boolean);
+            const gear = gearFor(rig);
             const isSelected = selectedRig === rig.id;
-            const rateCardItem = findRigRateCardItem(rig, rateCardItems, assetMap);
-            const dayRate = rateCardItem ? (Number(rateCardItem.price) || 0) : (Number(rig.default_unit_cost) || 0);
-            const unit = rateCardItem?.unit || rig.default_unit_label || 'day';
+            const rateCardItem = findRigRateCardItem(rig, rateCardItems);
+            const dayRate = rateCardItem ? (Number(rateCardItem.price) || 0) : rigFallbackDayRate(rig);
+            const unit = rateCardItem?.unit || 'day';
             return (
               <button key={rig.id} onClick={() => setSelectedRig(isSelected ? null : rig.id)}
                 className={`w-full text-left p-3 rounded-xl border-2 transition ${isSelected ? 'border-blue-600 bg-blue-50' : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'}`}>
                 <div className="flex items-center gap-2 mb-1">
                   <Layers className={`w-4 h-4 flex-shrink-0 ${isSelected ? 'text-blue-700' : 'text-slate-400'}`} />
-                  <p className="text-sm font-bold text-slate-900 flex-1 truncate">{rig.description}</p>
-                  {rig.reference_number && <span className="text-[10px] text-slate-400 font-normal truncate">{rig.reference_number}</span>}
+                  <p className="text-sm font-bold text-slate-900 flex-1 truncate">{rig.name}</p>
+                  {rig.serial_number && <span className="text-[10px] text-slate-400 font-normal truncate">{rig.serial_number}</span>}
                   {rateCardItem && <span className="text-[10px] font-medium text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full flex-shrink-0">Rate Card</span>}
                   {isSelected && <Check className="w-4 h-4 text-blue-700 flex-shrink-0" />}
                 </div>
@@ -46,14 +63,14 @@ export default function RigGearPickerModal({ rigs = [], catalogueItems = [], rat
                   {gear.length === 0 ? (
                     <div className="flex items-center gap-1.5 text-xs text-slate-400 italic">
                       <Package className="w-3 h-3 text-slate-300 flex-shrink-0" />
-                      <span>No linked gear yet — add links in GC Compliance Manager and sync</span>
+                      <span>No linked gear — link equipment to this rig in Settings → Asset Compliance</span>
                     </div>
                   ) : (
                     gear.map(g => (
                       <div key={g.id} className="flex items-center gap-1.5 text-xs text-slate-500">
                         <Package className="w-3 h-3 text-slate-300 flex-shrink-0" />
-                        <span className="truncate">{g.description}</span>
-                        {g.reference_number && <span className="text-slate-400 flex-shrink-0">({g.reference_number})</span>}
+                        <span className="truncate">{g.name}</span>
+                        {g.serial_number && <span className="text-slate-400 flex-shrink-0">({g.serial_number})</span>}
                         <span className="text-slate-400 ml-auto flex-shrink-0">included</span>
                       </div>
                     ))
