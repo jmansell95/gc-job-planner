@@ -9,6 +9,7 @@ import DeliveryCard from '@/components/delivery/DeliveryCard';
 import DeliveryCompleteModal from '@/components/delivery/DeliveryCompleteModal';
 import { useToast } from '@/components/ui/use-toast';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
+import { saveOfflineDelivery, hasOfflineDelivery } from '@/utils/offlineSync';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -109,7 +110,7 @@ export default function DeliveryDashboard() {
 
       let photoUrls = '';
       if (data.photo_data_urls) {
-        const dataUrls = data.photo_data_urls.split(',').filter(Boolean);
+        const dataUrls = (data.photo_data_urls || '').split('||').filter(Boolean);
         const uploaded = [];
         for (let i = 0; i < dataUrls.length; i++) {
           const [meta, base64] = dataUrls[i].split(',');
@@ -159,8 +160,18 @@ export default function DeliveryDashboard() {
       return true;
     } catch (e) {
       console.error('Error completing delivery:', e);
-      toast({ title: 'Could not sign off', description: 'Check your connection and try again.' });
-      return false;
+      // Network failed (or upload was rejected) — queue the sign-off offline so it syncs later.
+      try {
+        saveOfflineDelivery(data);
+        queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
+        toast({ title: 'Saved offline', description: 'Will sync automatically when you\u2019re back online.' });
+        setCompleteDelivery(null);
+        return true;
+      } catch (saveErr) {
+        console.error('Offline save error:', saveErr);
+        toast({ title: 'Could not sign off', description: 'Check your connection and try again.' });
+        return false;
+      }
     }
   };
 
@@ -208,7 +219,8 @@ export default function DeliveryDashboard() {
     vehicleTotalWeight: vehicleDateWeightMap[`${delivery.vehicle_id}_${delivery.scheduled_date}`] || 0,
     onStart: handleStart,
     onComplete: (d) => setCompleteDelivery(d),
-    canPerformActions
+    canPerformActions,
+    isOfflinePending: hasOfflineDelivery(delivery.id)
   });
 
   return (

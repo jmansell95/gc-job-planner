@@ -48,7 +48,8 @@ async function uploadDataURL(dataURL, filename) {
 // Upload multiple comma-separated data URLs and return comma-separated hosted URLs
 async function uploadDataURLs(dataUrlsStr, prefix) {
   if (!dataUrlsStr) return '';
-  const urls = dataUrlsStr.split(',').filter(Boolean);
+  // Split on || — data URLs contain a comma, so ',' would corrupt multi-photo parsing.
+  const urls = dataUrlsStr.split('||').filter(Boolean);
   const uploaded = [];
   for (let i = 0; i < urls.length; i++) {
     const hosted = await uploadDataURL(urls[i], `${prefix}_${i}.png`);

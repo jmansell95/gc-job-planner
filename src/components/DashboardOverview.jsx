@@ -93,7 +93,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   const renderWidget = (widgetId) => {
     switch (widgetId) {
-      case 'delivery-stats': return <DeliveryStats onNavigate={onNavigate} />;
+      case 'delivery-stats': return <DeliveryStats onNavigate={onNavigate} onSelectJob={onSelectJob} jobs={jobs} />;
       case 'kpi-stats': return <KpiStatsWidget stats={stats} onNavigate={onNavigate} />;
       case 'compliance-overview': return <ComplianceOverviewWidget onNavigate={onNavigate} />;
       case 'supervisor-overview': return <SupervisorOverviewWidget profile={profile} />;

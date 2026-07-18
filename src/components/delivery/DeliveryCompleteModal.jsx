@@ -59,7 +59,9 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
     setSubmitting(true);
 
     const completedAt = new Date().toISOString();
-    const photoDataUrls = photos.map(p => p.data_url).join(',');
+    // Use || as separator — data URLs themselves contain a comma (data:image/png;base64,...),
+    // so splitting on ',' corrupts multi-photo parsing. Base64 never contains '|'.
+    const photoDataUrls = photos.map(p => p.data_url).join('||');
 
     const success = await onComplete({
       delivery_id: delivery.id,
