@@ -182,37 +182,39 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     <div>
       {/* Hero header */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="p-2.5 bg-emerald-100 rounded-xl flex-shrink-0">
-              <Grid3x3 className="w-7 h-7 text-emerald-700" />
+        <div className="command-gradient relative overflow-hidden rounded-2xl shadow-lg px-5 py-5 sm:px-7 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="p-3 bg-white/15 ring-1 ring-white/25 rounded-2xl flex-shrink-0 backdrop-blur-sm">
+                <Grid3x3 className="w-7 h-7 text-white" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+                  {greeting}{firstName ? `, ${firstName}` : ''}
+                </h1>
+                <p className="text-emerald-50 text-sm mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
+                <p className="text-emerald-100/80 text-xs mt-0.5">{thisWeekRotas.length} {thisWeekRotas.length === 1 ? 'shift' : 'shifts'} this week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 tracking-tight truncate">
-                {greeting}{firstName ? `, ${firstName}` : ''}
-              </h1>
-              <p className="text-slate-500 text-sm mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
-              <p className="text-slate-400 text-xs mt-0.5">{thisWeekRotas.length} {thisWeekRotas.length === 1 ? 'shift' : 'shifts'} this week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              {!customizeMode ? (
+                <>
+                  <button onClick={() => onNavigate('jobs')} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm">
+                    <Plus className="w-4 h-4" /> Add Job
+                  </button>
+                  <button onClick={() => onNavigate('rota')} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
+                    <Calendar className="w-4 h-4" /> Build Rota
+                  </button>
+                  <button onClick={() => setCustomizeMode(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm">
+                    <Settings2 className="w-4 h-4" /> Customise
+                  </button>
+                </>
+              ) : (
+                <button onClick={handleExitCustomize} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
+                  <Check className="w-4 h-4" /> Done
+                </button>
+              )}
             </div>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {!customizeMode ? (
-              <>
-                <button onClick={() => onNavigate('jobs')} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
-                  <Plus className="w-4 h-4 text-emerald-700" /> Add Job
-                </button>
-                <button onClick={() => onNavigate('rota')} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-                  <Calendar className="w-4 h-4" /> Build Rota
-                </button>
-                <button onClick={() => setCustomizeMode(true)} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
-                  <Settings2 className="w-4 h-4" /> Customise
-                </button>
-              </>
-            ) : (
-              <button onClick={handleExitCustomize} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-                <Check className="w-4 h-4" /> Done
-              </button>
-            )}
           </div>
         </div>
       </motion.div>
