@@ -15,6 +15,7 @@ import DeliveryList from '@/components/logistics/DeliveryList';
 import RigAssemblyGroup from '@/components/logistics/RigAssemblyGroup';
 import RigGearPickerModal from '@/components/logistics/RigGearPickerModal';
 import { findRigRateCardItem } from '@/components/logistics/rigRateMatcher';
+import JobAssetManager from '@/components/JobAssetManager';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -333,10 +334,14 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     <div className="space-y-4">
       <LifecycleBar items={items} isDecommissioning={job?.status === 'decommissioning'} onBulkCollect={bulkCollectAll} />
 
+      {/* Asset Assignment — rigs & owned equipment tracked via JobAssetAssignment (physical/compliance tracking) */}
+      {canSeeCosts && <JobAssetManager job={job} isDrillingJob={isDrillingJob} />}
+
+      {/* Billable Items & Hire — hired/purchased/contractor/client cost items (revenue & hire costs) */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-4 sm:px-5 py-3 border-b border-slate-100 flex items-center gap-2 flex-wrap">
           <Boxes className="w-5 h-5 text-emerald-700" />
-          <h2 className="font-semibold text-slate-900">Equipment & Hire</h2>
+          <h2 className="font-semibold text-slate-900">Billable Items & Hire</h2>
           <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
             {items.length} items{canSeeCosts && items.some(i => i.category !== 'contractor_supplied') ? ` · ${fmt(totalNet)}` : ''}
           </span>
@@ -345,7 +350,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
           {canSeeCosts && !adding && (
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition">
-                <Plus className="w-3.5 h-3.5" /> Add Equipment
+                <Plus className="w-3.5 h-3.5" /> Add Billable Item
               </button>
               {presets.length > 0 && (
                 <select value="" onChange={applyPreset} disabled={applyingPreset} className="text-xs px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white text-emerald-700 font-medium hover:bg-emerald-50 cursor-pointer disabled:opacity-50">
@@ -362,8 +367,8 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
           )}
 
           <Dialog open={adding} onOpenChange={(open) => { if (!open) { setAdding(false); setEditingId(null); setForm(blankForm()); } }}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>{editingId ? 'Edit Equipment' : 'Add Equipment'}</DialogTitle></DialogHeader>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editingId ? 'Edit Billable Item' : 'Add Billable Item'}</DialogTitle></DialogHeader>
               <EquipmentForm form={form} setForm={setForm} onSubmit={handleSubmitItem}
                 onCancel={() => { setAdding(false); setEditingId(null); setForm(blankForm()); }}
                 saving={savingItem} editing={!!editingId} suppliers={suppliers} contractors={contractors}
@@ -385,7 +390,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
 
           {items.length === 0 && !adding ? (
             <div className="text-center py-6 text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">
-              {canSeeCosts ? 'No equipment added yet. Click "Add equipment" or use a preset to get started.' : 'No equipment added to this job yet.'}
+              {canSeeCosts ? 'No billable items yet. Click "Add Billable Item" or use a preset to get started. Rigs & owned equipment go in the Asset Assignment section above.' : 'No equipment added to this job yet.'}
             </div>
           ) : hireFilter === 'off_hired' ? (
             returnedItems.length === 0 ? (
