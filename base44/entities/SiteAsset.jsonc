@@ -31,6 +31,11 @@
       "default": "n/a",
       "description": "Drilling rig type \u2014 CP (cable percussion) or Rotary. Only set when asset_type is 'rig'."
     },
+    "is_rig": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this asset is a drilling rig (CP or Rotary). Used to decouple rig assignment (handled via the dedicated rig flow) from general owned-equipment selection on jobs. Set automatically by the Asset Panda sync based on the asset type / category."
+    },
     "serial_number": {
       "type": "string",
       "description": "Serial number, asset tag or registration"

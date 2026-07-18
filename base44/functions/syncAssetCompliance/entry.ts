@@ -177,6 +177,7 @@ Deno.serve(async (req) => {
       newEquipmentAssets.push({
         name,
         asset_type: assetType,
+        is_rig: false,
         equipment_type: extractEquipmentType(eq),
         rig_type: 'n/a',
         serial_number: serial,
@@ -251,6 +252,7 @@ Deno.serve(async (req) => {
       newRigAssets.push({
         name: rig.name || 'Unnamed Rig',
         asset_type: 'rig',
+        is_rig: true,
         rig_type: extractRigType(rig),
         serial_number: rig.registration_number || '',
         external_compliance_id: rig.id,

@@ -90,8 +90,8 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
 
   const items = isJobMode ? fetchedItems : (externalItems || []);
   const suppliers = externalSuppliers || fetchedSuppliers || [];
-  // Owned equipment from Asset Panda — non-rig, active & available
-  const ownedAssets = (siteAssets || []).filter(a => a.asset_type !== 'rig' && a.is_active !== false && a.stock_level !== 'out_of_stock' && a.stock_level !== 'needs_service');
+  // Owned equipment from Asset Panda — non-rig (excludes rigs which use the dedicated rig flow), active & available
+  const ownedAssets = (siteAssets || []).filter(a => a.is_rig !== true && a.is_active !== false && a.stock_level !== 'out_of_stock' && a.stock_level !== 'needs_service');
 
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);

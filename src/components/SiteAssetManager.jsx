@@ -118,8 +118,8 @@ export default function SiteAssetManager() {
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Site Assets</h2>
-          <p className="text-sm text-slate-500">Rigs, machinery & trailers — compliance synced from GC Compliance Manager</p>
+          <h2 className="text-lg font-bold text-slate-900">Asset Compliance</h2>
+          <p className="text-sm text-slate-500">Inventory synced from Asset Panda · compliance status from GC Compliance Manager</p>
         </div>
         <div className="flex items-center gap-2">
           <SyncComplianceButton />

@@ -1,0 +1,77 @@
+{
+  "name": "AssetPandaConfig",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Singleton key \u2014 always 'global'. Used to fetch the single config record."
+    },
+    "api_token": {
+      "type": "string",
+      "description": "Asset Panda API bearer token. Obtained from the Asset Panda API Configuration page. If left blank and email/password are set, the sync will request a fresh token on each run."
+    },
+    "email": {
+      "type": "string",
+      "description": "Asset Panda account email \u2014 used to auto-generate a session token when api_token is blank."
+    },
+    "password": {
+      "type": "string",
+      "description": "Asset Panda account password \u2014 used with email to auto-generate a session token when api_token is blank."
+    },
+    "base_url": {
+      "type": "string",
+      "default": "https://api.assetpanda.com",
+      "description": "Asset Panda REST API base URL."
+    },
+    "group_id": {
+      "type": "string",
+      "description": "Asset Panda group (entity) ID whose objects represent the inventory to sync. Find this in Asset Panda under the group's settings."
+    },
+    "field_name": {
+      "type": "string",
+      "description": "The Asset Panda field key that holds the asset name (e.g. 'field_1'). Leave blank to auto-detect by field label."
+    },
+    "field_serial": {
+      "type": "string",
+      "description": "The Asset Panda field key that holds the serial / asset tag (e.g. 'field_2'). Leave blank to auto-detect."
+    },
+    "field_daily_rate": {
+      "type": "string",
+      "description": "The Asset Panda field key that holds the daily billing rate (e.g. 'field_5'). Leave blank to auto-detect."
+    },
+    "field_stock_status": {
+      "type": "string",
+      "description": "The Asset Panda field key that holds the stock / condition status (e.g. 'field_6'). Leave blank to auto-detect."
+    },
+    "field_asset_type": {
+      "type": "string",
+      "description": "The Asset Panda field key that holds the asset type / category used to detect rigs (e.g. 'field_3'). Leave blank to auto-detect."
+    },
+    "auto_deactivate": {
+      "type": "boolean",
+      "default": true,
+      "description": "When true, assets reported by Asset Panda as out of stock or needing service are automatically deactivated (is_active = false) so they can't be added to jobs."
+    },
+    "last_sync_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last successful sync run."
+    },
+    "last_sync_summary": {
+      "type": "string",
+      "description": "Short human-readable summary of the last sync result (counts, errors)."
+    },
+    "last_sync_status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failed",
+        "never"
+      ],
+      "default": "never",
+      "description": "Outcome of the last sync attempt."
+    }
+  },
+  "required": [
+    "key"
+  ]
+}
