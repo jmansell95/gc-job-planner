@@ -78,10 +78,16 @@ Deno.serve(async (req) => {
     };
 
     const extractEquipmentAssetType = (e) => {
-      const raw = String(e.category || e.equipment_type || e.asset_type || e.type || '').toLowerCase();
+      // Check the specific equipment_type first (e.g. "Bow Shackle", "Wire Rope") —
+      // it's more reliable than the broad category field, which may be a generic
+      // "Machinery" label applied to lifting gear in GC Compliance Manager.
+      const typeRaw = String(e.equipment_type || e.type_name || e.type || '').toLowerCase();
+      const catRaw = String(e.category || e.asset_type || '').toLowerCase();
+      const raw = typeRaw || catRaw;
+      const liftingKeywords = ['lift', 'shackle', 'sling', 'chain', 'rope', 'hook', 'hoist', 'crane', 'rigging', 'swl', 'lever', 'pull', 'beam', 'spreader', 'thimble', 'ferrule', 'sheave', 'sleeve', 'eyebolt', 'eye bolt', 'd-shackle', 'bow shackle', 'wire rope'];
       if (raw.includes('trailer')) return 'trailer';
-      if (raw.includes('lift') || raw.includes('shackle') || raw.includes('sling') || raw.includes('chain') || raw.includes('rope') || raw.includes('hook') || raw.includes('hoist') || raw.includes('crane') || raw.includes('rigging') || raw.includes('swl') || raw.includes('lever') || raw.includes('pull') || raw.includes('beam') || raw.includes('spreader')) return 'lifting';
-      if (raw.includes('machine') || raw.includes('excav') || raw.includes('digger') || raw.includes('grout') || raw.includes('mixer')) return 'machinery';
+      if (liftingKeywords.some(kw => raw.includes(kw))) return 'lifting';
+      if (catRaw.includes('machine') || raw.includes('excav') || raw.includes('digger') || raw.includes('grout') || raw.includes('mixer')) return 'machinery';
       if (raw.includes('vehicle') || raw.includes('van') || raw.includes('truck')) return 'vehicle';
       return 'machinery';
     };
