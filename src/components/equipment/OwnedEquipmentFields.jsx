@@ -144,7 +144,7 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
             </optgroup>
           )}
           {assetGroups.length > 0 && (
-            <optgroup label="🏭 Asset Panda Inventory">
+            <optgroup label="🏭 Owned Equipment">
               {assetGroups.map((g) => (
                 <optgroup key={g.label} label={`   ${g.label}`}>
                   {g.items.map((a) => {
@@ -174,7 +174,7 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
       {priceSource === 'asset-panda' && linkedAsset && (
         <div className="flex items-center gap-2 flex-wrap">
           <div className="text-xs text-indigo-700 bg-indigo-50 rounded-md px-3 py-2 border border-indigo-200 flex items-center gap-1.5">
-            <Factory className="w-3.5 h-3.5" /> Asset Panda · {assetTypeLabels[linkedAsset.asset_type] || linkedAsset.asset_type}
+            <Factory className="w-3.5 h-3.5" /> Owned Equipment · {assetTypeLabels[linkedAsset.asset_type] || linkedAsset.asset_type}
           </div>
           {compBadge && (
             <div className={`text-xs rounded-md px-2.5 py-2 border border-slate-200 flex items-center gap-1.5 ${compBadge.cls}`}>

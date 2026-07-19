@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
           daily_billing_rate: rate != null ? rate : null,
           sync_status: 'synced',
           last_sync_timestamp: now,
-          is_active: shouldDeactivate ? false : (match ? (match.is_active !== false ? true : true) : true),
+          is_active: shouldDeactivate ? false : (match ? (match.is_active !== false) : true),
         };
 
         if (match) {
