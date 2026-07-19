@@ -29,7 +29,7 @@ const SECTIONS = [
   { key: 'client_charge', label: 'Project Investment', desc: 'Client billing total with markup & VAT (internal costs stay hidden)', icon: PoundSterling },
 ];
 
-export default function PortalSectionManager({ job }) {
+export default function PortalSectionManager({ job, embedded = false }) {
   const queryClient = useQueryClient();
   const [sections, setSections] = useState({ ...DEFAULT_SECTIONS, ...(job.portal_sections || {}) });
   const [saving, setSaving] = useState(false);
@@ -61,17 +61,29 @@ export default function PortalSectionManager({ job }) {
 
   const enabledCount = Object.values(sections).filter(Boolean).length;
 
+  const wrapperCls = embedded ? '' : 'bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden';
+  const rowCls = embedded ? 'px-1 py-3' : 'px-5 py-3';
+  const infoCls = embedded ? 'py-2' : 'px-5 py-3 bg-slate-50/60 border-b border-slate-100';
+
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><ShieldCheck className="w-4 h-4 text-emerald-700" /></div>
-        <div>
-          <h2 className="font-semibold text-slate-900">Client Portal Visibility</h2>
-          <p className="text-xs text-slate-400">Choose what your client can see</p>
+    <div className={wrapperCls}>
+      {!embedded && (
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><ShieldCheck className="w-4 h-4 text-emerald-700" /></div>
+          <div>
+            <h2 className="font-semibold text-slate-900">Client Portal Visibility</h2>
+            <p className="text-xs text-slate-400">Choose what your client can see</p>
+          </div>
+          <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{enabledCount}/{SECTIONS.length} shown</span>
         </div>
-        <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{enabledCount}/{SECTIONS.length} shown</span>
-      </div>
-      <div className="px-5 py-3 bg-slate-50/60 border-b border-slate-100 flex items-start gap-2">
+      )}
+      {embedded && (
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-slate-500">{enabledCount}/{SECTIONS.length} sections shown</span>
+          {enabledCount > 0 && <span className="text-xs text-emerald-600 font-medium">Portal {job.portal_enabled ? 'enabled' : 'disabled'}</span>}
+        </div>
+      )}
+      <div className={`${infoCls} flex items-start gap-2`}>
         <Info className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
         <p className="text-xs text-slate-500">Choose which sections appear on the client portal for this job. Disabled sections stay hidden from your client but remain visible to your team.</p>
       </div>
@@ -80,7 +92,7 @@ export default function PortalSectionManager({ job }) {
           const Icon = s.icon;
           const active = sections[s.key] !== false;
           return (
-            <div key={s.key} className="px-5 py-3 flex items-center gap-3">
+            <div key={s.key} className={`${rowCls} flex items-center gap-3`}>
               <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center flex-shrink-0">
                 <Icon className="w-4 h-4 text-slate-600" />
               </div>
@@ -100,7 +112,7 @@ export default function PortalSectionManager({ job }) {
           );
         })}
       </div>
-      <div className="px-5 py-3 border-t border-slate-100">
+      <div className={`${rowCls} border-t border-slate-100`}>
         <button onClick={handleResetAll} disabled={saving} className="text-xs text-slate-500 hover:text-emerald-700 font-medium transition disabled:opacity-50">Reset to show all</button>
       </div>
     </div>

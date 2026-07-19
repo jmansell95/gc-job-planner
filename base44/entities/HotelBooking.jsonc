@@ -62,6 +62,15 @@
       "type": "string",
       "description": "Room type (e.g. Single, Twin, Double)"
     },
+    "room_count": {
+      "type": "number",
+      "default": 1,
+      "description": "Number of rooms booked. Total booking cost = cost_per_night \u00d7 room_count \u00d7 nights (check_out \u2212 check_in)."
+    },
+    "cost_per_night": {
+      "type": "number",
+      "description": "Cost per room per night in GBP (net, excluding VAT). Used to auto-calculate the total accommodation cost for the job financials."
+    },
     "contact_phone": {
       "type": "string",
       "description": "Hotel contact phone number"

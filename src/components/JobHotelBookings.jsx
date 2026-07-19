@@ -58,6 +58,17 @@ function HotelCard({ booking, staffCount, onEdit, onDelete, onUnassign, staffMap
             <a href={`tel:${booking.contact_phone}`} className="flex items-center gap-1 text-blue-700 font-medium hover:underline"><Phone className="w-3 h-3" /> {booking.contact_phone}</a>
           )}
         </div>
+        {(() => {
+          const nights = (booking.check_in_date && booking.check_out_date) ? Math.max(0, Math.round((new Date(booking.check_out_date + 'T00:00:00') - new Date(booking.check_in_date + 'T00:00:00')) / 86400000)) : 0;
+          const total = (Number(booking.cost_per_night) || 0) * (Number(booking.room_count) || 1) * nights;
+          if (!total) return null;
+          return (
+            <div className="flex items-center justify-between bg-blue-50 rounded-lg px-2.5 py-1.5 text-xs">
+              <span className="text-blue-600">£{(Number(booking.cost_per_night) || 0).toFixed(2)}/night × {nights}n × {Number(booking.room_count) || 1}r</span>
+              <span className="font-bold text-blue-800">£{total.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          );
+        })()}
         <div className="flex flex-wrap gap-1 pt-1">
           {assignedNames.map((name, i) => (
             <StaffChip key={assignedIds[i] || i} name={name} color={i} onClick={() => onUnassign(booking, assignedIds[i])} />
@@ -153,6 +164,28 @@ function HotelEditor({ open, onClose, booking, job, assignedStaff, onSave, allSt
             <label className="block text-xs font-medium text-slate-600 mb-1">PO Number</label>
             <input type="text" value={form.po_number || ''} onChange={e => setForm({ ...form, po_number: e.target.value })} className={inputCls} placeholder="Purchase order number" />
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Cost per Night (£)</label>
+              <input type="number" min="0" step="0.01" value={form.cost_per_night ?? ''} onChange={e => setForm({ ...form, cost_per_night: e.target.value === '' ? '' : Number(e.target.value) })} className={inputCls} placeholder="0.00" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Rooms</label>
+              <input type="number" min="1" step="1" value={form.room_count ?? 1} onChange={e => setForm({ ...form, room_count: e.target.value === '' ? '' : Number(e.target.value) })} className={inputCls} placeholder="1" />
+            </div>
+          </div>
+          {(() => {
+            const nights = (form.check_in_date && form.check_out_date) ? Math.max(0, Math.round((new Date(form.check_out_date + 'T00:00:00') - new Date(form.check_in_date + 'T00:00:00')) / 86400000)) : 0;
+            const total = (Number(form.cost_per_night) || 0) * (Number(form.room_count) || 1) * nights;
+            return (
+              <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 flex items-center justify-between">
+                <span className="text-xs text-blue-700 font-medium">
+                  {nights} night{nights === 1 ? '' : 's'} × {(Number(form.room_count) || 1)} room{Number(form.room_count) === 1 ? '' : 's'} × £{(Number(form.cost_per_night) || 0).toFixed(2)}
+                </span>
+                <span className="text-sm font-bold text-blue-800">Total: £{total.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            );
+          })()}
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Contact Phone</label>
             <input type="tel" value={form.contact_phone || ''} onChange={e => setForm({ ...form, contact_phone: e.target.value })} className={inputCls} />

@@ -30,6 +30,7 @@ import JobDetailTabs from '@/components/JobDetailTabs';
 import JobScheduleOverview from '@/components/JobScheduleOverview';
 import JobWarningsBanner from '@/components/JobWarningsBanner';
 import StaffActivityBreakdown from '@/components/StaffActivityBreakdown';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const jobTypeColors = {
   groundworks: { bg: 'bg-emerald-100', text: 'text-emerald-800', dot: 'bg-emerald-500', border: 'border-emerald-200' },
@@ -81,6 +82,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [showPortalDialog, setShowPortalDialog] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ['my-staff-profile'],
@@ -645,10 +647,38 @@ export default function JobDetail({ job: initialJob, onBack }) {
         </div>
       )}
 
-      {/* Client Portal Visibility — surfaced for easy show/hide control */}
+      {/* Client Portal Visibility — compact button + dialog */}
       <div className="mb-6">
-        <PortalSectionManager job={job} />
+        <button
+          onClick={() => setShowPortalDialog(true)}
+          className="w-full flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 hover:shadow-md transition text-left"
+        >
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <ShieldCheck className="w-4 h-4 text-emerald-700" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-slate-900 text-sm">Client Portal Visibility</p>
+            <p className="text-xs text-slate-400">Manage what your client can see</p>
+          </div>
+          <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${job.portal_enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+            {job.portal_enabled ? 'Portal Enabled' : 'Portal Disabled'}
+          </span>
+          <span className="text-xs text-slate-400 flex-shrink-0">
+            {job.portal_sections ? Object.values(job.portal_sections).filter(Boolean).length : 10}/10 sections
+          </span>
+        </button>
       </div>
+
+      <Dialog open={showPortalDialog} onOpenChange={setShowPortalDialog}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-700" /> Client Portal Visibility
+            </DialogTitle>
+          </DialogHeader>
+          <PortalSectionManager job={job} embedded />
+        </DialogContent>
+      </Dialog>
 
       <JobScheduleOverview
         primaryType={primaryType}

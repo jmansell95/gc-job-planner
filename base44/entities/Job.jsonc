@@ -163,10 +163,26 @@
       "type": "number",
       "description": "Target total metres to drill for this job. Used to track progress and completion percentage against the agreed scope."
     },
+    "revenue_method": {
+      "type": "string",
+      "enum": [
+        "none",
+        "day_rate",
+        "meterage_rate",
+        "unit_rate",
+        "flat_fee"
+      ],
+      "default": "none",
+      "description": "How revenue is calculated for this job. 'none' = legacy markup-on-cost model (internal cost + markup %). 'day_rate' = sum of assigned crew day rates \u00d7 working days (from the schedule of rates). 'meterage_rate' = total metres drilled \u00d7 meterage_rate. 'unit_rate' = units completed \u00d7 unit_price. 'flat_fee' = single agreed project fee (client_charge). Set per job since billing terms vary \u2014 one drilling job may be day-rated while another is meteraged."
+    },
+    "unit_price": {
+      "type": "number",
+      "description": "Price per unit in GBP for unit-rate billing (e.g. \u00a3/trial pit, \u00a3/core run, \u00a3/EV charger installed). Used when revenue_method is 'unit_rate'. Revenue = units completed \u00d7 this price."
+    },
     "markup_percentage": {
       "type": "number",
       "default": 0,
-      "description": "Markup percentage applied to total internal net cost to derive the client price"
+      "description": "Markup percentage applied to total internal net cost to derive the client price (used when revenue_method is 'none' or as a fallback)."
     },
     "vat_rate": {
       "type": "number",
@@ -175,7 +191,7 @@
     },
     "client_charge": {
       "type": "number",
-      "description": "Legacy manual client charge. Superseded by the calculated billing when cost items/markup are used."
+      "description": "Legacy manual client charge. Superseded by the calculated billing when cost items/markup are used. Also used as the flat fee when revenue_method is 'flat_fee'."
     },
     "client_charge_description": {
       "type": "string",
