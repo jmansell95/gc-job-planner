@@ -78,17 +78,19 @@ Deno.serve(async (req) => {
     };
 
     const extractEquipmentAssetType = (e) => {
-      // Check the specific equipment_type first (e.g. "Bow Shackle", "Wire Rope") —
-      // it's more reliable than the broad category field, which may be a generic
-      // "Machinery" label applied to lifting gear in GC Compliance Manager.
+      // Build a combined string from equipment_type, name, and category —
+      // some lifting gear has equipment_type "Other" but the asset NAME contains
+      // the real type (e.g. "Tipping Hook", "Sinker Bar"). Checking the name
+      // catches these where the type field alone doesn't.
       const typeRaw = String(e.equipment_type || e.type_name || e.type || '').toLowerCase();
+      const nameRaw = String(e.name || e.title || '').toLowerCase();
       const catRaw = String(e.category || e.asset_type || '').toLowerCase();
-      const raw = typeRaw || catRaw;
-      const liftingKeywords = ['lift', 'shackle', 'sling', 'chain', 'rope', 'hook', 'hoist', 'crane', 'rigging', 'swl', 'lever', 'pull', 'beam', 'spreader', 'thimble', 'ferrule', 'sheave', 'sleeve', 'eyebolt', 'eye bolt', 'd-shackle', 'bow shackle', 'wire rope'];
-      if (raw.includes('trailer')) return 'trailer';
-      if (liftingKeywords.some(kw => raw.includes(kw))) return 'lifting';
-      if (catRaw.includes('machine') || raw.includes('excav') || raw.includes('digger') || raw.includes('grout') || raw.includes('mixer')) return 'machinery';
-      if (raw.includes('vehicle') || raw.includes('van') || raw.includes('truck')) return 'vehicle';
+      const combined = `${typeRaw} ${nameRaw} ${catRaw}`;
+      const liftingKeywords = ['lift', 'shackle', 'sling', 'chain', 'rope', 'hook', 'hoist', 'crane', 'rigging', 'swl', 'lever', 'pull', 'beam', 'spreader', 'thimble', 'ferrule', 'sheave', 'sleeve', 'eyebolt', 'eye bolt', 'd-shackle', 'bow shackle', 'wire rope', 'sinker', 'clevis', 'tipping hook', 'winch'];
+      if (combined.includes('trailer')) return 'trailer';
+      if (liftingKeywords.some(kw => combined.includes(kw))) return 'lifting';
+      if (combined.includes('machine') || combined.includes('excav') || combined.includes('digger') || combined.includes('grout') || combined.includes('mixer')) return 'machinery';
+      if (combined.includes('vehicle') || combined.includes('van') || combined.includes('truck')) return 'vehicle';
       return 'machinery';
     };
 
@@ -250,6 +252,7 @@ Deno.serve(async (req) => {
         serial_number: match.registration_number || asset.serial_number || '',
         responsible_person: extractResponsiblePerson(match),
         notes: match.notes || asset.notes || '',
+        is_rig: true,
       });
       rigsSynced++;
     }
