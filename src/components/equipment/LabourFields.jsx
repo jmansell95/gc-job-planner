@@ -6,7 +6,7 @@ import { inputCls, fmt } from './shared';
 export default function LabourFields({ form, setForm, rateCardItems = [], staff = [], defaultDates }) {
   // Labour rate card items from our company Master Price List
   const labourRateItems = (rateCardItems || []).filter(
-    (i) => i.is_active !== false && i.category === 'labour' && i.rate_card_source === 'our_company'
+    (i) => i.is_active !== false && i.category === 'labour' && (i.rate_card_source || 'our_company') === 'our_company'
   );
 
   const pickFromRateCard = (id) => {

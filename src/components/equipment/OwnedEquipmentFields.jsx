@@ -31,7 +31,7 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
 
   // Master Price List items for owned equipment — Plant & Materials from our company rate card
   const ourRateItems = (rateCardItems || []).filter(
-    (i) => i.is_active !== false && i.rate_card_source === 'our_company' && (i.category === 'plant' || i.category === 'materials')
+    (i) => i.is_active !== false && (i.rate_card_source || 'our_company') === 'our_company' && (i.category === 'plant' || i.category === 'materials')
   );
 
   // Group rate card items by subcategory (or category if no subcategory)
