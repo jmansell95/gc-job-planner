@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Wrench, Users, TrendingUp, TrendingDown, PoundSterling, Truck, HardHat, ChevronRight, ChevronDown, Briefcase } from 'lucide-react';
+import { HardHat, TrendingUp, PoundSterling, Briefcase, ChevronRight, ChevronDown, Wrench, Truck } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 import { eachDayOfInterval, isWeekend } from 'date-fns';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
@@ -15,8 +15,7 @@ function workingDays(start, end) {
   return eachDayOfInterval({ start: s, end }).filter(d => !isWeekend(d)).length;
 }
 
-const ASSET_TYPE_META = {
-  rig: { label: 'Rig', icon: HardHat, color: 'text-emerald-700 bg-emerald-50' },
+const GEAR_META = {
   machinery: { label: 'Machinery', icon: Wrench, color: 'text-blue-700 bg-blue-50' },
   trailer: { label: 'Trailer', icon: Truck, color: 'text-amber-700 bg-amber-50' },
   vehicle: { label: 'Vehicle', icon: Truck, color: 'text-violet-700 bg-violet-50' },
@@ -24,7 +23,6 @@ const ASSET_TYPE_META = {
 };
 
 export default function AssetCrewProfitability() {
-  const [tab, setTab] = useState('assets');
   const [expandedRigs, setExpandedRigs] = useState(new Set());
   const { selectedJobId } = useJobFilter();
   const isAllJobs = selectedJobId === 'all';
@@ -33,473 +31,205 @@ export default function AssetCrewProfitability() {
     setExpandedRigs(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s; });
   };
 
-  const { data: assets = [], isLoading: assetsLoading } = useQuery({ queryKey: ['site-assets-profit'], queryFn: () => base44.entities.SiteAsset.list() });
+  const { data: assets = [], isLoading } = useQuery({ queryKey: ['site-assets-profit'], queryFn: () => base44.entities.SiteAsset.list() });
   const { data: assignments = [] } = useQuery({ queryKey: ['job-asset-assignments-profit'], queryFn: () => base44.entities.JobAssetAssignment.list() });
-  const { data: costItems = [] } = useQuery({ queryKey: ['all-cost-items-profit'], queryFn: () => base44.entities.JobCostItem.list() });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs-profit'], queryFn: () => base44.entities.Job.list() });
-  const { data: teams = [] } = useQuery({ queryKey: ['teams-profit'], queryFn: () => base44.entities.Team.list() });
-  const { data: staff = [] } = useQuery({ queryKey: ['staff-profit'], queryFn: () => base44.entities.Staff.list() });
-  const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets-profit'], queryFn: () => base44.entities.Timesheet.list() });
-  const { data: invLogs = [] } = useQuery({ queryKey: ['investigation-logs-profit'], queryFn: () => base44.entities.InvestigationLog.list() });
-  const { data: deliveries = [] } = useQuery({ queryKey: ['delivery-logs-profit'], queryFn: () => base44.entities.DeliveryLog.list() });
 
   const scopedAssignments = isAllJobs ? assignments : assignments.filter(a => a.job_id === selectedJobId);
-  const scopedCostItems = isAllJobs ? costItems : costItems.filter(c => c.job_id === selectedJobId);
-  const scopedTimesheets = isAllJobs ? timesheets : timesheets.filter(t => t.job_id === selectedJobId);
-  const scopedInvLogs = isAllJobs ? invLogs : invLogs.filter(l => l.job_id === selectedJobId);
-  const scopedDeliveries = isAllJobs ? deliveries : deliveries.filter(d => d.job_id === selectedJobId);
-
   const jobById = useMemo(() => Object.fromEntries(jobs.map(j => [j.id, j])), [jobs]);
 
-  // ---- Per-asset profitability ----
-  const assetRows = useMemo(() => {
+  // Only rigs currently on jobs (active assignments without a returned_date)
+  const rigRows = useMemo(() => {
     const today = new Date();
-    const costByAsset = {};
-    scopedCostItems.forEach(c => {
-      if (!c.site_asset_id) return;
-      if (c.category === 'contractor_supplied' || c.category === 'client_supplied') return;
-      costByAsset[c.site_asset_id] = (costByAsset[c.site_asset_id] || 0) + (c.unit_cost || 0) * (c.quantity || 1);
-    });
+    const rigs = assets.filter(a => a.asset_type === 'rig');
+    const rigById = Object.fromEntries(rigs.map(r => [r.id, r]));
 
-    const revByAsset = {};
-    const daysByAsset = {};
-    const jobsByAsset = {};
+    // active assignments for rigs (returned_date not set)
+    const activeByRig = {};
     scopedAssignments.forEach(a => {
-      const job = jobById[a.job_id];
-      const from = a.arrived_on_site_date || a.assigned_date || job?.start_date;
-      const to = a.returned_date || job?.end_date || today;
-      const days = workingDays(from, to);
-      daysByAsset[a.asset_id] = (daysByAsset[a.asset_id] || 0) + days;
-      jobsByAsset[a.asset_id] = (jobsByAsset[a.asset_id] || new Set());
-      jobsByAsset[a.asset_id].add(a.job_id);
-      const rate = assets.find(x => x.id === a.asset_id)?.daily_billing_rate || 0;
-      revByAsset[a.asset_id] = (revByAsset[a.asset_id] || 0) + rate * days;
+      if (!rigById[a.asset_id]) return;
+      if (a.returned_date) return; // already returned — not currently on job
+      if (!activeByRig[a.asset_id]) activeByRig[a.asset_id] = [];
+      activeByRig[a.asset_id].push(a);
     });
 
-    return assets.map(a => {
-      const revenue = revByAsset[a.id] || 0;
-      const cost = costByAsset[a.id] || 0;
-      const days = daysByAsset[a.id] || 0;
-      const jobIds = [...(jobsByAsset[a.id] || [])];
-      const jobCount = jobIds.length;
-      const jobNames = jobIds.map(id => jobById[id]?.name).filter(Boolean);
-      const profit = revenue - cost;
-      const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-      return {
-        id: a.id, name: a.name, type: a.asset_type, rigType: a.rig_type,
-        billingRate: a.daily_billing_rate || 0,
-        revenue, cost, profit, margin, days, jobCount, jobIds, jobNames,
-        active: a.is_active !== false,
-        linkedEquipmentIds: a.linked_equipment_ids || [],
-      };
-    }).sort((a, b) => b.revenue - a.revenue);
-  }, [assets, scopedAssignments, scopedCostItems, jobById]);
+    const gearById = Object.fromEntries(assets.filter(a => a.asset_type !== 'rig').map(g => [g.id, g]));
 
-  const groupedAssetRows = useMemo(() => {
-    const rowById = {};
-    assetRows.forEach(r => { rowById[r.id] = r; });
-    const childrenOf = {};
-    const isChild = new Set();
-    assetRows.forEach(r => {
-      if (r.linkedEquipmentIds && r.linkedEquipmentIds.length > 0) {
-        const children = r.linkedEquipmentIds.map(id => rowById[id]).filter(Boolean);
-        if (children.length > 0) {
-          childrenOf[r.id] = children;
-          children.forEach(c => isChild.add(c.id));
-        }
-      }
-    });
-    return assetRows
-      .filter(r => !isChild.has(r.id))
+    return rigs
       .map(r => {
-        const children = childrenOf[r.id] || [];
-        if (children.length === 0) return { ...r, children: [], agg: null };
-        const allJobIds = new Set([...(r.jobIds || []), ...children.flatMap(c => c.jobIds || [])]);
-        const agg = {
-          revenue: r.revenue + children.reduce((s, c) => s + c.revenue, 0),
-          cost: r.cost + children.reduce((s, c) => s + c.cost, 0),
-          profit: r.profit + children.reduce((s, c) => s + c.profit, 0),
-          days: Math.max(r.days, ...children.map(c => c.days)),
-          jobCount: allJobIds.size,
-          jobNames: [...allJobIds].map(id => jobById[id]?.name).filter(Boolean),
-        };
-        agg.margin = agg.revenue > 0 ? (agg.profit / agg.revenue) * 100 : 0;
-        return { ...r, children, agg };
+        const active = activeByRig[r.id] || [];
+        const jobIds = [...new Set(active.map(a => a.job_id))];
+        const jobNames = jobIds.map(id => jobById[id]?.name).filter(Boolean);
+        // revenue = sum of day rate × working days on each active assignment
+        let revenue = 0;
+        let days = 0;
+        active.forEach(a => {
+          const job = jobById[a.job_id];
+          const from = a.arrived_on_site_date || a.assigned_date || job?.start_date;
+          const to = a.returned_date || job?.end_date || today;
+          const d = workingDays(from, to);
+          days += d;
+          revenue += (r.daily_billing_rate || 0) * d;
+        });
+        const gear = (r.linked_equipment_ids || []).map(id => gearById[id]).filter(Boolean);
+        return { id: r.id, name: r.name, rigType: r.rig_type, billingRate: r.daily_billing_rate || 0, revenue, days, jobIds, jobNames, gear };
       })
-      .sort((a, b) => (b.agg?.revenue || b.revenue) - (a.agg?.revenue || a.revenue));
-  }, [assetRows, jobById]);
-
-  const assetTotals = useMemo(() => groupedAssetRows.reduce((acc, r) => {
-    const d = r.agg || r;
-    return { revenue: acc.revenue + d.revenue, cost: acc.cost + d.cost, profit: acc.profit + d.profit, days: acc.days + d.days };
-  }, { revenue: 0, cost: 0, profit: 0, days: 0 }), [groupedAssetRows]);
-
-  const crewRows = useMemo(() => {
-    const staffByTeam = {};
-    staff.forEach(s => {
-      if (!s.team_id) return;
-      if (!staffByTeam[s.team_id]) staffByTeam[s.team_id] = [];
-      staffByTeam[s.team_id].push(s.id);
-    });
-    const staffIdSet = (teamId) => new Set(staffByTeam[teamId] || []);
-
-    const timesheetRevByTeam = {};
-    scopedTimesheets.forEach(t => {
-      if (!t.chargeable || !t.charge_amount) return;
-      for (const teamId of Object.keys(staffByTeam)) {
-        if (staffIdSet(teamId).has(t.staff_id)) {
-          timesheetRevByTeam[teamId] = (timesheetRevByTeam[teamId] || 0) + t.charge_amount;
-          break;
-        }
-      }
-    });
-    const invRevByTeam = {};
-    scopedInvLogs.forEach(l => {
-      if (!l.charge_amount) return;
-      for (const teamId of Object.keys(staffByTeam)) {
-        if (staffIdSet(teamId).has(l.staff_id)) {
-          invRevByTeam[teamId] = (invRevByTeam[teamId] || 0) + l.charge_amount;
-          break;
-        }
-      }
-    });
-    const delivRevByTeam = {};
-    scopedDeliveries.forEach(d => {
-      if (!d.charge_amount) return;
-      for (const teamId of Object.keys(staffByTeam)) {
-        if (staffIdSet(teamId).has(d.driver_staff_id)) {
-          delivRevByTeam[teamId] = (delivRevByTeam[teamId] || 0) + d.charge_amount;
-          break;
-        }
-      }
-    });
-
-    return teams.map(t => {
-      const memberIds = staffByTeam[t.id] || [];
-      const activeMembers = staff.filter(s => s.team_id === t.id && s.is_active !== false).length;
-      const revenue = (timesheetRevByTeam[t.id] || 0) + (invRevByTeam[t.id] || 0) + (delivRevByTeam[t.id] || 0);
-      return {
-        id: t.id, name: t.name, revenueStream: t.revenue_stream_type, markup: t.billing_default_markup || 0,
-        members: memberIds.length, activeMembers,
-        taskRevenue: timesheetRevByTeam[t.id] || 0,
-        invRevenue: invRevByTeam[t.id] || 0,
-        delivRevenue: delivRevByTeam[t.id] || 0,
-      };
-    }).filter(r => r.members > 0 || r.revenue > 0)
+      .filter(r => r.jobIds.length > 0) // only rigs currently on jobs
       .sort((a, b) => b.revenue - a.revenue);
-  }, [teams, staff, scopedTimesheets, scopedInvLogs, scopedDeliveries]);
+  }, [assets, scopedAssignments, jobById]);
 
-  const crewTotals = useMemo(() => crewRows.reduce((acc, r) => ({
-    revenue: acc.revenue + r.revenue,
-    taskRevenue: acc.taskRevenue + r.taskRevenue,
-    invRevenue: acc.invRevenue + r.invRevenue,
-    delivRevenue: acc.delivRevenue + r.delivRevenue,
-  }), { revenue: 0, taskRevenue: 0, invRevenue: 0, delivRevenue: 0 }), [crewRows]);
+  const totalRevenue = useMemo(() => rigRows.reduce((s, r) => s + r.revenue, 0), [rigRows]);
+  const activeRigCount = rigRows.length;
 
-  const REVENUE_STREAM_LABELS = {
-    none: 'Per task', drilling_meterage: '£/m drilled', groundworks_unit: '£/unit', coring_unit: '£/core run',
-    trial_pit_unit: '£/pit', day_rate: 'Daily rate', flat_fee: 'Flat fee',
-  };
-
-  if (assetsLoading && tab === 'assets') {
+  if (isLoading) {
     return (
       <div className="card-modern rounded-2xl p-5">
         <Skeleton className="h-6 w-56 mb-4" />
-        <div className="space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
+        <div className="space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
       </div>
     );
   }
 
-  const marginColor = (m, revenue) => revenue > 0 ? (m >= 40 ? 'text-emerald-600' : m >= 20 ? 'text-amber-600' : 'text-rose-600') : 'text-slate-400';
-
   return (
     <div className="card-modern rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-sm flex-shrink-0">
-            <TrendingUp className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h2 className="text-base font-bold text-slate-900">Revenue by Asset & Crew</h2>
-            <p className="text-xs text-slate-500">Revenue vs cost — per asset and crew</p>
-          </div>
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2.5">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center shadow-sm flex-shrink-0">
+          <HardHat className="w-5 h-5 text-white" />
         </div>
-        <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
-          <button onClick={() => setTab('assets')}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${tab === 'assets' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500'}`}>
-            <Wrench className="w-3.5 h-3.5 inline mr-1" /> Assets
-          </button>
-          <button onClick={() => setTab('crews')}
-            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${tab === 'crews' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500'}`}>
-            <Users className="w-3.5 h-3.5 inline mr-1" /> Crews
-          </button>
+        <div>
+          <h2 className="text-base font-bold text-slate-900">Rigs on Jobs</h2>
+          <p className="text-xs text-slate-500">Rigs currently deployed and their earnings</p>
         </div>
       </div>
 
       <div className="p-5">
-        {tab === 'assets' ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-            <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg stat-gradient-emerald flex items-center justify-center flex-shrink-0"><PoundSterling className="w-5 h-5 text-white" /></div>
-              <div><p className="text-base font-bold text-slate-900">{fmtGBP(assetTotals.revenue)}</p><p className="text-[11px] text-slate-500 font-medium">Asset Revenue</p></div>
-            </div>
-            <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg stat-gradient-blue flex items-center justify-center flex-shrink-0"><Wrench className="w-5 h-5 text-white" /></div>
-              <div><p className="text-base font-bold text-slate-900">{fmtGBP(assetTotals.cost)}</p><p className="text-[11px] text-slate-500 font-medium">Hire Cost</p></div>
-            </div>
-            <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${assetTotals.profit >= 0 ? 'stat-gradient-amber' : 'stat-gradient-rose'}`}>
-                {assetTotals.profit >= 0 ? <TrendingUp className="w-5 h-5 text-white" /> : <TrendingDown className="w-5 h-5 text-white" />}
-              </div>
-              <div><p className="text-base font-bold text-slate-900">{fmtGBP(assetTotals.profit)}</p><p className="text-[11px] text-slate-500 font-medium">Gross Profit</p></div>
-            </div>
-            <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg stat-gradient-slate flex items-center justify-center flex-shrink-0"><HardHat className="w-5 h-5 text-white" /></div>
-              <div><p className="text-base font-bold text-slate-900">{assetTotals.days}</p><p className="text-[11px] text-slate-500 font-medium">Deploy Days</p></div>
-            </div>
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg stat-gradient-emerald flex items-center justify-center flex-shrink-0"><PoundSterling className="w-5 h-5 text-white" /></div>
+            <div><p className="text-base font-bold text-slate-900">{fmtGBP(totalRevenue)}</p><p className="text-[11px] text-slate-500 font-medium">Revenue Earned</p></div>
           </div>
-        ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-            <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg stat-gradient-emerald flex items-center justify-center flex-shrink-0"><PoundSterling className="w-5 h-5 text-white" /></div>
-              <div><p className="text-base font-bold text-slate-900">{fmtGBP(crewTotals.revenue)}</p><p className="text-[11px] text-slate-500 font-medium">Crew Revenue</p></div>
-            </div>
-            <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg stat-gradient-blue flex items-center justify-center flex-shrink-0"><Users className="w-5 h-5 text-white" /></div>
-              <div><p className="text-base font-bold text-slate-900">{crewRows.reduce((s, r) => s + r.activeMembers, 0)}</p><p className="text-[11px] text-slate-500 font-medium">Active Crew</p></div>
-            </div>
-            <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg stat-gradient-amber flex items-center justify-center flex-shrink-0"><HardHat className="w-5 h-5 text-white" /></div>
-              <div><p className="text-base font-bold text-slate-900">{fmtGBP(crewTotals.invRevenue)}</p><p className="text-[11px] text-slate-500 font-medium">Investigation</p></div>
-            </div>
-            <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg stat-gradient-slate flex items-center justify-center flex-shrink-0"><Truck className="w-5 h-5 text-white" /></div>
-              <div><p className="text-base font-bold text-slate-900">{fmtGBP(crewTotals.delivRevenue)}</p><p className="text-[11px] text-slate-500 font-medium">Deliveries</p></div>
-            </div>
+          <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg stat-gradient-blue flex items-center justify-center flex-shrink-0"><HardHat className="w-5 h-5 text-white" /></div>
+            <div><p className="text-base font-bold text-slate-900">{activeRigCount}</p><p className="text-[11px] text-slate-500 font-medium">Rigs Deployed</p></div>
           </div>
-        )}
+        </div>
 
-        {tab === 'assets' && (
-          <div className="rounded-xl border border-slate-100 overflow-hidden">
-            {groupedAssetRows.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 text-sm">No assets found. Assign rigs or equipment to jobs to see revenue vs cost.</div>
-            ) : (
-              <>
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-slate-50/50 text-slate-500">
-                      <tr>
-                        <th className="text-left px-4 py-2.5 font-medium">Asset</th>
-                        <th className="text-left px-4 py-2.5 font-medium">Connected Job</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Day Rate</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Days</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Revenue</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Cost</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Profit</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Margin</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {groupedAssetRows.map(r => {
-                        const meta = ASSET_TYPE_META[r.type] || ASSET_TYPE_META.machinery;
-                        const Icon = meta.icon;
-                        const hasChildren = r.children.length > 0;
-                        const isExpanded = expandedRigs.has(r.id);
-                        const d = hasChildren ? r.agg : r;
-                        return (
-                          <React.Fragment key={r.id}>
-                            <tr className={`hover:bg-emerald-50/20 transition ${hasChildren ? 'cursor-pointer' : ''}`} onClick={hasChildren ? () => toggleRig(r.id) : undefined}>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  {hasChildren ? (
-                                    <span className="w-5 h-5 flex items-center justify-center text-slate-400 flex-shrink-0">
-                                      {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                    </span>
-                                  ) : <span className="w-5 h-5 flex-shrink-0" />}
-                                  <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.color}`}><Icon className="w-3.5 h-3.5" /></span>
-                                  <div className="min-w-0">
-                                    <p className="font-medium text-slate-800 truncate max-w-[180px]">{r.name}{hasChildren && <span className="ml-1.5 text-[10px] text-slate-400 font-normal">+{r.children.length}</span>}</p>
-                                    <p className="text-[10px] text-slate-400">{meta.label}{r.rigType && r.rigType !== 'n/a' ? ` · ${r.rigType.toUpperCase()}` : ''}</p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3">
-                                {d.jobNames?.length > 0 ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5 max-w-[220px] truncate">
-                                    <Briefcase className="w-3 h-3 flex-shrink-0" />
-                                    <span className="truncate">{d.jobNames.join(', ')}</span>
+        <div className="rounded-xl border border-slate-100 overflow-hidden">
+          {rigRows.length === 0 ? (
+            <div className="text-center py-10 text-slate-400 text-sm">No rigs currently on jobs. Assign a rig to a job to see earnings here.</div>
+          ) : (
+            <>
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-50/50 text-slate-500">
+                    <tr>
+                      <th className="text-left px-4 py-2.5 font-medium">Rig</th>
+                      <th className="text-left px-4 py-2.5 font-medium">On Job</th>
+                      <th className="text-right px-4 py-2.5 font-medium">Day Rate</th>
+                      <th className="text-right px-4 py-2.5 font-medium">Days</th>
+                      <th className="text-right px-4 py-2.5 font-medium">Earnings</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {rigRows.map(r => {
+                      const hasGear = r.gear.length > 0;
+                      const isExpanded = expandedRigs.has(r.id);
+                      return (
+                        <React.Fragment key={r.id}>
+                          <tr className={`hover:bg-emerald-50/20 transition ${hasGear ? 'cursor-pointer' : ''}`} onClick={hasGear ? () => toggleRig(r.id) : undefined}>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                {hasGear ? (
+                                  <span className="w-5 h-5 flex items-center justify-center text-slate-400 flex-shrink-0">
+                                    {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                   </span>
-                                ) : <span className="text-slate-300 text-[11px]">—</span>}
-                              </td>
-                              <td className="px-4 py-3 text-right text-slate-500">{r.billingRate ? fmtGBP(r.billingRate) : '—'}</td>
-                              <td className="px-4 py-3 text-right text-slate-600">{d.days || '—'}</td>
-                              <td className="px-4 py-3 text-right font-semibold text-emerald-700">{d.revenue > 0 ? fmtGBP(d.revenue) : '—'}</td>
-                              <td className="px-4 py-3 text-right text-slate-600">{d.cost > 0 ? fmtGBP(d.cost) : '—'}</td>
-                              <td className={`px-4 py-3 text-right font-bold ${d.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{d.revenue > 0 ? fmtGBP(d.profit) : '—'}</td>
-                              <td className="px-4 py-3 text-right">
-                                <span className={`font-bold ${marginColor(d.margin, d.revenue)}`}>
-                                  {d.revenue > 0 ? d.margin.toFixed(0) + '%' : '—'}
+                                ) : <span className="w-5 h-5 flex-shrink-0" />}
+                                <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-emerald-700 bg-emerald-50"><HardHat className="w-3.5 h-3.5" /></span>
+                                <div className="min-w-0">
+                                  <p className="font-medium text-slate-800 truncate max-w-[180px]">{r.name}{hasGear && <span className="ml-1.5 text-[10px] text-slate-400 font-normal">+{r.gear.length}</span>}</p>
+                                  {r.rigType && r.rigType !== 'n/a' && <p className="text-[10px] text-slate-400">{r.rigType.toUpperCase()}</p>}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              {r.jobNames.length > 0 ? (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5 max-w-[240px] truncate">
+                                  <Briefcase className="w-3 h-3 flex-shrink-0" />
+                                  <span className="truncate">{r.jobNames.join(', ')}</span>
                                 </span>
-                              </td>
-                            </tr>
-                            {hasChildren && isExpanded && r.children.map(c => {
-                              const cMeta = ASSET_TYPE_META[c.type] || ASSET_TYPE_META.machinery;
-                              const cIcon = cMeta.icon;
-                              return (
-                                <tr key={c.id} className="bg-slate-50/40 hover:bg-slate-50/70 transition">
-                                  <td className="px-4 py-2.5 pl-12">
-                                    <div className="flex items-center gap-2">
-                                      <span className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 ${cMeta.color} opacity-70`}><cIcon className="w-3 h-3" /></span>
-                                      <div className="min-w-0">
-                                        <p className="text-xs font-medium text-slate-600 truncate max-w-[180px]">{c.name}</p>
-                                        <p className="text-[10px] text-slate-400">{cMeta.label}</p>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-2.5">
-                                    {c.jobNames?.length > 0 ? (
-                                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-600 bg-slate-100 rounded-full px-2 py-0.5 max-w-[200px] truncate">
-                                        <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
-                                        <span className="truncate">{c.jobNames.join(', ')}</span>
-                                      </span>
-                                    ) : <span className="text-slate-300 text-[10px]">—</span>}
-                                  </td>
-                                  <td className="px-4 py-2.5 text-right text-slate-400 text-xs">{c.billingRate ? fmtGBP(c.billingRate) : '—'}</td>
-                                  <td className="px-4 py-2.5 text-right text-slate-500 text-xs">{c.days || '—'}</td>
-                                  <td className="px-4 py-2.5 text-right text-xs font-medium text-emerald-600">{c.revenue > 0 ? fmtGBP(c.revenue) : '—'}</td>
-                                  <td className="px-4 py-2.5 text-right text-slate-500 text-xs">{c.cost > 0 ? fmtGBP(c.cost) : '—'}</td>
-                                  <td className={`px-4 py-2.5 text-right text-xs font-semibold ${c.profit >= 0 ? 'text-slate-600' : 'text-rose-500'}`}>{c.revenue > 0 ? fmtGBP(c.profit) : '—'}</td>
-                                  <td className="px-4 py-2.5 text-right">
-                                    <span className={`text-xs font-semibold ${marginColor(c.margin, c.revenue)}`}>
-                                      {c.revenue > 0 ? c.margin.toFixed(0) + '%' : '—'}
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </React.Fragment>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="md:hidden divide-y divide-slate-100">
-                  {groupedAssetRows.map(r => {
-                    const meta = ASSET_TYPE_META[r.type] || ASSET_TYPE_META.machinery;
-                    const Icon = meta.icon;
-                    const hasChildren = r.children.length > 0;
-                    const isExpanded = expandedRigs.has(r.id);
-                    const d = hasChildren ? r.agg : r;
-                    return (
-                      <div key={r.id}>
-                        <div className={`p-4 space-y-2 ${hasChildren ? 'cursor-pointer' : ''}`} onClick={hasChildren ? () => toggleRig(r.id) : undefined}>
-                          <div className="flex items-center gap-2">
-                            {hasChildren && (
-                              <span className="text-slate-400 flex-shrink-0">
-                                {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                              ) : <span className="text-slate-300 text-[11px]">—</span>}
+                            </td>
+                            <td className="px-4 py-3 text-right text-slate-500">{r.billingRate ? fmtGBP(r.billingRate) : '—'}</td>
+                            <td className="px-4 py-3 text-right text-slate-600">{r.days}</td>
+                            <td className="px-4 py-3 text-right font-bold text-emerald-700">{fmtGBP(r.revenue)}</td>
+                          </tr>
+                          {hasGear && isExpanded && r.gear.map(g => {
+                            const meta = GEAR_META[g.asset_type] || GEAR_META.machinery;
+                            const GIcon = meta.icon;
+                            return (
+                              <tr key={g.id} className="bg-slate-50/40">
+                                <td className="px-4 py-2.5 pl-12">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.color} opacity-70`}><GIcon className="w-3 h-3" /></span>
+                                    <p className="text-xs font-medium text-slate-600 truncate max-w-[180px]">{g.name}</p>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-2.5" colSpan={4} />
+                              </tr>
+                            );
+                          })}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="md:hidden divide-y divide-slate-100">
+                {rigRows.map(r => {
+                  const hasGear = r.gear.length > 0;
+                  const isExpanded = expandedRigs.has(r.id);
+                  return (
+                    <div key={r.id}>
+                      <div className={`p-4 space-y-2 ${hasGear ? 'cursor-pointer' : ''}`} onClick={hasGear ? () => toggleRig(r.id) : undefined}>
+                        <div className="flex items-center gap-2">
+                          {hasGear && (
+                            <span className="text-slate-400 flex-shrink-0">
+                              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            </span>
+                          )}
+                          <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-emerald-700 bg-emerald-50"><HardHat className="w-4 h-4" /></span>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-slate-800 text-sm truncate">{r.name}{hasGear && <span className="ml-1 text-[10px] text-slate-400 font-normal">+{r.gear.length}</span>}</p>
+                            {r.jobNames.length > 0 && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 mt-0.5">
+                                <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
+                                <span className="truncate">{r.jobNames.join(', ')}</span>
                               </span>
                             )}
-                            <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.color}`}><Icon className="w-4 h-4" /></span>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium text-slate-800 text-sm truncate">{r.name}{hasChildren && <span className="ml-1 text-[10px] text-slate-400 font-normal">+{r.children.length}</span>}</p>
-                              <p className="text-[10px] text-slate-400">{meta.label} · {d.days || 0} Days</p>
-                              {d.jobNames?.length > 0 && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 mt-0.5">
-                                  <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
-                                  <span className="truncate">{d.jobNames.join(', ')}</span>
-                                </span>
-                              )}
-                            </div>
-                            <span className={`text-sm font-bold flex-shrink-0 ${d.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{d.revenue > 0 ? fmtGBP(d.profit) : '—'}</span>
                           </div>
-                          <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                            <span className="text-slate-500">Rev <span className="font-semibold text-emerald-700">{d.revenue > 0 ? fmtGBP(d.revenue) : '—'}</span></span>
-                            <span className="text-slate-500">Cost <span className="font-semibold text-slate-700">{d.cost > 0 ? fmtGBP(d.cost) : '—'}</span></span>
-                            <span className="text-slate-500">Mgn <span className={`font-semibold ${marginColor(d.margin, d.revenue)}`}>{d.revenue > 0 ? d.margin.toFixed(0) + '%' : '—'}</span></span>
+                          <span className="text-sm font-bold text-emerald-700 flex-shrink-0">{fmtGBP(r.revenue)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                          <span className="text-slate-500">{r.days} days · {r.billingRate ? fmtGBP(r.billingRate) + '/day' : 'No rate'}</span>
+                        </div>
+                      </div>
+                      {hasGear && isExpanded && r.gear.map(g => {
+                        const meta = GEAR_META[g.asset_type] || GEAR_META.machinery;
+                        const GIcon = meta.icon;
+                        return (
+                          <div key={g.id} className="pl-10 pr-4 py-2.5 bg-slate-50/40 border-t border-slate-100/70 flex items-center gap-2">
+                            <span className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.color} opacity-70`}><GIcon className="w-3 h-3" /></span>
+                            <p className="text-xs font-medium text-slate-600 truncate">{g.name}</p>
                           </div>
-                        </div>
-                        {hasChildren && isExpanded && r.children.map(c => {
-                          const cMeta = ASSET_TYPE_META[c.type] || ASSET_TYPE_META.machinery;
-                          const cIcon = cMeta.icon;
-                          return (
-                            <div key={c.id} className="pl-10 pr-4 py-2.5 bg-slate-50/40 border-t border-slate-100/70 flex items-center gap-2">
-                              <span className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 ${cMeta.color} opacity-70`}><cIcon className="w-3 h-3" /></span>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-slate-600 truncate">{c.name}</p>
-                                <p className="text-[10px] text-slate-400">{cMeta.label} · {c.days || 0}d</p>
-                              </div>
-                              <span className="text-xs font-semibold text-slate-600 flex-shrink-0">{c.revenue > 0 ? fmtGBP(c.revenue) : '—'}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {tab === 'crews' && (
-          <div className="rounded-xl border border-slate-100 overflow-hidden">
-            {crewRows.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 text-sm">No crews with revenue yet. Assign staff to crews and log chargeable tasks to see crew revenue.</div>
-            ) : (
-              <>
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead className="bg-slate-50/50 text-slate-500">
-                      <tr>
-                        <th className="text-left px-4 py-2.5 font-medium">Crew</th>
-                        <th className="text-left px-4 py-2.5 font-medium">Revenue Stream</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Members</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Tasks</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Investigation</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Deliveries</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Total Revenue</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {crewRows.map(r => (
-                        <tr key={r.id} className="hover:bg-emerald-50/20 transition">
-                          <td className="px-4 py-3">
-                            <p className="font-medium text-slate-800 truncate max-w-[160px]">{r.name}</p>
-                            {r.markup > 0 && <p className="text-[10px] text-slate-400">+{r.markup}% markup</p>}
-                          </td>
-                          <td className="px-4 py-3 text-slate-500">{REVENUE_STREAM_LABELS[r.revenueStream] || '—'}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{r.activeMembers}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{r.taskRevenue > 0 ? fmtGBP(r.taskRevenue) : '—'}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{r.invRevenue > 0 ? fmtGBP(r.invRevenue) : '—'}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{r.delivRevenue > 0 ? fmtGBP(r.delivRevenue) : '—'}</td>
-                          <td className="px-4 py-3 text-right font-bold text-emerald-700">{r.revenue > 0 ? fmtGBP(r.revenue) : '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="md:hidden divide-y divide-slate-100">
-                  {crewRows.map(r => (
-                    <div key={r.id} className="p-4 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="font-medium text-slate-800 text-sm truncate">{r.name}</p>
-                          <p className="text-[10px] text-slate-400">{REVENUE_STREAM_LABELS[r.revenueStream]} · {r.activeMembers} members</p>
-                        </div>
-                        <p className="text-sm font-bold text-emerald-700 flex-shrink-0">{r.revenue > 0 ? fmtGBP(r.revenue) : '—'}</p>
-                      </div>
-                      <div className="flex items-center gap-3 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-                        <span>Tasks {r.taskRevenue > 0 ? fmtGBP(r.taskRevenue) : '—'}</span>
-                        <span>Inv {r.invRevenue > 0 ? fmtGBP(r.invRevenue) : '—'}</span>
-                        <span>Del {r.delivRevenue > 0 ? fmtGBP(r.delivRevenue) : '—'}</span>
-                      </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
