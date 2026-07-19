@@ -254,7 +254,7 @@ Deno.serve(async (req) => {
 
     // --- Milestone rows ---
     const milestoneRows = milestones.map(m => {
-      return `<tr><td>${esc(m.title)}</td><td>${fmtDate(m.target_date)}</td><td>${m.completed ? '✓ Done' : 'Pending'}</td></tr>`;
+      return `<tr><td>${esc(m.name)}</td><td>${fmtDate(m.target_date)}</td><td>${m.completed ? '✓ Done' : 'Pending'}</td></tr>`;
     }).join('');
 
     // --- Billing Summary block (admins and managers only) ---
