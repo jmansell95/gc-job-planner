@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Plus, Calendar, Settings2, Check, Eye } from 'lucide-react';
+import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Plus, Calendar, Settings2, Check, Eye, MapPin } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
@@ -196,30 +196,55 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     }
   }, [visibleTabs, activeTab]);
 
+  const selectedJob = !isAllJobs ? jobs.find(j => j.id === selectedJobId) : null;
+
   return (
     <div>
-      {/* Hero header */}
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-6">
+      {/* Hero header — context-aware */}
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-5">
         <div className="hero-gradient relative overflow-hidden rounded-2xl shadow-lg px-5 py-5 sm:px-7 sm:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
           <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="p-3 bg-white/15 ring-1 ring-white/25 rounded-2xl flex-shrink-0 backdrop-blur-sm">
-                <Grid3x3 className="w-7 h-7 text-white" />
+                {isAllJobs ? <Grid3x3 className="w-7 h-7 text-white" /> : <Briefcase className="w-7 h-7 text-white" />}
               </div>
               <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
-                  {greeting}{firstName ? `, ${firstName}` : ''}
-                </h1>
-                <p className="text-emerald-50 text-sm mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
-                <p className="text-emerald-100/80 text-xs mt-0.5">{thisWeekRotas.length} {thisWeekRotas.length === 1 ? 'shift' : 'shifts'} this week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
+                {isAllJobs ? (
+                  <>
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+                      {greeting}{firstName ? `, ${firstName}` : ''}
+                    </h1>
+                    <p className="text-emerald-50 text-sm mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
+                    <p className="text-emerald-100/80 text-xs mt-0.5">{thisWeekRotas.length} {thisWeekRotas.length === 1 ? 'Shift' : 'Shifts'} This Week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight truncate">{selectedJob?.name || 'Job'}</h1>
+                      {selectedJob?.status && (
+                        <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-white/20 text-white ring-1 ring-white/30 backdrop-blur-sm">
+                          {titleCase(selectedJob.status.replace(/_/g, ' '))}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-emerald-50 text-sm mt-1 flex items-center gap-1.5 flex-wrap">
+                      {selectedJob?.location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{selectedJob.location}</span>}
+                      {selectedJob?.start_date && selectedJob?.end_date && (
+                        <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{format(new Date(selectedJob.start_date), 'dd MMM')} – {format(new Date(selectedJob.end_date), 'dd MMM yyyy')}</span>
+                      )}
+                    </p>
+                  </>
+                )}
               </div>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               {!customizeMode ? (
                 <>
-                  <button onClick={() => onNavigate('jobs')} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm w-full sm:w-auto">
-                    <Plus className="w-4 h-4" /> Add Job
-                  </button>
+                  {isAllJobs && (
+                    <button onClick={() => onNavigate('jobs')} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm w-full sm:w-auto">
+                      <Plus className="w-4 h-4" /> Add Job
+                    </button>
+                  )}
                   <button onClick={() => onNavigate('rota')} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm w-full sm:w-auto">
                     <Calendar className="w-4 h-4" /> Build Rota
                   </button>
@@ -249,6 +274,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         tabs={visibleTabs}
         activeId={activeTab}
         onChange={setActiveTab}
+        contextLabel={isAllJobs ? 'All Jobs' : 'This Job'}
       />
 
       <DragDropContext onDragEnd={handleDragEnd}>
