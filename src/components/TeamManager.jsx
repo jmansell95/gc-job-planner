@@ -84,8 +84,11 @@ export default function TeamManager() {
   };
   const membersOf = (teamId) => staff.filter(s => s.team_id === teamId);
 
-  const parentTeams = teams.filter(t => !t.parent_team_id);
-  const subTeamsOf = (parentId) => teams.filter(t => t.parent_team_id === parentId);
+  const teamIds = new Set(teams.map(t => t.id));
+  // A team is top-level if it has no parent OR its parent no longer exists (orphaned sub-crew).
+  // Previously orphaned sub-crews were invisible because they only render inside a parent card.
+  const parentTeams = teams.filter(t => !t.parent_team_id || !teamIds.has(t.parent_team_id));
+  const subTeamsOf = (parentId) => teams.filter(t => t.parent_team_id === parentId && teamIds.has(parentId));
 
   const assignedTeamIds = new Set(teams.map(t => t.id));
   const unassignedStaff = staff.filter(s => !s.team_id || !assignedTeamIds.has(s.team_id));
