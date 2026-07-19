@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, FileCheck, Package, Truck, MapPin, PackageCheck, Warehouse, Loader2, ShieldCheck, ShieldAlert, ShieldX, Wrench, ShoppingCart, HardHat, ChevronDown, ChevronUp, FileText, ExternalLink } from 'lucide-react';
+import { Edit2, Trash2, FileCheck, Package, Truck, MapPin, PackageCheck, Warehouse, Loader2, ShieldCheck, ShieldAlert, ShieldX, Wrench, ShoppingCart, HardHat, ChevronDown, ChevronUp, FileText, ExternalLink, Users } from 'lucide-react';
 import { format } from 'date-fns';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -8,6 +8,7 @@ const categoryConfig = {
   hired_equipment: { label: 'Hired', icon: Truck, bg: 'bg-amber-50', text: 'text-amber-600' },
   purchased_equipment: { label: 'Purchased', icon: ShoppingCart, bg: 'bg-purple-50', text: 'text-purple-600' },
   internal_equipment: { label: 'Internal', icon: Wrench, bg: 'bg-blue-50', text: 'text-blue-600' },
+  labour: { label: 'Labour', icon: Users, bg: 'bg-emerald-50', text: 'text-emerald-600' },
   contractor_supplied: { label: 'Contractor', icon: HardHat, bg: 'bg-indigo-50', text: 'text-indigo-600' },
 };
 
@@ -28,6 +29,8 @@ const complianceConfig = {
 export default function LogisticsItemRow({ item: c, isSelected, onToggleSelect, asset = null, supplier = null, contractor = null, linkedItems = [], isUpdating, onEdit, onDelete, onOffHire, onLocationUpdate, canSelect = true, canEdit = true, showCost = true, complianceItems = [] }) {
   const [expanded, setExpanded] = useState(false);
   const isContractorItem = c.category === 'contractor_supplied';
+  const isLabourItem = c.category === 'labour';
+  const isNoTracking = isContractorItem || isLabourItem;
   const loc = c.current_location || 'yard';
   const locCfg = locationConfig[loc] || locationConfig.yard;
   const cfg = categoryConfig[c.category] || categoryConfig.hired_equipment;
@@ -42,7 +45,7 @@ export default function LogisticsItemRow({ item: c, isSelected, onToggleSelect, 
   return (
     <div className={`border rounded-lg p-3 transition ${hasLinked ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 bg-white'}`}>
       <div className="flex items-start gap-2">
-        {canSelect && !isContractorItem && (
+        {canSelect && !isNoTracking && (
           <input type="checkbox" checked={isSelected} onChange={() => onToggleSelect(c.id)} className="mt-1.5 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600 flex-shrink-0" />
         )}
         <div className={`w-9 h-9 rounded-lg ${cfg.bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
@@ -53,13 +56,16 @@ export default function LogisticsItemRow({ item: c, isSelected, onToggleSelect, 
             <p className="text-sm font-semibold text-slate-900 truncate">{c.description}</p>
             <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">{cfg.label}</span>
             {cb && ComplianceIcon && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 ${cb.badge}`}><ComplianceIcon className="w-2.5 h-2.5" /> {cb.label}</span>}
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 ${locCfg.bg} ${locCfg.color}`}><LocIcon className="w-2.5 h-2.5" /> {locCfg.label}</span>
+            {!isNoTracking && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 ${locCfg.bg} ${locCfg.color}`}><LocIcon className="w-2.5 h-2.5" /> {locCfg.label}</span>}
+            {isLabourItem && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 bg-emerald-50 text-emerald-600"><Users className="w-2.5 h-2.5" /> Crew</span>}
             {c.po_number && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium font-mono inline-flex items-center gap-1"><Package className="w-2.5 h-2.5" />{c.po_number}</span>}
             {c.reference_number && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium font-mono">Ref: {c.reference_number}</span>}
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
             {isContractorItem ? (
               <>{contractor?.name || 'Contractor'} · {c.quantity} {c.unit_label}{c.quantity > 1 ? 's' : ''} · Supplied by contractor</>
+            ) : isLabourItem ? (
+              <>{c.responsible_person || 'Staff'} · {c.quantity} {c.unit_label}{c.quantity > 1 ? 's' : ''}{c.start_date && c.end_date ? ` · ${format(new Date(c.start_date + 'T00:00:00'), 'dd MMM')} → ${format(new Date(c.end_date + 'T00:00:00'), 'dd MMM')}` : ''}{showCost && ` · ${fmt(Number(c.unit_cost) || 0)}/${c.unit_label}`}</>
             ) : (
               <>
                 {c.start_date && c.end_date ? `${format(new Date(c.start_date + 'T00:00:00'), 'dd MMM')} → ${format(new Date(c.end_date + 'T00:00:00'), 'dd MMM')}` : ''}
@@ -70,10 +76,10 @@ export default function LogisticsItemRow({ item: c, isSelected, onToggleSelect, 
             )}
           </p>
           <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-            {!isContractorItem && isUpdating && (
+            {!isNoTracking && isUpdating && (
               <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
             )}
-            {!isContractorItem && canEdit && c.category === 'hired_equipment' && (c.hire_status || 'active') === 'active' && (
+            {!isNoTracking && canEdit && c.category === 'hired_equipment' && (c.hire_status || 'active') === 'active' && (
               <button onClick={() => onOffHire(c)} className="text-[10px] px-2 py-1 rounded-lg font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 transition inline-flex items-center gap-0.5">
                 <FileCheck className="w-3 h-3" /> Return
               </button>
@@ -101,6 +107,9 @@ export default function LogisticsItemRow({ item: c, isSelected, onToggleSelect, 
           ) : (
             <p className="text-sm font-bold text-slate-900">{fmt(net)}</p>
           ))}
+          {isLabourItem && showCost && (
+            <p className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wide">Labour</p>
+          )}
           {canEdit && (
             <div className="flex items-center gap-0.5">
               <button onClick={() => onEdit(c)} className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded transition"><Edit2 className="w-3.5 h-3.5" /></button>

@@ -5,6 +5,7 @@ import JobLogisticsHub from '@/components/logistics/JobLogisticsHub';
 import InvestigationLogManager from '@/components/InvestigationLogManager';
 import JobHotelBookings from '@/components/JobHotelBookings';
 import JobCostingManager from '@/components/JobCostingManager';
+import BillingExportButton from '@/components/BillingExportButton';
 import JobPhotoGallery from '@/components/JobPhotoGallery';
 import DocumentManager from '@/components/DocumentManager';
 import JobCommentsViewer from '@/components/JobCommentsViewer';
@@ -36,6 +37,14 @@ export default function JobDetailTabs({ job, primaryType, assignedStaff, allStaf
       {/* Financials Tab */}
       {canSeeCosts && (
         <TabsContent value="financials" className="space-y-6 mt-4">
+          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="w-4 h-4 text-emerald-700" />
+              <h3 className="font-semibold text-slate-900 text-sm">Billing Export</h3>
+            </div>
+            <p className="text-xs text-slate-600 mb-3">Pull every billable item — equipment, labour, hotel, deliveries, meterage — into one printable report for invoicing. Nothing is missed.</p>
+            <BillingExportButton jobId={job.id} jobName={job.name} />
+          </div>
           <JobCostingManager job={job} totalCost={totalCost} staffCosts={staffCosts} isDrillingJob={isDrillingJob} totalMeterage={totalMeterage} />
         </TabsContent>
       )}

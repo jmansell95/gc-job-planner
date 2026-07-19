@@ -5,8 +5,9 @@ import {
   Boxes, Plus, FileCheck, Undo2, ExternalLink, User, Truck, X, Loader2, Package
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { format } from 'date-fns';
+import { format, eachDayOfInterval, isWeekend } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
+import { SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import EquipmentForm from '@/components/EquipmentForm';
 import LifecycleBar from '@/components/logistics/LifecycleBar';
 import LogisticsItemRow from '@/components/logistics/LogisticsItemRow';
@@ -20,9 +21,18 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFracti
 
 const blankForm = () => ({
   category: 'hired_equipment', supplier_id: '', contractor_id: '', client_id: '', description: '',
-  reference_number: '', responsible_person: '', site_asset_id: '', po_number: '', order_slip_url: '', order_slip_name: '',
+  reference_number: '', responsible_person: '', site_asset_id: '', staff_id: '', po_number: '', order_slip_url: '', order_slip_name: '',
   start_date: '', end_date: '', unit_cost: '', quantity: '1', unit_label: 'day', men: '', vat_exempt: false, notes: ''
 });
+
+// Get the Monday (week_start) for a given YYYY-MM-DD date string
+const getWeekStart = (dateStr) => {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day; // Monday of this week
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().split('T')[0];
+};
 
 export default function JobLogisticsHub({ jobId, job, suppliers: externalSuppliers = [], contractors = [], canSeeCosts = true, isDrillingJob = false }) {
   const queryClient = useQueryClient();
@@ -143,6 +153,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     try {
       const isContractorItem = formData.category === 'contractor_supplied';
       const isClientItem = formData.category === 'client_supplied';
+      const isLabourItem = formData.category === 'labour';
       // Number (men) and date fields must be null — not "" — when unset, otherwise
       // schema validation rejects the record ("Could not save item").
       const payload = {
@@ -150,6 +161,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
         supplier_id: (isContractorItem || isClientItem) ? '' : (formData.supplier_id || ''),
         contractor_id: isContractorItem ? (formData.contractor_id || '') : '',
         client_id: isClientItem ? (formData.client_id || '') : '',
+        staff_id: isLabourItem ? (formData.staff_id || '') : '',
         description: formData.description,
         reference_number: formData.reference_number || '',
         responsible_person: formData.responsible_person || '',
@@ -161,17 +173,45 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
         start_date: formData.start_date || null, end_date: formData.end_date || null,
         unit_cost: (isContractorItem || isClientItem) ? 0 : (Number(formData.unit_cost) || 0),
         quantity: Number(formData.quantity) || 1,
-        unit_label: isContractorItem ? 'each' : formData.unit_label,
+        unit_label: (isContractorItem || isLabourItem) ? (isContractorItem ? 'each' : formData.unit_label) : formData.unit_label,
         men: (isContractorItem || isClientItem || !formData.men) ? null : Number(formData.men),
         vat_exempt: (isContractorItem || isClientItem) ? false : !!formData.vat_exempt,
         notes: formData.notes || '',
-        ...((isContractorItem || isClientItem) ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {})
+        ...((isContractorItem || isClientItem || isLabourItem) ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {})
       };
       if (editingId) { await base44.entities.JobCostItem.update(editingId, payload); }
       else { await base44.entities.JobCostItem.create(payload); }
+
+      // For labour items (not editing), create a RotaAssignment for each working day
+      // so the crew member appears on the job schedule and billing is linked.
+      if (isLabourItem && !editingId && formData.staff_id && formData.start_date && formData.end_date) {
+        const start = new Date(formData.start_date + 'T00:00:00');
+        const end = new Date(formData.end_date + 'T00:00:00');
+        const workingDays = eachDayOfInterval({ start, end }).filter((d) => !isWeekend(d));
+        const itemCount = Number(formData.quantity) || 1;
+        if (workingDays.length > 0) {
+          const rotaPayloads = workingDays.map((d) => ({
+            job_id: jobId,
+            staff_id: formData.staff_id,
+            assigned_date: d.toISOString().split('T')[0],
+            week_start: getWeekStart(d.toISOString().split('T')[0]),
+            status: 'assigned',
+            shift_status: 'pending',
+            start_time: SITE_OPEN_TIME,
+            end_time: SITE_CLOSE_TIME,
+            notes: `Auto-assigned from labour billing item: ${formData.description}`,
+          }));
+          await base44.entities.RotaAssignment.bulkCreate(rotaPayloads);
+          queryClient.invalidateQueries({ queryKey: ['rotas-for-job', jobId] });
+          queryClient.invalidateQueries({ queryKey: ['job-rotas-fin', jobId] });
+          toast({ title: 'Labour added & rota created', description: `${formData.responsible_person} assigned for ${workingDays.length} working day${workingDays.length > 1 ? 's' : ''}.` });
+        }
+      } else {
+        toast({ title: editingId ? 'Item updated' : 'Item added', description: payload.description });
+      }
+
       queryClient.invalidateQueries({ queryKey: ['job-cost-items', jobId] });
       queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', jobId] });
-      toast({ title: editingId ? 'Item updated' : 'Item added', description: payload.description });
       setAdding(false); setEditingId(null); setForm(blankForm());
     } catch (err) { console.error(err); toast({ title: 'Error', description: 'Could not save item.' }); }
     setSavingItem(false);
@@ -181,7 +221,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     setEditingId(c.id);
     setForm({
       category: c.category, supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '', client_id: c.client_id || '',
-      description: c.description,
+      staff_id: c.staff_id || '', description: c.description,
       reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', site_asset_id: c.site_asset_id || '',
       po_number: c.po_number || '', order_slip_url: c.order_slip_url || '', order_slip_name: c.order_slip_name || '',
       rate_card_item_id: c.rate_card_item_id || '', start_date: c.start_date || '', end_date: c.end_date || '',
@@ -373,7 +413,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
                 onCancel={() => { setAdding(false); setEditingId(null); setForm(blankForm()); }}
                 saving={savingItem} editing={!!editingId} suppliers={suppliers} contractors={contractors}
                 defaultDates={defaultDates} catalogueItems={formCatalogueItems}
-                rateCardItems={rateCardItems} ownedAssets={ownedAssets} />
+                rateCardItems={rateCardItems} ownedAssets={ownedAssets} staff={staff} />
             </DialogContent>
           </Dialog>
 

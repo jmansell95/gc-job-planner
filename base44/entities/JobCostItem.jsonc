@@ -13,10 +13,15 @@
         "hired_equipment",
         "purchased_equipment",
         "contractor_supplied",
-        "client_supplied"
+        "client_supplied",
+        "labour"
       ],
       "default": "hired_equipment",
-      "description": "How this item reaches site. 'internal_equipment' = owned by you (synced from Asset Panda), 'hired_equipment' = hired from a supplier, 'purchased_equipment' = bought for the job (requires PO number and order slip), 'contractor_supplied' = supplied by the contractor (no cost/logistics), 'client_supplied' = supplied by the client and delivered to site (informational only \u2014 no cost or charge)."
+      "description": "How this item reaches site. 'internal_equipment' = owned by you (priced from the Master Price List), 'hired_equipment' = hired from a supplier, 'purchased_equipment' = bought for the job (requires PO number and order slip), 'contractor_supplied' = supplied by the contractor (no cost/logistics), 'client_supplied' = supplied by the client and delivered to site (informational only \u2014 no cost or charge), 'labour' = billable crew member from the Master Price List (creates a rota assignment for the selected staff member)."
+    },
+    "staff_id": {
+      "type": "string",
+      "description": "Linked Staff member \u2014 set for labour items to identify which crew member is being billed. Also used to auto-create a RotaAssignment so the person appears on the job schedule."
     },
     "supplier_id": {
       "type": "string",

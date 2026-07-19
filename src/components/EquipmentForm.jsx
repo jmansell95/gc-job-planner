@@ -5,10 +5,11 @@ import { categoryConfig } from './equipment/shared';
 import HiredEquipmentFields from './equipment/HiredEquipmentFields';
 import PurchasedEquipmentFields from './equipment/PurchasedEquipmentFields';
 import OwnedEquipmentFields from './equipment/OwnedEquipmentFields';
+import LabourFields from './equipment/LabourFields';
 import NoCostFields from './equipment/NoCostFields';
 import ReviewStep from './equipment/ReviewStep';
 
-export default function EquipmentForm({ form, setForm, onSubmit, onCancel, saving = false, editing = false, suppliers = [], contractors = [], clients = [], defaultDates = null, catalogueItems = [], rateCardItems = [], ownedAssets = [] }) {
+export default function EquipmentForm({ form, setForm, onSubmit, onCancel, saving = false, editing = false, suppliers = [], contractors = [], clients = [], defaultDates = null, catalogueItems = [], rateCardItems = [], ownedAssets = [], staff = [] }) {
   const [step, setStep] = useState(editing ? 2 : 1);
 
   const isContractorSupplied = form.category === 'contractor_supplied';
@@ -16,6 +17,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
   const isPurchased = form.category === 'purchased_equipment';
   const isInternal = form.category === 'internal_equipment';
   const isHired = form.category === 'hired_equipment';
+  const isLabour = form.category === 'labour';
   const isNoCost = isContractorSupplied || isClientSupplied;
 
   const totalSteps = 3;
@@ -29,6 +31,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
       if (isHired && (!form.supplier_id || !form.unit_cost)) return false;
       if (isPurchased && (!form.po_number?.trim() || !form.unit_cost || !form.order_slip_url)) return false;
       if (isInternal && !form.unit_cost) return false;
+      if (isLabour && (!form.staff_id || !form.unit_cost)) return false;
       return true;
     }
     return true;
@@ -45,8 +48,8 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
     if (isPurchased) {
       payload = { ...payload, start_date: '', end_date: '' };
     }
-    // For day-rate hired/owned items, store effective quantity = items × days
-    if ((isHired || isInternal) && form.unit_label === 'day' && form.start_date && form.end_date) {
+    // For day-rate hired/owned/labour items, store effective quantity = items × days
+    if ((isHired || isInternal || isLabour) && form.unit_label === 'day' && form.start_date && form.end_date) {
       const d = differenceInCalendarDays(new Date(form.end_date + 'T00:00:00'), new Date(form.start_date + 'T00:00:00')) + 1;
       if (d > 0) {
         payload.quantity = String((Number(form.quantity) || 1) * d);
@@ -59,16 +62,17 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
     setForm({
       ...form,
       category: v,
-      unit_label: v === 'hired_equipment' || v === 'internal_equipment' ? 'day' : 'each',
-      supplier_id: (v === 'internal_equipment' || v === 'contractor_supplied' || v === 'client_supplied') ? '' : form.supplier_id,
+      unit_label: v === 'hired_equipment' || v === 'internal_equipment' || v === 'labour' ? 'day' : 'each',
+      supplier_id: (v === 'internal_equipment' || v === 'labour' || v === 'contractor_supplied' || v === 'client_supplied') ? '' : form.supplier_id,
       contractor_id: v === 'contractor_supplied' ? form.contractor_id : '',
       client_id: v === 'client_supplied' ? form.client_id : '',
       unit_cost: (v === 'contractor_supplied' || v === 'client_supplied') ? 0 : form.unit_cost,
-      rate_card_item_id: (v === 'contractor_supplied' || v === 'client_supplied' || v === 'internal_equipment') ? '' : form.rate_card_item_id,
+      rate_card_item_id: (v === 'contractor_supplied' || v === 'client_supplied') ? '' : form.rate_card_item_id,
       po_number: v === 'purchased_equipment' ? form.po_number : '',
       start_date: v === 'purchased_equipment' ? '' : form.start_date,
       end_date: v === 'purchased_equipment' ? '' : form.end_date,
       site_asset_id: v === 'internal_equipment' ? form.site_asset_id : '',
+      staff_id: v === 'labour' ? form.staff_id : '',
     });
     // Auto-advance to the details step once a category is chosen
     setStep(2);
@@ -93,6 +97,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
                 amber: 'border-amber-400 bg-amber-50 text-amber-800',
                 purple: 'border-purple-400 bg-purple-50 text-purple-800',
                 blue: 'border-blue-400 bg-blue-50 text-blue-800',
+                emerald: 'border-emerald-400 bg-emerald-50 text-emerald-800',
                 indigo: 'border-indigo-400 bg-indigo-50 text-indigo-800',
                 slate: 'border-slate-400 bg-slate-50 text-slate-800',
               };
@@ -116,6 +121,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
       if (isHired) return <HiredEquipmentFields form={form} setForm={setForm} suppliers={suppliers} rateCardItems={rateCardItems} defaultDates={defaultDates} />;
       if (isPurchased) return <PurchasedEquipmentFields form={form} setForm={setForm} suppliers={suppliers} />;
       if (isInternal) return <OwnedEquipmentFields form={form} setForm={setForm} ownedAssets={ownedAssets} defaultDates={defaultDates} rateCardItems={rateCardItems} />;
+      if (isLabour) return <LabourFields form={form} setForm={setForm} rateCardItems={rateCardItems} staff={staff} defaultDates={defaultDates} />;
       if (isNoCost) return <NoCostFields form={form} setForm={setForm} contractors={contractors} clients={clients} isContractor={isContractorSupplied} />;
     }
     if (step === 3) return <ReviewStep form={form} suppliers={suppliers} contractors={contractors} clients={clients} />;

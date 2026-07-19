@@ -1,30 +1,32 @@
 import React, { useState } from 'react';
-import { Boxes, Calendar, Lock, User, Receipt, Database } from 'lucide-react';
+import { Calendar, Receipt, User } from 'lucide-react';
 import { differenceInCalendarDays } from 'date-fns';
 import { inputCls, fmt } from './shared';
-import { resolveAssetPrice } from '@/components/logistics/rigRateMatcher';
 
 export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], defaultDates, rateCardItems = [] }) {
-  const isSynced = !!form.site_asset_id;
   const [priceSource, setPriceSource] = useState('');
 
-  const pickOwnedAsset = (id) => {
+  // Master Price List items for owned equipment — Plant & Materials from our company rate card
+  const ourRateItems = (rateCardItems || []).filter(
+    (i) => i.is_active !== false && i.rate_card_source === 'our_company' && (i.category === 'plant' || i.category === 'materials')
+  );
+
+  const pickFromRateCard = (id) => {
     if (!id) return;
-    const asset = (ownedAssets || []).find((a) => a.id === id);
-    if (!asset) return;
-    const resolved = resolveAssetPrice(asset, rateCardItems);
-    setPriceSource(resolved.source);
+    const item = (rateCardItems || []).find((r) => r.id === id);
+    if (!item) return;
+    setPriceSource('rate-card');
     setForm({
       ...form,
       category: 'internal_equipment',
-      description: asset.name || form.description,
-      reference_number: asset.serial_number || form.reference_number,
-      responsible_person: asset.responsible_person || form.responsible_person,
-      site_asset_id: asset.id,
-      unit_cost: String(resolved.cost || ''),
-      unit_label: resolved.unit || 'day',
+      description: item.description || form.description,
+      unit_cost: String(item.price ?? ''),
+      unit_label: item.unit || 'day',
+      vat_exempt: false,
+      rate_card_item_id: item.id,
       supplier_id: '',
-      rate_card_item_id: resolved.rateCardItem?.id || '',
+      site_asset_id: '',
+      notes: item.notes || form.notes,
     });
   };
 
@@ -42,44 +44,36 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
 
   return (
     <div className="space-y-3">
-      {isSynced && (
-        <div className="flex items-center gap-2 text-xs text-blue-700 bg-blue-50 rounded-md px-3 py-2 border border-blue-200">
-          <Lock className="w-3.5 h-3.5 flex-shrink-0" /> Synced from Asset Panda — description and reference are locked. Only billing and hire details can be edited.
-        </div>
-      )}
-
-      {!isSynced && (
-        <div>
-          <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
-            <Boxes className="w-3 h-3 text-blue-600" /> Pick from Asset Panda (in stock only)
-          </label>
-          <select value="" onChange={(e) => { pickOwnedAsset(e.target.value); e.target.value = ''; }} className={inputCls}>
-            <option value="">Select from Asset Panda inventory…</option>
-            {ownedAssets.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}{a.daily_billing_rate ? ` · ${fmt(a.daily_billing_rate)}/day` : ''}{a.stock_level && a.stock_level !== 'unknown' ? ` · ${a.stock_level.replace('_', ' ')}` : ''}
-              </option>
-            ))}
-          </select>
-          {ownedAssets.length === 0 && <p className="text-xs text-slate-400 italic mt-1">No equipment currently in stock. Check Asset Panda sync status.</p>}
-        </div>
-      )}
+      <div>
+        <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
+          <Receipt className="w-3 h-3 text-blue-600" /> Pick from Master Price List (Plant & Materials)
+        </label>
+        <select value="" onChange={(e) => { pickFromRateCard(e.target.value); e.target.value = ''; }} className={inputCls}>
+          <option value="">Select from Master Price List…</option>
+          {ourRateItems.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.description} · {r.price != null ? fmt(r.price) : r.price_text || 'POA'}{r.unit ? `/${r.unit}` : ''}
+            </option>
+          ))}
+        </select>
+        {ourRateItems.length === 0 && <p className="text-xs text-slate-400 italic mt-1">No plant or material rates found. Add items in Settings → Rate Card.</p>}
+      </div>
 
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">Description *</label>
-        <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={`${inputCls} ${isSynced ? 'bg-slate-50 text-slate-500' : ''}`} readOnly={isSynced} />
+        <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputCls} />
       </div>
 
       {form.responsible_person && (
         <div>
           <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1"><User className="w-3 h-3 text-slate-400" /> Responsible Person</label>
-          <input value={form.responsible_person} readOnly className={`${inputCls} bg-slate-50 text-slate-500`} />
+          <input value={form.responsible_person} onChange={(e) => setForm({ ...form, responsible_person: e.target.value })} className={inputCls} />
         </div>
       )}
 
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">Reference Number</label>
-        <input value={form.reference_number} onChange={(e) => setForm({ ...form, reference_number: e.target.value })} className={`${inputCls} ${isSynced ? 'bg-slate-50 text-slate-500' : ''}`} readOnly={isSynced} />
+        <input value={form.reference_number} onChange={(e) => setForm({ ...form, reference_number: e.target.value })} className={inputCls} />
       </div>
 
       {isHiredByDay && (
@@ -105,10 +99,7 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
           <label className="block text-xs font-medium text-slate-600 mb-1">Billing rate (net) *</label>
           <input type="number" min="0" step="0.01" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" className={inputCls} />
           {priceSource === 'rate-card' && (
-            <p className="text-[11px] text-blue-700 mt-1 inline-flex items-center gap-1"><Receipt className="w-3 h-3" /> Price from Our Rate Card</p>
-          )}
-          {priceSource === 'asset-panda' && (
-            <p className="text-[11px] text-slate-500 mt-1 inline-flex items-center gap-1"><Database className="w-3 h-3" /> Price from Asset Panda</p>
+            <p className="text-[11px] text-blue-700 mt-1 inline-flex items-center gap-1"><Receipt className="w-3 h-3" /> Price from Master Price List</p>
           )}
         </div>
         <div>
@@ -116,6 +107,7 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
           <select value={form.unit_label} onChange={(e) => setForm({ ...form, unit_label: e.target.value })} className={inputCls}>
             <option value="day">per day</option>
             <option value="hour">per hour</option>
+            <option value="m">per metre</option>
             <option value="each">each</option>
           </select>
         </div>
@@ -134,6 +126,12 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
         <div className="text-xs text-slate-600 bg-white rounded-md px-3 py-2 border border-slate-200 flex items-center justify-between">
           <span>Line revenue: {itemCount} item{itemCount > 1 ? 's' : ''}{isHiredByDay && days > 1 ? ` × ${days} days` : ''} × {fmt(Number(form.unit_cost) || 0)}</span>
           <span className="font-bold text-slate-900">{fmt(lineTotal)}</span>
+        </div>
+      )}
+
+      {form.rate_card_item_id && (
+        <div className="text-xs text-emerald-700 bg-emerald-50 rounded-md px-3 py-2 border border-emerald-200 flex items-center gap-1.5">
+          <Receipt className="w-3.5 h-3.5" /> Linked to a rate card item — this is chargeable to the client.
         </div>
       )}
 
