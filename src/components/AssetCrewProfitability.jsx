@@ -88,12 +88,9 @@ export default function AssetCrewProfitability() {
       .sort((a, b) => b.revenue - a.revenue);
   }, [assets, assignments, costItems, jobById]);
 
-  const assetTotals = useMemo(() => assetRows.reduce((acc, r) => ({
-    revenue: acc.revenue + r.revenue, cost: acc.cost + r.cost, profit: acc.profit + r.profit, days: acc.days + r.days,
-  }), { revenue: 0, cost: 0, profit: 0, days: 0 }), [assetRows]);
-
   // Group rigs with their linked equipment — parent rig shows aggregated totals,
   // linked gear collapses underneath and expands on tap.
+  // Deploy days are counted once per rig assembly (gear deploys alongside the rig).
   const groupedAssetRows = useMemo(() => {
     const rowById = {};
     assetRows.forEach(r => { rowById[r.id] = r; });
@@ -113,18 +110,25 @@ export default function AssetCrewProfitability() {
       .map(r => {
         const children = childrenOf[r.id] || [];
         if (children.length === 0) return { ...r, children: [], agg: null };
+        const allJobIds = new Set([...(r.jobIds || []), ...children.flatMap(c => c.jobIds || [])]);
         const agg = {
           revenue: r.revenue + children.reduce((s, c) => s + c.revenue, 0),
           cost: r.cost + children.reduce((s, c) => s + c.cost, 0),
           profit: r.profit + children.reduce((s, c) => s + c.profit, 0),
-          days: r.days + children.reduce((s, c) => s + c.days, 0),
+          days: r.days,
           jobCount: r.jobCount + children.reduce((s, c) => s + c.jobCount, 0),
+          jobNames: [...allJobIds].map(id => jobById[id]?.name).filter(Boolean),
         };
         agg.margin = agg.revenue > 0 ? (agg.profit / agg.revenue) * 100 : 0;
         return { ...r, children, agg };
       })
       .sort((a, b) => (b.agg?.revenue || b.revenue) - (a.agg?.revenue || a.revenue));
-  }, [assetRows]);
+  }, [assetRows, jobById]);
+
+  const assetTotals = useMemo(() => groupedAssetRows.reduce((acc, r) => {
+    const d = r.agg || r;
+    return { revenue: acc.revenue + d.revenue, cost: acc.cost + d.cost, profit: acc.profit + d.profit, days: acc.days + d.days };
+  }, { revenue: 0, cost: 0, profit: 0, days: 0 }), [assetRows]);
 
   // ---- Per-crew revenue ----
   const crewRows = useMemo(() => {
