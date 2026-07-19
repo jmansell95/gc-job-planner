@@ -69,22 +69,31 @@ export default function AssetCrewProfitability() {
       revByAsset[a.asset_id] = (revByAsset[a.asset_id] || 0) + rate * days;
     });
 
+    // Keep rigs with linked gear and the gear itself even when they have no
+    // independent assignment/cost/revenue — they're part of a rig assembly.
+    const linkedIds = new Set();
+    const hasLinked = new Set();
+    assets.forEach(a => {
+      (a.linked_equipment_ids || []).forEach(id => { linkedIds.add(id); hasLinked.add(a.id); });
+    });
+
     return assets.map(a => {
       const revenue = revByAsset[a.id] || 0;
       const cost = costByAsset[a.id] || 0;
       const days = daysByAsset[a.id] || 0;
-      const jobCount = jobsByAsset[a.id]?.size || 0;
+      const jobIds = [...(jobsByAsset[a.id] || [])];
+      const jobCount = jobIds.length;
       const profit = revenue - cost;
       const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
       const utilPct = days > 0 ? Math.min(100, Math.round((days / 250) * 100)) : 0; // ~250 working days/yr
       return {
         id: a.id, name: a.name, type: a.asset_type, rigType: a.rig_type,
         billingRate: a.daily_billing_rate || 0,
-        revenue, cost, profit, margin, days, jobCount, utilPct,
+        revenue, cost, profit, margin, days, jobCount, utilPct, jobIds,
         active: a.is_active !== false,
         linkedEquipmentIds: a.linked_equipment_ids || [],
       };
-    }).filter(r => r.days > 0 || r.cost > 0 || r.revenue > 0)
+    }).filter(r => r.days > 0 || r.cost > 0 || r.revenue > 0 || linkedIds.has(r.id) || hasLinked.has(r.id))
       .sort((a, b) => b.revenue - a.revenue);
   }, [assets, assignments, costItems, jobById]);
 
@@ -115,8 +124,8 @@ export default function AssetCrewProfitability() {
           revenue: r.revenue + children.reduce((s, c) => s + c.revenue, 0),
           cost: r.cost + children.reduce((s, c) => s + c.cost, 0),
           profit: r.profit + children.reduce((s, c) => s + c.profit, 0),
-          days: r.days,
-          jobCount: r.jobCount + children.reduce((s, c) => s + c.jobCount, 0),
+          days: Math.max(r.days, ...children.map(c => c.days)),
+          jobCount: allJobIds.size,
           jobNames: [...allJobIds].map(id => jobById[id]?.name).filter(Boolean),
         };
         agg.margin = agg.revenue > 0 ? (agg.profit / agg.revenue) * 100 : 0;
@@ -128,7 +137,7 @@ export default function AssetCrewProfitability() {
   const assetTotals = useMemo(() => groupedAssetRows.reduce((acc, r) => {
     const d = r.agg || r;
     return { revenue: acc.revenue + d.revenue, cost: acc.cost + d.cost, profit: acc.profit + d.profit, days: acc.days + d.days };
-  }, { revenue: 0, cost: 0, profit: 0, days: 0 }), [assetRows]);
+  }, { revenue: 0, cost: 0, profit: 0, days: 0 }), [groupedAssetRows]);
 
   // ---- Per-crew revenue ----
   const crewRows = useMemo(() => {
@@ -321,6 +330,7 @@ export default function AssetCrewProfitability() {
                                   <div className="min-w-0">
                                     <p className="font-medium text-slate-800 truncate max-w-[180px]">{r.name}{hasChildren && <span className="ml-1.5 text-[10px] text-slate-400 font-normal">+{r.children.length}</span>}</p>
                                     <p className="text-[10px] text-slate-400">{meta.label}{r.rigType && r.rigType !== 'n/a' ? ` · ${r.rigType.toUpperCase()}` : ''}</p>
+                                    {d.jobNames?.length > 0 && <p className="text-[10px] text-emerald-600 font-medium truncate max-w-[200px]">{d.jobNames.join(', ')}</p>}
                                   </div>
                                 </div>
                               </td>
@@ -391,6 +401,7 @@ export default function AssetCrewProfitability() {
                             <div className="min-w-0 flex-1">
                               <p className="font-medium text-slate-800 text-sm truncate">{r.name}{hasChildren && <span className="ml-1 text-[10px] text-slate-400 font-normal">+{r.children.length}</span>}</p>
                               <p className="text-[10px] text-slate-400">{meta.label} · {d.days} days · {d.jobCount} jobs</p>
+                              {d.jobNames?.length > 0 && <p className="text-[10px] text-emerald-600 font-medium truncate">{d.jobNames.join(', ')}</p>}
                             </div>
                             <span className={`text-sm font-bold flex-shrink-0 ${d.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{fmtGBP(d.profit)}</span>
                           </div>
