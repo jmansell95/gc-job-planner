@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { Skeleton } from '@/components/StateViews';
 import WidgetShell from '@/components/dashboard/WidgetShell';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
+import StatCard from '@/components/dashboard/StatCard';
 
 export default function DeliveryStats({ onNavigate, onSelectJob, jobs = [] }) {
   const [drillType, setDrillType] = useState(null);
@@ -59,25 +60,11 @@ export default function DeliveryStats({ onNavigate, onSelectJob, jobs = [] }) {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:gap-4">
-            {cards.map((stat, i) => {
-              const Icon = stat.icon;
-              const active = drillType === stat.key;
-              return (
-                <motion.button key={stat.key} type="button"
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, duration: 0.3 }}
-                  onClick={() => setDrillType(active ? null : stat.key)}
-                  className={`bg-slate-50 border rounded-xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3 text-left transition ${active ? 'border-emerald-400 ring-2 ring-emerald-100' : 'border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/40'}`}>
-                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${stat.gradient} flex items-center justify-center flex-shrink-0 shadow-sm`}>
-                    <Icon className="w-4 h-4 sm:w-5 h-5 text-white" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">{stat.value}</p>
-                    <p className="text-xs text-slate-500 font-medium truncate">{stat.label}</p>
-                    <p className="text-[11px] text-slate-400 truncate">{stat.sub}</p>
-                  </div>
-                </motion.button>
-              );
-            })}
+            {cards.map((stat, i) => (
+              <motion.div key={stat.key} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05, duration: 0.3 }}>
+                <StatCard icon={stat.icon} value={stat.value} label={stat.label} sub={stat.sub} gradient={stat.gradient} active={drillType === stat.key} onClick={() => setDrillType(drillType === stat.key ? null : stat.key)} />
+              </motion.div>
+            ))}
           </div>
 
           <AnimatePresence>

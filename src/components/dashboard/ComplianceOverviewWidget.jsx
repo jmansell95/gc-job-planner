@@ -6,6 +6,7 @@ import { ShieldCheck, ShieldAlert, ShieldX, GraduationCap, ArrowRight, Users } f
 import { format } from 'date-fns';
 import { complianceDaysUntil } from '@/utils/complianceDate';
 import WidgetShell from '@/components/dashboard/WidgetShell';
+import StatCard from '@/components/dashboard/StatCard';
 
 export default function ComplianceOverviewWidget({ onNavigate }) {
   const { data: complianceItems = [] } = useQuery({
@@ -60,18 +61,11 @@ export default function ComplianceOverviewWidget({ onNavigate }) {
   const staffWithoutCompliance = staff.filter(s => s.is_active !== false && !staffWithItems.has(s.id)).length;
 
   const summaryCards = [
-    { label: 'Expired', value: expired, icon: ShieldX, tone: 'rose', sub: `${missing} missing` },
-    { label: 'Expiring Soon', value: expiring, icon: ShieldAlert, tone: 'amber', sub: 'within 30 days' },
-    { label: 'Valid', value: valid, icon: ShieldCheck, tone: 'emerald', sub: 'up to date' },
-    { label: 'No Records', value: staffWithoutCompliance, icon: Users, tone: 'slate', sub: 'crew without items' },
+    { label: 'Expired', value: expired, icon: ShieldX, gradient: 'stat-gradient-rose', sub: `${missing} missing` },
+    { label: 'Expiring Soon', value: expiring, icon: ShieldAlert, gradient: 'stat-gradient-amber', sub: 'within 30 days' },
+    { label: 'Valid', value: valid, icon: ShieldCheck, gradient: 'stat-gradient-emerald', sub: 'up to date' },
+    { label: 'No Records', value: staffWithoutCompliance, icon: Users, gradient: 'stat-gradient-slate', sub: 'crew without items' },
   ];
-
-  const toneMap = {
-    rose: { bg: 'bg-rose-50', iconBg: 'bg-rose-100', iconText: 'text-rose-600', text: 'text-rose-700' },
-    amber: { bg: 'bg-amber-50', iconBg: 'bg-amber-100', iconText: 'text-amber-600', text: 'text-amber-700' },
-    emerald: { bg: 'bg-emerald-50', iconBg: 'bg-emerald-100', iconText: 'text-emerald-600', text: 'text-emerald-700' },
-    slate: { bg: 'bg-slate-50', iconBg: 'bg-slate-100', iconText: 'text-slate-500', text: 'text-slate-600' },
-  };
 
   const hasIssues = expired > 0 || expiring > 0 || missing > 0;
 
@@ -83,22 +77,9 @@ export default function ComplianceOverviewWidget({ onNavigate }) {
       </button>}>
       {/* Staff compliance summary cards */}
       <div className="grid grid-cols-2 gap-3 mb-4">
-        {summaryCards.map(card => {
-          const Icon = card.icon;
-          const t = toneMap[card.tone];
-          return (
-            <div key={card.label} className={`${t.bg} rounded-xl p-3.5 border border-white/60`}>
-              <div className="flex items-center gap-2 mb-1">
-                <div className={`w-7 h-7 rounded-lg ${t.iconBg} flex items-center justify-center`}>
-                  <Icon className={`w-4 h-4 ${t.iconText}`} />
-                </div>
-                <span className="text-2xl font-bold text-slate-900">{card.value}</span>
-              </div>
-              <p className="text-xs font-semibold text-slate-700">{card.label}</p>
-              <p className="text-[11px] text-slate-400">{card.sub}</p>
-            </div>
-          );
-        })}
+        {summaryCards.map(card => (
+          <StatCard key={card.label} icon={card.icon} value={card.value} label={card.label} sub={card.sub} gradient={card.gradient} />
+        ))}
       </div>
 
       {/* Training row */}

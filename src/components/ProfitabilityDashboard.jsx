@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContaine
 import { Wallet, TrendingUp, TrendingDown, PoundSterling, PiggyBank, Wrench, Receipt, ArrowRight } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
+import StatCard from '@/components/dashboard/StatCard';
 
 const tooltipStyle = {
   borderRadius: 12,
@@ -133,21 +134,9 @@ export default function ProfitabilityDashboard() {
 
         {/* Stat cards — 2 col on mobile, 4 on desktop */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-          {stats.map((s) => {
-            const Icon = s.icon;
-            return (
-              <div key={s.label} className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg ${s.gradient} flex items-center justify-center flex-shrink-0 shadow-sm`}>
-                  <Icon className="w-5 h-5 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-base font-bold text-slate-900 truncate">{s.value}</p>
-                  <p className="text-[11px] text-slate-500 font-medium truncate">{s.label}</p>
-                  <p className="text-[9px] text-slate-400 truncate hidden sm:block">{s.sub}</p>
-                </div>
-              </div>
-            );
-          })}
+          {stats.map((s) => (
+            <StatCard key={s.label} icon={s.icon} value={s.value} label={s.label} sub={s.sub} gradient={s.gradient} />
+          ))}
         </div>
 
         {/* Charts — stack on mobile, side-by-side on desktop */}

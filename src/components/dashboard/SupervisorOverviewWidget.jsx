@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Shield, ArrowDownToLine, TestTube, Users, MapPin, Package, Ruler, Briefcase, Construction } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
+import StatCard from '@/components/dashboard/StatCard';
 
 const JOB_TYPE_LABELS = {
   groundworks: 'Groundworks', coring: 'Coring', trial_pit: 'Trial Pit',
@@ -151,21 +152,9 @@ export default function SupervisorOverviewWidget({ profile }) {
       <div className="p-4 sm:p-5">
         {/* Summary stats */}
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mb-5">
-          {stats.map((stat, i) => {
-            const Icon = stat.icon;
-            return (
-              <div key={i} className="bg-slate-50 border border-slate-100 rounded-xl p-3 sm:p-4 flex items-center gap-2.5 sm:gap-3">
-                <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl ${stat.gradient} flex items-center justify-center flex-shrink-0 shadow-sm`}>
-                  <Icon className="w-5 h-5 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">{stat.value}</p>
-                  <p className="text-xs text-slate-500 font-medium leading-tight">{stat.label}</p>
-                  <p className="text-[11px] text-slate-400 truncate">{stat.sub}</p>
-                </div>
-              </div>
-            );
-          })}
+          {stats.map((stat, i) => (
+            <StatCard key={i} icon={stat.icon} value={stat.value} label={stat.label} sub={stat.sub} gradient={stat.gradient} />
+          ))}
         </div>
 
         {/* Per-team cards */}

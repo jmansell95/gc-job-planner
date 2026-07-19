@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
+import StatCard from '@/components/dashboard/StatCard';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, CartesianGrid,
@@ -209,24 +210,10 @@ export default function RigProfitabilityWidget() {
       <div className="p-5 space-y-5">
         {/* KPI strip */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg stat-gradient-emerald flex items-center justify-center flex-shrink-0"><PoundSterling className="w-5 h-5 text-white" /></div>
-            <div className="min-w-0"><p className="text-base font-bold text-slate-900 truncate">{fmtGBP(totals.revenue)}</p><p className="text-[11px] text-slate-500 font-medium">Total Revenue</p></div>
-          </div>
-          <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg stat-gradient-amber flex items-center justify-center flex-shrink-0"><Wrench className="w-5 h-5 text-white" /></div>
-            <div className="min-w-0"><p className="text-base font-bold text-slate-900 truncate">{fmtGBP(totals.cost)}</p><p className="text-[11px] text-slate-500 font-medium">Total Cost</p></div>
-          </div>
-          <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${totals.profit >= 0 ? 'stat-gradient-blue' : 'stat-gradient-rose'}`}>
-              {totals.profit >= 0 ? <TrendingUp className="w-5 h-5 text-white" /> : <TrendingDown className="w-5 h-5 text-white" />}
-            </div>
-            <div className="min-w-0"><p className="text-base font-bold text-slate-900 truncate">{fmtGBP(totals.profit)}</p><p className="text-[11px] text-slate-500 font-medium">Net Profit</p></div>
-          </div>
-          <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg stat-gradient-violet flex items-center justify-center flex-shrink-0"><Users className="w-5 h-5 text-white" /></div>
-            <div className="min-w-0"><p className="text-base font-bold text-slate-900 truncate">{totals.active}</p><p className="text-[11px] text-slate-500 font-medium">Crew On Rigs Today</p></div>
-          </div>
+          <StatCard icon={PoundSterling} value={fmtGBP(totals.revenue)} label="Total Revenue" gradient="stat-gradient-emerald" />
+          <StatCard icon={Wrench} value={fmtGBP(totals.cost)} label="Total Cost" gradient="stat-gradient-amber" />
+          <StatCard icon={totals.profit >= 0 ? TrendingUp : TrendingDown} value={fmtGBP(totals.profit)} label="Net Profit" gradient={totals.profit >= 0 ? 'stat-gradient-blue' : 'stat-gradient-rose'} />
+          <StatCard icon={Users} value={totals.active} label="Crew On Rigs Today" gradient="stat-gradient-violet" />
         </div>
 
         {/* Charts */}

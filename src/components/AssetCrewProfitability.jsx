@@ -5,6 +5,7 @@ import { HardHat, Users, PoundSterling, Briefcase, ChevronRight, ChevronDown, Wr
 import { Skeleton } from '@/components/StateViews';
 import { eachDayOfInterval, isWeekend } from 'date-fns';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
+import StatCard from '@/components/dashboard/StatCard';
 
 const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB');
 
@@ -202,16 +203,8 @@ export default function AssetCrewProfitability() {
 
       <div className="p-5">
         <div className="grid grid-cols-2 gap-3 mb-5">
-          <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg stat-gradient-emerald flex items-center justify-center flex-shrink-0"><PoundSterling className="w-5 h-5 text-white" /></div>
-            <div><p className="text-base font-bold text-slate-900">{fmtGBP(tab === 'rigs' ? rigRevenue : peopleEarnings)}</p><p className="text-[11px] text-slate-500 font-medium">{tab === 'rigs' ? 'Rig Earnings' : 'Crew Earnings'}</p></div>
-          </div>
-          <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg stat-gradient-blue flex items-center justify-center flex-shrink-0">
-              {tab === 'rigs' ? <HardHat className="w-5 h-5 text-white" /> : <Users className="w-5 h-5 text-white" />}
-            </div>
-            <div><p className="text-base font-bold text-slate-900">{tab === 'rigs' ? rigRows.length : peopleRows.length}</p><p className="text-[11px] text-slate-500 font-medium">{tab === 'rigs' ? 'Rigs Deployed' : 'Crew on Site'}</p></div>
-          </div>
+          <StatCard icon={PoundSterling} value={fmtGBP(tab === 'rigs' ? rigRevenue : peopleEarnings)} label={tab === 'rigs' ? 'Rig Earnings' : 'Crew Earnings'} gradient="stat-gradient-emerald" />
+          <StatCard icon={tab === 'rigs' ? HardHat : Users} value={tab === 'rigs' ? rigRows.length : peopleRows.length} label={tab === 'rigs' ? 'Rigs Deployed' : 'Crew on Site'} gradient="stat-gradient-blue" />
         </div>
 
         {tab === 'rigs' && (
