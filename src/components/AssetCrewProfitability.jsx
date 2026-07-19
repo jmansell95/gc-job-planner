@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Wrench, Users, TrendingUp, TrendingDown, PoundSterling, Truck, Loader2, HardHat, ChevronRight, ChevronDown } from 'lucide-react';
+import { Wrench, Users, TrendingUp, TrendingDown, PoundSterling, Truck, HardHat, ChevronRight, ChevronDown, Briefcase } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 import { eachDayOfInterval, isWeekend } from 'date-fns';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
@@ -43,7 +43,6 @@ export default function AssetCrewProfitability() {
   const { data: invLogs = [] } = useQuery({ queryKey: ['investigation-logs-profit'], queryFn: () => base44.entities.InvestigationLog.list() });
   const { data: deliveries = [] } = useQuery({ queryKey: ['delivery-logs-profit'], queryFn: () => base44.entities.DeliveryLog.list() });
 
-  // Scope all data to the selected job
   const scopedAssignments = isAllJobs ? assignments : assignments.filter(a => a.job_id === selectedJobId);
   const scopedCostItems = isAllJobs ? costItems : costItems.filter(c => c.job_id === selectedJobId);
   const scopedTimesheets = isAllJobs ? timesheets : timesheets.filter(t => t.job_id === selectedJobId);
@@ -55,7 +54,6 @@ export default function AssetCrewProfitability() {
   // ---- Per-asset profitability ----
   const assetRows = useMemo(() => {
     const today = new Date();
-    // hire cost per asset (internal = 0)
     const costByAsset = {};
     scopedCostItems.forEach(c => {
       if (!c.site_asset_id) return;
@@ -63,7 +61,6 @@ export default function AssetCrewProfitability() {
       costByAsset[c.site_asset_id] = (costByAsset[c.site_asset_id] || 0) + (c.unit_cost || 0) * (c.quantity || 1);
     });
 
-    // revenue & deployment days per asset from assignments
     const revByAsset = {};
     const daysByAsset = {};
     const jobsByAsset = {};
@@ -79,37 +76,25 @@ export default function AssetCrewProfitability() {
       revByAsset[a.asset_id] = (revByAsset[a.asset_id] || 0) + rate * days;
     });
 
-    // Keep rigs with linked gear and the gear itself even when they have no
-    // independent assignment/cost/revenue — they're part of a rig assembly.
-    const linkedIds = new Set();
-    const hasLinked = new Set();
-    assets.forEach(a => {
-      (a.linked_equipment_ids || []).forEach(id => { linkedIds.add(id); hasLinked.add(a.id); });
-    });
-
     return assets.map(a => {
       const revenue = revByAsset[a.id] || 0;
       const cost = costByAsset[a.id] || 0;
       const days = daysByAsset[a.id] || 0;
       const jobIds = [...(jobsByAsset[a.id] || [])];
       const jobCount = jobIds.length;
+      const jobNames = jobIds.map(id => jobById[id]?.name).filter(Boolean);
       const profit = revenue - cost;
       const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-      const utilPct = days > 0 ? Math.min(100, Math.round((days / 250) * 100)) : 0; // ~250 working days/yr
       return {
         id: a.id, name: a.name, type: a.asset_type, rigType: a.rig_type,
         billingRate: a.daily_billing_rate || 0,
-        revenue, cost, profit, margin, days, jobCount, utilPct, jobIds,
+        revenue, cost, profit, margin, days, jobCount, jobIds, jobNames,
         active: a.is_active !== false,
         linkedEquipmentIds: a.linked_equipment_ids || [],
       };
-    }).filter(r => r.days > 0 || r.cost > 0 || r.revenue > 0 || linkedIds.has(r.id) || hasLinked.has(r.id))
-      .sort((a, b) => b.revenue - a.revenue);
+    }).sort((a, b) => b.revenue - a.revenue);
   }, [assets, scopedAssignments, scopedCostItems, jobById]);
 
-  // Group rigs with their linked equipment — parent rig shows aggregated totals,
-  // linked gear collapses underneath and expands on tap.
-  // Deploy days are counted once per rig assembly (gear deploys alongside the rig).
   const groupedAssetRows = useMemo(() => {
     const rowById = {};
     assetRows.forEach(r => { rowById[r.id] = r; });
@@ -149,7 +134,6 @@ export default function AssetCrewProfitability() {
     return { revenue: acc.revenue + d.revenue, cost: acc.cost + d.cost, profit: acc.profit + d.profit, days: acc.days + d.days };
   }, { revenue: 0, cost: 0, profit: 0, days: 0 }), [groupedAssetRows]);
 
-  // ---- Per-crew revenue ----
   const crewRows = useMemo(() => {
     const staffByTeam = {};
     staff.forEach(s => {
@@ -159,7 +143,6 @@ export default function AssetCrewProfitability() {
     });
     const staffIdSet = (teamId) => new Set(staffByTeam[teamId] || []);
 
-    // revenue from chargeable timesheets
     const timesheetRevByTeam = {};
     scopedTimesheets.forEach(t => {
       if (!t.chargeable || !t.charge_amount) return;
@@ -170,7 +153,6 @@ export default function AssetCrewProfitability() {
         }
       }
     });
-    // revenue from investigation logs
     const invRevByTeam = {};
     scopedInvLogs.forEach(l => {
       if (!l.charge_amount) return;
@@ -181,7 +163,6 @@ export default function AssetCrewProfitability() {
         }
       }
     });
-    // revenue from deliveries (driver)
     const delivRevByTeam = {};
     scopedDeliveries.forEach(d => {
       if (!d.charge_amount) return;
@@ -229,9 +210,10 @@ export default function AssetCrewProfitability() {
     );
   }
 
+  const marginColor = (m, revenue) => revenue > 0 ? (m >= 40 ? 'text-emerald-600' : m >= 20 ? 'text-amber-600' : 'text-rose-600') : 'text-slate-400';
+
   return (
     <div className="card-modern rounded-2xl overflow-hidden">
-      {/* Header */}
       <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-sm flex-shrink-0">
@@ -239,7 +221,7 @@ export default function AssetCrewProfitability() {
           </div>
           <div>
             <h2 className="text-base font-bold text-slate-900">Revenue by Asset & Crew</h2>
-            <p className="text-xs text-slate-500">Live revenue vs cost — per rig/equipment and per crew</p>
+            <p className="text-xs text-slate-500">Revenue vs cost — per asset and crew</p>
           </div>
         </div>
         <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
@@ -255,7 +237,6 @@ export default function AssetCrewProfitability() {
       </div>
 
       <div className="p-5">
-        {/* Summary stats */}
         {tab === 'assets' ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
             <div className="rounded-xl border border-slate-100 p-3 bg-slate-50 flex items-center gap-3">
@@ -298,11 +279,10 @@ export default function AssetCrewProfitability() {
           </div>
         )}
 
-        {/* Asset table */}
         {tab === 'assets' && (
           <div className="rounded-xl border border-slate-100 overflow-hidden">
             {groupedAssetRows.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 text-sm">No deployed assets yet. Assign rigs or equipment to Jobs to see revenue vs cost.</div>
+              <div className="text-center py-10 text-slate-400 text-sm">No assets found. Assign rigs or equipment to jobs to see revenue vs cost.</div>
             ) : (
               <>
                 <div className="hidden md:block overflow-x-auto">
@@ -310,11 +290,11 @@ export default function AssetCrewProfitability() {
                     <thead className="bg-slate-50/50 text-slate-500">
                       <tr>
                         <th className="text-left px-4 py-2.5 font-medium">Asset</th>
+                        <th className="text-left px-4 py-2.5 font-medium">Connected Job</th>
                         <th className="text-right px-4 py-2.5 font-medium">Day Rate</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Deploy Days</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Jobs</th>
+                        <th className="text-right px-4 py-2.5 font-medium">Days</th>
                         <th className="text-right px-4 py-2.5 font-medium">Revenue</th>
-                        <th className="text-right px-4 py-2.5 font-medium">Hire Cost</th>
+                        <th className="text-right px-4 py-2.5 font-medium">Cost</th>
                         <th className="text-right px-4 py-2.5 font-medium">Profit</th>
                         <th className="text-right px-4 py-2.5 font-medium">Margin</th>
                       </tr>
@@ -340,18 +320,24 @@ export default function AssetCrewProfitability() {
                                   <div className="min-w-0">
                                     <p className="font-medium text-slate-800 truncate max-w-[180px]">{r.name}{hasChildren && <span className="ml-1.5 text-[10px] text-slate-400 font-normal">+{r.children.length}</span>}</p>
                                     <p className="text-[10px] text-slate-400">{meta.label}{r.rigType && r.rigType !== 'n/a' ? ` · ${r.rigType.toUpperCase()}` : ''}</p>
-                                    {d.jobNames?.length > 0 && <p className="text-[10px] text-emerald-600 font-medium truncate max-w-[200px]">{d.jobNames.join(', ')}</p>}
                                   </div>
                                 </div>
                               </td>
+                              <td className="px-4 py-3">
+                                {d.jobNames?.length > 0 ? (
+                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5 max-w-[220px] truncate">
+                                    <Briefcase className="w-3 h-3 flex-shrink-0" />
+                                    <span className="truncate">{d.jobNames.join(', ')}</span>
+                                  </span>
+                                ) : <span className="text-slate-300 text-[11px]">—</span>}
+                              </td>
                               <td className="px-4 py-3 text-right text-slate-500">{r.billingRate ? fmtGBP(r.billingRate) : '—'}</td>
-                              <td className="px-4 py-3 text-right text-slate-600">{d.days}</td>
-                              <td className="px-4 py-3 text-right text-slate-600">{d.jobCount}</td>
-                              <td className="px-4 py-3 text-right font-semibold text-emerald-700">{fmtGBP(d.revenue)}</td>
-                              <td className="px-4 py-3 text-right text-slate-600">{fmtGBP(d.cost)}</td>
-                              <td className={`px-4 py-3 text-right font-bold ${d.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{fmtGBP(d.profit)}</td>
+                              <td className="px-4 py-3 text-right text-slate-600">{d.days || '—'}</td>
+                              <td className="px-4 py-3 text-right font-semibold text-emerald-700">{d.revenue > 0 ? fmtGBP(d.revenue) : '—'}</td>
+                              <td className="px-4 py-3 text-right text-slate-600">{d.cost > 0 ? fmtGBP(d.cost) : '—'}</td>
+                              <td className={`px-4 py-3 text-right font-bold ${d.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{d.revenue > 0 ? fmtGBP(d.profit) : '—'}</td>
                               <td className="px-4 py-3 text-right">
-                                <span className={`font-bold ${d.margin >= 40 ? 'text-emerald-600' : d.margin >= 20 ? 'text-amber-600' : 'text-rose-600'}`}>
+                                <span className={`font-bold ${marginColor(d.margin, d.revenue)}`}>
                                   {d.revenue > 0 ? d.margin.toFixed(0) + '%' : '—'}
                                 </span>
                               </td>
@@ -370,14 +356,21 @@ export default function AssetCrewProfitability() {
                                       </div>
                                     </div>
                                   </td>
+                                  <td className="px-4 py-2.5">
+                                    {c.jobNames?.length > 0 ? (
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-600 bg-slate-100 rounded-full px-2 py-0.5 max-w-[200px] truncate">
+                                        <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
+                                        <span className="truncate">{c.jobNames.join(', ')}</span>
+                                      </span>
+                                    ) : <span className="text-slate-300 text-[10px]">—</span>}
+                                  </td>
                                   <td className="px-4 py-2.5 text-right text-slate-400 text-xs">{c.billingRate ? fmtGBP(c.billingRate) : '—'}</td>
-                                  <td className="px-4 py-2.5 text-right text-slate-500 text-xs">{c.days}</td>
-                                  <td className="px-4 py-2.5 text-right text-slate-500 text-xs">{c.jobCount}</td>
-                                  <td className="px-4 py-2.5 text-right text-xs font-medium text-emerald-600">{fmtGBP(c.revenue)}</td>
-                                  <td className="px-4 py-2.5 text-right text-slate-500 text-xs">{fmtGBP(c.cost)}</td>
-                                  <td className={`px-4 py-2.5 text-right text-xs font-semibold ${c.profit >= 0 ? 'text-slate-600' : 'text-rose-500'}`}>{fmtGBP(c.profit)}</td>
+                                  <td className="px-4 py-2.5 text-right text-slate-500 text-xs">{c.days || '—'}</td>
+                                  <td className="px-4 py-2.5 text-right text-xs font-medium text-emerald-600">{c.revenue > 0 ? fmtGBP(c.revenue) : '—'}</td>
+                                  <td className="px-4 py-2.5 text-right text-slate-500 text-xs">{c.cost > 0 ? fmtGBP(c.cost) : '—'}</td>
+                                  <td className={`px-4 py-2.5 text-right text-xs font-semibold ${c.profit >= 0 ? 'text-slate-600' : 'text-rose-500'}`}>{c.revenue > 0 ? fmtGBP(c.profit) : '—'}</td>
                                   <td className="px-4 py-2.5 text-right">
-                                    <span className={`text-xs font-semibold ${c.margin >= 40 ? 'text-emerald-500' : c.margin >= 20 ? 'text-amber-500' : 'text-rose-500'}`}>
+                                    <span className={`text-xs font-semibold ${marginColor(c.margin, c.revenue)}`}>
                                       {c.revenue > 0 ? c.margin.toFixed(0) + '%' : '—'}
                                     </span>
                                   </td>
@@ -390,7 +383,6 @@ export default function AssetCrewProfitability() {
                     </tbody>
                   </table>
                 </div>
-                {/* Mobile cards */}
                 <div className="md:hidden divide-y divide-slate-100">
                   {groupedAssetRows.map(r => {
                     const meta = ASSET_TYPE_META[r.type] || ASSET_TYPE_META.machinery;
@@ -410,14 +402,20 @@ export default function AssetCrewProfitability() {
                             <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.color}`}><Icon className="w-4 h-4" /></span>
                             <div className="min-w-0 flex-1">
                               <p className="font-medium text-slate-800 text-sm truncate">{r.name}{hasChildren && <span className="ml-1 text-[10px] text-slate-400 font-normal">+{r.children.length}</span>}</p>
-                              <p className="text-[10px] text-slate-400">{meta.label} · {d.days} Days · {d.jobCount} Jobs</p>
-                              {d.jobNames?.length > 0 && <p className="text-[10px] text-emerald-600 font-medium truncate">{d.jobNames.join(', ')}</p>}
+                              <p className="text-[10px] text-slate-400">{meta.label} · {d.days || 0} Days</p>
+                              {d.jobNames?.length > 0 && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 mt-0.5">
+                                  <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
+                                  <span className="truncate">{d.jobNames.join(', ')}</span>
+                                </span>
+                              )}
                             </div>
-                            <span className={`text-sm font-bold flex-shrink-0 ${d.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{fmtGBP(d.profit)}</span>
+                            <span className={`text-sm font-bold flex-shrink-0 ${d.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{d.revenue > 0 ? fmtGBP(d.profit) : '—'}</span>
                           </div>
                           <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                            <span className="text-slate-500">Revenue <span className="font-semibold text-emerald-700">{fmtGBP(d.revenue)}</span></span>
-                            <span className="text-slate-500">Cost <span className="font-semibold text-slate-700">{fmtGBP(d.cost)}</span></span>
+                            <span className="text-slate-500">Rev <span className="font-semibold text-emerald-700">{d.revenue > 0 ? fmtGBP(d.revenue) : '—'}</span></span>
+                            <span className="text-slate-500">Cost <span className="font-semibold text-slate-700">{d.cost > 0 ? fmtGBP(d.cost) : '—'}</span></span>
+                            <span className="text-slate-500">Mgn <span className={`font-semibold ${marginColor(d.margin, d.revenue)}`}>{d.revenue > 0 ? d.margin.toFixed(0) + '%' : '—'}</span></span>
                           </div>
                         </div>
                         {hasChildren && isExpanded && r.children.map(c => {
@@ -428,10 +426,9 @@ export default function AssetCrewProfitability() {
                               <span className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 ${cMeta.color} opacity-70`}><cIcon className="w-3 h-3" /></span>
                               <div className="min-w-0 flex-1">
                                 <p className="text-xs font-medium text-slate-600 truncate">{c.name}</p>
-                                <p className="text-[10px] text-slate-400">{cMeta.label} · {c.days}d</p>
-
+                                <p className="text-[10px] text-slate-400">{cMeta.label} · {c.days || 0}d</p>
                               </div>
-                              <span className="text-xs font-semibold text-slate-600 flex-shrink-0">{fmtGBP(c.revenue)}</span>
+                              <span className="text-xs font-semibold text-slate-600 flex-shrink-0">{c.revenue > 0 ? fmtGBP(c.revenue) : '—'}</span>
                             </div>
                           );
                         })}
@@ -444,7 +441,6 @@ export default function AssetCrewProfitability() {
           </div>
         )}
 
-        {/* Crew table */}
         {tab === 'crews' && (
           <div className="rounded-xl border border-slate-100 overflow-hidden">
             {crewRows.length === 0 ? (
@@ -473,10 +469,10 @@ export default function AssetCrewProfitability() {
                           </td>
                           <td className="px-4 py-3 text-slate-500">{REVENUE_STREAM_LABELS[r.revenueStream] || '—'}</td>
                           <td className="px-4 py-3 text-right text-slate-600">{r.activeMembers}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{fmtGBP(r.taskRevenue)}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{fmtGBP(r.invRevenue)}</td>
-                          <td className="px-4 py-3 text-right text-slate-600">{fmtGBP(r.delivRevenue)}</td>
-                          <td className="px-4 py-3 text-right font-bold text-emerald-700">{fmtGBP(r.revenue)}</td>
+                          <td className="px-4 py-3 text-right text-slate-600">{r.taskRevenue > 0 ? fmtGBP(r.taskRevenue) : '—'}</td>
+                          <td className="px-4 py-3 text-right text-slate-600">{r.invRevenue > 0 ? fmtGBP(r.invRevenue) : '—'}</td>
+                          <td className="px-4 py-3 text-right text-slate-600">{r.delivRevenue > 0 ? fmtGBP(r.delivRevenue) : '—'}</td>
+                          <td className="px-4 py-3 text-right font-bold text-emerald-700">{r.revenue > 0 ? fmtGBP(r.revenue) : '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -490,12 +486,12 @@ export default function AssetCrewProfitability() {
                           <p className="font-medium text-slate-800 text-sm truncate">{r.name}</p>
                           <p className="text-[10px] text-slate-400">{REVENUE_STREAM_LABELS[r.revenueStream]} · {r.activeMembers} members</p>
                         </div>
-                        <p className="text-sm font-bold text-emerald-700 flex-shrink-0">{fmtGBP(r.revenue)}</p>
+                        <p className="text-sm font-bold text-emerald-700 flex-shrink-0">{r.revenue > 0 ? fmtGBP(r.revenue) : '—'}</p>
                       </div>
                       <div className="flex items-center gap-3 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-                        <span>Tasks {fmtGBP(r.taskRevenue)}</span>
-                        <span>Inv {fmtGBP(r.invRevenue)}</span>
-                        <span>Del {fmtGBP(r.delivRevenue)}</span>
+                        <span>Tasks {r.taskRevenue > 0 ? fmtGBP(r.taskRevenue) : '—'}</span>
+                        <span>Inv {r.invRevenue > 0 ? fmtGBP(r.invRevenue) : '—'}</span>
+                        <span>Del {r.delivRevenue > 0 ? fmtGBP(r.delivRevenue) : '—'}</span>
                       </div>
                     </div>
                   ))}
