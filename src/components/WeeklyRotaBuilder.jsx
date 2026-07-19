@@ -5,7 +5,8 @@ import { startOfWeek, addDays, format, subWeeks } from 'date-fns';
 import {
   Plus, Calendar, ChevronLeft, ChevronRight, X, Copy,
   MapPin, Truck, Clock, CheckCircle2, PlayCircle, ClipboardCheck,
-  Users, Briefcase, Search, Filter, StickyNote, Save, Send, Loader2, CalendarDays
+  Users, Briefcase, Search, Filter, StickyNote, Save, Send, Loader2, CalendarDays,
+  LogIn, LogOut
 } from 'lucide-react';
 import AssignmentModal from '@/components/AssignmentModal';
 import { EmptyState, ErrorState, RotaSkeleton, Skeleton, SkeletonText } from '@/components/StateViews';
@@ -288,6 +289,18 @@ export default function WeeklyRotaBuilder() {
           <div className="flex items-center gap-1 text-slate-500 mb-1">
             <Clock className="w-2.5 h-2.5 flex-shrink-0" />
             <span className="truncate">{assignment.start_time || '—'} - {assignment.end_time || '—'}</span>
+          </div>
+        )}
+        {assignment.arrived_on_site_at && (
+          <div className="flex items-center gap-1 text-emerald-600 mb-1">
+            <LogIn className="w-2.5 h-2.5 flex-shrink-0" />
+            <span className="truncate">Arrived {format(new Date(assignment.arrived_on_site_at), 'HH:mm')}</span>
+          </div>
+        )}
+        {assignment.early_leave_reason && (
+          <div className="flex items-center gap-1 text-amber-600 mb-1">
+            <LogOut className="w-2.5 h-2.5 flex-shrink-0" />
+            <span className="truncate">Left early · {assignment.early_leave_reason}</span>
           </div>
         )}
         {assignment.notes && (
@@ -628,6 +641,8 @@ export default function WeeklyRotaBuilder() {
                           {job?.location && <span className="flex items-center gap-0.5 text-slate-500"><MapPin className="w-3 h-3" />{job.location}</span>}
                           <span className={`inline-flex items-center gap-0.5 ${status.text}`}><StatusIcon className="w-3 h-3" />{status.label}</span>
                           {assignment.briefing_signed && <span className="inline-flex items-center text-emerald-600"><ClipboardCheck className="w-3 h-3" />Briefed</span>}
+                          {assignment.arrived_on_site_at && <span className="inline-flex items-center gap-0.5 text-emerald-600"><LogIn className="w-3 h-3" />Arrived {format(new Date(assignment.arrived_on_site_at), 'HH:mm')}</span>}
+                          {assignment.early_leave_reason && <span className="inline-flex items-center gap-0.5 text-amber-600"><LogOut className="w-3 h-3" />Left early · {assignment.early_leave_reason}</span>}
                           {assignment.shift_status === 'confirmed' && <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium text-[10px]">✓ Confirmed</span>}
                           {assignment.shift_status === 'declined' && <span className="px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 font-medium text-[10px]">✗ Declined</span>}
                           {assignment.meterage > 0 && <span className="text-amber-600 font-medium">{assignment.meterage}m</span>}
