@@ -302,7 +302,7 @@ export default function AssetCrewProfitability() {
         {tab === 'assets' && (
           <div className="rounded-xl border border-slate-100 overflow-hidden">
             {groupedAssetRows.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 text-sm">No deployed assets yet. Assign rigs or equipment to jobs to see revenue vs cost.</div>
+              <div className="text-center py-10 text-slate-400 text-sm">No deployed assets yet. Assign rigs or equipment to Jobs to see revenue vs cost.</div>
             ) : (
               <>
                 <div className="hidden md:block overflow-x-auto">
@@ -410,7 +410,7 @@ export default function AssetCrewProfitability() {
                             <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.color}`}><Icon className="w-4 h-4" /></span>
                             <div className="min-w-0 flex-1">
                               <p className="font-medium text-slate-800 text-sm truncate">{r.name}{hasChildren && <span className="ml-1 text-[10px] text-slate-400 font-normal">+{r.children.length}</span>}</p>
-                              <p className="text-[10px] text-slate-400">{meta.label} · {d.days} days · {d.jobCount} jobs</p>
+                              <p className="text-[10px] text-slate-400">{meta.label} · {d.days} Days · {d.jobCount} Jobs</p>
                               {d.jobNames?.length > 0 && <p className="text-[10px] text-emerald-600 font-medium truncate">{d.jobNames.join(', ')}</p>}
                             </div>
                             <span className={`text-sm font-bold flex-shrink-0 ${d.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{fmtGBP(d.profit)}</span>
@@ -429,6 +429,7 @@ export default function AssetCrewProfitability() {
                               <div className="min-w-0 flex-1">
                                 <p className="text-xs font-medium text-slate-600 truncate">{c.name}</p>
                                 <p className="text-[10px] text-slate-400">{cMeta.label} · {c.days}d</p>
+
                               </div>
                               <span className="text-xs font-semibold text-slate-600 flex-shrink-0">{fmtGBP(c.revenue)}</span>
                             </div>

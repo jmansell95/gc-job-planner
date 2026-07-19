@@ -81,6 +81,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 17 ? 'Good afternoon' : 'Good evening';
   const firstName = profile?.name?.split(' ')[0] || '';
 
+  const titleCase = (s) => s ? s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : s;
+
   // Apply job filter to all dashboard data
   const scopedJobs = isAllJobs ? jobs : jobs.filter(j => j.id === selectedJobId);
   const scopedTimesheets = isAllJobs ? timesheets : timesheets.filter(t => t.job_id === selectedJobId);
@@ -98,10 +100,10 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const planningJobs = scopedJobs.filter(j => (j.status || 'planning') === 'planning').length;
 
   const stats = [
-    { label: isAllJobs ? 'Active Jobs' : 'Job Status', value: isAllJobs ? activeJobs.length : (scopedJobs[0]?.status || '—').replace(/_/g, ' '), sub: isAllJobs ? (onHoldJobs.length ? `${onHoldJobs.length} on hold · ${planningJobs} planning` : `${planningJobs} planning · ${scopedJobs.length} total`) : (scopedJobs[0]?.location || ''), icon: Briefcase, gradient: 'stat-gradient-emerald', nav: 'jobs' },
-    { label: 'Crews Deployed', value: staffToday, sub: `${activeStaff} active crew`, icon: Users, gradient: 'stat-gradient-blue', nav: 'rota' },
-    { label: 'Timesheet Queue', value: pendingTs, sub: 'awaiting approval', icon: ClipboardCheck, gradient: pendingTs > 0 ? 'stat-gradient-amber' : 'stat-gradient-slate', nav: 'timesheets' },
-    { label: 'Deliveries Today', value: pendingDeliveries, sub: `${scopedDeliveries.length} scheduled`, icon: Truck, gradient: pendingDeliveries > 0 ? 'stat-gradient-rose' : 'stat-gradient-slate', nav: 'deliveries' },
+    { label: isAllJobs ? 'Active Jobs' : 'Job Status', value: isAllJobs ? activeJobs.length : titleCase((scopedJobs[0]?.status || '—').replace(/_/g, ' ')), isText: !isAllJobs, sub: isAllJobs ? (onHoldJobs.length ? `${onHoldJobs.length} On Hold · ${planningJobs} Planning` : `${planningJobs} Planning · ${scopedJobs.length} Total`) : (scopedJobs[0]?.location || ''), icon: Briefcase, gradient: 'stat-gradient-emerald', nav: 'jobs' },
+    { label: 'Crews Deployed', value: staffToday, sub: `${activeStaff} Active Crew`, icon: Users, gradient: 'stat-gradient-blue', nav: 'rota' },
+    { label: 'Timesheet Queue', value: pendingTs, sub: 'Awaiting Approval', icon: ClipboardCheck, gradient: pendingTs > 0 ? 'stat-gradient-amber' : 'stat-gradient-slate', nav: 'timesheets' },
+    { label: 'Deliveries Today', value: pendingDeliveries, sub: `${scopedDeliveries.length} Scheduled`, icon: Truck, gradient: pendingDeliveries > 0 ? 'stat-gradient-rose' : 'stat-gradient-slate', nav: 'deliveries' },
   ];
 
   const canViewCosts = canViewCostings(profile);

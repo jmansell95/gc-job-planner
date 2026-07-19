@@ -52,7 +52,7 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full font-semibold ring-1 ring-emerald-200 whitespace-nowrap">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            {todaysRotas.length} {todaysRotas.length === 1 ? 'shift' : 'shifts'}
+            {todaysRotas.length} {todaysRotas.length === 1 ? 'Shift' : 'Shifts'}
           </span>
           <button onClick={() => onNavigate('calendar')} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2 py-1.5 rounded-lg hover:bg-emerald-50 transition">
             Calendar <ChevronRight className="w-3.5 h-3.5" />
@@ -65,7 +65,7 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
             <Users className="w-5 h-5 text-slate-300" />
           </div>
-          <p className="text-slate-400 text-sm">No crews on site today</p>
+          <p className="text-slate-400 text-sm">No Crews On Site Today</p>
           <button onClick={() => onNavigate('rota')} className="mt-2 text-xs text-emerald-700 hover:text-emerald-900 font-medium">Build this week's rota →</button>
         </div>
       ) : (
@@ -148,7 +148,7 @@ export default function FieldCrewsToday({ todaysRotas: rawTodaysRotas, staff, jo
                     </span>
                   )}
                   {r.meterage > 0 && (
-                    <span className="text-amber-600 font-medium">{r.meterage}m drilled</span>
+                    <span className="text-amber-600 font-medium">{r.meterage}m Drilled</span>
                   )}
                 </div>
               </button>

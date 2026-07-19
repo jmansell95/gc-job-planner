@@ -203,7 +203,7 @@ export default function RigProfitabilityWidget() {
           <h2 className="font-semibold text-slate-900">Rig Profitability</h2>
           <p className="text-xs text-slate-500">Revenue, cost & current crew — per drilling rig</p>
         </div>
-        <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-medium">{rigRows.length} rigs</span>
+        <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-medium">{rigRows.length} Rigs</span>
       </div>
 
       <div className="p-5 space-y-5">
@@ -267,7 +267,7 @@ export default function RigProfitabilityWidget() {
         {/* Per-rig table */}
         <div className="rounded-xl border border-slate-100 overflow-hidden">
           {rigRows.length === 0 ? (
-            <div className="text-center py-10 text-slate-400 text-sm">No rigs deployed yet. Assign rigs to jobs to see profitability and live crew.</div>
+            <div className="text-center py-10 text-slate-400 text-sm">No rigs deployed yet. Assign rigs to Jobs to see profitability and live crew.</div>
           ) : (
             <>
               {/* Desktop table */}
@@ -312,7 +312,7 @@ export default function RigProfitabilityWidget() {
                               {r.crewMembers.length > 0 ? (
                                 <div className="flex items-center gap-1">
                                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                  <span className="text-[11px] font-medium text-emerald-700">{r.crewMembers.length} on site</span>
+                                  <span className="text-[11px] font-medium text-emerald-700">{r.crewMembers.length} On Site</span>
                                   <div className="flex -space-x-1.5 ml-1">
                                     {r.crewMembers.slice(0, 3).map((m, i) => (
                                       <span key={m.id} className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold ring-2 ring-white ${CREW_COLORS[i % CREW_COLORS.length]}`} title={m.name}>
@@ -347,8 +347,8 @@ export default function RigProfitabilityWidget() {
                               <td colSpan={8} className="px-4 py-3">
                                 <div className="grid grid-cols-2 gap-4 text-xs">
                                   <div>
-                                    <p className="font-semibold text-slate-600 mb-1.5">Jobs worked ({r.jobIds.length})</p>
-                                    {r.jobIds.length === 0 ? <p className="text-slate-400">No jobs</p> : (
+                                    <p className="font-semibold text-slate-600 mb-1.5">Jobs Worked ({r.jobIds.length})</p>
+                                    {r.jobIds.length === 0 ? <p className="text-slate-400">No Jobs</p> : (
                                       <div className="space-y-1">
                                         {r.jobIds.map((jid) => {
                                           const j = jobById[jid];
@@ -358,7 +358,7 @@ export default function RigProfitabilityWidget() {
                                     )}
                                   </div>
                                   <div>
-                                    <p className="font-semibold text-slate-600 mb-1.5">Current crew detail</p>
+                                    <p className="font-semibold text-slate-600 mb-1.5">Current Crew Detail</p>
                                     {r.crewMembers.length === 0 ? <p className="text-slate-400">No crew on this rig today</p> : (
                                       <div className="space-y-1">
                                         {r.crewMembers.map((m, i) => {
@@ -400,7 +400,7 @@ export default function RigProfitabilityWidget() {
                           <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-emerald-50"><HardHat className="w-4 h-4 text-emerald-700" /></span>
                           <div className="min-w-0">
                             <p className="font-medium text-slate-800 text-sm truncate">{r.name}</p>
-                            <p className="text-[10px] text-slate-400">{r.rigType && r.rigType !== 'n/a' ? r.rigType.toUpperCase() : 'Rig'} · <span className={comp.cls}>{comp.label}</span> · {r.days} days · {r.jobCount} jobs</p>
+                            <p className="text-[10px] text-slate-400">{r.rigType && r.rigType !== 'n/a' ? r.rigType.toUpperCase() : 'Rig'} · <span className={comp.cls}>{comp.label}</span> · {r.days} Days · {r.jobCount} Jobs</p>
                           </div>
                         </div>
                         <span className={`text-sm font-bold flex-shrink-0 ${r.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{fmtGBP(r.profit)}</span>
@@ -413,7 +413,7 @@ export default function RigProfitabilityWidget() {
                       {r.crewMembers.length > 0 ? (
                         <div className="flex items-center gap-1.5 pt-1">
                           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                          <span className="text-[11px] font-medium text-emerald-700">{r.crewMembers.length} on site:</span>
+                          <span className="text-[11px] font-medium text-emerald-700">{r.crewMembers.length} On Site:</span>
                           <div className="flex flex-wrap gap-1">
                             {r.crewMembers.map((m, i) => (
                               <span key={m.id} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${CREW_COLORS[i % CREW_COLORS.length]}`}>{m.name.split(' ')[0]}</span>
@@ -421,7 +421,7 @@ export default function RigProfitabilityWidget() {
                           </div>
                         </div>
                       ) : (
-                        <p className="text-[11px] text-slate-400 pt-1">Idle today</p>
+                        <p className="text-[11px] text-slate-400 pt-1">Idle Today</p>
                       )}
                     </div>
                   );

@@ -59,10 +59,10 @@ export default function JobAssetsWidget({ onSelectJob }) {
           </div>
           <div className="min-w-0">
             <h2 className="text-sm font-bold text-slate-900">Job Assets</h2>
-            <p className="text-xs text-slate-400">Rigs, machinery &amp; trailers on active jobs</p>
+            <p className="text-xs text-slate-400">Rigs, machinery &amp; trailers on active Jobs</p>
           </div>
         </div>
-        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium flex-shrink-0">{jobEntries.length} {jobEntries.length === 1 ? 'job' : 'jobs'}</span>
+        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium flex-shrink-0">{jobEntries.length} {jobEntries.length === 1 ? 'Job' : 'Jobs'}</span>
       </div>
 
       {isLoading ? (
@@ -70,7 +70,7 @@ export default function JobAssetsWidget({ onSelectJob }) {
       ) : jobEntries.length === 0 ? (
         <div className="px-5 py-8 text-center text-slate-400 text-sm">
           <Boxes className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-          No rigs or equipment assigned to jobs yet
+          No rigs or equipment assigned to Jobs yet
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 p-4 max-h-[480px] overflow-y-auto">

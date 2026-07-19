@@ -27,10 +27,10 @@ export default function DeliveryStats({ onNavigate, onSelectJob, jobs = [] }) {
   const pending = todays.filter(d => d.status === 'pending');
 
   const cards = [
-    { key: 'site_delivery', label: 'To Site', value: siteDeliveries.length, icon: Truck, gradient: 'stat-gradient-emerald', sub: `${siteDeliveries.filter(d => d.status === 'completed').length} done`, items: siteDeliveries },
-    { key: 'supplier_collection', label: 'Collections', value: collections.length, icon: Package, gradient: 'stat-gradient-blue', sub: `${collections.filter(d => d.status === 'completed').length} done`, items: collections },
-    { key: 'item_handover', label: 'Handovers', value: handovers.length, icon: ArrowRightLeft, gradient: 'stat-gradient-amber', sub: `${handovers.filter(d => d.status === 'completed').length} done`, items: handovers },
-    { key: 'completed', label: 'Completed', value: completed.length, icon: CheckCircle2, gradient: 'stat-gradient-slate', sub: `${pending.length + inProgress.length} remaining`, items: completed },
+    { key: 'site_delivery', label: 'To Site', value: siteDeliveries.length, icon: Truck, gradient: 'stat-gradient-emerald', sub: `${siteDeliveries.filter(d => d.status === 'completed').length} Done`, items: siteDeliveries },
+    { key: 'supplier_collection', label: 'Collections', value: collections.length, icon: Package, gradient: 'stat-gradient-blue', sub: `${collections.filter(d => d.status === 'completed').length} Done`, items: collections },
+    { key: 'item_handover', label: 'Handovers', value: handovers.length, icon: ArrowRightLeft, gradient: 'stat-gradient-amber', sub: `${handovers.filter(d => d.status === 'completed').length} Done`, items: handovers },
+    { key: 'completed', label: 'Completed', value: completed.length, icon: CheckCircle2, gradient: 'stat-gradient-slate', sub: `${pending.length + inProgress.length} Remaining`, items: completed },
   ];
 
   const activeDrill = drillType ? cards.find(c => c.key === drillType) : null;
@@ -85,7 +85,7 @@ export default function DeliveryStats({ onNavigate, onSelectJob, jobs = [] }) {
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                 <div className="mt-3 border-t border-slate-100 pt-3">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">{activeDrill.label} today</p>
+                    <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">{activeDrill.label} Today</p>
                     <button type="button" onClick={() => setDrillType(null)} className="p-1 text-slate-400 hover:text-slate-600 rounded transition">
                       <X className="w-3.5 h-3.5" />
                     </button>

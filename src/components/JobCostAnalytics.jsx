@@ -134,7 +134,7 @@ export default function JobCostAnalytics() {
               />
             </div>
             <p className="text-[11px] text-slate-500 mt-1.5">
-              {fmtGBP(totalSpend)} of {fmtGBP(totalBudget)} {pctUsed > 100 ? '· over budget' : `· ${fmtGBP(totalBudget - totalSpend)} remaining`}
+              {fmtGBP(totalSpend)} of {fmtGBP(totalBudget)} {pctUsed > 100 ? '· Over Budget' : `· ${fmtGBP(totalBudget - totalSpend)} Remaining`}
             </p>
           </div>
         )}
@@ -142,11 +142,11 @@ export default function JobCostAnalytics() {
         {/* Chart */}
         <div>
           <p className="text-xs font-semibold text-slate-600 mb-3">
-            {isAll ? 'Top jobs by budget' : 'Budget vs spend'}
+            {isAll ? 'Top Jobs By Budget' : 'Budget vs Spend'}
           </p>
           {chartData.length === 0 ? (
             <div className="h-[200px] flex items-center justify-center text-slate-400 text-sm">
-              No budget or assignment data {isAll ? 'yet' : 'for this job'}.
+              No budget or assignment data {isAll ? 'yet' : 'for this Job'}.
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={Math.max(260, chartData.length * 48 + 40)}>

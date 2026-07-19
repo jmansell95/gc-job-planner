@@ -127,7 +127,7 @@ export default function ProfitabilityDashboard() {
         <div className="mb-4">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            Showing: {scopeLabel} · {displayRows.length} {displayRows.length === 1 ? 'job' : 'jobs'}
+            Showing: {scopeLabel} · {displayRows.length} {displayRows.length === 1 ? 'Job' : 'Jobs'}
           </span>
         </div>
 
@@ -234,7 +234,7 @@ export default function ProfitabilityDashboard() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {displayRows.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center py-8 text-slate-400">No jobs with cost data yet.</td></tr>
+                  <tr><td colSpan={7} className="text-center py-8 text-slate-400">No Jobs with cost data yet.</td></tr>
                 ) : displayRows.map(r => (
                   <tr key={r.id} className="hover:bg-emerald-50/20 transition">
                     <td className="px-4 py-3 font-medium text-slate-800 max-w-[200px] truncate">{r.name}</td>
@@ -255,7 +255,7 @@ export default function ProfitabilityDashboard() {
           {/* Mobile cards */}
           <div className="md:hidden divide-y divide-slate-100">
             {displayRows.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 text-sm">No jobs with cost data yet.</div>
+              <div className="text-center py-8 text-slate-400 text-sm">No Jobs with cost data yet.</div>
             ) : displayRows.map(r => (
               <div key={r.id} className="p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">

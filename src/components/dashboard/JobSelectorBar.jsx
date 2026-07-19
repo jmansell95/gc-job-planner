@@ -20,6 +20,8 @@ export default function JobSelectorBar() {
     return 'bg-slate-100 text-slate-500';
   };
 
+  const titleCase = (s) => s ? s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : s;
+
   return (
     <div className="mb-4 flex items-center gap-2.5 bg-white rounded-xl border border-slate-200 shadow-sm px-3 sm:px-4 py-2.5">
       <div className="flex items-center gap-2 flex-shrink-0">
@@ -37,14 +39,14 @@ export default function JobSelectorBar() {
         >
           <option value="all">All Jobs — Full Overview</option>
           {jobs.map(j => (
-            <option key={j.id} value={j.id}>{j.name}{j.status ? ` · ${j.status.replace(/_/g, ' ')}` : ''}</option>
+            <option key={j.id} value={j.id}>{j.name}{j.status ? ` · ${titleCase(j.status.replace(/_/g, ' '))}` : ''}</option>
           ))}
         </select>
         <ChevronDown className="w-4 h-4 text-slate-400 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
       </div>
       {selectedJob?.status && (
         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${statusColor(selectedJob.status)}`}>
-          {selectedJob.status.replace(/_/g, ' ')}
+          {titleCase(selectedJob.status.replace(/_/g, ' '))}
         </span>
       )}
       {!isAll && (

@@ -25,7 +25,7 @@ export function KpiStatsWidget({ stats, onNavigate }) {
                 <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div className="relative min-w-0">
-                <p className="text-2xl sm:text-3xl font-bold text-white leading-tight">{stat.value}</p>
+                <p className={`font-bold text-white leading-tight ${stat.isText ? 'text-lg sm:text-xl' : 'text-2xl sm:text-3xl'}`}>{stat.value}</p>
                 <p className="text-xs text-white/90 font-medium">{stat.label}</p>
                 <p className="text-[11px] text-white/70 truncate">{stat.sub}</p>
               </div>
