@@ -17,7 +17,7 @@ export default function SyncComplianceButton({ className = '' }) {
       if (d?.error) {
         toast({ title: 'Sync failed', description: d.details || d.error, variant: 'destructive' });
       } else {
-        const msg = `${d.synced} updated${d.created > 0 ? `, ${d.created} new` : ''}${d.unmatched > 0 ? `, ${d.unmatched} unmatched` : ''}`;
+        const msg = `${d.equipment_synced || 0} updated${d.equipment_created > 0 ? `, ${d.equipment_created} new` : ''}${d.purged > 0 ? `, ${d.purged} removed` : ''}${d.job_assignments_removed > 0 ? `, ${d.job_assignments_removed} job refs cleaned` : ''}`;
         toast({ title: 'Compliance synced', description: msg });
         queryClient.invalidateQueries({ queryKey: ['site-assets'] });
         queryClient.invalidateQueries({ queryKey: ['job-asset-assignments'] });

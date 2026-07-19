@@ -40,7 +40,7 @@ export default function RigGearPickerModal({ rigs = [], assets = [], rateCardIte
           {rigs.length === 0 && (
             <div className="text-center py-6 text-sm text-slate-400">
               <Cog className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              No rigs available. Sync rigs from Asset Panda and link their gear in Settings → Asset Compliance first.
+              No rigs available. Sync rigs from Asset Panda and link their gear in Settings → Compliance Sync first.
             </div>
           )}
           {rigs.map(rig => {
@@ -63,7 +63,7 @@ export default function RigGearPickerModal({ rigs = [], assets = [], rateCardIte
                   {gear.length === 0 ? (
                     <div className="flex items-center gap-1.5 text-xs text-slate-400 italic">
                       <Package className="w-3 h-3 text-slate-300 flex-shrink-0" />
-                      <span>No linked gear — link equipment to this rig in Settings → Asset Compliance</span>
+                      <span>No linked gear — link equipment to this rig in Settings → Compliance Sync</span>
                     </div>
                   ) : (
                     gear.map(g => (

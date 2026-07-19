@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
     const unmatchedAssets = [];
     const matchedEquipmentIds = new Set();
     const matchedRigIds = new Set();
+    const matchedSiteAssetIds = new Set();
 
     // === Sync Equipment records (existing assets) ===
     for (const asset of siteAssets) {
@@ -148,6 +149,7 @@ Deno.serve(async (req) => {
       }
 
       matchedEquipmentIds.add(match.id);
+      matchedSiteAssetIds.add(asset.id);
       const status = extractEquipmentStatus(match);
       const assetType = extractEquipmentAssetType(match);
       // Machinery & trailers: CoC lasts the lifetime of the equipment — no expiry date
@@ -233,6 +235,7 @@ Deno.serve(async (req) => {
       }
 
       matchedRigIds.add(match.id);
+      matchedSiteAssetIds.add(asset.id);
       await base44.asServiceRole.entities.SiteAsset.update(asset.id, {
         compliance_status: extractRigStatus(match),
         compliance_last_checked: now,
@@ -272,6 +275,44 @@ Deno.serve(async (req) => {
       } catch (createErr) {
         console.error('Error creating new rig assets:', createErr.message);
       }
+    }
+
+    // === Purge SiteAssets no longer in GC Compliance Manager ===
+    let purged = 0;
+    let jobAssignmentsRemoved = 0;
+    let jobCostItemsRemoved = 0;
+    const orphanedAssetIds = siteAssets
+      .filter(a => !matchedSiteAssetIds.has(a.id))
+      .map(a => a.id);
+
+    if (orphanedAssetIds.length > 0) {
+      // Remove job asset assignments pointing to orphaned assets
+      try {
+        const assignments = await base44.asServiceRole.entities.JobAssetAssignment.list('-created_date', 500);
+        const staleAssignments = assignments.filter(a => orphanedAssetIds.includes(a.asset_id));
+        for (const sa of staleAssignments) {
+          await base44.asServiceRole.entities.JobAssetAssignment.delete(sa.id);
+        }
+        jobAssignmentsRemoved = staleAssignments.length;
+      } catch (e) { console.error('Error cleaning job asset assignments:', e.message); }
+
+      // Remove job cost items pointing to orphaned assets
+      try {
+        const costItems = await base44.asServiceRole.entities.JobCostItem.list('-created_date', 500);
+        const staleCostItems = costItems.filter(c => orphanedAssetIds.includes(c.site_asset_id));
+        for (const sc of staleCostItems) {
+          await base44.asServiceRole.entities.JobCostItem.delete(sc.id);
+        }
+        jobCostItemsRemoved = staleCostItems.length;
+      } catch (e) { console.error('Error cleaning job cost items:', e.message); }
+
+      // Delete the orphaned SiteAssets
+      try {
+        for (const id of orphanedAssetIds) {
+          await base44.asServiceRole.entities.SiteAsset.delete(id);
+        }
+        purged = orphanedAssetIds.length;
+      } catch (e) { console.error('Error purging orphaned assets:', e.message); }
     }
 
     // === Sync linked equipment — group equipment records by rig_id ===
@@ -471,6 +512,9 @@ Deno.serve(async (req) => {
       rate_card_links_set: rateCardLinksSet,
       rate_card_costs_set: rateCardCostsSet,
       unmatched_assets: unmatchedAssets,
+      purged,
+      job_assignments_removed: jobAssignmentsRemoved,
+      job_cost_items_removed: jobCostItemsRemoved,
       synced_at: now,
     });
   } catch (error) {

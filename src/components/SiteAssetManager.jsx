@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Wrench, Plus, Trash2, Edit2, X, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, RefreshCw, Anchor } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Wrench, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, Anchor, RefreshCw, Info } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
-import { useToast } from '@/components/ui/use-toast';
 import SyncComplianceButton from '@/components/SyncComplianceButton';
 import { useConfigLists } from '@/hooks/useConfigLists';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
-
-const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
 const assetTypeConfig = {
   rig: { label: 'Rig', icon: Cog, badge: 'bg-blue-100 text-blue-700' },
@@ -25,68 +22,14 @@ const complianceConfig = {
   unknown: { label: 'Unknown', icon: ShieldAlert, badge: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' },
 };
 
-const emptyForm = {
-  name: '', asset_type: 'rig', rig_type: 'n/a', serial_number: '',
-  external_compliance_id: '', tooling_notes: '', linked_equipment_ids: [], is_active: true, notes: '',
-};
-
 export default function SiteAssetManager() {
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(emptyForm);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
   const { getOptions } = useConfigLists();
-  const assetTypeOptions = getOptions('asset_types');
-  const rigTypeOptions = getOptions('rig_types');
   const complianceStatusOptions = getOptions('compliance_statuses');
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
     queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
   });
-
-  const handleEdit = (asset) => {
-    setForm({ ...emptyForm, ...asset, linked_equipment_ids: asset.linked_equipment_ids || [] });
-    setEditingId(asset.id);
-    setShowForm(true);
-  };
-
-  const handleAdd = () => {
-    setForm(emptyForm);
-    setEditingId(null);
-    setShowForm(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const payload = { ...form, compliance_last_checked: new Date().toISOString() };
-      if (editingId) {
-        await base44.entities.SiteAsset.update(editingId, payload);
-        toast({ title: 'Asset updated' });
-      } else {
-        await base44.entities.SiteAsset.create(payload);
-        toast({ title: 'Asset added' });
-      }
-      queryClient.invalidateQueries({ queryKey: ['site-assets'] });
-      setShowForm(false);
-      setEditingId(null);
-    } catch (err) {
-      toast({ title: 'Error saving asset', description: err.message, variant: 'destructive' });
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this asset?')) return;
-    try {
-      await base44.entities.SiteAsset.delete(id);
-      queryClient.invalidateQueries({ queryKey: ['site-assets'] });
-      toast({ title: 'Asset deleted' });
-    } catch (err) {
-      toast({ title: 'Error deleting', description: err.message, variant: 'destructive' });
-    }
-  };
 
   // Compliance issue counts for visual warnings
   const expiredCount = assets.filter(a => a.compliance_status === 'expired').length;
@@ -124,17 +67,18 @@ export default function SiteAssetManager() {
     <div>
       <SettingsSectionHeader
         icon={Wrench}
-        title="Asset Compliance"
-        description="Inventory synced from Asset Panda · compliance from GC Compliance Manager"
-        actions={
-          <>
-            <SyncComplianceButton />
-            <button onClick={handleAdd} className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-semibold shadow-sm">
-              <Plus className="w-4 h-4" /> Add Asset
-            </button>
-          </>
-        }
+        title="Compliance Sync"
+        description="Rigs, machinery & trailers — synced from GC Compliance Manager only"
+        actions={<SyncComplianceButton />}
       />
+
+      {/* Sync-only info banner */}
+      <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl p-3.5 mb-4">
+        <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+        <p className="text-sm text-blue-700">
+          This list is <strong>sync-only</strong> from the GC Compliance Manager. Assets not present there are automatically removed. Use the <strong>Sync Compliance</strong> button to refresh.
+        </p>
+      </div>
 
       {/* Issue banners */}
       {(expiredCount > 0 || unknownCount > 0 || neverSyncedCount > 0) && (
@@ -178,103 +122,11 @@ export default function SiteAssetManager() {
         </div>
       )}
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-emerald-200 shadow-sm p-5 mb-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h3 className="font-bold text-slate-900">{editingId ? 'Edit Asset' : 'New Asset'}</h3>
-            <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Asset Name</label>
-              <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required className={inputCls} placeholder="e.g. Truck-mounted Rig 1" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Asset Type</label>
-              <select value={form.asset_type} onChange={e => setForm({ ...form, asset_type: e.target.value })} className={inputCls}>
-                {assetTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            {form.asset_type === 'rig' && (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Rig Type</label>
-                <select value={form.rig_type} onChange={e => setForm({ ...form, rig_type: e.target.value })} className={inputCls}>
-                  {rigTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Serial / Reg Number</label>
-              <input type="text" value={form.serial_number} onChange={e => setForm({ ...form, serial_number: e.target.value })} className={inputCls} />
-            </div>
-            <div className="sm:col-span-2">
-              <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-lg p-3">
-                <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-blue-700">
-                  Compliance status and expiry date are synced automatically from the <strong>GC Compliance Manager</strong> app. Use the "Sync Compliance" button above to refresh.
-                </p>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">GC Compliance Manager ID <span className="text-slate-400 font-normal">(optional)</span></label>
-              <input type="text" value={form.external_compliance_id} onChange={e => setForm({ ...form, external_compliance_id: e.target.value })} className={inputCls} placeholder="Auto-matched by serial/name if blank" />
-              <p className="text-[11px] text-slate-400 mt-1">Leave blank — the sync auto-matches by serial number or name.</p>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Tooling Notes</label>
-              <textarea value={form.tooling_notes} onChange={e => setForm({ ...form, tooling_notes: e.target.value })} rows={2} className={inputCls} placeholder="Associated tooling (casing sizes, augers, core barrels)" />
-            </div>
-            {form.asset_type === 'rig' && (
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Linked Equipment</label>
-                <p className="text-xs text-slate-400 mb-2">Select the lifting equipment, machinery and trailers that belong to this rig. When assigning this rig to a drilling job, the linked equipment is shown for quick bulk assignment.</p>
-                <div className="max-h-48 overflow-y-auto border border-slate-300 rounded-lg divide-y divide-slate-100 bg-white">
-                  {assets.filter(a => a.asset_type !== 'rig' && a.id !== editingId).length === 0 ? (
-                    <p className="text-xs text-slate-400 px-3 py-2">No equipment available to link. Add machinery or trailers first.</p>
-                  ) : (
-                    assets.filter(a => a.asset_type !== 'rig' && a.id !== editingId).map(a => {
-                      const TypeIcon = assetTypeConfig[a.asset_type]?.icon || Wrench;
-                      const isChecked = (form.linked_equipment_ids || []).includes(a.id);
-                      return (
-                        <label key={a.id} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">
-                          <input type="checkbox" checked={isChecked}
-                            onChange={(e) => {
-                              const current = new Set(form.linked_equipment_ids || []);
-                              if (e.target.checked) current.add(a.id);
-                              else current.delete(a.id);
-                              setForm({ ...form, linked_equipment_ids: Array.from(current) });
-                            }}
-                            className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500" />
-                          <TypeIcon className="w-4 h-4 text-slate-400" />
-                          <span className="text-sm text-slate-700 flex-1">{a.name}</span>
-                          {a.serial_number && <span className="text-xs text-slate-400 font-mono">{a.serial_number}</span>}
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
-                {(form.linked_equipment_ids || []).length > 0 && (
-                  <p className="text-[11px] text-emerald-600 mt-1.5">{(form.linked_equipment_ids || []).length} item(s) linked</p>
-                )}
-              </div>
-            )}
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Notes</label>
-              <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className={inputCls} />
-            </div>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="submit" className="px-5 py-2.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">{editingId ? 'Update' : 'Add Asset'}</button>
-            <button type="button" onClick={() => setShowForm(false)} className="px-5 py-2.5 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition font-medium text-sm">Cancel</button>
-          </div>
-        </form>
-      )}
-
       {isLoading ? (
         <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}</div>
       ) : assets.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200">
-          <EmptyState icon={Wrench} title="No assets yet" message="Add your rigs, machinery and trailers here. Link each asset to its record in GC Compliance Manager." actionLabel="Add Asset" onAction={handleAdd} />
+          <EmptyState icon={Wrench} title="No assets synced" message="Run a compliance sync to pull rigs, machinery and trailers from GC Compliance Manager." />
         </div>
       ) : filteredAssets.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200">
@@ -303,10 +155,6 @@ export default function SiteAssetManager() {
                       {asset.equipment_type && <p className="text-[11px] text-emerald-600 font-medium truncate">{asset.equipment_type}</p>}
                       {asset.serial_number && <p className="text-xs text-slate-400 font-mono truncate">{asset.serial_number}</p>}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button onClick={() => handleEdit(asset)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={() => handleDelete(asset.id)} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mb-2">
