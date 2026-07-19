@@ -124,8 +124,15 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   });
 
   const standaloneItems = visibleItems.filter(c => !assemblyItemIds.has(c.id));
+  // Group items by responsible person, falling back to the equipment category
+  // label when no person is set (instead of an "Unassigned" bucket).
+  const categoryFallback = {
+    hired_equipment: 'Hired Equipment',
+    purchased_equipment: 'Purchased Equipment',
+    internal_equipment: 'Internal Equipment',
+  };
   const personGroups = standaloneItems.reduce((acc, c) => {
-    const person = c.responsible_person || (c.category === 'contractor_supplied' ? 'Contractor Supplied' : 'Unassigned');
+    const person = c.responsible_person || categoryFallback[c.category] || 'Unassigned';
     if (!acc[person]) acc[person] = [];
     acc[person].push(c);
     return acc;
@@ -142,13 +149,15 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   });
   const defaultDates = job ? { start: job.start_date, end: job.end_date } : null;
 
-  // Auto-select all loadable items at the yard so the Plan Load bar appears automatically
+  // Auto-select all loadable items at the yard so the Plan Load bar appears
+  // automatically. Depends on a stable string of yard item IDs (not the array
+  // reference) so toggling a checkbox doesn't reset the selection every render.
+  const yardIdsKey = activeItems
+    .filter(i => (i.current_location || 'yard') === 'yard')
+    .map(i => i.id).sort().join(',');
   useEffect(() => {
-    const yardIds = activeItems
-      .filter(i => (i.current_location || 'yard') === 'yard')
-      .map(i => i.id);
-    setSelectedIds(new Set(yardIds));
-  }, [activeItems]);
+    setSelectedIds(new Set(yardIdsKey ? yardIdsKey.split(',') : []));
+  }, [yardIdsKey]);
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s; });
