@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Users, ChevronDown, ChevronRight, GitBranch, UserCircle2, UserMinus, Check, Shield, GraduationCap, PoundSterling, LayoutGrid, Briefcase } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ChipMultiSelect from '@/components/forms/ChipMultiSelect';
 import FormSection from '@/components/forms/FormSection';
@@ -231,12 +231,12 @@ export default function TeamManager() {
 
   return (
     <div>
-      <PageHeader
-        title="Manage Crews"
+      <SettingsSectionHeader
         icon={Users}
-        subtitle={`${teams.length} crew${teams.length === 1 ? '' : 's'} · ${staff.length - unassignedStaff.length} assigned`}
+        title="Manage Crews"
+        description={`${teams.length} crew${teams.length === 1 ? '' : 's'} · ${staff.length - unassignedStaff.length} assigned`}
         actions={
-          <button onClick={() => openCreate()} className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
+          <button onClick={() => openCreate()} className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-semibold shadow-sm">
             <Plus className="w-4 h-4" /> Add Crew
           </button>
         }

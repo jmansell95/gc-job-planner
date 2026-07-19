@@ -8,7 +8,7 @@ import {
   Droplets, Calculator, Layers, Gauge, Waves, MapPinned, Camera, FileText, Eye
 } from 'lucide-react';
 import { strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig, getMissingFields, getAnomalyFlags } from './shared';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 const fmt = (n) => n != null ? (Number(n).toFixed(n % 1 === 0 ? 0 : 1)) : '—';
 
@@ -75,7 +75,7 @@ export default function LogQualityControl() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Log Quality Control" icon={ShieldCheck} subtitle="Review field logs for geotechnical accuracy and reporting readiness" />
+      <SettingsSectionHeader icon={ShieldCheck} title="Log Quality Control" description="Review field logs for geotechnical accuracy and reporting readiness" />
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, GripVertical, ChevronDown, ChevronUp, ListChecks, AlertCircle, Check } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { Skeleton } from '@/components/StateViews';
 import { useConfigLists } from '@/hooks/useConfigLists';
 
@@ -85,7 +85,7 @@ export default function DropdownConfigManager() {
 
   return (
     <div>
-      <PageHeader title="Dropdown Manager" icon={ListChecks} subtitle="Add, rename, reorder or remove the options in every dropdown across the app. Changes take effect immediately on all forms." />
+      <SettingsSectionHeader icon={ListChecks} title="Dropdown Manager" description="Add, rename, reorder or remove the options in every dropdown across the app. Changes take effect immediately on all forms." />
 
       {isLoading ? (
         <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}</div>

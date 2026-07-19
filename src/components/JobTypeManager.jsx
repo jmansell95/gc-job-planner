@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Check, Tag } from 'lucide-react';
 import { JOB_TYPE_COLORS } from '@/utils/jobTeams';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 const COLOR_OPTIONS = Object.keys(JOB_TYPE_COLORS);
 

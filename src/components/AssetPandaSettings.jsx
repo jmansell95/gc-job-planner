@@ -5,6 +5,7 @@ import { Database, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import AssetPandaCredentials from '@/components/assetpanda/AssetPandaCredentials';
 import AssetPandaSyncStatus from '@/components/assetpanda/AssetPandaSyncStatus';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 export default function AssetPandaSettings() {
   const { toast } = useToast();
@@ -98,22 +99,18 @@ export default function AssetPandaSettings() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-            <Database className="w-5 h-5 text-blue-600" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Asset Panda Sync</h2>
-            <p className="text-sm text-slate-500">Live inventory, stock levels & billing rates from Asset Panda</p>
-          </div>
-        </div>
-        <button onClick={handleSync} disabled={syncing || isLoading || !ready}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition text-sm font-semibold disabled:opacity-50">
-          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Syncing…' : 'Sync Now'}
-        </button>
-      </div>
+      <SettingsSectionHeader
+        icon={Database}
+        title="Asset Panda Sync"
+        description="Live inventory, stock levels & billing rates from Asset Panda"
+        actions={
+          <button onClick={handleSync} disabled={syncing || isLoading || !ready}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition text-sm font-semibold disabled:opacity-50">
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing…' : 'Sync Now'}
+          </button>
+        }
+      />
 
       <AssetPandaCredentials form={form} setForm={setForm} config={config} onSave={handleSave} saving={saving} />
       <AssetPandaSyncStatus assets={assets} config={config} isLoading={isLoading} lastSync={lastSync} />

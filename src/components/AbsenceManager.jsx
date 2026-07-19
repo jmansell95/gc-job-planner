@@ -6,7 +6,7 @@ import {
   CalendarDays, Power, Sparkles
 } from 'lucide-react';
 import { format } from 'date-fns';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 const reasonConfig = {
   holiday: { label: 'Holiday', badge: 'bg-blue-100 text-blue-700' },
@@ -104,7 +104,7 @@ export default function AbsenceManager() {
 
   return (
     <div>
-      <PageHeader title="Absence Management" icon={CalendarX} />
+      <SettingsSectionHeader icon={CalendarX} title="Absence Management" description="Approve leave requests and recurring days off" />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

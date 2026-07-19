@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Palette, Save, Loader2, Sparkles, Type, Link2, Building2, Globe, Info } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 const ACCENT_PRESETS = [
   { name: 'Emerald', value: '#0e7a4f' },
@@ -76,18 +77,7 @@ export default function GlobalBrandingSettings() {
 
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-2xl hero-gradient p-5 md:p-6">
-        <div className="absolute -top-10 -right-8 w-40 h-40 rounded-full bg-emerald-300/20 blur-3xl pointer-events-none" />
-        <div className="relative flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center flex-shrink-0">
-            <Palette className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-lg md:text-xl font-bold text-white">Global Email Branding</h2>
-            <p className="text-emerald-100 text-sm">Set default colours, banner and footer for every automated email in one place.</p>
-          </div>
-        </div>
-      </div>
+      <SettingsSectionHeader icon={Palette} title="Global Email Branding" description="Set default colours, banner and footer for every automated email in one place" />
 
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-2">
         <Info className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />

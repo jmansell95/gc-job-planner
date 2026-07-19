@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, BarChart3, GraduationCap, AlertTriangle } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import PillTabs from '@/components/PillTabs';
 import ComplianceTracking from '@/components/compliance/ComplianceTracking';
 import ComplianceReports from '@/components/compliance/ComplianceReports';
@@ -19,7 +19,7 @@ export default function ComplianceManager() {
 
   return (
     <div>
-      <PageHeader title="Compliance" icon={ShieldCheck} subtitle="Track certificates, training & site qualifications" />
+      <SettingsSectionHeader icon={ShieldCheck} title="Compliance" description="Track certificates, training & site qualifications" />
       <PillTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
       {activeTab === 'tracking' && <ComplianceTracking />}
       {activeTab === 'reports' && <ComplianceReports />}

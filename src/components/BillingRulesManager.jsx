@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Banknote, Plus, Trash2, Edit2, Check, X, Truck, ClipboardList, Package, MapPin, Search, PoundSterling, Route, Clock, ToggleRight, ToggleLeft } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton } from '@/components/StateViews';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -253,6 +254,8 @@ export default function BillingRulesManager() {
 
   return (
     <div>
+      <SettingsSectionHeader icon={Banknote} title="Billing Rules" description="Pricing rules for deliveries, tasks and consumables — charges are calculated automatically when staff log activity" />
+
       {/* Summary stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {Object.entries(ruleTypeConfig).map(([k, cfg]) => {

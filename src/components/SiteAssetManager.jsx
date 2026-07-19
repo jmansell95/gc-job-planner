@@ -6,7 +6,7 @@ import { Skeleton, EmptyState } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
 import SyncComplianceButton from '@/components/SyncComplianceButton';
 import { useConfigLists } from '@/hooks/useConfigLists';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
@@ -122,14 +122,14 @@ export default function SiteAssetManager() {
 
   return (
     <div>
-      <PageHeader
-        title="Asset Compliance"
+      <SettingsSectionHeader
         icon={Wrench}
-        subtitle="Inventory synced from Asset Panda · compliance from GC Compliance Manager"
+        title="Asset Compliance"
+        description="Inventory synced from Asset Panda · compliance from GC Compliance Manager"
         actions={
           <>
             <SyncComplianceButton />
-            <button onClick={handleAdd} className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
+            <button onClick={handleAdd} className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-semibold shadow-sm">
               <Plus className="w-4 h-4" /> Add Asset
             </button>
           </>

@@ -6,6 +6,7 @@ import {
   Loader2, Receipt, Building2, TrendingUp, Percent
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -283,7 +284,9 @@ export default function RateCardManager() {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="space-y-4">
+      <SettingsSectionHeader icon={Receipt} title="Master Price List" description="Your chargeable rate card plus each supplier's ingested rate card — auto-populates job costing" />
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
         {isOurCard ? <Receipt className="w-5 h-5 text-emerald-700" /> : <Building2 className="w-5 h-5 text-emerald-700" />}
         <h2 className="font-semibold text-slate-900">{isOurCard ? 'Master Price List — Our Rate Card' : `Rate Card — ${activeSupplier?.name || 'Supplier'}`}</h2>
@@ -374,6 +377,7 @@ export default function RateCardManager() {
             </div>
           ))
         )}
+      </div>
       </div>
     </div>
   );

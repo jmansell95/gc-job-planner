@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Truck, Wrench, CalendarClock, Weight } from 'lucide-react';
 import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
 import { format, differenceInDays } from 'date-fns';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SearchFilterBar from '@/components/SearchFilterBar';
 import { TableSkeleton } from '@/components/StateViews';
 
@@ -82,13 +82,17 @@ export default function VehicleManager() {
         <VehicleMaintenanceManager />
       ) : (
       <>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <PageHeader title="Manage Vehicles" icon={Truck} />
-        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium w-full sm:w-auto">
-          <Plus className="w-4 h-4" /> Add Vehicle
-        </button>
-      </div>
+      <SettingsSectionHeader
+        icon={Truck}
+        title="Manage Vehicles"
+        description="Track vehicles, MOTs and service dates"
+        actions={
+          <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
+            <Plus className="w-4 h-4" /> Add Vehicle
+          </button>
+        }
+      />
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl p-5 border border-emerald-200 mb-6 shadow-sm">

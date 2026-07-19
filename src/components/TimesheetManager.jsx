@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, CheckCircle2, XCircle, Ruler, TrendingUp, Users, Search, CalendarDays, FileText, RotateCcw, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import WithdrawnAcknowledgementPanel from '@/components/WithdrawnAcknowledgementPanel';
 import TodayTimeBoard from '@/components/TodayTimeBoard';
 import DailyStaffSummaryWidget from '@/components/DailyStaffSummaryWidget';
@@ -148,7 +148,7 @@ export default function TimesheetManager() {
 
   return (
     <div>
-      <PageHeader title="Timesheets" icon={Clock} />
+      <SettingsSectionHeader icon={Clock} title="Timesheets" description="Review and approve crew timesheets" />
 
       <DailyStaffSummaryWidget />
 

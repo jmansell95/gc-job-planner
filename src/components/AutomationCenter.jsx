@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Zap, Clock, ToggleLeft, ToggleRight, Mail, Plus, Edit2, Trash2, X } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 
@@ -151,16 +151,16 @@ export default function AutomationCenter() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-        <PageHeader title="Automations" icon={Zap} />
-        <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium flex-shrink-0">
-          <Plus className="w-4 h-4" /> Add Automation
-        </button>
-      </div>
-      <p className="text-sm text-slate-500 mb-2 max-w-2xl">
-        Automated workflows run in the background — on a schedule or when data changes — so you never have to send reminders or chase updates manually.
-      </p>
-      <p className="text-xs text-slate-400 mb-6">{activeCount} of {sorted.length} automations active</p>
+      <SettingsSectionHeader
+        icon={Zap}
+        title="Automations"
+        description="Background workflows that run on a schedule or when data changes. No more manual reminders."
+        actions={
+          <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
+            <Plus className="w-4 h-4" /> Add Automation
+          </button>
+        }
+      />
 
       {showForm && (
         <form onSubmit={handleSave} className="bg-white rounded-xl p-5 border border-emerald-200 mb-6 shadow-sm">

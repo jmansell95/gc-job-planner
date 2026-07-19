@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Mail, Save, Send, Loader2, Truck, UserCheck, Clock, Palette, RotateCcw, Eye, Sparkles, Type, Calendar, UserPlus, CalendarX, AlertTriangle, Briefcase, ClipboardCheck, Wrench, GraduationCap, Bell, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 const ALERT_META = {
   vehicle_maintenance: {
@@ -338,19 +339,7 @@ export default function EmailAlertsSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Page hero */}
-      <div className="relative overflow-hidden rounded-2xl hero-gradient p-5 md:p-6">
-        <div className="absolute -top-10 -right-8 w-40 h-40 rounded-full bg-emerald-300/20 blur-3xl pointer-events-none" />
-        <div className="relative flex items-center gap-3">
-          <div className="w-11 h-11 rounded-xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center flex-shrink-0">
-            <Mail className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-lg md:text-xl font-bold text-white">Automated Email Alerts</h2>
-            <p className="text-emerald-100 text-sm">Control recipients, timing, wording, colours and banner for each automated email.</p>
-          </div>
-        </div>
-      </div>
+      <SettingsSectionHeader icon={Mail} title="Automated Email Alerts" description="Control recipients, timing, wording, colours and banner for each automated email" />
 
       {/* Alert selector tabs */}
       <div className="flex gap-2 flex-wrap">

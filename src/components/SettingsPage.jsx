@@ -113,16 +113,6 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
         </SheetContent>
       </Sheet>
 
-      {active && (
-        <div className="flex items-center gap-2 mb-4">
-          {Icon && (
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-              <Icon className="w-4 h-4 text-emerald-700" />
-            </div>
-          )}
-          <p className="text-sm text-slate-500">{active.desc}</p>
-        </div>
-      )}
       {renderContent()}
     </div>
   );

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Timer, Save, Check, Info, TrendingUp, Clock, Users } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { DAY_LABELS, buildRateMap, computeStaffOvertime } from '@/utils/overtime';
 
 export default function OvertimeRatesManager() {
@@ -87,7 +87,7 @@ export default function OvertimeRatesManager() {
 
   return (
     <div>
-      <PageHeader title="Overtime Rates" icon={Timer} />
+      <SettingsSectionHeader icon={Timer} title="Overtime Rates" description="Set overtime multipliers by day and the weekly threshold" />
 
       <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-5 mb-6">
         <div className="flex items-start gap-3">

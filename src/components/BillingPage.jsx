@@ -5,7 +5,7 @@ import {
   PoundSterling, Receipt, Download, FileBarChart, Search, Loader2,
   Wallet, TrendingUp, Briefcase, ArrowRight,
 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import StatCard from '@/components/dashboard/StatCard';
 import { Skeleton } from '@/components/StateViews';
 import { computeBillingRow, groupByJob, READY_STATUSES } from '@/utils/billingSummary';
@@ -177,13 +177,13 @@ export default function BillingPage({ onSelectJob }) {
 
   return (
     <div>
-      <PageHeader
-        title="Billing & Invoicing"
+      <SettingsSectionHeader
         icon={Receipt}
-        subtitle="Complete cost summary per job — reconcile CDRs and raise invoices in your finance system"
+        title="Billing & Invoicing"
+        description="Complete cost summary per job — reconcile CDRs and raise invoices in your finance system"
         actions={
           <button onClick={exportCsv} disabled={filtered.length === 0}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white text-emerald-800 rounded-lg text-sm font-semibold hover:bg-emerald-50 transition disabled:opacity-50 shadow-sm">
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-700 text-white rounded-lg text-sm font-semibold hover:bg-emerald-800 transition disabled:opacity-50 shadow-sm">
             <Download className="w-4 h-4" /> Export CSV
           </button>
         }

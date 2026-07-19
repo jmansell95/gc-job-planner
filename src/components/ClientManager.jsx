@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Building2, Mail, Phone, User } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SearchFilterBar from '@/components/SearchFilterBar';
 
 export default function ClientManager() {
@@ -39,13 +39,17 @@ export default function ClientManager() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <PageHeader title="Manage Clients" icon={Building2} />
-        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ name: '', contact_name: '', contact_email: '', contact_phone: '' }); }}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium w-full sm:w-auto">
-          <Plus className="w-4 h-4" /> Add Client
-        </button>
-      </div>
+      <SettingsSectionHeader
+        icon={Building2}
+        title="Manage Clients"
+        description="Add and manage your client contacts"
+        actions={
+          <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ name: '', contact_name: '', contact_email: '', contact_phone: '' }); }}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
+            <Plus className="w-4 h-4" /> Add Client
+          </button>
+        }
+      />
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl p-5 border border-emerald-200 mb-6 shadow-sm">

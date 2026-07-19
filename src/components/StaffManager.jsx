@@ -6,7 +6,7 @@ import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import StaffComplianceEditor from '@/components/staff/StaffComplianceEditor';
 import HotelBookingsManager from '@/components/staff/HotelBookingsManager';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SearchFilterBar from '@/components/SearchFilterBar';
 import PrintReportButton from '@/components/PrintReportButton';
 import { CardGridSkeleton } from '@/components/StateViews';
@@ -210,14 +210,14 @@ export default function StaffManager() {
 
   return (
     <div>
-      <PageHeader
-        title="Manage Crew"
+      <SettingsSectionHeader
         icon={Users}
-        subtitle={`${staff.length} crew member${staff.length === 1 ? '' : 's'} in total`}
+        title="Manage Crew"
+        description={`${staff.length} crew member${staff.length === 1 ? '' : 's'} in total`}
         actions={
           <>
             <PrintReportButton buildHtml={buildStaffPrintHtml} label="Print" />
-            <button onClick={resetForm} className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
+            <button onClick={resetForm} className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-semibold shadow-sm">
               <Plus className="w-4 h-4" /> Add Crew Member
             </button>
           </>

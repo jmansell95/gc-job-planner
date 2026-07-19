@@ -5,7 +5,7 @@ import {
   Package, Plus, Edit2, Trash2, Mail, Phone, Search,
   Upload, FileSpreadsheet, Loader2, RefreshCw
 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 
@@ -101,16 +101,16 @@ export default function SupplierManager() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <PageHeader title="Suppliers" icon={Package} />
-        <button onClick={startAdd} className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition self-start sm:self-auto">
-          <Plus className="w-4 h-4" /> Add Supplier
-        </button>
-      </div>
-
-      <p className="text-sm text-slate-500 -mt-4 mb-4 max-w-2xl">
-        Upload each supplier's rate card (Excel, CSV or PDF) and it's auto-ingested into the Master Price List. When you add equipment to a job and select that supplier, their rates populate automatically.
-      </p>
+      <SettingsSectionHeader
+        icon={Package}
+        title="Suppliers"
+        description="Upload each supplier's rate card (Excel, CSV or PDF) to auto-ingest it into the Master Price List."
+        actions={
+          <button onClick={startAdd} className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition">
+            <Plus className="w-4 h-4" /> Add Supplier
+          </button>
+        }
+      />
 
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.pdf" className="hidden" onChange={handleFilePicked} />
 
