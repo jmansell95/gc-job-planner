@@ -95,6 +95,10 @@ export default function AssetCrewProfitability() {
     scopedAssignments.forEach(a => {
       if (!rigById[a.asset_id]) return;
       if (a.returned_date) return; // returned — not currently on job
+      if (a.status === 'returned') return;
+      // "On Jobs Now" = physically on site, not just planned.
+      // Only count assignments that have actually arrived on site.
+      if (a.status !== 'on_site' && !a.arrived_on_site_date) return;
       if (!activeByRig[a.asset_id]) activeByRig[a.asset_id] = [];
       activeByRig[a.asset_id].push(a);
     });
