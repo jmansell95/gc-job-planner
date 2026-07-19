@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { strataOptions, sampleTypes, calculateSptN, fluidLossOptions, fluidReturnOptions, obstructionOptions, mixerTypeOptions, sensorTypeOptions, reinstatementOptions } from './shared';
 import CompletedBySelector from './CompletedBySelector';
 import BoreholeProgressSummary from './BoreholeProgressSummary';
+import BoreholeCompletionModal from './BoreholeCompletionModal';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 bg-white";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
@@ -24,6 +25,7 @@ const drillingLogTypes = [
 
 export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
   const [showForm, setShowForm] = useState(false);
+  const [completingBorehole, setCompletingBorehole] = useState(null);
   const [adding, setAdding] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const { toast } = useToast();
@@ -244,6 +246,11 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
     setShowForm(true);
   };
 
+  // "End of Hole" — open the completion modal for validation + sealing
+  const handleEndOfHole = (ref, logs) => {
+    setCompletingBorehole({ ref, logs });
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
       <div className="flex items-center gap-2.5 mb-4">
@@ -259,7 +266,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
         )}
       </div>
 
-      <BoreholeProgressSummary todayLogs={todayLogs} onContinue={handleContinueBorehole} />
+      <BoreholeProgressSummary todayLogs={todayLogs} onContinue={handleContinueBorehole} onEndOfHole={handleEndOfHole} />
 
       {todayLogs.length > 0 && (
         <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
@@ -667,6 +674,17 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 active:scale-95 transition text-sm font-semibold border border-blue-200 touch-manipulation">
           <Plus className="w-4 h-4" /> Log Borehole / Sample
         </button>
+      )}
+
+      {completingBorehole && (
+        <BoreholeCompletionModal
+          boreholeRef={completingBorehole.ref}
+          boreholeLogs={completingBorehole.logs}
+          jobId={jobId}
+          staffId={staffId}
+          staffName={staffName}
+          onClose={() => setCompletingBorehole(null)}
+          onComplete={() => setCompletingBorehole(null)} />
       )}
     </div>
   );
