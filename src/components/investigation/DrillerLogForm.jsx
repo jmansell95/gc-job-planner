@@ -6,6 +6,7 @@ import { ArrowDownToLine, TestTube, Wrench, Ruler, Send, Trash2, Plus, X, Drople
 import { useToast } from '@/components/ui/use-toast';
 import { strataOptions, sampleTypes, calculateSptN, fluidLossOptions, fluidReturnOptions, obstructionOptions, mixerTypeOptions, sensorTypeOptions, reinstatementOptions } from './shared';
 import CompletedBySelector from './CompletedBySelector';
+import BoreholeProgressSummary from './BoreholeProgressSummary';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 bg-white";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
@@ -226,6 +227,23 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
   const isCoring = job?.job_type === 'rotary_drilling' && isBorehole;
   const photos = form.photo_urls ? form.photo_urls.split(',').filter(Boolean) : [];
 
+  // "Continue borehole" — pre-fills the form with the borehole ref and
+  // carries the latest depth forward as the new depth_from.
+  const handleContinueBorehole = (ref, maxDepth) => {
+    setForm({
+      ...form,
+      borehole_ref: ref,
+      depth_from: maxDepth > 0 ? String(maxDepth) : '',
+      depth_to: '',
+      log_type: 'borehole_progress',
+      spt_blows_1: '', spt_blows_2: '', spt_blows_3: '',
+      strata_description_detail: '',
+      description: '',
+      photo_urls: '',
+    });
+    setShowForm(true);
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
       <div className="flex items-center gap-2.5 mb-4">
@@ -240,6 +258,8 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
           <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">{todayLogs.length} today</span>
         )}
       </div>
+
+      <BoreholeProgressSummary todayLogs={todayLogs} onContinue={handleContinueBorehole} />
 
       {todayLogs.length > 0 && (
         <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
