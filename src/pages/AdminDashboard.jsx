@@ -12,6 +12,7 @@ import TimesheetManager from '@/components/TimesheetManager';
 import CalendarView from '@/components/CalendarView';
 import ComplianceManager from '@/components/ComplianceManager';
 import LogQualityControl from '@/components/investigation/LogQualityControl';
+import BillingPage from '@/components/BillingPage';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 
 export default function AdminDashboard() {
@@ -77,6 +78,7 @@ export default function AdminDashboard() {
             {activeSection === 'teams' && <SettingsPage initialTab="teams" />}
             {activeSection === 'compliance' && <ComplianceManager />}
             {activeSection === 'log-qc' && <LogQualityControl />}
+            {activeSection === 'billing' && <BillingPage onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}
             {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} />}
           </motion.div>
         </div>
