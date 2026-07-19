@@ -58,7 +58,7 @@ export default function JobAssetsWidget({ onSelectJob }) {
             <Boxes className="w-4 h-4 text-emerald-700" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-slate-900">Job Assets</h2>
+            <h2 className="text-base font-bold text-slate-900">Job Assets</h2>
             <p className="text-xs text-slate-400">Rigs, machinery &amp; trailers on active Jobs</p>
           </div>
         </div>

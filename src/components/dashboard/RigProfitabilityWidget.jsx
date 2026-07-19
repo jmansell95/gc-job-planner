@@ -200,7 +200,7 @@ export default function RigProfitabilityWidget() {
           <HardHat className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h2 className="font-semibold text-slate-900">Rig Profitability</h2>
+          <h2 className="text-base font-bold text-slate-900">Rig Profitability</h2>
           <p className="text-xs text-slate-500">Revenue, cost & current crew — per drilling rig</p>
         </div>
         <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-medium">{rigRows.length} Rigs</span>

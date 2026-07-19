@@ -137,7 +137,7 @@ export default function SupervisorOverviewWidget({ profile }) {
             <Shield className="w-5 h-5 text-white" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-slate-900 truncate">Supervisor Overview</h2>
+            <h2 className="text-base font-bold text-slate-900 truncate">Supervisor Overview</h2>
             <p className="text-xs text-slate-400 truncate">
               {managedTeams.length} {managedTeams.length === 1 ? 'crew' : 'crews'} · live production today
             </p>
