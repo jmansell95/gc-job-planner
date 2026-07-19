@@ -18,6 +18,14 @@ const complianceBadge = {
   unknown: { icon: ShieldCheck, cls: 'text-slate-400' },
 };
 
+// Short text indicator shown inside <option> text — native dropdowns can't render icons
+const complianceOptionText = {
+  compliant: '✓ Compliant',
+  expiring: '⚠ Expiring',
+  expired: '✗ Expired',
+  unknown: '',
+};
+
 export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], defaultDates, rateCardItems = [] }) {
   const [priceSource, setPriceSource] = useState(form.site_asset_id ? 'asset-panda' : form.rate_card_item_id ? 'rate-card' : '');
 
@@ -139,11 +147,14 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
             <optgroup label="🏭 Asset Panda Inventory">
               {assetGroups.map((g) => (
                 <optgroup key={g.label} label={`   ${g.label}`}>
-                  {g.items.map((a) => (
-                    <option key={a.id} value={`ap-${a.id}`}>
-                      {a.name}{a.serial_number ? ` · ${a.serial_number}` : ''}{a.daily_billing_rate != null ? ` · ${fmt(a.daily_billing_rate)}/day` : ' · no rate'}
-                    </option>
-                  ))}
+                  {g.items.map((a) => {
+                    const compText = complianceOptionText[a.compliance_status] || '';
+                    return (
+                      <option key={a.id} value={`ap-${a.id}`}>
+                        {a.name}{a.serial_number ? ` · ${a.serial_number}` : ''}{a.daily_billing_rate != null ? ` · ${fmt(a.daily_billing_rate)}/day` : ' · no rate'}{compText ? ` · ${compText}` : ''}
+                      </option>
+                    );
+                  })}
                 </optgroup>
               ))}
             </optgroup>

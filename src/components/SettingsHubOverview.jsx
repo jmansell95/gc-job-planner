@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Users, Briefcase, Truck, Building2, Receipt, Package, ShieldCheck, Wrench, TrendingUp, HardHat, Boxes, Mail, Palette, Zap, Timer, Banknote, CalendarX, Database, Tag, ListChecks } from 'lucide-react';
+import { Users, Briefcase, Truck, Building2, Receipt, Package, Wrench, TrendingUp, HardHat, Boxes, Mail, Palette, Zap, Timer, Banknote, CalendarX, Database, Tag, ListChecks } from 'lucide-react';
 
 /**
  * Settings Command Hub — an at-a-glance overview of everything configurable.
@@ -19,18 +19,6 @@ export default function SettingsHubOverview({ onNavigate }) {
   const { data: assets = [] } = useQuery({ queryKey: ['site-assets-catalogue'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: billingRules = [] } = useQuery({ queryKey: ['billing-rules'], queryFn: () => base44.entities.BillingRule.list() });
-  const { data: complianceItems = [] } = useQuery({ queryKey: ['compliance-items'], queryFn: () => base44.entities.ComplianceItem.list('-created_date', 500) });
-
-  const expiringCompliance = complianceItems.filter(c => {
-    if (!c.expiry_date) return false;
-    const d = new Date(c.expiry_date);
-    const days = (d - new Date()) / (1000 * 60 * 60 * 24);
-    return days >= 0 && days <= 30;
-  }).length;
-  const expiredCompliance = complianceItems.filter(c => {
-    if (!c.expiry_date) return false;
-    return new Date(c.expiry_date) < new Date();
-  }).length;
 
   const activeCatalogue = catalogue.filter(c => c.is_active !== false).length;
   const ourRateItems = rateItems.filter(r => r.rate_card_source !== 'supplier').length;
@@ -59,9 +47,6 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'rate-card', icon: Receipt, label: 'Master Price List', value: ourRateItems, sub: 'Your rate card', color: 'emerald' },
       { id: 'billing', icon: Banknote, label: 'Billing Rules', value: billingRules.length, sub: 'Charge rules', color: 'blue' },
       { id: 'overtime', icon: Timer, label: 'Overtime', value: '—', sub: 'Rate multipliers', color: 'rose' },
-    ]},
-    { group: 'Compliance', items: [
-      { id: 'compliance', icon: ShieldCheck, label: 'Compliance Items', value: complianceItems.length, sub: `${expiredCompliance} expired · ${expiringCompliance} expiring`, color: expiredCompliance > 0 ? 'rose' : 'emerald' },
     ]},
     { group: 'Communication', items: [
       { id: 'global-branding', icon: Palette, label: 'Global Branding', value: '—', sub: 'Email colours & banners', color: 'violet' },
