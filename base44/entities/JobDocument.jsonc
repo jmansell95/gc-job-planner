@@ -17,6 +17,8 @@
     "category": {
       "type": "string",
       "enum": [
+        "site_map",
+        "scope_of_work",
         "rams",
         "method_statement",
         "risk_assessment",
@@ -24,7 +26,7 @@
         "other"
       ],
       "default": "other",
-      "description": "Document category"
+      "description": "Document category. Site maps and scope of work documents are shown to field staff on their assignment cards so they can review them before and during the job."
     },
     "uploaded_by_name": {
       "type": "string",

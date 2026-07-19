@@ -53,12 +53,14 @@ export default function ManagerTimesheetApprovals({ staffId }) {
   };
 
   return (
-    <div className="bg-white rounded-lg p-4 md:p-6 border border-amber-200 shadow-sm mb-6 md:mb-8">
-      <div className="flex items-center gap-2 mb-4">
-        <ClipboardCheck className="w-5 h-5 text-amber-600" />
-        <h2 className="text-lg font-bold text-slate-900">Timesheet Approvals</h2>
-        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">{pending.length} pending</span>
-      </div>
+    <div className="space-y-3">
+      {pending.length > 0 && (
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold">
+            <ClipboardCheck className="w-3 h-3" /> {pending.length} pending
+          </span>
+        </div>
+      )}
 
       {pending.length === 0 ? (
         <p className="text-sm text-slate-400 text-center py-4">No timesheets pending your approval right now.</p>
@@ -121,7 +123,6 @@ export default function ManagerTimesheetApprovals({ staffId }) {
           })}
         </div>
       )}
-
     </div>
   );
 }

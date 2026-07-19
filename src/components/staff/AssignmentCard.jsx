@@ -4,6 +4,7 @@ import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, Chec
 import { format } from 'date-fns';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import EquipmentComplianceSection from '@/components/staff/EquipmentComplianceSection';
+import JobDocumentViewer from '@/components/staff/JobDocumentViewer';
 import { formatJobType } from '@/utils/format';
 import { isCheckInDeadlinePassed, isWithinSiteHours, isBeforeSiteOpen } from '@/utils/siteHours';
 
@@ -312,6 +313,9 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               </div>
             );
           })()}
+
+          {/* Job documents — site maps, scope of work, RAMS etc. */}
+          <JobDocumentViewer jobId={job.id} />
 
           {/* Briefing status + photos */}
           <div className="pt-3 border-t border-slate-100 space-y-3">

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { HardHat, ArrowLeft, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users } from 'lucide-react';
+import { HardHat, ArrowLeft, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, Bell } from 'lucide-react';
 import { format } from 'date-fns';
 import DailyDiary from '@/components/staff/DailyDiary';
 import WorkHistory from '@/components/staff/WorkHistory';
@@ -11,7 +11,6 @@ import ProfileStats from '@/components/staff/ProfileStats';
 import TrainingHistory from '@/components/staff/TrainingHistory';
 import StaffDocuments from '@/components/staff/StaffDocuments';
 import TeamMiniFeed from '@/components/staff/TeamMiniFeed';
-import EmailNotificationToggle from '@/components/staff/EmailNotificationToggle';
 import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
 import { useStaffAssistant } from '@/components/StaffAssistantChat';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -123,7 +122,10 @@ export default function StaffProfile() {
               <CalendarPlus className="w-4 h-4" />
               <span>Time Off</span>
             </button>
-            <EmailNotificationToggle initialEnabled={staff.email_notifications_enabled} compact />
+            <span className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10 ring-1 ring-white/10 text-emerald-50 text-sm font-medium whitespace-nowrap flex-shrink-0">
+              <Bell className="w-4 h-4" />
+              <span>Emails On</span>
+            </span>
             {reporters.length > 0 && (
               <button onClick={() => setShowApprovals(true)} type="button"
                 className="relative flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
