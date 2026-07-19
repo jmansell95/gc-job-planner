@@ -466,7 +466,7 @@ export default function WeeklyRotaBuilder() {
           const dayStr = format(day, 'yyyy-MM-dd');
           const dayRotas = rotas.filter(r => r.assigned_date === dayStr);
           const overlaps = dayRotas.length > 1
-            ? dayRotas.filter(r => r.start_time && r.end_time && dayRotas.some(o => o.id !== r.id && o.start_time && o.end_time && (() => { const a = r.start_time.replace(':',''), b = r.end_time.replace(':',''), c = o.start_time.replace(':',''), d = o.end_time.replace(':',''); return a < d && c < b; })())).length
+            ? dayRotas.filter(r => r.start_time && r.end_time && dayRotas.some(o => o.id !== r.id && o.staff_id === r.staff_id && o.start_time && o.end_time && (() => { const a = r.start_time.replace(':',''), b = r.end_time.replace(':',''), c = o.start_time.replace(':',''), d = o.end_time.replace(':',''); return a < d && c < b; })())).length
             : 0;
           const isToday = dayStr === todayStr;
           return (
