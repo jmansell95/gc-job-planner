@@ -126,39 +126,31 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
         </label>
         <select
           value={form.site_asset_id ? `ap-${form.site_asset_id}` : form.rate_card_item_id ? `rc-${form.rate_card_item_id}` : ''}
-          onChange={(e) => { handlePick(e.target.value); e.target.value = ''; }}
+          onChange={(e) => handlePick(e.target.value)}
           className={inputCls}
         >
           <option value="">Select an item…</option>
-          {rateCardGroups.length > 0 && (
-            <optgroup label="📋 Master Price List">
-              {rateCardGroups.map((g) => (
-                <optgroup key={g.label} label={`   ${g.label}`}>
-                  {g.items.map((r) => (
-                    <option key={r.id} value={`rc-${r.id}`}>
-                      {r.description} · {r.price != null ? fmt(r.price) : r.price_text || 'POA'}{r.unit ? `/${r.unit}` : ''}
-                    </option>
-                  ))}
-                </optgroup>
+          {rateCardGroups.map((g) => (
+            <optgroup key={`rc-${g.label}`} label={`📋 ${g.label}`}>
+              {g.items.map((r) => (
+                <option key={r.id} value={`rc-${r.id}`}>
+                  {r.description} · {r.price != null ? fmt(r.price) : r.price_text || 'POA'}{r.unit ? `/${r.unit}` : ''}
+                </option>
               ))}
             </optgroup>
-          )}
-          {assetGroups.length > 0 && (
-            <optgroup label="🏭 Owned Equipment">
-              {assetGroups.map((g) => (
-                <optgroup key={g.label} label={`   ${g.label}`}>
-                  {g.items.map((a) => {
-                    const compText = complianceOptionText[a.compliance_status] || '';
-                    return (
-                      <option key={a.id} value={`ap-${a.id}`}>
-                        {a.name}{a.serial_number ? ` · ${a.serial_number}` : ''}{a.daily_billing_rate != null ? ` · ${fmt(a.daily_billing_rate)}/day` : ' · no rate'}{compText ? ` · ${compText}` : ''}
-                      </option>
-                    );
-                  })}
-                </optgroup>
-              ))}
+          ))}
+          {assetGroups.map((g) => (
+            <optgroup key={`ap-${g.label}`} label={`🏭 ${g.label}`}>
+              {g.items.map((a) => {
+                const compText = complianceOptionText[a.compliance_status] || '';
+                return (
+                  <option key={a.id} value={`ap-${a.id}`}>
+                    {a.name}{a.serial_number ? ` · ${a.serial_number}` : ''}{a.daily_billing_rate != null ? ` · ${fmt(a.daily_billing_rate)}/day` : ' · no rate'}{compText ? ` · ${compText}` : ''}
+                  </option>
+                );
+              })}
             </optgroup>
-          )}
+          ))}
         </select>
         {rateCardGroups.length === 0 && assetGroups.length === 0 && (
           <p className="text-xs text-slate-400 italic mt-1">No rate card items or Asset Panda assets found. Enter details manually below. Rate card items can be added in Settings → Rate Card; Asset Panda assets will appear once synced.</p>

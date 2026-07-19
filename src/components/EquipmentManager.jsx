@@ -352,12 +352,6 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
   const activeItems = isJobMode ? items.filter(c => (c.hire_status || 'active') !== 'off_hired') : items;
   const returnedItems = isJobMode ? items.filter(c => c.hire_status === 'off_hired') : [];
   const visibleItems = isJobMode ? (hireFilter === 'active' ? activeItems : returnedItems) : items;
-  const personGroups = visibleItems.reduce((acc, c) => {
-    const person = c.responsible_person || (c.category === 'contractor_supplied' ? 'Contractor Supplied' : c.category === 'client_supplied' ? 'Client Supplied' : 'Unassigned');
-    if (!acc[person]) acc[person] = [];
-    acc[person].push(c);
-    return acc;
-  }, {});
   const assetMap = {};
   (siteAssets || []).forEach(a => { assetMap[a.id] = a; });
   const rigItemLinks = {};
@@ -374,6 +368,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
       }
     }
   }
+  const standaloneItems = visibleItems.filter(c => !linkedItemIds.has(c.id));
   const offHiringItem = items.find(c => c.id === offHiringId);
 
   return (
@@ -488,39 +483,25 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
         ) : visibleItems.length === 0 && !adding ? (
           <div className="text-center py-6 text-slate-400 text-sm border border-dashed border-slate-200 rounded-lg">No active equipment.</div>
         ) : (
-          <div className="space-y-4">
-            {Object.entries(personGroups).map(([person, personItems]) => {
-              const standalone = personItems.filter(c => !linkedItemIds.has(c.id));
-              return (
-                <div key={person}>
-                  <div className="flex items-center gap-1.5 mb-2 px-1">
-                    <User className="w-3.5 h-3.5 text-slate-400" />
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">{person}</p>
-                    <span className="text-xs text-slate-400">({standalone.length})</span>
-                  </div>
-                  <div className="space-y-2">
-                    {standalone.map(c => (
-                      <EquipmentItemCard
-                        key={c.id}
-                        item={c}
-                        linkedItems={rigItemLinks[c.id] || []}
-                        assetMap={assetMap}
-                        suppliers={suppliers}
-                        contractors={contractors}
-                        clients={clients}
-                        isJobMode={isJobMode}
-                        categoryConfig={categoryConfig}
-                        locationBadge={locationBadge}
-                        complianceConfig={complianceConfig}
-                        onEdit={editItem}
-                        onDelete={deleteItem}
-                        onOffHire={openOffHire}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="space-y-2">
+            {standaloneItems.map(c => (
+              <EquipmentItemCard
+                key={c.id}
+                item={c}
+                linkedItems={rigItemLinks[c.id] || []}
+                assetMap={assetMap}
+                suppliers={suppliers}
+                contractors={contractors}
+                clients={clients}
+                isJobMode={isJobMode}
+                categoryConfig={categoryConfig}
+                locationBadge={locationBadge}
+                complianceConfig={complianceConfig}
+                onEdit={editItem}
+                onDelete={deleteItem}
+                onOffHire={openOffHire}
+              />
+            ))}
           </div>
         )}
       </div>
