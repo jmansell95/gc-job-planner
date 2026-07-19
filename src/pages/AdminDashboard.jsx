@@ -8,7 +8,6 @@ import JobManager from '@/components/JobManager';
 import SettingsPage from '@/components/SettingsPage';
 import JobDetail from '@/components/JobDetail';
 import SchedulingHub from '@/components/SchedulingHub';
-import BillingPage from '@/components/BillingPage';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 
 export default function AdminDashboard() {
@@ -75,8 +74,8 @@ export default function AdminDashboard() {
             {activeSection === 'teams' && <SettingsPage initialTab="teams" />}
             {activeSection === 'compliance' && <SettingsPage initialTab="compliance" />}
             {activeSection === 'log-qc' && <SettingsPage initialTab="log-qc" />}
-            {activeSection === 'billing' && <BillingPage onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}
-            {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} />}
+            {activeSection === 'billing' && <SettingsPage initialTab="invoicing" onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}
+            {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}
           </motion.div>
         </div>
       </main>

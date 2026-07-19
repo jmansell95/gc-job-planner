@@ -24,11 +24,12 @@ import SettingsNav, { accessibleSettingsItems } from '@/components/SettingsNav';
 import ComplianceManager from '@/components/ComplianceManager';
 import LogQualityControl from '@/components/investigation/LogQualityControl';
 import TimesheetManager from '@/components/TimesheetManager';
+import BillingPage from '@/components/BillingPage';
 import { resolveRole } from '@/utils/access';
 import { base44 } from '@/api/base44Client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
-export default function SettingsPage({ initialTab }) {
+export default function SettingsPage({ initialTab, onSelectJob }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'hub');
   const [navOpen, setNavOpen] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -82,6 +83,7 @@ export default function SettingsPage({ initialTab }) {
       case 'compliance': return <ComplianceManager />;
       case 'log-qc': return <LogQualityControl />;
       case 'timesheets': return <TimesheetManager />;
+      case 'invoicing': return <BillingPage onSelectJob={onSelectJob} />;
       default: return null;
     }
   };

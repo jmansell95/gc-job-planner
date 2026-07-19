@@ -41,7 +41,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'overview', label: 'Dashboard', icon: Grid3x3 },
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
     { id: 'scheduling', label: 'Scheduling', icon: Calendar },
-    { id: 'billing', label: 'Billing', icon: Receipt },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
