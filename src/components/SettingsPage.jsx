@@ -63,15 +63,19 @@ export default function SettingsPage({ initialTab }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
-        <PageHeader title="Settings" icon={Settings} />
-        <button onClick={() => setNavOpen(true)}
-          className="flex items-center gap-2.5 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:border-emerald-300 transition">
-          <Menu className="w-4 h-4 text-emerald-700" />
-          <span>{active?.label || 'All Settings'}</span>
-          <ChevronDown className="w-4 h-4 text-slate-400" />
-        </button>
-      </div>
+      <PageHeader
+        title="Settings"
+        icon={Settings}
+        subtitle={active?.label ? `${active.label}${active.desc ? ' · ' + active.desc : ''}` : 'Configure crews, assets, billing & automation'}
+        actions={
+          <button onClick={() => setNavOpen(true)}
+            className="inline-flex items-center gap-2.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm">
+            <Menu className="w-4 h-4" />
+            <span>{active?.label || 'All Settings'}</span>
+            <ChevronDown className="w-4 h-4" />
+          </button>
+        }
+      />
 
       <Sheet open={navOpen} onOpenChange={setNavOpen}>
         <SheetContent side="left" className="w-80 max-w-[85vw] p-4 overflow-y-auto">

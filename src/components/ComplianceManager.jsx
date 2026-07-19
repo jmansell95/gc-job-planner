@@ -19,9 +19,7 @@ export default function ComplianceManager() {
 
   return (
     <div>
-      <div className="mb-6 md:mb-8">
-        <PageHeader title="Compliance" icon={ShieldCheck} />
-      </div>
+      <PageHeader title="Compliance" icon={ShieldCheck} subtitle="Track certificates, training & site qualifications" />
       <PillTabs tabs={tabs} activeId={activeTab} onChange={setActiveTab} />
       {activeTab === 'tracking' && <ComplianceTracking />}
       {activeTab === 'reports' && <ComplianceReports />}

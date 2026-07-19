@@ -198,7 +198,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     <div>
       {/* Hero header */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-6">
-        <div className="command-gradient relative overflow-hidden rounded-2xl shadow-lg px-5 py-5 sm:px-7 sm:py-6">
+        <div className="hero-gradient relative overflow-hidden rounded-2xl shadow-lg px-5 py-5 sm:px-7 sm:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
           <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="p-3 bg-white/15 ring-1 ring-white/25 rounded-2xl flex-shrink-0 backdrop-blur-sm">

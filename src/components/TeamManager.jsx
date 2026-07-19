@@ -231,12 +231,16 @@ export default function TeamManager() {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-        <PageHeader title="Manage Crews" icon={Users} />
-        <button onClick={() => openCreate()} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium self-start md:self-auto">
-          <Plus className="w-4 h-4" /> Add Crew
-        </button>
-      </div>
+      <PageHeader
+        title="Manage Crews"
+        icon={Users}
+        subtitle={`${teams.length} crew${teams.length === 1 ? '' : 's'} · ${staff.length - unassignedStaff.length} assigned`}
+        actions={
+          <button onClick={() => openCreate()} className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
+            <Plus className="w-4 h-4" /> Add Crew
+          </button>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 md:gap-4 mb-6">

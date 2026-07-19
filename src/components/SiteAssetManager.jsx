@@ -6,6 +6,7 @@ import { Skeleton, EmptyState } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
 import SyncComplianceButton from '@/components/SyncComplianceButton';
 import { useConfigLists } from '@/hooks/useConfigLists';
+import PageHeader from '@/components/PageHeader';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
@@ -121,18 +122,19 @@ export default function SiteAssetManager() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">Asset Compliance</h2>
-          <p className="text-sm text-slate-500">Inventory synced from Asset Panda · compliance status from GC Compliance Manager</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <SyncComplianceButton />
-          <button onClick={handleAdd} className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-            <Plus className="w-4 h-4" /> Add Asset
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Asset Compliance"
+        icon={Wrench}
+        subtitle="Inventory synced from Asset Panda · compliance from GC Compliance Manager"
+        actions={
+          <>
+            <SyncComplianceButton />
+            <button onClick={handleAdd} className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
+              <Plus className="w-4 h-4" /> Add Asset
+            </button>
+          </>
+        }
+      />
 
       {/* Issue banners */}
       {(expiredCount > 0 || unknownCount > 0 || neverSyncedCount > 0) && (

@@ -210,21 +210,19 @@ export default function StaffManager() {
 
   return (
     <div>
-      <div className="mb-6">
-        <PageHeader
-          title="Manage Crew"
-          icon={Users}
-          subtitle={`${staff.length} crew member${staff.length === 1 ? '' : 's'} in total`}
-          actions={
-            <>
-              <PrintReportButton buildHtml={buildStaffPrintHtml} label="Print" />
-              <button onClick={resetForm} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-semibold shadow-sm">
-                <Plus className="w-4 h-4" /> Add Crew Member
-              </button>
-            </>
-          }
-        />
-      </div>
+      <PageHeader
+        title="Manage Crew"
+        icon={Users}
+        subtitle={`${staff.length} crew member${staff.length === 1 ? '' : 's'} in total`}
+        actions={
+          <>
+            <PrintReportButton buildHtml={buildStaffPrintHtml} label="Print" />
+            <button onClick={resetForm} className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
+              <Plus className="w-4 h-4" /> Add Crew Member
+            </button>
+          </>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
