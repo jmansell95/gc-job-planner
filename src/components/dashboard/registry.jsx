@@ -34,17 +34,19 @@ export const DEFAULT_WIDGET_ORDER = [
   'site-hazards',
 ];
 
-// Tabbed groups for the dashboard. Each widget is assigned to one tab.
-export const DASHBOARD_TABS = [
-  { id: 'operations', label: 'Operations', icon: Grid3x3, widgets: ['kpi-stats', 'field-crews', 'job-assets', 'delivery-stats', 'supervisor-overview', 'site-hazards'] },
-  { id: 'insights', label: 'Insights', icon: BarChart3, widgets: ['charts', 'cost-analytics', 'ai-insights'] },
-  { id: 'finance', label: 'Finance', icon: PoundSterling, widgets: ['job-profitability', 'asset-crew-profitability', 'rig-profitability'] },
+// Sectioned layout for the dashboard. Widgets are grouped into labelled sections
+// rendered top-to-bottom (no tabs). Each section's widgets are filtered by scope
+// (global-only widgets are hidden when a specific job is focused) and by cost
+// permission, so empty sections automatically collapse out of view.
+export const DASHBOARD_SECTIONS = [
+  { id: 'overview', label: 'Overview', icon: Grid3x3, widgets: ['kpi-stats', 'field-crews', 'job-assets', 'delivery-stats', 'supervisor-overview', 'site-hazards'] },
+  { id: 'performance', label: 'Performance & Insights', icon: TrendingUp, widgets: ['charts', 'cost-analytics', 'job-profitability', 'asset-crew-profitability', 'rig-profitability', 'ai-insights'] },
   { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'maintenance-quick-view'] },
 ];
 
-// Map of widget id -> tab id (derived from DASHBOARD_TABS).
-export const WIDGET_TO_TAB = Object.fromEntries(
-  DASHBOARD_TABS.flatMap(t => t.widgets.map(w => [w, t.id]))
+// Map of widget id -> section id (derived from DASHBOARD_SECTIONS).
+export const WIDGET_TO_SECTION = Object.fromEntries(
+  DASHBOARD_SECTIONS.flatMap(s => s.widgets.map(w => [w, s.id]))
 );
 
 export const DEFAULT_WIDGET_SIZES = {

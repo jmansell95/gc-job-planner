@@ -9,7 +9,7 @@ import MaintenanceQuickView from '@/components/MaintenanceQuickView';
 import JobCostAnalytics from '@/components/JobCostAnalytics';
 import DeliveryStats from '@/components/DeliveryStats';
 import WidgetCard from '@/components/dashboard/WidgetCard';
-import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES, DASHBOARD_TABS, WIDGET_TO_TAB, COST_WIDGETS, GLOBAL_ONLY_WIDGETS } from '@/components/dashboard/registry';
+import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES, DASHBOARD_SECTIONS, WIDGET_TO_SECTION, COST_WIDGETS, GLOBAL_ONLY_WIDGETS } from '@/components/dashboard/registry';
 import { KpiStatsWidget, FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
 import SupervisorOverviewWidget from '@/components/dashboard/SupervisorOverviewWidget';
@@ -19,7 +19,6 @@ import SiteHazardMapWidget from '@/components/dashboard/SiteHazardMapWidget';
 import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
 import AssetCrewProfitability from '@/components/AssetCrewProfitability';
 import RigProfitabilityWidget from '@/components/dashboard/RigProfitabilityWidget';
-import PillTabs from '@/components/PillTabs';
 import { canViewCostings } from '@/utils/access';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
@@ -29,7 +28,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [widgetOrder, setWidgetOrder] = useState(DEFAULT_WIDGET_ORDER);
   const [widgetSizes, setWidgetSizes] = useState({});
   const [layoutId, setLayoutId] = useState(null);
-  const [activeTab, setActiveTab] = useState(DASHBOARD_TABS[0].id);
   const queryClient = useQueryClient();
   const { selectedJobId } = useJobFilter();
   const isAllJobs = selectedJobId === 'all';
@@ -130,7 +128,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   const handleDragEnd = (result) => {
     if (!result.destination) return;
-    const visible = widgetOrder.filter(id => WIDGET_TO_TAB[id] === activeTab);
+    const sectionId = result.source.droppableId;
+    const visible = widgetOrder.filter(id => WIDGET_TO_SECTION[id] === sectionId && canShowWidget(id));
     const newVisible = [...visible];
     const [moved] = newVisible.splice(result.source.index, 1);
     newVisible.splice(result.destination.index, 0, moved);
@@ -138,7 +137,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     const newOrder = [];
     let vi = 0;
     for (const id of widgetOrder) {
-      if (WIDGET_TO_TAB[id] === activeTab) {
+      if (WIDGET_TO_SECTION[id] === sectionId && canShowWidget(id)) {
         newOrder.push(newVisible[vi++]);
       } else {
         newOrder.push(id);
@@ -189,13 +188,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const canShowWidget = (id) => (canViewCosts || !COST_WIDGETS.includes(id)) && (isAllJobs || !GLOBAL_ONLY_WIDGETS.includes(id));
   const visibleOrder = widgetOrder.filter(canShowWidget);
   const visibleHidden = hiddenWidgets.filter(canShowWidget);
-  const visibleTabs = DASHBOARD_TABS.filter(t => t.widgets.some(w => visibleOrder.includes(w) || visibleHidden.includes(w)));
-
-  useEffect(() => {
-    if (visibleTabs.length && !visibleTabs.some(t => t.id === activeTab)) {
-      setActiveTab(visibleTabs[0].id);
-    }
-  }, [visibleTabs, activeTab]);
 
   const selectedJob = !isAllJobs ? jobs.find(j => j.id === selectedJobId) : null;
 
@@ -267,43 +259,52 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
       {customizeMode && (
         <div className="mb-4 bg-emerald-50/80 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800">
-          Drag sections to reorder them within a tab. Tap S, M or L to resize a section, or Hide to remove it from your dashboard.
+          Drag sections to reorder them. Tap S, M or L to resize a section, or Hide to remove it from your dashboard.
         </div>
       )}
 
-      <PillTabs
-        tabs={visibleTabs}
-        activeId={activeTab}
-        onChange={setActiveTab}
-        contextLabel={isAllJobs ? 'All Jobs' : 'This Job'}
-      />
-
       <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="dashboard-widgets">
-          {(provided) => (
-            <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
-              {visibleOrder.filter(id => WIDGET_TO_TAB[id] === activeTab).map((widgetId, index) => (
-                <Draggable key={widgetId} draggableId={widgetId} index={index} isDragDisabled={!customizeMode}>
-                  {(provided) => (
-                    <div ref={provided.innerRef} {...provided.draggableProps} className={sizeColSpan(getWidgetSize(widgetId))}>
-                      <WidgetCard
-                        widgetId={widgetId}
-                        customizeMode={customizeMode}
-                        dragHandleProps={provided.dragHandleProps}
-                        onHide={() => handleToggleWidget(widgetId)}
-                        size={getWidgetSize(widgetId)}
-                        onResize={(s) => handleResize(widgetId, s)}
-                      >
-                        {renderWidget(widgetId)}
-                      </WidgetCard>
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
+        {DASHBOARD_SECTIONS.map(section => {
+          const sectionWidgets = visibleOrder.filter(id => WIDGET_TO_SECTION[id] === section.id);
+          if (sectionWidgets.length === 0) return null;
+          const Icon = section.icon;
+          return (
+            <section key={section.id} className="mb-7">
+              <div className="flex items-center gap-2 mb-3 px-1">
+                <div className="w-7 h-7 rounded-lg bg-emerald-50 ring-1 ring-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-4 h-4 text-emerald-700" />
+                </div>
+                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">{section.label}</h2>
+                <span className="text-xs text-slate-400 font-medium">{sectionWidgets.length}</span>
+              </div>
+              <Droppable droppableId={section.id}>
+                {(provided) => (
+                  <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+                    {sectionWidgets.map((widgetId, index) => (
+                      <Draggable key={widgetId} draggableId={widgetId} index={index} isDragDisabled={!customizeMode}>
+                        {(provided) => (
+                          <div ref={provided.innerRef} {...provided.draggableProps} className={sizeColSpan(getWidgetSize(widgetId))}>
+                            <WidgetCard
+                              widgetId={widgetId}
+                              customizeMode={customizeMode}
+                              dragHandleProps={provided.dragHandleProps}
+                              onHide={() => handleToggleWidget(widgetId)}
+                              size={getWidgetSize(widgetId)}
+                              onResize={(s) => handleResize(widgetId, s)}
+                            >
+                              {renderWidget(widgetId)}
+                            </WidgetCard>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </section>
+          );
+        })}
       </DragDropContext>
 
       {/* Hidden widgets — add them back */}
