@@ -21,6 +21,8 @@ import AssetCrewProfitability from '@/components/AssetCrewProfitability';
 import RigProfitabilityWidget from '@/components/dashboard/RigProfitabilityWidget';
 import PillTabs from '@/components/PillTabs';
 import { canViewCostings } from '@/utils/access';
+import { useJobFilter } from '@/components/dashboard/JobFilterContext';
+import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [customizeMode, setCustomizeMode] = useState(false);
@@ -29,6 +31,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [layoutId, setLayoutId] = useState(null);
   const [activeTab, setActiveTab] = useState(DASHBOARD_TABS[0].id);
   const queryClient = useQueryClient();
+  const { selectedJobId } = useJobFilter();
+  const isAllJobs = selectedJobId === 'all';
 
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
@@ -77,33 +81,39 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 17 ? 'Good afternoon' : 'Good evening';
   const firstName = profile?.name?.split(' ')[0] || '';
 
-  const activeJobs = jobs.filter(j => (j.status || 'planning') === 'in_progress');
-  const onHoldJobs = jobs.filter(j => j.status === 'on_hold');
-  const todaysRotas = thisWeekRotas.filter(r => r.assigned_date === todayStr);
+  // Apply job filter to all dashboard data
+  const scopedJobs = isAllJobs ? jobs : jobs.filter(j => j.id === selectedJobId);
+  const scopedTimesheets = isAllJobs ? timesheets : timesheets.filter(t => t.job_id === selectedJobId);
+  const scopedDeliveries = isAllJobs ? deliveries : deliveries.filter(d => d.job_id === selectedJobId);
+  const scopedRotas = isAllJobs ? thisWeekRotas : thisWeekRotas.filter(r => r.job_id === selectedJobId);
+
+  const activeJobs = scopedJobs.filter(j => (j.status || 'planning') === 'in_progress');
+  const onHoldJobs = scopedJobs.filter(j => j.status === 'on_hold');
+  const todaysRotas = scopedRotas.filter(r => r.assigned_date === todayStr);
   const staffToday = [...new Set(todaysRotas.map(r => r.staff_id))].length;
-  const pendingTs = timesheets.filter(t => t.status === 'submitted').length;
+  const pendingTs = scopedTimesheets.filter(t => t.status === 'submitted').length;
   const activeStaff = staff.filter(s => s.is_active !== false).length;
 
-  const pendingDeliveries = deliveries.filter(d => d.status === 'pending' || d.status === 'in_progress').length;
-  const planningJobs = jobs.filter(j => (j.status || 'planning') === 'planning').length;
+  const pendingDeliveries = scopedDeliveries.filter(d => d.status === 'pending' || d.status === 'in_progress').length;
+  const planningJobs = scopedJobs.filter(j => (j.status || 'planning') === 'planning').length;
 
   const stats = [
-    { label: 'Active Jobs', value: activeJobs.length, sub: onHoldJobs.length ? `${onHoldJobs.length} on hold · ${planningJobs} planning` : `${planningJobs} planning · ${jobs.length} total`, icon: Briefcase, gradient: 'stat-gradient-emerald', nav: 'jobs' },
+    { label: isAllJobs ? 'Active Jobs' : 'Job Status', value: isAllJobs ? activeJobs.length : (scopedJobs[0]?.status || '—').replace(/_/g, ' '), sub: isAllJobs ? (onHoldJobs.length ? `${onHoldJobs.length} on hold · ${planningJobs} planning` : `${planningJobs} planning · ${scopedJobs.length} total`) : (scopedJobs[0]?.location || ''), icon: Briefcase, gradient: 'stat-gradient-emerald', nav: 'jobs' },
     { label: 'Crews Deployed', value: staffToday, sub: `${activeStaff} active crew`, icon: Users, gradient: 'stat-gradient-blue', nav: 'rota' },
     { label: 'Timesheet Queue', value: pendingTs, sub: 'awaiting approval', icon: ClipboardCheck, gradient: pendingTs > 0 ? 'stat-gradient-amber' : 'stat-gradient-slate', nav: 'timesheets' },
-    { label: 'Deliveries Today', value: pendingDeliveries, sub: `${deliveries.length} scheduled`, icon: Truck, gradient: pendingDeliveries > 0 ? 'stat-gradient-rose' : 'stat-gradient-slate', nav: 'deliveries' },
+    { label: 'Deliveries Today', value: pendingDeliveries, sub: `${scopedDeliveries.length} scheduled`, icon: Truck, gradient: pendingDeliveries > 0 ? 'stat-gradient-rose' : 'stat-gradient-slate', nav: 'deliveries' },
   ];
 
   const canViewCosts = canViewCostings(profile);
 
   const renderWidget = (widgetId) => {
     switch (widgetId) {
-      case 'delivery-stats': return <DeliveryStats onNavigate={onNavigate} onSelectJob={onSelectJob} jobs={jobs} />;
+      case 'delivery-stats': return <DeliveryStats onNavigate={onNavigate} onSelectJob={onSelectJob} jobs={scopedJobs} />;
       case 'kpi-stats': return <KpiStatsWidget stats={stats} onNavigate={onNavigate} />;
       case 'compliance-overview': return <ComplianceOverviewWidget onNavigate={onNavigate} />;
       case 'supervisor-overview': return <SupervisorOverviewWidget profile={profile} />;
-      case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={jobs} vehicles={vehicles} onSelectJob={onSelectJob} onNavigate={onNavigate} />;
-      case 'charts': return <ChartsWidget jobs={jobs} staff={staff} rotas={thisWeekRotas} weekDays={weekDays} />;
+      case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={scopedJobs} vehicles={vehicles} onSelectJob={onSelectJob} onNavigate={onNavigate} />;
+      case 'charts': return <ChartsWidget jobs={scopedJobs} staff={staff} rotas={scopedRotas} weekDays={weekDays} />;
       case 'cost-analytics': return canViewCosts ? <JobCostAnalytics /> : null;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
       case 'job-assets': return <JobAssetsWidget onSelectJob={onSelectJob} />;
@@ -224,6 +234,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           </div>
         </div>
       </motion.div>
+
+      <JobSelectorBar />
 
       {customizeMode && (
         <div className="mb-4 bg-emerald-50/80 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800">

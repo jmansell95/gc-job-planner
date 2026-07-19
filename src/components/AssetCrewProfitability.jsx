@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Wrench, Users, TrendingUp, TrendingDown, PoundSterling, Truck, Loader2, HardHat, ChevronRight, ChevronDown } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 import { eachDayOfInterval, isWeekend } from 'date-fns';
+import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 
 const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB');
 
@@ -25,6 +26,8 @@ const ASSET_TYPE_META = {
 export default function AssetCrewProfitability() {
   const [tab, setTab] = useState('assets');
   const [expandedRigs, setExpandedRigs] = useState(new Set());
+  const { selectedJobId } = useJobFilter();
+  const isAllJobs = selectedJobId === 'all';
 
   const toggleRig = (id) => {
     setExpandedRigs(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s; });
@@ -40,6 +43,13 @@ export default function AssetCrewProfitability() {
   const { data: invLogs = [] } = useQuery({ queryKey: ['investigation-logs-profit'], queryFn: () => base44.entities.InvestigationLog.list() });
   const { data: deliveries = [] } = useQuery({ queryKey: ['delivery-logs-profit'], queryFn: () => base44.entities.DeliveryLog.list() });
 
+  // Scope all data to the selected job
+  const scopedAssignments = isAllJobs ? assignments : assignments.filter(a => a.job_id === selectedJobId);
+  const scopedCostItems = isAllJobs ? costItems : costItems.filter(c => c.job_id === selectedJobId);
+  const scopedTimesheets = isAllJobs ? timesheets : timesheets.filter(t => t.job_id === selectedJobId);
+  const scopedInvLogs = isAllJobs ? invLogs : invLogs.filter(l => l.job_id === selectedJobId);
+  const scopedDeliveries = isAllJobs ? deliveries : deliveries.filter(d => d.job_id === selectedJobId);
+
   const jobById = useMemo(() => Object.fromEntries(jobs.map(j => [j.id, j])), [jobs]);
 
   // ---- Per-asset profitability ----
@@ -47,7 +57,7 @@ export default function AssetCrewProfitability() {
     const today = new Date();
     // hire cost per asset (internal = 0)
     const costByAsset = {};
-    costItems.forEach(c => {
+    scopedCostItems.forEach(c => {
       if (!c.site_asset_id) return;
       if (c.category === 'contractor_supplied' || c.category === 'client_supplied') return;
       costByAsset[c.site_asset_id] = (costByAsset[c.site_asset_id] || 0) + (c.unit_cost || 0) * (c.quantity || 1);
@@ -57,7 +67,7 @@ export default function AssetCrewProfitability() {
     const revByAsset = {};
     const daysByAsset = {};
     const jobsByAsset = {};
-    assignments.forEach(a => {
+    scopedAssignments.forEach(a => {
       const job = jobById[a.job_id];
       const from = a.arrived_on_site_date || a.assigned_date || job?.start_date;
       const to = a.returned_date || job?.end_date || today;
@@ -95,7 +105,7 @@ export default function AssetCrewProfitability() {
       };
     }).filter(r => r.days > 0 || r.cost > 0 || r.revenue > 0 || linkedIds.has(r.id) || hasLinked.has(r.id))
       .sort((a, b) => b.revenue - a.revenue);
-  }, [assets, assignments, costItems, jobById]);
+  }, [assets, scopedAssignments, scopedCostItems, jobById]);
 
   // Group rigs with their linked equipment — parent rig shows aggregated totals,
   // linked gear collapses underneath and expands on tap.
@@ -151,7 +161,7 @@ export default function AssetCrewProfitability() {
 
     // revenue from chargeable timesheets
     const timesheetRevByTeam = {};
-    timesheets.forEach(t => {
+    scopedTimesheets.forEach(t => {
       if (!t.chargeable || !t.charge_amount) return;
       for (const teamId of Object.keys(staffByTeam)) {
         if (staffIdSet(teamId).has(t.staff_id)) {
@@ -162,7 +172,7 @@ export default function AssetCrewProfitability() {
     });
     // revenue from investigation logs
     const invRevByTeam = {};
-    invLogs.forEach(l => {
+    scopedInvLogs.forEach(l => {
       if (!l.charge_amount) return;
       for (const teamId of Object.keys(staffByTeam)) {
         if (staffIdSet(teamId).has(l.staff_id)) {
@@ -173,7 +183,7 @@ export default function AssetCrewProfitability() {
     });
     // revenue from deliveries (driver)
     const delivRevByTeam = {};
-    deliveries.forEach(d => {
+    scopedDeliveries.forEach(d => {
       if (!d.charge_amount) return;
       for (const teamId of Object.keys(staffByTeam)) {
         if (staffIdSet(teamId).has(d.driver_staff_id)) {
@@ -196,7 +206,7 @@ export default function AssetCrewProfitability() {
       };
     }).filter(r => r.members > 0 || r.revenue > 0)
       .sort((a, b) => b.revenue - a.revenue);
-  }, [teams, staff, timesheets, invLogs, deliveries]);
+  }, [teams, staff, scopedTimesheets, scopedInvLogs, scopedDeliveries]);
 
   const crewTotals = useMemo(() => crewRows.reduce((acc, r) => ({
     revenue: acc.revenue + r.revenue,

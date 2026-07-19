@@ -6,9 +6,11 @@ import { Truck, Package, ArrowRightLeft, CheckCircle2, Clock, PackageCheck, MapP
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/StateViews';
 import WidgetShell from '@/components/dashboard/WidgetShell';
+import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 
 export default function DeliveryStats({ onNavigate, onSelectJob, jobs = [] }) {
   const [drillType, setDrillType] = useState(null);
+  const { selectedJobId } = useJobFilter();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   const { data: deliveries = [], isLoading } = useQuery({
@@ -16,7 +18,7 @@ export default function DeliveryStats({ onNavigate, onSelectJob, jobs = [] }) {
     queryFn: () => base44.entities.DeliveryLog.filter({ scheduled_date: todayStr }, '-created_date', 200)
   });
 
-  const todays = deliveries.filter(d => d.scheduled_date === todayStr);
+  const todays = deliveries.filter(d => d.scheduled_date === todayStr && (selectedJobId === 'all' || d.job_id === selectedJobId));
   const siteDeliveries = todays.filter(d => d.delivery_type === 'site_delivery');
   const collections = todays.filter(d => d.delivery_type === 'supplier_collection');
   const handovers = todays.filter(d => d.delivery_type === 'item_handover');

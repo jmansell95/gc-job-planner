@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Boxes, Cog, Wrench, Package, ArrowRight, MapPin, Anchor } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
+import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 
 const assetTypeConfig = {
   rig: { icon: Cog, chip: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -25,6 +26,7 @@ function AssetChip({ type, name, status }) {
 }
 
 export default function JobAssetsWidget({ onSelectJob }) {
+  const { selectedJobId } = useJobFilter();
   const { data: assignments = [], isLoading } = useQuery({
     queryKey: ['job-asset-assignments-active'],
     queryFn: () => base44.entities.JobAssetAssignment.list('-assigned_date', 200),
@@ -32,7 +34,10 @@ export default function JobAssetsWidget({ onSelectJob }) {
 
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
 
-  const activeAssignments = assignments.filter(a => a.status === 'assigned' || a.status === 'on_site');
+  const activeAssignments = assignments.filter(a =>
+    (a.status === 'assigned' || a.status === 'on_site') &&
+    (selectedJobId === 'all' || a.job_id === selectedJobId)
+  );
 
   const byJob = {};
   activeAssignments.forEach(a => {

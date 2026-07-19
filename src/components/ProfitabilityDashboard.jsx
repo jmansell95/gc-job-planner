@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
-import { Wallet, TrendingUp, TrendingDown, PoundSterling, PiggyBank, Filter, Wrench, Receipt, ArrowRight } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PoundSterling, PiggyBank, Wrench, Receipt, ArrowRight } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
+import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 
 const tooltipStyle = {
   borderRadius: 12,
@@ -20,7 +21,8 @@ const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('
 const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'];
 
 export default function ProfitabilityDashboard() {
-  const [selectedJobId, setSelectedJobId] = useState('all');
+  const { selectedJobId } = useJobFilter();
+  const isAll = selectedJobId === 'all';
 
   const { data: jobs = [], isLoading: jobsLoading } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
@@ -66,7 +68,6 @@ export default function ProfitabilityDashboard() {
     return { jobRows, totals };
   }, [jobs, staff, rotas, costItems]);
 
-  const isAll = selectedJobId === 'all';
   const displayRows = isAll ? jobRows : jobRows.filter(r => r.id === selectedJobId);
   const displayTotals = isAll ? totals : displayRows.reduce((acc, r) => ({
     equip: acc.equip + r.equip, netCost: acc.netCost + r.netCost,
@@ -117,19 +118,6 @@ export default function ProfitabilityDashboard() {
           <div>
             <h2 className="font-semibold text-slate-900">Profitability Dashboard</h2>
             <p className="text-xs text-slate-500">Full cost breakdown, markup & margin analysis</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 sm:flex-none">
-            <Filter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <select
-              value={selectedJobId}
-              onChange={e => setSelectedJobId(e.target.value)}
-              className="w-full sm:w-auto pl-8 pr-7 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 appearance-none cursor-pointer truncate"
-            >
-              <option value="all">All Jobs</option>
-              {jobs.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
-            </select>
           </div>
         </div>
       </div>

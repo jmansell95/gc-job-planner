@@ -12,6 +12,7 @@ import TimesheetManager from '@/components/TimesheetManager';
 import CalendarView from '@/components/CalendarView';
 import ComplianceManager from '@/components/ComplianceManager';
 import LogQualityControl from '@/components/investigation/LogQualityControl';
+import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
@@ -59,10 +60,12 @@ export default function AdminDashboard() {
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
             {activeSection === 'overview' && (
-              <DashboardOverview
-                onNavigate={setActiveSection}
-                onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }}
-              />
+              <JobFilterProvider>
+                <DashboardOverview
+                  onNavigate={setActiveSection}
+                  onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }}
+                />
+              </JobFilterProvider>
             )}
             {activeSection === 'job-detail' && selectedJob && (
               <JobDetail job={selectedJob} onBack={() => setActiveSection('overview')} />

@@ -7,6 +7,7 @@ import {
   ShieldCheck, ShieldAlert, Wrench, ChevronDown, ChevronRight, CircleDot,
 } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
+import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, CartesianGrid,
@@ -36,6 +37,8 @@ const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#f43f5e', '#06b
 
 export default function RigProfitabilityWidget() {
   const [expanded, setExpanded] = useState(null);
+  const { selectedJobId } = useJobFilter();
+  const isAllJobs = selectedJobId === 'all';
 
   const { data: assets = [], isLoading } = useQuery({ queryKey: ['site-assets-rig-prob'], queryFn: () => base44.entities.SiteAsset.list() });
   const { data: assignments = [] } = useQuery({ queryKey: ['job-asset-assignments-rig-prob'], queryFn: () => base44.entities.JobAssetAssignment.list() });
@@ -45,6 +48,11 @@ export default function RigProfitabilityWidget() {
   const { data: teams = [] } = useQuery({ queryKey: ['teams-rig-prob'], queryFn: () => base44.entities.Team.list() });
   const { data: rotas = [] } = useQuery({ queryKey: ['rotas-rig-prob'], queryFn: () => base44.entities.RotaAssignment.list('-created_date', 500) });
   const { data: drillingCrews = [] } = useQuery({ queryKey: ['drilling-crews-rig-prob'], queryFn: () => base44.entities.DrillingCrew.list() });
+
+  // Scope all data to the selected job
+  const scopedAssignments = isAllJobs ? assignments : assignments.filter(a => a.job_id === selectedJobId);
+  const scopedCostItems = isAllJobs ? costItems : costItems.filter(c => c.job_id === selectedJobId);
+  const scopedRotas = isAllJobs ? rotas : rotas.filter(r => r.job_id === selectedJobId);
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
@@ -58,7 +66,7 @@ export default function RigProfitabilityWidget() {
   const rigRows = useMemo(() => {
     // Cost per rig from JobCostItem
     const costByAsset = {};
-    costItems.forEach((c) => {
+    scopedCostItems.forEach((c) => {
       if (!c.site_asset_id) return;
       if (c.category === 'contractor_supplied' || c.category === 'client_supplied') return;
       costByAsset[c.site_asset_id] = (costByAsset[c.site_asset_id] || 0) + (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
@@ -68,7 +76,7 @@ export default function RigProfitabilityWidget() {
     const revByAsset = {};
     const daysByAsset = {};
     const jobsByAsset = {};
-    assignments.forEach((a) => {
+    scopedAssignments.forEach((a) => {
       if (!a.asset_id) return;
       const job = jobById[a.job_id];
       const from = a.arrived_on_site_date || a.assigned_date || job?.start_date;
@@ -83,7 +91,7 @@ export default function RigProfitabilityWidget() {
 
     // Current crew: today's rota for jobs this rig is actively assigned to (status assigned/on_site)
     const activeJobByAsset = {};
-    assignments.forEach((a) => {
+    scopedAssignments.forEach((a) => {
       if (!a.asset_id) return;
       if (a.status === 'returned') return;
       activeJobByAsset[a.asset_id] = a.job_id;
@@ -101,7 +109,7 @@ export default function RigProfitabilityWidget() {
       const activeJobId = activeJobByAsset[rig.id];
       const crewMembers = [];
       if (activeJobId) {
-        rotas
+        scopedRotas
           .filter((r) => r.job_id === activeJobId && r.assigned_date === todayStr)
           .forEach((r) => {
             const member = staffById[r.staff_id];
@@ -130,7 +138,7 @@ export default function RigProfitabilityWidget() {
     })
       .filter((r) => r.days > 0 || r.cost > 0 || r.revenue > 0 || r.crewMembers.length > 0)
       .sort((a, b) => b.revenue - a.revenue);
-  }, [rigs, assignments, costItems, jobById, staffById, rotas, todayStr, assets]);
+  }, [rigs, scopedAssignments, scopedCostItems, jobById, staffById, scopedRotas, todayStr, assets]);
 
   const totals = useMemo(
     () => rigRows.reduce(

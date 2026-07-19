@@ -3,8 +3,9 @@ import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Cell } from 'recharts';
-import { Wallet, TrendingUp, TrendingDown, Download, PiggyBank, Filter } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Download, PiggyBank } from 'lucide-react';
 import WidgetShell from '@/components/dashboard/WidgetShell';
+import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 
 const tooltipStyle = {
   borderRadius: 12,
@@ -20,7 +21,8 @@ const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('
 
 export default function JobCostAnalytics() {
   const [exporting, setExporting] = useState(false);
-  const [selectedJobId, setSelectedJobId] = useState('all');
+  const { selectedJobId } = useJobFilter();
+  const isAll = selectedJobId === 'all';
 
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
@@ -41,7 +43,6 @@ export default function JobCostAnalytics() {
     return { rows };
   }, [jobs, staff, rotas]);
 
-  const isAll = selectedJobId === 'all';
   const selectedRow = !isAll ? rows.find(r => r.id === selectedJobId) : null;
 
   const displayRows = isAll ? rows : (selectedRow ? [selectedRow] : []);
@@ -89,17 +90,6 @@ export default function JobCostAnalytics() {
   return (
     <WidgetShell icon={Wallet} title="Cost Analytics" subtitle="Budget vs recorded spend"
       action={<div className="flex items-center gap-2 flex-wrap justify-end">
-        <div className="relative">
-          <Filter className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <select
-            value={selectedJobId}
-            onChange={e => setSelectedJobId(e.target.value)}
-            className="pl-8 pr-7 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 appearance-none cursor-pointer max-w-[180px] truncate"
-          >
-            <option value="all">All Jobs</option>
-            {jobs.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
-          </select>
-        </div>
         <button onClick={handleExportCsv} disabled={exporting || displayRows.length === 0}
           className="flex items-center gap-1.5 px-3 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-xs font-medium disabled:opacity-50 flex-shrink-0">
           <Download className="w-3.5 h-3.5" /> CSV
