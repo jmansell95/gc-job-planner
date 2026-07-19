@@ -89,10 +89,16 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     }
   });
 
-  const activeItems = items.filter(c => (c.hire_status || 'active') !== 'off_hired');
-  const returnedItems = items.filter(c => c.hire_status === 'off_hired');
+  // Only physical items that need loading into a van are shown in the logistics
+  // list. Labour (crew), contractor-supplied and client-supplied items are
+  // delivered to site by the people/contractor/client themselves — they aren't
+  // loaded by our drivers, so they're excluded from the load list.
+  const isLoadable = (c) => c.category !== 'labour' && c.category !== 'contractor_supplied' && c.category !== 'client_supplied';
+  const activeItems = items.filter(c => (c.hire_status || 'active') !== 'off_hired').filter(isLoadable);
+  const returnedItems = items.filter(c => c.hire_status === 'off_hired').filter(isLoadable);
   const visibleItems = hireFilter === 'active' ? activeItems : returnedItems;
-  const totalNet = items.reduce((s, c) => s + (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1), 0);
+  const loadableItems = items.filter(isLoadable);
+  const totalNet = loadableItems.reduce((s, c) => s + (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1), 0);
 
   const rigItemLinks = {};
   const linkedItemIds = new Set();
@@ -136,13 +142,13 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   });
   const defaultDates = job ? { start: job.start_date, end: job.end_date } : null;
 
-  // Auto-select all items at the yard so the Plan Load bar appears automatically
+  // Auto-select all loadable items at the yard so the Plan Load bar appears automatically
   useEffect(() => {
     const yardIds = activeItems
       .filter(i => (i.current_location || 'yard') === 'yard')
       .map(i => i.id);
     setSelectedIds(new Set(yardIds));
-  }, [items]);
+  }, [activeItems]);
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s; });
@@ -387,7 +393,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
           <Boxes className="w-5 h-5 text-emerald-700" />
           <h2 className="font-semibold text-slate-900">Equipment & Assets</h2>
           <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
-            {items.length} items{canSeeCosts && items.some(i => i.category !== 'contractor_supplied') ? ` · ${fmt(totalNet)}` : ''}
+            {loadableItems.length} items{canSeeCosts && loadableItems.length > 0 ? ` · ${fmt(totalNet)}` : ''}
           </span>
         </div>
         <div className="p-4 sm:p-5 space-y-4">
