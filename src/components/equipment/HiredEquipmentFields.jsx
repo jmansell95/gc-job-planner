@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Calendar, Receipt } from 'lucide-react';
 import { differenceInCalendarDays } from 'date-fns';
 import { inputCls, fmt } from './shared';
@@ -7,6 +7,19 @@ export default function HiredEquipmentFields({ form, setForm, suppliers = [], ra
   const supplierRateItems = (rateCardItems || []).filter(
     (i) => i.is_active !== false && i.rate_card_source === 'supplier' && i.supplier_id === form.supplier_id
   );
+
+  // Group supplier rate card items by subcategory
+  const rateCardGroups = useMemo(() => {
+    const groups = {};
+    supplierRateItems.forEach((item) => {
+      const key = item.subcategory || 'General';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(item);
+    });
+    return Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([label, items]) => ({ label, items: items.sort((a, b) => (a.description || '').localeCompare(b.description || '')) }));
+  }, [supplierRateItems]);
 
   const pickFromRateCard = (id) => {
     if (!id) return;
@@ -52,7 +65,7 @@ export default function HiredEquipmentFields({ form, setForm, suppliers = [], ra
         </select>
       </div>
 
-      {form.supplier_id && supplierRateItems.length > 0 && (
+      {form.supplier_id && rateCardGroups.length > 0 && (
         <div>
           <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
             <Receipt className="w-3 h-3 text-emerald-700" /> Pick from {suppliers.find((s) => s.id === form.supplier_id)?.name}'s rate card
@@ -63,15 +76,19 @@ export default function HiredEquipmentFields({ form, setForm, suppliers = [], ra
             className={inputCls}
           >
             <option value="">Select a rate to auto-fill…</option>
-            {supplierRateItems.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.description} · {r.price != null ? fmt(r.price) : r.price_text || 'POA'}{r.unit ? `/${r.unit}` : ''}
-              </option>
+            {rateCardGroups.map((g) => (
+              <optgroup key={g.label} label={g.label}>
+                {g.items.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.description} · {r.price != null ? fmt(r.price) : r.price_text || 'POA'}{r.unit ? `/${r.unit}` : ''}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>
       )}
-      {form.supplier_id && supplierRateItems.length === 0 && (
+      {form.supplier_id && rateCardGroups.length === 0 && (
         <p className="text-xs text-slate-400 italic">No rate card items found for this supplier. Enter details manually below.</p>
       )}
 

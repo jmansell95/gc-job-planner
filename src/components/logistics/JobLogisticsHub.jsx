@@ -22,6 +22,7 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFracti
 const blankForm = () => ({
   category: 'hired_equipment', supplier_id: '', contractor_id: '', client_id: '', description: '',
   reference_number: '', responsible_person: '', site_asset_id: '', staff_id: '', po_number: '', order_slip_url: '', order_slip_name: '',
+  rate_card_item_id: '', delivery_notes: '',
   start_date: '', end_date: '', unit_cost: '', quantity: '1', unit_label: 'day', men: '', vat_exempt: false, notes: ''
 });
 
@@ -57,6 +58,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   const { data: fetchedSuppliers = [] } = useQuery({ queryKey: ['suppliers-logistics'], queryFn: () => base44.entities.Supplier.list(), enabled: !externalSuppliers || externalSuppliers.length === 0 });
   const suppliers = externalSuppliers.length > 0 ? externalSuppliers : fetchedSuppliers;
   const { data: rateCardItems = [] } = useQuery({ queryKey: ['rate-card-items-logistics'], queryFn: () => base44.entities.RateCardItem.list('-created_date', 500) });
+  const { data: clients = [] } = useQuery({ queryKey: ['clients-logistics'], queryFn: () => base44.entities.Client.list() });
   const { data: equipmentCompliance = [] } = useQuery({ queryKey: ['equipment-compliance-logistics'], queryFn: () => base44.entities.ComplianceItem.filter({ category: 'equipment' }) });
   const ownedAssets = (siteAssets || []).filter(a => a.is_active && a.asset_type !== 'rig' && a.stock_level !== 'out_of_stock' && a.stock_level !== 'needs_service');
 
@@ -177,6 +179,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
         men: (isContractorItem || isClientItem || !formData.men) ? null : Number(formData.men),
         vat_exempt: (isContractorItem || isClientItem) ? false : !!formData.vat_exempt,
         notes: formData.notes || '',
+        delivery_notes: formData.delivery_notes || '',
         ...((isContractorItem || isClientItem || isLabourItem) ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {})
       };
       if (editingId) { await base44.entities.JobCostItem.update(editingId, payload); }
@@ -226,7 +229,8 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       po_number: c.po_number || '', order_slip_url: c.order_slip_url || '', order_slip_name: c.order_slip_name || '',
       rate_card_item_id: c.rate_card_item_id || '', start_date: c.start_date || '', end_date: c.end_date || '',
       unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'), men: c.men ? String(c.men) : '',
-      unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt, notes: c.notes || ''
+      unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt, notes: c.notes || '',
+      delivery_notes: c.delivery_notes || ''
     });
     setAdding(true);
   };
@@ -413,7 +417,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
                 onCancel={() => { setAdding(false); setEditingId(null); setForm(blankForm()); }}
                 saving={savingItem} editing={!!editingId} suppliers={suppliers} contractors={contractors}
                 defaultDates={defaultDates} catalogueItems={formCatalogueItems}
-                rateCardItems={rateCardItems} ownedAssets={ownedAssets} staff={staff} />
+                rateCardItems={rateCardItems} ownedAssets={ownedAssets} staff={staff} clients={clients} />
             </DialogContent>
           </Dialog>
 

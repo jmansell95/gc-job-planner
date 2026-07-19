@@ -16,8 +16,8 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFracti
 
 const blankForm = () => ({
   category: 'hired_equipment', supplier_id: '', contractor_id: '', client_id: '', description: '',
-  reference_number: '', responsible_person: '', site_asset_id: '', rate_card_item_id: '', po_number: '', start_date: '', end_date: '',
-  unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: '', men: ''
+  reference_number: '', responsible_person: '', site_asset_id: '', rate_card_item_id: '', po_number: '', order_slip_url: '', order_slip_name: '', start_date: '', end_date: '',
+  unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: '', men: '', staff_id: '', delivery_notes: ''
 });
 
 const categoryConfig = {
@@ -87,6 +87,10 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     queryKey: ['rate-card-items-equip'],
     queryFn: () => base44.entities.RateCardItem.list('-created_date', 500)
   });
+  const { data: staffList = [] } = useQuery({
+    queryKey: ['staff-list-equip'],
+    queryFn: () => base44.entities.Staff.filter({ is_active: true })
+  });
 
   const items = isJobMode ? fetchedItems : (externalItems || []);
   const suppliers = externalSuppliers || fetchedSuppliers || [];
@@ -129,11 +133,15 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
           contractor_id: formData.category === 'contractor_supplied' ? (formData.contractor_id || '') : '',
           client_id: formData.category === 'client_supplied' ? (formData.client_id || '') : '',
           rate_card_item_id: formData.rate_card_item_id || '',
+          site_asset_id: formData.site_asset_id || '',
+          staff_id: formData.staff_id || '',
           men: formData.men ? Number(formData.men) : null,
           description: formData.description,
           reference_number: formData.reference_number || '',
           responsible_person: formData.responsible_person || '',
           po_number: formData.po_number || '',
+          order_slip_url: formData.order_slip_url || '',
+          order_slip_name: formData.order_slip_name || '',
           start_date: formData.start_date || '',
           end_date: formData.end_date || '',
           unit_cost: isNoCost ? 0 : (Number(formData.unit_cost) || 0),
@@ -141,6 +149,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
           unit_label: isNoCost ? 'each' : formData.unit_label,
           vat_exempt: isNoCost ? false : !!formData.vat_exempt,
           notes: formData.notes || '',
+          delivery_notes: formData.delivery_notes || '',
           ...(isNoCost ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {})
         };
         if (editingId) {
@@ -191,10 +200,13 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
       setForm({
         category: c.category, supplier_id: c.supplier_id || '', contractor_id: c.contractor_id || '', client_id: c.client_id || '', description: c.description,
         reference_number: c.reference_number || '', responsible_person: c.responsible_person || '', site_asset_id: c.site_asset_id || '', rate_card_item_id: c.rate_card_item_id || '', po_number: c.po_number || '',
+        order_slip_url: c.order_slip_url || '', order_slip_name: c.order_slip_name || '',
         start_date: c.start_date || '', end_date: c.end_date || '',
         unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'),
         unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt,
         notes: c.notes || '',
+        delivery_notes: c.delivery_notes || '',
+        staff_id: c.staff_id || '',
         men: c.men != null ? String(c.men) : ''
       });
     } else {
@@ -413,6 +425,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
               catalogueItems={catalogueItems}
               rateCardItems={rateCardItems}
               ownedAssets={ownedAssets}
+              staff={staffList}
             />
           </DialogContent>
         </Dialog>

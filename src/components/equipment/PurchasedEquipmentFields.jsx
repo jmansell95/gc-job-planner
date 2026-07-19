@@ -1,12 +1,44 @@
-import React, { useState } from 'react';
-import { Upload, FileText, X, Package, Loader2 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Upload, FileText, X, Package, Loader2, Receipt, Tag } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { inputCls, fmt } from './shared';
 
-export default function PurchasedEquipmentFields({ form, setForm, suppliers = [] }) {
+export default function PurchasedEquipmentFields({ form, setForm, suppliers = [], rateCardItems = [] }) {
   const [orderSlipFile, setOrderSlipFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(false);
+
+  // Materials from our company rate card — useful for purchased consumables
+  const materialRateItems = (rateCardItems || []).filter(
+    (i) => i.is_active !== false && i.rate_card_source === 'our_company' && i.category === 'materials'
+  );
+
+  // Group by subcategory
+  const rateCardGroups = useMemo(() => {
+    const groups = {};
+    materialRateItems.forEach((item) => {
+      const key = item.subcategory || 'Materials';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(item);
+    });
+    return Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([label, items]) => ({ label, items: items.sort((a, b) => (a.description || '').localeCompare(b.description || '')) }));
+  }, [materialRateItems]);
+
+  const pickFromRateCard = (id) => {
+    if (!id) return;
+    const item = (rateCardItems || []).find((r) => r.id === id);
+    if (!item) return;
+    setForm({
+      ...form,
+      description: item.description || form.description,
+      unit_cost: String(item.price ?? ''),
+      unit_label: item.unit || 'each',
+      rate_card_item_id: item.id,
+      notes: item.notes || form.notes,
+    });
+  };
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -25,9 +57,33 @@ export default function PurchasedEquipmentFields({ form, setForm, suppliers = []
   };
 
   const lineTotal = (Number(form.unit_cost) || 0) * (Number(form.quantity) || 1);
+  const hasPO = !!form.po_number?.trim();
+  const hasSlip = !!form.order_slip_url;
+  const hasCost = !!form.unit_cost && Number(form.unit_cost) > 0;
 
   return (
     <div className="space-y-3">
+      {/* Quick-pick from Master Price List (Materials) */}
+      {rateCardGroups.length > 0 && (
+        <div>
+          <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
+            <Tag className="w-3 h-3 text-purple-600" /> Quick-pick from Master Price List (Materials)
+          </label>
+          <select value="" onChange={(e) => { pickFromRateCard(e.target.value); e.target.value = ''; }} className={inputCls}>
+            <option value="">Auto-fill from rate card…</option>
+            {rateCardGroups.map((g) => (
+              <optgroup key={g.label} label={g.label}>
+                {g.items.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.description} · {r.price != null ? fmt(r.price) : r.price_text || 'POA'}{r.unit ? `/${r.unit}` : ''}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">What are you purchasing? *</label>
         <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="e.g. Coreliner, HDPE pipe" className={inputCls} />
@@ -44,13 +100,15 @@ export default function PurchasedEquipmentFields({ form, setForm, suppliers = []
       <div>
         <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
           <Package className="w-3 h-3 text-emerald-700" /> PO Number *
+          {!hasPO && <span className="text-red-400 ml-1">required</span>}
         </label>
-        <input value={form.po_number} onChange={(e) => setForm({ ...form, po_number: e.target.value })} placeholder="e.g. PO-1042" className={`${inputCls} font-mono`} />
+        <input value={form.po_number} onChange={(e) => setForm({ ...form, po_number: e.target.value })} placeholder="e.g. PO-1042" className={`${inputCls} font-mono ${!hasPO ? 'border-amber-300' : ''}`} />
       </div>
 
       <div>
         <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
           <Upload className="w-3 h-3 text-emerald-700" /> Order Slip / Purchase Document *
+          {!hasSlip && <span className="text-red-400 ml-1">required</span>}
         </label>
         {form.order_slip_url && !orderSlipFile && (
           <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 rounded-md px-3 py-2 border border-emerald-200 mb-2">
@@ -60,7 +118,7 @@ export default function PurchasedEquipmentFields({ form, setForm, suppliers = []
           </div>
         )}
         {!form.order_slip_url && (
-          <input type="file" accept=".pdf,image/*,.doc,.docx,.xlsx,.xls" onChange={(e) => handleFile(e.target.files[0])} className="block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-medium hover:file:bg-emerald-100 cursor-pointer" />
+          <input type="file" accept=".pdf,image/*,.doc,.docx,.xlsx,.xls" onChange={(e) => handleFile(e.target.files[0])} className={`block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-medium hover:file:bg-emerald-100 cursor-pointer ${!hasSlip ? 'border border-amber-300 rounded-lg p-1' : ''}`} />
         )}
         {orderSlipFile && (
           <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 rounded-md px-3 py-2 border border-emerald-200 mt-1.5">
@@ -74,7 +132,7 @@ export default function PurchasedEquipmentFields({ form, setForm, suppliers = []
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Unit cost (net) *</label>
-          <input type="number" min="0" step="0.01" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" className={inputCls} />
+          <input type="number" min="0" step="0.01" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" className={`${inputCls} ${!hasCost ? 'border-amber-300' : ''}`} />
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Unit</label>
@@ -98,6 +156,12 @@ export default function PurchasedEquipmentFields({ form, setForm, suppliers = []
         <input type="checkbox" checked={form.vat_exempt} onChange={(e) => setForm({ ...form, vat_exempt: e.target.checked })} className="rounded border-slate-300 text-emerald-700 focus:ring-emerald-600" />
         VAT exempt (zero-rated item)
       </label>
+
+      {form.rate_card_item_id && (
+        <div className="text-xs text-emerald-700 bg-emerald-50 rounded-md px-3 py-2 border border-emerald-200 flex items-center gap-1.5">
+          <Receipt className="w-3.5 h-3.5" /> Linked to a Master Price List item.
+        </div>
+      )}
 
       {Number(form.unit_cost) > 0 && (
         <div className="text-xs text-slate-600 bg-white rounded-md px-3 py-2 border border-slate-200 flex items-center justify-between">

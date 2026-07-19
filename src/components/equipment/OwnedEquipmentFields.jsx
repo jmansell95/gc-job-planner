@@ -1,34 +1,101 @@
-import React, { useState } from 'react';
-import { Calendar, Receipt, User } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Calendar, Receipt, User, ShieldCheck, ShieldAlert, ShieldX, Factory, Tag } from 'lucide-react';
 import { differenceInCalendarDays } from 'date-fns';
 import { inputCls, fmt } from './shared';
 
+const assetTypeLabels = {
+  rig: 'Drilling Rigs',
+  machinery: 'Machinery',
+  trailer: 'Trailers',
+  vehicle: 'Vehicles',
+  lifting: 'Lifting Gear',
+};
+
+const complianceBadge = {
+  compliant: { icon: ShieldCheck, cls: 'text-emerald-600' },
+  expiring: { icon: ShieldAlert, cls: 'text-amber-600' },
+  expired: { icon: ShieldX, cls: 'text-red-600' },
+  unknown: { icon: ShieldCheck, cls: 'text-slate-400' },
+};
+
 export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], defaultDates, rateCardItems = [] }) {
-  const [priceSource, setPriceSource] = useState('');
+  const [priceSource, setPriceSource] = useState(form.site_asset_id ? 'asset-panda' : form.rate_card_item_id ? 'rate-card' : '');
 
   // Master Price List items for owned equipment — Plant & Materials from our company rate card
   const ourRateItems = (rateCardItems || []).filter(
     (i) => i.is_active !== false && i.rate_card_source === 'our_company' && (i.category === 'plant' || i.category === 'materials')
   );
 
-  const pickFromRateCard = (id) => {
-    if (!id) return;
-    const item = (rateCardItems || []).find((r) => r.id === id);
-    if (!item) return;
-    setPriceSource('rate-card');
-    setForm({
-      ...form,
-      category: 'internal_equipment',
-      description: item.description || form.description,
-      unit_cost: String(item.price ?? ''),
-      unit_label: item.unit || 'day',
-      vat_exempt: false,
-      rate_card_item_id: item.id,
-      supplier_id: '',
-      site_asset_id: '',
-      notes: item.notes || form.notes,
+  // Group rate card items by subcategory (or category if no subcategory)
+  const rateCardGroups = useMemo(() => {
+    const groups = {};
+    ourRateItems.forEach((item) => {
+      const key = item.subcategory || (item.category === 'plant' ? 'Plant' : 'Materials');
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(item);
     });
+    // Sort groups alphabetically, items by description within
+    return Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([label, items]) => ({ label, items: items.sort((a, b) => (a.description || '').localeCompare(b.description || '')) }));
+  }, [ourRateItems]);
+
+  // Group Asset Panda assets by asset_type
+  const assetGroups = useMemo(() => {
+    const groups = {};
+    (ownedAssets || []).forEach((asset) => {
+      const type = asset.asset_type || 'other';
+      const label = assetTypeLabels[type] || type.charAt(0).toUpperCase() + type.slice(1);
+      if (!groups[label]) groups[label] = [];
+      groups[label].push(asset);
+    });
+    return Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([label, items]) => ({ label, items: items.sort((a, b) => (a.name || '').localeCompare(b.name || '')) }));
+  }, [ownedAssets]);
+
+  const handlePick = (value) => {
+    if (!value) { setPriceSource(''); return; }
+    if (value.startsWith('rc-')) {
+      const id = value.slice(3);
+      const item = (rateCardItems || []).find((r) => r.id === id);
+      if (!item) return;
+      setPriceSource('rate-card');
+      setForm({
+        ...form,
+        category: 'internal_equipment',
+        description: item.description || form.description,
+        unit_cost: String(item.price ?? ''),
+        unit_label: item.unit || 'day',
+        vat_exempt: false,
+        rate_card_item_id: item.id,
+        supplier_id: '',
+        site_asset_id: '',
+        notes: item.notes || form.notes,
+      });
+    } else if (value.startsWith('ap-')) {
+      const id = value.slice(3);
+      const asset = (ownedAssets || []).find((a) => a.id === id);
+      if (!asset) return;
+      setPriceSource('asset-panda');
+      setForm({
+        ...form,
+        category: 'internal_equipment',
+        description: asset.name || form.description,
+        reference_number: asset.serial_number || form.reference_number,
+        responsible_person: asset.responsible_person || form.responsible_person,
+        unit_cost: asset.daily_billing_rate != null ? String(asset.daily_billing_rate) : form.unit_cost,
+        unit_label: 'day',
+        site_asset_id: asset.id,
+        rate_card_item_id: '',
+        supplier_id: '',
+        notes: asset.tooling_notes || asset.notes || form.notes,
+      });
+    }
   };
+
+  const linkedAsset = form.site_asset_id ? (ownedAssets || []).find((a) => a.id === form.site_asset_id) : null;
+  const compBadge = linkedAsset?.compliance_status ? complianceBadge[linkedAsset.compliance_status] : null;
 
   const isHiredByDay = form.unit_label === 'day';
   const itemCount = Number(form.quantity) || 1;
@@ -44,20 +111,68 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
 
   return (
     <div className="space-y-3">
+      {/* Grouped picker — Master Price List + Asset Panda */}
       <div>
         <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
-          <Receipt className="w-3 h-3 text-blue-600" /> Pick from Master Price List (Plant & Materials)
+          <Tag className="w-3 h-3 text-blue-600" /> Pick from Master Price List or Asset Panda inventory
         </label>
-        <select value="" onChange={(e) => { pickFromRateCard(e.target.value); e.target.value = ''; }} className={inputCls}>
-          <option value="">Select from Master Price List…</option>
-          {ourRateItems.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.description} · {r.price != null ? fmt(r.price) : r.price_text || 'POA'}{r.unit ? `/${r.unit}` : ''}
-            </option>
-          ))}
+        <select
+          value={form.site_asset_id ? `ap-${form.site_asset_id}` : form.rate_card_item_id ? `rc-${form.rate_card_item_id}` : ''}
+          onChange={(e) => { handlePick(e.target.value); e.target.value = ''; }}
+          className={inputCls}
+        >
+          <option value="">Select an item…</option>
+          {rateCardGroups.length > 0 && (
+            <optgroup label="📋 Master Price List">
+              {rateCardGroups.map((g) => (
+                <optgroup key={g.label} label={`   ${g.label}`}>
+                  {g.items.map((r) => (
+                    <option key={r.id} value={`rc-${r.id}`}>
+                      {r.description} · {r.price != null ? fmt(r.price) : r.price_text || 'POA'}{r.unit ? `/${r.unit}` : ''}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </optgroup>
+          )}
+          {assetGroups.length > 0 && (
+            <optgroup label="🏭 Asset Panda Inventory">
+              {assetGroups.map((g) => (
+                <optgroup key={g.label} label={`   ${g.label}`}>
+                  {g.items.map((a) => (
+                    <option key={a.id} value={`ap-${a.id}`}>
+                      {a.name}{a.serial_number ? ` · ${a.serial_number}` : ''}{a.daily_billing_rate != null ? ` · ${fmt(a.daily_billing_rate)}/day` : ' · no rate'}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </optgroup>
+          )}
         </select>
-        {ourRateItems.length === 0 && <p className="text-xs text-slate-400 italic mt-1">No plant or material rates found. Add items in Settings → Rate Card.</p>}
+        {rateCardGroups.length === 0 && assetGroups.length === 0 && (
+          <p className="text-xs text-slate-400 italic mt-1">No rate card items or Asset Panda assets found. Enter details manually below. Rate card items can be added in Settings → Rate Card; Asset Panda assets will appear once synced.</p>
+        )}
       </div>
+
+      {/* Source badge + compliance status */}
+      {priceSource === 'rate-card' && (
+        <div className="text-xs text-blue-700 bg-blue-50 rounded-md px-3 py-2 border border-blue-200 flex items-center gap-1.5">
+          <Receipt className="w-3.5 h-3.5" /> Price from Master Price List — chargeable to the client.
+        </div>
+      )}
+      {priceSource === 'asset-panda' && linkedAsset && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="text-xs text-indigo-700 bg-indigo-50 rounded-md px-3 py-2 border border-indigo-200 flex items-center gap-1.5">
+            <Factory className="w-3.5 h-3.5" /> Asset Panda · {assetTypeLabels[linkedAsset.asset_type] || linkedAsset.asset_type}
+          </div>
+          {compBadge && (
+            <div className={`text-xs rounded-md px-2.5 py-2 border border-slate-200 flex items-center gap-1.5 ${compBadge.cls}`}>
+              <compBadge.icon className="w-3.5 h-3.5" /> {linkedAsset.compliance_status}
+              {linkedAsset.compliance_expiry_date && <span className="text-slate-400">· exp {linkedAsset.compliance_expiry_date}</span>}
+            </div>
+          )}
+        </div>
+      )}
 
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-1">Description *</label>
@@ -98,9 +213,6 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Billing rate (net) *</label>
           <input type="number" min="0" step="0.01" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" className={inputCls} />
-          {priceSource === 'rate-card' && (
-            <p className="text-[11px] text-blue-700 mt-1 inline-flex items-center gap-1"><Receipt className="w-3 h-3" /> Price from Master Price List</p>
-          )}
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Unit</label>
@@ -126,12 +238,6 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
         <div className="text-xs text-slate-600 bg-white rounded-md px-3 py-2 border border-slate-200 flex items-center justify-between">
           <span>Line revenue: {itemCount} item{itemCount > 1 ? 's' : ''}{isHiredByDay && days > 1 ? ` × ${days} days` : ''} × {fmt(Number(form.unit_cost) || 0)}</span>
           <span className="font-bold text-slate-900">{fmt(lineTotal)}</span>
-        </div>
-      )}
-
-      {form.rate_card_item_id && (
-        <div className="text-xs text-emerald-700 bg-emerald-50 rounded-md px-3 py-2 border border-emerald-200 flex items-center gap-1.5">
-          <Receipt className="w-3.5 h-3.5" /> Linked to a rate card item — this is chargeable to the client.
         </div>
       )}
 
