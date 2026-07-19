@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { format, startOfWeek, startOfMonth, isWithinInterval } from 'date-fns';
 import { Clock, Calendar, ClipboardCheck, Ruler } from 'lucide-react';
+import StatCard from '@/components/dashboard/StatCard';
 
 const fmtH = (mins) => {
   const h = (Number(mins) || 0) / 60;
@@ -44,13 +45,7 @@ export default function ProfileStats({ staffId, jobType }) {
   return (
     <div className={`grid grid-cols-2 gap-3 ${isDrillingCrew ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
       {stats.map(stat => (
-        <div key={stat.label} className={`${stat.gradient} rounded-2xl p-4 text-white shadow-sm`}>
-          <div className="flex items-center gap-2 mb-1.5">
-            <stat.icon className="w-4 h-4 text-white/80" />
-            <p className="text-xs font-medium text-white/80 uppercase tracking-wide">{stat.label}</p>
-          </div>
-          <p className="text-2xl font-bold">{stat.value}</p>
-        </div>
+        <StatCard key={stat.label} icon={stat.icon} value={stat.value} label={stat.label} gradient={stat.gradient} />
       ))}
     </div>
   );

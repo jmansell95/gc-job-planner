@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ruler, TrendingUp, Save, Check, Target, PoundSterling, Gauge } from 'lucide-react';
+import StatCard from '@/components/dashboard/StatCard';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
@@ -69,39 +70,10 @@ export default function MeterageReport({ job }) {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div className="bg-white rounded-lg p-3 border border-slate-100">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Gauge className="w-3.5 h-3.5 text-blue-600" />
-            <p className="text-xs text-slate-400">Total Drilled</p>
-          </div>
-          <p className="text-lg font-bold text-blue-700">{totalMeterage.toFixed(1)}m</p>
-          <p className="text-[10px] text-slate-400">
-            {job.meterage != null && job.meterage !== '' ? 'manual override' : `from ${boreholeLogs.length} log entries`}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg p-3 border border-slate-100">
-          <div className="flex items-center gap-1.5 mb-1">
-            <PoundSterling className="w-3.5 h-3.5 text-emerald-600" />
-            <p className="text-xs text-slate-400">Rate / metre</p>
-          </div>
-          <p className="text-lg font-bold text-slate-900">{rate > 0 ? fmt(rate) : 'Not set'}</p>
-        </div>
-        <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
-          <div className="flex items-center gap-1.5 mb-1">
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
-            <p className="text-xs text-emerald-600">Meterage Revenue</p>
-          </div>
-          <p className="text-lg font-bold text-emerald-800">{fmt(meterageRevenue)}</p>
-          {rate > 0 && <p className="text-[10px] text-emerald-500">{totalMeterage.toFixed(1)}m × {fmt(rate)}/m</p>}
-        </div>
-        <div className="bg-white rounded-lg p-3 border border-slate-100">
-          <div className="flex items-center gap-1.5 mb-1">
-            <Target className="w-3.5 h-3.5 text-amber-600" />
-            <p className="text-xs text-slate-400">Target</p>
-          </div>
-          <p className="text-lg font-bold text-slate-900">{target > 0 ? `${target}m` : 'Not set'}</p>
-          {target > 0 && <p className="text-[10px] text-slate-400">{targetPct.toFixed(0)}% complete</p>}
-        </div>
+        <StatCard icon={Gauge} value={`${totalMeterage.toFixed(1)}m`} label="Total Drilled" sub={job.meterage != null && job.meterage !== '' ? 'manual override' : `from ${boreholeLogs.length} log entries`} gradient="stat-gradient-blue" valueClassName="text-blue-700" />
+        <StatCard icon={PoundSterling} value={rate > 0 ? fmt(rate) : 'Not set'} label="Rate / metre" gradient="stat-gradient-emerald" />
+        <StatCard icon={TrendingUp} value={fmt(meterageRevenue)} label="Meterage Revenue" sub={rate > 0 ? `${totalMeterage.toFixed(1)}m × ${fmt(rate)}/m` : undefined} gradient="stat-gradient-emerald" valueClassName="text-emerald-700" />
+        <StatCard icon={Target} value={target > 0 ? `${target}m` : 'Not set'} label="Target" sub={target > 0 ? `${targetPct.toFixed(0)}% complete` : undefined} gradient="stat-gradient-amber" />
       </div>
 
       {/* Target progress bar */}

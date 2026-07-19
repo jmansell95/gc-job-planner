@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, Calendar } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import StatCard from '@/components/dashboard/StatCard';
 import SearchFilterBar from '@/components/SearchFilterBar';
 import { EmptyState, ErrorState, CardGridSkeleton } from '@/components/StateViews';
 import JobDetail from '@/components/JobDetail';
@@ -236,22 +237,10 @@ export default function JobManager({ onNavigateRota }) {
         <>
           {/* Summary stats — reflect active filters */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-            <div className="stat-gradient-slate rounded-xl shadow-md p-4 text-white">
-              <p className="text-xs text-white/80 font-medium">Showing</p>
-              <p className="text-2xl font-bold text-white mt-0.5">{stats.total}</p>
-            </div>
-            <div className="stat-gradient-emerald rounded-xl shadow-md p-4 text-white">
-              <p className="text-xs text-white/80 font-medium">In Progress</p>
-              <p className="text-2xl font-bold text-white mt-0.5">{stats.in_progress}</p>
-            </div>
-            <div className="stat-gradient-blue rounded-xl shadow-md p-4 text-white">
-              <p className="text-xs text-white/80 font-medium">Planning</p>
-              <p className="text-2xl font-bold text-white mt-0.5">{stats.planning}</p>
-            </div>
-            <div className="stat-gradient-cyan rounded-xl shadow-md p-4 text-white">
-              <p className="text-xs text-white/80 font-medium">Completed</p>
-              <p className="text-2xl font-bold text-white mt-0.5">{stats.completed}</p>
-            </div>
+            <StatCard icon={Briefcase} value={stats.total} label="Showing" gradient="stat-gradient-slate" />
+            <StatCard icon={Briefcase} value={stats.in_progress} label="In Progress" gradient="stat-gradient-emerald" />
+            <StatCard icon={Briefcase} value={stats.planning} label="Planning" gradient="stat-gradient-blue" />
+            <StatCard icon={Briefcase} value={stats.completed} label="Completed" gradient="stat-gradient-cyan" />
           </div>
           <SearchFilterBar
             searchValue={searchQuery}

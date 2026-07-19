@@ -7,6 +7,7 @@ import PillTabs from '@/components/PillTabs';
 import ReportTable from '@/components/reports/ReportTable';
 import { REPORT_TYPES, buildReport, reportPrintDocument, reportHtmlFragment } from '@/utils/reports';
 import { computeStaffOvertime, buildRateMap, entryMinutes } from '@/utils/overtime';
+import StatCard from '@/components/dashboard/StatCard';
 
 const ICONS = { Users, CalendarRange, Briefcase, FileText };
 
@@ -129,22 +130,9 @@ export default function ComplianceReports() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
-        {[
-          { icon: FileText, label: 'Entries', value: summary.entries, accent: 'bg-slate-100 text-slate-600' },
-          { icon: Clock, label: 'Total Hours', value: summary.hours, accent: 'bg-emerald-100 text-emerald-700' },
-          { icon: TrendingUp, label: 'Overtime', value: summary.ot, accent: 'bg-amber-100 text-amber-700' },
-        ].map((s, i) => {
-          const Icon = s.icon;
-          return (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 shadow-sm p-3.5">
-              <div className="flex items-center gap-2">
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${s.accent}`}><Icon className="w-3.5 h-3.5" /></div>
-                <p className="text-xs text-slate-500 font-medium">{s.label}</p>
-              </div>
-              <p className="text-xl font-bold text-slate-900 mt-1.5">{s.value}</p>
-            </div>
-          );
-        })}
+        <StatCard icon={FileText} value={summary.entries} label="Entries" gradient="stat-gradient-slate" />
+        <StatCard icon={Clock} value={summary.hours} label="Total Hours" gradient="stat-gradient-emerald" />
+        <StatCard icon={TrendingUp} value={summary.ot} label="Overtime" gradient="stat-gradient-amber" />
       </div>
 
       <div className="mb-2 flex items-center gap-2">

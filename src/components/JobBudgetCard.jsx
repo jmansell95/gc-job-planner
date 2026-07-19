@@ -1,5 +1,6 @@
 import React from 'react';
 import { PoundSterling, TrendingUp, TrendingDown } from 'lucide-react';
+import StatCard from '@/components/dashboard/StatCard';
 
 export default function JobBudgetCard({ job, totalCost }) {
   const budget = job.budget_amount || 0;
@@ -36,14 +37,8 @@ export default function JobBudgetCard({ job, totalCost }) {
           <div className={`h-full rounded-full transition-all duration-500 ${overBudget ? 'bg-red-500' : 'bg-emerald-600'}`} style={{ width: `${pct}%` }} />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-xs text-slate-400">Budget</p>
-            <p className="text-lg font-bold text-slate-900">£{budget.toLocaleString()}</p>
-          </div>
-          <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-xs text-slate-400">Actual Cost</p>
-            <p className={`text-lg font-bold ${overBudget ? 'text-red-600' : 'text-slate-900'}`}>£{totalCost.toLocaleString()}</p>
-          </div>
+          <StatCard icon={PoundSterling} value={`£${budget.toLocaleString()}`} label="Budget" gradient="stat-gradient-emerald" />
+          <StatCard icon={overBudget ? TrendingDown : TrendingUp} value={`£${totalCost.toLocaleString()}`} label="Actual Cost" gradient={overBudget ? 'stat-gradient-rose' : 'stat-gradient-amber'} valueClassName={overBudget ? 'text-rose-600' : ''} />
         </div>
         <div className={`flex items-center gap-2 mt-3 text-sm ${overBudget ? 'text-red-600' : remaining < budget * 0.2 ? 'text-amber-600' : 'text-emerald-600'}`}>
           {overBudget ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}

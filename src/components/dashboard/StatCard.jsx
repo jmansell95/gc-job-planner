@@ -17,6 +17,7 @@ export default function StatCard({
   active = false,
   arrow = false,
   className = '',
+  valueClassName = '',
 }) {
   const Tag = onClick ? 'button' : 'div';
   const interactive = !!onClick;
@@ -30,7 +31,7 @@ export default function StatCard({
         <Icon className="w-5 h-5 text-white" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-base font-bold text-slate-900 truncate">{value}</p>
+        <p className={`text-base font-bold text-slate-900 truncate ${valueClassName}`}>{value}</p>
         <p className="text-[11px] text-slate-500 font-medium truncate">{label}</p>
         {sub && <p className="text-[9px] text-slate-400 truncate hidden sm:block">{sub}</p>}
       </div>

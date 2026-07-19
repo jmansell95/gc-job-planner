@@ -8,6 +8,7 @@ import {
 import RigCostAnalysis from '@/components/RigCostAnalysis';
 import MeterageReport from '@/components/MeterageReport';
 import { useJobFinancials } from '@/hooks/useJobFinancials';
+import StatCard from '@/components/dashboard/StatCard';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
@@ -29,24 +30,10 @@ function BudgetMarginTracker({ budget, actualNet, clientNet, markup }) {
         <h3 className="text-sm font-semibold text-slate-800">Budget & Margin</h3>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-white rounded-lg p-3 border border-slate-100">
-          <p className="text-xs text-slate-400">Budget</p>
-          <p className="text-base font-bold text-slate-900 truncate">{hasBudget ? fmt(budget) : 'Not set'}</p>
-        </div>
-        <div className="bg-white rounded-lg p-3 border border-slate-100">
-          <p className="text-xs text-slate-400">Actual cost (net)</p>
-          <p className={`text-base font-bold truncate ${overBudget ? 'text-red-600' : 'text-slate-900'}`}>{fmt(actualNet)}</p>
-        </div>
-        <div className="bg-white rounded-lg p-3 border border-slate-100">
-          <p className="text-xs text-slate-400">{hasBudget ? 'Variance' : 'Profit'}</p>
-          <p className={`text-base font-bold truncate ${hasBudget ? (overBudget ? 'text-red-600' : 'text-emerald-700') : 'text-emerald-700'}`}>
-            {hasBudget ? `${variance >= 0 ? '+' : ''}${fmt(variance)}` : fmt(profit)}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg p-3 border border-slate-100">
-          <p className="text-xs text-slate-400">Margin</p>
-          <p className="text-base font-bold text-emerald-700 truncate">{marginPct.toFixed(1)}%</p>
-        </div>
+        <StatCard icon={PoundSterling} value={hasBudget ? fmt(budget) : 'Not set'} label="Budget" gradient="stat-gradient-emerald" />
+        <StatCard icon={Calculator} value={fmt(actualNet)} label="Actual cost (net)" gradient={overBudget ? 'stat-gradient-rose' : 'stat-gradient-amber'} valueClassName={overBudget ? 'text-rose-600' : ''} />
+        <StatCard icon={TrendingUp} value={hasBudget ? `${variance >= 0 ? '+' : ''}${fmt(variance)}` : fmt(profit)} label={hasBudget ? 'Variance' : 'Profit'} gradient={hasBudget ? (overBudget ? 'stat-gradient-rose' : 'stat-gradient-blue') : 'stat-gradient-emerald'} valueClassName={hasBudget ? (overBudget ? 'text-rose-600' : 'text-emerald-600') : 'text-emerald-600'} />
+        <StatCard icon={Percent} value={`${marginPct.toFixed(1)}%`} label="Margin" gradient="stat-gradient-violet" valueClassName="text-emerald-600" />
       </div>
 
       {hasBudget && (
@@ -240,23 +227,10 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
             <span className="ml-auto text-xs text-slate-400">Auto-calculated from assignments</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-white rounded-lg p-3 border border-slate-100">
-              <p className="text-xs text-slate-400">Equipment (net)</p>
-              <p className="text-base font-bold text-slate-900 truncate">{fmt(equipmentNet)}</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 border border-slate-100">
-              <p className="text-xs text-slate-400">Accommodation (net)</p>
-              <p className="text-base font-bold text-blue-700 truncate">{fmt(hotelNet)}</p>
-              {fin.costs.hotelRows.length > 0 && <p className="text-[10px] text-slate-400 mt-0.5">{fin.costs.hotelRows.length} booking{fin.costs.hotelRows.length === 1 ? '' : 's'}</p>}
-            </div>
-            <div className="bg-white rounded-lg p-3 border border-slate-100">
-              <p className="text-xs text-slate-400">Total cost (net)</p>
-              <p className="text-base font-bold text-slate-900 truncate">{fmt(internalNet)}</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 border border-slate-100">
-              <p className="text-xs text-slate-400">Total cost (gross)</p>
-              <p className="text-base font-bold text-slate-900 truncate">{fmt(internalTotal)}</p>
-            </div>
+            <StatCard icon={Calculator} value={fmt(equipmentNet)} label="Equipment (net)" gradient="stat-gradient-slate" />
+            <StatCard icon={Hotel} value={fmt(hotelNet)} label="Accommodation (net)" sub={fin.costs.hotelRows.length > 0 ? `${fin.costs.hotelRows.length} booking${fin.costs.hotelRows.length === 1 ? '' : 's'}` : undefined} gradient="stat-gradient-blue" valueClassName="text-blue-700" />
+            <StatCard icon={PoundSterling} value={fmt(internalNet)} label="Total cost (net)" gradient="stat-gradient-emerald" />
+            <StatCard icon={PoundSterling} value={fmt(internalTotal)} label="Total cost (gross)" gradient="stat-gradient-slate" />
           </div>
           {fin.costs.hotelRows.length > 0 && (
             <div className="mt-3 space-y-1.5">
@@ -273,26 +247,11 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
 
         {/* Internal cost summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-xs text-slate-400">Equipment (net)</p>
-            <p className="text-base font-bold text-slate-900 truncate">{fmt(equipmentNet)}</p>
-          </div>
-          <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-xs text-slate-400">Accommodation (net)</p>
-            <p className="text-base font-bold text-blue-700 truncate">{fmt(hotelNet)}</p>
-          </div>
-          <div className="bg-slate-50 rounded-lg p-3">
-            <p className="text-xs text-slate-400">Internal total</p>
-            <p className="text-base font-bold text-slate-900 truncate">{fmt(internalTotal)}</p>
-          </div>
+          <StatCard icon={Calculator} value={fmt(equipmentNet)} label="Equipment (net)" gradient="stat-gradient-slate" />
+          <StatCard icon={Hotel} value={fmt(hotelNet)} label="Accommodation (net)" gradient="stat-gradient-blue" valueClassName="text-blue-700" />
+          <StatCard icon={PoundSterling} value={fmt(internalTotal)} label="Internal total" gradient="stat-gradient-emerald" />
           {additionalCharges > 0 && (
-            <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
-              <p className="text-xs text-emerald-600">Delivery & Task Charges</p>
-              <p className="text-base font-bold text-emerald-800 truncate">{fmt(additionalCharges)}</p>
-              <p className="text-[10px] text-emerald-500 mt-0.5">
-                {deliveries.filter(d => d.chargeable !== false && Number(d.charge_amount) > 0).length} deliveries · {jobTimesheets.filter(t => t.chargeable && Number(t.charge_amount) > 0).length} chargeable tasks
-              </p>
-            </div>
+            <StatCard icon={TrendingUp} value={fmt(additionalCharges)} label="Delivery & Task Charges" sub={`${deliveries.filter(d => d.chargeable !== false && Number(d.charge_amount) > 0).length} deliveries · ${jobTimesheets.filter(t => t.chargeable && Number(t.charge_amount) > 0).length} chargeable tasks`} gradient="stat-gradient-emerald" valueClassName="text-emerald-700" />
           )}
         </div>
 
