@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -18,8 +18,8 @@ export default function DailyStaffSummaryWidget() {
   const { data: assignments = [] } = useQuery({ queryKey: ['all-rota-assignments'], queryFn: () => base44.entities.RotaAssignment.list('-created_date', 500) });
   const { data: timesheets = [] } = useQuery({ queryKey: ['all-timesheets-mgr'], queryFn: () => base44.entities.Timesheet.list('-created_date', 500) });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
-  const [sending, setSending] = React.useState(false);
-  const [sendResult, setSendResult] = React.useState(null);
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState(null);
 
   const role = resolveRole(profile) || 'admin';
   const isAdmin = role === 'admin';
