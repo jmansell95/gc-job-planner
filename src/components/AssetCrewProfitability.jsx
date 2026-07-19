@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Wrench, Users, TrendingUp, TrendingDown, PoundSterling, Truck, Loader2, HardHat } from 'lucide-react';
+import { Wrench, Users, TrendingUp, TrendingDown, PoundSterling, Truck, Loader2, HardHat, ChevronRight, ChevronDown } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 import { eachDayOfInterval, isWeekend } from 'date-fns';
 
@@ -24,6 +24,11 @@ const ASSET_TYPE_META = {
 
 export default function AssetCrewProfitability() {
   const [tab, setTab] = useState('assets');
+  const [expandedRigs, setExpandedRigs] = useState(new Set());
+
+  const toggleRig = (id) => {
+    setExpandedRigs(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s; });
+  };
 
   const { data: assets = [], isLoading: assetsLoading } = useQuery({ queryKey: ['site-assets-profit'], queryFn: () => base44.entities.SiteAsset.list() });
   const { data: assignments = [] } = useQuery({ queryKey: ['job-asset-assignments-profit'], queryFn: () => base44.entities.JobAssetAssignment.list() });
@@ -77,6 +82,7 @@ export default function AssetCrewProfitability() {
         billingRate: a.daily_billing_rate || 0,
         revenue, cost, profit, margin, days, jobCount, utilPct,
         active: a.is_active !== false,
+        linkedEquipmentIds: a.linked_equipment_ids || [],
       };
     }).filter(r => r.days > 0 || r.cost > 0 || r.revenue > 0)
       .sort((a, b) => b.revenue - a.revenue);
@@ -85,6 +91,40 @@ export default function AssetCrewProfitability() {
   const assetTotals = useMemo(() => assetRows.reduce((acc, r) => ({
     revenue: acc.revenue + r.revenue, cost: acc.cost + r.cost, profit: acc.profit + r.profit, days: acc.days + r.days,
   }), { revenue: 0, cost: 0, profit: 0, days: 0 }), [assetRows]);
+
+  // Group rigs with their linked equipment — parent rig shows aggregated totals,
+  // linked gear collapses underneath and expands on tap.
+  const groupedAssetRows = useMemo(() => {
+    const rowById = {};
+    assetRows.forEach(r => { rowById[r.id] = r; });
+    const childrenOf = {};
+    const isChild = new Set();
+    assetRows.forEach(r => {
+      if (r.linkedEquipmentIds && r.linkedEquipmentIds.length > 0) {
+        const children = r.linkedEquipmentIds.map(id => rowById[id]).filter(Boolean);
+        if (children.length > 0) {
+          childrenOf[r.id] = children;
+          children.forEach(c => isChild.add(c.id));
+        }
+      }
+    });
+    return assetRows
+      .filter(r => !isChild.has(r.id))
+      .map(r => {
+        const children = childrenOf[r.id] || [];
+        if (children.length === 0) return { ...r, children: [], agg: null };
+        const agg = {
+          revenue: r.revenue + children.reduce((s, c) => s + c.revenue, 0),
+          cost: r.cost + children.reduce((s, c) => s + c.cost, 0),
+          profit: r.profit + children.reduce((s, c) => s + c.profit, 0),
+          days: r.days + children.reduce((s, c) => s + c.days, 0),
+          jobCount: r.jobCount + children.reduce((s, c) => s + c.jobCount, 0),
+        };
+        agg.margin = agg.revenue > 0 ? (agg.profit / agg.revenue) * 100 : 0;
+        return { ...r, children, agg };
+      })
+      .sort((a, b) => (b.agg?.revenue || b.revenue) - (a.agg?.revenue || a.revenue));
+  }, [assetRows]);
 
   // ---- Per-crew revenue ----
   const crewRows = useMemo(() => {
@@ -238,7 +278,7 @@ export default function AssetCrewProfitability() {
         {/* Asset table */}
         {tab === 'assets' && (
           <div className="rounded-xl border border-slate-100 overflow-hidden">
-            {assetRows.length === 0 ? (
+            {groupedAssetRows.length === 0 ? (
               <div className="text-center py-10 text-slate-400 text-sm">No deployed assets yet. Assign rigs or equipment to jobs to see revenue vs cost.</div>
             ) : (
               <>
@@ -257,32 +297,70 @@ export default function AssetCrewProfitability() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {assetRows.map(r => {
+                      {groupedAssetRows.map(r => {
                         const meta = ASSET_TYPE_META[r.type] || ASSET_TYPE_META.machinery;
                         const Icon = meta.icon;
+                        const hasChildren = r.children.length > 0;
+                        const isExpanded = expandedRigs.has(r.id);
+                        const d = hasChildren ? r.agg : r;
                         return (
-                          <tr key={r.id} className="hover:bg-emerald-50/20 transition">
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.color}`}><Icon className="w-3.5 h-3.5" /></span>
-                                <div className="min-w-0">
-                                  <p className="font-medium text-slate-800 truncate max-w-[180px]">{r.name}</p>
-                                  <p className="text-[10px] text-slate-400">{meta.label}{r.rigType && r.rigType !== 'n/a' ? ` · ${r.rigType.toUpperCase()}` : ''}</p>
+                          <React.Fragment key={r.id}>
+                            <tr className={`hover:bg-emerald-50/20 transition ${hasChildren ? 'cursor-pointer' : ''}`} onClick={hasChildren ? () => toggleRig(r.id) : undefined}>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  {hasChildren ? (
+                                    <span className="w-5 h-5 flex items-center justify-center text-slate-400 flex-shrink-0">
+                                      {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                    </span>
+                                  ) : <span className="w-5 h-5 flex-shrink-0" />}
+                                  <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.color}`}><Icon className="w-3.5 h-3.5" /></span>
+                                  <div className="min-w-0">
+                                    <p className="font-medium text-slate-800 truncate max-w-[180px]">{r.name}{hasChildren && <span className="ml-1.5 text-[10px] text-slate-400 font-normal">+{r.children.length}</span>}</p>
+                                    <p className="text-[10px] text-slate-400">{meta.label}{r.rigType && r.rigType !== 'n/a' ? ` · ${r.rigType.toUpperCase()}` : ''}</p>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-right text-slate-500">{r.billingRate ? fmtGBP(r.billingRate) : '—'}</td>
-                            <td className="px-4 py-3 text-right text-slate-600">{r.days}</td>
-                            <td className="px-4 py-3 text-right text-slate-600">{r.jobCount}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-emerald-700">{fmtGBP(r.revenue)}</td>
-                            <td className="px-4 py-3 text-right text-slate-600">{fmtGBP(r.cost)}</td>
-                            <td className={`px-4 py-3 text-right font-bold ${r.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{fmtGBP(r.profit)}</td>
-                            <td className="px-4 py-3 text-right">
-                              <span className={`font-bold ${r.margin >= 40 ? 'text-emerald-600' : r.margin >= 20 ? 'text-amber-600' : 'text-rose-600'}`}>
-                                {r.revenue > 0 ? r.margin.toFixed(0) + '%' : '—'}
-                              </span>
-                            </td>
-                          </tr>
+                              </td>
+                              <td className="px-4 py-3 text-right text-slate-500">{r.billingRate ? fmtGBP(r.billingRate) : '—'}</td>
+                              <td className="px-4 py-3 text-right text-slate-600">{d.days}</td>
+                              <td className="px-4 py-3 text-right text-slate-600">{d.jobCount}</td>
+                              <td className="px-4 py-3 text-right font-semibold text-emerald-700">{fmtGBP(d.revenue)}</td>
+                              <td className="px-4 py-3 text-right text-slate-600">{fmtGBP(d.cost)}</td>
+                              <td className={`px-4 py-3 text-right font-bold ${d.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{fmtGBP(d.profit)}</td>
+                              <td className="px-4 py-3 text-right">
+                                <span className={`font-bold ${d.margin >= 40 ? 'text-emerald-600' : d.margin >= 20 ? 'text-amber-600' : 'text-rose-600'}`}>
+                                  {d.revenue > 0 ? d.margin.toFixed(0) + '%' : '—'}
+                                </span>
+                              </td>
+                            </tr>
+                            {hasChildren && isExpanded && r.children.map(c => {
+                              const cMeta = ASSET_TYPE_META[c.type] || ASSET_TYPE_META.machinery;
+                              const cIcon = cMeta.icon;
+                              return (
+                                <tr key={c.id} className="bg-slate-50/40 hover:bg-slate-50/70 transition">
+                                  <td className="px-4 py-2.5 pl-12">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 ${cMeta.color} opacity-70`}><cIcon className="w-3 h-3" /></span>
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-medium text-slate-600 truncate max-w-[180px]">{c.name}</p>
+                                        <p className="text-[10px] text-slate-400">{cMeta.label}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-2.5 text-right text-slate-400 text-xs">{c.billingRate ? fmtGBP(c.billingRate) : '—'}</td>
+                                  <td className="px-4 py-2.5 text-right text-slate-500 text-xs">{c.days}</td>
+                                  <td className="px-4 py-2.5 text-right text-slate-500 text-xs">{c.jobCount}</td>
+                                  <td className="px-4 py-2.5 text-right text-xs font-medium text-emerald-600">{fmtGBP(c.revenue)}</td>
+                                  <td className="px-4 py-2.5 text-right text-slate-500 text-xs">{fmtGBP(c.cost)}</td>
+                                  <td className={`px-4 py-2.5 text-right text-xs font-semibold ${c.profit >= 0 ? 'text-slate-600' : 'text-rose-500'}`}>{fmtGBP(c.profit)}</td>
+                                  <td className="px-4 py-2.5 text-right">
+                                    <span className={`text-xs font-semibold ${c.margin >= 40 ? 'text-emerald-500' : c.margin >= 20 ? 'text-amber-500' : 'text-rose-500'}`}>
+                                      {c.revenue > 0 ? c.margin.toFixed(0) + '%' : '—'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </React.Fragment>
                         );
                       })}
                     </tbody>
@@ -290,23 +368,47 @@ export default function AssetCrewProfitability() {
                 </div>
                 {/* Mobile cards */}
                 <div className="md:hidden divide-y divide-slate-100">
-                  {assetRows.map(r => {
+                  {groupedAssetRows.map(r => {
                     const meta = ASSET_TYPE_META[r.type] || ASSET_TYPE_META.machinery;
                     const Icon = meta.icon;
+                    const hasChildren = r.children.length > 0;
+                    const isExpanded = expandedRigs.has(r.id);
+                    const d = hasChildren ? r.agg : r;
                     return (
-                      <div key={r.id} className="p-4 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.color}`}><Icon className="w-4 h-4" /></span>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium text-slate-800 text-sm truncate">{r.name}</p>
-                            <p className="text-[10px] text-slate-400">{meta.label} · {r.days} days · {r.jobCount} jobs</p>
+                      <div key={r.id}>
+                        <div className={`p-4 space-y-2 ${hasChildren ? 'cursor-pointer' : ''}`} onClick={hasChildren ? () => toggleRig(r.id) : undefined}>
+                          <div className="flex items-center gap-2">
+                            {hasChildren && (
+                              <span className="text-slate-400 flex-shrink-0">
+                                {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                              </span>
+                            )}
+                            <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.color}`}><Icon className="w-4 h-4" /></span>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-slate-800 text-sm truncate">{r.name}{hasChildren && <span className="ml-1 text-[10px] text-slate-400 font-normal">+{r.children.length}</span>}</p>
+                              <p className="text-[10px] text-slate-400">{meta.label} · {d.days} days · {d.jobCount} jobs</p>
+                            </div>
+                            <span className={`text-sm font-bold flex-shrink-0 ${d.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{fmtGBP(d.profit)}</span>
                           </div>
-                          <span className={`text-sm font-bold flex-shrink-0 ${r.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{fmtGBP(r.profit)}</span>
+                          <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
+                            <span className="text-slate-500">Revenue <span className="font-semibold text-emerald-700">{fmtGBP(d.revenue)}</span></span>
+                            <span className="text-slate-500">Cost <span className="font-semibold text-slate-700">{fmtGBP(d.cost)}</span></span>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
-                          <span className="text-slate-500">Revenue <span className="font-semibold text-emerald-700">{fmtGBP(r.revenue)}</span></span>
-                          <span className="text-slate-500">Cost <span className="font-semibold text-slate-700">{fmtGBP(r.cost)}</span></span>
-                        </div>
+                        {hasChildren && isExpanded && r.children.map(c => {
+                          const cMeta = ASSET_TYPE_META[c.type] || ASSET_TYPE_META.machinery;
+                          const cIcon = cMeta.icon;
+                          return (
+                            <div key={c.id} className="pl-10 pr-4 py-2.5 bg-slate-50/40 border-t border-slate-100/70 flex items-center gap-2">
+                              <span className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 ${cMeta.color} opacity-70`}><cIcon className="w-3 h-3" /></span>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-medium text-slate-600 truncate">{c.name}</p>
+                                <p className="text-[10px] text-slate-400">{cMeta.label} · {c.days}d</p>
+                              </div>
+                              <span className="text-xs font-semibold text-slate-600 flex-shrink-0">{fmtGBP(c.revenue)}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })}
