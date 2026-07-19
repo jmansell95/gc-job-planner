@@ -66,3 +66,8 @@ export const DEFAULT_WIDGET_SIZES = {
 
 // Widgets that require costing permission (admin / manager only).
 export const COST_WIDGETS = ['cost-analytics', 'job-profitability', 'asset-crew-profitability', 'rig-profitability'];
+
+// Widgets that show company-wide data (not specific to a job). These are hidden
+// when the dashboard is focused on a single job, since they don't reflect that
+// job's data. The remaining widgets already scope themselves via JobFilterContext.
+export const GLOBAL_ONLY_WIDGETS = ['compliance-overview', 'supervisor-overview', 'maintenance-quick-view', 'ai-insights'];

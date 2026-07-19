@@ -9,7 +9,7 @@ import MaintenanceQuickView from '@/components/MaintenanceQuickView';
 import JobCostAnalytics from '@/components/JobCostAnalytics';
 import DeliveryStats from '@/components/DeliveryStats';
 import WidgetCard from '@/components/dashboard/WidgetCard';
-import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES, DASHBOARD_TABS, WIDGET_TO_TAB, COST_WIDGETS } from '@/components/dashboard/registry';
+import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES, DASHBOARD_TABS, WIDGET_TO_TAB, COST_WIDGETS, GLOBAL_ONLY_WIDGETS } from '@/components/dashboard/registry';
 import { KpiStatsWidget, FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
 import SupervisorOverviewWidget from '@/components/dashboard/SupervisorOverviewWidget';
@@ -185,7 +185,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const hiddenWidgets = DEFAULT_WIDGET_ORDER.filter(id => !widgetOrder.includes(id));
 
   // Hide cost-gated widgets from users who can't view financials.
-  const canShowWidget = (id) => canViewCosts || !COST_WIDGETS.includes(id);
+  // Hide global-only widgets when the dashboard is focused on a single job.
+  const canShowWidget = (id) => (canViewCosts || !COST_WIDGETS.includes(id)) && (isAllJobs || !GLOBAL_ONLY_WIDGETS.includes(id));
   const visibleOrder = widgetOrder.filter(canShowWidget);
   const visibleHidden = hiddenWidgets.filter(canShowWidget);
   const visibleTabs = DASHBOARD_TABS.filter(t => t.widgets.some(w => visibleOrder.includes(w) || visibleHidden.includes(w)));
