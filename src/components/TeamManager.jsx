@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Users, ChevronDown, ChevronRight, GitBranch, UserCircle2, UserMinus, Check, Shield, GraduationCap } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, ChevronDown, ChevronRight, GitBranch, UserCircle2, UserMinus, Check, Shield, GraduationCap, PoundSterling, LayoutGrid, Briefcase } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ChipMultiSelect from '@/components/forms/ChipMultiSelect';
+import FormSection from '@/components/forms/FormSection';
 import { Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatWorkerType } from '@/utils/format';
+import { useConfigLists } from '@/hooks/useConfigLists';
 import { TEAM_CATEGORIES, LANDING_PAGES, CAPABILITY_KEYS, DEFAULT_CAPABILITIES, DEFAULT_LANDING_PAGE } from '@/utils/teamAccess';
 
 const workerBadge = {
@@ -20,50 +22,6 @@ const statusDot = {
   invited: 'bg-blue-400',
   none: 'bg-slate-300',
 };
-const JOB_TYPE_LABELS = {
-  groundworks: 'Groundworks',
-  coring: 'Coring (under Groundworks)',
-  trial_pit: 'Trial Pit (under Groundworks)',
-  cp_drilling: 'CP Drilling',
-  rotary_drilling: 'Rotary Drilling',
-  enabling_works: 'Enabling Works',
-  depot: 'Depot'
-};
-
-const REVENUE_STREAMS = [
-  { value: 'none', label: 'Per asset/task only', desc: 'Revenue tracked from equipment, deliveries & logged tasks — no crew-level billing.' },
-  { value: 'drilling_meterage', label: 'Drilling Meterage (£/m)', desc: 'Crew billed per metre drilled on drilling jobs.' },
-  { value: 'groundworks_unit', label: 'Groundworks Unit (£/pit)', desc: 'Crew billed per trial pit, charger or unit installed.' },
-  { value: 'coring_unit', label: 'Coring Unit (£/core run)', desc: 'Crew billed per core run or metre cored.' },
-  { value: 'trial_pit_unit', label: 'Trial Pit Unit (£/pit)', desc: 'Crew billed per trial pit excavated.' },
-  { value: 'day_rate', label: 'Daily Crew Rate', desc: 'Fixed daily rate for the whole crew on a job.' },
-  { value: 'flat_fee', label: 'Flat Project Fee', desc: "Single agreed fee for the whole crew's work on the job." },
-];
-
-const ASSET_TYPE_OPTIONS = [
-  { value: 'rig', label: 'Rigs' },
-  { value: 'machinery', label: 'Machinery' },
-  { value: 'trailer', label: 'Trailers' },
-  { value: 'vehicle', label: 'Vehicles' },
-  { value: 'lifting', label: 'Lifting Gear' },
-];
-
-const QUALIFICATION_OPTIONS = [
-  { value: 'cscs_card', label: 'CSCS Card', critical: true },
-  { value: 'cpcs_card', label: 'CPCS Card' },
-  { value: 'npors_card', label: 'NPORS Card' },
-  { value: 'first_aid_cert', label: 'First Aid Certificate' },
-  { value: 'driver_license', label: 'Driver License' },
-  { value: 'dbs_certificate', label: 'DBS Certificate' },
-  { value: 'forklift', label: 'Forklift Training' },
-  { value: 'sts_triple', label: 'STS Triple (STS)' },
-  { value: 'confined_space', label: 'Confined Space' },
-  { value: 'asbestos_awareness', label: 'Asbestos Awareness' },
-  { value: 'manual_handling', label: 'Manual Handling' },
-  { value: 'working_at_height', label: 'Working at Height' },
-  { value: 'other', label: 'Other' },
-];
-
 const blankForm = () => ({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], revenue_stream_type: '', billing_default_markup: 0, compatible_asset_types: [], required_qualifications: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
 
 export default function TeamManager() {
@@ -79,6 +37,14 @@ export default function TeamManager() {
   const { data: staff = [], isLoading: staffLoading } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: users = [] } = useQuery({ queryKey: ['users-list'], queryFn: () => base44.entities.User.list() });
   const isLoading = teamsLoading || staffLoading;
+
+  // Dynamic dropdown options — fetched from ConfigList (editable in Settings → Dropdown Manager)
+  const { getOptions } = useConfigLists();
+  const JOB_TYPE_OPTIONS = getOptions('team_job_types');
+  const REVENUE_STREAMS = getOptions('revenue_streams');
+  const ASSET_TYPE_OPTIONS = getOptions('asset_types');
+  const QUALIFICATION_OPTIONS = getOptions('qualifications');
+  const JOB_TYPE_LABELS = Object.fromEntries(JOB_TYPE_OPTIONS.map(o => [o.value, o.label]));
 
   const getUserForStaff = (m) => users.find(u => u.email?.toLowerCase() === m.email?.toLowerCase());
   const statusOf = (m) => {
@@ -291,36 +257,37 @@ export default function TeamManager() {
       <Dialog open={showForm} onOpenChange={(open) => { if (!open) closeForm(); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingId ? 'Edit Crew' : 'Add Crew'}</DialogTitle></DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Crew Name</label>
-              <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Parent Crew {presetParent && <span className="text-xs text-emerald-600 font-normal">(sub-crew)</span>}
-              </label>
-              <select value={formData.parent_team_id} onChange={(e) => setFormData({ ...formData, parent_team_id: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
-                <option value="">— Top-level crew group —</option>
-                {parentTeams.filter(t => t.id !== editingId).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}
-              </select>
-              <p className="text-xs text-slate-400 mt-1">Leave blank for a crew group; pick a parent to create a sub-crew under it.</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Job Type</label>
-              <select value={formData.job_type} onChange={(e) => setFormData({ ...formData, job_type: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
-                <option value="">Flexible (any job type)</option>
-                {Object.entries(JOB_TYPE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-              </select>
-              <p className="text-xs text-slate-400 mt-1">Crew members in this crew can only be assigned to matching job types. Leave flexible for supervisors/managers. Coring &amp; Trial Pit crews sit under the Groundworks parent.</p>
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <FormSection title="Core Details" icon={Users} description="Name, hierarchy and job type">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Crew Name</label>
+                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Parent Crew {presetParent && <span className="text-xs text-emerald-600 font-normal">(sub-crew)</span>}
+                </label>
+                <select value={formData.parent_team_id} onChange={(e) => setFormData({ ...formData, parent_team_id: e.target.value })}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
+                  <option value="">— Top-level crew group —</option>
+                  {parentTeams.filter(t => t.id !== editingId).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}
+                </select>
+                <p className="text-xs text-slate-400 mt-1">Leave blank for a crew group; pick a parent to create a sub-crew under it.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Job Type</label>
+                <select value={formData.job_type} onChange={(e) => setFormData({ ...formData, job_type: e.target.value })}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
+                  <option value="">Flexible (any job type)</option>
+                  {JOB_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+                <p className="text-xs text-slate-400 mt-1">Crew members in this crew can only be assigned to matching job types. Leave flexible for supervisors/managers. Coring &amp; Trial Pit crews sit under the Groundworks parent.</p>
+              </div>
+            </FormSection>
 
-            <div className="border-t border-slate-100 pt-4">
-              <label className="block text-sm font-semibold text-slate-700 mb-3">Revenue &amp; Billing</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormSection title="Revenue & Billing" icon={PoundSterling} description="How this crew earns and what they're qualified to use" columns={false}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1.5">Revenue Stream</label>
                   <select value={formData.revenue_stream_type} onChange={(e) => setFormData({ ...formData, revenue_stream_type: e.target.value })}
@@ -328,7 +295,7 @@ export default function TeamManager() {
                     {REVENUE_STREAMS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                   {formData.revenue_stream_type && (
-                    <p className="text-xs text-slate-400 mt-1">{REVENUE_STREAMS.find(r => r.value === formData.revenue_stream_type)?.desc}</p>
+                    <p className="text-xs text-slate-400 mt-1">{REVENUE_STREAMS.find(r => r.value === formData.revenue_stream_type)?.description}</p>
                   )}
                 </div>
                 <div>
@@ -338,13 +305,13 @@ export default function TeamManager() {
                   <p className="text-xs text-slate-400 mt-1">Applied as the starting markup when this crew is assigned to a job.</p>
                 </div>
               </div>
-              <div className="mt-4">
+              <div className="mb-4">
                 <label className="block text-xs font-medium text-slate-500 mb-2">Compatible Asset Types</label>
                 <ChipMultiSelect options={ASSET_TYPE_OPTIONS} value={formData.compatible_asset_types || []}
                   onChange={(next) => setFormData({ ...formData, compatible_asset_types: next })} columns={3}
                   hint="Only compatible assets are offered when this crew's equipment is selected on a job." />
               </div>
-              <div className="mt-4">
+              <div>
                 <label className="block text-xs font-medium text-slate-500 mb-2 flex items-center gap-1.5">
                   <GraduationCap className="w-3.5 h-3.5" /> Required Qualifications &amp; Training
                 </label>
@@ -352,43 +319,43 @@ export default function TeamManager() {
                   onChange={(next) => setFormData({ ...formData, required_qualifications: next })} columns={3} color="violet"
                   hint="Staff missing these qualifications are flagged in the Training Gaps dashboard. Red dot = critical (e.g. CSCS card required on site)." />
               </div>
-            </div>
+            </FormSection>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Crew Description</label>
+            <FormSection title="Crew Description" icon={Briefcase} description="Internal notes about this crew">
               <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600" rows="3" />
-            </div>
+            </FormSection>
 
-            <div className="border-t border-slate-100 pt-4">
-              <label className="block text-sm font-semibold text-slate-700 mb-3">Access &amp; Landing Page</label>
-              <div className="mb-4">
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">Top-Level Group</label>
-                <select value={formData.category} onChange={(e) => {
-                  const cat = e.target.value;
-                  setFormData({
-                    ...formData,
-                    category: cat,
-                    default_landing_page: DEFAULT_LANDING_PAGE[cat] || formData.default_landing_page,
-                    allowed_tool_access: formData.allowed_tool_access.length === 0 ? (DEFAULT_CAPABILITIES[cat] || []) : formData.allowed_tool_access
-                  });
-                }} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
-                  <option value="">— Select group —</option>
-                  {TEAM_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-                {formData.category && (
-                  <p className="text-xs text-slate-400 mt-1">{TEAM_CATEGORIES.find(c => c.value === formData.category)?.description}</p>
-                )}
-              </div>
-              <div className="mb-4">
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">Default Landing Page <span className="text-slate-400">(what they see first after login)</span></label>
-                <div className="grid grid-cols-2 gap-2">
-                  {LANDING_PAGES.map(p => (
-                    <button type="button" key={p.value} onClick={() => setFormData({ ...formData, default_landing_page: p.value })}
-                      className={`px-3 py-2.5 rounded-lg text-sm font-medium border transition text-left ${formData.default_landing_page === p.value ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                      {p.label}
-                    </button>
-                  ))}
+            <FormSection title="Access & Landing Page" icon={LayoutGrid} description="Where this crew lands and what they can see" columns={false}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1.5">Top-Level Group</label>
+                  <select value={formData.category} onChange={(e) => {
+                    const cat = e.target.value;
+                    setFormData({
+                      ...formData,
+                      category: cat,
+                      default_landing_page: DEFAULT_LANDING_PAGE[cat] || formData.default_landing_page,
+                      allowed_tool_access: formData.allowed_tool_access.length === 0 ? (DEFAULT_CAPABILITIES[cat] || []) : formData.allowed_tool_access
+                    });
+                  }} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
+                    <option value="">— Select group —</option>
+                    {TEAM_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                  {formData.category && (
+                    <p className="text-xs text-slate-400 mt-1">{TEAM_CATEGORIES.find(c => c.value === formData.category)?.description}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1.5">Default Landing Page <span className="text-slate-400">(first page after login)</span></label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {LANDING_PAGES.map(p => (
+                      <button type="button" key={p.value} onClick={() => setFormData({ ...formData, default_landing_page: p.value })}
+                        className={`px-3 py-2.5 rounded-lg text-sm font-medium border transition text-left ${formData.default_landing_page === p.value ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
               <div>
@@ -397,10 +364,9 @@ export default function TeamManager() {
                   onChange={(next) => setFormData({ ...formData, allowed_tool_access: next })} columns={2}
                   hint="Pick which sections this crew can access. Field crews typically only need Schedule View. Selecting a group above auto-fills sensible defaults." />
               </div>
-            </div>
+            </FormSection>
 
-            <div className="border-t border-slate-100 pt-4">
-              <label className="block text-sm font-semibold text-slate-700 mb-3">Supervisor Settings</label>
+            <FormSection title="Supervisor Settings" icon={Shield} description="Link this crew to the crews it oversees" columns={false}>
               <div className="mb-4">
                 <button type="button" onClick={() => setFormData({ ...formData, is_supervisor_team: !formData.is_supervisor_team })}
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium border transition text-left ${formData.is_supervisor_team ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
@@ -413,13 +379,15 @@ export default function TeamManager() {
               </div>
               {formData.is_supervisor_team && (
                 <>
-                  <div className="mb-4">
-                    <label className="block text-xs font-medium text-slate-500 mb-1.5">Supervisor</label>
-                    <select value={formData.supervisor_staff_id} onChange={(e) => setFormData({ ...formData, supervisor_staff_id: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
-                      <option value="">— Select supervisor —</option>
-                      {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1.5">Supervisor</label>
+                      <select value={formData.supervisor_staff_id} onChange={(e) => setFormData({ ...formData, supervisor_staff_id: e.target.value })}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
+                        <option value="">— Select supervisor —</option>
+                        {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-2">Managed Crews</label>
@@ -429,7 +397,7 @@ export default function TeamManager() {
                   </div>
                 </>
               )}
-            </div>
+            </FormSection>
 
             <div className="flex gap-3 pt-2">
               <button type="submit" className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">

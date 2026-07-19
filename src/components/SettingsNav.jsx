@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks } from 'lucide-react';
 
 export const settingsGroups = [
   {
@@ -24,6 +24,7 @@ export const settingsGroups = [
       { id: 'equipment-library', label: 'Equipment Sets', icon: Package, desc: 'Pre-built equipment sets (presets) — individual items now sync from Asset Panda' },
       { id: 'vehicles', label: 'Vehicles', icon: Truck, desc: 'Track vehicles, MOTs and service dates' },
       { id: 'job-types', label: 'Job Types', icon: Tag, desc: 'Manage job types and colours' },
+      { id: 'dropdowns', label: 'Dropdown Manager', icon: ListChecks, desc: 'Add, rename, reorder or remove options in every dropdown — qualifications, asset types, revenue streams & more' },
       { id: 'automations', label: 'Automations', icon: Zap, desc: 'View and toggle background automations' },
     ],
   },

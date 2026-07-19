@@ -33,6 +33,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets'], queryFn: () => base44.entities.Timesheet.list('-created_date', 100) });
+  const { data: deliveries = [] } = useQuery({ queryKey: ['deliveries'], queryFn: () => base44.entities.DeliveryLog.filter({ scheduled_date: todayStr }) });
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
@@ -82,11 +83,14 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const pendingTs = timesheets.filter(t => t.status === 'submitted').length;
   const activeStaff = staff.filter(s => s.is_active !== false).length;
 
+  const pendingDeliveries = deliveries.filter(d => d.status === 'pending' || d.status === 'in_progress').length;
+  const planningJobs = jobs.filter(j => (j.status || 'planning') === 'planning').length;
+
   const stats = [
-    { label: 'Active Jobs', value: activeJobs.length, sub: onHoldJobs.length ? `${onHoldJobs.length} on hold` : `${jobs.length} total`, icon: Briefcase, gradient: 'stat-gradient-emerald', nav: 'jobs' },
-    { label: 'Working Today', value: staffToday, sub: `${activeStaff} active crew`, icon: Users, gradient: 'stat-gradient-blue', nav: 'rota' },
-    { label: 'Pending Approval', value: pendingTs, sub: 'timesheets', icon: ClipboardCheck, gradient: pendingTs > 0 ? 'stat-gradient-amber' : 'stat-gradient-slate', nav: 'timesheets' },
-    { label: 'Vehicles', value: vehicles.length, sub: 'in fleet', icon: Truck, gradient: 'stat-gradient-amber', nav: 'settings' },
+    { label: 'Active Jobs', value: activeJobs.length, sub: onHoldJobs.length ? `${onHoldJobs.length} on hold · ${planningJobs} planning` : `${planningJobs} planning · ${jobs.length} total`, icon: Briefcase, gradient: 'stat-gradient-emerald', nav: 'jobs' },
+    { label: 'Crews Deployed', value: staffToday, sub: `${activeStaff} active crew`, icon: Users, gradient: 'stat-gradient-blue', nav: 'rota' },
+    { label: 'Timesheet Queue', value: pendingTs, sub: 'awaiting approval', icon: ClipboardCheck, gradient: pendingTs > 0 ? 'stat-gradient-amber' : 'stat-gradient-slate', nav: 'timesheets' },
+    { label: 'Deliveries Today', value: pendingDeliveries, sub: `${deliveries.length} scheduled`, icon: Truck, gradient: pendingDeliveries > 0 ? 'stat-gradient-rose' : 'stat-gradient-slate', nav: 'deliveries' },
   ];
 
   const canViewCosts = canViewCostings(profile);

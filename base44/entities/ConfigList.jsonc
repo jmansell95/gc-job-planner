@@ -1,0 +1,58 @@
+{
+  "name": "ConfigList",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Unique identifier for this dropdown list (e.g. 'qualifications', 'asset_types', 'revenue_streams', 'job_types'). Used by forms to fetch the right list."
+    },
+    "label": {
+      "type": "string",
+      "description": "Human-readable name shown in the Dropdown Manager settings page."
+    },
+    "category": {
+      "type": "string",
+      "description": "Grouping label for the settings page (e.g. 'Crews', 'Jobs', 'Finance')."
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "Stable value stored on entities when this option is selected. Changing this after records exist will orphan them \u2014 rename the label instead."
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-readable label shown in dropdowns and chips."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional helper text explaining this option."
+          },
+          "critical": {
+            "type": "boolean",
+            "default": false,
+            "description": "Marks this option as critical (shown with a red dot, e.g. CSCS card)."
+          }
+        },
+        "required": [
+          "value",
+          "label"
+        ]
+      },
+      "default": [],
+      "description": "Ordered list of selectable options for this dropdown."
+    },
+    "is_system": {
+      "type": "boolean",
+      "default": false,
+      "description": "System-managed lists are seeded automatically and can have options added/removed, but the list itself cannot be deleted."
+    }
+  },
+  "required": [
+    "key",
+    "label"
+  ]
+}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Users, Briefcase, Truck, Building2, Receipt, Package, ShieldCheck, Wrench, TrendingUp, HardHat, Boxes, Mail, Palette, Zap, Timer, Banknote, CalendarX, Database, Tag } from 'lucide-react';
+import { Users, Briefcase, Truck, Building2, Receipt, Package, ShieldCheck, Wrench, TrendingUp, HardHat, Boxes, Mail, Palette, Zap, Timer, Banknote, CalendarX, Database, Tag, ListChecks } from 'lucide-react';
 
 /**
  * Settings Command Hub — an at-a-glance overview of everything configurable.
@@ -47,6 +47,7 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'equipment-library', icon: Boxes, label: 'Equipment Library', value: catalogue.length, sub: `${activeCatalogue} active`, color: 'emerald' },
       { id: 'vehicles', icon: Truck, label: 'Vehicles', value: vehicles.length, sub: 'Fleet & MOTs', color: 'amber' },
       { id: 'job-types', icon: Tag, label: 'Job Types', value: '—', sub: 'Types & colours', color: 'slate' },
+      { id: 'dropdowns', icon: ListChecks, label: 'Dropdown Manager', value: '—', sub: 'Edit every dropdown', color: 'violet' },
       { id: 'automations', icon: Zap, label: 'Automations', value: '—', sub: 'Background tasks', color: 'violet' },
     ]},
     { group: 'Contacts', items: [
