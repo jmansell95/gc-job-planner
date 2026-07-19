@@ -12,7 +12,7 @@ export const WIDGET_REGISTRY = {
   'job-assets': { title: 'Job Equipment', icon: Boxes },
   'ai-insights': { title: 'AI Weekly Insights', icon: Sparkles },
   'job-profitability': { title: 'Job Profitability', icon: PoundSterling },
-  'asset-crew-profitability': { title: 'Assets & Crews', icon: TrendingUp },
+  'asset-crew-profitability': { title: 'On Jobs Now', icon: TrendingUp },
   'rig-profitability': { title: 'Rig Profitability', icon: HardHat },
   'site-hazards': { title: 'Site Hazard Map', icon: Waves },
 };
