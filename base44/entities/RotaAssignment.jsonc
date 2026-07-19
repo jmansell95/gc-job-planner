@@ -42,6 +42,18 @@
       "type": "string",
       "description": "Timestamp when staff completed the job"
     },
+    "arrived_on_site_at": {
+      "type": "string",
+      "description": "Timestamp when staff confirmed arrival on site (travel-to-site logged). The first step of the daily workflow \u2014 set before the briefing/induction can begin."
+    },
+    "early_leave_reason": {
+      "type": "string",
+      "description": "Reason recorded when a staff member leaves site before the end of the shift. One of the predefined quick-select reasons or a custom reason entered by the staff member."
+    },
+    "early_leave_note": {
+      "type": "string",
+      "description": "Additional note explaining an early departure (e.g. appointment time, symptoms, client contact who approved it)."
+    },
     "briefing_signed": {
       "type": "boolean",
       "default": false,

@@ -17,6 +17,8 @@ import { complianceDaysUntil } from '@/utils/complianceDate';
 import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
 import StatCard from '@/components/dashboard/StatCard';
 import TravelFromSiteModal from '@/components/staff/TravelFromSiteModal';
+import ArrivedOnSiteModal from '@/components/staff/ArrivedOnSiteModal';
+import EarlyLeaveModal from '@/components/staff/EarlyLeaveModal';
 import ScheduleSplash from '@/components/staff/ScheduleSplash';
 import NextJobPrompt from '@/components/staff/NextJobPrompt';
 import AdHocVisitModal from '@/components/staff/AdHocVisitModal';
@@ -48,6 +50,8 @@ export default function StaffDashboard() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [briefingAssignment, setBriefingAssignment] = useState(null);
   const [travelFromAssignment, setTravelFromAssignment] = useState(null);
+  const [arrivedOnSiteAssignment, setArrivedOnSiteAssignment] = useState(null);
+  const [earlyLeaveAssignment, setEarlyLeaveAssignment] = useState(null);
   const [splashDismissed, setSplashDismissed] = useState(false);
   const [showScheduleSummary, setShowScheduleSummary] = useState(false);
   const [showNextJobPrompt, setShowNextJobPrompt] = useState(false);
@@ -156,6 +160,92 @@ export default function StaffDashboard() {
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
     } catch (error) {
       console.error('Error starting job:', error);
+    }
+  };
+
+  // Opens the "Arrived on Site" modal — the first step of the daily workflow.
+  // Staff log their travel-to-site time before the briefing/induction begins.
+  const handleArrivedOnSite = (assignmentId) => {
+    const assignment = assignments.find(a => a.id === assignmentId);
+    if (!assignment) return;
+    setArrivedOnSiteAssignment(assignment);
+  };
+
+  // Confirms arrival: creates a travel_to draft timesheet entry, marks the
+  // assignment as arrived, then opens the briefing modal if induction is still
+  // required for this job (only on the first day at a site).
+  const handleArrivedOnSiteConfirm = async ({ departHome, arriveSite, skipped }) => {
+    const assignment = arrivedOnSiteAssignment;
+    if (!assignment) return;
+    setArrivedOnSiteAssignment(null);
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const arrivedAt = new Date().toISOString();
+    try {
+      if (!skipped && departHome && arriveSite) {
+        const [dh, dm] = departHome.split(':').map(Number);
+        const [ah, am] = arriveSite.split(':').map(Number);
+        const travelMins = (ah * 60 + am) - (dh * 60 + dm);
+        if (travelMins > 0) {
+          await base44.entities.Timesheet.create({
+            staff_id: staff.id,
+            date: todayStr,
+            job_id: assignment.job_id || '',
+            task_description: 'Travel to site',
+            task_type: 'travel_to',
+            start_time: departHome,
+            end_time: arriveSite,
+            task_duration_minutes: travelMins,
+            total_hours: Math.round((travelMins / 60) * 100) / 100,
+            status: 'draft',
+            travel_depart_home: departHome,
+            travel_arrive_site: arriveSite
+          });
+        }
+      }
+      await base44.entities.RotaAssignment.update(assignment.id, { arrived_on_site_at: arrivedAt });
+      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });
+
+      // Determine if induction/briefing is still needed for this job
+      const hasPriorBriefing = assignments.some(a => a.job_id === assignment.job_id && a.briefing_signed && a.id !== assignment.id);
+      const inductionRequired = !assignment.briefing_signed && !hasPriorBriefing;
+      if (inductionRequired) {
+        // Open the briefing modal, skipping the travel phase (already logged)
+        setBriefingAssignment(assignment);
+      } else {
+        toast({ title: 'Arrived on site', description: 'Induction already completed for this site — ready to start work.' });
+      }
+    } catch (error) {
+      console.error('Error confirming arrival:', error);
+      toast({ title: 'Error', description: 'Could not confirm arrival. Please try again.', variant: 'destructive' });
+    }
+  };
+
+  // Opens the early-leave modal for a started assignment.
+  const handleEarlyLeave = (assignmentId) => {
+    const assignment = assignments.find(a => a.id === assignmentId);
+    if (!assignment) return;
+    setEarlyLeaveAssignment(assignment);
+  };
+
+  // Confirms an early departure: records the reason on the assignment then
+  // runs the normal completion flow (travel-home capture + timesheet submit).
+  const handleEarlyLeaveConfirm = async ({ reason, note }) => {
+    const assignment = earlyLeaveAssignment;
+    if (!assignment) return;
+    setEarlyLeaveAssignment(null);
+    try {
+      // Record the reason before completing
+      await base44.entities.RotaAssignment.update(assignment.id, {
+        early_leave_reason: reason,
+        early_leave_note: note
+      });
+      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+      toast({ title: 'Early departure recorded', description: 'Your manager will be notified. Please log your travel home next.' });
+      // Trigger the normal completion flow (which prompts for travel home)
+      handleCompleteJob(assignment.id);
+    } catch (error) {
+      console.error('Error recording early leave:', error);
     }
   };
 
@@ -445,12 +535,13 @@ export default function StaffDashboard() {
     onStart: handleStartAttempt,
     onComplete: handleCompleteJob,
     onSign: handleBriefingSign,
-    onConfirmShift: handleConfirmShift,
-    onDeclineShift: handleDeclineShift,
+    onArrivedOnSite: handleArrivedOnSite,
+    onEarlyLeave: handleEarlyLeave,
     canPerformActions,
     meterage: meterageInputs[assignment.id],
     onMeterageChange: (id, val) => setMeterageInputs(prev => ({ ...prev, [id]: val })),
     tasksSubmitted: mgrTimesheets.some(t => t.job_id === assignment.job_id && t.date === todayStr && (t.status === 'submitted' || t.status === 'approved')),
+    arrivedOnSite: !!assignment.arrived_on_site_at,
     needsBriefing: !assignment.briefing_signed && !visibleAssignments.some(a => a.job_id === assignment.job_id && a.briefing_signed && a.id !== assignment.id),
     crewSignedCount,
     crewTotal,
@@ -711,7 +802,7 @@ export default function StaffDashboard() {
 
       </div>
 
-      {/* Briefing modal */}
+      {/* Briefing modal — travel is logged first via Arrived on Site, so skip the travel phase */}
       {briefingAssignment && (
         <JobBriefingModal
           assignment={briefingAssignment}
@@ -721,6 +812,7 @@ export default function StaffDashboard() {
           crewAssignments={allAssignments.filter(a => a.job_id === briefingAssignment.job_id && a.assigned_date === briefingAssignment.assigned_date)}
           onSigned={handleBriefingComplete}
           onClose={() => setBriefingAssignment(null)}
+          skipTravel
         />
       )}
 
@@ -731,6 +823,28 @@ export default function StaffDashboard() {
           jobName={jobs.find(j => j.id === assignments.find(a => a.id === travelFromAssignment.assignmentId)?.job_id)?.name}
           onConfirm={handleCompleteJobWithTravel}
           onClose={() => setTravelFromAssignment(null)}
+        />
+      )}
+
+      {/* Arrived on Site modal — first step: log travel to site */}
+      {arrivedOnSiteAssignment && (
+        <ArrivedOnSiteModal
+          open={!!arrivedOnSiteAssignment}
+          jobName={jobs.find(j => j.id === arrivedOnSiteAssignment.job_id)?.name}
+          jobLocation={jobs.find(j => j.id === arrivedOnSiteAssignment.job_id)?.location}
+          inductionRequired={!arrivedOnSiteAssignment.briefing_signed && !visibleAssignments.some(a => a.job_id === arrivedOnSiteAssignment.job_id && a.briefing_signed && a.id !== arrivedOnSiteAssignment.id)}
+          onConfirm={handleArrivedOnSiteConfirm}
+          onClose={() => setArrivedOnSiteAssignment(null)}
+        />
+      )}
+
+      {/* Early leave modal — leave site before end of shift with a reason */}
+      {earlyLeaveAssignment && (
+        <EarlyLeaveModal
+          open={!!earlyLeaveAssignment}
+          jobName={jobs.find(j => j.id === earlyLeaveAssignment.job_id)?.name}
+          onConfirm={handleEarlyLeaveConfirm}
+          onClose={() => setEarlyLeaveAssignment(null)}
         />
       )}
 

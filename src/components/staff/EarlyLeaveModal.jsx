@@ -1,0 +1,125 @@
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, DoorOpen, Clock, CheckCircle2, FileText } from 'lucide-react';
+
+const DEFAULT_REASONS = [
+  'Doctor/Dentist Appointment',
+  'Illness / Feeling Unwell',
+  'Client-Approved Early Finish',
+  'Family Emergency',
+  'Vehicle Breakdown',
+  'Other',
+];
+
+// Lets staff leave site before the end of the shift with a reason. The reason
+// and optional note are saved to the assignment and surfaced to managers on
+// the timesheet approval view.
+export default function EarlyLeaveModal({ open, onClose, onConfirm, jobName }) {
+  const [reason, setReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const isOther = reason === 'Other';
+  const finalReason = isOther ? customReason.trim() : reason;
+  const canConfirm = reason && (!isOther || customReason.trim()) && !saving;
+
+  const handleConfirm = async () => {
+    if (!canConfirm) return;
+    setSaving(true);
+    await onConfirm({ reason: finalReason, note: note.trim() || null });
+    setSaving(false);
+    setReason(''); setCustomReason(''); setNote('');
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-0 md:p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+            onClick={e => e.stopPropagation()}
+            className="bg-white w-full md:max-w-md rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col"
+          >
+            {/* Header */}
+            <div className="hero-gradient px-5 py-4 text-white flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center">
+                  <DoorOpen className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold leading-tight">Leaving Site Early</h2>
+                  <p className="text-emerald-100 text-xs">{jobName || 'Record your reason'}</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/15 transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-4 overflow-y-auto">
+              <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-100 rounded-xl px-3.5 py-3">
+                <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-900 leading-relaxed">
+                  Your shift will be completed early. Your reason is recorded on your timesheet for your manager to review.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Reason for leaving early</label>
+                <div className="grid grid-cols-1 gap-2">
+                  {DEFAULT_REASONS.map(r => {
+                    const selected = reason === r;
+                    return (
+                      <button key={r} type="button" onClick={() => setReason(r)}
+                        className={`flex items-center gap-2.5 px-3.5 py-3 rounded-xl border-2 text-left text-sm font-medium transition ${selected ? 'border-emerald-400 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${selected ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
+                          {selected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                        </div>
+                        {r}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {isOther && (
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1.5">Custom reason</label>
+                  <input type="text" value={customReason} onChange={e => setCustomReason(e.target.value)} placeholder="Describe the reason…"
+                    className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white" />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5 flex items-center gap-1">
+                  <FileText className="w-3.5 h-3.5 text-slate-400" /> Additional note (optional)
+                </label>
+                <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="e.g. appointment time, client contact who approved it, symptoms…"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 resize-none bg-white" />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 flex gap-2 flex-shrink-0">
+              <button onClick={onClose} disabled={saving}
+                className="flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 active:scale-95 transition text-sm font-semibold disabled:opacity-50">
+                Cancel
+              </button>
+              <button onClick={handleConfirm} disabled={!canConfirm}
+                className="flex items-center justify-center gap-1.5 flex-1 px-4 py-3 bg-amber-600 text-white rounded-xl hover:bg-amber-700 active:scale-95 transition text-sm font-bold disabled:opacity-50 touch-manipulation">
+                {saving ? 'Saving…' : 'Complete & Leave Early'}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

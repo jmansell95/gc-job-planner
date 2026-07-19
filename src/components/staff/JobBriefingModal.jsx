@@ -9,8 +9,14 @@ import { saveOfflineBriefing } from '@/utils/offlineSync';
 
 const POWRA_URL = 'https://app.safetyculture.com/inspection/audit_349a23db07de4cfba675bb2a0a9f7bd8?page=1&isNew=true&holisticOnboarding=false';
 
-export default function JobBriefingModal({ assignment, job, client, staff, crewAssignments = [], onSigned, onClose }) {
-  const [phase, setPhase] = useState(assignment.briefing_start_at ? 'documents' : 'intro');
+export default function JobBriefingModal({ assignment, job, client, staff, crewAssignments = [], onSigned, onClose, skipTravel = false }) {
+  // When skipTravel is true, arrival/travel-to-site was already logged before
+  // opening the briefing, so we skip the intro and travel phases and start
+  // straight at documents/induction.
+  const initialPhase = skipTravel
+    ? null
+    : (assignment.briefing_start_at ? 'documents' : 'intro');
+  const [phase, setPhase] = useState(initialPhase);
   const [signing, setSigning] = useState(false);
   const [briefingStartAt, setBriefingStartAt] = useState(assignment.briefing_start_at || null);
   const [elapsedLabel, setElapsedLabel] = useState('');
@@ -37,11 +43,19 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
   });
 
   useEffect(() => {
+    if (skipTravel) {
+      // Auto-record the briefing start time and jump straight to the first content step
+      const ts = new Date().toISOString();
+      setBriefingStartAt(ts);
+      setPhase(briefingDocs.length > 0 ? 'documents' : 'induction');
+      try { base44.entities.RotaAssignment.update(assignment.id, { briefing_start_at: ts }); } catch (e) {}
+      return;
+    }
     if (assignment.briefing_start_at) {
       setBriefingStartAt(assignment.briefing_start_at);
       setPhase('documents');
     }
-  }, [assignment.id, assignment.briefing_start_at]);
+  }, [assignment.id, assignment.briefing_start_at, skipTravel, briefingDocs.length]);
 
   // Build an ISO timestamp from today's date + a HH:mm string (local time)
   const buildTimestampFromTime = (hhmm) => {
@@ -113,6 +127,14 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
     else if (phase === 'induction') setPhase(briefingDocs.length > 0 ? 'documents' : 'travel');
     else if (phase === 'documents') setPhase('travel');
     else if (phase === 'travel') setPhase('intro');
+  };
+
+  // When travel is skipped, we never reach the travel/intro phases, so guard
+  // the back button from the first content step.
+  const goPrevSkipAware = () => {
+    const firstPhase = briefingDocs.length > 0 ? 'documents' : 'induction';
+    if (skipTravel && phase === firstPhase) return;
+    goPrev();
   };
 
   const handleSign = async () => {
@@ -192,9 +214,13 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
 
   if (!job) return null;
 
-  const stepLabels = ['Briefing', 'Travel', briefingDocs.length > 0 ? 'Documents' : null, 'Induction', 'Safety', 'Sign'].filter(Boolean);
+  const stepLabels = skipTravel
+    ? ['Induction', 'Safety', 'Sign']
+    : ['Briefing', 'Travel', briefingDocs.length > 0 ? 'Documents' : null, 'Induction', 'Safety', 'Sign'].filter(Boolean);
   const docOffset = briefingDocs.length > 0 ? 1 : 0;
-  const activeStep = phase === 'intro' ? 0 : phase === 'travel' ? 1 : phase === 'documents' ? 2 : phase === 'induction' ? (2 + docOffset) : phase === 'risk' ? (3 + docOffset) : (4 + docOffset);
+  const activeStep = skipTravel
+    ? (phase === 'induction' ? 0 : phase === 'risk' ? 1 : 2)
+    : (phase === 'intro' ? 0 : phase === 'travel' ? 1 : phase === 'documents' ? 2 : phase === 'induction' ? (2 + docOffset) : phase === 'risk' ? (3 + docOffset) : (4 + docOffset));
 
   return (
     <AnimatePresence>
@@ -361,7 +387,7 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
                   </div>
                 )}
                 <div className="flex gap-2 pt-1">
-                  <button onClick={goPrev} className="flex items-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">
+                  <button onClick={goPrevSkipAware} className="flex items-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">
                     <ChevronLeft className="w-4 h-4" /> Back
                   </button>
                   <button onClick={goNext} disabled={!allDocsReviewed}
@@ -440,7 +466,7 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
                 </button>
 
                 <div className="flex gap-2 pt-1">
-                  <button onClick={goPrev} className="flex items-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">
+                  <button onClick={goPrevSkipAware} className="flex items-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">
                     <ChevronLeft className="w-4 h-4" /> Back
                   </button>
                   <button onClick={goNext} disabled={!inductionConfirmed}
@@ -487,7 +513,7 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
                 </button>
 
                 <div className="flex gap-2 pt-1">
-                  <button onClick={goPrev} className="flex items-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">
+                  <button onClick={goPrevSkipAware} className="flex items-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">
                     <ChevronLeft className="w-4 h-4" /> Back
                   </button>
                   <button onClick={goNext} disabled={!powraConfirmed}
@@ -538,7 +564,7 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
                   );
                 })()}
                 <div className="flex gap-2 pt-1">
-                  <button onClick={goPrev} className="flex items-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">
+                  <button onClick={goPrevSkipAware} className="flex items-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">
                     <ChevronLeft className="w-4 h-4" /> Back
                   </button>
                   <button onClick={goNext}

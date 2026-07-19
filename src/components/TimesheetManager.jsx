@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import PageHeader from '@/components/PageHeader';
 import WithdrawnAcknowledgementPanel from '@/components/WithdrawnAcknowledgementPanel';
 import TodayTimeBoard from '@/components/TodayTimeBoard';
+import DailyStaffSummaryWidget from '@/components/DailyStaffSummaryWidget';
 import { EmptyState, ErrorState, TableSkeleton } from '@/components/StateViews';
 import { computeStaffOvertime, buildRateMap } from '@/utils/overtime';
 
@@ -148,6 +149,8 @@ export default function TimesheetManager() {
   return (
     <div>
       <PageHeader title="Timesheets" icon={Clock} />
+
+      <DailyStaffSummaryWidget />
 
       <TodayTimeBoard />
 

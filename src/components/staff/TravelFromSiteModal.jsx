@@ -54,6 +54,15 @@ export default function TravelFromSiteModal({ open, onClose, onConfirm, jobName 
 
             {/* Body */}
             <div className="p-5 space-y-4 overflow-y-auto">
+              <div className="rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white px-4 py-3.5">
+                <div className="flex items-center gap-2.5">
+                  <Car className="w-5 h-5 text-white flex-shrink-0" />
+                  <p className="text-sm font-bold">Have a safe journey home!</p>
+                </div>
+                <p className="text-xs text-emerald-50 mt-1.5 leading-relaxed">
+                  Please log your travel home hours before submitting your day's timesheet.
+                </p>
+              </div>
               <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-3">
                 <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-blue-900 leading-relaxed">
@@ -90,7 +99,7 @@ export default function TravelFromSiteModal({ open, onClose, onConfirm, jobName 
               )}
 
               <p className="text-[11px] text-slate-400">
-                Your shift will be completed and your timesheet submitted to your manager after this step.
+                Your shift will be completed and your timesheet submitted to your manager after this step. You can skip if you didn't travel (e.g. staying locally).
               </p>
             </div>
 
