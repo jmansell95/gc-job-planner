@@ -3,6 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Users, ChevronDown, ChevronRight, GitBranch, UserCircle2, UserMinus, Check, Shield, GraduationCap } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import ChipMultiSelect from '@/components/forms/ChipMultiSelect';
 import { Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatWorkerType } from '@/utils/format';
 import { TEAM_CATEGORIES, LANDING_PAGES, CAPABILITY_KEYS, DEFAULT_CAPABILITIES, DEFAULT_LANDING_PAGE } from '@/utils/teamAccess';
@@ -62,10 +64,12 @@ const QUALIFICATION_OPTIONS = [
   { value: 'other', label: 'Other' },
 ];
 
+const blankForm = () => ({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], revenue_stream_type: '', billing_default_markup: 0, compatible_asset_types: [], required_qualifications: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
+
 export default function TeamManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], revenue_stream_type: '', billing_default_markup: 0, compatible_asset_types: [], required_qualifications: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
+  const [formData, setFormData] = useState(blankForm());
   const [presetParent, setPresetParent] = useState(null);
   const [collapsed, setCollapsed] = useState({});
 
@@ -85,20 +89,19 @@ export default function TeamManager() {
   const membersOf = (teamId) => staff.filter(s => s.team_id === teamId);
 
   const teamIds = new Set(teams.map(t => t.id));
-  // A team is top-level if it has no parent OR its parent no longer exists (orphaned sub-crew).
-  // Previously orphaned sub-crews were invisible because they only render inside a parent card.
   const parentTeams = teams.filter(t => !t.parent_team_id || !teamIds.has(t.parent_team_id));
   const subTeamsOf = (parentId) => teams.filter(t => t.parent_team_id === parentId && teamIds.has(parentId));
 
-  const assignedTeamIds = new Set(teams.map(t => t.id));
-  const unassignedStaff = staff.filter(s => !s.team_id || !assignedTeamIds.has(s.team_id));
+  const unassignedStaff = staff.filter(s => !s.team_id || !teamIds.has(s.team_id));
 
   const openCreate = (parentId = null) => {
     setEditingId(null);
-    setFormData({ name: '', description: '', parent_team_id: parentId || '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], required_qualifications: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
+    setFormData(blankForm());
     setPresetParent(parentId);
     setShowForm(true);
   };
+
+  const closeForm = () => { setShowForm(false); setEditingId(null); setPresetParent(null); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -110,10 +113,8 @@ export default function TeamManager() {
         await base44.entities.Team.create(payload);
       }
       queryClient.invalidateQueries({ queryKey: ['teams'] });
-      setFormData({ name: '', description: '', parent_team_id: '', job_type: '', category: '', default_landing_page: '', allowed_tool_access: [], revenue_stream_type: '', billing_default_markup: 0, compatible_asset_types: [], required_qualifications: [], is_supervisor_team: false, supervisor_staff_id: '', managed_team_ids: [] });
-      setShowForm(false);
-      setEditingId(null);
-      setPresetParent(null);
+      setFormData(blankForm());
+      closeForm();
     } catch (error) {
       console.error('Error saving team:', error);
     }
@@ -122,8 +123,8 @@ export default function TeamManager() {
   const handleEdit = (team) => {
     setFormData({ name: team.name, description: team.description || '', parent_team_id: team.parent_team_id || '', job_type: team.job_type || '', category: team.category || '', default_landing_page: team.default_landing_page || '', allowed_tool_access: team.allowed_tool_access || [], revenue_stream_type: team.revenue_stream_type || '', billing_default_markup: team.billing_default_markup ?? 0, compatible_asset_types: team.compatible_asset_types || [], required_qualifications: team.required_qualifications || [], is_supervisor_team: team.is_supervisor_team || false, supervisor_staff_id: team.supervisor_staff_id || '', managed_team_ids: team.managed_team_ids || [] });
     setEditingId(team.id);
-    setShowForm(true);
     setPresetParent(null);
+    setShowForm(true);
   };
 
   const handleDelete = async (team) => {
@@ -287,9 +288,10 @@ export default function TeamManager() {
         </div>
       </div>
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl p-4 md:p-6 border border-emerald-200 mb-6 shadow-sm">
-          <div className="space-y-4 md:space-y-5">
+      <Dialog open={showForm} onOpenChange={(open) => { if (!open) closeForm(); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editingId ? 'Edit Crew' : 'Add Crew'}</DialogTitle></DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Crew Name</label>
               <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required
@@ -300,7 +302,6 @@ export default function TeamManager() {
                 Parent Crew {presetParent && <span className="text-xs text-emerald-600 font-normal">(sub-crew)</span>}
               </label>
               <select value={formData.parent_team_id} onChange={(e) => setFormData({ ...formData, parent_team_id: e.target.value })}
-                disabled={!!editingId && editingId === formData.parent_team_id}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 bg-white">
                 <option value="">— Top-level crew group —</option>
                 {parentTeams.filter(t => t.id !== editingId).map(team => <option key={team.id} value={team.id}>{team.name}</option>)}
@@ -314,11 +315,11 @@ export default function TeamManager() {
                 <option value="">Flexible (any job type)</option>
                 {Object.entries(JOB_TYPE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
               </select>
-              <p className="text-xs text-slate-400 mt-1">Crew members in this crew can only be assigned to matching job types. Leave flexible for supervisors/managers. Coring & Trial Pit crews sit under the Groundworks parent.</p>
+              <p className="text-xs text-slate-400 mt-1">Crew members in this crew can only be assigned to matching job types. Leave flexible for supervisors/managers. Coring &amp; Trial Pit crews sit under the Groundworks parent.</p>
             </div>
 
             <div className="border-t border-slate-100 pt-4">
-              <label className="block text-sm font-semibold text-slate-700 mb-3">Revenue & Billing</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-3">Revenue &amp; Billing</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1.5">Revenue Stream</label>
@@ -339,63 +340,28 @@ export default function TeamManager() {
               </div>
               <div className="mt-4">
                 <label className="block text-xs font-medium text-slate-500 mb-2">Compatible Asset Types</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {ASSET_TYPE_OPTIONS.map(opt => {
-                    const checked = (formData.compatible_asset_types || []).includes(opt.value);
-                    return (
-                      <button type="button" key={opt.value} onClick={() => {
-                        const next = checked ? (formData.compatible_asset_types || []).filter(v => v !== opt.value) : [...(formData.compatible_asset_types || []), opt.value];
-                        setFormData({ ...formData, compatible_asset_types: next });
-                      }}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition text-left ${checked ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                        <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${checked ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
-                          {checked && <Check className="w-2.5 h-2.5 text-white" />}
-                        </span>
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-slate-400 mt-2">Only compatible assets are offered when this crew's equipment is selected on a job.</p>
-                </div>
-
-                {/* Required Qualifications */}
-                <div className="mt-4">
+                <ChipMultiSelect options={ASSET_TYPE_OPTIONS} value={formData.compatible_asset_types || []}
+                  onChange={(next) => setFormData({ ...formData, compatible_asset_types: next })} columns={3}
+                  hint="Only compatible assets are offered when this crew's equipment is selected on a job." />
+              </div>
+              <div className="mt-4">
                 <label className="block text-xs font-medium text-slate-500 mb-2 flex items-center gap-1.5">
-                  <GraduationCap className="w-3.5 h-3.5" /> Required Qualifications & Training
+                  <GraduationCap className="w-3.5 h-3.5" /> Required Qualifications &amp; Training
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {QUALIFICATION_OPTIONS.map(opt => {
-                    const checked = (formData.required_qualifications || []).includes(opt.value);
-                    return (
-                      <button type="button" key={opt.value} onClick={() => {
-                        const next = checked ? (formData.required_qualifications || []).filter(v => v !== opt.value) : [...(formData.required_qualifications || []), opt.value];
-                        setFormData({ ...formData, required_qualifications: next });
-                      }}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition text-left ${checked ? 'border-violet-600 bg-violet-50 text-violet-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                        <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${checked ? 'bg-violet-600 border-violet-600' : 'border-slate-300'}`}>
-                          {checked && <Check className="w-2.5 h-2.5 text-white" />}
-                        </span>
-                        {opt.label}
-                        {opt.critical && <span className="text-[9px] text-red-500 font-bold">●</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-slate-400 mt-2">Staff missing these qualifications are flagged in the Training Gaps dashboard. Red dot = critical (e.g. CSCS card required on site).</p>
-                </div>
-                </div>
+                <ChipMultiSelect options={QUALIFICATION_OPTIONS} value={formData.required_qualifications || []}
+                  onChange={(next) => setFormData({ ...formData, required_qualifications: next })} columns={3} color="violet"
+                  hint="Staff missing these qualifications are flagged in the Training Gaps dashboard. Red dot = critical (e.g. CSCS card required on site)." />
+              </div>
+            </div>
 
-                <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Crew Description</label>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Crew Description</label>
               <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600" rows="3" />
             </div>
 
-            {/* Access Control */}
             <div className="border-t border-slate-100 pt-4">
-              <label className="block text-sm font-semibold text-slate-700 mb-3">Access & Landing Page</label>
-
+              <label className="block text-sm font-semibold text-slate-700 mb-3">Access &amp; Landing Page</label>
               <div className="mb-4">
                 <label className="block text-xs font-medium text-slate-500 mb-1.5">Top-Level Group</label>
                 <select value={formData.category} onChange={(e) => {
@@ -414,7 +380,6 @@ export default function TeamManager() {
                   <p className="text-xs text-slate-400 mt-1">{TEAM_CATEGORIES.find(c => c.value === formData.category)?.description}</p>
                 )}
               </div>
-
               <div className="mb-4">
                 <label className="block text-xs font-medium text-slate-500 mb-1.5">Default Landing Page <span className="text-slate-400">(what they see first after login)</span></label>
                 <div className="grid grid-cols-2 gap-2">
@@ -426,33 +391,14 @@ export default function TeamManager() {
                   ))}
                 </div>
               </div>
-
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-2">Admin Tool Access</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {CAPABILITY_KEYS.map(cap => {
-                    const checked = formData.allowed_tool_access.includes(cap.key);
-                    return (
-                      <button type="button" key={cap.key} onClick={() => {
-                        const next = checked
-                          ? formData.allowed_tool_access.filter(k => k !== cap.key)
-                          : [...formData.allowed_tool_access, cap.key];
-                        setFormData({ ...formData, allowed_tool_access: next });
-                      }}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition text-left ${checked ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                        <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${checked ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
-                          {checked && <Check className="w-2.5 h-2.5 text-white" />}
-                        </span>
-                        {cap.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-slate-400 mt-2">Pick which sections this crew can access. Field crews typically only need "Schedule View". Selecting a group above auto-fills sensible defaults.</p>
+                <ChipMultiSelect options={CAPABILITY_KEYS.map(cap => ({ value: cap.key, label: cap.label }))} value={formData.allowed_tool_access}
+                  onChange={(next) => setFormData({ ...formData, allowed_tool_access: next })} columns={2}
+                  hint="Pick which sections this crew can access. Field crews typically only need Schedule View. Selecting a group above auto-fills sensible defaults." />
               </div>
             </div>
 
-            {/* Supervisor Settings */}
             <div className="border-t border-slate-100 pt-4">
               <label className="block text-sm font-semibold text-slate-700 mb-3">Supervisor Settings</label>
               <div className="mb-4">
@@ -477,40 +423,26 @@ export default function TeamManager() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-2">Managed Crews</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {teams.filter(t => t.id !== editingId).map(t => {
-                        const checked = formData.managed_team_ids.includes(t.id);
-                        return (
-                          <button type="button" key={t.id} onClick={() => {
-                            const next = checked ? formData.managed_team_ids.filter(id => id !== t.id) : [...formData.managed_team_ids, t.id];
-                            setFormData({ ...formData, managed_team_ids: next });
-                          }}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition text-left ${checked ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                            <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${checked ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
-                              {checked && <Check className="w-2.5 h-2.5 text-white" />}
-                            </span>
-                            {t.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <p className="text-xs text-slate-400 mt-2">Pick which crews this supervisor oversees. They'll see a production overview of these crews on their dashboard.</p>
+                    <ChipMultiSelect options={teams.filter(t => t.id !== editingId).map(t => ({ value: t.id, label: t.name }))}
+                      value={formData.managed_team_ids} onChange={(next) => setFormData({ ...formData, managed_team_ids: next })} columns={2}
+                      hint="Pick which crews this supervisor oversees. They'll see a production overview of these crews on their dashboard." />
                   </div>
                 </>
               )}
             </div>
-          </div>
-          <div className="flex gap-3 mt-6">
-            <button type="submit" className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">
-              {editingId ? 'Update Crew' : 'Add Crew'}
-            </button>
-            <button type="button" onClick={() => { setShowForm(false); setPresetParent(null); }}
-              className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition font-medium text-sm">
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
+
+            <div className="flex gap-3 pt-2">
+              <button type="submit" className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">
+                {editingId ? 'Update Crew' : 'Add Crew'}
+              </button>
+              <button type="button" onClick={closeForm}
+                className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition font-medium text-sm">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -531,7 +463,6 @@ export default function TeamManager() {
         </div>
       )}
 
-      {/* Unassigned staff */}
       {unassignedStaff.length > 0 && (
         <div className="mt-6 bg-amber-50/50 rounded-xl border border-amber-200 p-4 md:p-6">
           <div className="flex items-center gap-2 mb-3">
