@@ -5,6 +5,7 @@ import { Wrench, Plus, Trash2, Edit2, X, ShieldCheck, ShieldAlert, ShieldX, Truc
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
 import SyncComplianceButton from '@/components/SyncComplianceButton';
+import { useConfigLists } from '@/hooks/useConfigLists';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
@@ -34,6 +35,10 @@ export default function SiteAssetManager() {
   const [form, setForm] = useState(emptyForm);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { getOptions } = useConfigLists();
+  const assetTypeOptions = getOptions('asset_types');
+  const rigTypeOptions = getOptions('rig_types');
+  const complianceStatusOptions = getOptions('compliance_statuses');
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
@@ -165,10 +170,7 @@ export default function SiteAssetManager() {
             <select value={compFilter} onChange={e => setCompFilter(e.target.value)}
               className="px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600">
               <option value="all">All Status</option>
-              <option value="compliant">Compliant</option>
-              <option value="expiring">Expiring Soon</option>
-              <option value="expired">Expired</option>
-              <option value="unknown">Unknown</option>
+              {complianceStatusOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
         </div>
@@ -188,20 +190,14 @@ export default function SiteAssetManager() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Asset Type</label>
               <select value={form.asset_type} onChange={e => setForm({ ...form, asset_type: e.target.value })} className={inputCls}>
-                <option value="rig">Rig</option>
-                <option value="machinery">Machinery</option>
-                <option value="trailer">Trailer</option>
-                <option value="vehicle">Vehicle</option>
-                <option value="lifting">Lifting Equipment</option>
+                {assetTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             {form.asset_type === 'rig' && (
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Rig Type</label>
                 <select value={form.rig_type} onChange={e => setForm({ ...form, rig_type: e.target.value })} className={inputCls}>
-                  <option value="n/a">N/A</option>
-                  <option value="cp">CP (Cable Percussion)</option>
-                  <option value="rotary">Rotary</option>
+                  {rigTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
             )}

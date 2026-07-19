@@ -4,8 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Wrench, Undo2, Send, Trash2, Plus, X, Camera, CheckCircle2, MapPin } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { reinstatementOptions } from './shared';
 import CompletedBySelector from './CompletedBySelector';
+import { useConfigLists } from '@/hooks/useConfigLists';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 bg-white";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
@@ -22,6 +22,8 @@ export default function EnablingLogForm({ staffId, jobId, job, staffName }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const { getOptions } = useConfigLists();
+  const reinstatementOptions = getOptions('reinstatement_types');
 
   const [form, setForm] = useState({
     log_type: 'reinstatement',

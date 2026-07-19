@@ -4,10 +4,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ArrowDownToLine, TestTube, Wrench, Ruler, Send, Trash2, Plus, X, Droplets, Calculator, Layers, Gauge, Ban, AlertTriangle, Radar, Boxes, Beaker } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { strataOptions, sampleTypes, calculateSptN, fluidLossOptions, fluidReturnOptions, obstructionOptions, mixerTypeOptions, sensorTypeOptions, reinstatementOptions } from './shared';
+import { calculateSptN } from './shared';
 import CompletedBySelector from './CompletedBySelector';
 import BoreholeProgressSummary from './BoreholeProgressSummary';
 import BoreholeCompletionModal from './BoreholeCompletionModal';
+import { useConfigLists } from '@/hooks/useConfigLists';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 bg-white";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
@@ -31,6 +32,13 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const { getOptions } = useConfigLists();
+  const strataOptions = getOptions('strata_types');
+  const sampleTypes = getOptions('sample_types');
+  const fluidLossOptions = getOptions('fluid_loss_options');
+  const fluidReturnOptions = getOptions('fluid_return_options');
+  const obstructionOptions = getOptions('obstruction_types');
+  const sensorTypeOptions = getOptions('sensor_types');
 
   const [form, setForm] = useState({
     log_type: 'borehole_progress',

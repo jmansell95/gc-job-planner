@@ -4,10 +4,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { MapPin, Package, Wrench, Ruler, Send, Trash2, Plus, X, ShieldAlert, Gauge, Waves, MapPinned, Undo2, Droplet, Layers, Search, Beaker, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { strataOptions, pitStabilityOptions, serviceEncounterOptions, serviceEncounterConfig, reinstatementOptions, mixerTypeOptions } from './shared';
+import { serviceEncounterConfig } from './shared';
 import CompletedBySelector from './CompletedBySelector';
 import CollapsibleSection from './CollapsibleSection';
 import ServiceCheckBySelector from './ServiceCheckBySelector';
+import { useConfigLists } from '@/hooks/useConfigLists';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-100 bg-white";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
@@ -30,6 +31,12 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const { getOptions } = useConfigLists();
+  const strataOptions = getOptions('strata_types');
+  const pitStabilityOptions = getOptions('pit_stability_options');
+  const serviceEncounterOptions = getOptions('service_encounter_types');
+  const reinstatementOptions = getOptions('reinstatement_types');
+  const mixerTypeOptions = getOptions('mixer_types');
 
   const [form, setForm] = useState({
     log_type: 'pit_excavation',

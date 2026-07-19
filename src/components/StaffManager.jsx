@@ -13,6 +13,7 @@ import { CardGridSkeleton } from '@/components/StateViews';
 import StaffShiftEditor from '@/components/StaffShiftEditor';
 import { formatWorkerType } from '@/utils/format';
 import { format } from 'date-fns';
+import { useConfigLists } from '@/hooks/useConfigLists';
 
 const workerBadge = {
   direct_employee: 'bg-emerald-100 text-emerald-700',
@@ -28,6 +29,8 @@ const roleBadge = {
 
 export default function StaffManager() {
   const { toast } = useToast();
+  const { getOptions } = useConfigLists();
+  const workerTypeOptions = getOptions('worker_types');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -262,9 +265,7 @@ export default function StaffManager() {
               <label className="block text-xs font-medium text-slate-600 mb-1">Worker Type</label>
               <select value={formData.worker_type} onChange={e => setFormData({ ...formData, worker_type: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="direct_employee">Direct Employee</option>
-                <option value="subcontractor">Subcontractor</option>
-                <option value="agency">Agency Worker</option>
+                {workerTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
             <div>
