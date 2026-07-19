@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, CalendarClock, HelpCircle, Receipt } from 'lucide-react';
+import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useStaffAssistant } from '@/components/StaffAssistantChat';
-import { useSchedulingAssistant } from '@/components/SchedulingAssistantChat';
 import { useNavigate } from 'react-router-dom';
 import MobileNavDrawer from '@/components/MobileNavDrawer';
 import GlobalSearch from '@/components/GlobalSearch';
@@ -18,7 +17,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
   const notifications = useNotifications();
   const notifCount = notifications.count;
   const { openChat } = useStaffAssistant();
-  const { openChat: openSchedulingChat } = useSchedulingAssistant();
 
   useEffect(() => {
     (async () => {
@@ -66,11 +64,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-sm font-medium hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-sm">
           <Sparkles className="w-4 h-4" />
           Ask Assistant
-        </button>
-        <button onClick={openSchedulingChat} type="button"
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-800/60 text-emerald-200 text-sm font-medium hover:bg-emerald-800 hover:text-white active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-emerald-700/50">
-          <CalendarClock className="w-4 h-4" />
-          Schedule Assistant
         </button>
         {canViewSchedule && (
           <button onClick={() => navigate('/staff-schedule')} type="button"
@@ -176,7 +169,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         onNavigate={setActiveSection}
         onLogout={handleLogout}
         onAssistant={openChat}
-        onScheduling={openSchedulingChat}
         onHelp={() => { navigate('/help'); setDrawerOpen(false); }}
       />
 
