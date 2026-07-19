@@ -10,9 +10,9 @@ export const SYSTEM_ROLES = [
 
 // Admin sections visible to each role.
 export const ROLE_SECTIONS = {
-  admin: ['overview', 'jobs', 'rota', 'calendar', 'timesheets', 'compliance', 'log-qc', 'teams', 'settings', 'billing'],
-  manager: ['overview', 'jobs', 'rota', 'calendar', 'timesheets', 'compliance', 'log-qc', 'billing'],
-  viewer: ['overview', 'jobs', 'calendar', 'compliance', 'log-qc'],
+  admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'timesheets', 'compliance', 'log-qc', 'teams', 'billing', 'settings'],
+  manager: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'timesheets', 'compliance', 'log-qc', 'billing', 'settings'],
+  viewer: ['overview', 'jobs', 'calendar', 'scheduling', 'compliance', 'log-qc', 'settings'],
 };
 
 // Resolve the effective role from profile + platform admin flag.

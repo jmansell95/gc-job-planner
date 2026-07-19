@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock } from 'lucide-react';
 
 export const settingsGroups = [
   {
@@ -29,6 +29,14 @@ export const settingsGroups = [
     ],
   },
   {
+    label: 'Compliance & Review',
+    items: [
+      { id: 'compliance', label: 'Compliance', icon: ShieldCheck, desc: 'Staff compliance, training & qualifications tracking', roles: ['admin', 'manager', 'viewer'] },
+      { id: 'log-qc', label: 'Log QC', icon: FlaskConical, desc: 'Review and approve investigation logs', roles: ['admin', 'manager', 'viewer'] },
+      { id: 'timesheets', label: 'Timesheets', icon: Clock, desc: 'Review and approve crew timesheets', roles: ['admin', 'manager'] },
+    ],
+  },
+  {
     label: 'Contacts',
     items: [
       { id: 'clients', label: 'Clients', icon: Building2, desc: 'Manage client contacts' },
@@ -55,15 +63,27 @@ export const settingsGroups = [
 
 export const allSettingsItems = settingsGroups.flatMap(g => g.items);
 
-export default function SettingsNav({ activeId, onChange }) {
+// Items visible to a given resolved role. Items without a `roles` array are
+// admin-only (the default for all existing configuration tabs). Items that
+// managers/viewers need (compliance, log-qc, timesheets) declare `roles`.
+export function accessibleSettingsItems(role) {
+  if (!role) return [];
+  return allSettingsItems.filter(i => !i.roles || i.roles.includes(role));
+}
+
+export default function SettingsNav({ activeId, onChange, role = 'admin' }) {
   const [query, setQuery] = useState('');
+
+  const roleFiltered = settingsGroups
+    .map(g => ({ ...g, items: g.items.filter(i => !i.roles || i.roles.includes(role)) }))
+    .filter(g => g.items.length > 0);
 
   const q = query.toLowerCase().trim();
   const filtered = q
-    ? settingsGroups
+    ? roleFiltered
         .map(g => ({ ...g, items: g.items.filter(i => i.label.toLowerCase().includes(q) || i.desc.toLowerCase().includes(q)) }))
         .filter(g => g.items.length > 0)
-    : settingsGroups;
+    : roleFiltered;
 
   return (
     <div>

@@ -5,13 +5,9 @@ import { canAccessSection } from '@/utils/access';
 import AdminNav from '@/components/AdminNav';
 import DashboardOverview from '@/components/DashboardOverview';
 import JobManager from '@/components/JobManager';
-import WeeklyRotaBuilder from '@/components/WeeklyRotaBuilder';
 import SettingsPage from '@/components/SettingsPage';
 import JobDetail from '@/components/JobDetail';
-import TimesheetManager from '@/components/TimesheetManager';
-import CalendarView from '@/components/CalendarView';
-import ComplianceManager from '@/components/ComplianceManager';
-import LogQualityControl from '@/components/investigation/LogQualityControl';
+import SchedulingHub from '@/components/SchedulingHub';
 import BillingPage from '@/components/BillingPage';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 
@@ -71,13 +67,14 @@ export default function AdminDashboard() {
             {activeSection === 'job-detail' && selectedJob && (
               <JobDetail job={selectedJob} onBack={() => setActiveSection('overview')} />
             )}
-            {activeSection === 'jobs' && <JobManager onNavigateRota={() => setActiveSection('rota')} />}
-            {activeSection === 'rota' && <WeeklyRotaBuilder />}
-            {activeSection === 'timesheets' && <TimesheetManager />}
-            {activeSection === 'calendar' && <CalendarView />}
+            {activeSection === 'jobs' && <JobManager onNavigateRota={() => setActiveSection('scheduling')} />}
+            {(activeSection === 'scheduling' || activeSection === 'rota' || activeSection === 'calendar') && (
+              <SchedulingHub initialTab={activeSection === 'calendar' ? 'calendar' : 'rota'} />
+            )}
+            {activeSection === 'timesheets' && <SettingsPage initialTab="timesheets" />}
             {activeSection === 'teams' && <SettingsPage initialTab="teams" />}
-            {activeSection === 'compliance' && <ComplianceManager />}
-            {activeSection === 'log-qc' && <LogQualityControl />}
+            {activeSection === 'compliance' && <SettingsPage initialTab="compliance" />}
+            {activeSection === 'log-qc' && <SettingsPage initialTab="log-qc" />}
             {activeSection === 'billing' && <BillingPage onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}
             {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} />}
           </motion.div>

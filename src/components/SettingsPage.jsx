@@ -20,15 +20,37 @@ import AssetPandaSettings from '@/components/AssetPandaSettings';
 import RateCardManager from '@/components/RateCardManager';
 import DropdownConfigManager from '@/components/DropdownConfigManager';
 import SettingsHubOverview from '@/components/SettingsHubOverview';
-import SettingsNav, { allSettingsItems } from '@/components/SettingsNav';
+import SettingsNav, { accessibleSettingsItems } from '@/components/SettingsNav';
+import ComplianceManager from '@/components/ComplianceManager';
+import LogQualityControl from '@/components/investigation/LogQualityControl';
+import TimesheetManager from '@/components/TimesheetManager';
+import { resolveRole } from '@/utils/access';
+import { base44 } from '@/api/base44Client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 export default function SettingsPage({ initialTab }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'hub');
   const [navOpen, setNavOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try { const res = await base44.functions.invoke('getMyStaffProfile'); setProfile(res.data); } catch (e) {}
+    })();
+  }, []);
+
+  const role = resolveRole(profile) || 'admin';
+  const items = accessibleSettingsItems(role);
+
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
 
-  const active = allSettingsItems.find(t => t.id === activeTab);
+  // Guard: if the current tab isn't accessible to this role, fall back to the first accessible tab.
+  useEffect(() => {
+    if (!profile || items.length === 0) return;
+    if (!items.find(i => i.id === activeTab)) setActiveTab(items[0].id);
+  }, [profile, role, activeTab, items]);
+
+  const active = items.find(t => t.id === activeTab);
   const Icon = active?.icon;
 
   const handleSelect = (id) => {
@@ -57,6 +79,9 @@ export default function SettingsPage({ initialTab }) {
       case 'rate-card': return <RateCardManager />;
       case 'billing': return <BillingRulesManager />;
       case 'equipment-library': return <EquipmentLibraryManager />;
+      case 'compliance': return <ComplianceManager />;
+      case 'log-qc': return <LogQualityControl />;
+      case 'timesheets': return <TimesheetManager />;
       default: return null;
     }
   };
@@ -82,7 +107,7 @@ export default function SettingsPage({ initialTab }) {
           <SheetHeader className="mb-3">
             <SheetTitle className="text-left">Settings Menu</SheetTitle>
           </SheetHeader>
-          <SettingsNav activeId={activeTab} onChange={handleSelect} />
+          <SettingsNav activeId={activeTab} onChange={handleSelect} role={role} />
         </SheetContent>
       </Sheet>
 
