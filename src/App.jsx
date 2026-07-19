@@ -14,12 +14,16 @@ import StaffProfile from './pages/StaffProfile';
 import ClientPortal from './pages/ClientPortal';
 import DeliveryDashboard from './pages/DeliveryDashboard';
 import HelpGuide from './pages/HelpGuide';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import { StaffAssistantProvider } from '@/components/StaffAssistantChat';
 import { SchedulingAssistantProvider } from '@/components/SchedulingAssistantChat';
 import AppBaseUrlSync from '@/components/AppBaseUrlSync';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
 
   const isClientPortalRoute = window.location.pathname.includes('/client-portal/');
 
@@ -32,15 +36,11 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors (skip for public client portal)
-  if (!isClientPortalRoute && authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
-    }
+  // Handle "user not registered" error (skip for public client portal).
+  // auth_required is handled by ProtectedRoute redirecting to /login, NOT by a
+  // hard redirect during render (which caused the refresh loop on publish).
+  if (!isClientPortalRoute && authError && authError.type === 'user_not_registered') {
+    return <UserNotRegisteredError />;
   }
 
   // Render the main app
@@ -49,6 +49,10 @@ const AuthenticatedApp = () => {
       <SchedulingAssistantProvider>
         <AppBaseUrlSync />
         <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/" element={<Home />} />
           <Route path="/admin" element={<AdminDashboard />} />
