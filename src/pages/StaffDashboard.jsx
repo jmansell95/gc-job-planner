@@ -410,13 +410,8 @@ export default function StaffDashboard() {
       setBriefingAssignment(assignment);
       return;
     }
-    const crew = allAssignments.filter(a => a.job_id === assignment.job_id && a.assigned_date === assignment.assigned_date);
-    const allSigned = crew.length > 0 && crew.every(a => a.briefing_signed);
-    if (!allSigned) {
-      const signedCount = crew.filter(a => a.briefing_signed).length;
-      toast({ title: 'Waiting for crew briefings', description: `${signedCount} of ${crew.length} crew members have signed off. Everyone must complete the briefing before work can start.` });
-      return;
-    }
+    // Each crew member can start work independently once they've personally
+    // signed the briefing — others may still be completing theirs.
     handleStartJob(assignmentId);
   };
 
@@ -433,12 +428,13 @@ export default function StaffDashboard() {
     if (justSigned) {
       const crew = allAssignments.filter(a => a.job_id === justSigned.job_id && a.assigned_date === justSigned.assigned_date);
       const signedCount = crew.filter(a => a.briefing_signed || a.id === justSigned.id).length;
-      const allSigned = crew.length > 0 && signedCount === crew.length;
-      if (allSigned) {
-        handleStartJob(justSigned.id);
-        toast({ title: 'All crew briefed — shift started', description: 'Everyone has signed off on the site briefing.' });
+      // Start this person's shift as soon as they've signed — they don't have
+      // to wait for the rest of the crew to be briefed.
+      handleStartJob(justSigned.id);
+      if (crew.length > 1 && signedCount < crew.length) {
+        toast({ title: 'Briefing signed — shift started', description: `${signedCount} of ${crew.length} crew signed off. Others can start once they complete theirs.` });
       } else {
-        toast({ title: 'Briefing signed', description: `${signedCount} of ${crew.length} crew members signed off — waiting for the rest.` });
+        toast({ title: 'Briefing signed — shift started', description: "You're briefed and ready to work." });
       }
     }
   };

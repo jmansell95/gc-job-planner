@@ -323,7 +323,7 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
                   <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-2.5 mb-4 text-left">
                     <Users className="w-4 h-4 text-blue-600 flex-shrink-0" />
                     <p className="text-xs text-blue-800 font-medium">
-                      {crewTotal} crew members assigned today. Everyone must complete their briefing before the shift can start.
+                      {crewTotal} crew members assigned today. Each person can start work as soon as they've signed their own briefing — you don't need to wait for the rest of the crew.
                     </p>
                   </div>
                 )}
@@ -624,7 +624,7 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
                       <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-2.5">
                         <Users className="w-4 h-4 text-blue-600 flex-shrink-0" />
                         <p className="text-xs text-blue-800 font-medium">
-                          {crewSignedCount} of {crewTotal} crew signed off. {crewSignedCount + 1 === crewTotal ? "You're the last one!" : 'Others still need to sign.'}
+                          {crewSignedCount + 1} of {crewTotal} crew signed off. Your shift starts as soon as you sign — others will join once they complete their briefing.
                         </p>
                       </div>
                     )}
