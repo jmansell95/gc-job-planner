@@ -151,7 +151,7 @@ export default function SupervisorOverviewWidget({ profile }) {
 
       <div className="p-4 sm:p-5">
         {/* Summary stats */}
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mb-5">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
           {stats.map((stat, i) => (
             <StatCard key={i} icon={stat.icon} value={stat.value} label={stat.label} sub={stat.sub} gradient={stat.gradient} />
           ))}

@@ -598,7 +598,7 @@ export default function StaffDashboard() {
           </div>
 
           {/* Quick stats strip */}
-          <div className="grid grid-cols-3 gap-2 md:gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             <StatCard icon={Clock} value={todaysAssignments.length} label="Today" gradient="stat-gradient-emerald" />
             <StatCard icon={Calendar} value={upcomingAssignments.length} label="Upcoming" gradient="stat-gradient-blue" />
             <StatCard icon={Briefcase} value={visibleAssignments.length} label="Total" gradient="stat-gradient-slate" />
