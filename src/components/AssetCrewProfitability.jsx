@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/StateViews';
 import { eachDayOfInterval, isWeekend } from 'date-fns';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import StatCard from '@/components/dashboard/StatCard';
+import { findRigRateCardItem } from '@/components/logistics/rigRateMatcher';
 
 const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB');
 
@@ -84,6 +85,7 @@ export default function AssetCrewProfitability({ onSelectJob }) {
   const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets-profit'], queryFn: () => base44.entities.Timesheet.list('-created_date', 200), staleTime: 0 });
   const { data: invLogs = [] } = useQuery({ queryKey: ['investigation-logs-profit'], queryFn: () => base44.entities.InvestigationLog.list('-created_date', 200), staleTime: 0 });
   const { data: deliveries = [] } = useQuery({ queryKey: ['delivery-logs-profit'], queryFn: () => base44.entities.DeliveryLog.list('-created_date', 200), staleTime: 0 });
+  const { data: rateCardItems = [] } = useQuery({ queryKey: ['rate-card-items-profit'], queryFn: () => base44.entities.RateCardItem.list(), staleTime: 60000 });
 
   const scopedAssignments = isAllJobs ? assignments : assignments.filter(a => a.job_id === selectedJobId);
   const scopedRotas = isAllJobs ? rotas : rotas.filter(r => r.job_id === selectedJobId);
@@ -118,6 +120,8 @@ export default function AssetCrewProfitability({ onSelectJob }) {
         const active = activeByRig[r.id] || [];
         const jobIds = [...new Set(active.map(a => a.job_id))];
         const jobNames = jobIds.map(id => jobById[id]?.name).filter(Boolean);
+        const rateCardMatch = findRigRateCardItem(r, rateCardItems);
+        const dayRate = rateCardMatch ? (Number(rateCardMatch.price) || 0) : 0;
         let revenue = 0, days = 0;
         active.forEach(a => {
           const job = jobById[a.job_id];
@@ -125,14 +129,14 @@ export default function AssetCrewProfitability({ onSelectJob }) {
           const to = a.returned_date || job?.end_date || today;
           const d = workingDays(from, to);
           days += d;
-          revenue += (r.daily_billing_rate || 0) * d;
+          revenue += dayRate * d;
         });
         const gear = (r.linked_equipment_ids || []).map(id => gearById[id]).filter(Boolean);
-        return { id: r.id, name: r.name, rigType: r.rig_type, billingRate: r.daily_billing_rate || 0, revenue, days, jobIds, jobNames, gear };
+        return { id: r.id, name: r.name, rigType: r.rig_type, billingRate: dayRate, revenue, days, jobIds, jobNames, gear };
       })
       .filter(r => r.jobIds.length > 0)
       .sort((a, b) => b.revenue - a.revenue);
-  }, [assets, scopedAssignments, jobById]);
+  }, [assets, scopedAssignments, jobById, rateCardItems]);
 
   // ---- People currently on jobs (today's rota assignments) ----
   const peopleRows = useMemo(() => {

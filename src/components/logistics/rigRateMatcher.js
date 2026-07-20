@@ -9,7 +9,7 @@
  * 1. Window Sampling rigs — matched by name keywords (tracked, modular, terrier)
  * 2. CP rigs — matched by type (cutdown vs standard, electric vs diesel)
  * 3. Rotary rigs — matched by model number in name
- * 4. Falls back to null (caller uses the rig's daily_billing_rate from Asset Panda)
+ * 4. Falls back to null (no price — Asset Panda is for inventory only, not pricing)
  */
 export function findRigRateCardItem(rigAsset, rateCardItems = []) {
   if (!rigAsset) return null;
@@ -87,9 +87,9 @@ export function findRigRateCardItem(rigAsset, rateCardItems = []) {
   return null;
 }
 
-/** Fallback day rate for a rig when no rate card match is found. */
+/** Fallback day rate for a rig when no rate card match is found — returns 0 (Asset Panda is for inventory only, not pricing). */
 export function rigFallbackDayRate(rigAsset) {
-  return Number(rigAsset?.daily_billing_rate) || 0;
+  return 0;
 }
 
 /**
@@ -138,13 +138,11 @@ export function findOwnedAssetRateCardItem(asset, rateCardItems = []) {
 }
 
 /**
- * Resolve the billing price for an owned asset with priority:
- * 1. Our Rate Card (via findOwnedAssetRateCardItem)
- * 2. Asset Panda daily_billing_rate
- * 3. Zero fallback
+ * Resolve the billing price for an owned asset from the Master Price List (Our Rate Card).
+ * Asset Panda is for inventory/stock only — it is NOT a pricing source.
  *
  * Returns { cost, unit, rateCardItem, source } where source is
- * 'rate-card' | 'asset-panda' | 'none'.
+ * 'rate-card' | 'none'.
  */
 export function resolveAssetPrice(asset, rateCardItems = []) {
   if (!asset) return { cost: 0, unit: 'day', rateCardItem: null, source: 'none' };
@@ -152,11 +150,6 @@ export function resolveAssetPrice(asset, rateCardItems = []) {
   const rc = findOwnedAssetRateCardItem(asset, rateCardItems);
   if (rc && rc.price != null) {
     return { cost: Number(rc.price) || 0, unit: rc.unit || 'day', rateCardItem: rc, source: 'rate-card' };
-  }
-
-  const panda = Number(asset.daily_billing_rate) || 0;
-  if (panda > 0) {
-    return { cost: panda, unit: 'day', rateCardItem: null, source: 'asset-panda' };
   }
 
   return { cost: 0, unit: 'day', rateCardItem: null, source: 'none' };

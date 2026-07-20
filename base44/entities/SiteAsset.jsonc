@@ -46,11 +46,11 @@
     },
     "panda_asset_id": {
       "type": "string",
-      "description": "ID of this asset in Asset Panda \u2014 used by the scheduled sync to match inventory records and pull live stock levels and billing rates."
+      "description": "ID of this asset in Asset Panda \u2014 used by the scheduled sync to match inventory records and pull live stock levels and warehouse locations."
     },
     "daily_billing_rate": {
       "type": "number",
-      "description": "Daily billing rate in GBP charged to the client when this asset is deployed on a job. Synced from Asset Panda; auto-fills the billing rate when this asset is added to a job's equipment."
+      "description": "DEPRECATED \u2014 do not use for billing. Asset Panda is for inventory stock levels and warehouse locations only, not pricing. All rig, crew, plant and labour prices come from the Master Price List (RateCardItem) via the rate card matcher. This field is retained for backward compatibility only."
     },
     "stock_level": {
       "type": "string",

@@ -14,6 +14,7 @@ import {
   PieChart, Pie, Cell, Legend, CartesianGrid,
 } from 'recharts';
 import { eachDayOfInterval, isWeekend } from 'date-fns';
+import { findRigRateCardItem } from '@/components/logistics/rigRateMatcher';
 
 const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB');
 
@@ -49,6 +50,7 @@ export default function RigProfitabilityWidget({ onSelectJob }) {
   const { data: teams = [] } = useQuery({ queryKey: ['teams-rig-prob'], queryFn: () => base44.entities.Team.list() });
   const { data: rotas = [] } = useQuery({ queryKey: ['rotas-rig-prob'], queryFn: () => base44.entities.RotaAssignment.list('-created_date', 500) });
   const { data: drillingCrews = [] } = useQuery({ queryKey: ['drilling-crews-rig-prob'], queryFn: () => base44.entities.DrillingCrew.list() });
+  const { data: rateCardItems = [] } = useQuery({ queryKey: ['rate-card-items-rig-prob'], queryFn: () => base44.entities.RateCardItem.list(), staleTime: 60000 });
 
   // Scope all data to the selected job
   const scopedAssignments = isAllJobs ? assignments : assignments.filter(a => a.job_id === selectedJobId);
@@ -86,7 +88,9 @@ export default function RigProfitabilityWidget({ onSelectJob }) {
       daysByAsset[a.asset_id] = (daysByAsset[a.asset_id] || 0) + days;
       jobsByAsset[a.asset_id] = jobsByAsset[a.asset_id] || new Set();
       jobsByAsset[a.asset_id].add(a.job_id);
-      const rate = assets.find((x) => x.id === a.asset_id)?.daily_billing_rate || 0;
+      const rigAsset = assets.find((x) => x.id === a.asset_id);
+      const rcMatch = rigAsset ? findRigRateCardItem(rigAsset, rateCardItems) : null;
+      const rate = rcMatch ? (Number(rcMatch.price) || 0) : 0;
       revByAsset[a.asset_id] = (revByAsset[a.asset_id] || 0) + rate * days;
     });
 
@@ -119,12 +123,15 @@ export default function RigProfitabilityWidget({ onSelectJob }) {
       }
       const job = activeJobId ? jobById[activeJobId] : null;
 
+      const rcMatch = findRigRateCardItem(rig, rateCardItems);
+      const billingRate = rcMatch ? (Number(rcMatch.price) || 0) : 0;
+
       return {
         id: rig.id,
         name: rig.name,
         rigType: rig.rig_type,
         compliance: rig.compliance_status || 'unknown',
-        billingRate: rig.daily_billing_rate || 0,
+        billingRate,
         revenue,
         cost,
         profit,
@@ -139,7 +146,7 @@ export default function RigProfitabilityWidget({ onSelectJob }) {
     })
       .filter((r) => r.days > 0 || r.cost > 0 || r.revenue > 0 || r.crewMembers.length > 0)
       .sort((a, b) => b.revenue - a.revenue);
-  }, [rigs, scopedAssignments, scopedCostItems, jobById, staffById, scopedRotas, todayStr, assets]);
+  }, [rigs, scopedAssignments, scopedCostItems, jobById, staffById, scopedRotas, todayStr, assets, rateCardItems]);
 
   const totals = useMemo(
     () => rigRows.reduce(
