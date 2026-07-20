@@ -29,13 +29,14 @@ import TodayPrepStrip from '@/components/staff/TodayPrepStrip';
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
 function SectionHeader({ icon: Icon, title, count, tone = 'dark' }) {
-  const textTone = tone === 'muted' ? 'text-slate-400' : 'text-slate-900';
+  const textTone = tone === 'muted' ? 'text-slate-500' : 'text-slate-900';
+  const gradient = tone === 'muted' ? 'from-slate-400 to-slate-500' : 'from-emerald-500 to-teal-600';
   return (
     <div className="flex items-center gap-2.5 mb-3 md:mb-4">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tone === 'muted' ? 'bg-slate-100' : 'bg-emerald-50'}`}>
-        <Icon className={`w-4 h-4 ${tone === 'muted' ? 'text-slate-400' : 'text-emerald-700'}`} />
+      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-sm`}>
+        <Icon className="w-4 h-4 text-white" />
       </div>
-      <h2 className={`text-lg md:text-xl font-bold ${textTone}`}>{title}</h2>
+      <h2 className={`text-lg md:text-xl font-bold ${textTone} tracking-tight`}>{title}</h2>
       <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${tone === 'muted' ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'}`}>{count}</span>
     </div>
   );
@@ -557,7 +558,7 @@ export default function StaffDashboard() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="hero-gradient relative overflow-hidden">
+      <div className="mesh-bg relative overflow-hidden">
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-7">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-5">
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">

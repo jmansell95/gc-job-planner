@@ -118,8 +118,9 @@ export default function AdminNav({ activeSection, setActiveSection }) {
   return (
     <>
       {/* Mobile Top Header — hamburger + brand + actions */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-40 bg-gradient-to-r from-emerald-950 to-emerald-900 border-b border-emerald-800/60 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="h-14 flex items-center justify-between gap-2 px-3">
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-emerald-800/60 shadow-sm relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="absolute inset-0 mesh-bg" />
+        <div className="relative z-10 h-14 flex items-center justify-between gap-2 px-3">
           <div className="flex items-center gap-1 min-w-0">
             <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" type="button"
               className="h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
@@ -157,8 +158,11 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       </header>
 
       {/* Desktop Sidebar */}
-      <nav className="hidden lg:flex sticky top-0 h-screen w-64 bg-gradient-to-b from-emerald-950 to-emerald-900 border-r border-emerald-800/50 flex-col">
-        {desktopNav}
+      <nav className="hidden lg:flex sticky top-0 h-screen w-64 border-r border-emerald-800/50 flex-col relative overflow-hidden">
+        <div className="absolute inset-0 mesh-bg" />
+        <div className="relative z-10 flex flex-col h-full">
+          {desktopNav}
+        </div>
       </nav>
 
       <MobileNavDrawer

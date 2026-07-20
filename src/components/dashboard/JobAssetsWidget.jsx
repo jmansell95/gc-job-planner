@@ -51,14 +51,14 @@ export default function JobAssetsWidget({ onSelectJob }) {
     .sort((a, b) => (a.job.name || '').localeCompare(b.job.name || ''));
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-2">
+    <div className="insight-card rounded-2xl overflow-hidden">
+      <div className="px-5 py-4 bg-gradient-to-r from-slate-50/90 via-white to-white border-b border-slate-100/80 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-            <Boxes className="w-4 h-4 text-emerald-700" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-md icon-tile-glow">
+            <Boxes className="w-5 h-5 text-white" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-base font-bold text-slate-900">Job Assets</h2>
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">Job Assets</h2>
             <p className="text-xs text-slate-400">Rigs, machinery &amp; trailers on active Jobs</p>
           </div>
         </div>
@@ -80,7 +80,7 @@ export default function JobAssetsWidget({ onSelectJob }) {
             const trailers = assets.filter(a => a.asset_type === 'trailer');
             return (
               <button key={job.id} onClick={() => onSelectJob(job)}
-                className="w-full px-4 py-3.5 rounded-xl border border-slate-100 hover:border-emerald-200 hover:bg-slate-50 transition cursor-pointer text-left group">
+                className="w-full px-4 py-3.5 rounded-xl border border-slate-100 hover:border-emerald-300 hover:bg-slate-50/50 hover:shadow-sm transition cursor-pointer text-left group">
                 <div className="flex items-center gap-2 mb-1.5">
                   <p className="text-sm font-semibold text-slate-900 truncate flex-1">{job.name}</p>
                   <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition flex-shrink-0" />

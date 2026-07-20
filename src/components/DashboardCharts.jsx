@@ -19,7 +19,7 @@ const tooltipStyle = {
   padding: '8px 12px'
 };
 
-const cardCls = "bg-slate-50/60 rounded-xl border border-slate-100 p-5";
+const cardCls = "insight-card rounded-2xl p-5";
 
 export function JobStatusChart({ jobs }) {
   const statuses = ['planning', 'in_progress', 'completed', 'on_hold'];
@@ -30,9 +30,9 @@ export function JobStatusChart({ jobs }) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className={cardCls}>
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><Activity className="w-4 h-4 text-emerald-700" /></div>
-        <h2 className="font-semibold text-slate-900">Job Status</h2>
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md"><Activity className="w-4 h-4 text-white" /></div>
+        <h2 className="font-bold text-slate-900 tracking-tight">Job Status</h2>
       </div>
       {data.length === 0 ? (
         <div className="h-[180px] flex items-center justify-center text-slate-400 text-sm">No jobs yet</div>
@@ -78,8 +78,8 @@ export function WeeklyAssignmentsChart({ days, rotas }) {
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className={cardCls}>
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><BarChart3 className="w-4 h-4 text-emerald-700" /></div>
-        <h2 className="font-semibold text-slate-900">This Week's Shifts</h2>
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md"><BarChart3 className="w-4 h-4 text-white" /></div>
+        <h2 className="font-bold text-slate-900 tracking-tight">This Week's Shifts</h2>
       </div>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
@@ -135,9 +135,9 @@ export function StaffUtilizationChart({ staff, rotas, weekDays }) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className={cardCls}>
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><Users className="w-4 h-4 text-emerald-700" /></div>
-        <h2 className="font-semibold text-slate-900">Crew Utilisation</h2>
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-md"><Users className="w-4 h-4 text-white" /></div>
+        <h2 className="font-bold text-slate-900 tracking-tight">Crew Utilisation</h2>
         <span className="text-xs text-slate-400 ml-1 hidden sm:inline">This week · vs {workingDays}-day work week</span>
       </div>
       {data.length === 0 ? (
@@ -200,9 +200,9 @@ export function JobTypeBreakdownChart({ jobs }) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className={cardCls}>
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><Layers className="w-4 h-4 text-emerald-700" /></div>
-        <h2 className="font-semibold text-slate-900">Job Type Breakdown</h2>
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-md"><Layers className="w-4 h-4 text-white" /></div>
+        <h2 className="font-bold text-slate-900 tracking-tight">Job Type Breakdown</h2>
       </div>
       {data.length === 0 ? (
         <div className="h-[180px] flex items-center justify-center text-slate-400 text-sm">No jobs yet</div>

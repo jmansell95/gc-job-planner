@@ -13,9 +13,9 @@ export default function WidgetCard({ widgetId, customizeMode, dragHandleProps, o
   }
 
   return (
-    <div className="rounded-2xl overflow-hidden bg-white/50 ring-2 ring-emerald-300/70 ring-offset-2 ring-offset-slate-50 shadow-sm">
+    <div className="rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm ring-2 ring-emerald-400/70 ring-offset-2 ring-offset-slate-50 shadow-lg">
       <div
-        className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50/95 border-b border-emerald-100 cursor-grab active:cursor-grabbing select-none"
+        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100 cursor-grab active:cursor-grabbing select-none"
         {...dragHandleProps}
       >
         <GripVertical className="w-4 h-4 text-emerald-600 flex-shrink-0" />

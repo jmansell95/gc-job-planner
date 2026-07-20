@@ -22,6 +22,7 @@ import RigProfitabilityWidget from '@/components/dashboard/RigProfitabilityWidge
 import { canViewCostings } from '@/utils/access';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
+import PulseRibbon from '@/components/dashboard/PulseRibbon';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [customizeMode, setCustomizeMode] = useState(false);
@@ -195,7 +196,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     <div>
       {/* Hero header — context-aware */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-5">
-        <div className="hero-gradient relative overflow-hidden rounded-2xl shadow-lg px-5 py-5 sm:px-7 sm:py-6">
+        <div className="mesh-bg relative overflow-hidden rounded-3xl shadow-xl px-5 py-5 sm:px-7 sm:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
           <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="p-3 bg-white/15 ring-1 ring-white/25 rounded-2xl flex-shrink-0 backdrop-blur-sm">
@@ -257,6 +258,11 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
       <JobSelectorBar />
 
+      {/* At-a-glance intelligence — surfaces critical items needing attention */}
+      {!customizeMode && isAllJobs && (
+        <PulseRibbon onNavigate={onNavigate} />
+      )}
+
       {customizeMode && (
         <div className="mb-4 bg-emerald-50/80 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800">
           Drag sections to reorder them. Tap S, M or L to resize a section, or Hide to remove it from your dashboard.
@@ -270,12 +276,12 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           const Icon = section.icon;
           return (
             <section key={section.id} className="mb-7">
-              <div className="flex items-center gap-2 mb-3 px-1">
-                <div className="w-7 h-7 rounded-lg bg-emerald-50 ring-1 ring-emerald-100 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-4 h-4 text-emerald-700" />
+              <div className="flex items-center gap-2.5 mb-3 px-1">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <Icon className="w-4 h-4 text-white" />
                 </div>
                 <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">{section.label}</h2>
-                <span className="text-xs text-slate-400 font-medium">{sectionWidgets.length}</span>
+                <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-semibold">{sectionWidgets.length}</span>
               </div>
               <Droppable droppableId={section.id}>
                 {(provided) => (

@@ -87,7 +87,7 @@ export default function ComplianceOverviewWidget({ onNavigate }) {
         <button onClick={() => onNavigate('compliance')} type="button"
           className="flex items-center gap-3 bg-white rounded-xl p-3.5 border border-slate-200 hover:border-emerald-200 hover:shadow-sm transition text-left">
           <div className="w-9 h-9 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
-            <GraduationCap className="w-4.5 h-4.5 text-violet-600" />
+            <GraduationCap className="w-5 h-5 text-violet-600" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-slate-900">Upcoming Training</p>
