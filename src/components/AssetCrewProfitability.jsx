@@ -25,7 +25,7 @@ const GEAR_META = {
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
-export default function AssetCrewProfitability() {
+export default function AssetCrewProfitability({ onSelectJob }) {
   const [tab, setTab] = useState('rigs');
   const [expandedRigs, setExpandedRigs] = useState(new Set());
   const { selectedJobId } = useJobFilter();
@@ -34,6 +34,15 @@ export default function AssetCrewProfitability() {
 
   const toggleRig = (id) => {
     setExpandedRigs(prev => { const s = new Set(prev); if (s.has(id)) s.delete(id); else s.add(id); return s; });
+  };
+
+  // Click a rig row: if it's on exactly one job, go straight to it. Otherwise toggle gear.
+  const handleRigClick = (r) => {
+    if (r.jobIds.length === 1 && onSelectJob) {
+      const job = jobById[r.jobIds[0]];
+      if (job) { onSelectJob(job); return; }
+    }
+    if (r.gear.length > 0) toggleRig(r.id);
   };
 
   // Live updates: invalidate the relevant queries whenever assignments or rotas change
@@ -230,13 +239,13 @@ export default function AssetCrewProfitability() {
                         const isExpanded = expandedRigs.has(r.id);
                         return (
                           <React.Fragment key={r.id}>
-                            <tr className={`hover:bg-emerald-50/20 transition ${hasGear ? 'cursor-pointer' : ''}`} onClick={hasGear ? () => toggleRig(r.id) : undefined}>
+                            <tr className="hover:bg-emerald-50/20 transition cursor-pointer" onClick={() => handleRigClick(r)}>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
                                   {hasGear ? (
-                                    <span className="w-5 h-5 flex items-center justify-center text-slate-400 flex-shrink-0">
+                                    <button onClick={(e) => { e.stopPropagation(); toggleRig(r.id); }} className="w-5 h-5 flex items-center justify-center text-slate-400 flex-shrink-0 hover:bg-slate-200 rounded">
                                       {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                    </span>
+                                    </button>
                                   ) : <span className="w-5 h-5 flex-shrink-0" />}
                                   <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-emerald-700 bg-emerald-50"><HardHat className="w-3.5 h-3.5" /></span>
                                   <div className="min-w-0">
@@ -247,10 +256,17 @@ export default function AssetCrewProfitability() {
                               </td>
                               <td className="px-4 py-3">
                                 {r.jobNames.length > 0 ? (
-                                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5 max-w-[240px] truncate">
-                                    <Briefcase className="w-3 h-3 flex-shrink-0" />
-                                    <span className="truncate">{r.jobNames.join(', ')}</span>
-                                  </span>
+                                  <div className="flex flex-wrap gap-1">
+                                    {r.jobIds.map((jid, i) => {
+                                      const j = jobById[jid];
+                                      return (
+                                        <button key={jid} onClick={(e) => { e.stopPropagation(); j && onSelectJob && onSelectJob(j); }} className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-full px-2 py-0.5 max-w-[200px] transition">
+                                          <Briefcase className="w-3 h-3 flex-shrink-0" />
+                                          <span className="truncate">{r.jobNames[i]}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
                                 ) : <span className="text-slate-300 text-[11px]">—</span>}
                               </td>
                               <td className="px-4 py-3 text-right text-slate-500">{r.billingRate ? fmtGBP(r.billingRate) : '—'}</td>
@@ -284,10 +300,10 @@ export default function AssetCrewProfitability() {
                     const isExpanded = expandedRigs.has(r.id);
                     return (
                       <div key={r.id}>
-                        <div className={`p-4 space-y-2 ${hasGear ? 'cursor-pointer' : ''}`} onClick={hasGear ? () => toggleRig(r.id) : undefined}>
+                        <div className="p-4 space-y-2 cursor-pointer hover:bg-emerald-50/30 transition" onClick={() => handleRigClick(r)}>
                           <div className="flex items-center gap-2">
                             {hasGear && (
-                              <span className="text-slate-400 flex-shrink-0">
+                              <span className="text-slate-400 flex-shrink-0" onClick={(e) => { e.stopPropagation(); toggleRig(r.id); }}>
                                 {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                               </span>
                             )}
@@ -295,10 +311,17 @@ export default function AssetCrewProfitability() {
                             <div className="min-w-0 flex-1">
                               <p className="font-medium text-slate-800 text-sm truncate">{r.name}{hasGear && <span className="ml-1 text-[10px] text-slate-400 font-normal">+{r.gear.length}</span>}</p>
                               {r.jobNames.length > 0 && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 mt-0.5">
-                                  <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
-                                  <span className="truncate">{r.jobNames.join(', ')}</span>
-                                </span>
+                                <div className="flex flex-wrap gap-1 mt-0.5">
+                                  {r.jobIds.map((jid, i) => {
+                                    const j = jobById[jid];
+                                    return (
+                                      <span key={jid} onClick={(e) => { e.stopPropagation(); j && onSelectJob && onSelectJob(j); }} className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-full px-1.5 py-0.5 transition">
+                                        <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
+                                        <span className="truncate max-w-[120px]">{r.jobNames[i]}</span>
+                                      </span>
+                                    );
+                                  })}
+                                </div>
                               )}
                             </div>
                             <span className="text-sm font-bold text-emerald-700 flex-shrink-0">{fmtGBP(r.revenue)}</span>
@@ -355,10 +378,17 @@ export default function AssetCrewProfitability() {
                           </td>
                           <td className="px-4 py-3">
                             {p.jobNames.length > 0 ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 rounded-full px-2 py-0.5 max-w-[240px] truncate">
-                                <Briefcase className="w-3 h-3 flex-shrink-0" />
-                                <span className="truncate">{p.jobNames.join(', ')}</span>
-                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {p.jobIds.map((jid, i) => {
+                                  const j = jobById[jid];
+                                  return (
+                                    <button key={jid} onClick={() => j && onSelectJob && onSelectJob(j)} className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-full px-2 py-0.5 max-w-[200px] transition">
+                                      <Briefcase className="w-3 h-3 flex-shrink-0" />
+                                      <span className="truncate">{p.jobNames[i]}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             ) : <span className="text-slate-300 text-[11px]">—</span>}
                           </td>
                           <td className="px-4 py-3 text-right font-bold text-emerald-700">{p.earnings > 0 ? fmtGBP(p.earnings) : '—'}</td>
@@ -374,10 +404,17 @@ export default function AssetCrewProfitability() {
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-slate-800 text-sm truncate">{p.name}</p>
                         {p.jobNames.length > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 mt-0.5">
-                            <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
-                            <span className="truncate">{p.jobNames.join(', ')}</span>
-                          </span>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {p.jobIds.map((jid, i) => {
+                              const j = jobById[jid];
+                              return (
+                                <button key={jid} onClick={() => j && onSelectJob && onSelectJob(j)} className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-full px-1.5 py-0.5 transition">
+                                  <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
+                                  <span className="truncate max-w-[120px]">{p.jobNames[i]}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
                       <span className="text-sm font-bold text-emerald-700 flex-shrink-0">{p.earnings > 0 ? fmtGBP(p.earnings) : '—'}</span>

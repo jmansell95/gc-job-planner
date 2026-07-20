@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   TrendingUp, TrendingDown, PoundSterling, HardHat, Users, Loader2,
-  ShieldCheck, ShieldAlert, Wrench, ChevronDown, ChevronRight, CircleDot,
+  ShieldCheck, ShieldAlert, Wrench, ChevronDown, ChevronRight, CircleDot, ArrowRight, Briefcase,
 } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
@@ -36,7 +36,7 @@ const CREW_COLORS = [
 
 const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#f43f5e', '#06b6d4', '#64748b'];
 
-export default function RigProfitabilityWidget() {
+export default function RigProfitabilityWidget({ onSelectJob }) {
   const [expanded, setExpanded] = useState(null);
   const { selectedJobId } = useJobFilter();
   const isAllJobs = selectedJobId === 'all';
@@ -176,6 +176,10 @@ export default function RigProfitabilityWidget() {
   }, [rigRows]);
 
   const toggleExpand = (id) => setExpanded((prev) => (prev === id ? null : id));
+  const handleRowClick = (r) => {
+    if (r.activeJob && onSelectJob) { onSelectJob(r.activeJob); return; }
+    toggleExpand(r.id);
+  };
 
   if (isLoading) {
     return (
@@ -279,10 +283,14 @@ export default function RigProfitabilityWidget() {
                       const isOpen = expanded === r.id;
                       return (
                         <React.Fragment key={r.id}>
-                          <tr className="hover:bg-emerald-50/20 transition cursor-pointer" onClick={() => toggleExpand(r.id)}>
+                          <tr className="hover:bg-emerald-50/20 transition cursor-pointer" onClick={() => handleRowClick(r)}>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
-                                {r.jobCount > 0 && (isOpen ? <ChevronDown className="w-3.5 h-3.5 text-slate-400" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400" />)}
+                                {r.jobCount > 0 && (
+                                  <button onClick={(e) => { e.stopPropagation(); toggleExpand(r.id); }} className="w-4 h-4 flex items-center justify-center flex-shrink-0 hover:bg-slate-200 rounded">
+                                    {isOpen ? <ChevronDown className="w-3.5 h-3.5 text-slate-400" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400" />}
+                                  </button>
+                                )}
                                 <span className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-emerald-50"><HardHat className="w-3.5 h-3.5 text-emerald-700" /></span>
                                 <div className="min-w-0">
                                   <p className="font-medium text-slate-800 truncate max-w-[160px]">{r.name}</p>
@@ -339,7 +347,11 @@ export default function RigProfitabilityWidget() {
                                       <div className="space-y-1">
                                         {r.jobIds.map((jid) => {
                                           const j = jobById[jid];
-                                          return <div key={jid} className="text-slate-600">• {j?.name || 'Unknown'} {j?.status ? <span className="text-slate-400">({j.status})</span> : null}</div>;
+                                          return (
+                                            <button key={jid} onClick={() => j && onSelectJob && onSelectJob(j)} className="text-left text-slate-600 hover:text-emerald-700 hover:font-medium transition flex items-center gap-1">
+                                              <ChevronRight className="w-3 h-3 text-slate-300" /> {j?.name || 'Unknown'} {j?.status ? <span className="text-slate-400">({j.status})</span> : null}
+                                            </button>
+                                          );
                                         })}
                                       </div>
                                     )}
@@ -360,7 +372,11 @@ export default function RigProfitabilityWidget() {
                                             </div>
                                           );
                                         })}
-                                        {r.activeJob && <p className="text-[10px] text-emerald-600 mt-1">Working on: {r.activeJob.name}</p>}
+                                        {r.activeJob && (
+                                          <button onClick={() => onSelectJob && onSelectJob(r.activeJob)} className="text-[10px] text-emerald-600 mt-1 hover:underline flex items-center gap-0.5">
+                                            Working on: {r.activeJob.name} <ArrowRight className="w-2.5 h-2.5" />
+                                          </button>
+                                        )}
                                       </div>
                                     )}
                                   </div>
@@ -381,7 +397,7 @@ export default function RigProfitabilityWidget() {
                   const comp = complianceMeta[r.compliance] || complianceMeta.unknown;
                   const CompIcon = comp.icon;
                   return (
-                    <div key={r.id} className="p-4 space-y-2">
+                    <div key={r.id} className={`p-4 space-y-2 ${r.activeJob ? 'cursor-pointer hover:bg-emerald-50/30 transition' : ''}`} onClick={() => handleRowClick(r)}>
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-emerald-50"><HardHat className="w-4 h-4 text-emerald-700" /></span>
@@ -392,6 +408,11 @@ export default function RigProfitabilityWidget() {
                         </div>
                         <span className={`text-sm font-bold flex-shrink-0 ${r.profit >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>{fmtGBP(r.profit)}</span>
                       </div>
+                      {r.activeJob && (
+                        <div className="flex items-center gap-1 text-[10px] text-emerald-700 font-medium">
+                          <Briefcase className="w-2.5 h-2.5" /> {r.activeJob.name} <ArrowRight className="w-2.5 h-2.5" />
+                        </div>
+                      )}
                       <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100">
                         <span className="text-slate-500">Rev <span className="font-semibold text-emerald-700">{fmtGBP(r.revenue)}</span></span>
                         <span className="text-slate-500">Cost <span className="font-semibold text-slate-700">{fmtGBP(r.cost)}</span></span>

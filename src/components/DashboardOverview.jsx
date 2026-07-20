@@ -19,6 +19,7 @@ import SiteHazardMapWidget from '@/components/dashboard/SiteHazardMapWidget';
 import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
 import AssetCrewProfitability from '@/components/AssetCrewProfitability';
 import RigProfitabilityWidget from '@/components/dashboard/RigProfitabilityWidget';
+import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import { canViewCostings } from '@/utils/access';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
@@ -29,6 +30,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [widgetOrder, setWidgetOrder] = useState(DEFAULT_WIDGET_ORDER);
   const [widgetSizes, setWidgetSizes] = useState({});
   const [layoutId, setLayoutId] = useState(null);
+  const [drawerJob, setDrawerJob] = useState(null);
   const queryClient = useQueryClient();
   const { selectedJobId } = useJobFilter();
   const isAllJobs = selectedJobId === 'all';
@@ -107,21 +109,23 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   const canViewCosts = canViewCostings(profile);
 
+  const openJobDrawer = (job) => setDrawerJob(job);
+
   const renderWidget = (widgetId) => {
     switch (widgetId) {
-      case 'delivery-stats': return <DeliveryStats onNavigate={onNavigate} onSelectJob={onSelectJob} jobs={scopedJobs} />;
+      case 'delivery-stats': return <DeliveryStats onNavigate={onNavigate} onSelectJob={openJobDrawer} jobs={scopedJobs} />;
       case 'kpi-stats': return <KpiStatsWidget stats={stats} onNavigate={onNavigate} />;
       case 'compliance-overview': return <ComplianceOverviewWidget onNavigate={onNavigate} />;
-      case 'supervisor-overview': return <SupervisorOverviewWidget profile={profile} />;
-      case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={scopedJobs} vehicles={vehicles} onSelectJob={onSelectJob} onNavigate={onNavigate} />;
+      case 'supervisor-overview': return <SupervisorOverviewWidget profile={profile} onSelectJob={openJobDrawer} />;
+      case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={scopedJobs} vehicles={vehicles} onSelectJob={openJobDrawer} onNavigate={onNavigate} />;
       case 'charts': return <ChartsWidget jobs={scopedJobs} staff={staff} rotas={scopedRotas} weekDays={weekDays} />;
-      case 'cost-analytics': return canViewCosts ? <JobCostAnalytics /> : null;
+      case 'cost-analytics': return canViewCosts ? <JobCostAnalytics onSelectJob={openJobDrawer} /> : null;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
-      case 'job-assets': return <JobAssetsWidget onSelectJob={onSelectJob} />;
+      case 'job-assets': return <JobAssetsWidget onSelectJob={openJobDrawer} />;
       case 'ai-insights': return <AiInsightsWidget />;
-      case 'job-profitability': return canViewCosts ? <ProfitabilityDashboard /> : null;
-      case 'asset-crew-profitability': return canViewCosts ? <AssetCrewProfitability /> : null;
-      case 'rig-profitability': return canViewCosts ? <RigProfitabilityWidget /> : null;
+      case 'job-profitability': return canViewCosts ? <ProfitabilityDashboard onSelectJob={openJobDrawer} /> : null;
+      case 'asset-crew-profitability': return canViewCosts ? <AssetCrewProfitability onSelectJob={openJobDrawer} /> : null;
+      case 'rig-profitability': return canViewCosts ? <RigProfitabilityWidget onSelectJob={openJobDrawer} /> : null;
       case 'site-hazards': return <SiteHazardMapWidget onNavigate={onNavigate} />;
       default: return null;
     }
@@ -332,6 +336,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           </div>
         </div>
       )}
+
+      {/* Job Quick Drawer — slide-out drill-down without leaving the dashboard */}
+      <JobQuickDrawer job={drawerJob} onClose={() => setDrawerJob(null)} onOpenFullDetails={onSelectJob} />
     </div>
   );
 }
