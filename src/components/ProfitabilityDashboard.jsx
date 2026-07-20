@@ -224,8 +224,10 @@ export default function ProfitabilityDashboard({ onSelectJob }) {
               <tbody className="divide-y divide-slate-100">
                 {displayRows.length === 0 ? (
                   <tr><td colSpan={7} className="text-center py-8 text-slate-400">No Jobs with cost data yet.</td></tr>
-                ) : displayRows.map(r => (
-                  <tr key={r.id} className="hover:bg-emerald-50/20 transition">
+                ) : displayRows.map(r => {
+                  const job = jobs.find(j => j.id === r.id);
+                  return (
+                  <tr key={r.id} className={`hover:bg-emerald-50/20 transition ${onSelectJob && job ? 'cursor-pointer' : ''}`} onClick={() => onSelectJob && job && onSelectJob(job)}>
                     <td className="px-4 py-3 font-medium text-slate-800 max-w-[200px] truncate">{r.name}</td>
                     <td className="px-4 py-3 text-right text-slate-600">{fmtGBP(r.equip)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-slate-800">{fmtGBP(r.netCost)}</td>
@@ -237,7 +239,8 @@ export default function ProfitabilityDashboard({ onSelectJob }) {
                       </span>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -245,8 +248,10 @@ export default function ProfitabilityDashboard({ onSelectJob }) {
           <div className="md:hidden divide-y divide-slate-100">
             {displayRows.length === 0 ? (
               <div className="text-center py-8 text-slate-400 text-sm">No Jobs with cost data yet.</div>
-            ) : displayRows.map(r => (
-              <div key={r.id} className="p-4 space-y-2">
+            ) : displayRows.map(r => {
+              const job = jobs.find(j => j.id === r.id);
+              return (
+              <div key={r.id} className={`p-4 space-y-2 ${onSelectJob && job ? 'cursor-pointer hover:bg-emerald-50/30' : ''}`} onClick={() => onSelectJob && job && onSelectJob(job)}>
                 <div className="flex items-start justify-between gap-2">
                   <p className="font-medium text-slate-800 text-sm flex-1 min-w-0 truncate">{r.name}</p>
                   <span className={`text-sm font-bold flex-shrink-0 ${r.margin >= 20 ? 'text-emerald-600' : r.margin >= 10 ? 'text-amber-600' : 'text-rose-600'}`}>
@@ -268,7 +273,8 @@ export default function ProfitabilityDashboard({ onSelectJob }) {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

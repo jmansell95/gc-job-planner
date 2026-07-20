@@ -22,7 +22,7 @@ const JOB_TYPE_COLORS = {
   depot: 'bg-slate-100 text-slate-600',
 };
 
-export default function SupervisorOverviewWidget({ profile }) {
+export default function SupervisorOverviewWidget({ profile, onSelectJob }) {
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
   // Always fetch — we need teams to resolve which crews this person supervises,
@@ -201,9 +201,13 @@ export default function SupervisorOverviewWidget({ profile }) {
                   )
                 )}
                 {activeJobs.length > 0 && (
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium truncate max-w-full">
-                    <Construction className="w-3 h-3 flex-shrink-0" /> {activeJobs.map(j => j.name).join(', ')}
-                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {activeJobs.map(j => (
+                      <button key={j.id} onClick={() => onSelectJob && onSelectJob(j)} className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium transition max-w-full">
+                        <Construction className="w-3 h-3 flex-shrink-0" /> <span className="truncate">{j.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 )}
                 {onSite === 0 && meterage === 0 && logCount === 0 && activeJobs.length === 0 && (
                   <span className="text-xs text-slate-400">No activity today</span>
