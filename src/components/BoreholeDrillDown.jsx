@@ -138,12 +138,14 @@ function getBoreholeSummary(logs) {
   const strataLogs = logs.filter(l => l.strata_descriptor || l.strata_description_detail);
   const sampleLogs = logs.filter(l => l.log_type === 'sample_collection');
   const sptLogs = logs.filter(l => l.spt_n_value != null || (l.spt_blows && l.spt_blows.length > 0));
+  const coreLogs = logs.filter(l => l.log_type === 'core_inspection');
 
   const allDepths = [
     ...progressLogs.map(l => l.depth_to),
     ...strataLogs.map(l => l.depth_to),
     ...sptLogs.map(l => l.depth_to),
     ...sampleLogs.map(l => l.depth_from),
+    ...coreLogs.map(l => l.depth_to),
   ].filter(d => d != null);
 
   return {
@@ -151,11 +153,13 @@ function getBoreholeSummary(logs) {
     sampleCount: sampleLogs.length,
     sptCount: sptLogs.length,
     strataCount: strataLogs.length,
+    coreCount: coreLogs.length,
     source: logs[0]?.source,
     progressLogs,
     strataLogs,
     sampleLogs,
     sptLogs,
+    coreLogs,
   };
 }
 
@@ -175,6 +179,7 @@ function BoreholeDetail({ boreholeRef: bhRef, logs }) {
   const allSamples = s.sampleLogs.sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
   const allSpts = s.sptLogs.sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
   const allInstalls = logs.filter(l => l.log_type === 'installation').sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
+  const allCores = s.coreLogs.sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
 
   // SPT chart data (N-value vs depth)
   const sptChartData = allSpts
@@ -403,44 +408,59 @@ function BoreholeDetail({ boreholeRef: bhRef, logs }) {
         </div>
       )}
 
-      {/* Installations table */}
-      {allInstalls.length > 0 && (
+      {/* Core runs table */}
+      {allCores.length > 0 && (
         <div className="rounded-xl border border-slate-200 overflow-hidden">
           <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
             <p className="text-xs font-bold text-slate-600 uppercase tracking-wide inline-flex items-center gap-1.5">
-              <Package className="w-3.5 h-3.5" /> Installations ({allInstalls.length})
+              <Layers className="w-3.5 h-3.5" /> Core Runs ({allCores.length})
             </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50/80 text-slate-500">
                 <tr>
-                  <th className="text-left px-3 py-2 font-medium text-xs">Pipe Ref</th>
+                  <th className="text-left px-3 py-2 font-medium text-xs">Run</th>
                   <th className="text-left px-3 py-2 font-medium text-xs">Depth (m)</th>
-                  <th className="text-left px-3 py-2 font-medium text-xs">Details</th>
+                  <th className="text-left px-3 py-2 font-medium text-xs">Recovery</th>
+                  <th className="text-left px-3 py-2 font-medium text-xs">RQD</th>
+                  <th className="text-left px-3 py-2 font-medium text-xs">Box</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {allInstalls.map((l, i) => {
-                  const detail = l.description
-                    ? l.description.replace(/^Imported from KeyLogBook AGS — installation pipe[^:]*:\s*/, '').replace(/\.$/, '')
-                    : '—';
-                  return (
-                    <tr key={l.id || i} className="hover:bg-slate-50/50">
-                      <td className="px-3 py-2 font-mono font-bold text-emerald-700 text-xs">
-                        {l.standpipe_ref || '—'}
-                      </td>
-                      <td className="px-3 py-2 text-slate-700 font-mono text-xs">
-                        {l.depth_from != null || l.depth_to != null
-                          ? `${l.depth_from ?? '?'}–${l.depth_to ?? '?'}m`
-                          : '—'}
-                      </td>
-                      <td className="px-3 py-2 text-slate-600 text-xs">
-                        {detail}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {allCores.map((l, i) => (
+                  <tr key={l.id || i} className="hover:bg-slate-50/50">
+                    <td className="px-3 py-2 font-mono font-bold text-fuchsia-700 text-xs">
+                      {l.core_run_number || `C${i + 1}`}
+                    </td>
+                    <td className="px-3 py-2 text-slate-700 font-mono text-xs">
+                      {l.depth_from != null || l.depth_to != null
+                        ? `${l.depth_from ?? '?'}–${l.depth_to ?? '?'}m`
+                        : '—'}
+                    </td>
+                    <td className="px-3 py-2">
+                      {l.coring_recovery != null ? (
+                        <span className={`font-mono text-xs px-2 py-0.5 rounded-full font-medium ${
+                          l.coring_recovery < 50 ? 'bg-red-100 text-red-700'
+                          : l.coring_recovery < 90 ? 'bg-amber-100 text-amber-700'
+                          : 'bg-emerald-100 text-emerald-700'
+                        }`}>{l.coring_recovery}%</span>
+                      ) : '—'}
+                    </td>
+                    <td className="px-3 py-2">
+                      {l.coring_rqd != null ? (
+                        <span className={`font-mono text-xs px-2 py-0.5 rounded-full font-medium ${
+                          l.coring_rqd < 25 ? 'bg-red-100 text-red-700'
+                          : l.coring_rqd < 75 ? 'bg-amber-100 text-amber-700'
+                          : 'bg-emerald-100 text-emerald-700'
+                        }`}>{l.coring_rqd}%</span>
+                      ) : '—'}
+                    </td>
+                    <td className="px-3 py-2 text-slate-600 text-xs font-mono">
+                      {l.core_box_number || '—'}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -529,7 +549,7 @@ function BoreholeDetail({ boreholeRef: bhRef, logs }) {
       {/* Other logs (core, standpipe, decommissioning, etc.) */}
       {(() => {
         const otherLogs = logs.filter(l =>
-          l.log_type && !['borehole_progress', 'sample_collection', 'installation'].includes(l.log_type) &&
+          l.log_type && !['borehole_progress', 'sample_collection', 'installation', 'core_inspection'].includes(l.log_type) &&
           !l.strata_descriptor && !l.strata_description_detail
         );
         if (otherLogs.length === 0) return null;

@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
 
     const today = new Date().toISOString().slice(0, 10);
     const logs: any[] = [];
-    const counts = { locations: 0, strata: 0, samples: 0, spt: 0, installations: 0 };
+    const counts = { locations: 0, strata: 0, core: 0, samples: 0, spt: 0, installations: 0 };
 
     // Build a lookup of LOCA_ID → final depth / groundwater so we can enrich
     // strata/sample/SPT logs with the borehole reference even when the child
@@ -303,6 +303,39 @@ Deno.serve(async (req) => {
           });
           counts.strata++;
         }
+      }
+    }
+
+    // CORE — rotary core runs (RQD, recovery, box numbers) linked to the borehole's run records
+    if (groups.CORE && groups.CORE.rows.length) {
+      for (const row of groups.CORE.rows) {
+        const r = rowToObj(groups.CORE, row);
+        const coreId = pick(r, 'CORE_ID', 'CORE_REF', 'CORE_NO', 'CORE_RUN', 'RUN_ID', 'RUN_NO');
+        const runNo = pick(r, 'CORE_RUN', 'CORE_RUN_NO', 'RUN', 'RUN_NO', 'CORE_ID');
+        const boxNo = pick(r, 'CORE_BOX', 'CORE_BOX_NO', 'BOX', 'BOX_NO', 'CORE_BOXES');
+        const rqd = num(pick(r, 'CORE_RQD', 'RQD', 'CORE_RQD_CORE', 'CORE_ROCK_QUALITY'));
+        const recovery = num(pick(r, 'CORE_REC', 'CORE_RECOVERY', 'CORE_PER_REC', 'REC', 'RECOVERY'));
+        const coreDesc = pick(r, 'CORE_DESC', 'CORE_LEGEND', 'CORE_REM', 'DESC', 'DESCRIPTION', 'REMARK', 'CORE_NOTE');
+        logs.push({
+          job_id: job.id,
+          staff_id: staffId,
+          date: today,
+          log_type: 'core_inspection',
+          borehole_ref: resolveLocaRef(r),
+          core_run_number: runNo || coreId || null,
+          core_box_number: boxNo || null,
+          depth_from: num(pick(r, 'CORE_TOP', 'CORE_TOP_CORE', 'TOP', 'DEPTH_FROM')) || null,
+          depth_to: num(pick(r, 'CORE_BASE', 'CORE_BOT', 'CORE_BASE_CORE', 'BASE', 'BOT', 'DEPTH_TO')) || null,
+          coring_rqd: rqd,
+          coring_recovery: recovery,
+          description: `Imported from KeyLogBook AGS — core run${runNo || coreId ? ` ${runNo || coreId}` : ''}${rqd != null ? ` (RQD ${rqd}%)` : ''}${recovery != null ? ` (recovery ${recovery}%)` : ''}.${coreDesc ? ' ' + coreDesc : ''}`,
+          source: 'ags_import',
+          completed_by_type: 'internal_staff',
+          completed_by_name: 'AGS Import (KeyLogBook)',
+          manager_review_status: 'approved',
+          chargeable: false,
+        });
+        counts.core++;
       }
     }
 
@@ -406,7 +439,7 @@ Deno.serve(async (req) => {
       // nothing matched (e.g. KeyLogBook used non-standard group names).
       const found = Object.keys(groups).sort().join(', ');
       return Response.json({
-        error: `No LOCA, GEOL, SAMP, SPT or TREM records were found in this AGS file. Groups found: ${found || '(none)'}.`
+        error: `No LOCA, GEOL, CORE, SAMP, SPT or TREM records were found in this AGS file. Groups found: ${found || '(none)'}.`
       }, { status: 422 });
     }
 

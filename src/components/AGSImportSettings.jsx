@@ -47,7 +47,7 @@ export default function AGSImportSettings() {
     <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
       <SettingsSectionHeader
         title="AGS Import (KeyLogBook)"
-        description="Upload an AGS data export from KeyLogBook. Borehole locations, strata, samples and SPT results are imported as investigation logs and matched to a job by its reference number."
+        description="Upload an AGS data export from KeyLogBook. Borehole locations, strata, core runs, installations, samples and SPT results are imported as investigation logs and matched to a job by its reference number."
         icon={UploadCloud}
       />
 
@@ -114,11 +114,13 @@ export default function AGSImportSettings() {
                 Imported {result.inserted} log entries into {result.job_name}
               </p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 pt-1">
               <ResultStat label="Boreholes" value={result.counts.locations} />
               <ResultStat label="Strata logs" value={result.counts.strata} />
+              <ResultStat label="Core runs" value={result.counts.core} />
               <ResultStat label="Samples" value={result.counts.samples} />
               <ResultStat label="SPT tests" value={result.counts.spt} />
+              <ResultStat label="Installations" value={result.counts.installations} />
             </div>
             {result.job_reference && (
               <p className="text-xs text-emerald-700 pt-1">Matched job reference: <span className="font-mono font-semibold">{result.job_reference}</span></p>
@@ -132,7 +134,8 @@ export default function AGSImportSettings() {
         <p className="text-xs text-slate-500 leading-relaxed">
           <span className="font-semibold text-slate-600">Supported AGS blocks:</span> <code>PROJ</code> (job matching),{' '}
           <code>LOCA</code> (borehole locations), <code>GEOL</code>/<code>CHIS</code> (strata descriptions),{' '}
-          <code>SAMP</code> (samples), <code>SPT</code>/<code>DENS</code> (penetration tests). Tab, comma and
+          <code>SAMP</code> (samples), <code>SPT</code>/<code>DENS</code> (penetration tests),{' '}
+          <code>CORE</code> (rotary core runs with RQD &amp; recovery), <code>TREM</code> (installation pipes). Tab, comma and
           semicolon-delimited files are auto-detected, and group/field names are matched case-insensitively
           with common aliases. Imported logs are marked as non-chargeable and attributed to "AGS Import
           (KeyLogBook)". They appear in the job's Work Log and Log QC review.
