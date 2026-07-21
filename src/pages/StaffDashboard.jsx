@@ -21,6 +21,7 @@ import NextJobPrompt from '@/components/staff/NextJobPrompt';
 import AdHocVisitModal from '@/components/staff/AdHocVisitModal';
 import StaffBookings from '@/components/staff/StaffBookings';
 import TodayPrepStrip from '@/components/staff/TodayPrepStrip';
+import LiveClock from '@/components/staff/LiveClock';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -511,7 +512,11 @@ export default function StaffDashboard() {
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate tracking-tight">My Schedule</h1>
                 <p className="text-emerald-100 text-sm md:text-base mt-0.5 truncate">Welcome back, {staff.name.split(' ')[0]}</p>
-                <p className="text-emerald-200/80 text-xs md:text-sm mt-0.5 truncate">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
+                <LiveClock
+                  className="mt-0.5"
+                  dateClassName="text-emerald-200/80 text-xs md:text-sm truncate"
+                  timeClassName="text-emerald-100 text-sm md:text-base font-semibold tabular-nums"
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-1.5">
@@ -541,8 +546,7 @@ export default function StaffDashboard() {
           </div>
 
           {/* Quick stats strip */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            <StatCard icon={Clock} value={todaysAssignments.length} label="Today" gradient="stat-gradient-emerald" />
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <StatCard icon={Calendar} value={upcomingAssignments.length} label="Upcoming" gradient="stat-gradient-blue" />
             <StatCard icon={Briefcase} value={visibleAssignments.length} label="Total" gradient="stat-gradient-slate" />
           </div>
