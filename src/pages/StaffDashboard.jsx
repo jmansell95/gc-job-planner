@@ -20,7 +20,6 @@ import ScheduleSplash from '@/components/staff/ScheduleSplash';
 import NextJobPrompt from '@/components/staff/NextJobPrompt';
 import AdHocVisitModal from '@/components/staff/AdHocVisitModal';
 import StaffBookings from '@/components/staff/StaffBookings';
-import InvestigationLogEntry from '@/components/staff/InvestigationLogEntry';
 import TodayPrepStrip from '@/components/staff/TodayPrepStrip';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
@@ -478,7 +477,7 @@ export default function StaffDashboard() {
     vehicle: vehicles.find(v => v.id === assignment.vehicle_id),
     client: clients.find(c => c.id === jobs.find(j => j.id === assignment.job_id)?.client_id),
     staff,
-    onOpenShiftWizard: handleOpenShiftWizard,
+    onOpenShiftWizard: (id) => handleOpenShiftWizard(id),
     onEarlyLeave: handleEarlyLeave,
     canPerformActions,
     tasksSubmitted: mgrTimesheets.some(t => t.job_id === assignment.job_id && t.date === todayStr && (t.status === 'submitted' || t.status === 'approved')),
