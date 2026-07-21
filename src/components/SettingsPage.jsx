@@ -25,6 +25,7 @@ import ComplianceManager from '@/components/ComplianceManager';
 import LogQualityControl from '@/components/investigation/LogQualityControl';
 import TimesheetManager from '@/components/TimesheetManager';
 import BillingPage from '@/components/BillingPage';
+import AGSImportSettings from '@/components/AGSImportSettings';
 import { resolveRole } from '@/utils/access';
 import { base44 } from '@/api/base44Client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -84,6 +85,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'log-qc': return <LogQualityControl />;
       case 'timesheets': return <TimesheetManager />;
       case 'invoicing': return <BillingPage onSelectJob={onSelectJob} />;
+      case 'ags-import': return <AGSImportSettings />;
       default: return null;
     }
   };
