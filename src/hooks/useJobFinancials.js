@@ -87,7 +87,10 @@ export function useJobFinancials(job) {
   });
 
   // ---- Costs ----
-  const itemNet = (c) => (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
+  const itemNet = (c) => {
+    const rate = c.price_confirmed && c.negotiated_unit_cost != null ? Number(c.negotiated_unit_cost) : (Number(c.unit_cost) || 0);
+    return rate * (Number(c.quantity) || 1);
+  };
   const equipmentNet = costItems.reduce((s, c) => s + itemNet(c), 0);
   const equipmentVat = costItems.reduce((s, c) => s + (c.vat_exempt ? 0 : itemNet(c) * (vatRate / 100)), 0);
 
