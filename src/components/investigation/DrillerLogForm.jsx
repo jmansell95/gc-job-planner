@@ -407,13 +407,13 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
             </div>
           )}
 
-          <div className="flex gap-1.5">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
             {availableLogTypes.map(t => {
               const Icon = t.icon;
               return (
                 <button key={t.value} type="button" onClick={() => setForm({ ...form, log_type: t.value })}
-                  className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg text-[10px] font-medium border transition ${form.log_type === t.value ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
-                  <Icon className="w-4 h-4" />
+                  className={`flex-shrink-0 min-w-[72px] flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-xl text-[11px] font-semibold border transition whitespace-nowrap touch-manipulation ${form.log_type === t.value ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-200 text-slate-500 hover:border-slate-300 bg-white'}`}>
+                  <Icon className="w-5 h-5" />
                   {t.label}
                 </button>
               );
