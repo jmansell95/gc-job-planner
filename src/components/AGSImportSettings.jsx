@@ -131,10 +131,11 @@ export default function AGSImportSettings() {
       <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
         <p className="text-xs text-slate-500 leading-relaxed">
           <span className="font-semibold text-slate-600">Supported AGS blocks:</span> <code>PROJ</code> (job matching),{' '}
-          <code>LOCA</code> (borehole locations), <code>GEOL</code> (strata descriptions),{' '}
-          <code>SAMP</code> (samples), <code>SPT</code> (penetration tests). Imported logs are marked as
-          non-chargeable and attributed to "AGS Import (KeyLogBook)". They appear in the job's Work Log
-          and Log QC review.
+          <code>LOCA</code> (borehole locations), <code>GEOL</code>/<code>CHIS</code> (strata descriptions),{' '}
+          <code>SAMP</code> (samples), <code>SPT</code>/<code>DENS</code> (penetration tests). Tab, comma and
+          semicolon-delimited files are auto-detected, and group/field names are matched case-insensitively
+          with common aliases. Imported logs are marked as non-chargeable and attributed to "AGS Import
+          (KeyLogBook)". They appear in the job's Work Log and Log QC review.
         </p>
       </div>
     </div>

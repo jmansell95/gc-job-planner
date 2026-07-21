@@ -1,23 +1,62 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
-// ---- AGS v3/v4 text parser ----
-// AGS is a tab-delimited text format. Each block (group) has a heading row
-// (group name + field names) and data rows. v4 prefixes data rows with "DATA";
-// v3 repeats the group name. We handle both.
+// ---- AGS v3/v4 text parser (robust) ----
+// AGS is typically tab-delimited but some exports use commas or semicolons.
+// Each block (group) has a heading row (group name + field names) and data rows.
+// v4 prefixes data rows with "DATA"; v3 repeats the group name. We handle both
+// and auto-detect the delimiter so we work with whatever KeyLogBook exports.
+
+// Split a single delimited line into fields, respecting double-quoted values
+// that may contain the delimiter character.
+function splitLine(line: string, delimiter: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else { inQuotes = !inQuotes; }
+    } else if (ch === delimiter && !inQuotes) {
+      fields.push(current); current = '';
+    } else {
+      current += ch;
+    }
+  }
+  fields.push(current);
+  return fields.map(f => f.trim());
+}
+
+// Detect the most likely delimiter from the first non-empty lines.
+function detectDelimiter(lines: string[]): string {
+  const samples = lines.filter(l => l.trim()).slice(0, 20);
+  const counts: Record<string, number> = { '\t': 0, ',': 0, ';': 0 };
+  for (const l of samples) {
+    if (l.includes('\t')) counts['\t']++;
+    if (l.includes(',')) counts[',']++;
+    if (l.includes(';')) counts[';']++;
+  }
+  if (counts['\t'] >= counts[','] && counts['\t'] >= counts[';']) return '\t';
+  if (counts[','] >= counts[';']) return ',';
+  return ';';
+}
+
 function parseAGS(text: string) {
   const lines = text.split(/\r?\n/);
+  const delimiter = detectDelimiter(lines);
+  // Store groups in UPPER CASE so lookups are case-insensitive.
   const groups: Record<string, { headings: string[]; rows: string[][] }> = {};
 
   for (const line of lines) {
     if (!line.trim()) continue;
-    const fields = line.split('\t').map(f => f.replace(/^"|"$/g, '').replace(/""/g, '"').trim());
-    const first = fields[0];
+    const fields = splitLine(line, delimiter);
+    const first = (fields[0] || '').toUpperCase();
 
-    // Skip AGS metadata rows (units / data types)
-    if (first === 'UNIT' || first === 'TYPE') continue;
+    // Skip AGS metadata rows (units / type / file / heading markers)
+    if (['UNIT', 'TYPE', 'FILE', 'HEADING', 'REMARK', 'COMMENT', 'ABBR', 'DICT', 'TRAN'].includes(first)) continue;
 
     if (first === 'DATA' && fields.length >= 2) {
-      const groupName = fields[1];
+      const groupName = fields[1].toUpperCase();
       if (groups[groupName] && groups[groupName].headings) {
         groups[groupName].rows.push(fields.slice(2));
       }
@@ -25,11 +64,13 @@ function parseAGS(text: string) {
     }
 
     // Potential group heading or v3 data row
-    if (/^[A-Z][A-Z0-9_]{2,}$/.test(first)) {
+    if (/^[A-Z][A-Z0-9_]{1,}$/.test(first)) {
       if (!groups[first]) {
-        const rest = fields.slice(1);
-        // Heading row — remaining fields must look like AGS field names
-        if (rest.length > 0 && rest.every(f => /^[A-Z][A-Z0-9_]{1,}$/.test(f))) {
+        const rest = fields.slice(1).map(f => f.toUpperCase());
+        // Heading row — at least one remaining field must look like an AGS field name.
+        // We require the MAJORITY to look valid (some exports include blank trailing columns).
+        const valid = rest.filter(f => /^[A-Z][A-Z0-9_]{1,}$/.test(f));
+        if (rest.length > 0 && valid.length >= Math.ceil(rest.length / 2)) {
           groups[first] = { headings: rest, rows: [] };
         }
       } else if (groups[first].headings) {
@@ -42,10 +83,21 @@ function parseAGS(text: string) {
   return groups;
 }
 
+// Build a case-insensitive lookup for a row object so we can try multiple
+// field-name aliases without worrying about case.
 function rowToObj(group: { headings: string[] }, row: string[]) {
   const obj: Record<string, string> = {};
-  group.headings.forEach((h, i) => { obj[h] = row[i] != null ? row[i] : ''; });
+  group.headings.forEach((h, i) => { obj[h.toUpperCase()] = row[i] != null ? row[i] : ''; });
   return obj;
+}
+
+// Read the first non-empty value from a row object by trying several aliases.
+function pick(obj: Record<string, string>, ...keys: string[]): string {
+  for (const k of keys) {
+    const v = obj[k.toUpperCase()];
+    if (v != null && v.trim() !== '') return v.trim();
+  }
+  return '';
 }
 
 function num(v: string | undefined | null): number | null {
@@ -110,26 +162,33 @@ Deno.serve(async (req) => {
     const text = await fileRes.text();
     const groups = parseAGS(text);
 
-    // Resolve the target job. Explicit job_id wins; otherwise match by job_reference
-    // against the AGS PROJ_ID (or PROJ_NAME).
+    // Resolve the target job. Explicit job_id wins; otherwise match by
+    // job_reference / job name against the AGS PROJ group (trying many aliases).
     let job: any = null;
     if (jobId) {
       try { job = await base44.asServiceRole.entities.Job.get(jobId); } catch (e) { job = null; }
     }
     if (!job && groups.PROJ && groups.PROJ.rows.length) {
       const proj = rowToObj(groups.PROJ, groups.PROJ.rows[0]);
-      const projId = (proj.PROJ_ID || proj.PROJ_NAME || '').trim();
-      if (projId) {
+      const projId = pick(proj, 'PROJ_ID', 'PROJ_REF', 'PROJ_CODE', 'PROJECT_ID', 'PROJECT_NO', 'PROJECT_CODE', 'PROJ_NAME', 'PROJECT_NAME', 'PROJ_TITLE', 'PROJ_DESC');
+      const projName = pick(proj, 'PROJ_NAME', 'PROJECT_NAME', 'PROJ_TITLE', 'PROJ_DESC', 'PROJ_LOC', 'PROJ_CL_REF', 'PROJ_CLIENT_REF');
+      if (projId || projName) {
         const jobs = await base44.asServiceRole.entities.Job.list('-created_date', 500);
-        const lower = projId.toLowerCase();
-        job = jobs.find((j: any) => j.job_reference && j.job_reference.toLowerCase() === lower)
-          || jobs.find((j: any) => j.job_reference && j.job_reference.toLowerCase().includes(lower))
-          || jobs.find((j: any) => j.name && j.name.toLowerCase().includes(lower));
+        const candidates = [projId, projName].filter(Boolean).map(s => s.toLowerCase());
+        for (const cand of candidates) {
+          job = jobs.find((j: any) => j.job_reference && j.job_reference.toLowerCase() === cand)
+            || jobs.find((j: any) => j.name && j.name.toLowerCase() === cand)
+            || jobs.find((j: any) => j.job_reference && j.job_reference.toLowerCase().includes(cand))
+            || jobs.find((j: any) => j.name && j.name.toLowerCase().includes(cand))
+            || jobs.find((j: any) => cand.includes(j.job_reference?.toLowerCase() || '___'))
+            || jobs.find((j: any) => cand.includes(j.name?.toLowerCase() || '___'));
+          if (job) break;
+        }
       }
     }
     if (!job) {
       return Response.json({
-        error: 'Could not match an existing job. Select the job manually, or make sure the job reference matches the AGS PROJ_ID.'
+        error: 'Could not match an existing job. Select the job manually, or make sure the job reference matches the AGS PROJ_ID / PROJ_NAME.'
       }, { status: 422 });
     }
 
@@ -144,21 +203,39 @@ Deno.serve(async (req) => {
     const logs: any[] = [];
     const counts = { locations: 0, strata: 0, samples: 0, spt: 0 };
 
+    // Build a lookup of LOCA_ID → final depth / groundwater so we can enrich
+    // strata/sample/SPT logs with the borehole reference even when the child
+    // rows only carry a location reference under a different column name.
+    const locaRefs: Record<string, string> = {};
+    if (groups.LOCA) {
+      for (const row of groups.LOCA.rows) {
+        const r = rowToObj(groups.LOCA, row);
+        const id = pick(r, 'LOCA_ID', 'LOCA_REF', 'LOCA_NO', 'LOCATION_ID', 'HOLE_ID', 'BH_ID');
+        if (id) locaRefs[id.toLowerCase()] = id;
+      }
+    }
+    const resolveLocaRef = (r: Record<string, string>) => {
+      const id = pick(r, 'LOCA_ID', 'LOCA_REF', 'SAMP_LOCA_ID', 'GEOL_LOCA_ID', 'SPT_LOCA_ID', 'LOCA_REF_LOCA', 'LOCATION_ID', 'HOLE_ID', 'BH_ID', 'LOC_ID');
+      if (id) return id;
+      return '';
+    };
+
     // LOCA — borehole locations → one summary log per hole
     if (groups.LOCA && groups.LOCA.rows.length) {
       for (const row of groups.LOCA.rows) {
         const r = rowToObj(groups.LOCA, row);
-        const locaId = r.LOCA_ID || r.LOCA_REF;
+        const locaId = pick(r, 'LOCA_ID', 'LOCA_REF', 'LOCA_NO', 'LOCATION_ID', 'HOLE_ID', 'BH_ID');
         if (!locaId) continue;
+        const locaType = pick(r, 'LOCA_TYPE', 'LOCA_LETT', 'LOCA_TYPE_LOCA', 'TYPE');
         logs.push({
           job_id: job.id,
           staff_id: staffId,
           date: today,
           log_type: 'borehole_progress',
           borehole_ref: locaId,
-          depth_to: num(r.LOCA_GL) || num(r.LOCA_FDEPTH),
-          groundwater_strike_depth: num(r.LOCA_GND) || num(r.LOCA_GW_DEPTH),
-          description: `Imported from KeyLogBook AGS — borehole ${locaId} (${r.LOCA_TYPE || 'borehole'}).`,
+          depth_to: num(pick(r, 'LOCA_GL', 'LOCA_FDEPTH', 'LOCA_DEPTH', 'LOCA_DEPTH_TO', 'LOCA_FINAL_DEPTH', 'LOCA_TD', 'FDEPTH')) || null,
+          groundwater_strike_depth: num(pick(r, 'LOCA_GND', 'LOCA_GW_DEPTH', 'LOCA_GWL', 'LOCA_WATER', 'GND', 'GW_DEPTH')) || null,
+          description: `Imported from KeyLogBook AGS — borehole ${locaId} (${locaType || 'borehole'}).`,
           source: 'ags_import',
           completed_by_type: 'internal_staff',
           completed_by_name: 'AGS Import (KeyLogBook)',
@@ -169,30 +246,36 @@ Deno.serve(async (req) => {
       }
     }
 
-    // GEOL — strata / geology descriptions
-    if (groups.GEOL && groups.GEOL.rows.length) {
-      for (const row of groups.GEOL.rows) {
-        const r = rowToObj(groups.GEOL, row);
-        const desc = (r.GEOL_DESC || r.GEOL_LEGEND || r.GEOL_GEN || '').trim();
-        if (!desc) continue;
-        logs.push({
-          job_id: job.id,
-          staff_id: staffId,
-          date: today,
-          log_type: 'borehole_progress',
-          borehole_ref: r.LOCA_ID || r.GEOL_LOCA_ID || '',
-          depth_from: num(r.GEOL_TOP),
-          depth_to: num(r.GEOL_BASE) || num(r.GEOL_BOT),
-          strata_descriptor: mapStrataDescriptor(desc),
-          strata_description_detail: desc,
-          description: 'Imported from KeyLogBook AGS — strata.',
-          source: 'ags_import',
-          completed_by_type: 'internal_staff',
-          completed_by_name: 'AGS Import (KeyLogBook)',
-          manager_review_status: 'approved',
-          chargeable: false,
-        });
-        counts.strata++;
+    // GEOL — strata / geology descriptions (also try CHIS for chiselling)
+    const geolGroups = [
+      { g: groups.GEOL, countKey: 'strata' as const },
+      { g: groups.CHIS, countKey: 'strata' as const },
+    ];
+    for (const { g } of geolGroups) {
+      if (g && g.rows.length) {
+        for (const row of g.rows) {
+          const r = rowToObj(g, row);
+          const desc = pick(r, 'GEOL_DESC', 'GEOL_LEGEND', 'GEOL_GEN', 'GEOL_DESC_GEOL', 'GEOL_TERM', 'GEOL_GEOL', 'CHIS_DESC', 'CHIS_LEGEND', 'DESC', 'DESCRIPTION', 'LEGEND', 'STRATA_DESC');
+          if (!desc) continue;
+          logs.push({
+            job_id: job.id,
+            staff_id: staffId,
+            date: today,
+            log_type: 'borehole_progress',
+            borehole_ref: resolveLocaRef(r),
+            depth_from: num(pick(r, 'GEOL_TOP', 'CHIS_TOP', 'TOP', 'GEOL_TOP_GEOL', 'DEPTH_FROM', 'DEPTH_TOP')) || null,
+            depth_to: num(pick(r, 'GEOL_BASE', 'GEOL_BOT', 'CHIS_BASE', 'CHIS_BOT', 'BASE', 'BOT', 'DEPTH_TO', 'DEPTH_BASE', 'GEOL_BASE_GEOL')) || null,
+            strata_descriptor: mapStrataDescriptor(desc),
+            strata_description_detail: desc,
+            description: 'Imported from KeyLogBook AGS — strata.',
+            source: 'ags_import',
+            completed_by_type: 'internal_staff',
+            completed_by_name: 'AGS Import (KeyLogBook)',
+            manager_review_status: 'approved',
+            chargeable: false,
+          });
+          counts.strata++;
+        }
       }
     }
 
@@ -200,17 +283,18 @@ Deno.serve(async (req) => {
     if (groups.SAMP && groups.SAMP.rows.length) {
       for (const row of groups.SAMP.rows) {
         const r = rowToObj(groups.SAMP, row);
-        const sampId = r.SAMP_ID || r.SAMP_REF || r.SAMP_NO || '';
+        const sampId = pick(r, 'SAMP_ID', 'SAMP_REF', 'SAMP_NO', 'SAMP_NO_SAMP', 'SAMPLE_ID', 'SAMPLE_REF', 'SAMP_SAMP', 'ID');
+        const sampType = pick(r, 'SAMP_TYPE', 'SAMP_TYPE_SAMP', 'SAMPLE_TYPE', 'TYPE');
         logs.push({
           job_id: job.id,
           staff_id: staffId,
           date: today,
           log_type: 'sample_collection',
-          borehole_ref: r.LOCA_ID || r.SAMP_LOCA_ID || '',
+          borehole_ref: resolveLocaRef(r),
           sample_id: sampId,
-          depth_from: num(r.SAMP_TOP) || num(r.SAMP_DEP),
-          sample_type: mapSampleType(r.SAMP_TYPE),
-          description: `Imported from KeyLogBook AGS — sample ${sampId} (${r.SAMP_TYPE || ''}).`,
+          depth_from: num(pick(r, 'SAMP_TOP', 'SAMP_DEP', 'SAMP_TOP_SAMP', 'SAMP_DEPTH', 'SAMP_DEP_SAMP', 'TOP', 'DEPTH', 'DEPTH_FROM')) || null,
+          sample_type: mapSampleType(sampType),
+          description: `Imported from KeyLogBook AGS — sample ${sampId} (${sampType}).`,
           source: 'ags_import',
           completed_by_type: 'internal_staff',
           completed_by_name: 'AGS Import (KeyLogBook)',
@@ -221,35 +305,49 @@ Deno.serve(async (req) => {
       }
     }
 
-    // SPT — standard penetration tests
-    if (groups.SPT && groups.SPT.rows.length) {
-      for (const row of groups.SPT.rows) {
-        const r = rowToObj(groups.SPT, row);
-        const blows = [r.SPT_BL1, r.SPT_BL2, r.SPT_BL3].map(b => num(b)).filter((b): b is number => b != null);
-        const nval = num(r.SPT_NVAL) || (blows.length >= 3 ? blows[1] + blows[2] : null);
-        logs.push({
-          job_id: job.id,
-          staff_id: staffId,
-          date: today,
-          log_type: 'borehole_progress',
-          borehole_ref: r.LOCA_ID || r.SPT_LOCA_ID || '',
-          depth_from: num(r.SPT_TOP),
-          depth_to: num(r.SPT_BASE) || num(r.SPT_BOT),
-          spt_blows: blows,
-          spt_n_value: nval,
-          description: `Imported from KeyLogBook AGS — SPT (N=${nval != null ? nval : 'n/a'}).`,
-          source: 'ags_import',
-          completed_by_type: 'internal_staff',
-          completed_by_name: 'AGS Import (KeyLogBook)',
-          manager_review_status: 'approved',
-          chargeable: false,
-        });
-        counts.spt++;
+    // SPT — standard penetration tests (also try DENS for density/penetration)
+    const sptGroups = [groups.SPT, groups.DENS];
+    for (const g of sptGroups) {
+      if (g && g.rows.length) {
+        for (const row of g.rows) {
+          const r = rowToObj(g, row);
+          const blows = [
+            pick(r, 'SPT_BL1', 'SPT_BL1_RES', 'SPT_BLOW1', 'SPT_BLOWS_1', 'BL1', 'BLOW1'),
+            pick(r, 'SPT_BL2', 'SPT_BL2_RES', 'SPT_BLOW2', 'SPT_BLOWS_2', 'BL2', 'BLOW2'),
+            pick(r, 'SPT_BL3', 'SPT_BL3_RES', 'SPT_BLOW3', 'SPT_BLOWS_3', 'BL3', 'BLOW3'),
+            pick(r, 'SPT_BL4', 'SPT_BL4_RES', 'SPT_BLOW4', 'SPT_BLOWS_4', 'BL4', 'BLOW4'),
+          ].map(b => num(b)).filter((b): b is number => b != null);
+          const nval = num(pick(r, 'SPT_NVAL', 'SPT_N', 'SPT_N_VALUE', 'NVAL', 'N_VALUE', 'DENS_NVAL', 'SPT_NVAL_SPT'))
+            || (blows.length >= 3 ? blows[1] + blows[2] : (blows.length === 2 ? blows[0] + blows[1] : (blows.length === 1 ? blows[0] : null)));
+          logs.push({
+            job_id: job.id,
+            staff_id: staffId,
+            date: today,
+            log_type: 'borehole_progress',
+            borehole_ref: resolveLocaRef(r),
+            depth_from: num(pick(r, 'SPT_TOP', 'SPT_TOP_SPT', 'DENS_TOP', 'SPT_DEPTH', 'TOP', 'DEPTH_FROM')) || null,
+            depth_to: num(pick(r, 'SPT_BASE', 'SPT_BOT', 'SPT_BASE_SPT', 'DENS_BASE', 'DENS_BOT', 'BASE', 'BOT', 'DEPTH_TO')) || null,
+            spt_blows: blows,
+            spt_n_value: nval,
+            description: `Imported from KeyLogBook AGS — SPT (N=${nval != null ? nval : 'n/a'}).`,
+            source: 'ags_import',
+            completed_by_type: 'internal_staff',
+            completed_by_name: 'AGS Import (KeyLogBook)',
+            manager_review_status: 'approved',
+            chargeable: false,
+          });
+          counts.spt++;
+        }
       }
     }
 
     if (logs.length === 0) {
-      return Response.json({ error: 'No LOCA, GEOL, SAMP or SPT records were found in this AGS file.' }, { status: 422 });
+      // Include the group names we actually found, so the admin can see why
+      // nothing matched (e.g. KeyLogBook used non-standard group names).
+      const found = Object.keys(groups).sort().join(', ');
+      return Response.json({
+        error: `No LOCA, GEOL, SAMP or SPT records were found in this AGS file. Groups found: ${found || '(none)'}.`
+      }, { status: 422 });
     }
 
     // Bulk insert (cap at 500 per call per platform limit)
