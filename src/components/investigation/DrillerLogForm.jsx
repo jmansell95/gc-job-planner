@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { ArrowDownToLine, TestTube, Wrench, Ruler, Send, Trash2, Plus, X, Droplets, Calculator, Layers, Gauge, Ban, AlertTriangle, Radar, Boxes, Beaker } from 'lucide-react';
+import { ArrowDownToLine, TestTube, Wrench, Ruler, Send, Trash2, Plus, X, Droplets, Calculator, Layers, Gauge, Ban, AlertTriangle, Radar, Boxes, Beaker, Info, Tablet, UserCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { calculateSptN } from './shared';
 import CompletedBySelector from './CompletedBySelector';
 import BoreholeProgressSummary from './BoreholeProgressSummary';
 import BoreholeCompletionModal from './BoreholeCompletionModal';
 import { useConfigLists } from '@/hooks/useConfigLists';
+import { useDrillingRole } from '@/hooks/useDrillingRole';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 bg-white";
 const labelCls = "block text-xs font-semibold text-slate-600 mb-1";
@@ -80,6 +81,32 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
     queryFn: () => base44.entities.InvestigationLog.filter({ job_id: jobId, date: todayStr }),
   });
 
+  // Check whether this job has borehole/sample data imported from KeyLogBook AGS.
+  // When AGS data exists, borehole_progress and sample_collection are read-only
+  // (managed in KeyLogBook) — staff are guided to make changes there.
+  const { data: agsLogs = [] } = useQuery({
+    queryKey: ['investigation-logs-ags', jobId],
+    queryFn: () => base44.entities.InvestigationLog.filter({ job_id: jobId, source: 'ags_import' }),
+  });
+  const hasAGSData = agsLogs.length > 0;
+
+  // Determine if the current staff member is the lead driller or a second man
+  const { isLeadDriller, leadDrillerName } = useDrillingRole(staffId);
+
+  // Log types that AGS handles — hidden from staff when AGS data exists
+  const AGS_MANAGED = useMemo(() => new Set(['borehole_progress', 'sample_collection']), []);
+  const availableLogTypes = hasAGSData
+    ? drillingLogTypes.filter(t => !AGS_MANAGED.has(t.value))
+    : drillingLogTypes;
+
+  // If the current log_type is AGS-managed and AGS data exists, switch to a
+  // still-available type so the form never opens on a hidden section.
+  useEffect(() => {
+    if (hasAGSData && AGS_MANAGED.has(form.log_type)) {
+      setForm(f => ({ ...f, log_type: availableLogTypes[0]?.value || 'other' }));
+    }
+  }, [hasAGSData, AGS_MANAGED, availableLogTypes, form.log_type]);
+
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -133,6 +160,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
         staff_id: staffId,
         staff_name: staffName || '',
         date: todayStr,
+        source: 'staff',
         log_type: form.log_type,
         borehole_ref: form.borehole_ref || '',
         depth_from: form.depth_from ? parseFloat(form.depth_from) : null,
@@ -274,7 +302,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
         )}
       </div>
 
-      <BoreholeProgressSummary todayLogs={todayLogs} onContinue={handleContinueBorehole} onEndOfHole={handleEndOfHole} />
+      <BoreholeProgressSummary todayLogs={todayLogs} onContinue={handleContinueBorehole} onEndOfHole={handleEndOfHole} hasAGSData={hasAGSData} />
 
       {todayLogs.length > 0 && (
         <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
@@ -339,9 +367,16 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
                 {log.strata_description_detail && <p className="text-xs text-slate-600 mt-0.5">{log.strata_description_detail}</p>}
                 {log.description && <p className="text-xs text-slate-500 mt-0.5">{log.description}</p>}
               </div>
-              <button onClick={() => handleDelete(log.id)} className="p-1 text-red-400 hover:bg-red-50 rounded-lg transition flex-shrink-0">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+              {log.source !== 'ags_import' && (
+                <button onClick={() => handleDelete(log.id)} className="p-1 text-red-400 hover:bg-red-50 rounded-lg transition flex-shrink-0">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {log.source === 'ags_import' && (
+                <span className="text-[9px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 flex-shrink-0">
+                  <Tablet className="w-2.5 h-2.5" /> AGS
+                </span>
+              )}
             </div>
           ))}
         </div>
@@ -350,12 +385,30 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
       {showForm ? (
         <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-slate-700">New Borehole Entry</p>
+            <p className="text-xs font-semibold text-slate-700">{hasAGSData ? 'New Activity Entry' : 'New Borehole Entry'}</p>
             <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
           </div>
 
+          {hasAGSData && (
+            <div className={`p-3 rounded-lg border flex items-start gap-2.5 ${isLeadDriller ? 'bg-blue-50 border-blue-200' : 'bg-amber-50 border-amber-200'}`}>
+              {isLeadDriller
+                ? <Tablet className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                : <UserCheck className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />}
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-800">
+                  {isLeadDriller ? 'Borehole data is managed in KeyLogBook' : 'Borehole data is managed by your lead driller'}
+                </p>
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  {isLeadDriller
+                    ? <>Strata, SPT, samples and borehole progress come from your AGS import. To add or correct this data, make the changes on your tablet in KeyLogBook and re-import the file here.</>
+                    : <>Strata, SPT, samples and borehole progress come from the AGS import. Please speak with <span className="font-semibold">{leadDrillerName}</span> if something is missed or not right — they can update it in KeyLogBook and re-import.</>}
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-1.5">
-            {drillingLogTypes.map(t => {
+            {availableLogTypes.map(t => {
               const Icon = t.icon;
               return (
                 <button key={t.value} type="button" onClick={() => setForm({ ...form, log_type: t.value })}
@@ -680,7 +733,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
       ) : (
         <button onClick={() => setShowForm(true)}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 active:scale-95 transition text-sm font-semibold border border-blue-200 touch-manipulation">
-          <Plus className="w-4 h-4" /> Log Borehole / Sample
+          <Plus className="w-4 h-4" /> {hasAGSData ? 'Log Activity' : 'Log Borehole / Sample'}
         </button>
       )}
 

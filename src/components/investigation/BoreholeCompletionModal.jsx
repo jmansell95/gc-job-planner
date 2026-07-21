@@ -75,6 +75,7 @@ export default function BoreholeCompletionModal({ boreholeRef, boreholeLogs, job
         staff_id: staffId,
         staff_name: staffName || '',
         date: todayStr,
+        source: 'staff',
         log_type: 'borehole_decommissioning',
         borehole_ref: boreholeRef,
         depth_from: maxDepth > 0 ? maxDepth : null,

@@ -159,8 +159,10 @@ Deno.serve(async (req) => {
           depth_to: num(r.LOCA_GL) || num(r.LOCA_FDEPTH),
           groundwater_strike_depth: num(r.LOCA_GND) || num(r.LOCA_GW_DEPTH),
           description: `Imported from KeyLogBook AGS — borehole ${locaId} (${r.LOCA_TYPE || 'borehole'}).`,
+          source: 'ags_import',
           completed_by_type: 'internal_staff',
           completed_by_name: 'AGS Import (KeyLogBook)',
+          manager_review_status: 'approved',
           chargeable: false,
         });
         counts.locations++;
@@ -184,8 +186,10 @@ Deno.serve(async (req) => {
           strata_descriptor: mapStrataDescriptor(desc),
           strata_description_detail: desc,
           description: 'Imported from KeyLogBook AGS — strata.',
+          source: 'ags_import',
           completed_by_type: 'internal_staff',
           completed_by_name: 'AGS Import (KeyLogBook)',
+          manager_review_status: 'approved',
           chargeable: false,
         });
         counts.strata++;
@@ -207,8 +211,10 @@ Deno.serve(async (req) => {
           depth_from: num(r.SAMP_TOP) || num(r.SAMP_DEP),
           sample_type: mapSampleType(r.SAMP_TYPE),
           description: `Imported from KeyLogBook AGS — sample ${sampId} (${r.SAMP_TYPE || ''}).`,
+          source: 'ags_import',
           completed_by_type: 'internal_staff',
           completed_by_name: 'AGS Import (KeyLogBook)',
+          manager_review_status: 'approved',
           chargeable: false,
         });
         counts.samples++;
@@ -232,8 +238,10 @@ Deno.serve(async (req) => {
           spt_blows: blows,
           spt_n_value: nval,
           description: `Imported from KeyLogBook AGS — SPT (N=${nval != null ? nval : 'n/a'}).`,
+          source: 'ags_import',
           completed_by_type: 'internal_staff',
           completed_by_name: 'AGS Import (KeyLogBook)',
+          manager_review_status: 'approved',
           chargeable: false,
         });
         counts.spt++;

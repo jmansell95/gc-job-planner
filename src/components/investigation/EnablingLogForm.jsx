@@ -78,6 +78,7 @@ export default function EnablingLogForm({ staffId, jobId, job, staffName }) {
         staff_id: staffId,
         staff_name: staffName || '',
         date: todayStr,
+        source: 'staff',
         log_type: form.log_type,
         borehole_ref: form.borehole_ref || '',
         reinstatement_type: form.reinstatement_type || 'none',

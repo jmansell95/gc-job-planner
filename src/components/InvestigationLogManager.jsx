@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   FlaskConical, Layers, Ruler, TestTube, Wrench, MapPin, Package, ClipboardList, ArrowDownToLine,
-  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban, Beaker, Radar, Boxes, ShieldCheck
+  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban, Beaker, Radar, Boxes, ShieldCheck, Tablet
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import {
@@ -185,6 +185,11 @@ function LogEntryCard({ log }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${rc.badge}`}>{rc.label}</span>
+          {log.source === 'ags_import' && (
+            <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+              <Tablet className="w-2.5 h-2.5" /> KeyLogBook
+            </span>
+          )}
           {logTypeConfig[log.log_type] && (
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${logTypeConfig[log.log_type].badge}`}>{logTypeConfig[log.log_type].label}</span>
           )}

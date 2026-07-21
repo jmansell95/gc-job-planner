@@ -157,6 +157,7 @@ export default function GroundworkerLogForm({ staffId, jobId, job, staffName }) 
         staff_id: staffId,
         staff_name: staffName || '',
         date: todayStr,
+        source: 'staff',
         log_type: form.log_type,
         borehole_ref: form.borehole_ref || '',
         depth_from: form.depth_from ? parseFloat(form.depth_from) : null,

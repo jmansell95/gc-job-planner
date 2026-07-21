@@ -18,7 +18,7 @@ const logTypeIcon = {
   core_inspection: Boxes,
 };
 
-export default function BoreholeProgressSummary({ todayLogs, onContinue, onEndOfHole }) {
+export default function BoreholeProgressSummary({ todayLogs, onContinue, onEndOfHole, hasAGSData }) {
   if (!todayLogs || todayLogs.length === 0) return null;
 
   // Group by borehole_ref (or standpipe_ref for standpipe readings)
@@ -74,13 +74,15 @@ export default function BoreholeProgressSummary({ todayLogs, onContinue, onEndOf
               )}
               {!bh.isComplete ? (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => onContinue(bh.ref, bh.maxDepth)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition active:scale-95 flex-shrink-0"
-                  >
-                    Continue <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
+                  {!hasAGSData && (
+                    <button
+                      type="button"
+                      onClick={() => onContinue(bh.ref, bh.maxDepth)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition active:scale-95 flex-shrink-0"
+                    >
+                      Continue <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                   {onEndOfHole && (
                     <button
                       type="button"

@@ -18,6 +18,15 @@
       "type": "string",
       "description": "Staff member name (for display)"
     },
+    "source": {
+      "type": "string",
+      "enum": [
+        "staff",
+        "ags_import"
+      ],
+      "default": "staff",
+      "description": "Where this log originated. 'staff' = manually entered by a crew member in the app; 'ags_import' = ingested from a KeyLogBook AGS file. AGS-imported borehole/strata/SPT/sample data is read-only in the app \u2014 drillers must make changes in KeyLogBook and re-import. Used to show the correct guidance message (lead driller vs second man) and to badge logs by origin."
+    },
     "completed_by_type": {
       "type": "string",
       "enum": [
