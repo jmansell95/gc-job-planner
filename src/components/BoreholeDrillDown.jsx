@@ -210,8 +210,8 @@ function BoreholeDetail({ boreholeRef: bhRef, logs }) {
                 {endDate && endDate !== startDate && ` → ${safeFormat(endDate, 'dd MMM yyyy')}`}
               </span>
             )}
-            <span className="inline-flex items-center gap-1"><Layers className="w-3 h-3" />{s.strataCount} strata</span>
-            <span className="inline-flex items-center gap-1"><Calculator className="w-3 h-3" />{s.sptCount} SPTs</span>
+            <span className="inline-flex items-center gap-1"><Layers className="w-3 h-3" />{s.strataCount} runs</span>
+            <span className="inline-flex items-center gap-1"><Calculator className="w-3 h-3" />{s.sptCount} SPTs Completed</span>
           </div>
         </div>
       </div>
@@ -231,7 +231,7 @@ function BoreholeDetail({ boreholeRef: bhRef, logs }) {
             <div className="rounded-xl border border-slate-200 overflow-hidden">
               <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
                 <p className="text-xs font-bold text-slate-600 uppercase tracking-wide inline-flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5" /> Strata Profile
+                  <Layers className="w-3.5 h-3.5" /> Run Profile
                 </p>
               </div>
               <StrataColumn strataLogs={allStrata} maxDepth={s.maxDepth} groundwaterDepth={progressLog?.groundwater_strike_depth} />
@@ -243,7 +243,7 @@ function BoreholeDetail({ boreholeRef: bhRef, logs }) {
             <div className="rounded-xl border border-slate-200 overflow-hidden">
               <div className="px-3 py-2 bg-slate-50 border-b border-slate-100">
                 <p className="text-xs font-bold text-slate-600 uppercase tracking-wide inline-flex items-center gap-1.5">
-                  <Mountain className="w-3.5 h-3.5" /> Strata Detail ({allStrata.length})
+                  <Mountain className="w-3.5 h-3.5" /> Run Detail ({allStrata.length})
                 </p>
               </div>
               <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
