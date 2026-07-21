@@ -1,5 +1,5 @@
 import React from 'react';
-import DrillerLogForm from '@/components/investigation/DrillerLogForm';
+import DrillerLogViewer from '@/components/investigation/DrillerLogViewer';
 import GroundworkerLogForm from '@/components/investigation/GroundworkerLogForm';
 import EnablingLogForm from '@/components/investigation/EnablingLogForm';
 
@@ -8,9 +8,10 @@ import EnablingLogForm from '@/components/investigation/EnablingLogForm';
 export default function InvestigationLogEntry({ staffId, jobId, job, staffName }) {
   const jobType = job?.job_type;
 
-  // Drilling jobs (CP and Rotary) → Driller log form (borehole/SPT/strata/coring)
+  // Drilling jobs (CP and Rotary) → Read-only viewer for KeyLogBook AGS imports.
+  // All borehole data is managed in KeyLogBook and imported by an admin.
   if (jobType === 'cp_drilling' || jobType === 'rotary_drilling') {
-    return <DrillerLogForm staffId={staffId} jobId={jobId} job={job} staffName={staffName} />;
+    return <DrillerLogViewer jobId={jobId} job={job} staffName={staffName} />;
   }
 
   // Groundworks (trial pit, coring, cp_drilling sub-types handled above) → Groundworker log form

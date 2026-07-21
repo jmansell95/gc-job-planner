@@ -142,7 +142,7 @@ export default function InvestigationLogManager({ job, isDrillingJob }) {
         {isLoading ? (
           <Skeleton className="h-32 w-full rounded-lg" />
         ) : logs.length === 0 ? (
-          <EmptyState icon={FlaskConical} title="No investigation logs yet" message={isDrillingJob ? "Drilling crews will log borehole progress and samples here during shifts." : "Groundworks crews will log trial pits, installations and site setup here during shifts."} />
+          <EmptyState icon={FlaskConical} title="No investigation logs yet" message={isDrillingJob ? "Borehole data will appear here once an admin imports the AGS file from KeyLogBook." : "Groundworks crews will log trial pits, installations and site setup here during shifts."} />
         ) : (
           <div className="space-y-5">
             {sortedDates.map(date => {
