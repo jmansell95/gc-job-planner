@@ -4,8 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { HardHat, ArrowLeft, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, Bell } from 'lucide-react';
 import { format } from 'date-fns';
-import DailyDiary from '@/components/staff/DailyDiary';
-import WorkHistory from '@/components/staff/WorkHistory';
+import TimesheetHistory from '@/components/staff/TimesheetHistory';
 import StaffBookings from '@/components/staff/StaffBookings';
 import ProfileStats from '@/components/staff/ProfileStats';
 import TrainingHistory from '@/components/staff/TrainingHistory';
@@ -157,19 +156,16 @@ export default function StaffProfile() {
         {/* Quick Stats */}
         <ProfileStats staffId={staff.id} jobType={staff.team?.job_type} />
 
-        {/* Daily Diary */}
-        <DailyDiary staffId={staff.id} />
+        {/* Timesheet History (Daily Diaries) — read-only record of submitted timesheets */}
+        <TimesheetHistory staffId={staff.id} />
 
-        {/* Work History */}
-        <WorkHistory staffId={staff.id} />
-
-        {/* My Bookings — maintenance & training */}
+        {/* Bookings History — maintenance & training */}
         <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
           <div className="flex items-center gap-2.5 mb-4">
             <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
               <Wrench className="w-4 h-4 text-amber-600" />
             </div>
-            <h2 className="text-lg font-bold text-slate-900">My Bookings</h2>
+            <h2 className="text-lg font-bold text-slate-900">Bookings History</h2>
           </div>
           <StaffBookings staffId={staff.id} />
         </div>
