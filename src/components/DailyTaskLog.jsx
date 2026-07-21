@@ -226,24 +226,6 @@ export default function DailyTaskLog({ staffId, hideSubmit = false }) {
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      {/* Header with running total */}
-      <div className="hero-gradient px-4 md:px-6 py-4 md:py-5 text-white flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center flex-shrink-0">
-            <Clock className="w-5 h-5 text-white" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-lg md:text-xl font-bold leading-tight">Today's Tasks</h2>
-            <p className="text-emerald-100 text-xs">{format(new Date(), 'EEEE, dd MMM yyyy')}</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-[10px] uppercase tracking-wide text-emerald-100 font-medium">Day total</p>
-          <p className="text-2xl md:text-3xl font-bold tabular-nums leading-none mt-0.5">{fmtDur(totalMins)}</p>
-          <p className="text-[10px] text-emerald-100 mt-0.5">{tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}</p>
-        </div>
-      </div>
-
       <div className="p-4 md:p-6 space-y-4">
         {/* Report a safety issue */}
         <a href={SAFETY_REPORT_URL} target="_blank" rel="noopener noreferrer"
