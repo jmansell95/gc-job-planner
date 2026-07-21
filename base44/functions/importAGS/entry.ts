@@ -47,34 +47,60 @@ function parseAGS(text: string) {
   // Store groups in UPPER CASE so lookups are case-insensitive.
   const groups: Record<string, { headings: string[]; rows: string[][] }> = {};
 
+  // KeyLogBook uses standard AGS v4 format with explicit marker rows:
+  //   "GROUP","PROJ"
+  //   "HEADING","PROJ_ID","PROJ_NAME",...
+  //   "UNIT",...
+  //   "TYPE",...
+  //   "DATA","I260101",...
+  // We track the active group via `currentGroup` so DATA rows know which
+  // group (and thus which headings) they belong to.
+  let currentGroup: string | null = null;
+
   for (const line of lines) {
     if (!line.trim()) continue;
     const fields = splitLine(line, delimiter);
     const first = (fields[0] || '').toUpperCase();
 
-    // Skip AGS metadata rows (units / type / file / heading markers)
-    if (['UNIT', 'TYPE', 'FILE', 'HEADING', 'REMARK', 'COMMENT', 'ABBR', 'DICT', 'TRAN'].includes(first)) continue;
-
-    if (first === 'DATA' && fields.length >= 2) {
-      const groupName = fields[1].toUpperCase();
-      if (groups[groupName] && groups[groupName].headings) {
-        groups[groupName].rows.push(fields.slice(2));
+    // "GROUP","PROJ" — declares the start of a new group
+    if (first === 'GROUP' && fields.length >= 2) {
+      currentGroup = (fields[1] || '').toUpperCase();
+      if (currentGroup && !groups[currentGroup]) {
+        groups[currentGroup] = { headings: [], rows: [] };
       }
       continue;
     }
 
-    // Potential group heading or v3 data row
+    // "HEADING","PROJ_ID","PROJ_NAME",... — field names for the current group
+    if (first === 'HEADING' && fields.length >= 2) {
+      if (currentGroup && groups[currentGroup]) {
+        groups[currentGroup].headings = fields.slice(1).map(f => f.toUpperCase());
+      }
+      continue;
+    }
+
+    // Skip AGS metadata rows (units / type / file / remarks / dictionary)
+    if (['UNIT', 'TYPE', 'FILE', 'REMARK', 'COMMENT', 'ABBR', 'DICT', 'TRAN'].includes(first)) continue;
+
+    // "DATA","value1","value2",... — data row for the current group
+    if (first === 'DATA' && fields.length >= 2) {
+      if (currentGroup && groups[currentGroup] && groups[currentGroup].headings.length > 0) {
+        groups[currentGroup].rows.push(fields.slice(1));
+      }
+      continue;
+    }
+
+    // Fallback: v3-style line where the group name is the first field.
+    // Either a heading row (group name + field names) or a data row (group name + values).
     if (/^[A-Z][A-Z0-9_]{1,}$/.test(first)) {
       if (!groups[first]) {
         const rest = fields.slice(1).map(f => f.toUpperCase());
-        // Heading row — at least one remaining field must look like an AGS field name.
-        // We require the MAJORITY to look valid (some exports include blank trailing columns).
         const valid = rest.filter(f => /^[A-Z][A-Z0-9_]{1,}$/.test(f));
         if (rest.length > 0 && valid.length >= Math.ceil(rest.length / 2)) {
           groups[first] = { headings: rest, rows: [] };
+          currentGroup = first;
         }
-      } else if (groups[first].headings) {
-        // v3 data row (same group name prefix)
+      } else if (groups[first].headings.length > 0) {
         groups[first].rows.push(fields.slice(1));
       }
     }
@@ -227,13 +253,14 @@ Deno.serve(async (req) => {
         const locaId = pick(r, 'LOCA_ID', 'LOCA_REF', 'LOCA_NO', 'LOCATION_ID', 'HOLE_ID', 'BH_ID');
         if (!locaId) continue;
         const locaType = pick(r, 'LOCA_TYPE', 'LOCA_LETT', 'LOCA_TYPE_LOCA', 'TYPE');
+        const locaDate = pick(r, 'LOCA_STAR', 'LOCA_ENDD', 'LOCA_START', 'LOCA_DATE', 'LOCA_END', 'STAR', 'ENDD');
         logs.push({
           job_id: job.id,
           staff_id: staffId,
-          date: today,
+          date: locaDate || today,
           log_type: 'borehole_progress',
           borehole_ref: locaId,
-          depth_to: num(pick(r, 'LOCA_GL', 'LOCA_FDEPTH', 'LOCA_DEPTH', 'LOCA_DEPTH_TO', 'LOCA_FINAL_DEPTH', 'LOCA_TD', 'FDEPTH')) || null,
+          depth_to: num(pick(r, 'LOCA_FDEP', 'LOCA_GL', 'LOCA_FDEPTH', 'LOCA_DEPTH', 'LOCA_DEPTH_TO', 'LOCA_FINAL_DEPTH', 'LOCA_TD', 'FDEPTH')) || null,
           groundwater_strike_depth: num(pick(r, 'LOCA_GND', 'LOCA_GW_DEPTH', 'LOCA_GWL', 'LOCA_WATER', 'GND', 'GW_DEPTH')) || null,
           description: `Imported from KeyLogBook AGS — borehole ${locaId} (${locaType || 'borehole'}).`,
           source: 'ags_import',
