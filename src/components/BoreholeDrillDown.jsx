@@ -126,7 +126,7 @@ export default function BoreholeDrillDown({ job }) {
 
         {/* Borehole detail */}
         <div className="flex-1 p-5 lg:max-h-[600px] overflow-y-auto">
-          <BoreholeDetail ref={activeRef} logs={activeLogs} />
+          <BoreholeDetail boreholeRef={activeRef} logs={activeLogs} />
         </div>
       </div>
     </div>
@@ -159,7 +159,16 @@ function getBoreholeSummary(logs) {
   };
 }
 
-function BoreholeDetail({ ref: bhRef, logs }) {
+function safeFormat(dateStr, fmt) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr.length === 8 && /^\d{8}$/.test(dateStr)
+    ? `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6,8)}T00:00:00`
+    : (dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00'));
+  if (isNaN(d.getTime())) return dateStr;
+  try { return format(d, fmt); } catch { return dateStr; }
+}
+
+function BoreholeDetail({ boreholeRef: bhRef, logs }) {
   const s = getBoreholeSummary(logs);
   const progressLog = s.progressLogs[0];
   const allStrata = s.strataLogs.sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
@@ -197,8 +206,8 @@ function BoreholeDetail({ ref: bhRef, logs }) {
             )}
             {startDate && (
               <span className="inline-flex items-center gap-1"><Calendar className="w-3 h-3" />
-                {format(new Date(startDate + 'T00:00:00'), 'dd MMM yyyy')}
-                {endDate && endDate !== startDate && ` → ${format(new Date(endDate + 'T00:00:00'), 'dd MMM yyyy')}`}
+                {safeFormat(startDate, 'dd MMM yyyy')}
+                {endDate && endDate !== startDate && ` → ${safeFormat(endDate, 'dd MMM yyyy')}`}
               </span>
             )}
             <span className="inline-flex items-center gap-1"><Layers className="w-3 h-3" />{s.strataCount} strata</span>
