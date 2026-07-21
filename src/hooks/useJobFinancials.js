@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { eachDayOfInterval, isWeekend } from 'date-fns';
+import { getTotalMetres } from '@/utils/geotechBilling';
 
 // Calculates nights between two date strings (YYYY-MM-DD).
 export function calcNights(checkIn, checkOut) {
@@ -124,11 +125,14 @@ export function useJobFinancials(job) {
   let revenueBreakdown = [];
 
   if (method === 'meterage_rate') {
-    const meterage = Number(job?.meterage) || 0;
+    // Use the manually entered meterage; fall back to auto-calculated total
+    // metres from imported KeyLogBook borehole data when not set.
+    const manualMeterage = Number(job?.meterage) || 0;
+    const meterage = manualMeterage > 0 ? manualMeterage : getTotalMetres(invLogs);
     const rate = Number(job?.meterage_rate) || 0;
     revenueNet = meterage * rate;
-    revenueLabel = 'Meterage revenue';
-    revenueBreakdown = [{ label: `${meterage}m × £${rate}/m`, value: revenueNet }];
+    revenueLabel = manualMeterage > 0 ? 'Meterage revenue' : 'Meterage revenue (auto)';
+    revenueBreakdown = [{ label: `${meterage.toFixed(1)}m × £${rate}/m`, value: revenueNet }];
   } else if (method === 'day_rate') {
     // Sum of rig crew day rates × working days, reusing the RigCostAnalysis auto-match logic.
     const plannedDays = workingDays(job?.start_date, job?.end_date);

@@ -3,13 +3,15 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   PoundSterling, Receipt, Download, FileBarChart, Search, Loader2,
-  Wallet, TrendingUp, Briefcase, ArrowRight,
+  Wallet, TrendingUp, Briefcase, ArrowRight, Mountain,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import StatCard from '@/components/dashboard/StatCard';
 import { Skeleton } from '@/components/StateViews';
 import { computeBillingRow, groupByJob, READY_STATUSES } from '@/utils/billingSummary';
+import { getTotalMetres } from '@/utils/geotechBilling';
 import { canViewCostings } from '@/utils/access';
+import GeotechBillingReport from '@/components/GeotechBillingReport';
 
 const fmt = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -43,6 +45,7 @@ export default function BillingPage({ onSelectJob }) {
   const [statusFilter, setStatusFilter] = useState('ready');
   const [reportingJobId, setReportingJobId] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [view, setView] = useState('summary'); // 'summary' | 'geotech'
 
   useEffect(() => {
     (async () => {
@@ -113,6 +116,14 @@ export default function BillingPage({ onSelectJob }) {
     count: acc.count + 1,
   }), { netCost: 0, vat: 0, invoice: 0, count: 0 }), [filtered]);
 
+  // Metres drilled per job from AGS imports (for the geotech badge in the table)
+  const metresByJob = useMemo(() => {
+    const map = {};
+    invLogs.forEach((l) => { if (l.job_id) { if (!map[l.job_id]) map[l.job_id] = []; map[l.job_id].push(l); } });
+    Object.keys(map).forEach((jid) => { map[jid] = getTotalMetres(map[jid]); });
+    return map;
+  }, [invLogs]);
+
   const readyCount = rows.filter((r) => READY_STATUSES.includes(r.job.status)).length;
 
   const downloadReport = async (job) => {
@@ -175,6 +186,24 @@ export default function BillingPage({ onSelectJob }) {
     );
   }
 
+  if (view === 'geotech') {
+    return (
+      <div>
+        <div className="flex gap-1.5 mb-5 bg-white rounded-xl border border-slate-200 p-1.5 shadow-sm w-fit">
+          <button onClick={() => setView('summary')}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100">
+            <Receipt className="w-4 h-4" /> Invoice Summary
+          </button>
+          <button onClick={() => setView('geotech')}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition bg-emerald-700 text-white shadow-sm">
+            <Mountain className="w-4 h-4" /> Geotechnical Report
+          </button>
+        </div>
+        <GeotechBillingReport onSelectJob={onSelectJob} />
+      </div>
+    );
+  }
+
   return (
     <div>
       <SettingsSectionHeader
@@ -188,6 +217,18 @@ export default function BillingPage({ onSelectJob }) {
           </button>
         }
       />
+
+      {/* View toggle */}
+      <div className="flex gap-1.5 mb-5 bg-white rounded-xl border border-slate-200 p-1.5 shadow-sm w-fit">
+        <button onClick={() => setView('summary')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'summary' ? 'bg-emerald-700 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+          <Receipt className="w-4 h-4" /> Invoice Summary
+        </button>
+        <button onClick={() => setView('geotech')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'geotech' ? 'bg-emerald-700 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+          <Mountain className="w-4 h-4" /> Geotechnical Report
+        </button>
+      </div>
 
       {/* Stat summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
@@ -259,6 +300,11 @@ export default function BillingPage({ onSelectJob }) {
                           {r.job.name}
                         </button>
                         {r.job.job_reference && <p className="text-[10px] text-slate-400">{r.job.job_reference}</p>}
+                        {metresByJob[r.job.id] > 0 && (
+                          <span className="inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-semibold">
+                            <Mountain className="w-2.5 h-2.5" /> {metresByJob[r.job.id].toFixed(1)}m drilled
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-slate-600 max-w-[160px] truncate">{clientById[r.job.client_id]?.name || '—'}</td>
                       <td className="px-4 py-3">
@@ -289,6 +335,11 @@ export default function BillingPage({ onSelectJob }) {
                     <button onClick={() => onSelectJob?.(r.job)} className="text-left min-w-0 flex-1">
                       <p className="font-medium text-slate-800 text-sm truncate">{r.job.name}</p>
                       {r.job.job_reference && <p className="text-[10px] text-slate-400">{r.job.job_reference}</p>}
+                      {metresByJob[r.job.id] > 0 && (
+                        <span className="inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-semibold">
+                          <Mountain className="w-2.5 h-2.5" /> {metresByJob[r.job.id].toFixed(1)}m drilled
+                        </span>
+                      )}
                     </button>
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold flex-shrink-0 ${statusStyle(r.job.status)}`}>{statusLabel(r.job.status)}</span>
                   </div>

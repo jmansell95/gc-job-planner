@@ -1,4 +1,5 @@
 import { eachDayOfInterval, isWeekend } from 'date-fns';
+import { getTotalMetres } from '@/utils/geotechBilling';
 
 // Nights between two YYYY-MM-DD date strings.
 export function calcNights(checkIn, checkOut) {
@@ -62,8 +63,12 @@ export function computeBillingRow(job, d) {
   let revenueNet = 0;
   let revenueLabel = 'Markup on cost';
   if (method === 'meterage_rate') {
-    revenueNet = (Number(job.meterage) || 0) * (Number(job.meterage_rate) || 0);
-    revenueLabel = 'Meterage';
+    // Use the manually entered meterage; fall back to auto-calculated total
+    // metres from imported KeyLogBook borehole data when not set.
+    const manualMeterage = Number(job.meterage) || 0;
+    const meterage = manualMeterage > 0 ? manualMeterage : getTotalMetres(invLogs);
+    revenueNet = meterage * (Number(job.meterage_rate) || 0);
+    revenueLabel = manualMeterage > 0 ? 'Meterage' : 'Meterage (auto)';
   } else if (method === 'day_rate') {
     const plannedDays = workingDays(job.start_date, job.end_date);
     let total = 0;
