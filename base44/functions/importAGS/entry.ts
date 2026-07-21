@@ -397,17 +397,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ---- SPT / DENS — penetration tests ----
-    const sptGroups = [groups.SPT, groups.DENS];
+    // ---- SPT / DENS / ISPT — penetration tests ----
+    const sptGroups = [groups.SPT, groups.DENS, groups.ISPT];
     for (const g of sptGroups) {
       if (g && g.rows.length) {
         for (const row of g.rows) {
           const r = buildRow(g, row);
           const blows = [
-            pick(r, 'SPT_BL1', 'SPT_BLOW1', 'SPT_BLOWS_1', 'BL1', 'BLOW1', 'BL_1', 'BLOWS_1'),
-            pick(r, 'SPT_BL2', 'SPT_BLOW2', 'SPT_BLOWS_2', 'BL2', 'BLOW2', 'BL_2', 'BLOWS_2'),
-            pick(r, 'SPT_BL3', 'SPT_BLOW3', 'SPT_BLOWS_3', 'BL3', 'BLOW3', 'BL_3', 'BLOWS_3'),
-            pick(r, 'SPT_BL4', 'SPT_BLOW4', 'SPT_BLOWS_4', 'BL4', 'BLOW4', 'BL_4', 'BLOWS_4'),
+            pick(r, 'SPT_BL1', 'SPT_BLOW1', 'SPT_BLOWS_1', 'SPT_N1', 'BL1', 'BLOW1', 'BL_1', 'BLOWS_1', 'N1'),
+            pick(r, 'SPT_BL2', 'SPT_BLOW2', 'SPT_BLOWS_2', 'SPT_N2', 'BL2', 'BLOW2', 'BL_2', 'BLOWS_2', 'N2'),
+            pick(r, 'SPT_BL3', 'SPT_BLOW3', 'SPT_BLOWS_3', 'SPT_N3', 'BL3', 'BLOW3', 'BL_3', 'BLOWS_3', 'N3'),
+            pick(r, 'SPT_BL4', 'SPT_BLOW4', 'SPT_BLOWS_4', 'SPT_N4', 'BL4', 'BLOW4', 'BL_4', 'BLOWS_4', 'N4'),
           ].map(b => num(b)).filter((b): b is number => b != null);
           const nval = num(pick(r, 'SPT_NVAL', 'SPT_N', 'SPT_N_VALUE', 'NVAL', 'N_VALUE', 'N'))
             || (blows.length >= 3 ? blows[1] + blows[2] : (blows.length === 2 ? blows[0] + blows[1] : (blows.length === 1 ? blows[0] : null)));
@@ -505,7 +505,7 @@ Deno.serve(async (req) => {
     if (logs.length === 0) {
       const found = Object.keys(groups).sort().join(', ');
       return Response.json({
-        error: `No LOCA, GEOL, CORE, SAMP, SPT, TREM or WSTG records were found in this AGS file. Groups found: ${found || '(none)'}.`
+        error: `No LOCA, GEOL, CORE, SAMP, SPT/ISPT, TREM or WSTG records were found in this AGS file. Groups found: ${found || '(none)'}.`
       }, { status: 422 });
     }
 

@@ -153,7 +153,7 @@ export default function AGSImportSettings() {
         <p className="text-xs text-slate-500 leading-relaxed">
           <span className="font-semibold text-slate-600">Supported AGS blocks:</span> <code>PROJ</code> (job matching),{' '}
           <code>LOCA</code> (borehole locations), <code>GEOL</code>/<code>CHIS</code> (strata descriptions),{' '}
-          <code>SAMP</code> (samples), <code>SPT</code>/<code>DENS</code> (penetration tests),{' '}
+          <code>SAMP</code> (samples), <code>SPT</code>/<code>ISPT</code>/<code>DENS</code> (penetration tests),{' '}
           <code>CORE</code> (rotary core runs with RQD &amp; recovery),{' '}
           <code>TREM</code> (installation pipes),{' '}
           <code>WSTG</code> (standpipe installations &amp; groundwater monitoring readings).{' '}
