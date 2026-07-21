@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
+import SORRateCardManager from '@/components/SORRateCardManager';
 
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -185,6 +186,7 @@ export default function RateCardManager() {
   const [bulkPct, setBulkPct] = useState('');
   const [bulkScope, setBulkScope] = useState('category');
   const [bulkApplying, setBulkApplying] = useState(false);
+  const [viewMode, setViewMode] = useState('master');
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['rate-card-items'],
@@ -283,9 +285,34 @@ export default function RateCardManager() {
     setBulkApplying(false);
   };
 
+  if (viewMode === 'sor') {
+    return (
+      <div className="space-y-4">
+        <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (day rates, labour, plant) and Drilling SOR (meterage & investigation rates)" />
+        <div className="flex gap-1.5 bg-slate-100 p-1 rounded-lg w-fit">
+          <button onClick={() => setViewMode('master')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
+            Master Price List
+          </button>
+          <button onClick={() => setViewMode('sor')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-emerald-700 shadow-sm">
+            Drilling SOR 2026
+          </button>
+        </div>
+        <SORRateCardManager />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <SettingsSectionHeader icon={Receipt} title="Master Price List" description="Your chargeable rate card plus each supplier's ingested rate card — auto-populates job costing" />
+      <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (day rates, labour, plant) and Drilling SOR (meterage & investigation rates)" />
+      <div className="flex gap-1.5 bg-slate-100 p-1 rounded-lg w-fit">
+        <button onClick={() => setViewMode('master')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-emerald-700 shadow-sm">
+          Master Price List
+        </button>
+        <button onClick={() => setViewMode('sor')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
+          Drilling SOR 2026
+        </button>
+      </div>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
         {isOurCard ? <Receipt className="w-5 h-5 text-emerald-700" /> : <Building2 className="w-5 h-5 text-emerald-700" />}
