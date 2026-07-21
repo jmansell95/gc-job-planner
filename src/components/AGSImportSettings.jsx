@@ -47,7 +47,7 @@ export default function AGSImportSettings() {
     <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
       <SettingsSectionHeader
         title="AGS Import (KeyLogBook)"
-        description="Upload an AGS data export from KeyLogBook. Borehole locations, strata, core runs, installations, samples and SPT results are imported as investigation logs and matched to a job by its reference number."
+        description="Upload an AGS data export from KeyLogBook. Borehole locations, strata, core runs, installations, water readings, samples and SPT results are imported as investigation logs and matched to a job by its reference number."
         icon={UploadCloud}
       />
 
@@ -121,6 +121,9 @@ export default function AGSImportSettings() {
               <ResultStat label="Samples" value={result.counts.samples} />
               <ResultStat label="SPT tests" value={result.counts.spt} />
               <ResultStat label="Installations" value={result.counts.installations} />
+              {result.counts.waterReadings > 0 && (
+                <ResultStat label="Water Readings" value={result.counts.waterReadings} />
+              )}
             </div>
             {result.job_reference && (
               <p className="text-xs text-emerald-700 pt-1">Matched job reference: <span className="font-mono font-semibold">{result.job_reference}</span></p>
@@ -135,7 +138,9 @@ export default function AGSImportSettings() {
           <span className="font-semibold text-slate-600">Supported AGS blocks:</span> <code>PROJ</code> (job matching),{' '}
           <code>LOCA</code> (borehole locations), <code>GEOL</code>/<code>CHIS</code> (strata descriptions),{' '}
           <code>SAMP</code> (samples), <code>SPT</code>/<code>DENS</code> (penetration tests),{' '}
-          <code>CORE</code> (rotary core runs with RQD &amp; recovery), <code>TREM</code> (installation pipes). Tab, comma and
+          <code>CORE</code> (rotary core runs with RQD &amp; recovery),{' '}
+          <code>TREM</code> (installation pipes),{' '}
+          <code>WSTG</code> (standpipe installations &amp; groundwater monitoring readings). Tab, comma and
           semicolon-delimited files are auto-detected, and group/field names are matched case-insensitively
           with common aliases. Imported logs are marked as non-chargeable and attributed to "AGS Import
           (KeyLogBook)". They appear in the job's Work Log and Log QC review.

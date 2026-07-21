@@ -1,5 +1,7 @@
 // Shared configuration for the geotechnical investigation logging system
 
+import { format } from 'date-fns';
+
 export const strataOptions = [
   { value: 'topsoil', label: 'Topsoil' },
   { value: 'made_ground', label: 'Made Ground' },
@@ -168,6 +170,39 @@ export const logTypeConfig = {
   core_inspection: { label: 'Core Inspection', icon: 'Boxes', badge: 'bg-fuchsia-100 text-fuchsia-700' },
   other: { label: 'Other', icon: 'ClipboardList', badge: 'bg-slate-100 text-slate-600' },
 };
+
+// Strata colors for visual columns — hex values matching strataConfig badges
+export const strataColors = {
+  topsoil: '#a3a300', made_ground: '#64748b', clay_soft: '#a16207', clay_firm: '#854d0e',
+  clay_stiff: '#c2410c', sand_loose: '#d97706', sand_medium_dense: '#b45309', sand_dense: '#ea580c',
+  gravel: '#78716c', silt: '#6b7280', peat: '#78350f', chalk: '#cbd5e1', mudstone: '#4b5563',
+  sandstone: '#c2410c', limestone: '#94a3b8', granite: '#be185d', concrete: '#475569',
+  tarmac: '#1e293b', other: '#94a3b8',
+};
+
+export const sampleTypeConfig = {
+  disturbed: { label: 'Disturbed', badge: 'bg-amber-100 text-amber-700' },
+  undisturbed: { label: 'Undisturbed', badge: 'bg-blue-100 text-blue-700' },
+  water: { label: 'Water', badge: 'bg-cyan-100 text-cyan-700' },
+  none: { label: 'No sample', badge: 'bg-slate-100 text-slate-500' },
+};
+
+export function getSptDensityLabel(n) {
+  if (n < 4) return 'Very loose';
+  if (n < 10) return 'Loose';
+  if (n < 30) return 'Medium dense';
+  if (n < 50) return 'Dense';
+  return 'Very dense';
+}
+
+export function safeFormatDate(dateStr, fmt) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr.length === 8 && /^\d{8}$/.test(dateStr)
+    ? `${dateStr.slice(0,4)}-${dateStr.slice(4,6)}-${dateStr.slice(6,8)}T00:00:00`
+    : (dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00'));
+  if (isNaN(d.getTime())) return dateStr;
+  try { return format(d, fmt); } catch { return dateStr; }
+}
 
 // Auto-calculate SPT N-value from blow count array
 // BS 5930: N = sum of blows for 2nd and 3rd increments (150mm)
