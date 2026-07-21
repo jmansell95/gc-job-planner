@@ -32,6 +32,7 @@ export default function HiredEquipmentFields({ form, setForm, suppliers = [], ra
       unit_label: item.unit || form.unit_label || 'day',
       vat_exempt: false,
       rate_card_item_id: item.id,
+      is_poa: item.price == null,
       men: item.men != null ? String(item.men) : '',
       notes: item.notes || form.notes,
     });

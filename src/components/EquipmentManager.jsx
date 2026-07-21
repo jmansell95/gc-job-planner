@@ -11,13 +11,14 @@ import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import EquipmentForm from '@/components/EquipmentForm';
 import EquipmentItemCard from '@/components/EquipmentItemCard';
+import ConfirmQuoteModal from '@/components/equipment/ConfirmQuoteModal';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const blankForm = () => ({
   category: 'hired_equipment', supplier_id: '', contractor_id: '', client_id: '', description: '',
   reference_number: '', responsible_person: '', site_asset_id: '', rate_card_item_id: '', po_number: '', order_slip_url: '', order_slip_name: '', start_date: '', end_date: '',
-  unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: '', men: '', staff_id: '', delivery_notes: ''
+  unit_cost: '', quantity: '1', unit_label: 'day', vat_exempt: false, notes: '', men: '', staff_id: '', delivery_notes: '', is_poa: false
 });
 
 const categoryConfig = {
@@ -110,14 +111,21 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
   const [offHireFile, setOffHireFile] = useState(null);
   const [uploadingOffHire, setUploadingOffHire] = useState(false);
   const offHireFileRef = useRef(null);
+  const [confirmingQuoteItem, setConfirmingQuoteItem] = useState(null);
 
-  const itemNet = (c) => (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
+  const itemNet = (c) => {
+    const rate = c.price_confirmed && c.negotiated_unit_cost != null ? Number(c.negotiated_unit_cost) : (Number(c.unit_cost) || 0);
+    return rate * (Number(c.quantity) || 1);
+  };
   const totalNet = items.reduce((s, c) => s + itemNet(c), 0);
   const dailyTotal = items
     .filter(c => (c.hire_status || 'active') !== 'off_hired')
     .filter(c => c.category !== 'contractor_supplied' && c.category !== 'client_supplied')
     .filter(c => c.unit_label === 'day')
-    .reduce((s, c) => s + (Number(c.unit_cost) || 0) * (Number(c.men) || 1), 0);
+    .reduce((s, c) => {
+      const rate = c.price_confirmed && c.negotiated_unit_cost != null ? Number(c.negotiated_unit_cost) : (Number(c.unit_cost) || 0);
+      return s + rate * (Number(c.men) || 1);
+    }, 0);
   const defaultDates = job ? { start: job.start_date, end: job.end_date } : null;
   const rigsWithGear = catalogueItems.filter(c => (c.linked_catalogue_ids || []).length > 0);
 
@@ -133,6 +141,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
           contractor_id: formData.category === 'contractor_supplied' ? (formData.contractor_id || '') : '',
           client_id: formData.category === 'client_supplied' ? (formData.client_id || '') : '',
           rate_card_item_id: formData.rate_card_item_id || '',
+          is_poa: !!formData.is_poa,
           site_asset_id: formData.site_asset_id || '',
           staff_id: formData.staff_id || '',
           men: formData.men ? Number(formData.men) : null,
@@ -500,6 +509,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
                 onEdit={editItem}
                 onDelete={deleteItem}
                 onOffHire={openOffHire}
+                onConfirmQuote={(c) => setConfirmingQuoteItem(c)}
               />
             ))}
           </div>
@@ -536,6 +546,14 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
             </div>
           </div>
         </div>
+      )}
+
+      {confirmingQuoteItem && (
+        <ConfirmQuoteModal
+          item={confirmingQuoteItem}
+          jobId={jobId}
+          onClose={() => setConfirmingQuoteItem(null)}
+        />
       )}
     </div>
   );

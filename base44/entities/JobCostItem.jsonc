@@ -149,6 +149,36 @@
       "type": "string",
       "description": "Notes for equipment collection (date, contact, return condition)"
     },
+    "is_poa": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the source rate card item had no fixed price (POA / Price on Application). These items are added to the job without a unit cost and must be confirmed with a negotiated price before billing."
+    },
+    "negotiated_unit_cost": {
+      "type": "number",
+      "description": "The agreed/confirmed unit price for a POA item, entered once the quote or contract price is confirmed. Used in place of unit_cost for all billing calculations when price_confirmed is true."
+    },
+    "price_confirmed": {
+      "type": "boolean",
+      "default": false,
+      "description": "True once a negotiated price has been confirmed for this POA item. Billing calculations use negotiated_unit_cost instead of unit_cost when this is set."
+    },
+    "quote_document_url": {
+      "type": "string",
+      "description": "URL of the uploaded quote / contract document evidencing the confirmed price."
+    },
+    "quote_document_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded quote / contract document."
+    },
+    "confirmed_by_name": {
+      "type": "string",
+      "description": "Name of the person who confirmed the negotiated price."
+    },
+    "confirmed_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the negotiated price was confirmed."
+    },
     "notes": {
       "type": "string",
       "description": "Optional notes"

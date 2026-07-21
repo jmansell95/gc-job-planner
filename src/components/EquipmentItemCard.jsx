@@ -1,11 +1,14 @@
 import React from 'react';
-import { Edit2, Trash2, FileCheck, Package, Users, Receipt } from 'lucide-react';
+import { Edit2, Trash2, FileCheck, Package, Users, Receipt, AlertCircle, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export default function EquipmentItemCard({ item: c, linkedItems = [], assetMap = {}, suppliers = [], contractors = [], clients = [], isJobMode, categoryConfig, locationBadge, complianceConfig, onEdit, onDelete, onOffHire }) {
-  const net = (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
+export default function EquipmentItemCard({ item: c, linkedItems = [], assetMap = {}, suppliers = [], contractors = [], clients = [], isJobMode, categoryConfig, locationBadge, complianceConfig, onEdit, onDelete, onOffHire, onConfirmQuote }) {
+  const isPOA = c.is_poa && !c.price_confirmed;
+  const isConfirmed = c.price_confirmed && c.negotiated_unit_cost != null;
+  const effectiveRate = isConfirmed ? Number(c.negotiated_unit_cost) : (Number(c.unit_cost) || 0);
+  const net = effectiveRate * (Number(c.quantity) || 1);
   const cfg = categoryConfig[c.category] || categoryConfig.hired_equipment;
   const CatIcon = cfg.icon;
   const supplier = suppliers.find(s => s.id === c.supplier_id);
@@ -36,6 +39,8 @@ export default function EquipmentItemCard({ item: c, linkedItems = [], assetMap 
             {c.reference_number && <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full font-medium font-mono">Ref: {c.reference_number}</span>}
             {menCount > 0 && <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 border border-emerald-100"><Users className="w-2.5 h-2.5" />{menCount} man{menCount > 1 ? 's' : ''}</span>}
             {c.rate_card_item_id && <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5 border border-amber-100"><Receipt className="w-2.5 h-2.5" />Rate card</span>}
+            {isPOA && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full font-bold inline-flex items-center gap-0.5 border border-amber-300"><AlertCircle className="w-2.5 h-2.5" />POA</span>}
+            {isConfirmed && <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full font-bold inline-flex items-center gap-0.5 border border-emerald-300"><FileCheck className="w-2.5 h-2.5" />Confirmed {fmt(Number(c.negotiated_unit_cost))}</span>}
             {c.vat_exempt && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">VAT exempt</span>}
             {isJobMode && locBadge && loc !== 'yard' && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${locBadge.cls}`}>{locBadge.label}</span>}
           </div>
@@ -57,7 +62,7 @@ export default function EquipmentItemCard({ item: c, linkedItems = [], assetMap 
                 {c.start_date && c.end_date ? `${format(new Date(c.start_date + 'T00:00:00'), 'dd MMM')} → ${format(new Date(c.end_date + 'T00:00:00'), 'dd MMM')}` : ''}
                 {supplier && ` · ${supplier.name}`}
                 {` · ${c.quantity} ${c.unit_label}${c.quantity > 1 ? 's' : ''}`}
-                {` · ${fmt(Number(c.unit_cost) || 0)}/${c.unit_label}`}
+                {isPOA ? ` · POA — price to confirm` : ` · ${fmt(effectiveRate)}/${c.unit_label}`}
               </>
             )}
           </p>
@@ -68,6 +73,21 @@ export default function EquipmentItemCard({ item: c, linkedItems = [], assetMap 
             <button onClick={() => onOffHire(c)} className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-900 font-medium bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg transition">
               <FileCheck className="w-3.5 h-3.5" /> Return Item
             </button>
+          )}
+          {isJobMode && isPOA && onConfirmQuote && (
+            <button onClick={() => onConfirmQuote(c)} className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-emerald-700 hover:text-emerald-900 font-bold bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg transition border border-emerald-200">
+              <FileCheck className="w-3.5 h-3.5" /> Confirm Quote
+            </button>
+          )}
+          {isJobMode && isConfirmed && onConfirmQuote && (
+            <button onClick={() => onConfirmQuote(c)} className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 font-medium bg-slate-50 hover:bg-slate-100 px-2.5 py-1 rounded-lg transition">
+              <Edit2 className="w-3 h-3" /> Edit confirmed price
+            </button>
+          )}
+          {isJobMode && isConfirmed && c.quote_document_url && (
+            <a href={c.quote_document_url} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium px-1 transition">
+              <FileText className="w-3 h-3" /> Quote doc
+            </a>
           )}
         </div>
         <div className="text-right flex-shrink-0">

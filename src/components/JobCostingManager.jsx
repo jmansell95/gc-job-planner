@@ -86,7 +86,10 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
     queryFn: () => base44.entities.Timesheet.filter({ job_id: job.id })
   });
 
-  const itemNet = (c) => (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
+  const itemNet = (c) => {
+    const rate = c.price_confirmed && c.negotiated_unit_cost != null ? Number(c.negotiated_unit_cost) : (Number(c.unit_cost) || 0);
+    return rate * (Number(c.quantity) || 1);
+  };
   const itemVat = (c) => c.vat_exempt ? 0 : itemNet(c) * (Number(vatRate) / 100);
   const equipmentNet = items.reduce((s, c) => s + itemNet(c), 0);
   const equipmentVat = items.reduce((s, c) => s + itemVat(c), 0);

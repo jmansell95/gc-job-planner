@@ -20,6 +20,7 @@ export default function LabourFields({ form, setForm, rateCardItems = [], staff 
       unit_label: item.unit || 'day',
       men: item.men != null ? String(item.men) : '',
       rate_card_item_id: item.id,
+      is_poa: item.price == null,
       notes: item.notes || form.notes,
     });
   };
