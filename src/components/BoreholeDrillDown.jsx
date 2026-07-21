@@ -221,8 +221,7 @@ function BoreholeDetail({ boreholeRef: bhRef, logs }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatTile icon={ArrowDownToLine} label="Final Depth" value={progressLog?.depth_to != null ? `${progressLog.depth_to}m` : (s.maxDepth != null ? `${s.maxDepth}m` : '—')} color="text-blue-700 bg-blue-50" />
         <StatTile icon={Droplets} label="Groundwater Strike" value={progressLog?.groundwater_strike_depth != null ? `${progressLog.groundwater_strike_depth}m` : '—'} color="text-cyan-700 bg-cyan-50" />
-        <StatTile icon={Activity} label="Total Entries" value={logs.length} color="text-slate-700 bg-slate-100" />
-        <StatTile icon={TestTube} label="Samples" value={s.sampleCount} color="text-purple-700 bg-purple-50" />
+
       </div>
 
       {/* Visual strata column + data */}
