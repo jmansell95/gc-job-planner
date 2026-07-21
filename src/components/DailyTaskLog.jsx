@@ -27,7 +27,7 @@ const fmtDur = (mins) => {
   return m > 0 ? `${r}m` : '0m';
 };
 
-export default function DailyTaskLog({ staffId }) {
+export default function DailyTaskLog({ staffId, hideSubmit = false }) {
   const today = format(new Date(), 'yyyy-MM-dd');
   const todayDow = new Date().getDay();
   const [jobId, setJobId] = useState('');
@@ -485,7 +485,7 @@ export default function DailyTaskLog({ staffId }) {
         )}
 
         {/* Submit day */}
-        {drafts.length > 0 && (
+        {drafts.length > 0 && !hideSubmit && (
           <div className={`rounded-xl border p-3.5 ${dayComplete ? 'border-emerald-200 bg-emerald-50/60' : 'border-slate-200 bg-slate-50/80'}`}>
             <ul className="space-y-1.5 mb-3">
               {checks.map((c, i) => (

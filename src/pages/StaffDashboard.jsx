@@ -16,7 +16,7 @@ import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME, S
 import { complianceDaysUntil } from '@/utils/complianceDate';
 import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
 import StatCard from '@/components/dashboard/StatCard';
-import TravelFromSiteModal from '@/components/staff/TravelFromSiteModal';
+import EndOfShiftWizard from '@/components/staff/EndOfShiftWizard';
 import ArrivedOnSiteModal from '@/components/staff/ArrivedOnSiteModal';
 import EarlyLeaveModal from '@/components/staff/EarlyLeaveModal';
 import ScheduleSplash from '@/components/staff/ScheduleSplash';
@@ -47,10 +47,9 @@ export default function StaffDashboard() {
   const [staff, setStaff] = useState(null);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [meterageInputs, setMeterageInputs] = useState({});
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [briefingAssignment, setBriefingAssignment] = useState(null);
-  const [travelFromAssignment, setTravelFromAssignment] = useState(null);
+  const [endOfShiftAssignment, setEndOfShiftAssignment] = useState(null);
   const [arrivedOnSiteAssignment, setArrivedOnSiteAssignment] = useState(null);
   const [earlyLeaveAssignment, setEarlyLeaveAssignment] = useState(null);
   const [splashDismissed, setSplashDismissed] = useState(false);
@@ -243,35 +242,33 @@ export default function StaffDashboard() {
       });
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
       toast({ title: 'Early departure recorded', description: 'Your manager will be notified. Please log your travel home next.' });
-      // Trigger the normal completion flow (which prompts for travel home)
-      handleCompleteJob(assignment.id);
+      // Trigger the End of Shift wizard
+      handleStartEndOfShift(assignment.id);
     } catch (error) {
       console.error('Error recording early leave:', error);
     }
   };
 
-  // Opens the travel-from-site modal before final completion — but only if
-  // this is the last job of the day. For multi-job days, complete directly
-  // and show the "Next Job" prompt instead.
-  const handleCompleteJob = (assignmentId, extraData = {}) => {
+  // Opens the End of Shift wizard — guides staff through reviewing their day,
+  // logging meterage (drillers), progress notes, and travel home before submit.
+  const handleStartEndOfShift = (assignmentId) => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const hasMoreJobs = assignments.some(a => a.assigned_date === todayStr && (a.status || 'assigned') !== 'completed' && a.id !== assignmentId);
-    if (hasMoreJobs) {
-      completeAssignment(assignmentId, extraData, { departSite: null, arriveHome: null });
-    } else {
-      setTravelFromAssignment({ assignmentId, extraData });
-    }
+    setEndOfShiftAssignment({ assignmentId, isLastJob: !hasMoreJobs });
   };
 
-  // Core completion logic — shared by both the travel-modal path and the
-  // direct-complete path for multi-job days.
-  const completeAssignment = async (assignmentId, extraData, travelData) => {
+  // Final submission after the wizard — creates travel_from, submits the
+  // consolidated timesheet, marks the assignment completed, and checks for
+  // remaining jobs today.
+  const handleEndOfShiftSubmit = async (data) => {
+    const { assignmentId, isLastJob } = endOfShiftAssignment;
+    setEndOfShiftAssignment(null);
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
     try {
-      const todayStr = format(new Date(), 'yyyy-MM-dd');
-      // Create travel_from entry first so it's included in the timesheet merge
-      if (travelData.departSite && travelData.arriveHome) {
-        const [dh, dm] = travelData.departSite.split(':').map(Number);
-        const [ah, am] = travelData.arriveHome.split(':').map(Number);
+      // Create travel_from entry so it's included in the timesheet merge
+      if (isLastJob && data.travelHome?.departSite && data.travelHome?.arriveHome) {
+        const [dh, dm] = data.travelHome.departSite.split(':').map(Number);
+        const [ah, am] = data.travelHome.arriveHome.split(':').map(Number);
         const travelMins = (ah * 60 + am) - (dh * 60 + dm);
         if (travelMins > 0) {
           const assignment = assignments.find(a => a.id === assignmentId);
@@ -281,8 +278,8 @@ export default function StaffDashboard() {
             job_id: assignment?.job_id || '',
             task_description: 'Travel from site',
             task_type: 'travel_from',
-            start_time: travelData.departSite,
-            end_time: travelData.arriveHome,
+            start_time: data.travelHome.departSite,
+            end_time: data.travelHome.arriveHome,
             task_duration_minutes: travelMins,
             total_hours: Math.round((travelMins / 60) * 100) / 100,
             status: 'draft'
@@ -294,14 +291,13 @@ export default function StaffDashboard() {
       } catch (e) { console.error('Timesheet submit error:', e); }
       const updateData = {
         status: 'completed',
-        completed_at: new Date().toISOString(),
-        ...extraData
+        completed_at: new Date().toISOString()
       };
-      if (meterageInputs[assignmentId] !== undefined && meterageInputs[assignmentId] !== '') {
-        updateData.meterage = parseFloat(meterageInputs[assignmentId]) || 0;
+      if (data.progressNotes) updateData.progress_notes = data.progressNotes;
+      if (data.meterage !== undefined && data.meterage !== '' && !isNaN(data.meterage)) {
+        updateData.meterage = Number(data.meterage);
       }
       await base44.entities.RotaAssignment.update(assignmentId, updateData);
-      setMeterageInputs(prev => { const next = { ...prev }; delete next[assignmentId]; return next; });
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['staff-timesheets'] });
@@ -314,16 +310,9 @@ export default function StaffDashboard() {
         toast({ title: 'Shift completed', description: 'Your timesheet has been submitted for approval.' });
       }
     } catch (error) {
-      console.error('Error completing job:', error);
+      console.error('Error completing shift:', error);
+      toast({ title: 'Error', description: 'Could not complete shift. Please try again.', variant: 'destructive' });
     }
-  };
-
-  // Actual completion after travel-from-site is captured (or skipped)
-  const handleCompleteJobWithTravel = async (travelData) => {
-    if (!travelFromAssignment) return;
-    const { assignmentId, extraData } = travelFromAssignment;
-    setTravelFromAssignment(null);
-    await completeAssignment(assignmentId, extraData, travelData);
   };
 
   // Log an ad-hoc / nearby site visit (unplanned work at a different site)
@@ -530,13 +519,11 @@ export default function StaffDashboard() {
     client: clients.find(c => c.id === jobs.find(j => j.id === assignment.job_id)?.client_id),
     staff,
     onStart: handleStartAttempt,
-    onComplete: handleCompleteJob,
+    onStartEndOfShift: handleStartEndOfShift,
     onSign: handleBriefingSign,
     onArrivedOnSite: handleArrivedOnSite,
     onEarlyLeave: handleEarlyLeave,
     canPerformActions,
-    meterage: meterageInputs[assignment.id],
-    onMeterageChange: (id, val) => setMeterageInputs(prev => ({ ...prev, [id]: val })),
     tasksSubmitted: mgrTimesheets.some(t => t.job_id === assignment.job_id && t.date === todayStr && (t.status === 'submitted' || t.status === 'approved')),
     arrivedOnSite: !!assignment.arrived_on_site_at,
     needsBriefing: !assignment.briefing_signed && !visibleAssignments.some(a => a.job_id === assignment.job_id && a.briefing_signed && a.id !== assignment.id),
@@ -728,7 +715,7 @@ export default function StaffDashboard() {
                           <AssignmentCard {...cardProps(a)} defaultExpanded={isActive} />
                           {isActive && isStarted && (
                             <div className="mt-3 space-y-3">
-                              <DailyTaskLog staffId={staff.id} />
+                              <DailyTaskLog staffId={staff.id} hideSubmit />
                               <InvestigationLogEntry staffId={staff.id} staffName={staff.name} jobId={a.job_id} job={jobs.find(j => j.id === a.job_id)} />
                             </div>
                           )}
@@ -813,13 +800,17 @@ export default function StaffDashboard() {
         />
       )}
 
-      {/* Travel-from-site modal — final step before shift completion */}
-      {travelFromAssignment && (
-        <TravelFromSiteModal
-          open={!!travelFromAssignment}
-          jobName={jobs.find(j => j.id === assignments.find(a => a.id === travelFromAssignment.assignmentId)?.job_id)?.name}
-          onConfirm={handleCompleteJobWithTravel}
-          onClose={() => setTravelFromAssignment(null)}
+      {/* End of Shift wizard — flows staff through reviewing and submitting their day */}
+      {endOfShiftAssignment && (
+        <EndOfShiftWizard
+          open={!!endOfShiftAssignment}
+          assignment={assignments.find(a => a.id === endOfShiftAssignment.assignmentId)}
+          job={jobs.find(j => j.id === assignments.find(a => a.id === endOfShiftAssignment.assignmentId)?.job_id)}
+          staffId={staff.id}
+          isDriller={['cp_drilling', 'rotary_drilling'].includes(jobs.find(j => j.id === assignments.find(a => a.id === endOfShiftAssignment.assignmentId)?.job_id)?.job_type)}
+          isLastJob={endOfShiftAssignment.isLastJob}
+          onSubmit={handleEndOfShiftSubmit}
+          onClose={() => setEndOfShiftAssignment(null)}
         />
       )}
 

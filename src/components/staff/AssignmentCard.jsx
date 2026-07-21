@@ -36,7 +36,7 @@ const statusConfig = {
   completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' }
 };
 
-export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, onArrivedOnSite, onEarlyLeave, meterage, onMeterageChange, tasksSubmitted = false, needsBriefing = false, arrivedOnSite = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true, hotelBooking = null, onAdHocVisit, jobAssets = [], assetMap = {}, complianceItems = [] }) {
+export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onStartEndOfShift, onSign, onArrivedOnSite, onEarlyLeave, tasksSubmitted = false, needsBriefing = false, arrivedOnSite = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true, hotelBooking = null, onAdHocVisit, jobAssets = [], assetMap = {}, complianceItems = [] }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
   const StatusIcon = status.icon;
@@ -156,11 +156,9 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               <EndOfShiftPanel
                 assignment={assignment}
                 isDriller={isDriller}
-                meterage={meterage}
-                onMeterageChange={onMeterageChange}
                 onAdHocVisit={onAdHocVisit}
                 onEarlyLeave={onEarlyLeave}
-                onComplete={onComplete}
+                onStartEndOfShift={onStartEndOfShift}
                 canPerformActions={canPerformActions}
               />
             )}
