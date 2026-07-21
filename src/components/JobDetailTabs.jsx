@@ -7,6 +7,7 @@ import BoreholeDrillDown from '@/components/BoreholeDrillDown';
 import JobHotelBookings from '@/components/JobHotelBookings';
 import JobCostingManager from '@/components/JobCostingManager';
 import BillingExportButton from '@/components/BillingExportButton';
+import PendingPricingWidget from '@/components/PendingPricingWidget';
 import JobPhotoGallery from '@/components/JobPhotoGallery';
 import DocumentManager from '@/components/DocumentManager';
 import JobCommentsViewer from '@/components/JobCommentsViewer';
@@ -44,6 +45,7 @@ export default function JobDetailTabs({ job, primaryType, assignedStaff, allStaf
       {/* Financials Tab */}
       {canSeeCosts && (
         <TabsContent value="financials" className="space-y-6 mt-4">
+          <PendingPricingWidget jobId={job.id} />
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-4">
             <div className="flex items-center gap-2 mb-2">
               <FileText className="w-4 h-4 text-emerald-700" />
