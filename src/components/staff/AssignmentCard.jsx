@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle, PauseCircle, AlertTriangle, Phone, Hotel, Navigation, DoorOpen } from 'lucide-react';
+import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle, PauseCircle, AlertTriangle, Phone, Hotel, Navigation } from 'lucide-react';
 import { format } from 'date-fns';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import EquipmentComplianceSection from '@/components/staff/EquipmentComplianceSection';
 import JobDocumentViewer from '@/components/staff/JobDocumentViewer';
+import EndOfShiftPanel from '@/components/staff/EndOfShiftPanel';
 import { formatJobType } from '@/utils/format';
 import { isCheckInDeadlinePassed, isWithinSiteHours, isBeforeSiteOpen } from '@/utils/siteHours';
 
@@ -37,7 +38,6 @@ const statusConfig = {
 
 export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onComplete, onSign, onArrivedOnSite, onEarlyLeave, meterage, onMeterageChange, tasksSubmitted = false, needsBriefing = false, arrivedOnSite = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true, hotelBooking = null, onAdHocVisit, jobAssets = [], assetMap = {}, complianceItems = [] }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const [progressNote, setProgressNote] = useState(assignment.progress_notes || '');
   const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
   const StatusIcon = status.icon;
   const isDriller = job?.job_type === 'cp_drilling' || job?.job_type === 'rotary_drilling';
@@ -153,41 +153,18 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               </div>
             )}
             {assignment.status === 'started' && canPerformActions && (
-              <div className="flex items-center gap-2 flex-wrap w-full">
-                {isDriller && (
-                  <input type="number" min="0" step="0.1" placeholder="Meterage (m)"
-                    value={meterage || ''}
-                    onChange={e => onMeterageChange(assignment.id, e.target.value)}
-                    className="w-32 px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100" />
-                )}
-                {onAdHocVisit && (
-                  <button onClick={() => onAdHocVisit(assignment.id)}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 active:scale-95 transition text-sm font-semibold border border-blue-200 touch-manipulation">
-                    <Navigation className="w-4 h-4" /> Quick Visit
-                  </button>
-                )}
-                {onEarlyLeave && (
-                  <button onClick={() => onEarlyLeave(assignment.id)}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-amber-50 text-amber-700 rounded-xl hover:bg-amber-100 active:scale-95 transition text-sm font-semibold border border-amber-200 touch-manipulation">
-                    <DoorOpen className="w-4 h-4" /> Leave Site Early
-                  </button>
-                )}
-                <button onClick={() => onComplete(assignment.id, { progress_notes: progressNote.trim() })}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-semibold touch-manipulation ml-auto">
-                  <CheckCircle2 className="w-4 h-4" /> Complete Shift
-                </button>
-              </div>
+              <EndOfShiftPanel
+                assignment={assignment}
+                isDriller={isDriller}
+                meterage={meterage}
+                onMeterageChange={onMeterageChange}
+                onAdHocVisit={onAdHocVisit}
+                onEarlyLeave={onEarlyLeave}
+                onComplete={onComplete}
+                canPerformActions={canPerformActions}
+              />
             )}
           </div>
-
-          {/* Progress notes — for multi-day jobs */}
-          {assignment.status === 'started' && canPerformActions && (
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-slate-600 mb-1.5">End-of-shift progress notes (optional)</label>
-              <textarea value={progressNote} onChange={e => setProgressNote(e.target.value)} rows={2} placeholder="What was done today? What's left for the next shift?"
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 resize-none" />
-            </div>
-          )}
 
           {/* Previous shift progress */}
           {previousProgress.length > 0 && (
