@@ -211,7 +211,6 @@ function BoreholeDetail({ boreholeRef: bhRef, logs }) {
               </span>
             )}
             <span className="inline-flex items-center gap-1"><Layers className="w-3 h-3" />{s.strataCount} strata</span>
-            <span className="inline-flex items-center gap-1"><TestTube className="w-3 h-3" />{s.sampleCount} samples</span>
             <span className="inline-flex items-center gap-1"><Calculator className="w-3 h-3" />{s.sptCount} SPTs</span>
           </div>
         </div>
