@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import EquipmentComplianceSection from '@/components/staff/EquipmentComplianceSection';
 import JobDocumentViewer from '@/components/staff/JobDocumentViewer';
-import EndOfShiftPanel from '@/components/staff/EndOfShiftPanel';
+
 import { formatJobType } from '@/utils/format';
 import { isCheckInDeadlinePassed, isWithinSiteHours, isBeforeSiteOpen } from '@/utils/siteHours';
 
@@ -36,7 +36,7 @@ const statusConfig = {
   completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' }
 };
 
-export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onStart, onStartEndOfShift, onSign, onArrivedOnSite, onEarlyLeave, tasksSubmitted = false, needsBriefing = false, arrivedOnSite = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true, hotelBooking = null, onAdHocVisit, jobAssets = [], assetMap = {}, complianceItems = [] }) {
+export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onOpenShiftWizard, onEarlyLeave, tasksSubmitted = false, needsBriefing = false, arrivedOnSite = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true, hotelBooking = null, onAdHocVisit, jobAssets = [], assetMap = {}, complianceItems = [] }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
   const StatusIcon = status.icon;
@@ -110,42 +110,29 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
         <div className="px-4 pb-4 border-t border-slate-100 pt-4">
           {/* Quick actions row */}
           <div className="flex flex-wrap gap-2 mb-4">
-            {(assignment.status || 'assigned') === 'assigned' && (
-              !canPerformActions ? (
-                <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold">
-                  <Clock className="w-3.5 h-3.5 flex-shrink-0" /> {isBeforeSiteOpen() ? 'Early access — work actions unlock at 8:00 AM' : 'Outside working hours (8am–5pm) — come back tomorrow'}
-                </div>
-              ) : !arrivedOnSite ? (
-                <div className="flex flex-col gap-2 w-full">
-                  {deadlinePassed && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-xl text-xs font-semibold ring-1 ring-red-200">
-                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> Check-in deadline passed (8:15 AM) — contact your supervisor
-                    </div>
-                  )}
-                  <button onClick={() => onArrivedOnSite(assignment.id)}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-semibold touch-manipulation self-start">
-                    <MapPin className="w-4 h-4" /> Arrived on Site
+            {(assignment.status || 'assigned') === 'assigned' && !canPerformActions && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold">
+                <Clock className="w-3.5 h-3.5 flex-shrink-0" /> {isBeforeSiteOpen() ? 'Early access — work actions unlock at 8:00 AM' : 'Outside working hours (8am–5pm) — come back tomorrow'}
+              </div>
+            )}
+            {(assignment.status || 'assigned') === 'assigned' && canPerformActions && (
+              <div className="flex flex-col gap-2 w-full">
+                {deadlinePassed && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-xl text-xs font-semibold ring-1 ring-red-200">
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> Check-in deadline passed (8:15 AM) — contact your supervisor
+                  </div>
+                )}
+                {canStart ? (
+                  <button onClick={() => onOpenShiftWizard(assignment.id)}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-bold touch-manipulation">
+                    <PlayCircle className="w-4 h-4" /> Start Shift
                   </button>
-                  <p className="text-[11px] text-slate-400">Log your travel to site first, then start the briefing or induction.</p>
-                </div>
-              ) : needsBriefing ? (
-                <div className="flex flex-col gap-2 w-full">
-                  <button onClick={() => onStart(assignment.id)}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 active:scale-95 transition text-sm font-semibold touch-manipulation self-start">
-                    <ShieldCheck className="w-4 h-4" /> Start Briefing / Induction
-                  </button>
-                  <p className="text-[11px] text-slate-400">Induction only needed on your first day at this site.</p>
-                </div>
-              ) : canStart ? (
-                <button onClick={() => onStart(assignment.id)}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition text-sm font-semibold touch-manipulation">
-                  <PlayCircle className="w-4 h-4" /> Start Job
-                </button>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-500 rounded-xl text-xs font-semibold">
-                  <Clock className="w-3.5 h-3.5" /> Starts {format(new Date(assignment.assigned_date + 'T00:00:00'), 'dd MMM')}{assignment.start_time ? ` · ${assignment.start_time}` : ''}
-                </span>
-              )
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-500 rounded-xl text-xs font-semibold">
+                    <Clock className="w-3.5 h-3.5" /> Starts {format(new Date(assignment.assigned_date + 'T00:00:00'), 'dd MMM')}{assignment.start_time ? ` · ${assignment.start_time}` : ''}
+                  </span>
+                )}
+              </div>
             )}
             {assignment.status === 'started' && !canPerformActions && (
               <div className="flex items-center gap-2 px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold">
@@ -153,14 +140,22 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               </div>
             )}
             {assignment.status === 'started' && canPerformActions && (
-              <EndOfShiftPanel
-                assignment={assignment}
-                isDriller={isDriller}
-                onAdHocVisit={onAdHocVisit}
-                onEarlyLeave={onEarlyLeave}
-                onStartEndOfShift={onStartEndOfShift}
-                canPerformActions={canPerformActions}
-              />
+              <div className="flex flex-wrap gap-2 w-full">
+                <button onClick={() => onOpenShiftWizard(assignment.id)}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-bold touch-manipulation flex-1 min-w-[160px]">
+                  <PlayCircle className="w-4 h-4" /> Continue Shift
+                </button>
+                <button onClick={() => onEarlyLeave(assignment.id)}
+                  className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 active:scale-95 transition text-xs font-semibold">
+                  <PauseCircle className="w-3.5 h-3.5" /> Early Leave
+                </button>
+                {onAdHocVisit && (
+                  <button onClick={onAdHocVisit}
+                    className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 active:scale-95 transition text-xs font-semibold">
+                    <Navigation className="w-3.5 h-3.5" /> Ad-hoc Visit
+                  </button>
+                )}
+              </div>
             )}
           </div>
 

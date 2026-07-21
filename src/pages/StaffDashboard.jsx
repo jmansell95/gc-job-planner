@@ -4,11 +4,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, MessageCircle, History, CheckCircle2, UserCircle, ShieldCheck, AlertTriangle, Truck, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isPast } from 'date-fns';
-import DailyTaskLog from '@/components/DailyTaskLog';
 import { motion } from 'framer-motion';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 import AssignmentCard from '@/components/staff/AssignmentCard';
-import JobBriefingModal from '@/components/staff/JobBriefingModal';
 import EndOfDayCard from '@/components/staff/EndOfDayCard';
 import { useToast } from '@/components/ui/use-toast';
 import { syncAllOfflineData, getOfflineDeliveryCount } from '@/utils/offlineSync';
@@ -16,8 +14,7 @@ import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME, S
 import { complianceDaysUntil } from '@/utils/complianceDate';
 import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
 import StatCard from '@/components/dashboard/StatCard';
-import EndOfShiftWizard from '@/components/staff/EndOfShiftWizard';
-import ArrivedOnSiteModal from '@/components/staff/ArrivedOnSiteModal';
+import ShiftWizard from '@/components/staff/ShiftWizard';
 import EarlyLeaveModal from '@/components/staff/EarlyLeaveModal';
 import ScheduleSplash from '@/components/staff/ScheduleSplash';
 import NextJobPrompt from '@/components/staff/NextJobPrompt';
@@ -48,9 +45,7 @@ export default function StaffDashboard() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [briefingAssignment, setBriefingAssignment] = useState(null);
-  const [endOfShiftAssignment, setEndOfShiftAssignment] = useState(null);
-  const [arrivedOnSiteAssignment, setArrivedOnSiteAssignment] = useState(null);
+  const [shiftWizard, setShiftWizard] = useState(null);
   const [earlyLeaveAssignment, setEarlyLeaveAssignment] = useState(null);
   const [splashDismissed, setSplashDismissed] = useState(false);
   const [showScheduleSummary, setShowScheduleSummary] = useState(false);
@@ -163,25 +158,23 @@ export default function StaffDashboard() {
     }
   };
 
-  // Opens the "Arrived on Site" modal — the first step of the daily workflow.
-  // Staff log their travel-to-site time before the briefing/induction begins.
-  const handleArrivedOnSite = (assignmentId) => {
-    const assignment = assignments.find(a => a.id === assignmentId);
-    if (!assignment) return;
-    setArrivedOnSiteAssignment(assignment);
+  // Opens the Shift Wizard — the single full-screen flow that guides staff
+  // through arrival → briefing → tasks → end of shift, one step at a time.
+  const handleOpenShiftWizard = (assignmentId, opts = {}) => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const hasMoreJobs = assignments.some(a => a.assigned_date === todayStr && (a.status || 'assigned') !== 'completed' && a.id !== assignmentId);
+    setShiftWizard({ assignmentId, isLastJob: !hasMoreJobs, forceStep: opts.forceStep || null });
   };
 
-  // Confirms arrival: creates a travel_to draft timesheet entry, marks the
-  // assignment as arrived, then opens the briefing modal if induction is still
-  // required for this job (only on the first day at a site).
-  const handleArrivedOnSiteConfirm = async ({ departHome, arriveSite, skipped }) => {
-    const assignment = arrivedOnSiteAssignment;
+  // Confirms arrival: creates a travel_to draft timesheet entry and marks the
+  // assignment as arrived. The wizard handles the transition to briefing/working.
+  const handleArrivedConfirm = async ({ assignmentId, departHome, arriveSite }) => {
+    const assignment = assignments.find(a => a.id === assignmentId);
     if (!assignment) return;
-    setArrivedOnSiteAssignment(null);
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const arrivedAt = new Date().toISOString();
     try {
-      if (!skipped && departHome && arriveSite) {
+      if (departHome && arriveSite) {
         const [dh, dm] = departHome.split(':').map(Number);
         const [ah, am] = arriveSite.split(':').map(Number);
         const travelMins = (ah * 60 + am) - (dh * 60 + dm);
@@ -205,16 +198,6 @@ export default function StaffDashboard() {
       await base44.entities.RotaAssignment.update(assignment.id, { arrived_on_site_at: arrivedAt });
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });
-
-      // Determine if induction/briefing is still needed for this job
-      const hasPriorBriefing = assignments.some(a => a.job_id === assignment.job_id && a.briefing_signed && a.id !== assignment.id);
-      const inductionRequired = !assignment.briefing_signed && !hasPriorBriefing;
-      if (inductionRequired) {
-        // Open the briefing modal, skipping the travel phase (already logged)
-        setBriefingAssignment(assignment);
-      } else {
-        toast({ title: 'Arrived on site', description: 'Induction already completed for this site — ready to start work.' });
-      }
     } catch (error) {
       console.error('Error confirming arrival:', error);
       toast({ title: 'Error', description: 'Could not confirm arrival. Please try again.', variant: 'destructive' });
@@ -242,27 +225,25 @@ export default function StaffDashboard() {
       });
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
       toast({ title: 'Early departure recorded', description: 'Your manager will be notified. Please log your travel home next.' });
-      // Trigger the End of Shift wizard
-      handleStartEndOfShift(assignment.id);
+      // Open the Shift Wizard at the end-of-shift step
+      handleOpenShiftWizard(assignment.id, { forceStep: 'end_of_shift' });
     } catch (error) {
       console.error('Error recording early leave:', error);
     }
   };
 
-  // Opens the End of Shift wizard — guides staff through reviewing their day,
-  // logging meterage (drillers), progress notes, and travel home before submit.
+  // Opens the Shift Wizard at the end-of-shift step — guides staff through
+  // reviewing their day, logging meterage, progress notes, and travel home.
   const handleStartEndOfShift = (assignmentId) => {
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const hasMoreJobs = assignments.some(a => a.assigned_date === todayStr && (a.status || 'assigned') !== 'completed' && a.id !== assignmentId);
-    setEndOfShiftAssignment({ assignmentId, isLastJob: !hasMoreJobs });
+    handleOpenShiftWizard(assignmentId, { forceStep: 'end_of_shift' });
   };
 
   // Final submission after the wizard — creates travel_from, submits the
   // consolidated timesheet, marks the assignment completed, and checks for
   // remaining jobs today.
   const handleEndOfShiftSubmit = async (data) => {
-    const { assignmentId, isLastJob } = endOfShiftAssignment;
-    setEndOfShiftAssignment(null);
+    const { assignmentId, isLastJob } = shiftWizard;
+    setShiftWizard(null);
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     try {
       // Create travel_from entry so it's included in the timesheet merge
@@ -392,40 +373,19 @@ export default function StaffDashboard() {
   };
 
   const handleStartAttempt = (assignmentId) => {
-    const assignment = assignments.find(a => a.id === assignmentId);
-    if (!assignment) return;
-    const hasPriorBriefing = assignments.some(a => a.job_id === assignment.job_id && a.briefing_signed && a.id !== assignment.id);
-    const thisSigned = assignment.briefing_signed || hasPriorBriefing;
-    if (!thisSigned) {
-      setBriefingAssignment(assignment);
-      return;
-    }
-    // Each crew member can start work independently once they've personally
-    // signed the briefing — others may still be completing theirs.
-    handleStartJob(assignmentId);
+    // Opens the Shift Wizard — it determines the correct step automatically
+    // (arrive → briefing → working → end of shift) based on assignment state.
+    handleOpenShiftWizard(assignmentId);
   };
 
   const handleBriefingComplete = ({ offline } = {}) => {
-    const justSigned = briefingAssignment;
-    setBriefingAssignment(null);
     queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
     queryClient.invalidateQueries({ queryKey: ['all-rota-assignments'] });
     queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });
     if (offline) {
       toast({ title: 'Briefing saved offline', description: 'Your signature will sync when you reconnect.' });
-      return;
-    }
-    if (justSigned) {
-      const crew = allAssignments.filter(a => a.job_id === justSigned.job_id && a.assigned_date === justSigned.assigned_date);
-      const signedCount = crew.filter(a => a.briefing_signed || a.id === justSigned.id).length;
-      // Start this person's shift as soon as they've signed — they don't have
-      // to wait for the rest of the crew to be briefed.
-      handleStartJob(justSigned.id);
-      if (crew.length > 1 && signedCount < crew.length) {
-        toast({ title: 'Briefing signed — shift started', description: `${signedCount} of ${crew.length} crew signed off. Others can start once they complete theirs.` });
-      } else {
-        toast({ title: 'Briefing signed — shift started', description: "You're briefed and ready to work." });
-      }
+    } else {
+      toast({ title: 'Briefing signed', description: "You're briefed and ready to work." });
     }
   };
 
@@ -518,10 +478,7 @@ export default function StaffDashboard() {
     vehicle: vehicles.find(v => v.id === assignment.vehicle_id),
     client: clients.find(c => c.id === jobs.find(j => j.id === assignment.job_id)?.client_id),
     staff,
-    onStart: handleStartAttempt,
-    onStartEndOfShift: handleStartEndOfShift,
-    onSign: handleBriefingSign,
-    onArrivedOnSite: handleArrivedOnSite,
+    onOpenShiftWizard: handleOpenShiftWizard,
     onEarlyLeave: handleEarlyLeave,
     canPerformActions,
     tasksSubmitted: mgrTimesheets.some(t => t.job_id === assignment.job_id && t.date === todayStr && (t.status === 'submitted' || t.status === 'approved')),
@@ -713,12 +670,6 @@ export default function StaffDashboard() {
                             </div>
                           )}
                           <AssignmentCard {...cardProps(a)} defaultExpanded={isActive} />
-                          {isActive && isStarted && (
-                            <div className="mt-3 space-y-3">
-                              <DailyTaskLog staffId={staff.id} hideSubmit />
-                              <InvestigationLogEntry staffId={staff.id} staffName={staff.name} jobId={a.job_id} job={jobs.find(j => j.id === a.job_id)} />
-                            </div>
-                          )}
                         </div>
                       );
                     })}
@@ -786,43 +737,26 @@ export default function StaffDashboard() {
 
       </div>
 
-      {/* Briefing modal — travel is logged first via Arrived on Site, so skip the travel phase */}
-      {briefingAssignment && (
-        <JobBriefingModal
-          assignment={briefingAssignment}
-          job={jobs.find(j => j.id === briefingAssignment.job_id)}
-          client={clients.find(c => c.id === jobs.find(j => j.id === briefingAssignment.job_id)?.client_id)}
+      {/* Unified Shift Wizard — full-screen step-by-step flow:
+          arrive → briefing → tasks → finish day */}
+      {shiftWizard && (
+        <ShiftWizard
+          open={!!shiftWizard}
+          assignment={assignments.find(a => a.id === shiftWizard.assignmentId)}
+          job={jobs.find(j => j.id === assignments.find(a => a.id === shiftWizard.assignmentId)?.job_id)}
+          client={clients.find(c => c.id === jobs.find(j => j.id === assignments.find(a => a.id === shiftWizard.assignmentId)?.job_id)?.client_id)}
           staff={staff}
-          crewAssignments={allAssignments.filter(a => a.job_id === briefingAssignment.job_id && a.assigned_date === briefingAssignment.assigned_date)}
-          onSigned={handleBriefingComplete}
-          onClose={() => setBriefingAssignment(null)}
-          skipTravel
-        />
-      )}
-
-      {/* End of Shift wizard — flows staff through reviewing and submitting their day */}
-      {endOfShiftAssignment && (
-        <EndOfShiftWizard
-          open={!!endOfShiftAssignment}
-          assignment={assignments.find(a => a.id === endOfShiftAssignment.assignmentId)}
-          job={jobs.find(j => j.id === assignments.find(a => a.id === endOfShiftAssignment.assignmentId)?.job_id)}
           staffId={staff.id}
-          isDriller={['cp_drilling', 'rotary_drilling'].includes(jobs.find(j => j.id === assignments.find(a => a.id === endOfShiftAssignment.assignmentId)?.job_id)?.job_type)}
-          isLastJob={endOfShiftAssignment.isLastJob}
-          onSubmit={handleEndOfShiftSubmit}
-          onClose={() => setEndOfShiftAssignment(null)}
-        />
-      )}
-
-      {/* Arrived on Site modal — first step: log travel to site */}
-      {arrivedOnSiteAssignment && (
-        <ArrivedOnSiteModal
-          open={!!arrivedOnSiteAssignment}
-          jobName={jobs.find(j => j.id === arrivedOnSiteAssignment.job_id)?.name}
-          jobLocation={jobs.find(j => j.id === arrivedOnSiteAssignment.job_id)?.location}
-          inductionRequired={!arrivedOnSiteAssignment.briefing_signed && !visibleAssignments.some(a => a.job_id === arrivedOnSiteAssignment.job_id && a.briefing_signed && a.id !== arrivedOnSiteAssignment.id)}
-          onConfirm={handleArrivedOnSiteConfirm}
-          onClose={() => setArrivedOnSiteAssignment(null)}
+          crewAssignments={allAssignments.filter(a => a.job_id === assignments.find(a2 => a2.id === shiftWizard.assignmentId)?.job_id && a.assigned_date === assignments.find(a2 => a2.id === shiftWizard.assignmentId)?.assigned_date)}
+          visibleAssignments={visibleAssignments}
+          isDriller={['cp_drilling', 'rotary_drilling'].includes(jobs.find(j => j.id === assignments.find(a => a.id === shiftWizard.assignmentId)?.job_id)?.job_type)}
+          isLastJob={shiftWizard.isLastJob}
+          forceStep={shiftWizard.forceStep}
+          onArrivedConfirm={handleArrivedConfirm}
+          onBriefingComplete={handleBriefingComplete}
+          onStartJob={handleStartJob}
+          onEndOfShiftSubmit={handleEndOfShiftSubmit}
+          onClose={() => setShiftWizard(null)}
         />
       )}
 

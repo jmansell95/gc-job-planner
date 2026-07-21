@@ -1,0 +1,355 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { base44 } from '@/api/base44Client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  X, MapPin, Car, Clock, CheckCircle2, AlertTriangle, ShieldCheck,
+  PlayCircle, ClipboardCheck, ChevronRight, Briefcase, Coffee, Send,
+  Ruler, FileText, Info, Timer,
+} from 'lucide-react';
+import { format } from 'date-fns';
+import JobBriefingModal from '@/components/staff/JobBriefingModal';
+import EndOfShiftWizard from '@/components/staff/EndOfShiftWizard';
+import DailyTaskLog from '@/components/DailyTaskLog';
+
+const fmtDur = (mins) => {
+  const m = Math.round(Number(mins) || 0);
+  const h = Math.floor(m / 60), r = m % 60;
+  if (h && r) return `${h}h ${r}m`;
+  if (h) return `${h}h`;
+  return m > 0 ? `${r}m` : '0m';
+};
+
+// ── Arrive Step ──────────────────────────────────────────────────────────
+function ArriveStep({ job, jobLocation, inductionRequired, onConfirm, saving }) {
+  const [departHome, setDepartHome] = useState('');
+  const [arriveSite, setArriveSite] = useState(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  });
+
+  const travelMins = departHome && arriveSite
+    ? (() => {
+        const [dh, dm] = departHome.split(':').map(Number);
+        const [ah, am] = arriveSite.split(':').map(Number);
+        const m = ah * 60 + am - (dh * 60 + dm);
+        return m > 0 ? m : 0;
+      })()
+    : 0;
+  const invalidTime = departHome && arriveSite && travelMins === 0;
+  const canConfirm = departHome && arriveSite && !invalidTime && !saving;
+
+  return (
+    <div className="space-y-4 px-5 py-2">
+      {jobLocation && (
+        <div className="flex items-start gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3">
+          <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-slate-700 break-words">{jobLocation}</p>
+        </div>
+      )}
+      <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-3">
+        <Car className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-blue-900 leading-relaxed">
+          Log your travel time to site — this is the first thing you do before starting the briefing or induction.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-1.5">Left home</label>
+          <input type="time" value={departHome} onChange={e => setDepartHome(e.target.value)} autoFocus
+            className="w-full px-3 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-1.5">Arrived on site</label>
+          <input type="time" value={arriveSite} onChange={e => setArriveSite(e.target.value)}
+            className="w-full px-3 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white" />
+        </div>
+      </div>
+      {invalidTime && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">
+          <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+          <p className="text-xs text-red-800 font-medium">Arrival on site must be after leaving home.</p>
+        </div>
+      )}
+      {travelMins > 0 && (
+        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-2.5">
+          <Car className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <p className="text-xs text-emerald-900 font-medium">Travel time: {fmtDur(travelMins)}</p>
+          <span className="text-[10px] text-emerald-600 ml-auto">First 1.5h unpaid</span>
+        </div>
+      )}
+      {inductionRequired ? (
+        <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-100 rounded-xl px-3.5 py-3">
+          <ShieldCheck className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-900 leading-relaxed">
+            After logging your travel, you'll start the site briefing and induction. This is only needed on your first day at this site.
+          </p>
+        </div>
+      ) : (
+        <div className="flex items-start gap-2.5 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-3">
+          <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-emerald-900 leading-relaxed">
+            You've already completed the induction for this site — you'll be ready to start work once you confirm arrival.
+          </p>
+        </div>
+      )}
+      <input type="hidden" id="arrive-can-confirm" value={canConfirm ? '1' : '0'} data-depart={departHome} data-arrive={arriveSite} />
+    </div>
+  );
+}
+
+// ── Working Step ─────────────────────────────────────────────────────────
+function WorkingStep({ staffId, job, assignment }) {
+  return (
+    <div className="px-0 py-0">
+      <DailyTaskLog staffId={staffId} hideSubmit />
+    </div>
+  );
+}
+
+// ── Main ShiftWizard ──────────────────────────────────────────────────────
+export default function ShiftWizard({
+  open,
+  onClose,
+  assignment,
+  job,
+  client,
+  staff,
+  staffId,
+  crewAssignments = [],
+  visibleAssignments = [],
+  canPerformActions = true,
+  onArrivedConfirm,
+  onBriefingComplete,
+  onStartJob,
+  onEndOfShiftSubmit,
+  isLastJob,
+  isDriller,
+  forceStep = null,
+}) {
+  const [step, setStep] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [arriveData, setArriveData] = useState({ departHome: '', arriveSite: '' });
+
+  const needsBriefing = assignment
+    ? !assignment.briefing_signed &&
+      !visibleAssignments.some(a => a.job_id === assignment.job_id && a.briefing_signed && a.id !== assignment.id)
+    : false;
+
+  // Build the list of wizard steps based on assignment state
+  const buildSteps = () => {
+    const steps = [];
+    if (!assignment) return steps;
+    if (!assignment.arrived_on_site_at) steps.push('arrive');
+    if (needsBriefing) steps.push('briefing');
+    if ((assignment.status || 'assigned') !== 'completed') steps.push('working');
+    steps.push('end_of_shift');
+    return steps;
+  };
+
+  const steps = buildSteps();
+
+  useEffect(() => {
+    if (open && assignment) {
+      // If a specific step is forced (e.g. early leave → end_of_shift), use it
+      if (forceStep) setStep(forceStep);
+      else if (!assignment.arrived_on_site_at) setStep('arrive');
+      else if (needsBriefing) setStep('briefing');
+      else if ((assignment.status || 'assigned') !== 'completed') setStep('working');
+      else setStep(null);
+      setSaving(false);
+    } else {
+      setStep(null);
+    }
+  }, [open, assignment?.id, forceStep]);
+
+  // ── Step transitions ──
+  const advanceFromArrive = async () => {
+    const el = document.getElementById('arrive-can-confirm');
+    if (!el || el.value !== '1') return;
+    const departHome = el.dataset.depart;
+    const arriveSite = el.dataset.arrive;
+    setSaving(true);
+    try {
+      await onArrivedConfirm({ assignmentId: assignment.id, departHome, arriveSite });
+      setSaving(false);
+      if (needsBriefing) {
+        setStep('briefing');
+      } else {
+        // Already briefed — start the job and go to working
+        if (onStartJob) await onStartJob(assignment.id);
+        setStep('working');
+      }
+    } catch (e) {
+      setSaving(false);
+    }
+  };
+
+  const handleBriefingSigned = (result) => {
+    if (onBriefingComplete) onBriefingComplete(result);
+    if (onStartJob) onStartJob(assignment.id);
+    setStep('working');
+  };
+
+  const handleEndOfShiftSubmit = (data) => {
+    if (onEndOfShiftSubmit) onEndOfShiftSubmit(data);
+    setStep(null);
+  };
+
+  // ── Render ──
+  if (!open || !assignment) return null;
+
+  const stepLabels = {
+    arrive: 'Arrive',
+    briefing: 'Briefing',
+    working: 'Tasks',
+    end_of_shift: 'Finish',
+  };
+  const stepIcons = {
+    arrive: MapPin,
+    briefing: ShieldCheck,
+    working: Briefcase,
+    end_of_shift: CheckCircle2,
+  };
+
+  const currentStepIndex = steps.indexOf(step);
+
+  // ── Delegate to full-screen components for briefing and end_of_shift ──
+  if (step === 'briefing') {
+    return (
+      <JobBriefingModal
+        assignment={assignment}
+        job={job}
+        client={client}
+        staff={staff}
+        crewAssignments={crewAssignments}
+        onSigned={handleBriefingSigned}
+        onClose={onClose}
+        skipTravel
+      />
+    );
+  }
+
+  if (step === 'end_of_shift') {
+    return (
+      <EndOfShiftWizard
+        open={true}
+        assignment={assignment}
+        job={job}
+        staffId={staffId}
+        isDriller={isDriller}
+        isLastJob={isLastJob}
+        onSubmit={handleEndOfShiftSubmit}
+        onClose={onClose}
+      />
+    );
+  }
+
+  // ── Full-screen wizard frame for arrive and working steps ──
+  return (
+    <AnimatePresence>
+      {open && step && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-white flex flex-col"
+        >
+          {/* Header with progress */}
+          <div className="hero-gradient px-5 py-4 text-white flex-shrink-0">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center flex-shrink-0">
+                  {step === 'arrive' ? <MapPin className="w-5 h-5 text-white" /> : <Briefcase className="w-5 h-5 text-white" />}
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-bold leading-tight">
+                    {step === 'arrive' ? 'Arrived on Site' : "Today's Tasks"}
+                  </h2>
+                  <p className="text-emerald-100 text-xs truncate">{job?.name || 'Shift'}</p>
+                </div>
+              </div>
+              <button onClick={onClose} disabled={saving}
+                className="p-1.5 rounded-lg hover:bg-white/15 transition flex-shrink-0">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {/* Progress dots */}
+            <div className="flex items-center gap-1.5">
+              {steps.map((s, i) => {
+                const SIcon = stepIcons[s];
+                return (
+                  <React.Fragment key={s}>
+                    <div className={`flex items-center gap-1.5 ${i <= currentStepIndex ? 'text-white' : 'text-white/40'}`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${i < currentStepIndex ? 'bg-white text-emerald-700' : i === currentStepIndex ? 'bg-white/25 ring-1 ring-white/40' : 'bg-white/10'}`}>
+                        {i < currentStepIndex ? <CheckCircle2 className="w-3.5 h-3.5" /> : i + 1}
+                      </div>
+                      <span className="text-[11px] font-medium hidden sm:inline">{stepLabels[s]}</span>
+                    </div>
+                    {i < steps.length - 1 && (
+                      <div className={`h-0.5 flex-1 rounded-full ${i < currentStepIndex ? 'bg-white' : 'bg-white/20'}`} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-emerald-100 mt-2">
+              Step {currentStepIndex + 1} of {steps.length} — {stepLabels[step]}
+            </p>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ x: 30, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: -30, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {step === 'arrive' && (
+                  <ArriveStep
+                    job={job}
+                    jobLocation={job?.location}
+                    inductionRequired={needsBriefing}
+                    saving={saving}
+                  />
+                )}
+                {step === 'working' && (
+                  <WorkingStep
+                    staffId={staffId}
+                    job={job}
+                    assignment={assignment}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Footer */}
+          <div className="border-t border-slate-100 p-4 flex gap-2 flex-shrink-0 safe-area-bottom">
+            {step === 'arrive' && (
+              <>
+                <button onClick={onClose} disabled={saving}
+                  className="flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 active:scale-95 transition text-sm font-semibold">
+                  Cancel
+                </button>
+                <button onClick={advanceFromArrive} disabled={saving}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-bold disabled:opacity-50 touch-manipulation">
+                  {saving ? 'Saving…' : 'Confirm Arrival'} <ChevronRight className="w-4 h-4" />
+                </button>
+              </>
+            )}
+            {step === 'working' && (
+              <button onClick={() => setStep('end_of_shift')}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-bold touch-manipulation">
+                Finish My Day <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

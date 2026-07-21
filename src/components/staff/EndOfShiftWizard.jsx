@@ -85,12 +85,12 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
     <AnimatePresence>
       {open && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-0 md:p-4"
+          className="fixed inset-0 z-50 bg-white flex flex-col"
           onClick={onClose}>
           <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
             transition={{ type: 'spring', damping: 28, stiffness: 280 }}
             onClick={e => e.stopPropagation()}
-            className="bg-white w-full md:max-w-lg rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+            className="bg-white w-full h-full overflow-hidden flex flex-col">
 
             {/* Header */}
             <div className="hero-gradient px-5 py-4 text-white flex-shrink-0">
