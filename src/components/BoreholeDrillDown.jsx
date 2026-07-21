@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import {
   Ruler, Droplets, TestTube, Calculator, Layers, Gauge,
   ArrowDownToLine, Calendar, ChevronRight, Tablet, Waves,
-  Ban, AlertTriangle, Mountain, Activity, TrendingDown, ClipboardList
+  Ban, AlertTriangle, Mountain, Activity, TrendingDown, ClipboardList, Package
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { strataConfig, logTypeConfig, reviewStatusConfig } from '@/components/investigation/shared';
@@ -174,6 +174,7 @@ function BoreholeDetail({ boreholeRef: bhRef, logs }) {
   const allStrata = s.strataLogs.sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
   const allSamples = s.sampleLogs.sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
   const allSpts = s.sptLogs.sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
+  const allInstalls = logs.filter(l => l.log_type === 'installation').sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
 
   // SPT chart data (N-value vs depth)
   const sptChartData = allSpts
@@ -358,6 +359,94 @@ function BoreholeDetail({ boreholeRef: bhRef, logs }) {
         </div>
       )}
 
+      {/* Installations table */}
+      {allInstalls.length > 0 && (
+        <div className="rounded-xl border border-slate-200 overflow-hidden">
+          <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+            <p className="text-xs font-bold text-slate-600 uppercase tracking-wide inline-flex items-center gap-1.5">
+              <Package className="w-3.5 h-3.5" /> Installations ({allInstalls.length})
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50/80 text-slate-500">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium text-xs">Pipe Ref</th>
+                  <th className="text-left px-3 py-2 font-medium text-xs">Depth (m)</th>
+                  <th className="text-left px-3 py-2 font-medium text-xs">Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {allInstalls.map((l, i) => {
+                  const detail = l.description
+                    ? l.description.replace(/^Imported from KeyLogBook AGS — installation pipe[^:]*:\s*/, '').replace(/\.$/, '')
+                    : '—';
+                  return (
+                    <tr key={l.id || i} className="hover:bg-slate-50/50">
+                      <td className="px-3 py-2 font-mono font-bold text-emerald-700 text-xs">
+                        {l.standpipe_ref || '—'}
+                      </td>
+                      <td className="px-3 py-2 text-slate-700 font-mono text-xs">
+                        {l.depth_from != null || l.depth_to != null
+                          ? `${l.depth_from ?? '?'}–${l.depth_to ?? '?'}m`
+                          : '—'}
+                      </td>
+                      <td className="px-3 py-2 text-slate-600 text-xs">
+                        {detail}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Installations table */}
+      {allInstalls.length > 0 && (
+        <div className="rounded-xl border border-slate-200 overflow-hidden">
+          <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+            <p className="text-xs font-bold text-slate-600 uppercase tracking-wide inline-flex items-center gap-1.5">
+              <Package className="w-3.5 h-3.5" /> Installations ({allInstalls.length})
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50/80 text-slate-500">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium text-xs">Pipe Ref</th>
+                  <th className="text-left px-3 py-2 font-medium text-xs">Depth (m)</th>
+                  <th className="text-left px-3 py-2 font-medium text-xs">Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {allInstalls.map((l, i) => {
+                  const detail = l.description
+                    ? l.description.replace(/^Imported from KeyLogBook AGS — installation pipe[^:]*:\s*/, '').replace(/\.$/, '')
+                    : '—';
+                  return (
+                    <tr key={l.id || i} className="hover:bg-slate-50/50">
+                      <td className="px-3 py-2 font-mono font-bold text-emerald-700 text-xs">
+                        {l.standpipe_ref || '—'}
+                      </td>
+                      <td className="px-3 py-2 text-slate-700 font-mono text-xs">
+                        {l.depth_from != null || l.depth_to != null
+                          ? `${l.depth_from ?? '?'}–${l.depth_to ?? '?'}m`
+                          : '—'}
+                      </td>
+                      <td className="px-3 py-2 text-slate-600 text-xs">
+                        {detail}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Samples table */}
       {allSamples.length > 0 && (
         <div className="rounded-xl border border-slate-200 overflow-hidden">
@@ -440,7 +529,7 @@ function BoreholeDetail({ boreholeRef: bhRef, logs }) {
       {/* Other logs (core, standpipe, decommissioning, etc.) */}
       {(() => {
         const otherLogs = logs.filter(l =>
-          l.log_type && !['borehole_progress', 'sample_collection'].includes(l.log_type) &&
+          l.log_type && !['borehole_progress', 'sample_collection', 'installation'].includes(l.log_type) &&
           !l.strata_descriptor && !l.strata_description_detail
         );
         if (otherLogs.length === 0) return null;

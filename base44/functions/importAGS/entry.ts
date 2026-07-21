@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
 
     const today = new Date().toISOString().slice(0, 10);
     const logs: any[] = [];
-    const counts = { locations: 0, strata: 0, samples: 0, spt: 0 };
+    const counts = { locations: 0, strata: 0, samples: 0, spt: 0, installations: 0 };
 
     // Build a lookup of LOCA_ID → final depth / groundwater so we can enrich
     // strata/sample/SPT logs with the borehole reference even when the child
@@ -368,12 +368,45 @@ Deno.serve(async (req) => {
       }
     }
 
+    // TREM — installation / tremie pipe records (standpipe installations, etc.)
+    if (groups.TREM && groups.TREM.rows.length) {
+      for (const row of groups.TREM.rows) {
+        const r = rowToObj(groups.TREM, row);
+        const tremId = pick(r, 'TREM_ID', 'TREM_REF', 'TREM_NO', 'PIPE_ID', 'INSTALL_ID');
+        const tremType = pick(r, 'TREM_TYPE', 'TREM_TYPE_TREM', 'TYPE');
+        const tremMat = pick(r, 'TREM_MAT', 'TREM_MATERIAL', 'MATERIAL');
+        const tremDiam = pick(r, 'TREM_DIAM', 'TREM_DIA', 'DIAM', 'DIAMETER');
+        const tremDesc = pick(r, 'TREM_DESC', 'TREM_REM', 'TREM_LEGEND', 'DESC', 'DESCRIPTION', 'REMARK', 'TREM_NOTE');
+        // Compose a readable description from the available fields
+        const parts = [tremType, tremMat, tremDiam ? `${tremDiam}mm` : ''].filter(Boolean);
+        const summary = parts.length > 0 ? parts.join(' · ') : 'Installation pipe';
+        const detail = tremDesc ? `${summary} — ${tremDesc}` : summary;
+        logs.push({
+          job_id: job.id,
+          staff_id: staffId,
+          date: today,
+          log_type: 'installation',
+          borehole_ref: resolveLocaRef(r),
+          standpipe_ref: tremId || null,
+          depth_from: num(pick(r, 'TREM_TOP', 'TREM_TOP_TREM', 'TOP', 'DEPTH_FROM')) || null,
+          depth_to: num(pick(r, 'TREM_BASE', 'TREM_BOT', 'TREM_BASE_TREM', 'BASE', 'BOT', 'DEPTH_TO')) || null,
+          description: `Imported from KeyLogBook AGS — installation pipe${tremId ? ` ${tremId}` : ''}: ${detail}.`,
+          source: 'ags_import',
+          completed_by_type: 'internal_staff',
+          completed_by_name: 'AGS Import (KeyLogBook)',
+          manager_review_status: 'approved',
+          chargeable: false,
+        });
+        counts.installations++;
+      }
+    }
+
     if (logs.length === 0) {
       // Include the group names we actually found, so the admin can see why
       // nothing matched (e.g. KeyLogBook used non-standard group names).
       const found = Object.keys(groups).sort().join(', ');
       return Response.json({
-        error: `No LOCA, GEOL, SAMP or SPT records were found in this AGS file. Groups found: ${found || '(none)'}.`
+        error: `No LOCA, GEOL, SAMP, SPT or TREM records were found in this AGS file. Groups found: ${found || '(none)'}.`
       }, { status: 422 });
     }
 
