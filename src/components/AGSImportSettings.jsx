@@ -158,9 +158,10 @@ export default function AGSImportSettings() {
           <code>TREM</code> (installation pipes),{' '}
           <code>WSTG</code> (standpipe installations &amp; groundwater monitoring readings).{' '}
           If the <code>GEOL</code> group contains RQD or recovery fields, its rows are automatically treated as core runs instead of strata. Tab, comma and
-          semicolon-delimited files are auto-detected, and group/field names are matched case-insensitively
-          with common aliases. Imported logs are marked as non-chargeable and attributed to "AGS Import
-          (KeyLogBook)". They appear in the job's Borehole Data Explorer. Re-importing a file overwrites the previous AGS data for the selected job.
+          semicolon-delimited files are auto-detected. Field names are matched by stripping the group prefix
+          (e.g. <code>GEOL_TOP_GEOL</code> → <code>TOP</code>) so KeyLogBook's naming variants are all recognised.
+          Imported logs are marked as non-chargeable and attributed to "AGS Import (KeyLogBook)". They appear in
+          the job's Borehole Data Explorer. Re-importing a file overwrites the previous AGS data for the selected job.
         </p>
       </div>
     </div>
