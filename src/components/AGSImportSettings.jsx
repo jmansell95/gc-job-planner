@@ -47,7 +47,7 @@ export default function AGSImportSettings() {
     <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
       <SettingsSectionHeader
         title="AGS Import (KeyLogBook)"
-        description="Upload an AGS data export from KeyLogBook. Borehole locations, strata, core runs, installations, water readings, samples and SPT results are imported as investigation logs and matched to a job by its reference number."
+        description="Upload an AGS data export from KeyLogBook. Re-importing overwrites the previous data for the job — borehole locations, strata, core runs, installations, water readings, samples and SPT results are refreshed each time. Core data in the GEOL group is detected automatically."
         icon={UploadCloud}
       />
 
@@ -112,6 +112,7 @@ export default function AGSImportSettings() {
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
               <p className="text-sm font-semibold text-emerald-800">
                 Imported {result.inserted} log entries into {result.job_name}
+                {result.deleted > 0 && <span className="text-emerald-600 font-normal"> · replaced {result.deleted} previous entries</span>}
               </p>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 pt-1">
@@ -128,6 +129,21 @@ export default function AGSImportSettings() {
             {result.job_reference && (
               <p className="text-xs text-emerald-700 pt-1">Matched job reference: <span className="font-mono font-semibold">{result.job_reference}</span></p>
             )}
+            {result.groups && Object.keys(result.groups).length > 0 && (
+              <details className="pt-1">
+                <summary className="text-xs text-emerald-600 cursor-pointer hover:text-emerald-700 font-medium">
+                  AGS groups found ({Object.keys(result.groups).length}) — click to inspect field names
+                </summary>
+                <div className="mt-2 space-y-1 max-h-40 overflow-y-auto">
+                  {Object.entries(result.groups).map(([name, headings]) => (
+                    <div key={name} className="text-[11px] text-slate-600">
+                      <span className="font-mono font-bold text-slate-800">{name}</span>
+                      <span className="text-slate-400">: {headings.join(', ')}</span>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
         )}
       </div>
@@ -140,10 +156,11 @@ export default function AGSImportSettings() {
           <code>SAMP</code> (samples), <code>SPT</code>/<code>DENS</code> (penetration tests),{' '}
           <code>CORE</code> (rotary core runs with RQD &amp; recovery),{' '}
           <code>TREM</code> (installation pipes),{' '}
-          <code>WSTG</code> (standpipe installations &amp; groundwater monitoring readings). Tab, comma and
+          <code>WSTG</code> (standpipe installations &amp; groundwater monitoring readings).{' '}
+          If the <code>GEOL</code> group contains RQD or recovery fields, its rows are automatically treated as core runs instead of strata. Tab, comma and
           semicolon-delimited files are auto-detected, and group/field names are matched case-insensitively
           with common aliases. Imported logs are marked as non-chargeable and attributed to "AGS Import
-          (KeyLogBook)". They appear in the job's Work Log and Log QC review.
+          (KeyLogBook)". They appear in the job's Borehole Data Explorer. Re-importing a file overwrites the previous AGS data for the selected job.
         </p>
       </div>
     </div>

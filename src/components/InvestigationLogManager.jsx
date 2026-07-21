@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   FlaskConical, Layers, Ruler, TestTube, Wrench, MapPin, Package, ClipboardList, ArrowDownToLine,
-  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban, Beaker, Radar, Boxes, ShieldCheck, Tablet
+  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban, Beaker, Radar, Boxes, ShieldCheck, Tablet, Mountain, Eye, EyeOff
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import {
@@ -19,28 +19,36 @@ export default function InvestigationLogManager({ job, isDrillingJob }) {
     queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job.id }),
   });
 
+  // Separate AGS-imported borehole data from field crew activity.
+  // Borehole technical data (strata, core, SPT, samples, installations) comes
+  // exclusively from KeyLogBook AGS imports and is shown in the Borehole Data
+  // Explorer. This activity log shows field crew activity only.
+  const [showAgsData, setShowAgsData] = useState(false);
+  const agsLogs = logs.filter(l => l.source === 'ags_import');
+  const displayLogs = showAgsData ? logs : logs.filter(l => l.source !== 'ags_import');
+
   const byDate = {};
-  logs.forEach(l => {
+  displayLogs.forEach(l => {
     if (!byDate[l.date]) byDate[l.date] = [];
     byDate[l.date].push(l);
   });
   const sortedDates = Object.keys(byDate).sort().reverse();
 
-  const totalDepth = logs.reduce((sum, l) => {
+  const totalDepth = displayLogs.reduce((sum, l) => {
     if (l.depth_from != null && l.depth_to != null) return sum + (l.depth_to - l.depth_from);
     return sum;
   }, 0);
-  const totalSamples = logs.filter(l => l.sample_type && l.sample_type !== 'none').length;
-  const totalPits = logs.filter(l => l.log_type === 'pit_excavation').length;
-  const totalInspectionPits = logs.filter(l => l.log_type === 'inspection_pit').length;
-  const totalInstallations = logs.filter(l => l.log_type === 'installation').reduce((sum, l) => sum + (l.units_completed || 0), 0);
-  const totalGroutLitres = logs.filter(l => l.log_type === 'grouting_works').reduce((sum, l) => sum + (l.grout_volume || 0), 0);
-  const totalProbeRuns = logs.filter(l => l.log_type === 'geophysical_probing').length;
-  const totalDecommissioning = logs.filter(l => l.log_type === 'borehole_decommissioning').length;
-  const uniqueBoreholes = [...new Set(logs.filter(l => l.borehole_ref).map(l => l.borehole_ref))];
-  const pendingReview = logs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
-  const queried = logs.filter(l => l.manager_review_status === 'queried').length;
-  const standpipeReadings = logs.filter(l => l.log_type === 'standpipe_reading' || l.standpipe_ref);
+  const totalSamples = displayLogs.filter(l => l.sample_type && l.sample_type !== 'none').length;
+  const totalPits = displayLogs.filter(l => l.log_type === 'pit_excavation').length;
+  const totalInspectionPits = displayLogs.filter(l => l.log_type === 'inspection_pit').length;
+  const totalInstallations = displayLogs.filter(l => l.log_type === 'installation').reduce((sum, l) => sum + (l.units_completed || 0), 0);
+  const totalGroutLitres = displayLogs.filter(l => l.log_type === 'grouting_works').reduce((sum, l) => sum + (l.grout_volume || 0), 0);
+  const totalProbeRuns = displayLogs.filter(l => l.log_type === 'geophysical_probing').length;
+  const totalDecommissioning = displayLogs.filter(l => l.log_type === 'borehole_decommissioning').length;
+  const uniqueBoreholes = [...new Set(displayLogs.filter(l => l.borehole_ref).map(l => l.borehole_ref))];
+  const pendingReview = displayLogs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
+  const queried = displayLogs.filter(l => l.manager_review_status === 'queried').length;
+  const standpipeReadings = displayLogs.filter(l => l.log_type === 'standpipe_reading' || l.standpipe_ref);
   const standpipesByRef = {};
   standpipeReadings.forEach(l => {
     const ref = l.standpipe_ref || l.borehole_ref || '—';
@@ -53,8 +61,8 @@ export default function InvestigationLogManager({ job, isDrillingJob }) {
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
         <FlaskConical className="w-5 h-5 text-emerald-700" />
-        <h2 className="font-semibold text-slate-900">Investigation Log</h2>
-        <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{logs.length} entries</span>
+        <h2 className="font-semibold text-slate-900">Activity Log</h2>
+        <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{displayLogs.length} entries</span>
         {pendingReview > 0 && (
           <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" /> {pendingReview} pending
@@ -67,7 +75,24 @@ export default function InvestigationLogManager({ job, isDrillingJob }) {
         )}
       </div>
 
-      {logs.length > 0 && (
+      {/* KeyLogBook AGS data summary banner */}
+      {agsLogs.length > 0 && (
+        <div className="px-5 py-3 bg-indigo-50 border-b border-indigo-100 flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 text-sm">
+            <Tablet className="w-4 h-4 text-indigo-600" />
+            <span className="font-semibold text-indigo-900">{agsLogs.length} borehole records from KeyLogBook</span>
+            <span className="text-indigo-500 text-xs">· shown in Borehole Data Explorer</span>
+          </div>
+          <button
+            onClick={() => setShowAgsData(v => !v)}
+            className="ml-auto text-xs inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-700 font-medium hover:bg-indigo-200 transition"
+          >
+            {showAgsData ? <><EyeOff className="w-3 h-3" /> Hide KeyLogBook data</> : <><Eye className="w-3 h-3" /> Show KeyLogBook data</>}
+          </button>
+        </div>
+      )}
+
+      {displayLogs.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-5 py-4 bg-slate-50/50 border-b border-slate-100">
           {isDrillingJob ? (
             <>
@@ -85,7 +110,7 @@ export default function InvestigationLogManager({ job, isDrillingJob }) {
               </div>
               <div className="text-center">
                 <p className="text-xs text-slate-400 uppercase font-medium">Entries</p>
-                <p className="text-lg font-bold text-slate-800">{logs.length}</p>
+                <p className="text-lg font-bold text-slate-800">{displayLogs.length}</p>
               </div>
             </>
           ) : (
@@ -141,8 +166,8 @@ export default function InvestigationLogManager({ job, isDrillingJob }) {
         )}
         {isLoading ? (
           <Skeleton className="h-32 w-full rounded-lg" />
-        ) : logs.length === 0 ? (
-          <EmptyState icon={FlaskConical} title="No investigation logs yet" message={isDrillingJob ? "Borehole data will appear here once an admin imports the AGS file from KeyLogBook." : "Groundworks crews will log trial pits, installations and site setup here during shifts."} />
+        ) : displayLogs.length === 0 ? (
+          <EmptyState icon={FlaskConical} title="No field activity yet" message={isDrillingJob ? "Borehole data is imported from KeyLogBook. Field crew activity (site setup, grouting, decommissioning) will appear here." : "Groundworks crews will log trial pits, installations and site setup here during shifts."} />
         ) : (
           <div className="space-y-5">
             {sortedDates.map(date => {

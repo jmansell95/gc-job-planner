@@ -224,6 +224,23 @@ Deno.serve(async (req) => {
       if (staff.length) staffId = staff[0].id;
     } catch (e) { /* fall back to user.id */ }
 
+    // Overwrite mode: delete existing AGS-imported logs for this job before re-importing.
+    // This keeps borehole data fresh on each upload — no duplicates, always latest data.
+    let deletedCount = 0;
+    try {
+      const existing = await base44.asServiceRole.entities.InvestigationLog.filter({
+        job_id: job.id,
+        source: 'ags_import',
+      });
+      deletedCount = existing.length;
+      if (deletedCount > 0) {
+        await base44.asServiceRole.entities.InvestigationLog.deleteMany({
+          job_id: job.id,
+          source: 'ags_import',
+        });
+      }
+    } catch (e) { /* continue with insert */ }
+
     const today = new Date().toISOString().slice(0, 10);
     const logs: any[] = [];
     const counts = { locations: 0, strata: 0, core: 0, samples: 0, spt: 0, installations: 0, waterReadings: 0 };
@@ -285,9 +302,15 @@ Deno.serve(async (req) => {
     }
 
     // GEOL — strata / geology descriptions (also try CHIS for chiselling)
+    // KeyLogBook sometimes puts core run data (with RQD/recovery) in the GEOL group.
+    // Detect this and treat those rows as core runs, not strata.
     const geolGroups = [groups.GEOL, groups.CHIS];
     for (const g of geolGroups) {
       if (g && g.rows.length) {
+        const hasCoreFields = g.headings.some(h =>
+          h.includes('RQD') || h.includes('ROCK_QUALITY') ||
+          h.includes('REC') || h.includes('RECOVERY') || h.includes('PER_REC')
+        );
         for (const row of g.rows) {
           const r = rowToObj(g, row);
           const desc = pick(r, 'GEOL_DESC', 'GEOL_LEGEND', 'GEOL_GEN', 'GEOL_DESC_GEOL', 'GEOL_TERM', 'GEOL_GEOL', 'CHIS_DESC', 'CHIS_LEGEND', 'DESC', 'DESCRIPTION', 'LEGEND', 'STRATA_DESC');
@@ -297,24 +320,57 @@ Deno.serve(async (req) => {
             || num(fuzzyPick(r, 'TOP'));
           const dTo = num(pick(r, 'GEOL_BASE', 'GEOL_BOT', 'CHIS_BASE', 'CHIS_BOT', 'BASE', 'BOT', 'DEPTH_TO', 'DEPTH_BASE', 'GEOL_BASE_GEOL', 'LOCA_BOT', 'BOT_DEPTH', 'GEOL_BASE_TO'))
             || num(fuzzyPick(r, 'BASE', 'BOT'));
-          logs.push({
-            job_id: job.id,
-            staff_id: staffId,
-            date: today,
-            log_type: 'borehole_progress',
-            borehole_ref: ref,
-            depth_from: dFrom || null,
-            depth_to: dTo || null,
-            strata_descriptor: mapStrataDescriptor(desc),
-            strata_description_detail: desc,
-            description: 'Imported from KeyLogBook AGS — strata.',
-            source: 'ags_import',
-            completed_by_type: 'internal_staff',
-            completed_by_name: 'AGS Import (KeyLogBook)',
-            manager_review_status: 'approved',
-            chargeable: false,
-          });
-          counts.strata++;
+
+          if (hasCoreFields) {
+            // Treat as core run — KeyLogBook put coring data in the GEOL group
+            const rqd = num(pick(r, 'GEOL_RQD', 'RQD', 'CORE_RQD', 'GEOL_ROCK_QUALITY', 'GEOL_RQD_GEOL'))
+              || num(fuzzyPick(r, 'RQD'));
+            const recovery = num(pick(r, 'GEOL_REC', 'GEOL_RECOVERY', 'GEOL_PER_REC', 'CORE_REC', 'REC', 'RECOVERY', 'GEOL_REC_GEOL', 'GEOL_RECOVERY_GEOL'))
+              || num(fuzzyPick(r, 'REC', 'RECOVERY'));
+            const runNo = pick(r, 'GEOL_RUN', 'GEOL_RUN_NO', 'CORE_RUN', 'RUN_NO', 'RUN');
+            const boxNo = pick(r, 'GEOL_BOX', 'GEOL_BOX_NO', 'CORE_BOX', 'BOX_NO', 'BOX');
+            logs.push({
+              job_id: job.id,
+              staff_id: staffId,
+              date: today,
+              log_type: 'core_inspection',
+              borehole_ref: ref,
+              core_run_number: runNo || null,
+              core_box_number: boxNo || null,
+              depth_from: dFrom || null,
+              depth_to: dTo || null,
+              coring_rqd: rqd,
+              coring_recovery: recovery,
+              strata_description_detail: desc,
+              description: `Imported from KeyLogBook AGS — core run${runNo ? ` ${runNo}` : ''}${rqd != null ? ` (RQD ${rqd}%)` : ''}${recovery != null ? ` (recovery ${recovery}%)` : ''}.`,
+              source: 'ags_import',
+              completed_by_type: 'internal_staff',
+              completed_by_name: 'AGS Import (KeyLogBook)',
+              manager_review_status: 'approved',
+              chargeable: false,
+            });
+            counts.core++;
+          } else {
+            // Treat as strata
+            logs.push({
+              job_id: job.id,
+              staff_id: staffId,
+              date: today,
+              log_type: 'borehole_progress',
+              borehole_ref: ref,
+              depth_from: dFrom || null,
+              depth_to: dTo || null,
+              strata_descriptor: mapStrataDescriptor(desc),
+              strata_description_detail: desc,
+              description: 'Imported from KeyLogBook AGS — strata.',
+              source: 'ags_import',
+              completed_by_type: 'internal_staff',
+              completed_by_name: 'AGS Import (KeyLogBook)',
+              manager_review_status: 'approved',
+              chargeable: false,
+            });
+            counts.strata++;
+          }
         }
       }
     }
@@ -323,16 +379,16 @@ Deno.serve(async (req) => {
     if (groups.CORE && groups.CORE.rows.length) {
       for (const row of groups.CORE.rows) {
         const r = rowToObj(groups.CORE, row);
-        const coreId = pick(r, 'CORE_ID', 'CORE_REF', 'CORE_NO', 'CORE_RUN', 'RUN_ID', 'RUN_NO');
-        const runNo = pick(r, 'CORE_RUN', 'CORE_RUN_NO', 'RUN', 'RUN_NO', 'CORE_ID');
-        const boxNo = pick(r, 'CORE_BOX', 'CORE_BOX_NO', 'BOX', 'BOX_NO', 'CORE_BOXES');
-        const rqd = num(pick(r, 'CORE_RQD', 'RQD', 'CORE_RQD_CORE', 'CORE_ROCK_QUALITY'));
-        const recovery = num(pick(r, 'CORE_REC', 'CORE_RECOVERY', 'CORE_PER_REC', 'REC', 'RECOVERY'));
-        const coreDesc = pick(r, 'CORE_DESC', 'CORE_LEGEND', 'CORE_REM', 'DESC', 'DESCRIPTION', 'REMARK', 'CORE_NOTE');
+        const coreId = pick(r, 'CORE_ID', 'CORE_REF', 'CORE_NO');
+        const runNo = pick(r, 'CORE_RUN', 'CORE_RUN_NO', 'CORE_RUN_NO_CORE', 'RUN_NO', 'RUN');
+        const boxNo = pick(r, 'CORE_BOX', 'CORE_BOX_NO', 'CORE_BOX_NO_CORE', 'CORE_BOXES', 'BOX_NO', 'BOX');
+        const rqd = num(pick(r, 'CORE_RQD', 'CORE_RQD_CORE', 'RQD', 'CORE_ROCK_QUALITY'));
+        const recovery = num(pick(r, 'CORE_REC', 'CORE_RECOVERY', 'CORE_REC_CORE', 'CORE_PER_REC', 'CORE_RECOVERY_PCT', 'CORE_REC_PCT', 'REC', 'RECOVERY'));
+        const coreDesc = pick(r, 'CORE_DESC', 'CORE_DESC_CORE', 'CORE_LEGEND', 'CORE_REM', 'CORE_REM_CORE', 'CORE_NOTE', 'CORE_NOTES');
         const ref = resolveLocaRef(r);
-        const dFrom = num(pick(r, 'CORE_TOP', 'CORE_TOP_CORE', 'TOP', 'DEPTH_FROM', 'TOP_DEPTH'))
+        const dFrom = num(pick(r, 'CORE_TOP', 'CORE_TOP_CORE', 'CORE_FROM', 'CORE_DEPTH_FROM', 'CORE_TOP_DEPTH'))
           || num(fuzzyPick(r, 'TOP'));
-        const dTo = num(pick(r, 'CORE_BASE', 'CORE_BOT', 'CORE_BASE_CORE', 'BASE', 'BOT', 'DEPTH_TO', 'BOT_DEPTH'))
+        const dTo = num(pick(r, 'CORE_BASE', 'CORE_BOT', 'CORE_BOTTOM', 'CORE_BASE_CORE', 'CORE_TO', 'CORE_DEPTH_TO', 'CORE_BOT_DEPTH'))
           || num(fuzzyPick(r, 'BASE', 'BOT'));
         logs.push({
           job_id: job.id,
@@ -346,6 +402,7 @@ Deno.serve(async (req) => {
           depth_to: dTo || null,
           coring_rqd: rqd,
           coring_recovery: recovery,
+          strata_description_detail: coreDesc || null,
           description: `Imported from KeyLogBook AGS — core run${runNo || coreId ? ` ${runNo || coreId}` : ''}${rqd != null ? ` (RQD ${rqd}%)` : ''}${recovery != null ? ` (recovery ${recovery}%)` : ''}.${coreDesc ? ' ' + coreDesc : ''}`,
           source: 'ags_import',
           completed_by_type: 'internal_staff',
@@ -536,13 +593,21 @@ Deno.serve(async (req) => {
       inserted += batch.length;
     }
 
+    // Debug: include found groups + headings so future uploads can be diagnosed
+    const groupDebug: Record<string, string[]> = {};
+    for (const [name, g] of Object.entries(groups)) {
+      if (g.headings && g.headings.length > 0) groupDebug[name] = g.headings;
+    }
+
     return Response.json({
       status: 'success',
       job_id: job.id,
       job_name: job.name,
       job_reference: job.job_reference,
+      deleted: deletedCount,
       inserted,
       counts,
+      groups: groupDebug,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

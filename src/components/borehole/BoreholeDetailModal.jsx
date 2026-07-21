@@ -150,7 +150,7 @@ export default function BoreholeDetailModal({ boreholeRef, logs, onClose }) {
 // ===== Summary helper =====
 function getBoreholeSummary(logs) {
   const progressLogs = logs.filter(l => l.log_type === 'borehole_progress' && !l.strata_description_detail);
-  const strataLogs = logs.filter(l => l.strata_descriptor || l.strata_description_detail)
+  const strataLogs = logs.filter(l => (l.strata_descriptor || l.strata_description_detail) && l.log_type !== 'core_inspection')
     .sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
   const sampleLogs = logs.filter(l => l.log_type === 'sample_collection')
     .sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
@@ -416,7 +416,7 @@ function CoreTab({ logs }) {
                       ) : <span className="text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-2.5 text-slate-600 text-xs font-mono">{l.core_box_number || '—'}</td>
-                    <td className="px-4 py-2.5 text-xs text-slate-500 max-w-xs truncate">{l.description?.replace(/^Imported from KeyLogBook AGS — /, '') || '—'}</td>
+                    <td className="px-4 py-2.5 text-xs text-slate-500 max-w-xs truncate">{l.strata_description_detail || l.description?.replace(/^Imported from KeyLogBook AGS — /, '') || '—'}</td>
                   </tr>
                 );
               })}

@@ -3,18 +3,24 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import {
   Droplets, TestTube, Calculator, Layers, Mountain,
-  ArrowDownToLine, ChevronRight, Tablet, Search, Boxes, Package, Gauge
+  ArrowDownToLine, ChevronRight, Tablet, Search, Boxes, Package, Gauge,
+  Activity, TrendingDown
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
+import { strataColors, strataConfig } from '@/components/investigation/shared';
 import BoreholeDetailModal from '@/components/borehole/BoreholeDetailModal';
 
 export default function BoreholeDrillDown({ job }) {
-  const { data: logs = [], isLoading } = useQuery({
+  const { data: allLogs = [], isLoading } = useQuery({
     queryKey: ['investigation-logs', job.id],
     queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job.id }),
   });
 
-  // Group all logs by borehole_ref
+  // Only show borehole data from KeyLogBook AGS imports — drillers record
+  // borehole data in KeyLogBook, not manually in the app.
+  const logs = useMemo(() => allLogs.filter(l => l.source === 'ags_import'), [allLogs]);
+
+  // Group all AGS logs by borehole_ref
   const boreholes = useMemo(() => {
     const map = {};
     logs.forEach(l => {
@@ -42,7 +48,7 @@ export default function BoreholeDrillDown({ job }) {
         <Skeleton className="h-8 w-48 mb-4" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-40 rounded-xl" />
+            <Skeleton key={i} className="h-44 rounded-xl" />
           ))}
         </div>
       </div>
@@ -54,8 +60,8 @@ export default function BoreholeDrillDown({ job }) {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         <EmptyState
           icon={Mountain}
-          title="No boreholes yet"
-          message="Borehole data will appear here once an admin imports the AGS file from KeyLogBook, or once drilling crews start logging borehole progress."
+          title="No borehole data yet"
+          message="Borehole data is imported from KeyLogBook AGS files. Upload an AGS file via Settings → AGS Import to populate this view."
         />
       </div>
     );
@@ -67,6 +73,9 @@ export default function BoreholeDrillDown({ job }) {
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-3 flex-wrap">
         <Mountain className="w-5 h-5 text-emerald-700" />
         <h2 className="font-semibold text-slate-900">Borehole Data Explorer</h2>
+        <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
+          <Tablet className="w-3 h-3" /> KeyLogBook
+        </span>
         <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
           {boreholes.length} borehole{boreholes.length !== 1 ? 's' : ''}
         </span>
@@ -89,77 +98,81 @@ export default function BoreholeDrillDown({ job }) {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {filtered.map(([ref, refLogs]) => {
-              const summary = getBoreholeSummary(refLogs);
-              const isAgs = summary.source === 'ags_import';
+              const s = getBoreholeSummary(refLogs);
               return (
                 <button
                   key={ref}
                   onClick={() => setSelectedRef(ref)}
                   className="group text-left p-4 rounded-xl border border-slate-200 bg-white hover:border-emerald-400 hover:shadow-md transition-all duration-200"
                 >
-                  {/* Header */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition">
+                  {/* Header row */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition flex-shrink-0">
                       <Mountain className="w-4 h-4 text-emerald-700" />
                     </div>
-                    <span className="font-mono font-bold text-slate-900 text-base">{ref}</span>
-                    <ChevronRight className="w-4 h-4 ml-auto text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition" />
+                    <span className="font-mono font-bold text-slate-900 text-base truncate">{ref}</span>
+                    <ChevronRight className="w-4 h-4 ml-auto text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition flex-shrink-0" />
                   </div>
 
-                  {/* Source badge */}
-                  {isAgs && (
-                    <span className="inline-flex items-center gap-1 text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium mb-3">
-                      <Tablet className="w-2.5 h-2.5" /> KeyLogBook
-                    </span>
+                  {/* Key metrics row */}
+                  <div className="flex items-center gap-3 mb-2 text-xs">
+                    {s.maxDepth != null && (
+                      <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
+                        <ArrowDownToLine className="w-3 h-3 text-blue-600" />
+                        {s.maxDepth}m
+                      </span>
+                    )}
+                    {s.groundwaterDepth != null && (
+                      <span className="inline-flex items-center gap-1 font-semibold text-cyan-700">
+                        <Droplets className="w-3 h-3" />
+                        {s.groundwaterDepth}m
+                      </span>
+                    )}
+                    {s.type && (
+                      <span className="text-slate-400 text-[10px] uppercase tracking-wide truncate">{s.type}</span>
+                    )}
+                  </div>
+
+                  {/* Mini strata visual bar */}
+                  {s.strataLogs.length > 0 && (
+                    <div className="mb-2">
+                      <MiniStrataBar strataLogs={s.strataLogs} maxDepth={s.maxDepth} />
+                    </div>
                   )}
 
-                  {/* Key depth */}
-                  <div className="flex items-center gap-2 mb-3">
-                    {summary.maxDepth != null && (
-                      <span className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700">
-                        <ArrowDownToLine className="w-3.5 h-3.5 text-blue-600" />
-                        {summary.maxDepth}m
-                      </span>
-                    )}
-                    {summary.groundwaterDepth != null && (
-                      <span className="inline-flex items-center gap-1 text-sm font-semibold text-cyan-700">
-                        <Droplets className="w-3.5 h-3.5" />
-                        {summary.groundwaterDepth}m
-                      </span>
-                    )}
-                  </div>
+                  {/* Core runs summary */}
+                  {s.coreCount > 0 && (
+                    <div className="mb-2 flex items-center gap-2 text-[11px] bg-fuchsia-50 rounded-md px-2 py-1">
+                      <Boxes className="w-3 h-3 text-fuchsia-600 flex-shrink-0" />
+                      <span className="font-semibold text-fuchsia-700">{s.coreCount} core run{s.coreCount !== 1 ? 's' : ''}</span>
+                      {s.avgRecovery != null && (
+                        <span className="text-fuchsia-600">· {s.avgRecovery}% rec</span>
+                      )}
+                      {s.avgRqd != null && (
+                        <span className="text-fuchsia-600">· {s.avgRqd}% RQD</span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Data type chips */}
-                  <div className="flex items-center gap-2 flex-wrap text-[11px]">
-                    {summary.strataCount > 0 && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 font-medium">
-                        <Layers className="w-2.5 h-2.5" />{summary.strataCount}
-                      </span>
+                  <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+                    {s.strataCount > 0 && (
+                      <Chip icon={Layers} count={s.strataCount} color="amber" />
                     )}
-                    {summary.sptCount > 0 && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-violet-50 text-violet-700 font-medium">
-                        <Calculator className="w-2.5 h-2.5" />{summary.sptCount}
-                      </span>
+                    {s.sptCount > 0 && (
+                      <Chip icon={Calculator} count={s.sptCount} color="violet" />
                     )}
-                    {summary.coreCount > 0 && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-fuchsia-50 text-fuchsia-700 font-medium">
-                        <Boxes className="w-2.5 h-2.5" />{summary.coreCount}
-                      </span>
+                    {s.coreCount > 0 && (
+                      <Chip icon={Boxes} count={s.coreCount} color="fuchsia" />
                     )}
-                    {summary.sampleCount > 0 && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-50 text-purple-700 font-medium">
-                        <TestTube className="w-2.5 h-2.5" />{summary.sampleCount}
-                      </span>
+                    {s.sampleCount > 0 && (
+                      <Chip icon={TestTube} count={s.sampleCount} color="purple" />
                     )}
-                    {summary.installCount > 0 && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-medium">
-                        <Package className="w-2.5 h-2.5" />{summary.installCount}
-                      </span>
+                    {s.installCount > 0 && (
+                      <Chip icon={Package} count={s.installCount} color="emerald" />
                     )}
-                    {summary.waterReadingCount > 0 && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-teal-50 text-teal-700 font-medium">
-                        <Gauge className="w-2.5 h-2.5" />{summary.waterReadingCount}
-                      </span>
+                    {s.waterReadingCount > 0 && (
+                      <Chip icon={Gauge} count={s.waterReadingCount} color="teal" />
                     )}
                   </div>
                 </button>
@@ -181,12 +194,55 @@ export default function BoreholeDrillDown({ job }) {
   );
 }
 
+function Chip({ icon: Icon, count, color }) {
+  const colors = {
+    amber: 'bg-amber-50 text-amber-700',
+    violet: 'bg-violet-50 text-violet-700',
+    fuchsia: 'bg-fuchsia-50 text-fuchsia-700',
+    purple: 'bg-purple-50 text-purple-700',
+    emerald: 'bg-emerald-50 text-emerald-700',
+    teal: 'bg-teal-50 text-teal-700',
+  };
+  return (
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md font-medium ${colors[color]}`}>
+      <Icon className="w-2.5 h-2.5" />{count}
+    </span>
+  );
+}
+
+// Mini horizontal strata bar — proportional colored segments showing strata distribution
+function MiniStrataBar({ strataLogs, maxDepth }) {
+  const top = maxDepth || Math.max(...strataLogs.map(l => l.depth_to || 0), 1);
+  return (
+    <div className="flex h-3 rounded-full overflow-hidden border border-slate-100 bg-slate-50">
+      {strataLogs.map((l, i) => {
+        const from = l.depth_from || 0;
+        const to = l.depth_to || from;
+        const width = ((to - from) / top) * 100;
+        if (width <= 0) return null;
+        const color = strataColors[l.strata_descriptor] || strataColors.other;
+        const sc = l.strata_descriptor && strataConfig[l.strata_descriptor];
+        return (
+          <div
+            key={l.id || i}
+            style={{ width: `${width}%`, backgroundColor: color }}
+            title={`${sc?.label || 'Strata'}: ${from}–${to}m`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 function getBoreholeSummary(logs) {
   const progressLogs = logs.filter(l => l.log_type === 'borehole_progress' && !l.strata_description_detail);
-  const strataLogs = logs.filter(l => l.strata_descriptor || l.strata_description_detail);
+  const strataLogs = logs.filter(l => l.strata_descriptor || l.strata_description_detail)
+    .filter(l => l.log_type !== 'core_inspection')
+    .sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
   const sampleLogs = logs.filter(l => l.log_type === 'sample_collection');
   const sptLogs = logs.filter(l => l.spt_n_value != null || (l.spt_blows && l.spt_blows.length > 0));
-  const coreLogs = logs.filter(l => l.log_type === 'core_inspection');
+  const coreLogs = logs.filter(l => l.log_type === 'core_inspection')
+    .sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
   const installLogs = logs.filter(l => l.log_type === 'installation');
   const waterReadingLogs = logs.filter(l => l.log_type === 'standpipe_reading');
 
@@ -194,19 +250,24 @@ function getBoreholeSummary(logs) {
     ...progressLogs.map(l => l.depth_to),
     ...strataLogs.map(l => l.depth_to),
     ...sptLogs.map(l => l.depth_to),
-    ...sampleLogs.map(l => l.depth_from),
     ...coreLogs.map(l => l.depth_to),
   ].filter(d => d != null);
+
+  const recoveries = coreLogs.map(l => l.coring_recovery).filter(r => r != null);
+  const rqds = coreLogs.map(l => l.coring_rqd).filter(r => r != null);
 
   return {
     maxDepth: allDepths.length ? Math.max(...allDepths) : null,
     groundwaterDepth: progressLogs[0]?.groundwater_strike_depth,
+    type: progressLogs[0]?.completed_by_name?.replace('AGS Import (KeyLogBook)', '').trim() || null,
     sampleCount: sampleLogs.length,
     sptCount: sptLogs.length,
     strataCount: strataLogs.length,
+    strataLogs,
     coreCount: coreLogs.length,
     installCount: installLogs.length,
     waterReadingCount: waterReadingLogs.length,
-    source: logs[0]?.source,
+    avgRecovery: recoveries.length ? Math.round(recoveries.reduce((a, b) => a + b, 0) / recoveries.length) : null,
+    avgRqd: rqds.length ? Math.round(rqds.reduce((a, b) => a + b, 0) / rqds.length) : null,
   };
 }
