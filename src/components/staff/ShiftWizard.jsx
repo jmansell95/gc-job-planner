@@ -43,7 +43,7 @@ function ArriveStep({ job, jobLocation, inductionRequired, onConfirm, saving }) 
     <div className="space-y-4 px-5 py-2">
       {jobLocation && (
         <div className="flex items-start gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-3">
-          <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+          <MapPin className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" />
           <p className="text-xs text-slate-700 break-words">{jobLocation}</p>
         </div>
       )}
@@ -73,9 +73,9 @@ function ArriveStep({ job, jobLocation, inductionRequired, onConfirm, saving }) 
       )}
       {travelMins > 0 && (
         <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-2.5">
-          <Car className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-          <p className="text-xs text-emerald-900 font-medium">Travel time: {fmtDur(travelMins)}</p>
-          <span className="text-[10px] text-emerald-600 ml-auto">First 1.5h unpaid</span>
+          <Car className="w-4 h-4 text-[#2E5A1A] flex-shrink-0" />
+          <p className="text-xs text-[#2E5A1A] font-medium">Travel time: {fmtDur(travelMins)}</p>
+          <span className="text-[10px] text-[#2E5A1A] ml-auto">First 1.5h unpaid</span>
         </div>
       )}
       {inductionRequired ? (
@@ -87,8 +87,8 @@ function ArriveStep({ job, jobLocation, inductionRequired, onConfirm, saving }) 
         </div>
       ) : (
         <div className="flex items-start gap-2.5 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-3">
-          <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-emerald-900 leading-relaxed">
+          <ShieldCheck className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-[#2E5A1A] leading-relaxed">
             You've already completed the induction for this site — you'll be ready to start work once you confirm arrival.
           </p>
         </div>
@@ -266,7 +266,7 @@ export default function ShiftWizard({
                   <h2 className="text-lg font-bold leading-tight">
                     {step === 'arrive' ? 'Arrived on Site' : "Today's Tasks"}
                   </h2>
-                  <p className="text-emerald-100 text-xs truncate">{job?.name || 'Shift'}</p>
+                  <p className="text-white/70 text-xs truncate">{job?.name || 'Shift'}</p>
                 </div>
               </div>
               <button onClick={onClose} disabled={saving}
@@ -281,7 +281,7 @@ export default function ShiftWizard({
                 return (
                   <React.Fragment key={s}>
                     <div className={`flex items-center gap-1.5 ${i <= currentStepIndex ? 'text-white' : 'text-white/40'}`}>
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${i < currentStepIndex ? 'bg-white text-emerald-700' : i === currentStepIndex ? 'bg-white/25 ring-1 ring-white/40' : 'bg-white/10'}`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${i < currentStepIndex ? 'bg-white text-[#2E5A1A]' : i === currentStepIndex ? 'bg-white/25 ring-1 ring-white/40' : 'bg-white/10'}`}>
                         {i < currentStepIndex ? <CheckCircle2 className="w-3.5 h-3.5" /> : i + 1}
                       </div>
                       <span className="text-[11px] font-medium hidden sm:inline">{stepLabels[s]}</span>
@@ -293,7 +293,7 @@ export default function ShiftWizard({
                 );
               })}
             </div>
-            <p className="text-[11px] text-emerald-100 mt-2">
+            <p className="text-[11px] text-white/70 mt-2">
               Step {currentStepIndex + 1} of {steps.length} — {stepLabels[step]}
             </p>
           </div>
@@ -336,14 +336,14 @@ export default function ShiftWizard({
                   Cancel
                 </button>
                 <button onClick={advanceFromArrive} disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-bold disabled:opacity-50 touch-manipulation">
+                  className="flex-1 flex items-center justify-center gap-1.5 px-4 py-3 bg-[#2E5A1A] text-white rounded-xl hover:bg-[#1c4a12] active:scale-95 transition text-sm font-bold disabled:opacity-50 touch-manipulation">
                   {saving ? 'Saving…' : 'Confirm Arrival'} <ChevronRight className="w-4 h-4" />
                 </button>
               </>
             )}
             {step === 'working' && (
               <button onClick={() => setStep('end_of_shift')}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-bold touch-manipulation">
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#2E5A1A] text-white rounded-xl hover:bg-[#1c4a12] active:scale-95 transition text-sm font-bold touch-manipulation">
                 Finish My Day <ChevronRight className="w-4 h-4" />
               </button>
             )}

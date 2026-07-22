@@ -33,7 +33,7 @@ const jobTypeBadgeColors = {
 const statusConfig = {
   assigned: { label: 'Assigned', icon: Clock, badge: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200' },
   started: { label: 'In Progress', icon: PlayCircle, badge: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' },
-  completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' }
+  completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-[#2E5A1A]/10 text-[#2E5A1A] ring-1 ring-[#2E5A1A]/20' }
 };
 
 export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onOpenShiftWizard, onEarlyLeave, tasksSubmitted = false, needsBriefing = false, arrivedOnSite = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true, hotelBooking = null, onAdHocVisit, jobAssets = [], assetMap = {}, complianceItems = [] }) {
@@ -65,7 +65,7 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
 
       {/* Compact header — always visible */}
       <button onClick={() => setExpanded(e => !e)} className="w-full text-left p-4 flex items-start gap-3 hover:bg-slate-50/60 transition">
-        <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${assignment.status === 'completed' ? 'bg-emerald-500' : assignment.status === 'started' ? 'bg-blue-500' : 'bg-slate-300'}`} />
+        <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${assignment.status === 'completed' ? 'bg-[#2E5A1A]' : assignment.status === 'started' ? 'bg-blue-500' : 'bg-slate-300'}`} />
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-bold text-slate-900 leading-tight truncate">{job.name}</h3>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -124,7 +124,7 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
                 )}
                 {canStart ? (
                   <button onClick={() => onOpenShiftWizard(assignment.id)}
-                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-bold touch-manipulation">
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-xl hover:bg-[#1c4a12] active:scale-95 transition text-sm font-bold touch-manipulation">
                     <PlayCircle className="w-4 h-4" /> Start Shift
                   </button>
                 ) : (
@@ -142,7 +142,7 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
             {assignment.status === 'started' && canPerformActions && (
               <div className="flex flex-wrap gap-2 w-full">
                 <button onClick={() => onOpenShiftWizard(assignment.id)}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-bold touch-manipulation flex-1 min-w-[160px]">
+                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-xl hover:bg-[#1c4a12] active:scale-95 transition text-sm font-bold touch-manipulation flex-1 min-w-[160px]">
                   <PlayCircle className="w-4 h-4" /> Continue Shift
                 </button>
                 <button onClick={() => onEarlyLeave(assignment.id)}
@@ -164,7 +164,7 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
             <div className="mb-4 bg-slate-50 rounded-xl border border-slate-200 p-3.5">
               <div className="flex items-center gap-1.5 mb-2">
                 <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Previous Shifts</p>
+                <p className="text-xs font-semibold text-slate-500 tracking-wide">Previous Shifts</p>
               </div>
               <div className="space-y-2">
                 {previousProgress.map((p, i) => (
@@ -184,23 +184,23 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
             <div className="space-y-2">
               <div className="flex items-start gap-2 text-sm text-slate-600">
-                <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <MapPin className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" />
                 <span className="break-words">{job.location}</span>
               </div>
               {client && (
                 <div className="flex items-start gap-2 text-sm text-slate-600">
-                  <Briefcase className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  <Briefcase className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" />
                   <span>Client: <span className="font-medium text-slate-700">{client.name}</span></span>
                 </div>
               )}
               {(job.site_contact_name || job.site_contact_phone) && (
                 <div className="flex items-start gap-2 text-sm text-slate-600">
-                  <Phone className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  <Phone className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" />
                   <div>
                     <span>Site Contact: </span>
                     {job.site_contact_name && <span className="font-medium text-slate-700">{job.site_contact_name}</span>}
                     {job.site_contact_phone && (
-                      <a href={`tel:${job.site_contact_phone}`} className="ml-1.5 inline-flex items-center gap-1 text-emerald-700 font-semibold hover:underline">
+                      <a href={`tel:${job.site_contact_phone}`} className="ml-1.5 inline-flex items-center gap-1 text-[#2E5A1A] font-semibold hover:underline">
                         {job.site_contact_phone}
                       </a>
                     )}
@@ -216,12 +216,12 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
             <div className="space-y-2">
               {job.requisition_list_url && (
                 <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center justify-between gap-2 p-3 bg-emerald-50 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition group">
+                  className="flex items-center justify-between gap-2 p-3 bg-[#2E5A1A]/10 rounded-xl border border-[#2E5A1A]/15 hover:bg-[#2E5A1A]/15 transition group">
                   <div className="flex items-center gap-2 min-w-0">
-                    <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                    <span className="font-semibold text-emerald-900 text-sm truncate">{job.requisition_list_name || 'Requisition List'}</span>
+                    <FileText className="w-4 h-4 text-[#2E5A1A] flex-shrink-0" />
+                    <span className="font-semibold text-[#2E5A1A] text-sm truncate">{job.requisition_list_name || 'Requisition List'}</span>
                   </div>
-                  <ExternalLink className="w-4 h-4 text-emerald-600 flex-shrink-0 group-hover:translate-x-0.5 transition" />
+                  <ExternalLink className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 group-hover:translate-x-0.5 transition" />
                 </a>
               )}
               {job.notes && (
@@ -238,7 +238,7 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
             <div className="mb-4 bg-blue-50/60 rounded-xl border border-blue-100 p-3.5">
               <div className="flex items-center gap-2 mb-2">
                 <Hotel className="w-4 h-4 text-blue-700" />
-                <p className="text-xs font-bold text-blue-900 uppercase tracking-wide">Hotel Booking</p>
+                <p className="text-xs font-bold text-blue-900 tracking-wide">Hotel Booking</p>
               </div>
               <p className="text-sm font-semibold text-slate-900">{hotelBooking.hotel_name}</p>
               {hotelBooking.address && (
@@ -271,7 +271,7 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               <div className="bg-slate-50/60 rounded-xl border border-slate-200 p-3.5">
                 <div className="flex items-center gap-1.5 mb-2">
                   <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Equipment & Certificates</p>
+                  <p className="text-xs font-semibold text-slate-500 tracking-wide">Equipment & Certificates</p>
                 </div>
                 <EquipmentComplianceSection assets={assets} complianceItems={complianceItems} />
               </div>
@@ -284,8 +284,8 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
           {/* Briefing status + photos */}
           <div className="pt-3 border-t border-slate-100 space-y-3">
             {assignment.briefing_signed ? (
-              <div className="bg-emerald-50/50 rounded-lg px-3 py-2.5">
-                <div className="flex items-center gap-2 text-sm text-emerald-700">
+              <div className="bg-[#2E5A1A]/5 rounded-lg px-3 py-2.5">
+                <div className="flex items-center gap-2 text-sm text-[#2E5A1A]">
                   <ShieldCheck className="w-4 h-4 flex-shrink-0" />
                   <span className="font-medium">You've signed the briefing</span>
                   {assignment.briefing_signed_at && (
@@ -300,13 +300,13 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
                   </div>
                 )}
                 {!allCrewSigned && crewTotal > 1 && (
-                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-emerald-100 text-xs text-slate-500">
+                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#2E5A1A]/15 text-xs text-slate-500">
                     <Clock className="w-3.5 h-3.5" />
                     <span className="font-medium">{crewSignedCount} of {crewTotal} crew signed off — you can start work; others will join once briefed.</span>
                   </div>
                 )}
                 {allCrewSigned && crewTotal > 1 && (
-                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-emerald-100 text-xs text-emerald-700">
+                  <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#2E5A1A]/15 text-xs text-[#2E5A1A]">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span className="font-medium">All crew briefed.</span>
                   </div>
@@ -328,7 +328,7 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
             )}
             {assignment.progress_notes && assignment.status === 'completed' && (
               <div className="bg-slate-50 rounded-lg px-3 py-2.5 text-sm">
-                <p className="text-xs font-semibold text-slate-400 uppercase mb-1">Shift Progress Notes</p>
+                <p className="text-xs font-semibold text-slate-400 mb-1">Shift Progress Notes</p>
                 <p className="text-slate-600 text-xs leading-relaxed">{assignment.progress_notes}</p>
               </div>
             )}
