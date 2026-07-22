@@ -46,9 +46,9 @@ export default function JobDetailTabs({ job, primaryType, assignedStaff, allStaf
       {canSeeCosts && (
         <TabsContent value="financials" className="space-y-6 mt-4">
           <PendingPricingWidget jobId={job.id} />
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 p-4">
+          <div className="bg-gradient-to-br from-[#2E5A1A]/10 to-[#8DC63F]/10 rounded-xl border border-[#2E5A1A]/20 p-4">
             <div className="flex items-center gap-2 mb-2">
-              <FileText className="w-4 h-4 text-emerald-700" />
+              <FileText className="w-4 h-4 text-[#2E5A1A]" />
               <h3 className="font-semibold text-slate-900 text-sm">Billing Export</h3>
             </div>
             <p className="text-xs text-slate-600 mb-3">Pull every billable item — equipment, labour, hotel, deliveries, meterage — into one printable report for invoicing. Nothing is missed.</p>
@@ -68,13 +68,13 @@ export default function JobDetailTabs({ job, primaryType, assignedStaff, allStaf
         {job.requisition_list_url && (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-              <FileText className="w-5 h-5 text-emerald-700" />
+              <FileText className="w-5 h-5 text-[#2E5A1A]" />
               <h2 className="font-semibold text-slate-900">Requisition List</h2>
             </div>
             <div className="px-5 py-4 space-y-2">
               <p className="text-sm text-slate-700 truncate">{job.requisition_list_name || 'Requisition List'}</p>
               <div className="flex gap-2">
-                <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-medium transition">
+                <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-[#2E5A1A] hover:bg-emerald-100 rounded-lg text-xs font-medium transition">
                   <Eye className="w-3.5 h-3.5" /> View
                 </a>
                 <a href={job.requisition_list_url} download={job.requisition_list_name || 'requisition'} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-medium transition">

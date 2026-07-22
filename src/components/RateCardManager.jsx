@@ -18,7 +18,7 @@ const CATEGORY_META = {
   materials: { label: 'Materials', icon: Package, color: 'amber' },
 };
 
-const inputCls = "w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600";
+const inputCls = "w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]";
 
 function RateItemRow({ item, subcategory, onUpdate }) {
   const [editing, setEditing] = useState(false);
@@ -79,7 +79,7 @@ function RateItemRow({ item, subcategory, onUpdate }) {
           </div>
           <input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Notes" className={inputCls} />
           <div className="flex gap-2">
-            <button onClick={save} disabled={saving} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 disabled:opacity-50">
+            <button onClick={save} disabled={saving} className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] disabled:opacity-50">
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Save
             </button>
             <button onClick={() => setEditing(false)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-300">
@@ -92,15 +92,18 @@ function RateItemRow({ item, subcategory, onUpdate }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-medium text-slate-800">{item.description}</p>
+              {item.price == null && (
+                <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full font-bold inline-flex items-center gap-0.5 border border-amber-300">POA</span>
+              )}
               {item.men != null && item.men > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#2E5A1A]/10 text-[#2E5A1A] border border-[#2E5A1A]/20">
                   <Users className="w-2.5 h-2.5" /> {item.men} man{item.men > 1 ? 's' : ''}
                 </span>
               )}
             </div>
             {item.notes && <p className="text-xs text-slate-400 mt-0.5">{item.notes}</p>}
             {dailyCost != null && (
-              <p className="text-xs text-emerald-600 font-semibold mt-1 inline-flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md">
+              <p className="text-xs text-[#2E5A1A] font-semibold mt-1 inline-flex items-center gap-1 bg-[#2E5A1A]/10 px-2 py-0.5 rounded-md">
                 <PoundSterling className="w-3 h-3" /> {fmt(dailyCost)}/day total
                 <span className="text-slate-400 font-normal">({fmt(item.price)} × {item.men})</span>
               </p>
@@ -112,7 +115,7 @@ function RateItemRow({ item, subcategory, onUpdate }) {
               <span className={`text-sm font-semibold tabular-nums block ${item.price != null ? 'text-slate-900' : 'text-slate-400 italic'}`}>{priceDisplay}</span>
               {dailyCost != null && <span className="text-[10px] text-slate-400 block">{fmt(dailyCost)}/day</span>}
             </div>
-            <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '' }); setEditing(true); }} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-emerald-700 transition">
+            <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '' }); setEditing(true); }} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-[#2E5A1A] transition">
               <Pencil className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -150,7 +153,7 @@ function AddRateForm({ category, subcategory, source, supplierId, onAdded }) {
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="w-full flex items-center justify-center gap-1.5 py-2 text-xs text-slate-400 hover:text-emerald-700 hover:bg-emerald-50/50 rounded-lg transition border border-dashed border-slate-200">
+      <button onClick={() => setOpen(true)} className="w-full flex items-center justify-center gap-1.5 py-2 text-xs text-slate-400 hover:text-[#2E5A1A] hover:bg-[#2E5A1A]/5 rounded-lg transition border border-dashed border-slate-200">
         <Plus className="w-3.5 h-3.5" /> Add rate
       </button>
     );
@@ -165,7 +168,7 @@ function AddRateForm({ category, subcategory, source, supplierId, onAdded }) {
       </div>
       <input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Notes" className={inputCls} />
       <div className="flex gap-2">
-        <button onClick={save} disabled={saving} className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 disabled:opacity-50">
+        <button onClick={save} disabled={saving} className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] disabled:opacity-50">
           {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Save
         </button>
         <button onClick={() => setOpen(false)} className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-300">
@@ -293,7 +296,7 @@ export default function RateCardManager() {
           <button onClick={() => setViewMode('master')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
             Master Price List
           </button>
-          <button onClick={() => setViewMode('sor')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-emerald-700 shadow-sm">
+          <button onClick={() => setViewMode('sor')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
             Drilling SOR 2026
           </button>
         </div>
@@ -306,7 +309,7 @@ export default function RateCardManager() {
     <div className="space-y-4">
       <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (day rates, labour, plant) and Drilling SOR (meterage & investigation rates)" />
       <div className="flex gap-1.5 bg-slate-100 p-1 rounded-lg w-fit">
-        <button onClick={() => setViewMode('master')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-emerald-700 shadow-sm">
+        <button onClick={() => setViewMode('master')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
           Master Price List
         </button>
         <button onClick={() => setViewMode('sor')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
@@ -315,7 +318,7 @@ export default function RateCardManager() {
       </div>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
-        {isOurCard ? <Receipt className="w-5 h-5 text-emerald-700" /> : <Building2 className="w-5 h-5 text-emerald-700" />}
+        {isOurCard ? <Receipt className="w-5 h-5 text-[#2E5A1A]" /> : <Building2 className="w-5 h-5 text-[#2E5A1A]" />}
         <h2 className="font-semibold text-slate-900">{isOurCard ? 'Master Price List — Our Rate Card' : `Rate Card — ${activeSupplier?.name || 'Supplier'}`}</h2>
         <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{totalForCard} rates</span>
       </div>
@@ -323,12 +326,12 @@ export default function RateCardManager() {
       {/* Rate card source tabs */}
       <div className="flex gap-1.5 px-3 pt-3 overflow-x-auto no-scrollbar border-b border-slate-100">
         <button onClick={() => setActiveRateCard('our_company')}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${isOurCard ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${isOurCard ? 'border-[#2E5A1A] text-[#2E5A1A] bg-[#2E5A1A]/5' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
           <Receipt className="w-4 h-4" /> Our Rate Card
         </button>
         {suppliersWithItems.map(s => (
           <button key={s.id} onClick={() => setActiveRateCard(s.id)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${activeRateCard === s.id ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${activeRateCard === s.id ? 'border-[#2E5A1A] text-[#2E5A1A] bg-[#2E5A1A]/5' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
             <Building2 className="w-4 h-4" /> {s.name}
             <span className="text-xs text-slate-400">({s.rate_card_item_count || items.filter(i => i.supplier_id === s.id).length})</span>
           </button>
@@ -345,7 +348,7 @@ export default function RateCardManager() {
           const active = activeCategory === key;
           return (
             <button key={key} onClick={() => setActiveCategory(key)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 ${active ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 ${active ? 'border-[#2E5A1A] text-[#2E5A1A] bg-[#2E5A1A]/5' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
               <Icon className="w-4 h-4" /> {meta.label}
               <span className="text-xs text-slate-400">({counts[key]})</span>
             </button>
@@ -358,9 +361,9 @@ export default function RateCardManager() {
         <div className="flex flex-col sm:flex-row gap-2.5">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input value={query} onChange={e => setQuery(e.target.value)} placeholder={`Search ${CATEGORY_META[activeCategory].label.toLowerCase()} rates...`} className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+            <input value={query} onChange={e => setQuery(e.target.value)} placeholder={`Search ${CATEGORY_META[activeCategory].label.toLowerCase()} rates...`} className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]" />
           </div>
-          <button onClick={() => setBulkOpen(!bulkOpen)} className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition w-full sm:w-auto flex-shrink-0 ${bulkOpen ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+          <button onClick={() => setBulkOpen(!bulkOpen)} className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition w-full sm:w-auto flex-shrink-0 ${bulkOpen ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
             <TrendingUp className="w-4 h-4" /> Bulk Adjust
           </button>
         </div>

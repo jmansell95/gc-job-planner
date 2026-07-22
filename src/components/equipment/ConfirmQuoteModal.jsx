@@ -94,7 +94,7 @@ export default function ConfirmQuoteModal({ item, jobId, onClose }) {
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileCheck className="w-5 h-5 text-emerald-600" />
+            <FileCheck className="w-5 h-5 text-[#2E5A1A]" />
             Confirm Quote / Contract Price
           </DialogTitle>
         </DialogHeader>
@@ -117,7 +117,7 @@ export default function ConfirmQuoteModal({ item, jobId, onClose }) {
           {/* Negotiated price input */}
           <div>
             <label className="flex items-center gap-1 text-sm font-medium text-slate-700 mb-1.5">
-              <PoundSterling className="w-4 h-4 text-emerald-600" /> Confirmed unit price (net) *
+              <PoundSterling className="w-4 h-4 text-[#2E5A1A]" /> Confirmed unit price (net) *
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -133,7 +133,7 @@ export default function ConfirmQuoteModal({ item, jobId, onClose }) {
               <span className="text-sm text-slate-500 whitespace-nowrap">per {item.unit_label || 'unit'}</span>
             </div>
             {Number(negotiatedCost) > 0 && (
-              <p className="text-xs text-slate-600 mt-1.5 bg-emerald-50 rounded-md px-2.5 py-1.5 border border-emerald-100">
+              <p className="text-xs text-slate-600 mt-1.5 bg-[#2E5A1A]/10 rounded-md px-2.5 py-1.5 border border-[#2E5A1A]/20">
                 Line total: {fmt(Number(negotiatedCost) * (Number(item.quantity) || 1))}
               </p>
             )}
@@ -143,9 +143,9 @@ export default function ConfirmQuoteModal({ item, jobId, onClose }) {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Quote / Contract document</label>
             {existingDocUrl ? (
-              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-                <FileCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                <a href={existingDocUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-700 font-medium hover:underline truncate flex-1">
+              <div className="flex items-center gap-2 bg-[#2E5A1A]/10 border border-[#2E5A1A]/20 rounded-lg px-3 py-2">
+                <FileCheck className="w-4 h-4 text-[#2E5A1A] flex-shrink-0" />
+                <a href={existingDocUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-[#2E5A1A] font-medium hover:underline truncate flex-1">
                   {existingDocName || 'View document'}
                 </a>
                 <button
@@ -158,9 +158,9 @@ export default function ConfirmQuoteModal({ item, jobId, onClose }) {
                 </button>
               </div>
             ) : (
-              <label className="flex items-center gap-2 cursor-pointer border-2 border-dashed border-slate-300 rounded-lg px-3 py-3 hover:border-emerald-400 hover:bg-emerald-50/30 transition">
+              <label className="flex items-center gap-2 cursor-pointer border-2 border-dashed border-slate-300 rounded-lg px-3 py-3 hover:border-emerald-400 hover:bg-[#2E5A1A]/10 transition">
                 {uploading ? (
-                  <><Loader2 className="w-4 h-4 text-emerald-600 animate-spin" /> <span className="text-sm text-slate-500">Uploading…</span></>
+                  <><Loader2 className="w-4 h-4 text-[#2E5A1A] animate-spin" /> <span className="text-sm text-slate-500">Uploading…</span></>
                 ) : (
                   <><Upload className="w-4 h-4 text-slate-400" /> <span className="text-sm text-slate-500">Upload quote PDF or contract</span></>
                 )}
@@ -181,7 +181,7 @@ export default function ConfirmQuoteModal({ item, jobId, onClose }) {
             <button
               onClick={handleSave}
               disabled={saving || uploading || !Number(negotiatedCost)}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-700 text-white rounded-lg text-sm font-semibold hover:bg-emerald-800 transition disabled:opacity-50"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-50"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />}
               {item.price_confirmed ? 'Update confirmed price' : 'Confirm price'}
