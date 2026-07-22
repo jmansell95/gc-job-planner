@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Truck, Package, ArrowRightLeft, Calendar, CheckCircle2, Clock, HardHat, HelpCircle } from 'lucide-react';
+import { Truck, Package, ArrowRightLeft, Calendar, CheckCircle2, Clock, HardHat, HelpCircle, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isToday } from 'date-fns';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
@@ -32,6 +32,7 @@ export default function DeliveryDashboard() {
   const [staff, setStaff] = useState(null);
   const [loading, setLoading] = useState(true);
   const [completeDelivery, setCompleteDelivery] = useState(null);
+  const [autoExpandId, setAutoExpandId] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -155,7 +156,20 @@ export default function DeliveryDashboard() {
       }
 
       queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
-      toast({ title: 'Delivery signed off', description: 'Proof of delivery recorded.' });
+
+      // Surface the next stop so the driver knows where to go next.
+      const remaining = deliveries.filter(d => d.id !== deliveryId && d.status !== 'completed' && d.scheduled_date === format(new Date(), 'yyyy-MM-dd'));
+      const next = [...remaining].sort((a, b) => (a.started_at ? 1 : 0) - (b.started_at ? 1 : 0))[0];
+      const nextAddr = next ? (next.delivery_type === 'supplier_collection' ? next.pickup_address : next.delivery_address) : null;
+      if (next) setAutoExpandId(next.id);
+      if (next && nextAddr) {
+        toast({
+          title: `${remaining.length} ${remaining.length === 1 ? 'stop' : 'stops'} to go — next: ${next.job_name || 'delivery'}`,
+          description: nextAddr,
+        });
+      } else {
+        toast({ title: 'All done!', description: 'No more deliveries scheduled for today.' });
+      }
       setCompleteDelivery(null);
       return true;
     } catch (e) {
@@ -298,7 +312,7 @@ export default function DeliveryDashboard() {
         ) : (
           <div className="space-y-3">
             {todaysSorted.map(d => (
-              <DeliveryCard key={d.id} {...cardProps(d)} defaultExpanded={d.status === 'in_progress'} />
+              <DeliveryCard key={d.id} {...cardProps(d)} defaultExpanded={d.id === autoExpandId || d.status === 'in_progress'} />
             ))}
           </div>
         )}

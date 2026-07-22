@@ -114,30 +114,47 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
           </div>
 
           <div className="px-5 py-4 space-y-5">
-            {/* GPS status */}
-            {gps && (
-              <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
-                <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Location captured: {gps}</span>
-              </div>
-            )}
-            {gpsLoading && !gps && (
-              <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-50 rounded-lg px-3 py-2">
-                <MapPin className="w-3.5 h-3.5 animate-pulse" />
-                <span>Capturing GPS location…</span>
-              </div>
-            )}
+            {/* GPS pill — clear status at the top */}
+            <div className="flex items-center gap-2">
+              {gps ? (
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1.5">
+                  <MapPin className="w-3.5 h-3.5" /> Location captured
+                </span>
+              ) : gpsLoading ? (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 border border-slate-100 rounded-full px-3 py-1.5">
+                  <MapPin className="w-3.5 h-3.5 animate-pulse" /> Capturing location…
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 bg-slate-50 border border-slate-100 rounded-full px-3 py-1.5">
+                  <MapPin className="w-3.5 h-3.5" /> Location unavailable
+                </span>
+              )}
+            </div>
 
-            {/* Signed by name */}
+            {/* Recipient name — essential, first */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Recipient name (who is signing)</label>
+              <label className="block text-sm font-semibold text-slate-800 mb-1.5">Recipient name</label>
               <input
                 type="text"
                 value={signedByName}
                 onChange={e => setSignedByName(e.target.value)}
-                placeholder={delivery.contact_name || 'Enter name of person receiving items'}
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                placeholder={delivery.contact_name || 'Who is receiving the items?'}
+                autoComplete="name"
+                className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-base focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
               />
+            </div>
+
+            {/* Signature — essential, second */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-800 mb-1.5">
+                Recipient signature <span className="text-red-500">*</span>
+              </label>
+              <SignaturePad onChange={setSignature} />
+              {!signature && (
+                <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> A signature is required to complete the delivery.
+                </p>
+              )}
             </div>
 
             {/* Condition report */}
@@ -146,7 +163,7 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
               <select
                 value={condition}
                 onChange={e => setCondition(e.target.value)}
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                className="w-full px-3 py-3 border border-slate-300 rounded-xl text-base focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
               >
                 <option value="">Select condition…</option>
                 <option value="Good — no issues">Good — no issues</option>
@@ -201,21 +218,8 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
                 onChange={e => setNotes(e.target.value)}
                 rows={2}
                 placeholder="Access issues, delays, damages, anything else…"
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 resize-none"
+                className="w-full px-3 py-3 border border-slate-300 rounded-xl text-base focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 resize-none"
               />
-            </div>
-
-            {/* Signature */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Recipient signature <span className="text-red-500">*</span>
-              </label>
-              <SignaturePad onChange={setSignature} />
-              {!signature && (
-                <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> A signature is required to complete the delivery.
-                </p>
-              )}
             </div>
           </div>
 
