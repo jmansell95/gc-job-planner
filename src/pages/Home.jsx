@@ -32,11 +32,11 @@ export default function Home() {
   }, [navigate, user, isAuthenticated, isLoadingAuth]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/40 to-emerald-50/30">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-[#8DC63F]/10 to-[#5A8C1E]/10">
       <div className="mb-6">
         <Logo variant="full" height={48} />
       </div>
-      <div className="w-8 h-8 border-4 border-orange-100 border-t-[#F5821F] rounded-full animate-spin"></div>
+      <div className="w-8 h-8 border-4 border-[#8DC63F]/30 border-t-[#5A8C1E] rounded-full animate-spin"></div>
       <p className="text-sm text-slate-500 mt-4 font-medium">Loading your workspace…</p>
     </div>
   );

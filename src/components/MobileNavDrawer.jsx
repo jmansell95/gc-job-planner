@@ -21,14 +21,12 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'tween', duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-            className="lg:hidden fixed top-0 left-0 bottom-0 z-50 w-[82%] max-w-xs bg-gradient-to-b from-[#3a5a1e] via-[#5a7a28] to-[#b85c10] border-r border-black/20 flex flex-col shadow-2xl"
+            className="lg:hidden fixed top-0 left-0 bottom-0 z-50 w-[82%] max-w-xs bg-gradient-to-b from-[#2E5A1A] via-[#3a6a1e] to-[#456a1e] border-r border-black/20 flex flex-col shadow-2xl"
             style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             <div className="p-5 border-b border-white/10 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="h-10 w-auto rounded-xl bg-white/95 px-1.5 flex items-center justify-center shadow-sm flex-shrink-0">
-                  <Logo variant="lockup" height={32} />
-                </div>
+              <div className="flex items-center min-w-0 flex-1 justify-center">
+                <Logo variant="full" height={38} tone="light" />
               </div>
               <button onClick={onClose} aria-label="Close menu" type="button"
                 className="h-9 w-9 flex items-center justify-center text-white/80 hover:bg-white/15 hover:text-white rounded-lg transition flex-shrink-0 touch-manipulation">
@@ -53,7 +51,7 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
                     onClick={() => { onNavigate(item.id); onClose(); }}
                     className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition touch-manipulation select-none ${
                       isActive
-                        ? 'bg-white/15 text-white shadow-[inset_3px_0_0_0_#F5821F]'
+                        ? 'bg-white/15 text-white shadow-[inset_3px_0_0_0_#8DC63F]'
                         : 'text-white/80 hover:bg-white/10 hover:text-white'
                     }`}>
                     <Icon className="w-5 h-5 flex-shrink-0" />

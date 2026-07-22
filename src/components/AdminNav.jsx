@@ -48,13 +48,11 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
   const desktopNav = (
     <>
-      <div className="p-6 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="h-11 w-auto rounded-xl bg-white/95 p-1 flex items-center justify-center shadow-sm ring-1 ring-white/30 flex-shrink-0">
-            <Logo variant="lockup" height={36} />
-          </div>
+      <div className="px-6 pt-7 pb-5 border-b border-white/10">
+        <div className="flex items-center justify-center">
+          <Logo variant="full" height={44} tone="light" />
         </div>
-        <p className="text-[11px] text-white/70 mt-2 font-medium tracking-wide">Admin Panel</p>
+        <p className="text-center text-[10px] text-white/60 mt-3 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
       </div>
       <div className="px-4 pb-3 space-y-2">
         <GlobalSearch />
@@ -89,7 +87,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             <button key={item.id} type="button" onClick={() => setActiveSection(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-lg text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
                 isActive
-                  ? 'bg-white/15 text-white shadow-[inset_3px_0_0_0_#F5821F]'
+                  ? 'bg-white/15 text-white shadow-[inset_3px_0_0_0_#8DC63F]'
                   : 'text-white/75 hover:bg-white/10 hover:text-white'
               }`}>
               <Icon className="w-5 h-5 flex-shrink-0" />
@@ -124,10 +122,8 @@ export default function AdminNav({ activeSection, setActiveSection }) {
               className="h-11 w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <Menu className="w-5 h-5" />
             </button>
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="h-9 w-auto rounded-lg bg-white/95 px-1.5 flex items-center justify-center shadow-sm flex-shrink-0">
-                <Logo variant="lockup" height={26} />
-              </div>
+            <div className="flex items-center min-w-0">
+              <Logo variant="full" height={30} tone="light" />
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">

@@ -11,20 +11,20 @@
     --card-foreground: 215 28% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 215 28% 12%;
-    /* Brand: Ground Control — orange (#F5821F) primary, leaf-green (#8DC63F) accent */
-    --primary: 28 91% 54%;
+    /* Brand: Ground Control — leaf-green (#8DC63F) primary, orange (#F5821F) accent */
+    --primary: 88 50% 36%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 20% 96%;
     --secondary-foreground: 215 28% 12%;
     --muted: 210 20% 95%;
     --muted-foreground: 215 16% 45%;
-    --accent: 88 52% 42%;
+    --accent: 28 91% 54%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
     --border: 214 20% 88%;
     --input: 214 20% 88%;
-    --ring: 28 91% 54%;
+    --ring: 88 50% 36%;
     --chart-1: 28 91% 54%;
     --chart-2: 88 52% 45%;
     --chart-3: 38 92% 55%;
@@ -37,12 +37,12 @@
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 22 89% 50%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 22 89% 50%;
-    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-primary: 88 50% 36%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 88 50% 36%;
+    --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 88 50% 36%;
   }
 
   .dark {
@@ -52,19 +52,19 @@
     --card-foreground: 210 20% 96%;
     --popover: 200 18% 10%;
     --popover-foreground: 210 20% 96%;
-    --primary: 28 91% 58%;
+    --primary: 88 52% 42%;
     --primary-foreground: 0 0% 100%;
     --secondary: 200 18% 16%;
     --secondary-foreground: 210 20% 96%;
     --muted: 200 18% 16%;
     --muted-foreground: 210 14% 65%;
-    --accent: 88 52% 48%;
+    --accent: 28 91% 58%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 98%;
     --border: 200 18% 18%;
     --input: 200 18% 18%;
-    --ring: 28 91% 58%;
+    --ring: 88 52% 42%;
     --chart-1: 28 91% 58%;
     --chart-2: 88 52% 52%;
     --chart-3: 30 80% 55%;
@@ -186,19 +186,19 @@
     background: var(--accent-color, linear-gradient(180deg, #10b981, #059669));
   }
 
-  /* === Gradient Mesh Backgrounds (for hero sections) — Ground Control brand === */
+  /* === Gradient Mesh Backgrounds (for hero sections) — Ground Control brand (green-dominant) === */
   .mesh-bg {
     background:
-      radial-gradient(at 20% 30%, rgba(141, 198, 63, 0.28) 0%, transparent 50%),
-      radial-gradient(at 80% 70%, rgba(245, 130, 31, 0.22) 0%, transparent 50%),
-      radial-gradient(at 50% 100%, rgba(245, 130, 31, 0.14) 0%, transparent 50%),
-      linear-gradient(145deg, hsl(88 52% 22%) 0%, hsl(75 48% 20%) 45%, hsl(28 70% 30%) 100%);
+      radial-gradient(at 20% 25%, rgba(141, 198, 63, 0.32) 0%, transparent 55%),
+      radial-gradient(at 85% 80%, rgba(46, 90, 26, 0.35) 0%, transparent 50%),
+      radial-gradient(at 60% 100%, rgba(245, 130, 31, 0.10) 0%, transparent 45%),
+      linear-gradient(150deg, hsl(88 52% 20%) 0%, hsl(92 46% 18%) 50%, hsl(96 44% 16%) 100%);
   }
   .mesh-bg-soft {
     background:
-      radial-gradient(at 0% 0%, rgba(141, 198, 63, 0.18) 0%, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(245, 130, 31, 0.12) 0%, transparent 55%),
-      linear-gradient(140deg, hsl(88 52% 24%) 0%, hsl(78 50% 20%) 50%, hsl(28 60% 26%) 100%);
+      radial-gradient(at 0% 0%, rgba(141, 198, 63, 0.22) 0%, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(46, 90, 26, 0.18) 0%, transparent 55%),
+      linear-gradient(145deg, hsl(88 52% 22%) 0%, hsl(92 46% 20%) 55%, hsl(96 44% 18%) 100%);
   }
 
   /* === Stat Tile Gradients === */
@@ -230,20 +230,20 @@
     z-index: -1;
   }
 
-  /* === Command Gradient (CTA buttons) — Ground Control brand === */
+  /* === Command Gradient (CTA buttons) — Ground Control brand (green-dominant) === */
   .command-gradient {
     background:
-      radial-gradient(120% 130% at 0% 0%, rgba(141, 198, 63, 0.28) 0%, rgba(245, 130, 31, 0) 45%),
-      radial-gradient(110% 120% at 100% 100%, rgba(245, 130, 31, 0.22) 0%, rgba(245, 130, 31, 0) 50%),
-      linear-gradient(140deg, hsl(28 91% 50%) 0%, hsl(34 88% 52%) 50%, hsl(88 52% 42%) 100%);
+      radial-gradient(120% 130% at 0% 0%, rgba(141, 198, 63, 0.40) 0%, rgba(245, 130, 31, 0) 45%),
+      radial-gradient(110% 120% at 100% 100%, rgba(245, 130, 31, 0.18) 0%, rgba(245, 130, 31, 0) 50%),
+      linear-gradient(135deg, hsl(88 52% 30%) 0%, hsl(90 50% 34%) 55%, hsl(88 52% 40%) 100%);
   }
 
-  /* === Hero Gradient (page headers) — Ground Control brand === */
+  /* === Hero Gradient (page headers) — Ground Control brand (green-dominant) === */
   .hero-gradient {
     background:
-      radial-gradient(120% 120% at 0% 0%, rgba(141, 198, 63, 0.22) 0%, rgba(245, 130, 31, 0) 50%),
-      radial-gradient(100% 100% at 100% 100%, rgba(245, 130, 31, 0.16) 0%, rgba(245, 130, 31, 0) 55%),
-      linear-gradient(140deg, hsl(88 52% 26%) 0%, hsl(60 55% 30%) 50%, hsl(28 80% 46%) 100%);
+      radial-gradient(120% 120% at 0% 0%, rgba(141, 198, 63, 0.30) 0%, rgba(46, 90, 26, 0) 50%),
+      radial-gradient(100% 100% at 100% 100%, rgba(46, 90, 26, 0.25) 0%, rgba(46, 90, 26, 0) 55%),
+      linear-gradient(135deg, hsl(88 52% 22%) 0%, hsl(92 48% 26%) 55%, hsl(96 46% 24%) 100%);
   }
 
   /* === Pulse Ring (live indicators) === */

@@ -2,67 +2,69 @@ import React from 'react';
 
 /**
  * Ground Control brand logo.
- * Uses the uploaded brand logo asset. Variants:
- *   - "full"  : logo + "Ground Control" wordmark + tagline (default)
- *   - "icon"  : just the circular leaf motif
- *   - "lockup": logo + wordmark only (no tagline)
+ * Emblem = transparent PNG (leaf motif). Wordmark + tagline are rendered as
+ * crisp text so the typography stays sharp at any size and on any background.
  *
- * `size` is the height of the logo image in px (icon height scales with it).
- * `invert` can be used to force a white tint overlay for dark backgrounds.
+ *   - "icon"   : emblem only
+ *   - "lockup" : emblem + "Ground Control" wordmark
+ *   - "full"   : emblem + wordmark + tagline (default)
+ *
+ * `height` is the emblem height in px.
  */
-const LOGO_URL = 'https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/01db80967_GCLogo.jpg';
+const EMBLEM_URL = 'https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/cfab7be4d_generated_image.png';
 
-export default function Logo({ variant = 'full', height = 36, className = '', showText = true }) {
-  if (variant === 'icon') {
-    return (
-      <img
-        src={LOGO_URL}
-        alt="Ground Control"
-        style={{ height }}
-        className={`object-contain ${className}`}
-      />
-    );
-  }
-
-  if (variant === 'lockup') {
-    return (
-      <img
-        src={LOGO_URL}
-        alt="Ground Control"
-        style={{ height }}
-        className={`object-contain ${className}`}
-      />
-    );
-  }
-
-  // full — just use the logo image; it already contains the wordmark + tagline
+export function BrandWordmark({ size = 'base', tone = 'dark', className = '' }) {
+  const wordSize = size === 'sm' ? 'text-base' : size === 'lg' ? 'text-2xl' : 'text-lg';
+  const tagSize = size === 'sm' ? 'text-[8px]' : size === 'lg' ? 'text-[10px]' : 'text-[9px]';
+  const wordColor = tone === 'light' ? 'text-white' : 'text-[#2E5A1A]';
+  const tagColor = tone === 'light' ? 'text-white/70' : 'text-[#5A8C1E]';
   return (
-    <img
-      src={LOGO_URL}
-      alt="Ground Control — Caring for our Environment"
-      style={{ height }}
-      className={`object-contain ${className}`}
-    />
+    <span className={`inline-flex flex-col leading-none ${className}`}>
+      <span className={`font-display font-extrabold tracking-tight ${wordSize} ${wordColor}`}>
+        Ground<span className="text-[#8DC63F]">Control</span>
+      </span>
+      <span className={`font-display font-medium uppercase tracking-[0.18em] ${tagSize} ${tagColor} mt-0.5`}>
+        Caring for our Environment
+      </span>
+    </span>
   );
 }
 
-/**
- * Compact circular brand mark — just the leaf icon portion.
- * Useful in tight spaces like mobile headers.
- */
-export function LogoMark({ size = 36, className = '' }) {
+export default function Logo({ variant = 'full', height = 36, tone = 'dark', className = '', showText = true }) {
+  const emblem = (
+    <img
+      src={EMBLEM_URL}
+      alt="Ground Control"
+      style={{ height, width: height }}
+      className={`object-contain flex-shrink-0 ${className}`}
+    />
+  );
+
+  if (variant === 'icon') return emblem;
+
+  const gap = height >= 40 ? 'gap-3' : 'gap-2.5';
+  const wordSize = height >= 44 ? 'lg' : height <= 28 ? 'sm' : 'base';
+
   return (
-    <div
-      style={{ width: size, height: size }}
-      className={`rounded-full overflow-hidden bg-white flex-shrink-0 ring-1 ring-black/5 ${className}`}
-    >
-      <img
-        src={LOGO_URL}
-        alt="Ground Control"
-        className="w-full h-full object-cover"
-      />
+    <div className={`inline-flex items-center ${gap} ${className}`}>
+      {emblem}
+      {showText && <BrandWordmark size={wordSize} tone={tone} />}
     </div>
   );
 }
 
-export { LOGO_URL };
+/**
+ * Compact circular brand mark — just the emblem.
+ */
+export function LogoMark({ size = 36, className = '' }) {
+  return (
+    <img
+      src={EMBLEM_URL}
+      alt="Ground Control"
+      style={{ width: size, height: size }}
+      className={`object-contain flex-shrink-0 ${className}`}
+    />
+  );
+}
+
+export { EMBLEM_URL };
