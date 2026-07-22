@@ -9,7 +9,6 @@ import MobileNavDrawer from '@/components/MobileNavDrawer';
 import GlobalSearch from '@/components/GlobalSearch';
 import { canAccessSection } from '@/utils/access';
 import Logo from '@/components/Logo';
-import SidebarLogo from '@/components/SidebarLogo';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
   const navigate = useNavigate();
@@ -51,7 +50,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     <>
       <div className="px-6 pt-7 pb-5 border-b border-white/10">
         <div className="flex items-center justify-center">
-          <SidebarLogo />
+          <img src="https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/993ce8312_GC_Logo-removebg-preview.png" alt="Ground Control" className="w-44 h-auto object-contain" />
         </div>
         <p className="text-center text-[10px] text-white/60 mt-3 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
       </div>
