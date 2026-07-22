@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import StatCard from '@/components/dashboard/StatCard';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB');
 const titleCase = (s) => s ? s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : s;
@@ -33,6 +34,7 @@ const complianceMeta = {
 
 export default function JobQuickDrawer({ job, onClose, onOpenFullDetails }) {
   const [generatingReport, setGeneratingReport] = useState(false);
+  const isMobile = useIsMobile();
 
   const { data: costItems = [] } = useQuery({
     queryKey: ['drawer-cost-items', job?.id], queryFn: () => base44.entities.JobCostItem.filter({ job_id: job.id }),
@@ -111,9 +113,11 @@ export default function JobQuickDrawer({ job, onClose, onOpenFullDetails }) {
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
           />
           <motion.div
-            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] md:w-[540px] bg-slate-50 z-50 shadow-2xl overflow-y-auto"
+            initial={isMobile ? { y: '100%' } : { x: '100%' }}
+            animate={isMobile ? { y: 0 } : { x: 0 }}
+            exit={isMobile ? { y: '100%' } : { x: '100%' }}
+            transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+            className="fixed inset-0 sm:inset-auto sm:top-0 sm:right-0 sm:bottom-0 w-full sm:w-[480px] md:w-[540px] bg-slate-50 z-50 shadow-2xl overflow-y-auto h-[100dvh] sm:h-auto"
           >
             {/* Header */}
             <div className="mesh-bg relative px-4 py-4 sm:px-6 sm:py-5">
@@ -143,7 +147,7 @@ export default function JobQuickDrawer({ job, onClose, onOpenFullDetails }) {
             </div>
 
             {/* Quick Stats */}
-            <div className="p-3.5 sm:p-5 space-y-4 sm:space-y-5">
+            <div className="p-3.5 sm:p-5 space-y-4 sm:space-y-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
               <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                 <StatCard icon={PoundSterling} value={fmtGBP(clientPrice)} label="Client Price" sub={`incl. VAT (${vatRate}%)`} gradient="stat-gradient-emerald" />
                 <StatCard icon={Wrench} value={fmtGBP(totalCost)} label="Internal Cost" sub={`Equip ${fmtGBP(equipCost)}`} gradient="stat-gradient-amber" />
