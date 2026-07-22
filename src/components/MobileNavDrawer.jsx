@@ -21,7 +21,7 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'tween', duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-            className="lg:hidden fixed top-0 left-0 bottom-0 z-50 w-[82%] max-w-xs bg-gradient-to-b from-[#7a3410] via-[#8a3f14] to-[#9a4a1a] border-r border-black/20 flex flex-col shadow-2xl"
+            className="lg:hidden fixed top-0 left-0 bottom-0 z-50 w-[82%] max-w-xs bg-gradient-to-b from-[#2E5A1A] via-[#3a6a1e] to-[#456a1e] border-r border-black/20 flex flex-col shadow-2xl"
             style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             <div className="p-5 border-b border-white/10 flex items-center justify-between gap-3">
@@ -51,7 +51,7 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
                     onClick={() => { onNavigate(item.id); onClose(); }}
                     className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition touch-manipulation select-none ${
                       isActive
-                        ? 'bg-white/15 text-white shadow-[inset_3px_0_0_0_#F5821F]'
+                        ? 'bg-white/15 text-white shadow-[inset_3px_0_0_0_#8DC63F]'
                         : 'text-white/80 hover:bg-white/10 hover:text-white'
                     }`}>
                     <Icon className="w-5 h-5 flex-shrink-0" />
