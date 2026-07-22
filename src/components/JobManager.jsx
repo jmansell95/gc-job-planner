@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, Calendar } from 'lucide-react';
+import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, Calendar, FolderOpen } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/dashboard/StatCard';
 import SearchFilterBar from '@/components/SearchFilterBar';
@@ -52,6 +52,7 @@ const emptyForm = {
   project_manager: '', site_contact_name: '', site_contact_phone: '',
   notes: '', requisition_list_url: '', requisition_list_name: '',
   budget_amount: '', actual_cost: '', meterage: '', client_charge: '', client_charge_description: '',
+  project_id: '',
   equipment_items: []
 };
 
@@ -64,6 +65,7 @@ export default function JobManager({ onNavigateRota }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [clientFilter, setClientFilter] = useState('all');
+  const [projectFilter, setProjectFilter] = useState('all');
   const [formData, setFormData] = useState(emptyForm);
   const [createdJob, setCreatedJob] = useState(null);
 
@@ -78,6 +80,7 @@ export default function JobManager({ onNavigateRota }) {
   const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list() });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
+  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200) });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -182,9 +185,10 @@ export default function JobManager({ onNavigateRota }) {
       (job.job_reference || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || (job.status || 'planning') === statusFilter;
     const matchesClient = clientFilter === 'all' || job.client_id === clientFilter;
+    const matchesProject = projectFilter === 'all' || (projectFilter === 'standalone' ? !job.project_id : job.project_id === projectFilter);
     const primaryType = getJobPrimaryType(job, teams);
     const matchesType = typeFilter === 'all' || primaryType === typeFilter;
-    return matchesSearch && matchesStatus && matchesClient && matchesType;
+    return matchesSearch && matchesStatus && matchesClient && matchesProject && matchesType;
   });
 
   // Summary stats — reflect the current filter context
@@ -279,6 +283,14 @@ export default function JobManager({ onNavigateRota }) {
                   ...clients.map(c => ({ value: c.id, label: c.name }))
                 ]
               },
+              {
+                value: projectFilter, onChange: setProjectFilter,
+                options: [
+                  { value: 'all', label: 'All Projects' },
+                  { value: 'standalone', label: 'Standalone (no project)' },
+                  ...projects.map(p => ({ value: p.id, label: p.name }))
+                ]
+              },
             ]}
           />
         </>
@@ -298,6 +310,8 @@ export default function JobManager({ onNavigateRota }) {
           {filteredJobs.map((job) => {
             const client = clients.find(c => c.id === job.client_id);
             const primaryType = getJobPrimaryType(job, teams);
+            const project = projects.find(p => p.id === job.project_id);
+            const siblingCount = project ? jobs.filter(j => j.project_id === project.id).length : 0;
             return (
             <div key={job.id} className="card-modern rounded-xl overflow-hidden flex flex-col">
               <div className={`h-1.5 ${getJobTypeColor(primaryType, jobTypes).bar}`} />
@@ -310,6 +324,13 @@ export default function JobManager({ onNavigateRota }) {
                   {job.requisition_list_url && <FileText className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" title="Has requisition list" />}
                 </div>
                 <h3 className="font-bold text-slate-900 text-base mb-1">{job.name}</h3>
+                {project && (
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <FolderOpen className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+                    <span className="text-xs font-medium text-indigo-600 truncate">{project.name}</span>
+                    <span className="text-[10px] text-slate-400">· {siblingCount} job{siblingCount !== 1 ? 's' : ''}</span>
+                  </div>
+                )}
                 {job.job_reference && <p className="text-xs text-slate-400 mb-1 truncate">Ref: {job.job_reference}</p>}
                 {client && <p className="text-xs text-slate-400 mb-1.5 truncate">{client.name}</p>}
                 <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-1">

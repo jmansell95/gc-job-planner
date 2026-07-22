@@ -6,6 +6,10 @@
       "type": "string",
       "description": "Job name"
     },
+    "project_id": {
+      "type": "string",
+      "description": "Linked Project \u2014 groups multiple jobs (e.g. 5 jobs across 2 sites) under one parent project. Blank for standalone jobs."
+    },
     "job_reference": {
       "type": "string",
       "description": "Internal job reference or PO number"

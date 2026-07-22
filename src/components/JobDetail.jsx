@@ -6,7 +6,7 @@ import {
   Clock, Eye, Download, User, HardHat, Phone, Mail, Tag, Edit2,
   ShieldCheck, PlayCircle, CheckCircle2, MessageSquare,
   UsersRound, CalendarClock, Send, AlertCircle, Cog, Wrench, Package,
-  FileBarChart, PoundSterling, Ruler
+  FileBarChart, PoundSterling, Ruler, FolderOpen, ArrowRight
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
@@ -75,8 +75,13 @@ export default function JobDetail({ job: initialJob, onBack }) {
 
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
+  const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200) });
+  const { data: allJobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const primaryType = getJobPrimaryType(job, teams);
   const colors = getJobTypeColor(primaryType, jobTypes);
+  const jobProject = projects.find(p => p.id === job.project_id) || null;
+  const siblingJobs = jobProject ? allJobs.filter(j => j.project_id === jobProject.id && j.id !== job.id) : [];
+  const [showProjectJobs, setShowProjectJobs] = useState(false);
   const [formData, setFormData] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -358,6 +363,17 @@ export default function JobDetail({ job: initialJob, onBack }) {
                   </>
                 )}
               </div>
+              {jobProject && (
+                <button
+                  onClick={() => setShowProjectJobs(true)}
+                  className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100 hover:bg-indigo-100 transition"
+                >
+                  <FolderOpen className="w-3.5 h-3.5" />
+                  {jobProject.name}
+                  <span className="text-indigo-400">·</span>
+                  <span className="font-normal">{siblingJobs.length} other job{siblingJobs.length !== 1 ? 's' : ''} in this project</span>
+                </button>
+              )}
             </div>
             <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-slate-700 md:justify-end">
               {startDate && (
@@ -717,6 +733,47 @@ export default function JobDetail({ job: initialJob, onBack }) {
       {showStatusModal && (
         <JobStatusModal job={job} onClose={() => setShowStatusModal(false)} onSave={handleStatusSave} />
       )}
+
+      {/* Sibling jobs dialog — shows other jobs linked to the same project */}
+      <Dialog open={showProjectJobs} onOpenChange={setShowProjectJobs}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FolderOpen className="w-5 h-5 text-indigo-600" />
+              {jobProject?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm text-slate-500">This job is one of {siblingJobs.length + 1} jobs linked to this project.</p>
+            <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <Briefcase className="w-4 h-4 text-emerald-700 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-slate-900 truncate">{job.name}</p>
+                <p className="text-xs text-slate-500 truncate">{job.location} · {statusLabels[job.status || 'planning']}</p>
+              </div>
+              <span className="text-xs font-semibold text-emerald-700">This job</span>
+            </div>
+            {siblingJobs.length === 0 ? (
+              <p className="text-sm text-slate-400 text-center py-4">No other jobs in this project yet.</p>
+            ) : (
+              siblingJobs.map(sib => (
+                <button
+                  key={sib.id}
+                  onClick={() => { setShowProjectJobs(false); setJob(sib); window.scrollTo(0, 0); }}
+                  className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50/30 transition text-left"
+                >
+                  <Briefcase className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-900 truncate">{sib.name}</p>
+                    <p className="text-xs text-slate-500 truncate">{sib.location} · {statusLabels[sib.status || 'planning']}</p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                </button>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
