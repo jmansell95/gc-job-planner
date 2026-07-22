@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Truck, Wrench, ShoppingCart, Plus, Trash2, Edit2,
   Package, FileCheck, Undo2, ExternalLink, AlertTriangle, Boxes, HardHat, User,
-  ShieldCheck, ShieldAlert, ShieldX
+  ShieldCheck, ShieldAlert, ShieldX, AlertCircle
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format } from 'date-fns';
@@ -118,6 +118,7 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     return rate * (Number(c.quantity) || 1);
   };
   const totalNet = items.reduce((s, c) => s + itemNet(c), 0);
+  const pendingPoa = isJobMode ? items.filter(c => c.is_poa && !c.price_confirmed) : [];
   const dailyTotal = items
     .filter(c => (c.hire_status || 'active') !== 'off_hired')
     .filter(c => c.category !== 'contractor_supplied' && c.category !== 'client_supplied')
@@ -387,6 +388,15 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
         <h2 className="font-semibold text-slate-900">Equipment & Revenue</h2>
         {dailyTotal > 0 && <span className="ml-auto text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">{fmt(dailyTotal)}/day</span>}
         <span className={`text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium ${dailyTotal > 0 ? 'ml-1' : 'ml-auto'}`}>{items.length} items{items.some(i => i.category !== 'contractor_supplied') ? ` · ${fmt(totalNet)}` : ''}</span>
+        {pendingPoa.length > 0 && (
+          <button
+            onClick={() => { const first = pendingPoa[0]; setConfirmingQuoteItem(first); }}
+            className="text-xs bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-bold inline-flex items-center gap-1 border border-amber-300 hover:bg-amber-200 transition"
+            title={`${pendingPoa.length} POA item(s) awaiting a confirmed price`}
+          >
+            <AlertCircle className="w-3 h-3" /> {pendingPoa.length} POA to confirm
+          </button>
+        )}
       </div>
 
       <div className="px-5 py-4 space-y-4">

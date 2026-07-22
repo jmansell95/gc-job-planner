@@ -10,6 +10,7 @@ import JobDetail from '@/components/JobDetail';
 import JobForm from '@/components/JobForm';
 import PrintReportButton from '@/components/PrintReportButton';
 import JobCreatedModal from '@/components/JobCreatedModal';
+import ProjectManager from '@/components/ProjectManager';
 import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import { format, parseISO } from 'date-fns';
 
@@ -68,6 +69,7 @@ export default function JobManager({ onNavigateRota }) {
   const [projectFilter, setProjectFilter] = useState('all');
   const [formData, setFormData] = useState(emptyForm);
   const [createdJob, setCreatedJob] = useState(null);
+  const [view, setView] = useState('jobs'); // 'jobs' | 'projects'
 
   const queryClient = useQueryClient();
 
@@ -137,6 +139,13 @@ export default function JobManager({ onNavigateRota }) {
     setFormData({ ...emptyForm, ...job });
     setEditingId(job.id);
     setShowForm(true);
+  };
+
+  const handleAddJobToProject = (project) => {
+    setFormData({ ...emptyForm, project_id: project?.id || '', client_id: project?.client_id || '' });
+    setEditingId(null);
+    setShowForm(true);
+    setView('jobs');
   };
 
   const handleFileUpload = async (e) => {
@@ -211,6 +220,14 @@ export default function JobManager({ onNavigateRota }) {
         subtitle={`${jobs.length} job${jobs.length === 1 ? '' : 's'} in total`}
         actions={
           <>
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+              <button onClick={() => setView('jobs')} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition ${view === 'jobs' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                <Briefcase className="w-3.5 h-3.5" /> Jobs
+              </button>
+              <button onClick={() => setView('projects')} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition ${view === 'projects' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                <FolderOpen className="w-3.5 h-3.5" /> Projects
+              </button>
+            </div>
             <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Jobs List" />
             <button
               onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
@@ -236,8 +253,20 @@ export default function JobManager({ onNavigateRota }) {
         />
       )}
 
-      {/* Search & Filter */}
-      {jobs.length > 0 && (
+      {/* Projects view — group jobs by project */}
+      {view === 'projects' && !showForm && (
+        <ProjectManager
+          jobs={jobs}
+          teams={teams}
+          jobTypes={jobTypes}
+          clients={clients}
+          onSelectJob={(job) => setSelectedJob(job)}
+          onAddJob={handleAddJobToProject}
+        />
+      )}
+
+      {/* Search & Filter — only in Jobs view */}
+      {view === 'jobs' && jobs.length > 0 && (
         <>
           {/* Summary stats — reflect active filters */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
@@ -296,63 +325,67 @@ export default function JobManager({ onNavigateRota }) {
         </>
       )}
 
-      {/* Jobs Grid */}
-      {isLoading ? (
-        <CardGridSkeleton count={6} />
-      ) : isError ? (
-        <ErrorState message="Couldn't load jobs" onRetry={refetch} />
-      ) : jobs.length === 0 ? (
-        <EmptyState icon={Briefcase} title="No jobs yet" message="Add your first job to start scheduling crews and shifts." actionLabel="Add Job" onAction={() => { setEditingId(null); setShowForm(true); }} />
-      ) : filteredJobs.length === 0 ? (
-        <EmptyState icon={Search} title="No jobs match your search" message="Try a different name, location, or status filter." />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredJobs.map((job) => {
-            const client = clients.find(c => c.id === job.client_id);
-            const primaryType = getJobPrimaryType(job, teams);
-            const project = projects.find(p => p.id === job.project_id);
-            const siblingCount = project ? jobs.filter(j => j.project_id === project.id).length : 0;
-            return (
-            <div key={job.id} className="card-modern rounded-xl overflow-hidden flex flex-col">
-              <div className={`h-1.5 ${getJobTypeColor(primaryType, jobTypes).bar}`} />
-              <div className="p-5 flex-1">
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${getJobTypeColor(primaryType, jobTypes).badge}`}>{getJobTypeLabel(primaryType, jobTypes)}</span>
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[job.status || 'planning']}`}>{statusLabels[job.status || 'planning']}</span>
+      {/* Jobs Grid — only in Jobs view */}
+      {view === 'jobs' && (
+        <>
+          {isLoading ? (
+            <CardGridSkeleton count={6} />
+          ) : isError ? (
+            <ErrorState message="Couldn't load jobs" onRetry={refetch} />
+          ) : jobs.length === 0 ? (
+            <EmptyState icon={Briefcase} title="No jobs yet" message="Add your first job to start scheduling crews and shifts." actionLabel="Add Job" onAction={() => { setEditingId(null); setShowForm(true); }} />
+          ) : filteredJobs.length === 0 ? (
+            <EmptyState icon={Search} title="No jobs match your search" message="Try a different name, location, or status filter." />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filteredJobs.map((job) => {
+                const client = clients.find(c => c.id === job.client_id);
+                const primaryType = getJobPrimaryType(job, teams);
+                const project = projects.find(p => p.id === job.project_id);
+                const siblingCount = project ? jobs.filter(j => j.project_id === project.id).length : 0;
+                return (
+                <div key={job.id} className="card-modern rounded-xl overflow-hidden flex flex-col">
+                  <div className={`h-1.5 ${getJobTypeColor(primaryType, jobTypes).bar}`} />
+                  <div className="p-5 flex-1">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${getJobTypeColor(primaryType, jobTypes).badge}`}>{getJobTypeLabel(primaryType, jobTypes)}</span>
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[job.status || 'planning']}`}>{statusLabels[job.status || 'planning']}</span>
+                      </div>
+                      {job.requisition_list_url && <FileText className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" title="Has requisition list" />}
+                    </div>
+                    <h3 className="font-bold text-slate-900 text-base mb-1">{job.name}</h3>
+                    {project && (
+                      <button onClick={() => { setView('projects'); }} className="flex items-center gap-1.5 mb-1 hover:underline">
+                        <FolderOpen className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
+                        <span className="text-xs font-medium text-indigo-600 truncate">{project.name}</span>
+                        <span className="text-[10px] text-slate-400">· {siblingCount} job{siblingCount !== 1 ? 's' : ''}</span>
+                      </button>
+                    )}
+                    {job.job_reference && <p className="text-xs text-slate-400 mb-1 truncate">Ref: {job.job_reference}</p>}
+                    {client && <p className="text-xs text-slate-400 mb-1.5 truncate">{client.name}</p>}
+                    <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-1">
+                      <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="truncate">{job.location}</span>
+                    </div>
+                    <div className="flex items-start gap-1.5 text-slate-400 text-xs">
+                      <Calendar className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                      <span className="min-w-0 break-words">{fmtDate(job.start_date)} → {fmtDate(job.end_date)}</span>
+                    </div>
                   </div>
-                  {job.requisition_list_url && <FileText className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" title="Has requisition list" />}
-                </div>
-                <h3 className="font-bold text-slate-900 text-base mb-1">{job.name}</h3>
-                {project && (
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <FolderOpen className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
-                    <span className="text-xs font-medium text-indigo-600 truncate">{project.name}</span>
-                    <span className="text-[10px] text-slate-400">· {siblingCount} job{siblingCount !== 1 ? 's' : ''}</span>
+                  <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button onClick={() => setSelectedJob(job)} className="flex items-center gap-1.5 text-sm font-medium text-[#2E5A1A] hover:text-[#1c4a12] transition"><Eye className="w-4 h-4" /> View Details</button>
+                    <div className="flex gap-1">
+                      <button onClick={() => handleEdit(job)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => handleDelete(job.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
+                    </div>
                   </div>
-                )}
-                {job.job_reference && <p className="text-xs text-slate-400 mb-1 truncate">Ref: {job.job_reference}</p>}
-                {client && <p className="text-xs text-slate-400 mb-1.5 truncate">{client.name}</p>}
-                <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-1">
-                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="truncate">{job.location}</span>
                 </div>
-                <div className="flex items-start gap-1.5 text-slate-400 text-xs">
-                  <Calendar className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                  <span className="min-w-0 break-words">{fmtDate(job.start_date)} → {fmtDate(job.end_date)}</span>
-                </div>
-              </div>
-              <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <button onClick={() => setSelectedJob(job)} className="flex items-center gap-1.5 text-sm font-medium text-[#2E5A1A] hover:text-[#1c4a12] transition"><Eye className="w-4 h-4" /> View Details</button>
-                <div className="flex gap-1">
-                  <button onClick={() => handleEdit(job)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
-                  <button onClick={() => handleDelete(job.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
-                </div>
-              </div>
+                );
+              })}
             </div>
-            );
-          })}
-        </div>
+          )}
+        </>
       )}
 
       {createdJob && (

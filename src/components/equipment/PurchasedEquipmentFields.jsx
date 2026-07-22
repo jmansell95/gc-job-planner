@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Upload, FileText, X, Package, Loader2, Receipt, Tag } from 'lucide-react';
+import { Upload, FileText, X, Package, Loader2, Receipt, Tag, AlertCircle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { inputCls, fmt } from './shared';
 
@@ -156,6 +156,20 @@ export default function PurchasedEquipmentFields({ form, setForm, suppliers = []
         <input type="checkbox" checked={form.vat_exempt} onChange={(e) => setForm({ ...form, vat_exempt: e.target.checked })} className="rounded border-slate-300 text-emerald-700 focus:ring-emerald-600" />
         VAT exempt (zero-rated item)
       </label>
+
+      <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer bg-amber-50/60 border border-amber-200 rounded-lg px-3 py-2.5">
+        <input type="checkbox" checked={!!form.is_poa} onChange={(e) => setForm({ ...form, is_poa: e.target.checked, unit_cost: e.target.checked ? '' : form.unit_cost })} className="rounded border-amber-400 text-amber-600 focus:ring-amber-500 mt-0.5" />
+        <span>
+          <span className="font-semibold text-amber-900">Price on Application (POA)</span>
+          <span className="block text-xs text-amber-700 mt-0.5">Add this purchase now with no unit cost — confirm the agreed price later from the job's Pending Pricing panel.</span>
+        </span>
+      </label>
+
+      {form.is_poa && !form.rate_card_item_id && (
+        <div className="text-xs text-amber-700 bg-amber-50 rounded-md px-3 py-2 border border-amber-200 flex items-center gap-1.5">
+          <AlertCircle className="w-3.5 h-3.5" /> POA item — unit cost left blank. Confirm the price once agreed.
+        </div>
+      )}
 
       {form.rate_card_item_id && (
         <div className="text-xs text-emerald-700 bg-emerald-50 rounded-md px-3 py-2 border border-emerald-200 flex items-center gap-1.5">
