@@ -270,9 +270,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         <PulseRibbon onNavigate={onNavigate} />
       )}
 
-      {/* Live Site Activity — visual snapshot grid of active sites (click to open command modal) */}
+      {/* Live Site Activity — visual snapshot grid of active sites (click to open quick drawer) */}
       {!customizeMode && isAllJobs && (
-        <SiteSnapshotGrid onSelectJob={setModalJob} />
+        <SiteSnapshotGrid onSelectJob={openJobDrawer} />
       )}
 
       {customizeMode && (
