@@ -23,6 +23,7 @@ import SettingsHubOverview from '@/components/SettingsHubOverview';
 import SettingsNav, { accessibleSettingsItems } from '@/components/SettingsNav';
 import ComplianceManager from '@/components/ComplianceManager';
 import LogQualityControl from '@/components/investigation/LogQualityControl';
+import AuditTrailHub from '@/components/audit/AuditTrailHub';
 import TimesheetManager from '@/components/TimesheetManager';
 import BillingPage from '@/components/BillingPage';
 import AGSImportSettings from '@/components/AGSImportSettings';
@@ -83,6 +84,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'equipment-library': return <EquipmentLibraryManager />;
       case 'compliance': return <ComplianceManager />;
       case 'log-qc': return <LogQualityControl />;
+      case 'audit-trail': return <AuditTrailHub />;
       case 'timesheets': return <TimesheetManager />;
       case 'invoicing': return <BillingPage onSelectJob={onSelectJob} />;
       case 'ags-import': return <AGSImportSettings />;

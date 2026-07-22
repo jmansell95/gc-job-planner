@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck } from 'lucide-react';
 
 export const settingsGroups = [
   {
@@ -34,6 +34,7 @@ export const settingsGroups = [
     items: [
       { id: 'compliance', label: 'Compliance', icon: ShieldCheck, desc: 'Staff compliance, training & qualifications tracking', roles: ['admin', 'manager', 'viewer'] },
       { id: 'log-qc', label: 'Log QC', icon: FlaskConical, desc: 'Review and approve investigation logs', roles: ['admin', 'manager', 'viewer'] },
+      { id: 'audit-trail', label: 'Audit Trail', icon: ClipboardCheck, desc: 'ISO-compliant job packs — full start-to-finish audit trail for auditors', roles: ['admin', 'manager', 'viewer'] },
       { id: 'timesheets', label: 'Timesheets', icon: Clock, desc: 'Review and approve crew timesheets', roles: ['admin', 'manager'] },
     ],
   },
