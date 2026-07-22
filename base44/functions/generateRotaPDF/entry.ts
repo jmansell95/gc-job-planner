@@ -98,24 +98,24 @@ Deno.serve(async (req) => {
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#1e293b;padding:24px;max-width:900px;margin:0 auto}
-      .header{background:linear-gradient(135deg,#064e3b 0%,#065f46 100%);color:white;border-radius:12px;padding:24px 28px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+      .header{background:linear-gradient(135deg,#1c4a12 0%,#2E5A1A 100%);color:white;border-radius:12px;padding:24px 28px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
       .header h1{font-size:22px;font-weight:700}
       .header p{font-size:13px;opacity:0.85;margin-top:4px}
       .header-right{text-align:right}
       .week-label{font-size:11px;opacity:0.7;text-transform:uppercase;letter-spacing:0.05em}
       .week-date{font-size:16px;font-weight:600}
       .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
-      .summary-card{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:14px 16px;text-align:center}
-      .summary-value{font-size:24px;font-weight:700;color:#065f46}
+      .summary-card{background:#f4f9ee;border:1px solid #cfe8b8;border-radius:10px;padding:14px 16px;text-align:center}
+      .summary-value{font-size:24px;font-weight:700;color:#2E5A1A}
       .summary-label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px}
       table{width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
-      th{background:#065f46;color:white;padding:10px 12px;text-align:left;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em}
+      th{background:#2E5A1A;color:white;padding:10px 12px;text-align:left;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em}
       td{padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:13px}
       tr:nth-child(even) td{background:#f8fafb}
       tr:last-child td{border-bottom:none}
       .job-name{font-weight:600;color:#1e293b}
       .footer{margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:11px;color:#94a3b8}
-      .footer-brand{font-weight:600;color:#065f46}
+      .footer-brand{font-weight:600;color:#2E5A1A}
       @media print{body{padding:12px}.header,.summary-card,th,tr:nth-child(even) td{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
     </style></head><body>
     ${bodyContent}

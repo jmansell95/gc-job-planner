@@ -8,11 +8,11 @@ export function escapeHtml(s) {
 export function linkBlock(baseUrl, path, label) {
   if (!baseUrl) return '';
   const href = baseUrl.replace(/\/+$/, '') + (path || '');
-  return '<p style="margin-top:18px"><a href="' + escapeHtml(href) + '" style="display:inline-block;background:#0e7a4f;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;font-family:Arial,Helvetica,sans-serif">' + escapeHtml(label) + '</a></p>';
+  return '<p style="margin-top:18px"><a href="' + escapeHtml(href) + '" style="display:inline-block;background:#2E5A1A;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;font-family:Arial,Helvetica,sans-serif">' + escapeHtml(label) + '</a></p>';
 }
 
 export function styledHtml(rawBodyHtml, cfg) {
-  const accent = (cfg && cfg.accent_color) || '#0e7a4f';
+  const accent = (cfg && cfg.accent_color) || '#2E5A1A';
   const bannerTitle = (cfg && cfg.banner_title) || 'GC Job Planner';
   const showBanner = !(cfg && cfg.show_banner === false);
   const footer = (cfg && cfg.footer_text) || 'GC Job Planner';

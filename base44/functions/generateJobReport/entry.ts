@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
     const equipRows = equipmentItems.map(c => {
       const lineCost = (c.unit_cost || 0) * (c.quantity || 1);
       const rc = c.rate_card_item_id ? rateCardMap[c.rate_card_item_id] : null;
-      const rcBadge = rc ? `<span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:9px;background:#d1fae5;color:#065f46;font-weight:600">RC</span>` : '';
+      const rcBadge = rc ? `<span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:9px;background:#cfe8b8;color:#2E5A1A;font-weight:600">RC</span>` : '';
       return `<tr><td>${esc(c.description)} ${rcBadge}</td><td>${esc(c.category).replace(/_/g,' ')}</td><td>${c.quantity || 1} ${esc(c.unit_label || '')}</td><td>${fmtGBP(c.unit_cost)}</td><td>${fmtGBP(lineCost)}</td></tr>`;
     }).join('');
 
@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
     const labourRows = labourItems.map(c => {
       const lineCost = (c.unit_cost || 0) * (c.quantity || 1);
       const rc = c.rate_card_item_id ? rateCardMap[c.rate_card_item_id] : null;
-      const rcBadge = rc ? `<span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:9px;background:#d1fae5;color:#065f46;font-weight:600">RC</span>` : '';
+      const rcBadge = rc ? `<span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:9px;background:#cfe8b8;color:#2E5A1A;font-weight:600">RC</span>` : '';
       const staffName = c.staff_id ? (validLabourStaff.find(s => s.id === c.staff_id)?.name || c.responsible_person || '—') : (c.responsible_person || '—');
       const dates = c.start_date && c.end_date ? `${fmtDate(c.start_date)} → ${fmtDate(c.end_date)}` : '—';
       return `<tr><td>${esc(c.description)} ${rcBadge}</td><td>${esc(staffName)}</td><td>${dates}</td><td>${c.quantity || 1} ${esc(c.unit_label || '')}</td><td>${fmtGBP(c.unit_cost)}</td><td>${fmtGBP(lineCost)}</td></tr>`;
@@ -453,7 +453,7 @@ Deno.serve(async (req) => {
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#1e293b;padding:24px;max-width:900px;margin:0 auto}
-      .header{background:linear-gradient(135deg,#064e3b 0%,#065f46 100%);color:white;border-radius:12px;padding:24px 28px;display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+      .header{background:linear-gradient(135deg,#1c4a12 0%,#2E5A1A 100%);color:white;border-radius:12px;padding:24px 28px;display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
       .header h1{font-size:24px;font-weight:700;margin-bottom:4px}
       .header .sub{font-size:13px;opacity:0.85}
       .status-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;background:rgba(255,255,255,0.2);margin-top:8px}
@@ -462,35 +462,35 @@ Deno.serve(async (req) => {
       .info-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px}
       .info-card h3{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#64748b;margin-bottom:6px}
       .info-card p{font-size:13px;color:#334155;margin-bottom:2px}
-      .cost-card{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:18px 20px;margin-bottom:20px}
-      .cost-card h3{font-size:14px;font-weight:700;color:#065f46;margin-bottom:12px}
-      .billing-summary{background:linear-gradient(135deg,#f0fdf4 0%,#ecfeff 100%);border:2px solid #6ee7b7}
-      .billing-summary h3{font-size:16px;color:#065f46}
-      .billing-section{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #d1fae5}
-      .billing-section h4{font-size:12px;font-weight:700;color:#047857;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.03em}
-      .billing-checklist{background:white;border-radius:8px;padding:12px 16px;border:1px solid #bbf7d0}
-      .billing-checklist h4{font-size:12px;font-weight:700;color:#065f46;margin-bottom:8px}
+      .cost-card{background:#f4f9ee;border:1px solid #cfe8b8;border-radius:12px;padding:18px 20px;margin-bottom:20px}
+      .cost-card h3{font-size:14px;font-weight:700;color:#2E5A1A;margin-bottom:12px}
+      .billing-summary{background:linear-gradient(135deg,#f4f9ee 0%,#eef9e2 100%);border:2px solid #8DC63F}
+      .billing-summary h3{font-size:16px;color:#2E5A1A}
+      .billing-section{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #cfe8b8}
+      .billing-section h4{font-size:12px;font-weight:700;color:#2E5A1A;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.03em}
+      .billing-checklist{background:white;border-radius:8px;padding:12px 16px;border:1px solid #cfe8b8}
+      .billing-checklist h4{font-size:12px;font-weight:700;color:#2E5A1A;margin-bottom:8px}
       .billing-checklist ul{list-style:none;padding:0}
       .billing-checklist li{padding:4px 0;font-size:12px;color:#334155;border-bottom:1px solid #f1f5f9}
-      .billing-checklist li:last-child{border-bottom:none;font-weight:700;color:#065f46;font-size:13px;padding-top:8px}
+      .billing-checklist li:last-child{border-bottom:none;font-weight:700;color:#2E5A1A;font-size:13px;padding-top:8px}
       .cost-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px}
-      .cost-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #d1fae5;font-size:13px}
-      .cost-row.total{font-weight:700;border-bottom:2px solid #6ee7b7;padding-top:8px}
-      .cost-row.highlight{color:#065f46;font-size:15px}
+      .cost-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #cfe8b8;font-size:13px}
+      .cost-row.total{font-weight:700;border-bottom:2px solid #8DC63F;padding-top:8px}
+      .cost-row.highlight{color:#2E5A1A;font-size:15px}
       .cost-row strong{font-weight:600}
       .section-title{font-size:16px;font-weight:700;color:#1e293b;margin:24px 0 10px;padding-bottom:6px;border-bottom:2px solid #e2e8f0}
       table{width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);margin-bottom:8px}
-      th{background:#065f46;color:white;padding:9px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em}
+      th{background:#2E5A1A;color:white;padding:9px 12px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em}
       td{padding:9px 12px;border-bottom:1px solid #e2e8f0;font-size:12px}
-      tfoot td{background:#f0fdf4;font-weight:700;border-top:2px solid #6ee7b7}
+      tfoot td{background:#f4f9ee;font-weight:700;border-top:2px solid #8DC63F}
       tr:nth-child(even) td{background:#f8fafb}
       tr:last-child td{border-bottom:none}
       .notes{background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin:16px 0;font-size:13px}
       .notes h3{font-size:11px;text-transform:uppercase;color:#92400e;margin-bottom:6px}
       .footer{margin-top:28px;padding-top:16px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:11px;color:#94a3b8}
-      .footer-brand{font-weight:600;color:#065f46}
+      .footer-brand{font-weight:600;color:#2E5A1A}
       .review-pending{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:#fef3c7;color:#92400e}
-      .review-approved{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:#d1fae5;color:#065f46}
+      .review-approved{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:#cfe8b8;color:#2E5A1A}
       .review-queried{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:#fee2e2;color:#991b1b}
       @media print{body{padding:12px}.header,.cost-card,th,tr:nth-child(even) td,.review-pending,.review-approved,.review-queried,tfoot td{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
     </style></head><body>
