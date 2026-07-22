@@ -18,7 +18,7 @@ const fmtDate = (d) => {
 };
 
 const jobTypeBadge = {
-  groundworks: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
+  groundworks: 'bg-[#2E5A1A]/15 text-[#2E5A1A] ring-1 ring-[#2E5A1A]/20',
   cp_drilling: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
   rotary_drilling: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
   enabling_works: 'bg-purple-100 text-purple-700 ring-1 ring-purple-200',
@@ -26,7 +26,7 @@ const jobTypeBadge = {
 };
 
 const jobTypeBar = {
-  groundworks: 'bg-gradient-to-r from-emerald-400 to-emerald-600',
+  groundworks: 'bg-gradient-to-r from-[#8DC63F] to-[#2E5A1A]',
   cp_drilling: 'bg-gradient-to-r from-amber-400 to-orange-500',
   rotary_drilling: 'bg-gradient-to-r from-blue-400 to-indigo-500',
   enabling_works: 'bg-gradient-to-r from-purple-400 to-fuchsia-500',
@@ -35,7 +35,7 @@ const jobTypeBar = {
 
 const statusBadge = {
   planning: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
-  in_progress: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
+  in_progress: 'bg-[#2E5A1A]/15 text-[#2E5A1A] ring-1 ring-[#2E5A1A]/20',
   decommissioning: 'bg-orange-100 text-orange-700 ring-1 ring-orange-200',
   completed: 'bg-teal-100 text-teal-700 ring-1 ring-teal-200',
   on_hold: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
@@ -210,7 +210,7 @@ export default function JobManager({ onNavigateRota }) {
             <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Jobs List" />
             <button
               onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-[#2E5A1A] rounded-lg hover:bg-[#2E5A1A]/10 transition text-sm font-semibold shadow-sm"
             >
               <Plus className="w-4 h-4" /> Add Job
             </button>
@@ -307,7 +307,7 @@ export default function JobManager({ onNavigateRota }) {
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${getJobTypeColor(primaryType, jobTypes).badge}`}>{getJobTypeLabel(primaryType, jobTypes)}</span>
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[job.status || 'planning']}`}>{statusLabels[job.status || 'planning']}</span>
                   </div>
-                  {job.requisition_list_url && <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" title="Has requisition list" />}
+                  {job.requisition_list_url && <FileText className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" title="Has requisition list" />}
                 </div>
                 <h3 className="font-bold text-slate-900 text-base mb-1">{job.name}</h3>
                 {job.job_reference && <p className="text-xs text-slate-400 mb-1 truncate">Ref: {job.job_reference}</p>}
@@ -322,7 +322,7 @@ export default function JobManager({ onNavigateRota }) {
                 </div>
               </div>
               <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <button onClick={() => setSelectedJob(job)} className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 hover:text-emerald-900 transition"><Eye className="w-4 h-4" /> View Details</button>
+                <button onClick={() => setSelectedJob(job)} className="flex items-center gap-1.5 text-sm font-medium text-[#2E5A1A] hover:text-[#1c4a12] transition"><Eye className="w-4 h-4" /> View Details</button>
                 <div className="flex gap-1">
                   <button onClick={() => handleEdit(job)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
                   <button onClick={() => handleDelete(job.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>

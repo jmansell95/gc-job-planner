@@ -212,8 +212,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                     <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
                       {greeting}{firstName ? `, ${firstName}` : ''}
                     </h1>
-                    <p className="text-emerald-50 text-sm mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
-                    <p className="text-emerald-100/80 text-xs mt-0.5">{thisWeekRotas.length} {thisWeekRotas.length === 1 ? 'Shift' : 'Shifts'} This Week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
+                    <p className="text-white/90 text-sm mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
+                    <p className="text-white/70 text-xs mt-0.5">{thisWeekRotas.length} {thisWeekRotas.length === 1 ? 'Shift' : 'Shifts'} This Week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
                   </>
                 ) : (
                   <>
@@ -225,7 +225,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                         </span>
                       )}
                     </div>
-                    <p className="text-emerald-50 text-sm mt-1 flex items-center gap-1.5 flex-wrap">
+                    <p className="text-white/90 text-sm mt-1 flex items-center gap-1.5 flex-wrap">
                       {selectedJob?.location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{selectedJob.location}</span>}
                       {selectedJob?.start_date && selectedJob?.end_date && (
                         <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{format(new Date(selectedJob.start_date), 'dd MMM')} – {format(new Date(selectedJob.end_date), 'dd MMM yyyy')}</span>
@@ -243,7 +243,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                       <Plus className="w-4 h-4" /> Add Job
                     </button>
                   )}
-                  <button onClick={() => onNavigate('rota')} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm w-full sm:w-auto">
+                  <button onClick={() => onNavigate('rota')} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-[#2E5A1A] rounded-lg hover:bg-[#2E5A1A]/10 transition text-sm font-semibold shadow-sm w-full sm:w-auto">
                     <Calendar className="w-4 h-4" /> Build Rota
                   </button>
                   <button onClick={() => setCustomizeMode(true)} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm w-full sm:w-auto">
@@ -251,7 +251,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                   </button>
                 </>
               ) : (
-                <button onClick={handleExitCustomize} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm w-full sm:w-auto">
+                <button onClick={handleExitCustomize} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-[#2E5A1A] rounded-lg hover:bg-[#2E5A1A]/10 transition text-sm font-semibold shadow-sm w-full sm:w-auto">
                   <Check className="w-4 h-4" /> Done
                 </button>
               )}
@@ -268,7 +268,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       )}
 
       {customizeMode && (
-        <div className="mb-4 bg-emerald-50/80 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-800">
+        <div className="mb-4 bg-[#2E5A1A]/10 border border-[#2E5A1A]/20 rounded-xl px-4 py-3 text-sm text-[#2E5A1A]">
           Drag sections to reorder them. Tap S, M or L to resize a section, or Hide to remove it from your dashboard.
         </div>
       )}
@@ -281,7 +281,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           return (
             <section key={section.id} className="mb-7">
               <div className="flex items-center gap-2.5 mb-3 px-1">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-sm">
                   <Icon className="w-4 h-4 text-white" />
                 </div>
                 <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">{section.label}</h2>
@@ -328,7 +328,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
               const Icon = config.icon;
               return (
                 <button key={widgetId} onClick={() => handleToggleWidget(widgetId)} type="button"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-50 text-slate-600 rounded-lg border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition text-sm font-medium">
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-50 text-slate-600 rounded-lg border border-slate-200 hover:bg-[#2E5A1A]/10 hover:text-[#2E5A1A] hover:border-[#2E5A1A]/20 transition text-sm font-medium">
                   <Eye className="w-4 h-4" /> {config.title}
                 </button>
               );
