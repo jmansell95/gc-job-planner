@@ -116,13 +116,13 @@ export default function JobQuickDrawer({ job, onClose, onOpenFullDetails }) {
             className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] md:w-[540px] bg-slate-50 z-50 shadow-2xl overflow-y-auto"
           >
             {/* Header */}
-            <div className="mesh-bg relative px-5 py-5 sm:px-6">
-              <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition">
+            <div className="mesh-bg relative px-4 py-4 sm:px-6 sm:py-5">
+              <button onClick={onClose} className="absolute top-3 right-3 w-9 h-9 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center text-white transition">
                 <X className="w-5 h-5" />
               </button>
-              <div className="flex items-start gap-3 pr-8">
-                <div className="w-12 h-12 rounded-2xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
-                  <Briefcase className="w-6 h-6 text-white" />
+              <div className="flex items-start gap-3 pr-10">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
+                  <Briefcase className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div className="min-w-0">
                   <h2 className="text-xl font-bold text-white tracking-tight truncate">{job.name}</h2>
@@ -143,8 +143,8 @@ export default function JobQuickDrawer({ job, onClose, onOpenFullDetails }) {
             </div>
 
             {/* Quick Stats */}
-            <div className="p-4 sm:p-5 space-y-5">
-              <div className="grid grid-cols-2 gap-3">
+            <div className="p-3.5 sm:p-5 space-y-4 sm:space-y-5">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                 <StatCard icon={PoundSterling} value={fmtGBP(clientPrice)} label="Client Price" sub={`incl. VAT (${vatRate}%)`} gradient="stat-gradient-emerald" />
                 <StatCard icon={Wrench} value={fmtGBP(totalCost)} label="Internal Cost" sub={`Equip ${fmtGBP(equipCost)}`} gradient="stat-gradient-amber" />
                 <StatCard icon={profit >= 0 ? TrendingUp : Activity} value={fmtGBP(profit)} label="Gross Profit" sub={`Markup ${markupPct}%`} gradient={profit >= 0 ? 'stat-gradient-blue' : 'stat-gradient-rose'} />
