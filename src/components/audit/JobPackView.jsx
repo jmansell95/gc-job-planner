@@ -189,10 +189,10 @@ export default function JobPackView({ job, clientName, contractorName }) {
     { id: 'timeline', label: 'Timeline', icon: Activity, count: timeline.length },
   ];
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     setGeneratingPDF(true);
     try {
-      generateJobPackPDF({
+      await generateJobPackPDF({
         job, clientName, contractorName,
         data: { assignments, staffMap, logs, briefings, assets, costItems, documents, photos, milestones, deliveries, timeline },
       });

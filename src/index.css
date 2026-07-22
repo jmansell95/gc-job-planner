@@ -11,21 +11,22 @@
     --card-foreground: 215 28% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 215 28% 12%;
-    --primary: 152 56% 28%;
-    --primary-foreground: 0 0% 98%;
+    /* Brand: Ground Control — orange (#F5821F) primary, leaf-green (#8DC63F) accent */
+    --primary: 28 91% 54%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 210 20% 96%;
     --secondary-foreground: 215 28% 12%;
     --muted: 210 20% 95%;
     --muted-foreground: 215 16% 45%;
-    --accent: 152 56% 28%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 88 52% 42%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
     --border: 214 20% 88%;
     --input: 214 20% 88%;
-    --ring: 152 56% 28%;
-    --chart-1: 152 56% 40%;
-    --chart-2: 199 70% 45%;
+    --ring: 28 91% 54%;
+    --chart-1: 28 91% 54%;
+    --chart-2: 88 52% 45%;
     --chart-3: 38 92% 55%;
     --chart-4: 265 75% 62%;
     --chart-5: 342 75% 55%;
@@ -51,21 +52,21 @@
     --card-foreground: 210 20% 96%;
     --popover: 200 18% 10%;
     --popover-foreground: 210 20% 96%;
-    --primary: 152 56% 42%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 28 91% 58%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 200 18% 16%;
     --secondary-foreground: 210 20% 96%;
     --muted: 200 18% 16%;
     --muted-foreground: 210 14% 65%;
-    --accent: 152 56% 42%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 88 52% 48%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 98%;
     --border: 200 18% 18%;
     --input: 200 18% 18%;
-    --ring: 152 56% 42%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
+    --ring: 28 91% 58%;
+    --chart-1: 28 91% 58%;
+    --chart-2: 88 52% 52%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
@@ -185,19 +186,19 @@
     background: var(--accent-color, linear-gradient(180deg, #10b981, #059669));
   }
 
-  /* === Gradient Mesh Backgrounds (for hero sections) === */
+  /* === Gradient Mesh Backgrounds (for hero sections) — Ground Control brand === */
   .mesh-bg {
     background:
-      radial-gradient(at 20% 30%, rgba(167, 243, 208, 0.25) 0%, transparent 50%),
-      radial-gradient(at 80% 70%, rgba(125, 211, 252, 0.18) 0%, transparent 50%),
-      radial-gradient(at 50% 100%, rgba(251, 191, 36, 0.12) 0%, transparent 50%),
-      linear-gradient(145deg, hsl(155 58% 22%) 0%, hsl(168 46% 18%) 50%, hsl(190 40% 14%) 100%);
+      radial-gradient(at 20% 30%, rgba(141, 198, 63, 0.28) 0%, transparent 50%),
+      radial-gradient(at 80% 70%, rgba(245, 130, 31, 0.22) 0%, transparent 50%),
+      radial-gradient(at 50% 100%, rgba(245, 130, 31, 0.14) 0%, transparent 50%),
+      linear-gradient(145deg, hsl(88 52% 22%) 0%, hsl(75 48% 20%) 45%, hsl(28 70% 30%) 100%);
   }
   .mesh-bg-soft {
     background:
-      radial-gradient(at 0% 0%, rgba(167, 243, 208, 0.15) 0%, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.10) 0%, transparent 55%),
-      linear-gradient(140deg, hsl(155 58% 24%) 0%, hsl(162 52% 20%) 50%, hsl(168 46% 16%) 100%);
+      radial-gradient(at 0% 0%, rgba(141, 198, 63, 0.18) 0%, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(245, 130, 31, 0.12) 0%, transparent 55%),
+      linear-gradient(140deg, hsl(88 52% 24%) 0%, hsl(78 50% 20%) 50%, hsl(28 60% 26%) 100%);
   }
 
   /* === Stat Tile Gradients === */
@@ -211,6 +212,8 @@
   .stat-gradient-indigo { background: linear-gradient(135deg, #6366f1, #4338ca); }
   .stat-gradient-teal { background: linear-gradient(135deg, #14b8a6, #0f766e); }
   .stat-gradient-orange { background: linear-gradient(135deg, #f97316, #ea580c); }
+  .stat-gradient-brand { background: linear-gradient(135deg, #F5821F, #e06a0a); }
+  .stat-gradient-brand-green { background: linear-gradient(135deg, #8DC63F, #6fa828); }
 
   /* === Icon Tile Glow === */
   .icon-tile-glow {
@@ -227,20 +230,20 @@
     z-index: -1;
   }
 
-  /* === Command Gradient (CTA buttons) === */
+  /* === Command Gradient (CTA buttons) — Ground Control brand === */
   .command-gradient {
     background:
-      radial-gradient(120% 130% at 0% 0%, rgba(167, 243, 208, 0.24) 0%, rgba(16, 185, 129, 0) 45%),
-      radial-gradient(110% 120% at 100% 100%, rgba(56, 189, 248, 0.18) 0%, rgba(14, 165, 233, 0) 50%),
-      linear-gradient(140deg, hsl(160 60% 28%) 0%, hsl(172 55% 32%) 50%, hsl(190 60% 38%) 100%);
+      radial-gradient(120% 130% at 0% 0%, rgba(141, 198, 63, 0.28) 0%, rgba(245, 130, 31, 0) 45%),
+      radial-gradient(110% 120% at 100% 100%, rgba(245, 130, 31, 0.22) 0%, rgba(245, 130, 31, 0) 50%),
+      linear-gradient(140deg, hsl(28 91% 50%) 0%, hsl(34 88% 52%) 50%, hsl(88 52% 42%) 100%);
   }
 
-  /* === Hero Gradient (page headers) === */
+  /* === Hero Gradient (page headers) — Ground Control brand === */
   .hero-gradient {
     background:
-      radial-gradient(120% 120% at 0% 0%, rgba(167, 243, 208, 0.18) 0%, rgba(16, 185, 129, 0) 50%),
-      radial-gradient(100% 100% at 100% 100%, rgba(56, 189, 248, 0.10) 0%, rgba(14, 165, 233, 0) 55%),
-      linear-gradient(140deg, hsl(155 58% 22%) 0%, hsl(162 52% 18%) 50%, hsl(168 46% 14%) 100%);
+      radial-gradient(120% 120% at 0% 0%, rgba(141, 198, 63, 0.22) 0%, rgba(245, 130, 31, 0) 50%),
+      radial-gradient(100% 100% at 100% 100%, rgba(245, 130, 31, 0.16) 0%, rgba(245, 130, 31, 0) 55%),
+      linear-gradient(140deg, hsl(88 52% 26%) 0%, hsl(60 55% 30%) 50%, hsl(28 80% 46%) 100%);
   }
 
   /* === Pulse Ring (live indicators) === */

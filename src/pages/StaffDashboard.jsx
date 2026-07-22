@@ -14,6 +14,7 @@ import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME, S
 import { complianceDaysUntil } from '@/utils/complianceDate';
 import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
 import StatCard from '@/components/dashboard/StatCard';
+import Logo from '@/components/Logo';
 import ShiftWizard from '@/components/staff/ShiftWizard';
 import EarlyLeaveModal from '@/components/staff/EarlyLeaveModal';
 import ScheduleSplash from '@/components/staff/ScheduleSplash';
@@ -27,14 +28,14 @@ const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 
 
 function SectionHeader({ icon: Icon, title, count, tone = 'dark' }) {
   const textTone = tone === 'muted' ? 'text-slate-500' : 'text-slate-900';
-  const gradient = tone === 'muted' ? 'from-slate-400 to-slate-500' : 'from-emerald-500 to-teal-600';
+  const gradient = tone === 'muted' ? 'from-slate-400 to-slate-500' : 'from-[#F5821F] to-[#e06a0a]';
   return (
     <div className="flex items-center gap-2.5 mb-3 md:mb-4">
       <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-sm`}>
         <Icon className="w-4 h-4 text-white" />
       </div>
       <h2 className={`text-lg md:text-xl font-bold ${textTone} tracking-tight`}>{title}</h2>
-      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${tone === 'muted' ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'}`}>{count}</span>
+      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${tone === 'muted' ? 'bg-slate-100 text-slate-400' : 'bg-orange-50 text-[#c95f0a] ring-1 ring-orange-100'}`}>{count}</span>
     </div>
   );
 }
@@ -392,7 +393,7 @@ export default function StaffDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <div className="w-10 h-10 border-4 border-emerald-100 border-t-emerald-700 rounded-full animate-spin"></div>
+        <div className="w-10 h-10 border-4 border-orange-100 border-t-[#F5821F] rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -506,16 +507,16 @@ export default function StaffDashboard() {
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-7">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-5">
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg ring-1 ring-white/25 flex-shrink-0">
-                <HardHat className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white" />
+              <div className="h-11 w-auto sm:h-12 md:h-14 rounded-2xl bg-white/95 px-1.5 flex items-center justify-center shadow-lg ring-1 ring-white/30 flex-shrink-0">
+                <Logo variant="lockup" height={40} />
               </div>
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate tracking-tight">My Schedule</h1>
-                <p className="text-emerald-100 text-sm md:text-base mt-0.5 truncate">Welcome back, {staff.name.split(' ')[0]}</p>
+                <p className="text-white/85 text-sm md:text-base mt-0.5 truncate">Welcome back, {staff.name.split(' ')[0]}</p>
                 <LiveClock
                   className="mt-0.5"
-                  dateClassName="text-emerald-200/80 text-xs md:text-sm truncate"
-                  timeClassName="text-emerald-100 text-sm md:text-base font-semibold tabular-nums"
+                  dateClassName="text-white/70 text-xs md:text-sm truncate"
+                  timeClassName="text-white/90 text-sm md:text-base font-semibold tabular-nums"
                 />
               </div>
             </div>
@@ -547,8 +548,8 @@ export default function StaffDashboard() {
 
           {/* Quick stats strip */}
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <StatCard icon={Calendar} value={upcomingAssignments.length} label="Upcoming" gradient="stat-gradient-blue" />
-            <StatCard icon={Briefcase} value={visibleAssignments.length} label="Total" gradient="stat-gradient-slate" />
+            <StatCard icon={Calendar} value={upcomingAssignments.length} label="Upcoming" gradient="stat-gradient-brand" />
+            <StatCard icon={Briefcase} value={visibleAssignments.length} label="Total" gradient="stat-gradient-brand-green" />
           </div>
         </div>
       </div>
@@ -656,7 +657,7 @@ export default function StaffDashboard() {
                         <div key={a.id}>
                           {isActive && isStarted && (
                             <div className="flex items-center gap-2 mb-2">
-                              <div className="w-1 h-5 bg-emerald-600 rounded-full" />
+                              <div className="w-1 h-5 bg-[#F5821F] rounded-full" />
                               <p className="text-sm font-bold text-slate-700 uppercase tracking-wide">In Progress</p>
                             </div>
                           )}

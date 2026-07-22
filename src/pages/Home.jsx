@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { resolveRoleLandingPage } from '@/utils/access';
+import Logo from '@/components/Logo';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -31,9 +32,12 @@ export default function Home() {
   }, [navigate, user, isAuthenticated, isLoadingAuth]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
-      <div className="w-8 h-8 border-4 border-emerald-100 border-t-emerald-700 rounded-full animate-spin"></div>
-      <p className="text-sm text-slate-400 mt-4">Loading your workspace…</p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/40 to-emerald-50/30">
+      <div className="mb-6">
+        <Logo variant="full" height={48} />
+      </div>
+      <div className="w-8 h-8 border-4 border-orange-100 border-t-[#F5821F] rounded-full animate-spin"></div>
+      <p className="text-sm text-slate-500 mt-4 font-medium">Loading your workspace…</p>
     </div>
   );
 }

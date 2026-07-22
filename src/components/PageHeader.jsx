@@ -13,7 +13,7 @@ export default function PageHeader({ title, icon: Icon, subtitle, actions }) {
             )}
             <div className="min-w-0">
               <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight truncate">{title}</h1>
-              {subtitle && <p className="text-emerald-100 text-xs md:text-sm mt-0.5 truncate">{subtitle}</p>}
+              {subtitle && <p className="text-white/85 text-xs md:text-sm mt-0.5 truncate">{subtitle}</p>}
             </div>
           </div>
           {actions && (

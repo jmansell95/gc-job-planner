@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import MobileNavDrawer from '@/components/MobileNavDrawer';
 import GlobalSearch from '@/components/GlobalSearch';
 import { canAccessSection } from '@/utils/access';
+import Logo from '@/components/Logo';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
   const navigate = useNavigate();
@@ -47,37 +48,34 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
   const desktopNav = (
     <>
-      <div className="p-6 border-b border-emerald-800/50">
+      <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm ring-1 ring-white/20 flex-shrink-0">
-            <HardHat className="w-6 h-6 text-white" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-white leading-tight">GC Job Planner</h1>
-            <p className="text-xs text-emerald-300">Admin Panel</p>
+          <div className="h-11 w-auto rounded-xl bg-white/95 p-1 flex items-center justify-center shadow-sm ring-1 ring-white/30 flex-shrink-0">
+            <Logo variant="lockup" height={36} />
           </div>
         </div>
+        <p className="text-[11px] text-white/70 mt-2 font-medium tracking-wide">Admin Panel</p>
       </div>
       <div className="px-4 pb-3 space-y-2">
         <GlobalSearch />
         <button onClick={openChat} type="button"
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-sm font-medium hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-sm">
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg command-gradient text-white text-sm font-medium hover:brightness-110 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-sm">
           <Sparkles className="w-4 h-4" />
           Ask Assistant
         </button>
         {canViewSchedule && (
           <button onClick={() => navigate('/staff-schedule')} type="button"
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-800/60 text-emerald-200 text-sm font-medium hover:bg-emerald-800 hover:text-white active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-emerald-700/50">
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <CalendarDays className="w-4 h-4" />
             My Schedule
           </button>
         )}
         <button onClick={() => setNotifOpen(true)} type="button"
-          className="relative w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-800/60 text-emerald-200 text-sm font-medium hover:bg-emerald-800 hover:text-white active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-emerald-700/50">
+          className="relative w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
           <Bell className="w-4 h-4" />
           Notifications
           {notifCount > 0 && (
-            <span className="absolute top-1 right-2 min-w-[18px] h-[18px] px-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full flex items-center justify-center">
+            <span className="absolute top-1 right-2 min-w-[18px] h-[18px] px-1 bg-[#F5821F] text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-1 ring-white/30">
               {notifCount > 9 ? '9+' : notifCount}
             </span>
           )}
@@ -91,8 +89,8 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             <button key={item.id} type="button" onClick={() => setActiveSection(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-lg text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
                 isActive
-                  ? 'bg-emerald-700 text-white shadow-[inset_3px_0_0_0_rgb(110,231,183)]'
-                  : 'text-emerald-200 hover:bg-emerald-800/50 hover:text-white'
+                  ? 'bg-white/15 text-white shadow-[inset_3px_0_0_0_#F5821F]'
+                  : 'text-white/75 hover:bg-white/10 hover:text-white'
               }`}>
               <Icon className="w-5 h-5 flex-shrink-0" />
               <span>{item.label}</span>
@@ -100,14 +98,14 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           );
         })}
       </div>
-      <div className="p-4 border-t border-emerald-800/50 space-y-1">
+      <div className="p-4 border-t border-white/10 space-y-1">
         <button type="button" onClick={() => navigate('/help')}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-emerald-200 hover:bg-emerald-800/50 hover:text-white transition cursor-pointer touch-manipulation select-none">
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
           <HelpCircle className="w-5 h-5 flex-shrink-0" />
           <span>Help & Guide</span>
         </button>
         <button type="button" onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-emerald-300 hover:bg-emerald-800/50 hover:text-white transition cursor-pointer touch-manipulation select-none">
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
           <LogOut className="w-5 h-5 flex-shrink-0" />
           <span>Logout</span>
         </button>
@@ -118,37 +116,36 @@ export default function AdminNav({ activeSection, setActiveSection }) {
   return (
     <>
       {/* Mobile Top Header — hamburger + brand + actions */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-emerald-800/60 shadow-sm relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-white/10 shadow-sm relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="absolute inset-0 mesh-bg" />
         <div className="relative z-10 h-14 flex items-center justify-between gap-2 px-3">
           <div className="flex items-center gap-1 min-w-0">
             <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" type="button"
-              className="h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
+              className="h-11 w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <Menu className="w-5 h-5" />
             </button>
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm flex-shrink-0 ring-1 ring-white/20">
-                <HardHat className="w-4 h-4 text-white" />
+              <div className="h-9 w-auto rounded-lg bg-white/95 px-1.5 flex items-center justify-center shadow-sm flex-shrink-0">
+                <Logo variant="lockup" height={26} />
               </div>
-              <h1 className="text-white font-bold text-base truncate">GC Job Planner</h1>
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             {canViewSchedule && (
               <button onClick={() => navigate('/staff-schedule')} aria-label="My Schedule" type="button"
-                className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
+                className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
                 <CalendarDays className="w-5 h-5" />
               </button>
             )}
             <button onClick={openChat} aria-label="Ask Assistant" type="button"
-              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
+              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <Sparkles className="w-5 h-5" />
             </button>
             <button onClick={() => setNotifOpen(true)} aria-label="Notifications" type="button"
-              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-emerald-800/70 active:bg-emerald-700 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
+              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <Bell className="w-5 h-5" />
               {notifCount > 0 && (
-                <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-amber-400 text-emerald-950 text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-[#F5821F] text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-1 ring-white/30">
                   {notifCount > 9 ? '9+' : notifCount}
                 </span>
               )}
@@ -158,7 +155,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       </header>
 
       {/* Desktop Sidebar */}
-      <nav className="hidden lg:flex sticky top-0 h-screen w-64 border-r border-emerald-800/50 flex-col relative overflow-hidden">
+      <nav className="hidden lg:flex sticky top-0 h-screen w-64 border-r border-black/10 flex-col relative overflow-hidden">
         <div className="absolute inset-0 mesh-bg" />
         <div className="relative z-10 flex flex-col h-full">
           {desktopNav}

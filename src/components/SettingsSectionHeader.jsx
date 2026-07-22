@@ -12,8 +12,8 @@ export default function SettingsSectionHeader({ icon: Icon, title, description, 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           {Icon && (
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-              <Icon className="w-5 h-5 text-emerald-700" />
+            <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
+              <Icon className="w-5 h-5 text-[#F5821F]" />
             </div>
           )}
           <div className="min-w-0">

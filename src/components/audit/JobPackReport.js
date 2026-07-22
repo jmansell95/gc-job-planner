@@ -8,10 +8,16 @@ import { format } from 'date-fns';
 // using jsPDF's native drawing API — selectable text, small file
 // size, automatic page breaks, branded headers and footers.
 
+const LOGO_URL = 'https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/01db80967_GCLogo.jpg';
+
 const BRAND = {
-  emerald: [5, 150, 105],       // #059669
-  emeraldDark: [4, 120, 87],    // #047857
-  emeraldLight: [209, 250, 229],
+  // Ground Control brand palette
+  orange: [245, 130, 31],       // #F5821F — primary
+  orangeDark: [200, 90, 10],    // darker orange
+  green: [141, 198, 63],        // #8DC63F — leaf green
+  greenDark: [90, 140, 30],
+  greenLight: [237, 246, 214],
+  // Semantic / accent colours
   slate: [15, 23, 42],
   slateLight: [100, 116, 139],
   slateBorder: [226, 232, 240],
@@ -35,24 +41,41 @@ const PAGE = {
 };
 
 const SECTION_COLORS = {
-  overview: BRAND.emerald,
+  overview: BRAND.green,
   personnel: BRAND.blue,
   activity: BRAND.violet,
-  compliance: BRAND.emerald,
+  compliance: BRAND.green,
   equipment: BRAND.amber,
-  commercial: BRAND.emerald,
+  commercial: BRAND.green,
   documents: BRAND.slate,
   timeline: BRAND.indigo,
 };
+
+/** Loads the brand logo as a base64 data URL so it can be embedded in the PDF. */
+async function loadLogoDataUrl() {
+  try {
+    const res = await fetch(LOGO_URL);
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    return null;
+  }
+}
 
 const fmtDate = (d) => d ? format(new Date(d), 'dd MMM yyyy') : '—';
 const fmtDateTime = (d) => d ? format(new Date(d), 'dd MMM yyyy · HH:mm') : '—';
 const gbp = (n) => `£${Number(n || 0).toFixed(2)}`;
 const clean = (s) => s ? String(s).replace(/_/g, ' ') : '';
 
-export function generateJobPackPDF({ job, clientName, contractorName, data }) {
+export async function generateJobPackPDF({ job, clientName, contractorName, data }) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
   let page = 1;
+  const logoData = await loadLogoDataUrl();
 
   const { assignments = [], staffMap = {}, logs = [], briefings = [], assets = [], costItems = [], documents = [], photos = [], milestones = [], deliveries = [], timeline = [] } = data;
 
@@ -75,13 +98,17 @@ export function generateJobPackPDF({ job, clientName, contractorName, data }) {
   }
 
   function drawHeader() {
-    // Slim header bar
-    doc.setFillColor(...BRAND.emerald);
+    // Slim header bar — brand orange
+    doc.setFillColor(...BRAND.orange);
     doc.rect(0, 0, PAGE.width, 12, 'F');
+    // Logo mark in header (small)
+    if (logoData) {
+      try { doc.addImage(logoData, 'JPEG', PAGE.marginLeft, 2.5, 16, 7, undefined, 'FAST'); } catch (e) {}
+    }
     doc.setTextColor(...BRAND.white);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    doc.text('AUDIT JOB PACK', PAGE.marginLeft, 7.5);
+    doc.text('AUDIT JOB PACK', PAGE.marginLeft + 19, 7.5);
     doc.text(job.name || 'Job', PAGE.width - PAGE.marginRight, 7.5, { align: 'right' });
     cursor.y = PAGE.marginTop;
   }
@@ -174,10 +201,10 @@ export function generateJobPackPDF({ job, clientName, contractorName, data }) {
       const cx = PAGE.marginLeft + col * (PAGE.contentWidth / cols) + 1;
       const cw = PAGE.contentWidth / cols - 2;
       // Background tint
-      doc.setFillColor(...(c.color || BRAND.emeraldLight));
+      doc.setFillColor(...(c.color || BRAND.greenLight));
       doc.roundedRect(cx, y, cw, cardH, 1.5, 1.5, 'F');
       // Left accent
-      doc.setFillColor(...(c.accent || BRAND.emerald));
+      doc.setFillColor(...(c.accent || BRAND.green));
       doc.roundedRect(cx, y, 1.5, cardH, 0.5, 0.5, 'F');
       // Number
       doc.setFont('helvetica', 'bold');
@@ -281,18 +308,26 @@ export function generateJobPackPDF({ job, clientName, contractorName, data }) {
 
   // Map timeline colour names to RGB
   const COLOR_RGB = {
-    blue: BRAND.blue, emerald: BRAND.emerald, violet: BRAND.violet,
+    blue: BRAND.blue, emerald: BRAND.green, violet: BRAND.violet,
     amber: BRAND.amber, cyan: BRAND.cyan, slate: BRAND.slateLight,
     indigo: BRAND.indigo,
   };
   const timelineRgb = timeline.map(e => ({ ...e, colorRgb: COLOR_RGB[e.color] || BRAND.slate }));
 
   // ====== COVER PAGE ======
-  // Full-bleed gradient background
-  doc.setFillColor(...BRAND.emeraldDark);
+  // Full-bleed background — brand green base with orange top band
+  doc.setFillColor(...BRAND.greenDark);
   doc.rect(0, 0, PAGE.width, PAGE.height, 'F');
-  doc.setFillColor(...BRAND.emerald);
+  doc.setFillColor(...BRAND.orange);
   doc.rect(0, 0, PAGE.width, 120, 'F');
+  // Brand logo — large, white-backed, top-left
+  if (logoData) {
+    try {
+      doc.setFillColor(...BRAND.white);
+      doc.roundedRect(PAGE.marginLeft, 16, 60, 26, 3, 3, 'F');
+      doc.addImage(logoData, 'JPEG', PAGE.marginLeft + 3, 19, 54, 20, undefined, 'FAST');
+    } catch (e) {}
+  }
   // Decorative accent lines
   doc.setDrawColor(...BRAND.white);
   doc.setLineWidth(0.5);
@@ -303,12 +338,12 @@ export function generateJobPackPDF({ job, clientName, contractorName, data }) {
   doc.setTextColor(...BRAND.white);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text('ISO-COMPLIANT AUDIT TRAIL', PAGE.marginLeft, 30);
+  doc.text('ISO-COMPLIANT AUDIT TRAIL', PAGE.marginLeft, 47);
   doc.setFontSize(26);
-  doc.text(job.name || 'Job Pack', PAGE.marginLeft, 58);
+  doc.text(job.name || 'Job Pack', PAGE.marginLeft, 60);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(12);
-  doc.text(job.job_reference ? `Reference: ${job.job_reference}` : 'Audit Job Pack', PAGE.marginLeft, 68);
+  doc.text(job.job_reference ? `Reference: ${job.job_reference}` : 'Audit Job Pack', PAGE.marginLeft, 70);
 
   // Info box on cover
   const boxY = 90;
@@ -318,7 +353,7 @@ export function generateJobPackPDF({ job, clientName, contractorName, data }) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.text('JOB SUMMARY', PAGE.marginLeft + 5, boxY + 8);
-  doc.setDrawColor(...BRAND.emerald);
+  doc.setDrawColor(...BRAND.orange);
   doc.setLineWidth(0.5);
   doc.line(PAGE.marginLeft + 5, boxY + 10, PAGE.marginLeft + 40, boxY + 10);
 
@@ -353,10 +388,10 @@ export function generateJobPackPDF({ job, clientName, contractorName, data }) {
   const coverStats = [
     { label: 'Personnel', value: assignments.length, color: BRAND.blue },
     { label: 'Activity Logs', value: logs.length, color: BRAND.violet },
-    { label: 'Approved', value: approvedLogs.length, color: BRAND.emerald },
-    { label: 'Briefings', value: briefings.length, color: BRAND.emerald },
+    { label: 'Approved', value: approvedLogs.length, color: BRAND.green },
+    { label: 'Briefings', value: briefings.length, color: BRAND.green },
     { label: 'Equipment', value: assets.length + costItems.length, color: BRAND.amber },
-    { label: 'Confirmed Prices', value: confirmedQuotes.length, color: BRAND.emerald },
+    { label: 'Confirmed Prices', value: confirmedQuotes.length, color: BRAND.green },
     { label: 'Documents', value: documents.length, color: BRAND.slate },
     { label: 'Photos', value: photos.length, color: BRAND.cyan },
   ];
@@ -412,14 +447,14 @@ export function generateJobPackPDF({ job, clientName, contractorName, data }) {
   }
   subHeader('Audit Pack Summary', BRAND.slate);
   statCards([
-    { label: 'Personnel Records', value: assignments.length, color: BRAND.emeraldLight, accent: BRAND.blue },
-    { label: 'Activity Logs', value: logs.length, color: BRAND.emeraldLight, accent: BRAND.violet },
-    { label: 'Briefing Sign-offs', value: briefings.length, color: BRAND.emeraldLight, accent: BRAND.emerald },
-    { label: 'Equipment Items', value: assets.length + costItems.length, color: BRAND.emeraldLight, accent: BRAND.amber },
-    { label: 'Confirmed Prices', value: confirmedQuotes.length, color: BRAND.emeraldLight, accent: BRAND.emerald },
-    { label: 'Documents', value: documents.length, color: BRAND.emeraldLight, accent: BRAND.slate },
-    { label: 'Photos', value: photos.length, color: BRAND.emeraldLight, accent: BRAND.cyan },
-    { label: 'Milestones', value: milestones.length, color: BRAND.emeraldLight, accent: BRAND.indigo },
+    { label: 'Personnel Records', value: assignments.length, color: BRAND.greenLight, accent: BRAND.blue },
+    { label: 'Activity Logs', value: logs.length, color: BRAND.greenLight, accent: BRAND.violet },
+    { label: 'Briefing Sign-offs', value: briefings.length, color: BRAND.greenLight, accent: BRAND.green },
+    { label: 'Equipment Items', value: assets.length + costItems.length, color: BRAND.greenLight, accent: BRAND.amber },
+    { label: 'Confirmed Prices', value: confirmedQuotes.length, color: BRAND.greenLight, accent: BRAND.green },
+    { label: 'Documents', value: documents.length, color: BRAND.greenLight, accent: BRAND.slate },
+    { label: 'Photos', value: photos.length, color: BRAND.greenLight, accent: BRAND.cyan },
+    { label: 'Milestones', value: milestones.length, color: BRAND.greenLight, accent: BRAND.indigo },
   ], 4);
 
   // --- Personnel ---
@@ -465,7 +500,7 @@ export function generateJobPackPDF({ job, clientName, contractorName, data }) {
   // --- Compliance ---
   drawFooter(); newPage(); drawHeader();
   sectionHeader('4. Compliance & Sign-offs', SECTION_COLORS.compliance);
-  subHeader('Briefing Sign-offs', BRAND.emerald);
+  subHeader('Briefing Sign-offs', BRAND.green);
   table(
     ['Staff Member', 'Date', 'Summary'],
     briefings.map(b => [
@@ -475,14 +510,14 @@ export function generateJobPackPDF({ job, clientName, contractorName, data }) {
     ]),
     { colWidths: [40, 40, 98], empty: 'No briefing signatures recorded.' }
   );
-  subHeader('Log Review Trail', BRAND.emerald);
+  subHeader('Log Review Trail', BRAND.green);
   const approvedLogs2 = logs.filter(l => l.manager_review_status === 'approved');
   const pendingLogs = logs.filter(l => l.manager_review_status === 'pending');
   const queriedLogs = logs.filter(l => l.manager_review_status === 'queried');
   statCards([
-    { label: 'Approved', value: approvedLogs2.length, color: BRAND.emeraldLight, accent: BRAND.emerald },
-    { label: 'Pending', value: pendingLogs.length, color: BRAND.emeraldLight, accent: BRAND.amber },
-    { label: 'Queried', value: queriedLogs.length, color: BRAND.emeraldLight, accent: BRAND.red },
+    { label: 'Approved', value: approvedLogs2.length, color: BRAND.greenLight, accent: BRAND.green },
+    { label: 'Pending', value: pendingLogs.length, color: BRAND.greenLight, accent: BRAND.amber },
+    { label: 'Queried', value: queriedLogs.length, color: BRAND.greenLight, accent: BRAND.red },
   ], 3);
   if (queriedLogs.length > 0) {
     subHeader('Queried Logs (requiring attention)', BRAND.red);
@@ -527,7 +562,7 @@ export function generateJobPackPDF({ job, clientName, contractorName, data }) {
   sectionHeader('6. Commercial Confirmations', SECTION_COLORS.commercial);
   const totalConfirmed = confirmedQuotes.reduce((s, c) => s + (Number(c.negotiated_unit_cost) || 0) * (Number(c.quantity) || 1), 0);
   paragraph(`Total confirmed commercial value: ${gbp(totalConfirmed)} across ${confirmedQuotes.length} confirmed price(s).`, { size: 9, bold: true });
-  subHeader('Confirmed Prices (POA items with evidence)', BRAND.emerald);
+  subHeader('Confirmed Prices (POA items with evidence)', BRAND.green);
   table(
     ['Description', 'Unit Price', 'Qty', 'Total', 'Confirmed By', 'Evidence'],
     confirmedQuotes.map(c => [
