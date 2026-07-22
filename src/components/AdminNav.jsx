@@ -50,7 +50,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     <>
       <div className="px-6 pt-7 pb-5 border-b border-white/10">
         <div className="flex items-center justify-center">
-          <Logo variant="icon" height={56} />
+          <img src="https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/9d464f2bd_GCLogo.jpg" alt="Ground Control" className="w-48 h-auto object-contain mix-blend-multiply" />
         </div>
         <p className="text-center text-[10px] text-white/60 mt-3 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
       </div>
