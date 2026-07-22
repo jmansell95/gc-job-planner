@@ -6,8 +6,9 @@ import {
   Users, HardHat, FileText, ShieldCheck, Truck, PoundSterling,
   Camera, ClipboardList, Calendar, MapPin, Building2, User,
   Layers, FlaskConical, Activity, FileCheck, Download, Printer, X,
-  ChevronRight, Clock, Package,
+  ChevronRight, Clock, Package, Loader2,
 } from 'lucide-react';
+import { generateJobPackPDF } from '@/components/audit/JobPackReport';
 
 /**
  * The expandable "Job Pack" for a single job — an ISO-compliant audit trail
@@ -17,6 +18,7 @@ import {
  */
 export default function JobPackView({ job, clientName, contractorName }) {
   const [activeSection, setActiveSection] = useState('overview');
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   const { data: assignments = [] } = useQuery({
     queryKey: ['rota-audit', job.id],
@@ -187,23 +189,43 @@ export default function JobPackView({ job, clientName, contractorName }) {
     { id: 'timeline', label: 'Timeline', icon: Activity, count: timeline.length },
   ];
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownloadPDF = () => {
+    setGeneratingPDF(true);
+    try {
+      generateJobPackPDF({
+        job, clientName, contractorName,
+        data: { assignments, staffMap, logs, briefings, assets, costItems, documents, photos, milestones, deliveries, timeline },
+      });
+    } finally {
+      setGeneratingPDF(false);
+    }
   };
 
   return (
     <div className="p-4 space-y-4 print:p-0">
       {/* Section tabs */}
-      <div className="flex flex-wrap gap-1.5 print:hidden">
+      <div className="flex flex-wrap gap-1.5 print:hidden bg-white/60 backdrop-blur-sm rounded-xl p-2 border border-slate-200">
         {sections.map(s => {
           const Icon = s.icon;
           const isActive = activeSection === s.id;
+          const tabColors = {
+            overview: 'from-emerald-500 to-teal-600',
+            personnel: 'from-blue-500 to-indigo-600',
+            activity: 'from-violet-500 to-purple-600',
+            compliance: 'from-emerald-500 to-green-600',
+            equipment: 'from-amber-500 to-orange-600',
+            commercial: 'from-emerald-500 to-teal-600',
+            documents: 'from-slate-500 to-slate-600',
+            timeline: 'from-indigo-500 to-blue-600',
+          };
           return (
             <button
               key={s.id}
               onClick={() => setActiveSection(s.id)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                isActive ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                isActive
+                  ? `bg-gradient-to-br ${tabColors[s.id] || 'from-emerald-500 to-teal-600'} text-white shadow-md`
+                  : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 hover:border-slate-300'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -215,10 +237,12 @@ export default function JobPackView({ job, clientName, contractorName }) {
           );
         })}
         <button
-          onClick={handlePrint}
-          className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-700 text-white hover:bg-slate-800 transition"
+          onClick={handleDownloadPDF}
+          disabled={generatingPDF}
+          className="ml-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md hover:shadow-lg hover:from-emerald-700 hover:to-teal-700 transition-all disabled:opacity-60"
         >
-          <Printer className="w-3.5 h-3.5" /> Print Job Pack
+          {generatingPDF ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+          {generatingPDF ? 'Generating…' : 'Download Audit PDF'}
         </button>
       </div>
 
@@ -267,16 +291,19 @@ function OverviewSection({ job, clientName, contractorName, counts }) {
     { icon: ClipboardList, label: 'Milestones', value: counts.milestones, color: 'indigo' },
   ];
 
-  const colorMap = {
-    blue: 'bg-blue-50 text-blue-700', violet: 'bg-violet-50 text-violet-700',
-    emerald: 'bg-emerald-50 text-emerald-700', amber: 'bg-amber-50 text-amber-700',
-    cyan: 'bg-cyan-50 text-cyan-700', slate: 'bg-slate-50 text-slate-700',
-    indigo: 'bg-indigo-50 text-indigo-700',
+  const gradientMap = {
+    blue: 'stat-gradient-blue',
+    violet: 'stat-gradient-violet',
+    emerald: 'stat-gradient-emerald',
+    amber: 'stat-gradient-amber',
+    cyan: 'stat-gradient-cyan',
+    slate: 'stat-gradient-slate',
+    indigo: 'stat-gradient-indigo',
   };
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-lg border border-slate-200 p-4 print:border-0 print:p-2">
+      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm print:border-0 print:p-2">
         <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
           <ClipboardList className="w-4 h-4 text-emerald-600" /> Job Details
         </h3>
@@ -284,8 +311,8 @@ function OverviewSection({ job, clientName, contractorName, counts }) {
           {fields.map((f, i) => {
             const Icon = f.icon;
             return (
-              <div key={i} className="flex items-start gap-2">
-                <Icon className="w-3.5 h-3.5 text-slate-400 mt-0.5 flex-shrink-0" />
+              <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-slate-50/60">
+                <Icon className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{f.label}</p>
                   <p className="text-sm font-medium text-slate-800 truncate">{f.value}</p>
@@ -306,12 +333,12 @@ function OverviewSection({ job, clientName, contractorName, counts }) {
         {summaryCards.map((c, i) => {
           const Icon = c.icon;
           return (
-            <div key={i} className={`rounded-lg border border-slate-200 p-3 ${colorMap[c.color]}`}>
-              <div className="flex items-center gap-2 mb-1">
-                <Icon className="w-4 h-4" />
-                <p className="text-xl font-bold tabular-nums">{c.value}</p>
+            <div key={i} className={`rounded-xl p-3.5 text-white shadow-md ${gradientMap[c.color]} transition-transform hover:scale-[1.02]`}>
+              <div className="flex items-center justify-between mb-1">
+                <Icon className="w-5 h-5 opacity-80" />
+                <p className="text-2xl font-bold tabular-nums">{c.value}</p>
               </div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide">{c.label}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide opacity-95">{c.label}</p>
               {c.sub && <p className="text-[10px] opacity-75 mt-0.5">{c.sub}</p>}
             </div>
           );

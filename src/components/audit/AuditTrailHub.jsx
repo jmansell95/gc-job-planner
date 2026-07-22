@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { ShieldCheck, Search, ChevronDown, ChevronRight, FileText, Download, X } from 'lucide-react';
+import { ShieldCheck, Search, ChevronDown, ChevronRight, FileText, Download, X, Loader2 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import JobPackView from '@/components/audit/JobPackView';
 
@@ -56,22 +56,52 @@ export default function AuditTrailHub() {
         icon={ShieldCheck}
       />
 
+      {/* Summary banner */}
+      <div className="rounded-2xl overflow-hidden shadow-lg">
+        <div className="hero-gradient p-5 text-white">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-100/90">Total Jobs in Audit System</p>
+              <p className="text-3xl font-bold tabular-nums mt-0.5">{jobs.length}</p>
+            </div>
+            <div className="flex flex-wrap gap-6">
+              <div className="text-center">
+                <p className="text-2xl font-bold tabular-nums">{jobs.filter(j => j.status === 'in_progress').length}</p>
+                <p className="text-[10px] uppercase tracking-wide text-emerald-100/80">In Progress</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold tabular-nums">{jobs.filter(j => j.status === 'completed').length}</p>
+                <p className="text-[10px] uppercase tracking-wide text-emerald-100/80">Completed</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold tabular-nums">{jobs.filter(j => j.status === 'planning').length}</p>
+                <p className="text-[10px] uppercase tracking-wide text-emerald-100/80">Planning</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold tabular-nums">{filtered.length}</p>
+                <p className="text-[10px] uppercase tracking-wide text-emerald-100/80">Showing</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Search & filter */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search by job name, reference, location or project manager..."
-              className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-600"
+              className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition"
             />
           </div>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white"
+            className="px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 bg-white transition"
           >
             <option value="all">All statuses</option>
             <option value="planning">Planning</option>
@@ -83,40 +113,58 @@ export default function AuditTrailHub() {
           </select>
         </div>
         <p className="text-xs text-slate-500">
-          Showing {filtered.length} of {jobs.length} jobs. Click a job to expand its full audit pack.
+          Showing <span className="font-semibold text-slate-700">{filtered.length}</span> of {jobs.length} jobs. Click a job to expand its full audit pack.
         </p>
       </div>
 
       {/* Job list */}
       <div className="space-y-2">
         {isLoading && (
-          <div className="text-center py-12 text-sm text-slate-400">Loading jobs…</div>
+          <div className="text-center py-16">
+            <div className="inline-block w-8 h-8 border-4 border-emerald-100 border-t-emerald-500 rounded-full animate-spin"></div>
+            <p className="text-sm text-slate-400 mt-3">Loading audit jobs…</p>
+          </div>
         )}
         {!isLoading && filtered.length === 0 && (
-          <div className="text-center py-12 text-sm text-slate-400">No jobs match your search.</div>
+          <div className="text-center py-16 bg-white rounded-xl border border-slate-200">
+            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+              <ShieldCheck className="w-7 h-7 text-slate-300" />
+            </div>
+            <p className="text-sm font-medium text-slate-500">No jobs match your search.</p>
+            <p className="text-xs text-slate-400 mt-1">Try adjusting your search or status filter.</p>
+          </div>
         )}
         {filtered.map(job => {
           const isExpanded = expandedJob === job.id;
+          const borderColors = {
+            planning: 'border-l-blue-400',
+            in_progress: 'border-l-emerald-500',
+            decommissioning: 'border-l-amber-400',
+            completed: 'border-l-slate-400',
+            on_hold: 'border-l-orange-400',
+            cancelled: 'border-l-red-400',
+          };
+          const borderCls = borderColors[job.status] || 'border-l-slate-300';
           return (
-            <div key={job.id} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div key={job.id} className={`bg-white rounded-xl border border-slate-200 border-l-4 ${borderCls} shadow-sm overflow-hidden transition-shadow hover:shadow-md ${isExpanded ? 'shadow-md' : ''}`}>
               <button
                 onClick={() => setExpandedJob(isExpanded ? null : job.id)}
-                className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-slate-50 transition text-left"
+                className="w-full flex items-center gap-3 px-4 py-4 hover:bg-slate-50/70 transition text-left"
               >
                 {isExpanded
-                  ? <ChevronDown className="w-5 h-5 text-slate-400 flex-shrink-0" />
+                  ? <ChevronDown className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                   : <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0" />}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-semibold text-slate-900 truncate">{job.name}</p>
                     {job.job_reference && (
-                      <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">
+                      <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
                         {job.job_reference}
                       </span>
                     )}
                     <StatusBadge status={job.status} />
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5 truncate">
+                  <p className="text-xs text-slate-500 mt-1 truncate">
                     {job.location || 'No location'}
                     {clientMap[job.client_id] && ` · ${clientMap[job.client_id]}`}
                     {contractorMap[job.contractor_id] && ` · Contractor: ${contractorMap[job.contractor_id]}`}
@@ -127,7 +175,7 @@ export default function AuditTrailHub() {
                 <FileText className="w-4 h-4 text-slate-300 flex-shrink-0" />
               </button>
               {isExpanded && (
-                <div className="border-t border-slate-100 bg-slate-50/50">
+                <div className="border-t border-slate-100 bg-gradient-to-b from-slate-50/70 to-slate-50/30">
                   <JobPackView job={job} clientName={clientMap[job.client_id]} contractorName={contractorMap[job.contractor_id]} />
                 </div>
               )}
@@ -141,13 +189,26 @@ export default function AuditTrailHub() {
 
 function StatusBadge({ status }) {
   const styles = {
-    planning: 'bg-blue-100 text-blue-700',
-    in_progress: 'bg-emerald-100 text-emerald-700',
-    decommissioning: 'bg-amber-100 text-amber-700',
-    completed: 'bg-slate-100 text-slate-600',
-    on_hold: 'bg-orange-100 text-orange-700',
-    cancelled: 'bg-red-100 text-red-700',
+    planning: 'bg-blue-100 text-blue-700 border-blue-200',
+    in_progress: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    decommissioning: 'bg-amber-100 text-amber-700 border-amber-200',
+    completed: 'bg-slate-100 text-slate-600 border-slate-200',
+    on_hold: 'bg-orange-100 text-orange-700 border-orange-200',
+    cancelled: 'bg-red-100 text-red-700 border-red-200',
   };
-  const cls = styles[status] || 'bg-slate-100 text-slate-600';
-  return <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${cls}`}>{(status || 'unknown').replace('_', ' ')}</span>;
+  const dotColors = {
+    planning: 'bg-blue-500',
+    in_progress: 'bg-emerald-500',
+    decommissioning: 'bg-amber-500',
+    completed: 'bg-slate-400',
+    on_hold: 'bg-orange-500',
+    cancelled: 'bg-red-500',
+  };
+  const cls = styles[status] || 'bg-slate-100 text-slate-600 border-slate-200';
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold border ${cls}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${dotColors[status] || 'bg-slate-400'}`} />
+      {(status || 'unknown').replace('_', ' ')}
+    </span>
+  );
 }
