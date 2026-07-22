@@ -655,7 +655,7 @@ export default function StaffDashboard() {
                         <div key={a.id}>
                           {isActive && isStarted && (
                             <div className="flex items-center gap-2 mb-2">
-                              <div className="w-1 h-5 bg-[#8DC63F] rounded-full" />
+                              <div className="w-1 h-5 bg-[#F5821F] rounded-full" />
                               <p className="text-sm font-bold text-slate-700 uppercase tracking-wide">In Progress</p>
                             </div>
                           )}

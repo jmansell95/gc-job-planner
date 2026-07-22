@@ -87,7 +87,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             <button key={item.id} type="button" onClick={() => setActiveSection(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-lg text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
                 isActive
-                  ? 'bg-white/15 text-white shadow-[inset_3px_0_0_0_#8DC63F]'
+                  ? 'bg-white/15 text-white shadow-[inset_3px_0_0_0_#F5821F]'
                   : 'text-white/75 hover:bg-white/10 hover:text-white'
               }`}>
               <Icon className="w-5 h-5 flex-shrink-0" />
