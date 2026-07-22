@@ -505,20 +505,18 @@ export default function StaffDashboard() {
       {/* Header */}
       <div className="mesh-bg relative overflow-hidden">
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-7">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-5">
-            <div className="flex flex-col items-start gap-2 min-w-0">
-              <Logo variant="full" height={56} />
-              <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate tracking-tight">My Schedule</h1>
-                <p className="text-white/85 text-sm md:text-base mt-0.5 truncate">Welcome back, {staff.name.split(' ')[0]}</p>
-                <LiveClock
-                  className="mt-0.5"
-                  dateClassName="text-white/70 text-xs md:text-sm truncate"
-                  timeClassName="text-white/90 text-sm md:text-base font-semibold tabular-nums"
-                />
-              </div>
+          <div className="flex flex-col items-center text-center gap-2.5 mb-5">
+            <Logo variant="full" height={52} />
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight">My Schedule</h1>
+              <p className="text-white/85 text-sm md:text-base mt-0.5">Welcome back, {staff.name.split(' ')[0]}</p>
+              <LiveClock
+                className="mt-0.5 flex flex-col items-center"
+                dateClassName="text-white/70 text-xs md:text-sm"
+                timeClassName="text-white/90 text-sm md:text-base font-semibold tabular-nums"
+              />
             </div>
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-1.5">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-1.5 w-full max-w-xs sm:max-w-none">
               {staff.delivery_dashboard_enabled && (
                 <button onClick={() => navigate('/deliveries')} type="button"
                   className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
