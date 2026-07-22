@@ -162,7 +162,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
   return (
     <div>
       {/* Top bar — compact */}
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3">
         <button onClick={onBack} className="flex items-center gap-2 text-sm text-[#2E5A1A] hover:text-[#1c4a12] font-medium transition">
           <ArrowLeft className="w-4 h-4" /> Back to Jobs
         </button>
@@ -181,8 +181,8 @@ export default function JobDetail({ job: initialJob, onBack }) {
       </div>
 
       {/* Compact header — all key info in one band */}
-      <div className="rounded-2xl overflow-hidden mb-4 shadow-sm border border-slate-200">
-        <div className={`px-5 py-4 ${colors.bg} ${colors.border} border-b`}>
+      <div className="rounded-2xl overflow-hidden mb-3 sm:mb-4 shadow-sm border border-slate-200">
+        <div className={`px-4 py-3 sm:px-5 sm:py-4 ${colors.bg} ${colors.border} border-b`}>
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -216,7 +216,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
           </div>
         </div>
         {/* Metric chips strip — compact */}
-        <div className="px-5 py-2.5 bg-white border-t border-slate-100 flex items-center gap-3 md:gap-5 flex-wrap">
+        <div className="px-4 py-2 sm:px-5 sm:py-2.5 bg-white border-t border-slate-100 flex items-center gap-3 md:gap-5 flex-wrap">
           <div className="flex items-center gap-1.5 text-sm">
             <Users className="w-4 h-4 text-[#2E5A1A]" />
             <span className="font-bold text-slate-900">{assignedStaff.length}</span>

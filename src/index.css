@@ -307,3 +307,9 @@
 /* Leaflet map — ensure it renders above dashboard widgets but below modals */
 .leaflet-container { z-index: 1; }
 .hazard-map-marker { background: transparent; border: none; }
+
+/* Full-screen job modal on mobile: hide the default X close button
+   (the JobDetail header already provides a Back button). */
+@media (max-width: 639px) {
+  .dialog-fullscreen-mobile > button { display: none; }
+}
