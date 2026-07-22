@@ -50,6 +50,8 @@ export default function JobQuickDrawer({ job, onClose, onOpenFullDetails }) {
   });
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: assets = [] } = useQuery({ queryKey: ['site-assets'], queryFn: () => base44.entities.SiteAsset.list() });
+  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
+  const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list() });
   const { data: invLogs = [] } = useQuery({
     queryKey: ['drawer-inv-logs', job?.id], queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job.id }),
     enabled: !!job?.id
@@ -87,6 +89,9 @@ export default function JobQuickDrawer({ job, onClose, onOpenFullDetails }) {
 
   // Recent activity (last 5 logs)
   const recentLogs = [...invLogs].sort((a, b) => (b.created_date || '').localeCompare(a.created_date || '')).slice(0, 5);
+
+  const client = clients.find(c => c.id === job?.client_id);
+  const contractor = contractors.find(c => c.id === job?.contractor_id);
 
   const handleDownloadReport = async () => {
     setGeneratingReport(true);
@@ -145,6 +150,36 @@ export default function JobQuickDrawer({ job, onClose, onOpenFullDetails }) {
                 {job.project_manager && <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{job.project_manager}</span>}
               </div>
             </div>
+
+            {/* Key Details strip */}
+            {(client || contractor || job?.job_reference || job?.project_manager) && (
+              <div className="px-3.5 sm:px-5 pt-3 sm:pt-4">
+                <div className="flex flex-wrap gap-1.5">
+                  {client && (
+                    <span className="inline-flex items-center gap-1.5 bg-white border border-slate-200 rounded-full pl-1.5 pr-3 py-1 text-xs">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px]">{(client.name || '?').charAt(0)}</span>
+                      <span className="font-medium text-slate-700 max-w-[140px] truncate">{client.name}</span>
+                    </span>
+                  )}
+                  {contractor && (
+                    <span className="inline-flex items-center gap-1.5 bg-white border border-slate-200 rounded-full pl-1.5 pr-3 py-1 text-xs">
+                      <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-[10px]">{(contractor.name || '?').charAt(0)}</span>
+                      <span className="font-medium text-slate-700 max-w-[140px] truncate">{contractor.name}</span>
+                    </span>
+                  )}
+                  {job?.job_reference && (
+                    <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-600 rounded-full px-2.5 py-1 text-xs font-medium">
+                      <span className="text-slate-400">Ref</span> {job.job_reference}
+                    </span>
+                  )}
+                  {job?.project_manager && (
+                    <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 rounded-full px-2.5 py-1 text-xs font-medium">
+                      <Users className="w-3 h-3" /> {job.project_manager}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Quick Stats */}
             <div className="p-3.5 sm:p-5 space-y-4 sm:space-y-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">

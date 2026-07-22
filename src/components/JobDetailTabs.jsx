@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Boxes, PoundSterling, FolderOpen, FileText, Eye, Download, Activity, Mountain,
@@ -69,8 +71,28 @@ export default function JobDetailTabs({
   staffCosts, totalMeterage, hotelBookings, colors, statusBadge, statusLabels,
   startDate, endDate, jobProject, siblingJobs, onProjectClick, jobTypes = []
 }) {
+  const queryClient = useQueryClient();
   const [showPortalDialog, setShowPortalDialog] = useState(false);
   const [showProjectJobs, setShowProjectJobs] = useState(false);
+  const [portalEnabled, setPortalEnabled] = useState(job.portal_enabled || false);
+  const [togglingPortal, setTogglingPortal] = useState(false);
+
+  useEffect(() => { setPortalEnabled(job.portal_enabled || false); }, [job.id, job.portal_enabled]);
+
+  const enabledSections = job.portal_sections ? Object.values(job.portal_sections).filter(Boolean).length : 10;
+
+  const handleTogglePortal = async () => {
+    const next = !portalEnabled;
+    setPortalEnabled(next);
+    setTogglingPortal(true);
+    try {
+      await base44.entities.Job.update(job.id, { portal_enabled: next });
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    } catch (e) {
+      setPortalEnabled(!next);
+    }
+    setTogglingPortal(false);
+  };
 
   const assignedVehicleIds = [...new Set(rotas.map(r => r.vehicle_id).filter(Boolean))];
   const assignedVehicles = assignedVehicleIds.map(id => vehicles.find(v => v.id === id)).filter(Boolean);
@@ -78,15 +100,15 @@ export default function JobDetailTabs({
   return (
     <Tabs defaultValue="overview" className="w-full">
       <div className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200 -mx-1 px-1 py-2 mb-4 rounded-t-xl">
-        <TabsList className="flex w-full flex-nowrap overflow-x-auto no-scrollbar h-auto p-1 gap-1">
-          <TabsTrigger value="overview" className="text-xs sm:text-sm flex-1 min-w-[70px] inline-flex items-center justify-center gap-1.5"><LayoutGrid className="w-3.5 h-3.5 shrink-0" />Overview</TabsTrigger>
-          <TabsTrigger value="schedule" className="text-xs sm:text-sm flex-1 min-w-[70px] inline-flex items-center justify-center gap-1.5"><CalendarDays className="w-3.5 h-3.5 shrink-0" />Schedule</TabsTrigger>
-          <TabsTrigger value="activity" className="text-xs sm:text-sm flex-1 min-w-[70px] inline-flex items-center justify-center gap-1.5"><Activity className="w-3.5 h-3.5 shrink-0" />Site Logs</TabsTrigger>
-          <TabsTrigger value="logistics" className="text-xs sm:text-sm flex-1 min-w-[70px] inline-flex items-center justify-center gap-1.5"><Boxes className="w-3.5 h-3.5 shrink-0" />Logistics</TabsTrigger>
-          <TabsTrigger value="boreholes" className="text-xs sm:text-sm flex-1 min-w-[70px] inline-flex items-center justify-center gap-1.5"><Mountain className="w-3.5 h-3.5 shrink-0" />Boreholes</TabsTrigger>
-          <TabsTrigger value="compliance" className="text-xs sm:text-sm flex-1 min-w-[70px] inline-flex items-center justify-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 shrink-0" />Compliance</TabsTrigger>
-          {canSeeCosts && <TabsTrigger value="financials" className="text-xs sm:text-sm flex-1 min-w-[70px] inline-flex items-center justify-center gap-1.5"><PoundSterling className="w-3.5 h-3.5 shrink-0" />Financials</TabsTrigger>}
-          <TabsTrigger value="documents" className="text-xs sm:text-sm flex-1 min-w-[70px] inline-flex items-center justify-center gap-1.5"><FolderOpen className="w-3.5 h-3.5 shrink-0" />Documents</TabsTrigger>
+        <TabsList className="flex w-full flex-nowrap overflow-x-auto no-scrollbar h-auto p-1.5 gap-1.5 justify-start sm:justify-center">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><LayoutGrid className="w-3.5 h-3.5 shrink-0" />Overview</TabsTrigger>
+          <TabsTrigger value="schedule" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><CalendarDays className="w-3.5 h-3.5 shrink-0" />Schedule</TabsTrigger>
+          <TabsTrigger value="activity" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Activity className="w-3.5 h-3.5 shrink-0" />Site Logs</TabsTrigger>
+          <TabsTrigger value="logistics" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Boxes className="w-3.5 h-3.5 shrink-0" />Logistics</TabsTrigger>
+          <TabsTrigger value="boreholes" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Mountain className="w-3.5 h-3.5 shrink-0" />Boreholes</TabsTrigger>
+          <TabsTrigger value="compliance" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><ShieldCheck className="w-3.5 h-3.5 shrink-0" />Compliance</TabsTrigger>
+          {canSeeCosts && <TabsTrigger value="financials" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><PoundSterling className="w-3.5 h-3.5 shrink-0" />Financials</TabsTrigger>}
+          <TabsTrigger value="documents" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><FolderOpen className="w-3.5 h-3.5 shrink-0" />Documents</TabsTrigger>
         </TabsList>
       </div>
 
@@ -211,14 +233,30 @@ export default function JobDetailTabs({
               <FolderOpen className="w-4 h-4 text-slate-300 flex-shrink-0" />
             </button>
           )}
-          <button onClick={() => setShowPortalDialog(true)} className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 hover:shadow-md transition text-left">
-            <div className="w-9 h-9 rounded-lg bg-[#2E5A1A]/10 flex items-center justify-center flex-shrink-0"><ShieldCheck className="w-4 h-4 text-[#2E5A1A]" /></div>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-slate-900 text-sm">Client Portal</p>
-              <p className="text-xs text-slate-400">{job.portal_enabled ? 'Enabled' : 'Disabled'} · {job.portal_sections ? Object.values(job.portal_sections).filter(Boolean).length : 10}/10 sections</p>
+          <div className={`rounded-xl border shadow-sm overflow-hidden transition ${portalEnabled ? 'border-[#2E5A1A]/30 bg-gradient-to-br from-[#2E5A1A]/5 to-white' : 'border-slate-200 bg-white'}`}>
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition ${portalEnabled ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-400'}`}>
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-slate-900 text-sm">Client Portal Access</p>
+                <p className="text-xs text-slate-400">{portalEnabled ? 'Client can view this job' : 'Hidden from client'} · {enabledSections}/10 sections visible</p>
+              </div>
+              <button
+                onClick={handleTogglePortal}
+                disabled={togglingPortal}
+                className={`relative inline-flex h-7 w-12 items-center rounded-full transition flex-shrink-0 disabled:opacity-50 ${portalEnabled ? 'bg-[#2E5A1A]' : 'bg-slate-300'}`}
+                aria-pressed={portalEnabled}
+                aria-label="Toggle client portal access"
+              >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${portalEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
             </div>
-            <span className={`text-xs px-2 py-1 rounded-full font-medium flex-shrink-0 ${job.portal_enabled ? 'bg-[#2E5A1A]/15 text-[#2E5A1A]' : 'bg-slate-100 text-slate-500'}`}>{job.portal_enabled ? 'ON' : 'OFF'}</span>
-          </button>
+            <button onClick={() => setShowPortalDialog(true)} className="w-full flex items-center justify-between gap-2 px-4 py-2.5 border-t border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition text-left">
+              <span className="flex items-center gap-2 text-xs font-medium text-[#2E5A1A]"><Eye className="w-3.5 h-3.5" /> Manage which sections the client can see</span>
+              <span className="text-xs text-slate-400">{enabledSections}/10 →</span>
+            </button>
+          </div>
         </div>
 
         {/* Full notes */}
