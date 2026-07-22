@@ -10,7 +10,7 @@ import { Skeleton, EmptyState } from '@/components/StateViews';
 import { strataColors, strataConfig } from '@/components/investigation/shared';
 import BoreholeDetailModal from '@/components/borehole/BoreholeDetailModal';
 
-export default function BoreholeDrillDown({ job }) {
+export default function BoreholeDrillDown({ job, jobType }) {
   const { data: allLogs = [], isLoading } = useQuery({
     queryKey: ['investigation-logs', job.id],
     queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job.id }),
@@ -19,6 +19,12 @@ export default function BoreholeDrillDown({ job }) {
   // Only show borehole data from KeyLogBook AGS imports — drillers record
   // borehole data in KeyLogBook, not manually in the app.
   const logs = useMemo(() => allLogs.filter(l => l.source === 'ags_import'), [allLogs]);
+
+  // Strata is not required from AGS import for drilling jobs:
+  //  - Rotary drilling: no strata and no samples (coring only)
+  //  - Cable Percussive (CP): samples needed, but no strata
+  const hideStrata = jobType === 'rotary_drilling' || jobType === 'cp_drilling';
+  const hideSamples = jobType === 'rotary_drilling';
 
   // Group all AGS logs by borehole_ref
   const boreholes = useMemo(() => {
@@ -134,7 +140,7 @@ export default function BoreholeDrillDown({ job }) {
                   </div>
 
                   {/* Mini strata visual bar */}
-                  {s.strataLogs.length > 0 && (
+                  {!hideStrata && s.strataLogs.length > 0 && (
                     <div className="mb-2">
                       <MiniStrataBar strataLogs={s.strataLogs} maxDepth={s.maxDepth} />
                     </div>
@@ -156,7 +162,7 @@ export default function BoreholeDrillDown({ job }) {
 
                   {/* Data type chips */}
                   <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
-                    {s.strataCount > 0 && (
+                    {!hideStrata && s.strataCount > 0 && (
                       <Chip icon={Layers} count={s.strataCount} color="amber" />
                     )}
                     {s.sptCount > 0 && (
@@ -165,7 +171,7 @@ export default function BoreholeDrillDown({ job }) {
                     {s.coreCount > 0 && (
                       <Chip icon={Boxes} count={s.coreCount} color="fuchsia" />
                     )}
-                    {s.sampleCount > 0 && (
+                    {!hideSamples && s.sampleCount > 0 && (
                       <Chip icon={TestTube} count={s.sampleCount} color="purple" />
                     )}
                     {s.installCount > 0 && (
@@ -187,6 +193,7 @@ export default function BoreholeDrillDown({ job }) {
         <BoreholeDetailModal
           boreholeRef={selectedRef}
           logs={activeLogs}
+          jobType={jobType}
           onClose={() => setSelectedRef(null)}
         />
       )}

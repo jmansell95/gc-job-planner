@@ -25,8 +25,15 @@ const TABS = [
   { key: 'other', label: 'Other Activity', icon: ClipboardList },
 ];
 
-export default function BoreholeDetailModal({ boreholeRef, logs, onClose }) {
+export default function BoreholeDetailModal({ boreholeRef, logs, jobType, onClose }) {
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Strata is not required from AGS import for drilling jobs:
+  //  - Rotary drilling: no strata and no samples (coring only)
+  //  - Cable Percussive (CP): samples needed, but no strata
+  const hideStrata = jobType === 'rotary_drilling' || jobType === 'cp_drilling';
+  const hideSamples = jobType === 'rotary_drilling';
+  const visibleTabs = TABS.filter(t => !((t.key === 'strata' && hideStrata) || (t.key === 'samples' && hideSamples)));
 
   // Close on Escape
   useEffect(() => {
@@ -90,7 +97,7 @@ export default function BoreholeDetailModal({ boreholeRef, logs, onClose }) {
         {/* Tab bar */}
         <div className="border-b border-slate-200 bg-slate-50/50 px-2 flex-shrink-0 overflow-x-auto no-scrollbar">
           <div className="flex gap-0.5 py-1.5 min-w-min">
-            {TABS.map(tab => {
+            {visibleTabs.map(tab => {
               const count = tabCounts[tab.key];
               const hasData = count === null || count > 0;
               const isActive = activeTab === tab.key;
@@ -123,11 +130,11 @@ export default function BoreholeDetailModal({ boreholeRef, logs, onClose }) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5">
-          {activeTab === 'overview' && <OverviewTab summary={summary} logs={logs} />}
-          {activeTab === 'strata' && <StrataTab logs={summary.strataLogs} maxDepth={summary.maxDepth} groundwaterDepth={summary.progressLog?.groundwater_strike_depth} />}
+          {activeTab === 'overview' && <OverviewTab summary={summary} logs={logs} hideStrata={hideStrata} hideSamples={hideSamples} />}
+          {activeTab === 'strata' && !hideStrata && <StrataTab logs={summary.strataLogs} maxDepth={summary.maxDepth} groundwaterDepth={summary.progressLog?.groundwater_strike_depth} />}
           {activeTab === 'core' && <CoreTab logs={summary.coreLogs} />}
           {activeTab === 'spt' && <SptTab logs={summary.sptLogs} />}
-          {activeTab === 'samples' && <SamplesTab logs={summary.sampleLogs} />}
+          {activeTab === 'samples' && !hideSamples && <SamplesTab logs={summary.sampleLogs} />}
           {activeTab === 'installations' && <InstallationsTab logs={summary.installLogs} />}
           {activeTab === 'groundwater' && <GroundwaterTab summary={summary} logs={logs} />}
           {activeTab === 'other' && <OtherTab logs={summary.otherLogs} />}
@@ -199,7 +206,7 @@ function getBoreholeSummary(logs) {
 }
 
 // ===== Overview Tab =====
-function OverviewTab({ summary, logs }) {
+function OverviewTab({ summary, logs, hideStrata, hideSamples }) {
   const s = summary;
   return (
     <div className="space-y-4">
@@ -207,16 +214,16 @@ function OverviewTab({ summary, logs }) {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         <KpiTile icon={ArrowDownToLine} label="Final Depth" value={s.progressLog?.depth_to != null ? `${s.progressLog.depth_to}m` : (s.maxDepth != null ? `${s.maxDepth}m` : '—')} color="bg-blue-50 text-blue-700" />
         <KpiTile icon={Droplets} label="Water Strike" value={s.progressLog?.groundwater_strike_depth != null ? `${s.progressLog.groundwater_strike_depth}m` : '—'} color="bg-cyan-50 text-cyan-700" />
-        <KpiTile icon={Layers} label="Strata Runs" value={s.strataCount} color="bg-amber-50 text-amber-700" />
+        {!hideStrata && <KpiTile icon={Layers} label="Strata Runs" value={s.strataCount} color="bg-amber-50 text-amber-700" />}
         <KpiTile icon={Calculator} label="SPT Tests" value={s.sptCount} color="bg-violet-50 text-violet-700" />
         <KpiTile icon={Boxes} label="Core Runs" value={s.coreCount} color="bg-fuchsia-50 text-fuchsia-700" />
-        <KpiTile icon={TestTube} label="Samples" value={s.sampleCount} color="bg-purple-50 text-purple-700" />
+        {!hideSamples && <KpiTile icon={TestTube} label="Samples" value={s.sampleCount} color="bg-purple-50 text-purple-700" />}
         <KpiTile icon={Package} label="Installations" value={s.installCount} color="bg-emerald-50 text-emerald-700" />
         <KpiTile icon={Gauge} label="Water Readings" value={s.waterReadingCount} color="bg-teal-50 text-teal-700" />
       </div>
 
       {/* Visual strata column + geological summary */}
-      {s.strataLogs.length > 0 && (
+      {!hideStrata && s.strataLogs.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-1">
             <div className="rounded-xl border border-slate-200 overflow-hidden">
@@ -248,7 +255,7 @@ function OverviewTab({ summary, logs }) {
                             <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${sc.color}`}>{sc.label}</span>
                           )}
                           <span className="text-xs text-slate-500 inline-flex items-center gap-0.5">
-                            <Ruler className="w-2.5 h-2.5" />{l.depth_from ?? '?'}–{l.depth_to ?? '?'}m
+                            <Ruler className="w-2.5 h-2.5" />{formatDepthRange(l.depth_from, l.depth_to)}
                           </span>
                           {thickness && <span className="text-xs text-slate-400">· {thickness}m</span>}
                         </div>
@@ -346,7 +353,7 @@ function StrataTab({ logs, maxDepth, groundwaterDepth }) {
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${sc.color}`}>{sc.label}</span>
                         )}
                         <span className="text-xs text-slate-500 inline-flex items-center gap-0.5 font-mono">
-                          <Ruler className="w-2.5 h-2.5" />{l.depth_from ?? '?'}–{l.depth_to ?? '?'}m
+                          <Ruler className="w-2.5 h-2.5" />{formatDepthRange(l.depth_from, l.depth_to)}
                         </span>
                         {thickness && <span className="text-xs text-slate-400">· {thickness}m thick</span>}
                       </div>
@@ -683,6 +690,15 @@ function OtherTab({ logs }) {
 }
 
 // ===== Shared helpers =====
+function formatDepthRange(from, to) {
+  const hasFrom = from != null && from !== '';
+  const hasTo = to != null && to !== '';
+  if (hasFrom && hasTo) return `${from}–${to}m`;
+  if (hasFrom) return `${from}m`;
+  if (hasTo) return `${to}m`;
+  return '—';
+}
+
 function KpiTile({ icon: Icon, label, value, color }) {
   return (
     <div className="rounded-xl border border-slate-200 p-3 bg-white">

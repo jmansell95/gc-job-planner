@@ -33,7 +33,7 @@ export default function JobDetailTabs({ job, primaryType, assignedStaff, allStaf
 
       {/* Boreholes Tab */}
       <TabsContent value="boreholes" className="space-y-6 mt-4">
-        <BoreholeDrillDown job={job} />
+        <BoreholeDrillDown job={job} jobType={primaryType} />
       </TabsContent>
 
       {/* Schedule Tab */}
