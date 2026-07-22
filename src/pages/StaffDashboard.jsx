@@ -506,14 +506,14 @@ export default function StaffDashboard() {
       <div className="mesh-bg relative overflow-hidden">
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-7">
           <div className="flex flex-col items-center text-center gap-2.5 mb-5">
-            <Logo variant="full" height={52} />
+            <Logo variant="full" height={72} />
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight">My Schedule</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight">My Schedule</h1>
               <p className="text-white/85 text-sm md:text-base mt-0.5">Welcome back, {staff.name.split(' ')[0]}</p>
               <LiveClock
                 className="mt-0.5 flex flex-col items-center"
                 dateClassName="text-white/70 text-xs md:text-sm"
-                timeClassName="text-white/90 text-sm md:text-base font-semibold tabular-nums"
+                timeClassName="text-white/90 text-base md:text-lg font-semibold tabular-nums"
               />
             </div>
             <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-1.5 w-full max-w-xs sm:max-w-none">
