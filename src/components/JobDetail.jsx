@@ -2,58 +2,22 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, MapPin, Calendar, Users, Truck, FileText, Briefcase,
-  Clock, Eye, Download, User, HardHat, Phone, Mail, Tag, Edit2,
-  ShieldCheck, PlayCircle, CheckCircle2, MessageSquare,
-  UsersRound, CalendarClock, Send, AlertCircle, Cog, Wrench, Package,
-  FileBarChart, PoundSterling, Ruler, FolderOpen, ArrowRight
+  ArrowLeft, MapPin, Calendar, Users, Clock, Edit2,
+  CalendarClock, AlertCircle, FileBarChart, PoundSterling, Ruler,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
 import JobForm from '@/components/JobForm';
-import PortalLinkManager from '@/components/PortalLinkManager';
-import PortalSectionManager from '@/components/PortalSectionManager';
-import DocumentManager from '@/components/DocumentManager';
-import MilestoneManager from '@/components/MilestoneManager';
-import JobCostingManager from '@/components/JobCostingManager';
-import JobCommentsViewer from '@/components/JobCommentsViewer';
-import JobWorkLog from '@/components/JobWorkLog';
-import JobPhotoGallery from '@/components/JobPhotoGallery';
 import { getJobPrimaryType, isDrillingJob as isDrillingJobByTeams, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import { getCrewLabel } from '@/utils/terminology';
-import { computeStaffOvertime, buildRateMap, getAssignmentMultiplier } from '@/utils/overtime';
 import { canViewCostings } from '@/utils/access';
 import JobStatusModal from '@/components/JobStatusModal';
-import JobHotelBookings from '@/components/JobHotelBookings';
-import InvestigationLogManager from '@/components/InvestigationLogManager';
 import JobDetailTabs from '@/components/JobDetailTabs';
-import JobScheduleOverview from '@/components/JobScheduleOverview';
 import JobWarningsBanner from '@/components/JobWarningsBanner';
-import StaffActivityBreakdown from '@/components/StaffActivityBreakdown';
-import RigCompliancePanel from '@/components/RigCompliancePanel';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-
-const jobTypeColors = {
-  groundworks: { bg: 'bg-emerald-100', text: 'text-emerald-800', dot: 'bg-emerald-500', border: 'border-emerald-200' },
-  cp_drilling: { bg: 'bg-amber-100', text: 'text-amber-800', dot: 'bg-amber-500', border: 'border-amber-200' },
-  rotary_drilling: { bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-500', border: 'border-blue-200' },
-  enabling_works: { bg: 'bg-purple-100', text: 'text-purple-800', dot: 'bg-purple-500', border: 'border-purple-200' },
-  depot: { bg: 'bg-slate-100', text: 'text-slate-700', dot: 'bg-slate-400', border: 'border-slate-200' },
-};
 
 const roleLabels = {
-  groundworker: 'Groundworker',
-  cp_driller: 'CP Driller',
-  rotary_driller: 'Rotary Driller',
-  enabling_crew: 'Enabling Crew',
-  depot: 'Depot',
-  supervisor: 'Supervisor',
-};
-
-const workerTypeBadge = {
-  direct_employee: 'bg-emerald-100 text-emerald-700',
-  subcontractor: 'bg-orange-100 text-orange-700',
-  agency: 'bg-blue-100 text-blue-700',
+  groundworker: 'Groundworker', cp_driller: 'CP Driller', rotary_driller: 'Rotary Driller',
+  enabling_crew: 'Enabling Crew', depot: 'Depot', supervisor: 'Supervisor',
 };
 
 const statusBadge = {
@@ -66,13 +30,19 @@ const statusBadge = {
 };
 
 const statusLabels = {
-  planning: 'Planning', in_progress: 'In Progress', decommissioning: 'Decommissioning', completed: 'Completed', on_hold: 'On Hold', cancelled: 'Cancelled',
+  planning: 'Planning', in_progress: 'In Progress', decommissioning: 'Decommissioning',
+  completed: 'Completed', on_hold: 'On Hold', cancelled: 'Cancelled',
 };
 
 export default function JobDetail({ job: initialJob, onBack }) {
   const [job, setJob] = useState(initialJob);
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({});
+  const [editingId, setEditingId] = useState(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [generatingReport, setGeneratingReport] = useState(false);
 
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
@@ -82,19 +52,43 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const colors = getJobTypeColor(primaryType, jobTypes);
   const jobProject = projects.find(p => p.id === job.project_id) || null;
   const siblingJobs = jobProject ? allJobs.filter(j => j.project_id === jobProject.id && j.id !== job.id) : [];
-  const [showProjectJobs, setShowProjectJobs] = useState(false);
-  const [formData, setFormData] = useState({});
-  const [editingId, setEditingId] = useState(null);
-  const [uploadingFile, setUploadingFile] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [generatingReport, setGeneratingReport] = useState(false);
-  const [showPortalDialog, setShowPortalDialog] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ['my-staff-profile'],
     queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; }
   });
   const canSeeCosts = canViewCostings(profile);
+
+  const { data: allStaff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
+  const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
+  const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list() });
+  const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list() });
+  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers-job-detail'], queryFn: () => base44.entities.Supplier.list() });
+  const { data: rotas = [] } = useQuery({ queryKey: ['rotas-for-job', job.id], queryFn: () => base44.entities.RotaAssignment.filter({ job_id: job.id }) });
+  const { data: hotelBookings = [] } = useQuery({ queryKey: ['hotel-bookings-for-job', job.id], queryFn: () => base44.entities.HotelBooking.filter({ job_id: job.id }) });
+
+  const assignedStaffIds = [...new Set(rotas.map(r => r.staff_id))];
+  const assignedStaff = assignedStaffIds.map(id => allStaff.find(s => s.id === id)).filter(Boolean);
+  const client = clients.find(c => c.id === job.client_id);
+  const contractor = contractors.find(c => c.id === job.contractor_id);
+
+  const rotasByDate = {};
+  rotas.forEach(r => { if (!rotasByDate[r.assigned_date]) rotasByDate[r.assigned_date] = []; rotasByDate[r.assigned_date].push(r); });
+  const sortedDates = Object.keys(rotasByDate).sort();
+
+  const isDrillingJob = isDrillingJobByTeams(job, teams, jobTypes);
+  const jobMeterage = isDrillingJob && job.meterage != null && job.meterage !== '' ? Number(job.meterage) : 0;
+  const useJobMeterage = jobMeterage > 0;
+  const staffCosts = assignedStaff.map(member => {
+    const memberRotas = rotas.filter(r => r.staff_id === member.id);
+    const memberMeterage = memberRotas.reduce((sum, r) => sum + (r.meterage || 0), 0);
+    return { name: member.name, role: roleLabels[member.job_role] || member.job_role, shifts: memberRotas.length, overtimeShifts: memberRotas.filter(r => r.is_overtime).length, meterage: useJobMeterage ? jobMeterage : memberMeterage, cost: 0 };
+  });
+  const totalCost = 0;
+  const totalMeterage = useJobMeterage ? jobMeterage : staffCosts.reduce((sum, s) => sum + s.meterage, 0);
+
+  const startDate = job.start_date ? new Date(job.start_date + 'T00:00:00') : null;
+  const endDate = job.end_date ? new Date(job.end_date + 'T00:00:00') : null;
 
   const handleFullReport = async () => {
     setGeneratingReport(true);
@@ -105,9 +99,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
       win.document.close();
       win.focus();
       setTimeout(() => win.print(), 500);
-    } catch (err) {
-      console.error('Report generation error:', err);
-    }
+    } catch (err) { console.error('Report generation error:', err); }
     setGeneratingReport(false);
   };
 
@@ -117,11 +109,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
     queryClient.invalidateQueries({ queryKey: ['jobs'] });
   };
 
-  const handleEdit = () => {
-    setFormData({ ...job });
-    setEditingId(job.id);
-    setShowForm(true);
-  };
+  const handleEdit = () => { setFormData({ ...job }); setEditingId(job.id); setShowForm(true); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -129,8 +117,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
       await base44.entities.Job.update(editingId, formData);
       setJob(prev => ({ ...prev, ...formData }));
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      setShowForm(false);
-      setEditingId(null);
+      setShowForm(false); setEditingId(null);
     } catch (err) { console.error('Error saving job:', err); }
   };
 
@@ -145,160 +132,19 @@ export default function JobDetail({ job: initialJob, onBack }) {
     setUploadingFile(false);
   };
 
+  const handleProjectJobSelect = (sib) => { setJob(sib); window.scrollTo(0, 0); };
+
   const buildJobPrintHtml = () => {
     const staffRows = assignedStaff.map(s => {
       const shifts = rotas.filter(r => r.staff_id === s.id).length;
-      const vids = [...new Set(rotas.filter(r => r.staff_id === s.id).map(r => r.vehicle_id).filter(Boolean))];
-      const vehs = vids.map(id => vehicles.find(v => v.id === id)?.registration_number).filter(Boolean).join(', ');
-      return `<tr><td>${s.name}</td><td>${roleLabels[s.job_role] || s.job_role}</td><td>${s.worker_type?.replace(/_/g,' ')}</td><td>${shifts}</td><td>${vehs || '—'}</td></tr>`;
-    }).join('');
-    const scheduleRows = sortedDates.map(date => {
-      const dayRotas = rotasByDate[date];
-      const d = new Date(date + 'T00:00:00');
-      const names = dayRotas.map(r => {
-        const m = allStaff.find(s => s.id === r.staff_id);
-        const v = vehicles.find(v => v.id === r.vehicle_id);
-        return m ? `${m.name}${v ? ' ('+v.registration_number+')' : ''}` : '';
-      }).filter(Boolean).join(', ');
-      return `<tr><td>${format(d, 'EEEE, dd MMM yyyy')}</td><td>${names}</td></tr>`;
+      return `<tr><td>${s.name}</td><td>${roleLabels[s.job_role] || s.job_role}</td><td>${s.worker_type?.replace(/_/g,' ')}</td><td>${shifts}</td></tr>`;
     }).join('');
     return `<!DOCTYPE html><html><head><title>Job Report – ${job.name}</title>
-    <style>
-      body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; color: #111; }
-      h1 { font-size: 18px; margin-bottom: 2px; }
-      h2 { font-size: 13px; margin: 16px 0 6px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
-      .meta { color: #555; font-size: 11px; margin-bottom: 14px; }
-      table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-      th { background: #1a5c3a; color: white; padding: 5px 8px; text-align: left; font-size: 11px; }
-      td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; }
-      tr:nth-child(even) td { background: #f8fafb; }
-      @media print { body { margin: 10mm; } }
-    </style></head><body>
-    <h1>${job.name}</h1>
-    <div class="meta">
-      ${getJobTypeLabel(primaryType, jobTypes)} &nbsp;·&nbsp; ${job.location} &nbsp;·&nbsp; ${job.start_date} → ${job.end_date || 'TBC'}
-      &nbsp;·&nbsp; Printed ${format(new Date(), 'dd MMM yyyy HH:mm')}
-    </div>
-    ${assignedStaff.length > 0 ? `<h2>Assigned Staff (${assignedStaff.length})</h2>
-    <table><thead><tr><th>Name</th><th>Role</th><th>Type</th><th>Shifts</th><th>Vehicles</th></tr></thead>
-    <tbody>${staffRows}</tbody></table>` : ''}
-    ${sortedDates.length > 0 ? `<h2>Daily Schedule</h2>
-    <table><thead><tr><th>Date</th><th>Personnel</th></tr></thead>
-    <tbody>${scheduleRows}</tbody></table>` : ''}
-    ${job.notes ? `<h2>Notes</h2><p>${job.notes}</p>` : ''}
-    </body></html>`;
+    <style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#111}h1{font-size:18px;margin-bottom:2px}h2{font-size:13px;margin:16px 0 6px;border-bottom:1px solid #ccc;padding-bottom:4px}table{width:100%;border-collapse:collapse}th{background:#1a5c3a;color:white;padding:5px 8px;text-align:left;font-size:11px}td{padding:5px 8px;border-bottom:1px solid #e2e8f0}@media print{body{margin:10mm}}</style></head><body>
+    <h1>${job.name}</h1><div style="color:#555;font-size:11px;margin-bottom:14px">${getJobTypeLabel(primaryType, jobTypes)} · ${job.location} · ${job.start_date} → ${job.end_date || 'TBC'}</div>
+    ${assignedStaff.length > 0 ? `<h2>Assigned Staff (${assignedStaff.length})</h2><table><thead><tr><th>Name</th><th>Role</th><th>Type</th><th>Shifts</th></tr></thead><tbody>${staffRows}</tbody></table>` : ''}
+    ${job.notes ? `<h2>Notes</h2><p>${job.notes}</p>` : ''}</body></html>`;
   };
-
-  const { data: allStaff = [] } = useQuery({
-    queryKey: ['staff'],
-    queryFn: () => base44.entities.Staff.list()
-  });
-
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ['vehicles'],
-    queryFn: () => base44.entities.Vehicle.list()
-  });
-
-  const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list()
-  });
-
-  const { data: contractors = [] } = useQuery({
-    queryKey: ['contractors'],
-    queryFn: () => base44.entities.Contractor.list()
-  });
-
-  const { data: suppliers = [] } = useQuery({
-    queryKey: ['suppliers-job-detail'],
-    queryFn: () => base44.entities.Supplier.list()
-  });
-
-  const { data: rotas = [] } = useQuery({
-    queryKey: ['rotas-for-job', job.id],
-    queryFn: () => base44.entities.RotaAssignment.filter({ job_id: job.id })
-  });
-
-
-  const { data: hotelBookings = [] } = useQuery({
-    queryKey: ['hotel-bookings-for-job', job.id],
-    queryFn: () => base44.entities.HotelBooking.filter({ job_id: job.id })
-  });
-
-  const { data: timesheets = [] } = useQuery({
-    queryKey: ['timesheets-for-job', job.id],
-    queryFn: () => base44.entities.Timesheet.filter({ job_id: job.id })
-  });
-  const { data: allTimesheets = [] } = useQuery({ queryKey: ['all-timesheets-ot'], queryFn: () => base44.entities.Timesheet.list('-created_date', 500) });
-  const { data: overtimeRates = [] } = useQuery({ queryKey: ['overtime-rates'], queryFn: () => base44.entities.OvertimeRate.list() });
-  const { data: overtimeSetting } = useQuery({
-    queryKey: ['overtime-setting'],
-    queryFn: async () => { const list = await base44.entities.OvertimeSetting.list(); return list[0] || null; }
-  });
-
-  // Unique staff assigned to this job
-  const assignedStaffIds = [...new Set(rotas.map(r => r.staff_id))];
-  const assignedStaff = assignedStaffIds.map(id => allStaff.find(s => s.id === id)).filter(Boolean);
-
-  // Unique vehicles used
-  const assignedVehicleIds = [...new Set(rotas.map(r => r.vehicle_id).filter(Boolean))];
-  const assignedVehicles = assignedVehicleIds.map(id => vehicles.find(v => v.id === id)).filter(Boolean);
-
-  const client = clients.find(c => c.id === job.client_id);
-  const contractor = contractors.find(c => c.id === job.contractor_id);
-
-  // Group rotas by date for timeline
-  const rotasByDate = {};
-  rotas.forEach(r => {
-    if (!rotasByDate[r.assigned_date]) rotasByDate[r.assigned_date] = [];
-    rotasByDate[r.assigned_date].push(r);
-  });
-  const sortedDates = Object.keys(rotasByDate).sort();
-
-  // Job cost estimation — meterage-based for drilling jobs, day-rate for others,
-  // with task-based timesheet labour overriding day-rate cost where tasks are logged.
-  const isDrillingJob = isDrillingJobByTeams(job, teams, jobTypes);
-  const jobMeterage = isDrillingJob && job.meterage != null && job.meterage !== '' ? Number(job.meterage) : 0;
-  const useJobMeterage = jobMeterage > 0;
-  const validTimesheets = (timesheets || []).filter(t => t.status === 'submitted' || t.status === 'approved');
-  const timesheetByStaff = {};
-  validTimesheets.forEach(t => {
-    const mins = Number(t.task_duration_minutes) || (t.total_hours ? t.total_hours * 60 : 0);
-    if (!timesheetByStaff[t.staff_id]) timesheetByStaff[t.staff_id] = { minutes: 0, count: 0 };
-    timesheetByStaff[t.staff_id].minutes += mins;
-    timesheetByStaff[t.staff_id].count += 1;
-  });
-  const otRateMap = buildRateMap(overtimeRates);
-  const otThreshold = overtimeSetting?.weekly_threshold_hours ?? 40;
-  // Labour cost tracking removed — payroll is handled outside this system.
-  // staffCosts retains shift/meterage data for display but no longer carries a cost figure.
-  const staffCosts = assignedStaff.map(member => {
-    const memberRotas = rotas.filter(r => r.staff_id === member.id);
-    const memberMeterage = memberRotas.reduce((sum, r) => sum + (r.meterage || 0), 0);
-    const meterage = useJobMeterage ? jobMeterage : memberMeterage;
-    return {
-      name: member.name,
-      role: roleLabels[member.job_role] || member.job_role,
-      shifts: memberRotas.length,
-      overtimeShifts: memberRotas.filter(r => r.is_overtime).length,
-      dayRate: 0,
-      meterage,
-      meterageRate: 0,
-      costType: 'none',
-      timesheetMinutes: 0,
-      timesheetCount: 0,
-      hourlyRate: 0,
-      cost: 0
-    };
-  });
-  const totalCost = 0;
-  const totalMeterage = useJobMeterage ? jobMeterage : staffCosts.reduce((sum, s) => sum + s.meterage, 0);
-
-  const startDate = job.start_date ? new Date(job.start_date + 'T00:00:00') : null;
-  const endDate = job.end_date ? new Date(job.end_date + 'T00:00:00') : null;
-  const jobDurationDays = startDate && endDate ? Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1) : null;
-
-
 
   if (showForm) {
     return (
@@ -315,11 +161,10 @@ export default function JobDetail({ job: initialJob, onBack }) {
 
   return (
     <div>
-      {/* Top bar */}
-      <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      {/* Top bar — compact */}
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <button onClick={onBack} className="flex items-center gap-2 text-sm text-[#2E5A1A] hover:text-[#1c4a12] font-medium transition">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Jobs
+          <ArrowLeft className="w-4 h-4" /> Back to Jobs
         </button>
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={() => setShowStatusModal(true)} className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
@@ -330,391 +175,88 @@ export default function JobDetail({ job: initialJob, onBack }) {
           </button>
           <PrintReportButton buildHtml={buildJobPrintHtml} label="Print" className="px-3 py-2" />
           <button onClick={handleFullReport} disabled={generatingReport} className="flex items-center gap-2 px-3 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition text-sm font-medium disabled:opacity-50">
-            <FileBarChart className="w-4 h-4" /> {generatingReport ? 'Generating...' : 'Full Report'}
+            <FileBarChart className="w-4 h-4" /> {generatingReport ? '...' : 'Report'}
           </button>
         </div>
       </div>
 
-      {/* Hero header — modern gradient band */}
-      <div className="rounded-2xl overflow-hidden mb-6 shadow-sm border border-slate-200">
-        <div className={`px-5 md:px-7 py-5 md:py-6 ${colors.bg} ${colors.border} border-b`}>
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+      {/* Compact header — all key info in one band */}
+      <div className="rounded-2xl overflow-hidden mb-4 shadow-sm border border-slate-200">
+        <div className={`px-5 py-4 ${colors.bg} ${colors.border} border-b`}>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-3 flex-wrap">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/80 ${colors.text}`}>
                   <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
                   {getJobTypeLabel(primaryType, jobTypes)}
                 </span>
-                <button
-                  onClick={() => setShowStatusModal(true)}
-                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']} hover:opacity-80 transition cursor-pointer`}
-                  title="Click to change status"
-                >
+                <button onClick={() => setShowStatusModal(true)} className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']} hover:opacity-80 transition cursor-pointer`}>
                   {statusLabels[job.status || 'planning']}
                 </button>
               </div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 leading-tight">{job.name}</h1>
-              <div className="flex items-center gap-2 mt-2 text-slate-700">
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900 leading-tight">{job.name}</h1>
+              <div className="flex items-center gap-2 mt-1.5 text-slate-700 text-sm">
                 <MapPin className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm md:text-base">{job.location}</span>
-                {job.job_reference && (
-                  <>
-                    <span className="text-slate-400">·</span>
-                    <span className="text-sm text-slate-600">Ref: {job.job_reference}</span>
-                  </>
-                )}
+                <span className="truncate">{job.location}</span>
+                {job.job_reference && <><span className="text-slate-400">·</span><span className="text-slate-600">Ref: {job.job_reference}</span></>}
               </div>
-              {jobProject && (
-                <button
-                  onClick={() => setShowProjectJobs(true)}
-                  className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100 hover:bg-indigo-100 transition"
-                >
-                  <FolderOpen className="w-3.5 h-3.5" />
-                  {jobProject.name}
-                  <span className="text-indigo-400">·</span>
-                  <span className="font-normal">{siblingJobs.length} other job{siblingJobs.length !== 1 ? 's' : ''} in this project</span>
-                </button>
-              )}
             </div>
-            <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-slate-700 md:justify-end">
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-700 md:justify-end items-center">
               {startDate && (
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4" />
-                  <span>{format(startDate, 'dd MMM yyyy')} → {endDate ? format(endDate, 'dd MMM yyyy') : 'TBC'}</span>
-                </div>
+                <div className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /><span className="text-xs">{format(startDate, 'dd MMM')} → {endDate ? format(endDate, 'dd MMM') : 'TBC'}</span></div>
               )}
               {startDate && endDate && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/70 rounded-lg border border-slate-200/60">
                   <CalendarClock className="w-4 h-4 text-[#2E5A1A]" />
-                  <span className="font-bold text-slate-900">{Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1)}</span>
-                  <span className="text-slate-500">day job</span>
-                </div>
-              )}
-              {startDate && !endDate && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/70 rounded-lg border border-slate-200/60">
-                  <CalendarClock className="w-4 h-4 text-amber-600" />
-                  <span className="text-sm text-amber-700 font-medium">End date not set</span>
+                  <span className="font-bold text-slate-900 text-xs">{Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1)}</span>
+                  <span className="text-slate-500 text-xs">days</span>
                 </div>
               )}
             </div>
           </div>
         </div>
-        {/* Metric chips strip */}
-        <div className="px-5 md:px-7 py-3 bg-white border-t border-slate-100 flex items-center gap-2 md:gap-4 flex-wrap">
+        {/* Metric chips strip — compact */}
+        <div className="px-5 py-2.5 bg-white border-t border-slate-100 flex items-center gap-3 md:gap-5 flex-wrap">
           <div className="flex items-center gap-1.5 text-sm">
-            <div className="w-7 h-7 rounded-lg bg-[#2E5A1A]/10 flex items-center justify-center"><Users className="w-3.5 h-3.5 text-[#2E5A1A]" /></div>
+            <Users className="w-4 h-4 text-[#2E5A1A]" />
             <span className="font-bold text-slate-900">{assignedStaff.length}</span>
-            <span className="text-slate-500">{assignedStaff.length === 1 ? getCrewLabel(primaryType, 1).toLowerCase() : 'crew'}</span>
+            <span className="text-slate-500 text-xs">{assignedStaff.length === 1 ? getCrewLabel(primaryType, 1).toLowerCase() : 'crew'}</span>
           </div>
-          <div className="h-6 w-px bg-slate-200" />
+          <div className="h-5 w-px bg-slate-200" />
           <div className="flex items-center gap-1.5 text-sm">
-            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center"><Clock className="w-3.5 h-3.5 text-blue-700" /></div>
+            <Clock className="w-4 h-4 text-blue-600" />
             <span className="font-bold text-slate-900">{rotas.length}</span>
-            <span className="text-slate-500">{rotas.length === 1 ? 'shift' : 'shifts'}</span>
+            <span className="text-slate-500 text-xs">{rotas.length === 1 ? 'shift' : 'shifts'}</span>
           </div>
           {isDrillingJob && totalMeterage > 0 && (
             <>
-              <div className="h-6 w-px bg-slate-200" />
+              <div className="h-5 w-px bg-slate-200" />
               <div className="flex items-center gap-1.5 text-sm">
-                <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center"><Ruler className="w-3.5 h-3.5 text-amber-700" /></div>
+                <Ruler className="w-4 h-4 text-amber-600" />
                 <span className="font-bold text-slate-900">{totalMeterage}m</span>
-                <span className="text-slate-500">drilled</span>
+                <span className="text-slate-500 text-xs">drilled</span>
               </div>
             </>
           )}
           {canSeeCosts && job.budget_amount != null && (
             <>
-              <div className="h-6 w-px bg-slate-200" />
+              <div className="h-5 w-px bg-slate-200" />
               <div className="flex items-center gap-1.5 text-sm">
-                <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center"><PoundSterling className="w-3.5 h-3.5 text-violet-700" /></div>
+                <PoundSterling className="w-4 h-4 text-violet-600" />
                 <span className="font-bold text-slate-900">£{Number(job.budget_amount).toLocaleString()}</span>
-                <span className="text-slate-500">budget</span>
+                <span className="text-slate-500 text-xs">budget</span>
               </div>
             </>
           )}
         </div>
       </div>
 
-      {/* Intelligent warnings — crew requirements, compliance, missing data */}
-      <JobWarningsBanner job={job} assignedStaffCount={assignedStaff.length} />
-
-      {/* Workflow guidance banner */}
-      {job.status === 'planning' && (
-        <div className="rounded-2xl p-5 mb-6 bg-gradient-to-br from-slate-50 to-[#2E5A1A]/5 border border-emerald-200">
-          <div className="flex items-center gap-2 mb-3">
-            <CalendarClock className="w-5 h-5 text-[#2E5A1A]" />
-            <h3 className="font-bold text-slate-900 text-sm">Job Setup Checklist</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className={`rounded-xl p-3 border ${job.required_team_ids?.length > 0 ? 'border-[#2E5A1A]/20 bg-[#2E5A1A]/5' : 'border-slate-200 bg-white'}`}>
-              <div className="flex items-center gap-2 mb-1">
-                {job.required_team_ids?.length > 0 ? <CheckCircle2 className="w-4 h-4 text-[#2E5A1A]" /> : <UsersRound className="w-4 h-4 text-slate-400" />}
-                <p className="text-xs font-bold text-slate-800">1. Assign Teams</p>
-              </div>
-              <p className="text-[11px] text-slate-500">{job.required_team_ids?.length > 0 ? `${job.required_team_ids.length} team(s) assigned` : 'Edit the job to pick required teams'}</p>
-            </div>
-            <div className={`rounded-xl p-3 border ${hotelBookings.length > 0 ? 'border-[#2E5A1A]/20 bg-[#2E5A1A]/5' : 'border-slate-200 bg-white'}`}>
-              <div className="flex items-center gap-2 mb-1">
-                {hotelBookings.length > 0 ? <CheckCircle2 className="w-4 h-4 text-[#2E5A1A]" /> : <CalendarClock className="w-4 h-4 text-slate-400" />}
-                <p className="text-xs font-bold text-slate-800">2. Hotel Bookings <span className="font-normal text-slate-400">(optional)</span></p>
-              </div>
-              <p className="text-[11px] text-slate-500">{hotelBookings.length > 0 ? `${hotelBookings.length} booking(s) added` : 'Add accommodation if crew need stays'}</p>
-            </div>
-            <div className={`rounded-xl p-3 border ${rotas.length > 0 ? 'border-[#2E5A1A]/20 bg-[#2E5A1A]/5' : 'border-slate-200 bg-white'}`}>
-              <div className="flex items-center gap-2 mb-1">
-                {rotas.length > 0 ? <CheckCircle2 className="w-4 h-4 text-[#2E5A1A]" /> : <CalendarClock className="w-4 h-4 text-slate-400" />}
-                <p className="text-xs font-bold text-slate-800">3. Build Rota</p>
-              </div>
-              <p className="text-[11px] text-slate-500">{rotas.length > 0 ? `${rotas.length} shifts scheduled` : 'Go to Weekly Rota Builder to assign staff'}</p>
-            </div>
-            <div className={`rounded-xl p-3 border ${job.status === 'in_progress' || job.status === 'completed' ? 'border-[#2E5A1A]/20 bg-[#2E5A1A]/5' : 'border-slate-200 bg-white'}`}>
-              <div className="flex items-center gap-2 mb-1">
-                {job.status === 'in_progress' || job.status === 'completed' ? <CheckCircle2 className="w-4 h-4 text-[#2E5A1A]" /> : <Send className="w-4 h-4 text-slate-400" />}
-                <p className="text-xs font-bold text-slate-800">4. Publish & Activate</p>
-              </div>
-              <p className="text-[11px] text-slate-500">{job.status === 'in_progress' || job.status === 'completed' ? 'Job activated & staff emailed' : 'Submit the rota week to email staff'}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Decommissioning guidance banner */}
-      {job.status === 'decommissioning' && (
-        <div className="rounded-2xl p-5 mb-6 bg-gradient-to-br from-orange-50 to-amber-50/60 border border-orange-200">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertCircle className="w-5 h-5 text-orange-600" />
-            <h3 className="font-bold text-slate-900 text-sm">Site Decommissioning — Collect All Equipment</h3>
-          </div>
-          <p className="text-xs text-slate-600 mb-3">Work is complete. Use the Site Manifest below to track collection of every item from site. Items can be collected during the job too — the manifest shows what's still on site.</p>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={() => setShowStatusModal(true)} className="px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] transition">
-              Mark Completed
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Quick info row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* Job Info */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-lg bg-[#2E5A1A]/10 flex items-center justify-center"><Briefcase className="w-3.5 h-3.5 text-[#2E5A1A]" /></div>
-            <h3 className="font-semibold text-slate-900 text-sm">Job Info</h3>
-          </div>
-          <div className="space-y-2.5 text-sm">
-            <div>
-              <p className="text-[11px] text-slate-400 uppercase font-medium">Type</p>
-              <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`}></span>
-                {getJobTypeLabel(primaryType, jobTypes)}
-              </span>
-            </div>
-            <div>
-              <p className="text-[11px] text-slate-400 uppercase font-medium">Status</p>
-              <button
-                onClick={() => setShowStatusModal(true)}
-                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']} hover:opacity-80 transition cursor-pointer`}
-              >
-                {statusLabels[job.status || 'planning']}
-              </button>
-            </div>
-            {job.status_reason && (
-              <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                <p className="text-[11px] text-amber-600 font-semibold uppercase mb-0.5">Status Reason</p>
-                <p className="text-xs text-amber-800">{job.status_reason}</p>
-              </div>
-            )}
-            {job.job_reference && (
-              <div>
-                <p className="text-[11px] text-slate-400 uppercase font-medium">Reference</p>
-                <p className="text-slate-700">{job.job_reference}</p>
-              </div>
-            )}
-            {startDate && (
-              <div>
-                <p className="text-[11px] text-slate-400 uppercase font-medium">Duration</p>
-                <p className="text-slate-700">{format(startDate, 'dd MMM yyyy')} → {endDate ? format(endDate, 'dd MMM yyyy') : 'TBC'}</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Contacts */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center"><User className="w-3.5 h-3.5 text-blue-700" /></div>
-            <h3 className="font-semibold text-slate-900 text-sm">Contacts</h3>
-          </div>
-          <div className="space-y-2.5 text-sm">
-            {job.project_manager ? (
-              <div>
-                <p className="text-[11px] text-slate-400 uppercase font-medium">Project Manager</p>
-                <p className="text-slate-700">{job.project_manager}</p>
-              </div>
-            ) : (
-              <div>
-                <p className="text-[11px] text-slate-400 uppercase font-medium">Project Manager</p>
-                <p className="text-xs text-slate-400">Not set</p>
-              </div>
-            )}
-            {(job.site_contact_name || job.site_contact_phone) ? (
-              <div>
-                <p className="text-[11px] text-slate-400 uppercase font-medium">Site Contact</p>
-                {job.site_contact_name && <p className="text-slate-700">{job.site_contact_name}</p>}
-                {job.site_contact_phone && (
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                    <Phone className="w-3 h-3" />{job.site_contact_phone}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div>
-                <p className="text-[11px] text-slate-400 uppercase font-medium">Site Contact</p>
-                <p className="text-xs text-slate-400">Not set</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Client / Contractor */}
-        {(client || contractor) ? (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center"><HardHat className="w-3.5 h-3.5 text-amber-700" /></div>
-              <h3 className="font-semibold text-slate-900 text-sm">Client</h3>
-            </div>
-            <div className="space-y-2.5 text-sm">
-              {client && (
-                <div>
-                  <p className="text-[11px] text-slate-400 uppercase font-medium">Client</p>
-                  <p className="font-semibold text-slate-900">{client.name}</p>
-                  {client.contact_phone && (
-                    <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
-                      <Phone className="w-3 h-3" />{client.contact_phone}
-                    </div>
-                  )}
-                </div>
-              )}
-              {contractor && (
-                <div>
-                  <p className="text-[11px] text-slate-400 uppercase font-medium">Contractor</p>
-                  <p className="font-semibold text-slate-900">{contractor.name}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center"><FileText className="w-3.5 h-3.5 text-slate-600" /></div>
-              <h3 className="font-semibold text-slate-900 text-sm">Notes</h3>
-            </div>
-            {job.notes ? (
-              <p className="text-sm text-slate-600 whitespace-pre-wrap line-clamp-4">{job.notes}</p>
-            ) : (
-              <p className="text-xs text-slate-400">No notes</p>
-            )}
-          </div>
-        )}
-
-        {/* Vehicles */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center"><Truck className="w-3.5 h-3.5 text-violet-700" /></div>
-            <h3 className="font-semibold text-slate-900 text-sm">Vehicles</h3>
-            {assignedVehicles.length > 0 && (
-              <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{assignedVehicles.length}</span>
-            )}
-          </div>
-          {assignedVehicles.length > 0 ? (
-            <div className="space-y-1.5">
-              {assignedVehicles.map(v => (
-                <div key={v.id} className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center flex-shrink-0">
-                    <Truck className="w-3 h-3 text-slate-500" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-mono font-bold text-slate-900">{v.registration_number}</p>
-                    <p className="text-[11px] text-slate-500 truncate">{v.name}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-slate-400">No vehicles assigned</p>
-          )}
-          {job.requisition_list_url && (
-            <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 mt-2.5 px-2.5 py-1.5 bg-[#2E5A1A]/10 text-[#2E5A1A] hover:bg-[#2E5A1A]/20 rounded-lg text-xs font-medium transition">
-              <FileText className="w-3 h-3" /> View Requisition
-            </a>
-          )}
-        </div>
+      {/* Intelligent warnings — only shows when there are issues */}
+      <div className="mb-4">
+        <JobWarningsBanner job={job} assignedStaffCount={assignedStaff.length} />
       </div>
 
-      {/* Full notes (when client card is shown) */}
-      {job.notes && (client || contractor) && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center"><FileText className="w-3.5 h-3.5 text-slate-600" /></div>
-            <h3 className="font-semibold text-slate-900 text-sm">Job Notes</h3>
-          </div>
-          <p className="text-sm text-slate-600 whitespace-pre-wrap">{job.notes}</p>
-        </div>
-      )}
-
-      {/* Client Portal Visibility — compact button + dialog */}
-      <div className="mb-6">
-        <button
-          onClick={() => setShowPortalDialog(true)}
-          className="w-full flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 hover:shadow-md transition text-left"
-        >
-          <div className="w-9 h-9 rounded-lg bg-[#2E5A1A]/10 flex items-center justify-center flex-shrink-0">
-            <ShieldCheck className="w-4 h-4 text-[#2E5A1A]" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-slate-900 text-sm">Client Portal Visibility</p>
-            <p className="text-xs text-slate-400">Manage what your client can see</p>
-          </div>
-          <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${job.portal_enabled ? 'bg-[#2E5A1A]/15 text-[#2E5A1A]' : 'bg-slate-100 text-slate-500'}`}>
-            {job.portal_enabled ? 'Portal Enabled' : 'Portal Disabled'}
-          </span>
-          <span className="text-xs text-slate-400 flex-shrink-0">
-            {job.portal_sections ? Object.values(job.portal_sections).filter(Boolean).length : 10}/10 sections
-          </span>
-        </button>
-      </div>
-
-      <Dialog open={showPortalDialog} onOpenChange={setShowPortalDialog}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-[#2E5A1A]" /> Client Portal Visibility
-            </DialogTitle>
-          </DialogHeader>
-          <PortalSectionManager job={job} embedded />
-        </DialogContent>
-      </Dialog>
-
-      <JobScheduleOverview
-        primaryType={primaryType}
-        assignedStaff={assignedStaff}
-        rotas={rotas}
-        allStaff={allStaff}
-        vehicles={vehicles}
-        rotasByDate={rotasByDate}
-        sortedDates={sortedDates}
-      />
-
-      {/* Rig Compliance & Certificates — audit-ready downloads for assigned rigs */}
-      <div className="mb-6">
-        <RigCompliancePanel job={job} />
-      </div>
-
-      {/* Staff Activity Breakdown — per-person daily tasks & site activities */}
-      <StaffActivityBreakdown job={job} assignedStaff={assignedStaff} primaryType={primaryType} />
-
+      {/* Unified tabbed command center — no more long scroll */}
       <JobDetailTabs
         job={job}
         primaryType={primaryType}
@@ -734,52 +276,20 @@ export default function JobDetail({ job: initialJob, onBack }) {
         staffCosts={staffCosts}
         totalMeterage={totalMeterage}
         hotelBookings={hotelBookings}
+        colors={colors}
+        statusBadge={statusBadge}
+        statusLabels={statusLabels}
+        startDate={startDate}
+        endDate={endDate}
+        jobProject={jobProject}
+        siblingJobs={siblingJobs}
+        onProjectClick={handleProjectJobSelect}
+        jobTypes={jobTypes}
       />
 
       {showStatusModal && (
         <JobStatusModal job={job} onClose={() => setShowStatusModal(false)} onSave={handleStatusSave} />
       )}
-
-      {/* Sibling jobs dialog — shows other jobs linked to the same project */}
-      <Dialog open={showProjectJobs} onOpenChange={setShowProjectJobs}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FolderOpen className="w-5 h-5 text-indigo-600" />
-              {jobProject?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <p className="text-sm text-slate-500">This job is one of {siblingJobs.length + 1} jobs linked to this project.</p>
-            <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-              <Briefcase className="w-4 h-4 text-emerald-700 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-900 truncate">{job.name}</p>
-                <p className="text-xs text-slate-500 truncate">{job.location} · {statusLabels[job.status || 'planning']}</p>
-              </div>
-              <span className="text-xs font-semibold text-emerald-700">This job</span>
-            </div>
-            {siblingJobs.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-4">No other jobs in this project yet.</p>
-            ) : (
-              siblingJobs.map(sib => (
-                <button
-                  key={sib.id}
-                  onClick={() => { setShowProjectJobs(false); setJob(sib); window.scrollTo(0, 0); }}
-                  className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50/30 transition text-left"
-                >
-                  <Briefcase className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-slate-900 truncate">{sib.name}</p>
-                    <p className="text-xs text-slate-500 truncate">{sib.location} · {statusLabels[sib.status || 'planning']}</p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                </button>
-              ))
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

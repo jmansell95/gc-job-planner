@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Menu, ChevronDown } from 'lucide-react';
+import { Settings, Menu } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import StaffManager from '@/components/StaffManager';
 import VehicleManager from '@/components/VehicleManager';
@@ -47,14 +47,12 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
 
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
 
-  // Guard: if the current tab isn't accessible to this role, fall back to the first accessible tab.
   useEffect(() => {
     if (!profile || items.length === 0) return;
     if (!items.find(i => i.id === activeTab)) setActiveTab(items[0].id);
   }, [profile, role, activeTab, items]);
 
   const active = items.find(t => t.id === activeTab);
-  const Icon = active?.icon;
 
   const handleSelect = (id) => {
     setActiveTab(id);
@@ -99,15 +97,28 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
         icon={Settings}
         subtitle={active?.label ? `${active.label}${active.desc ? ' · ' + active.desc : ''}` : 'Configure crews, assets, billing & automation'}
         actions={
-          <button onClick={() => setNavOpen(true)}
-            className="inline-flex items-center gap-2.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm">
+          <button onClick={() => setNavOpen(true)} className="lg:hidden inline-flex items-center gap-2.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm">
             <Menu className="w-4 h-4" />
             <span>{active?.label || 'All Settings'}</span>
-            <ChevronDown className="w-4 h-4" />
           </button>
         }
       />
 
+      <div className="flex gap-5">
+        {/* Persistent sidebar — desktop only */}
+        <aside className="hidden lg:block w-64 flex-shrink-0">
+          <div className="sticky top-4 bg-white rounded-xl border border-slate-200 shadow-sm p-3 max-h-[calc(100vh-2rem)] overflow-y-auto">
+            <SettingsNav activeId={activeTab} onChange={handleSelect} role={role} />
+          </div>
+        </aside>
+
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+          {renderContent()}
+        </div>
+      </div>
+
+      {/* Mobile navigation drawer */}
       <Sheet open={navOpen} onOpenChange={setNavOpen}>
         <SheetContent side="left" className="w-80 max-w-[85vw] p-4 overflow-y-auto">
           <SheetHeader className="mb-3">
@@ -116,8 +127,6 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
           <SettingsNav activeId={activeTab} onChange={handleSelect} role={role} />
         </SheetContent>
       </Sheet>
-
-      {renderContent()}
     </div>
   );
 }

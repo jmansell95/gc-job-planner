@@ -83,8 +83,22 @@ export default function SettingsHubOverview({ onNavigate }) {
     cyan: 'text-cyan-600', indigo: 'text-indigo-600',
   };
 
+  // Build "needs attention" alerts
+  const alerts = [];
+  if (pendingReviewLogs > 0) alerts.push({ id: 'log-qc', icon: FlaskConical, label: `${pendingReviewLogs} log${pendingReviewLogs !== 1 ? 's' : ''} pending review`, color: 'violet' });
+  if (pendingTimesheets > 0) alerts.push({ id: 'timesheets', icon: Clock, label: `${pendingTimesheets} timesheet${pendingTimesheets !== 1 ? 's' : ''} awaiting approval`, color: 'blue' });
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const expiredCompliance = complianceItems.filter(c => c.status_override !== 'not_required' && c.expiry_date && c.expiry_date.slice(0, 10) < todayStr).length;
+  if (expiredCompliance > 0) alerts.push({ id: 'compliance', icon: ShieldCheck, label: `${expiredCompliance} expired compliance item${expiredCompliance !== 1 ? 's' : ''}`, color: 'rose' });
+
+  const alertColor = {
+    violet: 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100',
+    blue: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100',
+    rose: 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100',
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="relative overflow-hidden rounded-2xl command-gradient p-5 md:p-6 shadow-lg">
         <div className="flex items-center gap-3 relative z-10">
           <div className="w-12 h-12 rounded-xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center flex-shrink-0 backdrop-blur-sm">
@@ -96,6 +110,29 @@ export default function SettingsHubOverview({ onNavigate }) {
           </div>
         </div>
       </div>
+
+      {/* Needs Attention — deep-link alerts */}
+      {alerts.length > 0 && (
+        <div>
+          <h3 className="text-sm font-bold text-slate-700 mb-2.5 px-1 flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-rose-500" /> Needs Attention
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {alerts.map(a => {
+              const Icon = a.icon;
+              return (
+                <button key={a.id} onClick={() => onNavigate(a.id)}
+                  className={`text-left rounded-xl border p-4 transition flex items-center gap-3 ${alertColor[a.color]}`}>
+                  <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <p className="text-sm font-semibold">{a.label}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {cards.map(group => (
         <div key={group.group}>

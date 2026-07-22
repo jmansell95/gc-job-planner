@@ -338,35 +338,35 @@ export default function WeeklyRotaBuilder() {
 
   return (
     <div>
-      {/* Hero header */}
-      <div className="hero-gradient relative overflow-hidden rounded-2xl mb-6">
-        <div className="relative px-5 md:px-7 py-5 md:py-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-                <Calendar className="w-6 h-6 text-white" />
+      {/* Compact action header */}
+      <div className="hero-gradient relative overflow-hidden rounded-2xl mb-4">
+        <div className="relative px-4 md:px-5 py-3.5 md:py-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                <Calendar className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Weekly Rota Builder</h1>
-                <p className="text-emerald-100 text-xs md:text-sm mt-0.5">Drag shifts, auto-fit multi-job days, no overlaps</p>
+                <h1 className="text-lg md:text-xl font-bold text-white tracking-tight leading-tight">Rota Builder</h1>
+                <p className="text-emerald-100 text-[11px] md:text-xs">Drag to move · click a cell to add</p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-1.5">
               <button onClick={handleSmartFill} disabled={smartFillLoading}
-                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium disabled:opacity-50 backdrop-blur-sm">
-                <Copy className="w-4 h-4" /> {smartFillLoading ? 'Copying...' : 'Copy Last Week'}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium disabled:opacity-50 backdrop-blur-sm">
+                <Copy className="w-4 h-4" /> <span className="hidden sm:inline">{smartFillLoading ? '...' : 'Copy Last Week'}</span>
               </button>
               <button onClick={() => setModal({ isOpen: true, assignment: null, defaultStaffId: '', defaultDate: '' })}
-                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
-                <Plus className="w-4 h-4" /> Add Shift
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
+                <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Shift</span>
               </button>
               <button onClick={handleSaveDraft} disabled={savingDraft}
-                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium disabled:opacity-50 backdrop-blur-sm">
-                {savingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Draft
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium disabled:opacity-50 backdrop-blur-sm">
+                {savingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} <span className="hidden sm:inline">Draft</span>
               </button>
               <button onClick={handleSubmitWeek} disabled={publishing}
-                className="inline-flex items-center justify-center gap-2 px-3.5 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-400 transition text-sm font-semibold disabled:opacity-50 shadow-sm">
-                {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} {isPublished ? 'Resend' : 'Publish Week'}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-400 transition text-sm font-semibold disabled:opacity-50 shadow-sm">
+                {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} <span className="hidden sm:inline">{isPublished ? 'Resend' : 'Publish'}</span>
               </button>
             </div>
           </div>
@@ -381,16 +381,19 @@ export default function WeeklyRotaBuilder() {
       )}
 
       {/* Week Navigator + Stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-        <div className="flex items-center gap-2 sm:gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-3 sm:px-4 py-3 w-full sm:w-fit flex-wrap sm:flex-nowrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
+        <div className="flex items-center gap-2 sm:gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-3 sm:px-4 py-2.5 w-full sm:w-fit flex-wrap sm:flex-nowrap">
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start">
             <button onClick={goToPrevWeek} className="p-1.5 hover:bg-slate-100 rounded-lg transition"><ChevronLeft className="w-4 h-4 text-slate-600" /></button>
-            <div className="text-sm font-semibold text-slate-900 flex-1 sm:min-w-[180px] text-center">
+            <div className="text-sm font-semibold text-slate-900 flex-1 sm:min-w-[160px] text-center">
               {format(weekStart, 'dd MMM')} — {format(addDays(weekStart, 6), 'dd MMM yyyy')}
             </div>
             <button onClick={goToNextWeek} className="p-1.5 hover:bg-slate-100 rounded-lg transition"><ChevronRight className="w-4 h-4 text-slate-600" /></button>
           </div>
-          <div className="hidden sm:block h-4 w-px bg-slate-200 mx-1" />
+          <button onClick={() => setSelectedWeek(new Date())}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${weekStartStr === format(new Date(), 'yyyy-MM-dd') ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+            Today
+          </button>
           <input type="date" value={weekStartStr} onChange={(e) => setSelectedWeek(new Date(e.target.value))}
             className="text-xs px-2 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 text-slate-600 w-full sm:w-auto" />
         </div>
