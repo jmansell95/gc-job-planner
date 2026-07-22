@@ -50,7 +50,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     <>
       <div className="px-6 pt-7 pb-5 border-b border-white/10">
         <div className="flex items-center justify-center">
-          <Logo variant="full" height={44} tone="light" />
+          <Logo variant="icon" height={56} />
         </div>
         <p className="text-center text-[10px] text-white/60 mt-3 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
       </div>
