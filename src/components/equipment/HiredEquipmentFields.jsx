@@ -56,7 +56,7 @@ export default function HiredEquipmentFields({ form, setForm, suppliers = [], ra
         <label className="block text-xs font-medium text-slate-600 mb-1">Supplier *</label>
         <select
           value={form.supplier_id}
-          onChange={(e) => setForm({ ...form, supplier_id: e.target.value, rate_card_item_id: '' })}
+          onChange={(e) => setForm({ ...form, supplier_id: e.target.value, rate_card_item_id: '', is_poa: false })}
           className={inputCls}
         >
           <option value="">Select supplier…</option>
@@ -162,17 +162,9 @@ export default function HiredEquipmentFields({ form, setForm, suppliers = [], ra
         VAT exempt (zero-rated item)
       </label>
 
-      <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer bg-amber-50/60 border border-amber-200 rounded-lg px-3 py-2.5">
-        <input type="checkbox" checked={!!form.is_poa} onChange={(e) => setForm({ ...form, is_poa: e.target.checked, unit_cost: e.target.checked ? '' : form.unit_cost })} className="rounded border-amber-400 text-amber-600 focus:ring-amber-500 mt-0.5" />
-        <span>
-          <span className="font-semibold text-amber-900">Price on Application (POA)</span>
-          <span className="block text-xs text-amber-700 mt-0.5">Add this item now with no price — confirm the agreed rate later from the job's Pending Pricing panel.</span>
-        </span>
-      </label>
-
-      {form.is_poa && !form.rate_card_item_id && (
-        <div className="text-xs text-amber-700 bg-amber-50 rounded-md px-3 py-2 border border-amber-200 flex items-center gap-1.5">
-          <AlertCircle className="w-3.5 h-3.5" /> POA item — billing rate left blank. Confirm the price once agreed.
+      {form.is_poa && (
+        <div className="text-xs text-amber-800 bg-amber-50 rounded-md px-3 py-2 border border-amber-200 flex items-center gap-1.5">
+          <AlertCircle className="w-3.5 h-3.5" /> Price on Application — this rate card item has no fixed price. Confirm the agreed rate later from the Pending Pricing panel.
         </div>
       )}
 

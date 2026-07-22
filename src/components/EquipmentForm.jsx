@@ -28,8 +28,8 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
       if (!form.description?.trim()) return false;
       if (isContractorSupplied && !form.contractor_id) return false;
       if (isClientSupplied && !form.client_id) return false;
-      // POA items (rate-card or manually flagged) can be saved with no unit cost — price confirmed later
-      const isPOA = !form.unit_cost && !!(form.rate_card_item_id || form.is_poa);
+      // POA rate-card items can be saved with no unit cost — price confirmed later
+      const isPOA = !!form.rate_card_item_id && !form.unit_cost;
       if (isHired && (!form.supplier_id || (!form.unit_cost && !isPOA))) return false;
       if (isPurchased && (!form.po_number?.trim() || (!form.unit_cost && !isPOA) || !form.order_slip_url)) return false;
       if (isInternal && !form.unit_cost && !isPOA) return false;
