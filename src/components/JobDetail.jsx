@@ -30,6 +30,7 @@ import JobDetailTabs from '@/components/JobDetailTabs';
 import JobScheduleOverview from '@/components/JobScheduleOverview';
 import JobWarningsBanner from '@/components/JobWarningsBanner';
 import StaffActivityBreakdown from '@/components/StaffActivityBreakdown';
+import RigCompliancePanel from '@/components/RigCompliancePanel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const jobTypeColors = {
@@ -705,6 +706,11 @@ export default function JobDetail({ job: initialJob, onBack }) {
         rotasByDate={rotasByDate}
         sortedDates={sortedDates}
       />
+
+      {/* Rig Compliance & Certificates — audit-ready downloads for assigned rigs */}
+      <div className="mb-6">
+        <RigCompliancePanel job={job} />
+      </div>
 
       {/* Staff Activity Breakdown — per-person daily tasks & site activities */}
       <StaffActivityBreakdown job={job} assignedStaff={assignedStaff} primaryType={primaryType} />

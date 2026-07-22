@@ -20,6 +20,8 @@ import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
 import AssetCrewProfitability from '@/components/AssetCrewProfitability';
 import RigProfitabilityWidget from '@/components/dashboard/RigProfitabilityWidget';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
+import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
+import CommandJobModal from '@/components/dashboard/CommandJobModal';
 import { canViewCostings } from '@/utils/access';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
@@ -31,6 +33,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [widgetSizes, setWidgetSizes] = useState({});
   const [layoutId, setLayoutId] = useState(null);
   const [drawerJob, setDrawerJob] = useState(null);
+  const [modalJob, setModalJob] = useState(null);
   const queryClient = useQueryClient();
   const { selectedJobId } = useJobFilter();
   const isAllJobs = selectedJobId === 'all';
@@ -267,6 +270,11 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         <PulseRibbon onNavigate={onNavigate} />
       )}
 
+      {/* Live Site Activity — visual snapshot grid of active sites (click to open command modal) */}
+      {!customizeMode && isAllJobs && (
+        <SiteSnapshotGrid onSelectJob={setModalJob} />
+      )}
+
       {customizeMode && (
         <div className="mb-4 bg-[#2E5A1A]/10 border border-[#2E5A1A]/20 rounded-xl px-4 py-3 text-sm text-[#2E5A1A]">
           Drag sections to reorder them. Tap S, M or L to resize a section, or Hide to remove it from your dashboard.
@@ -339,6 +347,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
       {/* Job Quick Drawer — slide-out drill-down without leaving the dashboard */}
       <JobQuickDrawer job={drawerJob} onClose={() => setDrawerJob(null)} onOpenFullDetails={onSelectJob} />
+
+      {/* Command Job Modal — full JobDetail in a centered pop-up (from snapshot grid) */}
+      <CommandJobModal job={modalJob} onClose={() => setModalJob(null)} />
     </div>
   );
 }
