@@ -19,7 +19,7 @@ const STATUS_STYLES = {
   planning: 'bg-slate-100 text-slate-600',
   in_progress: 'bg-blue-100 text-blue-700',
   decommissioning: 'bg-amber-100 text-amber-700',
-  completed: 'bg-emerald-100 text-emerald-700',
+  completed: 'bg-[#2E5A1A]/15 text-[#2E5A1A]',
   on_hold: 'bg-rose-100 text-rose-700',
   cancelled: 'bg-slate-200 text-slate-500 line-through',
 };
@@ -195,7 +195,7 @@ export default function BillingPage({ onSelectJob }) {
             <Receipt className="w-4 h-4" /> Invoice Summary
           </button>
           <button onClick={() => setView('geotech')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition bg-emerald-700 text-white shadow-sm">
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition bg-[#2E5A1A] text-white shadow-sm">
             <Mountain className="w-4 h-4" /> Geotechnical Report
           </button>
         </div>
@@ -212,7 +212,7 @@ export default function BillingPage({ onSelectJob }) {
         description="Complete cost summary per job — reconcile CDRs and raise invoices in your finance system"
         actions={
           <button onClick={exportCsv} disabled={filtered.length === 0}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-700 text-white rounded-lg text-sm font-semibold hover:bg-emerald-800 transition disabled:opacity-50 shadow-sm">
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-50 shadow-sm">
             <Download className="w-4 h-4" /> Export CSV
           </button>
         }
@@ -221,11 +221,11 @@ export default function BillingPage({ onSelectJob }) {
       {/* View toggle */}
       <div className="flex gap-1.5 mb-5 bg-white rounded-xl border border-slate-200 p-1.5 shadow-sm w-fit">
         <button onClick={() => setView('summary')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'summary' ? 'bg-emerald-700 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'summary' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
           <Receipt className="w-4 h-4" /> Invoice Summary
         </button>
         <button onClick={() => setView('geotech')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'geotech' ? 'bg-emerald-700 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'geotech' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
           <Mountain className="w-4 h-4" /> Geotechnical Report
         </button>
       </div>
@@ -236,7 +236,7 @@ export default function BillingPage({ onSelectJob }) {
           [...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
         ) : (
           <>
-            <StatCard icon={PoundSterling} value={fmt(totals.invoice)} label="To Invoice (Gross)" sub={`${totals.count} ${totals.count === 1 ? 'job' : 'jobs'} in view`} gradient="stat-gradient-emerald" />
+            <StatCard icon={PoundSterling} value={fmt(totals.invoice)} label="To Invoice (Gross)" sub={`${totals.count} ${totals.count === 1 ? 'job' : 'jobs'} in view`} gradient="stat-gradient-brand" />
             <StatCard icon={Wallet} value={fmt(totals.netCost)} label="Net Cost" sub="Internal cost" gradient="stat-gradient-blue" />
             <StatCard icon={TrendingUp} value={fmt(totals.vat)} label="VAT Payable" sub="On revenue" gradient="stat-gradient-amber" />
             <StatCard icon={Briefcase} value={readyCount} label="Ready to Invoice" sub="Decommissioning + Completed" gradient="stat-gradient-violet" />
@@ -253,13 +253,13 @@ export default function BillingPage({ onSelectJob }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search job, reference or client…"
-              className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2E5A1A]/30"
             />
           </div>
           <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
             {STATUS_FILTERS.map((f) => (
               <button key={f.id} onClick={() => setStatusFilter(f.id)}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition ${statusFilter === f.id ? 'bg-emerald-700 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                className={`px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition ${statusFilter === f.id ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                 {f.label}
               </button>
             ))}
@@ -294,14 +294,14 @@ export default function BillingPage({ onSelectJob }) {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filtered.map((r) => (
-                    <tr key={r.job.id} className="hover:bg-emerald-50/20 transition">
+                    <tr key={r.job.id} className="hover:bg-[#2E5A1A]/5 transition">
                       <td className="px-4 py-3 max-w-[220px]">
-                        <button onClick={() => onSelectJob?.(r.job)} className="text-left font-medium text-slate-800 truncate hover:text-emerald-700 block">
+                        <button onClick={() => onSelectJob?.(r.job)} className="text-left font-medium text-slate-800 truncate hover:text-[#2E5A1A] block">
                           {r.job.name}
                         </button>
                         {r.job.job_reference && <p className="text-[10px] text-slate-400">{r.job.job_reference}</p>}
                         {metresByJob[r.job.id] > 0 && (
-                          <span className="inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-semibold">
+                          <span className="inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded-md bg-[#2E5A1A]/10 text-[#2E5A1A] text-[10px] font-semibold">
                             <Mountain className="w-2.5 h-2.5" /> {metresByJob[r.job.id].toFixed(1)}m drilled
                           </span>
                         )}
@@ -313,7 +313,7 @@ export default function BillingPage({ onSelectJob }) {
                       <td className="px-4 py-3 text-slate-500">{r.revenueLabel}</td>
                       <td className="px-4 py-3 text-right text-slate-600">{fmt(r.totalCostNet)}</td>
                       <td className="px-4 py-3 text-right text-slate-500">{fmt(r.revenueVat)}</td>
-                      <td className="px-4 py-3 text-right font-bold text-emerald-700">{fmt(r.revenueGross)}</td>
+                      <td className="px-4 py-3 text-right font-bold text-[#2E5A1A]">{fmt(r.revenueGross)}</td>
                       <td className="px-4 py-3 text-right">
                         <button onClick={() => downloadReport(r.job)} disabled={reportingJobId === r.job.id}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 text-white rounded-lg text-[11px] font-medium hover:bg-slate-900 transition disabled:opacity-50">
@@ -336,7 +336,7 @@ export default function BillingPage({ onSelectJob }) {
                       <p className="font-medium text-slate-800 text-sm truncate">{r.job.name}</p>
                       {r.job.job_reference && <p className="text-[10px] text-slate-400">{r.job.job_reference}</p>}
                       {metresByJob[r.job.id] > 0 && (
-                        <span className="inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[10px] font-semibold">
+                        <span className="inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded-md bg-[#2E5A1A]/10 text-[#2E5A1A] text-[10px] font-semibold">
                           <Mountain className="w-2.5 h-2.5" /> {metresByJob[r.job.id].toFixed(1)}m drilled
                         </span>
                       )}
@@ -356,7 +356,7 @@ export default function BillingPage({ onSelectJob }) {
                     <ArrowRight className="w-4 h-4 text-slate-300" />
                     <div className="text-right">
                       <p className="text-[10px] text-slate-400 uppercase tracking-wide">Invoice Total</p>
-                      <p className="text-sm font-bold text-emerald-700">{fmt(r.revenueGross)}</p>
+                      <p className="text-sm font-bold text-[#2E5A1A]">{fmt(r.revenueGross)}</p>
                     </div>
                   </div>
                   <button onClick={() => downloadReport(r.job)} disabled={reportingJobId === r.job.id}

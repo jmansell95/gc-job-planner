@@ -298,7 +298,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
     return (
       <div>
         <div className="mb-5">
-          <button onClick={() => setShowForm(false)} className="flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-900 font-medium transition">
+          <button onClick={() => setShowForm(false)} className="flex items-center gap-2 text-sm text-[#2E5A1A] hover:text-[#1c4a12] font-medium transition">
             <ArrowLeft className="w-4 h-4" /> Back to Job
           </button>
         </div>
@@ -311,7 +311,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
     <div>
       {/* Top bar */}
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <button onClick={onBack} className="flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-900 font-medium transition">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm text-[#2E5A1A] hover:text-[#1c4a12] font-medium transition">
           <ArrowLeft className="w-4 h-4" />
           Back to Jobs
         </button>
@@ -319,7 +319,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
           <button onClick={() => setShowStatusModal(true)} className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
             <AlertCircle className="w-4 h-4" /> <span className="hidden sm:inline">Change</span> Status
           </button>
-          <button onClick={handleEdit} className="flex items-center gap-2 px-3 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
+          <button onClick={handleEdit} className="flex items-center gap-2 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg hover:bg-[#1c4a12] transition text-sm font-medium">
             <Edit2 className="w-4 h-4" /> Edit
           </button>
           <PrintReportButton buildHtml={buildJobPrintHtml} label="Print" className="px-3 py-2" />
@@ -368,7 +368,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
               )}
               {startDate && endDate && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/70 rounded-lg border border-slate-200/60">
-                  <CalendarClock className="w-4 h-4 text-emerald-700" />
+                  <CalendarClock className="w-4 h-4 text-[#2E5A1A]" />
                   <span className="font-bold text-slate-900">{Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1)}</span>
                   <span className="text-slate-500">day job</span>
                 </div>
@@ -385,7 +385,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
         {/* Metric chips strip */}
         <div className="px-5 md:px-7 py-3 bg-white border-t border-slate-100 flex items-center gap-2 md:gap-4 flex-wrap">
           <div className="flex items-center gap-1.5 text-sm">
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center"><Users className="w-3.5 h-3.5 text-emerald-700" /></div>
+            <div className="w-7 h-7 rounded-lg bg-[#2E5A1A]/10 flex items-center justify-center"><Users className="w-3.5 h-3.5 text-[#2E5A1A]" /></div>
             <span className="font-bold text-slate-900">{assignedStaff.length}</span>
             <span className="text-slate-500">{assignedStaff.length === 1 ? getCrewLabel(primaryType, 1).toLowerCase() : 'crew'}</span>
           </div>
@@ -423,36 +423,36 @@ export default function JobDetail({ job: initialJob, onBack }) {
 
       {/* Workflow guidance banner */}
       {job.status === 'planning' && (
-        <div className="rounded-2xl p-5 mb-6 bg-gradient-to-br from-slate-50 to-emerald-50/60 border border-emerald-200">
+        <div className="rounded-2xl p-5 mb-6 bg-gradient-to-br from-slate-50 to-[#2E5A1A]/5 border border-emerald-200">
           <div className="flex items-center gap-2 mb-3">
-            <CalendarClock className="w-5 h-5 text-emerald-700" />
+            <CalendarClock className="w-5 h-5 text-[#2E5A1A]" />
             <h3 className="font-bold text-slate-900 text-sm">Job Setup Checklist</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className={`rounded-xl p-3 border ${job.required_team_ids?.length > 0 ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
+            <div className={`rounded-xl p-3 border ${job.required_team_ids?.length > 0 ? 'border-[#2E5A1A]/20 bg-[#2E5A1A]/5' : 'border-slate-200 bg-white'}`}>
               <div className="flex items-center gap-2 mb-1">
-                {job.required_team_ids?.length > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <UsersRound className="w-4 h-4 text-slate-400" />}
+                {job.required_team_ids?.length > 0 ? <CheckCircle2 className="w-4 h-4 text-[#2E5A1A]" /> : <UsersRound className="w-4 h-4 text-slate-400" />}
                 <p className="text-xs font-bold text-slate-800">1. Assign Teams</p>
               </div>
               <p className="text-[11px] text-slate-500">{job.required_team_ids?.length > 0 ? `${job.required_team_ids.length} team(s) assigned` : 'Edit the job to pick required teams'}</p>
             </div>
-            <div className={`rounded-xl p-3 border ${hotelBookings.length > 0 ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
+            <div className={`rounded-xl p-3 border ${hotelBookings.length > 0 ? 'border-[#2E5A1A]/20 bg-[#2E5A1A]/5' : 'border-slate-200 bg-white'}`}>
               <div className="flex items-center gap-2 mb-1">
-                {hotelBookings.length > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <CalendarClock className="w-4 h-4 text-slate-400" />}
+                {hotelBookings.length > 0 ? <CheckCircle2 className="w-4 h-4 text-[#2E5A1A]" /> : <CalendarClock className="w-4 h-4 text-slate-400" />}
                 <p className="text-xs font-bold text-slate-800">2. Hotel Bookings <span className="font-normal text-slate-400">(optional)</span></p>
               </div>
               <p className="text-[11px] text-slate-500">{hotelBookings.length > 0 ? `${hotelBookings.length} booking(s) added` : 'Add accommodation if crew need stays'}</p>
             </div>
-            <div className={`rounded-xl p-3 border ${rotas.length > 0 ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
+            <div className={`rounded-xl p-3 border ${rotas.length > 0 ? 'border-[#2E5A1A]/20 bg-[#2E5A1A]/5' : 'border-slate-200 bg-white'}`}>
               <div className="flex items-center gap-2 mb-1">
-                {rotas.length > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <CalendarClock className="w-4 h-4 text-slate-400" />}
+                {rotas.length > 0 ? <CheckCircle2 className="w-4 h-4 text-[#2E5A1A]" /> : <CalendarClock className="w-4 h-4 text-slate-400" />}
                 <p className="text-xs font-bold text-slate-800">3. Build Rota</p>
               </div>
               <p className="text-[11px] text-slate-500">{rotas.length > 0 ? `${rotas.length} shifts scheduled` : 'Go to Weekly Rota Builder to assign staff'}</p>
             </div>
-            <div className={`rounded-xl p-3 border ${job.status === 'in_progress' || job.status === 'completed' ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
+            <div className={`rounded-xl p-3 border ${job.status === 'in_progress' || job.status === 'completed' ? 'border-[#2E5A1A]/20 bg-[#2E5A1A]/5' : 'border-slate-200 bg-white'}`}>
               <div className="flex items-center gap-2 mb-1">
-                {job.status === 'in_progress' || job.status === 'completed' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Send className="w-4 h-4 text-slate-400" />}
+                {job.status === 'in_progress' || job.status === 'completed' ? <CheckCircle2 className="w-4 h-4 text-[#2E5A1A]" /> : <Send className="w-4 h-4 text-slate-400" />}
                 <p className="text-xs font-bold text-slate-800">4. Publish & Activate</p>
               </div>
               <p className="text-[11px] text-slate-500">{job.status === 'in_progress' || job.status === 'completed' ? 'Job activated & staff emailed' : 'Submit the rota week to email staff'}</p>
@@ -470,7 +470,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
           </div>
           <p className="text-xs text-slate-600 mb-3">Work is complete. Use the Site Manifest below to track collection of every item from site. Items can be collected during the job too — the manifest shows what's still on site.</p>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => setShowStatusModal(true)} className="px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 transition">
+            <button onClick={() => setShowStatusModal(true)} className="px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] transition">
               Mark Completed
             </button>
           </div>
@@ -482,7 +482,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
         {/* Job Info */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center"><Briefcase className="w-3.5 h-3.5 text-emerald-700" /></div>
+            <div className="w-7 h-7 rounded-lg bg-[#2E5A1A]/10 flex items-center justify-center"><Briefcase className="w-3.5 h-3.5 text-[#2E5A1A]" /></div>
             <h3 className="font-semibold text-slate-900 text-sm">Job Info</h3>
           </div>
           <div className="space-y-2.5 text-sm">
@@ -629,7 +629,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
           )}
           {job.requisition_list_url && (
             <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 mt-2.5 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-medium transition">
+              className="flex items-center gap-1.5 mt-2.5 px-2.5 py-1.5 bg-[#2E5A1A]/10 text-[#2E5A1A] hover:bg-[#2E5A1A]/20 rounded-lg text-xs font-medium transition">
               <FileText className="w-3 h-3" /> View Requisition
             </a>
           )}
@@ -653,14 +653,14 @@ export default function JobDetail({ job: initialJob, onBack }) {
           onClick={() => setShowPortalDialog(true)}
           className="w-full flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 hover:shadow-md transition text-left"
         >
-          <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-            <ShieldCheck className="w-4 h-4 text-emerald-700" />
+          <div className="w-9 h-9 rounded-lg bg-[#2E5A1A]/10 flex items-center justify-center flex-shrink-0">
+            <ShieldCheck className="w-4 h-4 text-[#2E5A1A]" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-slate-900 text-sm">Client Portal Visibility</p>
             <p className="text-xs text-slate-400">Manage what your client can see</p>
           </div>
-          <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${job.portal_enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+          <span className={`text-xs px-2.5 py-1 rounded-full font-medium flex-shrink-0 ${job.portal_enabled ? 'bg-[#2E5A1A]/15 text-[#2E5A1A]' : 'bg-slate-100 text-slate-500'}`}>
             {job.portal_enabled ? 'Portal Enabled' : 'Portal Disabled'}
           </span>
           <span className="text-xs text-slate-400 flex-shrink-0">
@@ -673,7 +673,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-700" /> Client Portal Visibility
+              <ShieldCheck className="w-5 h-5 text-[#2E5A1A]" /> Client Portal Visibility
             </DialogTitle>
           </DialogHeader>
           <PortalSectionManager job={job} embedded />

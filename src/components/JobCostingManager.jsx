@@ -11,7 +11,7 @@ import { useJobFinancials } from '@/hooks/useJobFinancials';
 import StatCard from '@/components/dashboard/StatCard';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
+const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-[#2E5A1A] text-sm";
 
 function BudgetMarginTracker({ budget, actualNet, clientNet, markup }) {
   const hasBudget = budget > 0;
@@ -26,14 +26,14 @@ function BudgetMarginTracker({ budget, actualNet, clientNet, markup }) {
   return (
     <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/40">
       <div className="flex items-center gap-2 mb-3">
-        <Calculator className="w-4 h-4 text-emerald-700" />
+        <Calculator className="w-4 h-4 text-[#2E5A1A]" />
         <h3 className="text-sm font-semibold text-slate-800">Budget & Margin</h3>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon={PoundSterling} value={hasBudget ? fmt(budget) : 'Not set'} label="Budget" gradient="stat-gradient-emerald" />
+        <StatCard icon={PoundSterling} value={hasBudget ? fmt(budget) : 'Not set'} label="Budget" gradient="stat-gradient-brand" />
         <StatCard icon={Calculator} value={fmt(actualNet)} label="Actual cost (net)" gradient={overBudget ? 'stat-gradient-rose' : 'stat-gradient-amber'} valueClassName={overBudget ? 'text-rose-600' : ''} />
-        <StatCard icon={TrendingUp} value={hasBudget ? `${variance >= 0 ? '+' : ''}${fmt(variance)}` : fmt(profit)} label={hasBudget ? 'Variance' : 'Profit'} gradient={hasBudget ? (overBudget ? 'stat-gradient-rose' : 'stat-gradient-blue') : 'stat-gradient-emerald'} valueClassName={hasBudget ? (overBudget ? 'text-rose-600' : 'text-emerald-600') : 'text-emerald-600'} />
-        <StatCard icon={Percent} value={`${marginPct.toFixed(1)}%`} label="Margin" gradient="stat-gradient-violet" valueClassName="text-emerald-600" />
+        <StatCard icon={TrendingUp} value={hasBudget ? `${variance >= 0 ? '+' : ''}${fmt(variance)}` : fmt(profit)} label={hasBudget ? 'Variance' : 'Profit'} gradient={hasBudget ? (overBudget ? 'stat-gradient-rose' : 'stat-gradient-blue') : 'stat-gradient-brand'} valueClassName={hasBudget ? (overBudget ? 'text-rose-600' : 'text-[#2E5A1A]') : 'text-[#2E5A1A]'} />
+        <StatCard icon={Percent} value={`${marginPct.toFixed(1)}%`} label="Margin" gradient="stat-gradient-violet" valueClassName="text-[#2E5A1A]" />
       </div>
 
       {hasBudget && (
@@ -45,7 +45,7 @@ function BudgetMarginTracker({ budget, actualNet, clientNet, markup }) {
             </span>
           </div>
           <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full transition-all ${overBudget ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${budgetPct}%` }} />
+            <div className={`h-full rounded-full transition-all ${overBudget ? 'bg-red-500' : 'bg-[#2E5A1A]'}`} style={{ width: `${budgetPct}%` }} />
           </div>
           {overBudget && (
             <div className="mt-2 flex items-center gap-1.5 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">
@@ -149,20 +149,20 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-        <PoundSterling className="w-5 h-5 text-emerald-700" />
+        <PoundSterling className="w-5 h-5 text-[#2E5A1A]" />
         <h2 className="font-semibold text-slate-900">Revenue Breakdown</h2>
-        <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{items.length} billing items</span>
+        <span className="ml-auto text-xs bg-[#2E5A1A]/15 text-[#2E5A1A] px-2 py-0.5 rounded-full font-medium">{items.length} billing items</span>
       </div>
 
       <div className="px-5 py-4 space-y-5">
         {/* Client-facing total banner */}
         <div className="hero-gradient rounded-xl p-5 text-white">
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-4 h-4 text-emerald-200" />
-            <span className="text-xs font-medium text-emerald-100">{useMethodRevenue ? fin.revenue.label : 'Client Total (incl. VAT & markup)'}</span>
+            <TrendingUp className="w-4 h-4 text-white/70" />
+            <span className="text-xs font-medium text-white/80">{useMethodRevenue ? fin.revenue.label : 'Client Total (incl. VAT & markup)'}</span>
           </div>
           <p className="text-3xl font-bold">{fmt(clientTotal)}</p>
-          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-emerald-100">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-white/80">
             <span>Net: {fmt(clientNet)}</span>
             <span>VAT ({Number(vatRate) || 0}%): {fmt(clientVat)}</span>
             {!useMethodRevenue && <span>Markup: {Number(markup) || 0}%</span>}
@@ -174,7 +174,7 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
         {/* Revenue Method Selector */}
         <div className="border border-slate-200 rounded-xl p-4 bg-white">
           <div className="flex items-center gap-2 mb-3">
-            <Calculator className="w-4 h-4 text-emerald-700" />
+            <Calculator className="w-4 h-4 text-[#2E5A1A]" />
             <h3 className="text-sm font-semibold text-slate-800">Revenue Method</h3>
             <span className="ml-auto text-xs text-slate-400">How this job is billed to the client</span>
           </div>
@@ -184,8 +184,8 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
               const active = revenueMethod === m.value;
               return (
                 <button key={m.value} type="button" onClick={() => setRevenueMethod(m.value)}
-                  className={`flex flex-col items-start gap-1 px-3 py-2.5 rounded-lg border text-left transition ${active ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                  <Icon className={`w-4 h-4 ${active ? 'text-emerald-700' : 'text-slate-400'}`} />
+                  className={`flex flex-col items-start gap-1 px-3 py-2.5 rounded-lg border text-left transition ${active ? 'border-[#2E5A1A] bg-[#2E5A1A]/10 text-[#2E5A1A]' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
+                  <Icon className={`w-4 h-4 ${active ? 'text-[#2E5A1A]' : 'text-slate-400'}`} />
                   <span className="text-xs font-semibold">{m.label}</span>
                   <span className="text-[10px] text-slate-400 leading-tight">{m.hint}</span>
                 </button>
@@ -196,18 +196,18 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
             <div className="flex items-center gap-2 mb-3">
               <label className="text-xs font-medium text-slate-600">£ per unit</label>
               <input type="number" min="0" step="0.01" value={unitPrice} onChange={e => setUnitPrice(e.target.value)}
-                className="w-28 px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" placeholder="0.00" />
+                className="w-28 px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]" placeholder="0.00" />
             </div>
           )}
           {revenueMethod !== 'none' && (
-            <div className="bg-emerald-50 rounded-lg px-3 py-2 text-xs text-emerald-800 flex items-center justify-between">
-              <span>Calculated revenue: <strong>{fmt(fin.revenue.net)}</strong> {fin.revenue.breakdown.length > 0 && <span className="text-emerald-600">({fin.revenue.breakdown[0].label})</span>}</span>
-              <span className="text-emerald-500">{fin.revenue.label}</span>
+            <div className="bg-[#2E5A1A]/10 rounded-lg px-3 py-2 text-xs text-[#2E5A1A] flex items-center justify-between">
+              <span>Calculated revenue: <strong>{fmt(fin.revenue.net)}</strong> {fin.revenue.breakdown.length > 0 && <span className="text-[#2E5A1A]">({fin.revenue.breakdown[0].label})</span>}</span>
+              <span className="text-[#2E5A1A]/70">{fin.revenue.label}</span>
             </div>
           )}
           <div className="flex items-center gap-2 mt-3">
             <button onClick={saveRevenueMethod} disabled={savingRevenue || ((job.revenue_method || 'none') === revenueMethod && (job.unit_price ?? '') === unitPrice)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-medium hover:bg-emerald-800 transition disabled:opacity-50">
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-medium hover:bg-[#1c4a12] transition disabled:opacity-50">
               {savingRevenue ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save method
             </button>
           </div>
@@ -232,7 +232,7 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <StatCard icon={Calculator} value={fmt(equipmentNet)} label="Equipment (net)" gradient="stat-gradient-slate" />
             <StatCard icon={Hotel} value={fmt(hotelNet)} label="Accommodation (net)" sub={fin.costs.hotelRows.length > 0 ? `${fin.costs.hotelRows.length} booking${fin.costs.hotelRows.length === 1 ? '' : 's'}` : undefined} gradient="stat-gradient-blue" valueClassName="text-blue-700" />
-            <StatCard icon={PoundSterling} value={fmt(internalNet)} label="Total cost (net)" gradient="stat-gradient-emerald" />
+            <StatCard icon={PoundSterling} value={fmt(internalNet)} label="Total cost (net)" gradient="stat-gradient-brand" />
             <StatCard icon={PoundSterling} value={fmt(internalTotal)} label="Total cost (gross)" gradient="stat-gradient-slate" />
           </div>
           {fin.costs.hotelRows.length > 0 && (
@@ -252,9 +252,9 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard icon={Calculator} value={fmt(equipmentNet)} label="Equipment (net)" gradient="stat-gradient-slate" />
           <StatCard icon={Hotel} value={fmt(hotelNet)} label="Accommodation (net)" gradient="stat-gradient-blue" valueClassName="text-blue-700" />
-          <StatCard icon={PoundSterling} value={fmt(internalTotal)} label="Internal total" gradient="stat-gradient-emerald" />
+          <StatCard icon={PoundSterling} value={fmt(internalTotal)} label="Internal total" gradient="stat-gradient-brand" />
           {additionalCharges > 0 && (
-            <StatCard icon={TrendingUp} value={fmt(additionalCharges)} label="Delivery & Task Charges" sub={`${deliveries.filter(d => d.chargeable !== false && Number(d.charge_amount) > 0).length} deliveries · ${jobTimesheets.filter(t => t.chargeable && Number(t.charge_amount) > 0).length} chargeable tasks`} gradient="stat-gradient-emerald" valueClassName="text-emerald-700" />
+            <StatCard icon={TrendingUp} value={fmt(additionalCharges)} label="Delivery & Task Charges" sub={`${deliveries.filter(d => d.chargeable !== false && Number(d.charge_amount) > 0).length} deliveries · ${jobTimesheets.filter(t => t.chargeable && Number(t.charge_amount) > 0).length} chargeable tasks`} gradient="stat-gradient-brand" valueClassName="text-[#2E5A1A]" />
           )}
         </div>
 
@@ -262,19 +262,19 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
         <div className="border border-slate-200 rounded-lg p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5"><Percent className="w-4 h-4 text-emerald-700" /> Markup %</label>
+              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5"><Percent className="w-4 h-4 text-[#2E5A1A]" /> Markup %</label>
               <input type="number" min="0" step="0.1" value={markup} onChange={(e) => setMarkup(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5"><PoundSterling className="w-4 h-4 text-emerald-700" /> VAT rate %</label>
+              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5"><PoundSterling className="w-4 h-4 text-[#2E5A1A]" /> VAT rate %</label>
               <input type="number" min="0" step="0.1" value={vatRate} onChange={(e) => setVatRate(e.target.value)} className={inputCls} />
             </div>
           </div>
           <div className="flex items-center gap-2 mt-3">
-            <button onClick={saveConfig} disabled={savingConfig || !configDirty} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-medium hover:bg-emerald-800 transition disabled:opacity-50">
+            <button onClick={saveConfig} disabled={savingConfig || !configDirty} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-medium hover:bg-[#1c4a12] transition disabled:opacity-50">
               {savingConfig ? <span>Saving...</span> : <><Save className="w-3.5 h-3.5" /> Save rates</>}
             </button>
-            {configSaved && <span className="text-xs text-emerald-700 font-medium inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Saved</span>}
+            {configSaved && <span className="text-xs text-[#2E5A1A] font-medium inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Saved</span>}
             {!configDirty && !configSaved && <span className="text-xs text-slate-400">Rates applied to this job</span>}
           </div>
         </div>
