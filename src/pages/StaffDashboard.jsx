@@ -506,8 +506,8 @@ export default function StaffDashboard() {
       <div className="mesh-bg relative overflow-hidden">
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-7">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-5">
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <Logo variant="full" height={44} tone="light" />
+            <div className="flex flex-col gap-2 min-w-0">
+              <Logo variant="full" height={56} />
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate tracking-tight">My Schedule</h1>
                 <p className="text-white/85 text-sm md:text-base mt-0.5 truncate">Welcome back, {staff.name.split(' ')[0]}</p>
