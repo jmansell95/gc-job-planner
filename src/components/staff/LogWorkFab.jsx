@@ -26,10 +26,10 @@ export default function LogWorkFab({ assignments = [], jobs = [], staff, canLog 
       <button
         onClick={() => setOpen(true)}
         type="button"
-        className="fixed right-4 sm:right-6 z-40 flex items-center gap-2 px-4 py-3.5 rounded-2xl command-gradient text-white font-bold text-sm shadow-lg shadow-[#2E5A1A]/30 active:scale-95 transition touch-manipulation"
-        style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))' }}
+        className="fixed right-4 sm:right-6 z-40 flex items-center gap-2.5 px-6 py-4 rounded-2xl command-gradient text-white font-bold text-base shadow-lg shadow-[#2E5A1A]/30 active:scale-95 transition touch-manipulation"
+        style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
       >
-        <Plus className="w-5 h-5" />
+        <Plus className="w-6 h-6" />
         Log My Work
       </button>
 

@@ -22,25 +22,25 @@ export default function StaffTabBar({ activeTab, onChange, counts = {} }) {
               key={tab.key}
               onClick={() => onChange(tab.key)}
               type="button"
-              className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition touch-manipulation ${
+              className={`relative flex-1 flex flex-col items-center justify-center gap-1 py-3.5 transition touch-manipulation ${
                 isActive ? 'text-[#2E5A1A]' : 'text-slate-400'
               }`}
             >
               <div className="relative">
-                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : ''}`} />
+                <Icon className={`w-7 h-7 ${isActive ? 'stroke-[2.5]' : ''}`} />
                 {showBadge && (
-                  <span className={`absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-bold flex items-center justify-center ${
+                  <span className={`absolute -top-1.5 -right-2.5 min-w-[20px] h-5 px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${
                     isActive ? 'bg-[#2E5A1A] text-white' : 'bg-slate-300 text-white'
                   }`}>
                     {tab.badge > 9 ? '9+' : tab.badge}
                   </span>
                 )}
               </div>
-              <span className={`text-[10px] font-semibold ${isActive ? 'text-[#2E5A1A]' : 'text-slate-400'}`}>
+              <span className={`text-sm font-semibold ${isActive ? 'text-[#2E5A1A]' : 'text-slate-400'}`}>
                 {tab.label}
               </span>
               {isActive && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[#2E5A1A] rounded-full" />
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-1 bg-[#2E5A1A] rounded-full" />
               )}
             </button>
           );

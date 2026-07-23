@@ -506,7 +506,7 @@ export default function StaffDashboard() {
     };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="min-h-screen bg-slate-50 pb-28">
       {/* Header */}
       <div className="mesh-bg relative overflow-hidden">
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-7">
@@ -524,24 +524,24 @@ export default function StaffDashboard() {
             <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-1.5 w-full max-w-xs sm:max-w-none">
               {staff.delivery_dashboard_enabled && (
                 <button onClick={() => navigate('/deliveries')} type="button"
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                  <Truck className="w-5 h-5" />
+                  className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-base font-semibold active:scale-95 transition touch-manipulation">
+                  <Truck className="w-6 h-6" />
                   <span>Deliveries</span>
                 </button>
               )}
               <button onClick={() => navigate('/help')} type="button"
-                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                <HelpCircle className="w-5 h-5" />
+                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-base font-semibold active:scale-95 transition touch-manipulation">
+                <HelpCircle className="w-6 h-6" />
                 <span>Help</span>
               </button>
               <button onClick={() => setShowScheduleSummary(true)} type="button"
-                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                <CalendarDays className="w-5 h-5" />
+                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-base font-semibold active:scale-95 transition touch-manipulation">
+                <CalendarDays className="w-6 h-6" />
                 <span>Schedule</span>
               </button>
               <button onClick={() => navigate('/staff-profile')} type="button"
-                className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                <UserCircle className="w-5 h-5" />
+                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-base font-semibold active:scale-95 transition touch-manipulation">
+                <UserCircle className="w-6 h-6" />
                 <span>Profile</span>
               </button>
             </div>
@@ -785,36 +785,36 @@ export default function StaffDashboard() {
       {/* More Tab — bookings + quick links */}
       {activeTab === 'more' && (
         <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-5 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             {staff.delivery_dashboard_enabled && (
               <button onClick={() => navigate('/deliveries')} type="button"
-                className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                  <Truck className="w-5 h-5 text-blue-600" />
+                className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
+                  <Truck className="w-7 h-7 text-blue-600" />
                 </div>
-                <span className="text-sm font-semibold text-slate-700">Deliveries</span>
+                <span className="text-base font-semibold text-slate-700">Deliveries</span>
               </button>
             )}
             <button onClick={() => navigate('/staff-profile')} type="button"
-              className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
-              <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
-                <UserCircle className="w-5 h-5 text-purple-600" />
+              className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
+              <div className="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center">
+                <UserCircle className="w-7 h-7 text-purple-600" />
               </div>
-              <span className="text-sm font-semibold text-slate-700">Profile</span>
+              <span className="text-base font-semibold text-slate-700">Profile</span>
             </button>
             <button onClick={() => setShowScheduleSummary(true)} type="button"
-              className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <CalendarDays className="w-5 h-5 text-emerald-600" />
+              className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                <CalendarDays className="w-7 h-7 text-emerald-600" />
               </div>
-              <span className="text-sm font-semibold text-slate-700">Schedule</span>
+              <span className="text-base font-semibold text-slate-700">Schedule</span>
             </button>
             <button onClick={() => navigate('/help')} type="button"
-              className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
-                <HelpCircle className="w-5 h-5 text-amber-600" />
+              className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
+              <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
+                <HelpCircle className="w-7 h-7 text-amber-600" />
               </div>
-              <span className="text-sm font-semibold text-slate-700">Help</span>
+              <span className="text-base font-semibold text-slate-700">Help</span>
             </button>
           </div>
 
