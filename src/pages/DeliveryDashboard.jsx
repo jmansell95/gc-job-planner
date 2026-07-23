@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Truck, Package, ArrowRightLeft, Calendar, CheckCircle2, Clock, HardHat, HelpCircle, ArrowRight } from 'lucide-react';
+import { Truck, Package, ArrowRightLeft, Calendar, CheckCircle2, Clock, HardHat, HelpCircle, ArrowRight, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isToday } from 'date-fns';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
@@ -10,6 +10,7 @@ import DeliveryCompleteModal from '@/components/delivery/DeliveryCompleteModal';
 import { useToast } from '@/components/ui/use-toast';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { saveOfflineDelivery, hasOfflineDelivery } from '@/utils/offlineSync';
+import { isDriver } from '@/utils/access';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -258,10 +259,17 @@ export default function DeliveryDashboard() {
                 <HelpCircle className="w-5 h-5" />
                 <span className="hidden sm:inline">Help</span>
               </button>
-              <button onClick={() => navigate('/staff-schedule')} type="button"
+              {!isDriver(staff) && (
+                <button onClick={() => navigate('/staff-schedule')} type="button"
+                  className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
+                  <Calendar className="w-5 h-5" />
+                  <span className="hidden sm:inline">Schedule</span>
+                </button>
+              )}
+              <button onClick={() => base44.auth.logout('/login')} type="button"
                 className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                <Calendar className="w-5 h-5" />
-                <span className="hidden sm:inline">Schedule</span>
+                <LogOut className="w-5 h-5" />
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           </div>

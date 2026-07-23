@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import RouteGuard from '@/components/RouteGuard';
 import Home from './pages/Home';
 import AdminDashboard from './pages/AdminDashboard';
 import StaffDashboard from './pages/StaffDashboard';
@@ -56,11 +57,11 @@ const AuthenticatedApp = () => {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/" element={<Home />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/staff-schedule" element={<StaffDashboard />} />
-          <Route path="/staff-profile" element={<StaffProfile />} />
-          <Route path="/subcontractor" element={<SubcontractorDashboard />} />
-          <Route path="/deliveries" element={<DeliveryDashboard />} />
+          <Route path="/admin" element={<RouteGuard><AdminDashboard /></RouteGuard>} />
+          <Route path="/staff-schedule" element={<RouteGuard><StaffDashboard /></RouteGuard>} />
+          <Route path="/staff-profile" element={<RouteGuard><StaffProfile /></RouteGuard>} />
+          <Route path="/subcontractor" element={<RouteGuard><SubcontractorDashboard /></RouteGuard>} />
+          <Route path="/deliveries" element={<RouteGuard><DeliveryDashboard /></RouteGuard>} />
           <Route path="/help" element={<HelpGuide />} />
         </Route>
         <Route path="/client-portal/:token" element={<ClientPortal />} />

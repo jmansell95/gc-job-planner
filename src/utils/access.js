@@ -28,9 +28,20 @@ export function canAccessSection(profile, sectionId, isPlatformAdmin) {
   // sidebar isn't blank. Items are re-filtered once the profile resolves.
   if (!profile) return true;
   const role = resolveRole(profile, isPlatformAdmin);
-  if (role) {
-    if (sectionId === 'staff_schedule') return true;
-    return ROLE_SECTIONS[role]?.includes(sectionId) || false;
+  // Admins see everything regardless of team
+  if (role === 'admin') return true;
+  // The "My Schedule" link is available to all office staff
+  if (sectionId === 'staff_schedule') return true;
+  if (role === 'manager' || role === 'viewer') {
+    // Office staff: role sections, further restricted by their team's
+    // allowed_tool_access when the team defines one.
+    const roleSections = ROLE_SECTIONS[role] || [];
+    if (!roleSections.includes(sectionId)) return false;
+    const teamAccess = profile?.team?.allowed_tool_access;
+    if (teamAccess && teamAccess.length > 0) {
+      return teamAccess.includes(sectionId);
+    }
+    return true;
   }
   // Field staff — fall back to team capabilities
   return profile?.team?.allowed_tool_access?.includes(sectionId) || false;
@@ -54,8 +65,67 @@ export function isAdmin(profile, isPlatformAdmin) {
   return resolveRole(profile, isPlatformAdmin) === 'admin';
 }
 
+// Check if user is a driver (field staff with delivery dashboard enabled).
+// Drivers see ONLY the delivery dashboard — nothing else.
+export function isDriver(profile, isPlatformAdmin) {
+  if (!profile) return false;
+  if (isPlatformAdmin || profile.is_admin) return false;
+  const role = resolveRole(profile, isPlatformAdmin);
+  return !role && profile.delivery_dashboard_enabled === true;
+}
+
+// Check if user is field staff (no system role — schedule & profile only)
+export function isFieldStaff(profile, isPlatformAdmin) {
+  if (!profile) return false;
+  if (isPlatformAdmin || profile.is_admin) return false;
+  const role = resolveRole(profile, isPlatformAdmin);
+  return !role;
+}
+
+// Check if user is office staff (manager/viewer/admin role)
+export function isOfficeStaff(profile, isPlatformAdmin) {
+  const role = resolveRole(profile, isPlatformAdmin);
+  return role === 'admin' || role === 'manager' || role === 'viewer';
+}
+
+// Check if a user can access a specific route path.
+// Enforces the site-wide lockdown: drivers see deliveries only,
+// field staff see their schedule + profile only, office staff see admin.
+export function canAccessRoute(profile, isPlatformAdmin, path) {
+  if (isPlatformAdmin) return true;
+  if (!profile) return false;
+
+  // Help is available to everyone authenticated
+  if (path === '/help') return true;
+
+  // Drivers: delivery dashboard ONLY
+  if (isDriver(profile)) {
+    return path === '/deliveries';
+  }
+
+  // Subcontractors: subcontractor portal ONLY
+  if (profile.worker_type === 'subcontractor') {
+    return path === '/subcontractor';
+  }
+
+  const role = resolveRole(profile, isPlatformAdmin);
+
+  // Office staff (admin/manager/viewer): full access to admin + staff views
+  if (role === 'admin' || role === 'manager' || role === 'viewer') {
+    return true;
+  }
+
+  // Field staff: staff dashboard + profile only
+  if (path === '/staff-schedule' || path === '/staff-profile') return true;
+
+  return false;
+}
+
 // Resolve landing page based on role.
 export function resolveRoleLandingPage(profile, isPlatformAdmin) {
+  // Drivers go straight to the delivery dashboard — they see nothing else
+  if (isDriver(profile)) return '/deliveries';
+
   const role = resolveRole(profile, isPlatformAdmin);
   if (role === 'admin' || role === 'manager' || role === 'viewer') return '/admin';
   // Sub-contractors get the minimalist logging portal — they don't see scheduling or admin data

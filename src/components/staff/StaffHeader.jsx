@@ -1,8 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, HelpCircle, CalendarDays, UserCircle } from 'lucide-react';
+import { Truck, HelpCircle, CalendarDays, UserCircle, LogOut } from 'lucide-react';
 import { format } from 'date-fns';
 import Logo from '@/components/Logo';
+import { base44 } from '@/api/base44Client';
 
 // Compact single-row header — reclaims vertical space for job content.
 // Logo + name/date on the left, icon-only nav buttons on the right.
@@ -37,6 +38,10 @@ export default function StaffHeader({ staff, onShowSchedule }) {
             <button onClick={() => navigate('/staff-profile')} type="button" aria-label="Profile"
               className="w-11 h-11 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white flex items-center justify-center active:scale-95 transition touch-manipulation">
               <UserCircle className="w-5 h-5" />
+            </button>
+            <button onClick={() => base44.auth.logout('/login')} type="button" aria-label="Logout"
+              className="w-11 h-11 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white flex items-center justify-center active:scale-95 transition touch-manipulation">
+              <LogOut className="w-5 h-5" />
             </button>
           </div>
         </div>

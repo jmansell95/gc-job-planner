@@ -281,8 +281,8 @@ export default function StaffManager() {
               <label className="block text-xs font-medium text-slate-600 mb-1">Access Level</label>
               <select value={formData.system_role || ''} onChange={e => setFormData({ ...formData, system_role: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="">Field Staff (schedule only)</option>
-                <option value="viewer">Viewer (read-only dashboard)</option>
+                <option value="">Field Staff (schedule & profile only)</option>
+                <option value="viewer">Viewer (read-only operations)</option>
                 <option value="manager">Manager (operations access)</option>
                 <option value="admin">Admin (full access)</option>
               </select>
@@ -332,9 +332,12 @@ export default function StaffManager() {
               className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
             <span className="text-sm text-slate-600 flex items-center gap-1.5">
               <Truck className="w-3.5 h-3.5 text-emerald-600" />
-              Grant access to the Delivery Dashboard
+              Driver — delivery dashboard access
             </span>
           </label>
+          {formData.delivery_dashboard_enabled && !formData.system_role && (
+            <p className="text-xs text-amber-600 mt-1.5 ml-6">Field staff with this enabled see the Delivery Dashboard only — they won't see their schedule or profile.</p>
+          )}
 
           <div className="flex gap-2 mt-5">
             <button type="submit" disabled={submitting} className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm disabled:opacity-50">
