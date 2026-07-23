@@ -11,16 +11,23 @@ import { canAccessRoute, resolveRoleLandingPage } from '@/utils/access';
 export default function RouteGuard({ children }) {
   const { user, isAuthenticated, isLoadingAuth } = useAuth();
   const location = useLocation();
+  const isPlatformAdmin = user?.role === 'admin';
+
   const { data: profile, isLoading } = useQuery({
     queryKey: ['my-staff-profile'],
     queryFn: async () => {
       const res = await base44.functions.invoke('getMyStaffProfile');
       return res.data;
     },
-    enabled: !!isAuthenticated && !isLoadingAuth,
+    // Platform admins always have full access — no need to fetch the profile.
+    enabled: !!isAuthenticated && !isLoadingAuth && !isPlatformAdmin,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
+
+  // Platform admins bypass the lockdown entirely — render immediately,
+  // with no profile fetch and no loading spinner.
+  if (isPlatformAdmin) return children;
 
   if (isLoadingAuth || isLoading) {
     return (
@@ -30,11 +37,9 @@ export default function RouteGuard({ children }) {
     );
   }
 
-  const isPlatformAdmin = user?.role === 'admin';
-
   // Profile failed to load and we can't determine access — show a retry
   // screen instead of redirecting (which would loop).
-  if (!profile && !isPlatformAdmin) {
+  if (!profile) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50 px-6">
         <div className="text-center max-w-sm">
@@ -49,13 +54,13 @@ export default function RouteGuard({ children }) {
     );
   }
 
-  if (!canAccessRoute(profile, isPlatformAdmin, location.pathname)) {
-    let landing = resolveRoleLandingPage(profile, isPlatformAdmin);
+  if (!canAccessRoute(profile, false, location.pathname)) {
+    let landing = resolveRoleLandingPage(profile, false);
     // Safety net: if the resolved landing page is the same inaccessible route
     // we're already on, fall back to a guaranteed-safe default to avoid a
     // redirect loop.
     if (landing === location.pathname) {
-      landing = isPlatformAdmin ? '/admin' : '/staff-schedule';
+      landing = '/staff-schedule';
     }
     return <Navigate to={landing} replace />;
   }
