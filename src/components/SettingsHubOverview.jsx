@@ -29,15 +29,15 @@ export default function SettingsHubOverview({ onNavigate }) {
   const pendingTimesheets = timesheets.filter(t => t.status === 'submitted').length;
 
   const cards = [
-    { group: 'People', items: [
+    { group: 'People & Teams', items: [
       { id: 'staff', icon: Users, label: 'Crew Members', value: staff.length, sub: `${staff.filter(s => s.is_active !== false).length} active`, color: 'emerald' },
-      { id: 'teams', icon: HardHat, label: 'Crews', value: teams.length, sub: 'Teams & sub-teams', color: 'blue' },
+      { id: 'teams', icon: Users, label: 'Crews', value: teams.length, sub: 'Teams & sub-teams', color: 'blue' },
       { id: 'absences', icon: CalendarX, label: 'Absences', value: '—', sub: 'Leave & time off', color: 'amber' },
     ]},
     { group: 'Operations', items: [
-      { id: 'assets', icon: Wrench, label: 'Site Assets', value: assets.length, sub: 'GC Compliance sync', color: 'blue' },
-      { id: 'asset-panda', icon: Database, label: 'Asset Panda', value: '—', sub: 'Inventory sync', color: 'cyan' },
-      { id: 'equipment-library', icon: Boxes, label: 'Equipment Library', value: catalogue.length, sub: `${activeCatalogue} active`, color: 'emerald' },
+      { id: 'assets', icon: Wrench, label: 'Compliance Sync', value: assets.length, sub: 'GC Compliance sync', color: 'blue' },
+      { id: 'asset-panda', icon: Database, label: 'Asset Panda Sync', value: '—', sub: 'Inventory sync', color: 'cyan' },
+      { id: 'equipment-library', icon: Boxes, label: 'Equipment Sets', value: catalogue.length, sub: `${activeCatalogue} active`, color: 'emerald' },
       { id: 'vehicles', icon: Truck, label: 'Vehicles', value: vehicles.length, sub: 'Fleet & MOTs', color: 'amber' },
       { id: 'job-types', icon: Tag, label: 'Job Types', value: '—', sub: 'Types & colours', color: 'slate' },
       { id: 'dropdowns', icon: ListChecks, label: 'Dropdown Manager', value: '—', sub: 'Edit every dropdown', color: 'violet' },
