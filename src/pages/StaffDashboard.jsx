@@ -24,7 +24,6 @@ import TodayPrepStrip from '@/components/staff/TodayPrepStrip';
 import SyncHUD from '@/components/staff/SyncHUD';
 import WeeklyProgress from '@/components/staff/WeeklyProgress';
 import StaffTabBar from '@/components/staff/StaffTabBar';
-import LogWorkFab from '@/components/staff/LogWorkFab';
 import StaffHeader from '@/components/staff/StaffHeader';
 import StaffAlerts from '@/components/staff/StaffAlerts';
 import ActiveJobCard from '@/components/staff/ActiveJobCard';
@@ -491,7 +490,7 @@ export default function StaffDashboard() {
     };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28">
+    <div className="min-h-screen bg-slate-50 pb-20">
       <StaffHeader staff={staff} onShowSchedule={() => setShowScheduleSummary(true)} />
 
       {/* Today Tab — zero-scroll, action-first */}
@@ -691,9 +690,6 @@ export default function StaffDashboard() {
           )}
         </div>
       )}
-
-      {/* Log My Work FAB */}
-      <LogWorkFab assignments={visibleAssignments} jobs={jobs} staff={staff} canLog={canPerformActions} />
 
       {/* Bottom Tab Bar */}
       <StaffTabBar activeTab={activeTab} onChange={setActiveTab} counts={{ today: todaysSorted.length, upcoming: upcomingAssignments.length }} />

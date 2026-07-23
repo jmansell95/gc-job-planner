@@ -203,25 +203,25 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     <div>
       {/* Hero header — context-aware */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-5 mt-0">
-        <div className="mesh-bg relative overflow-hidden rounded-3xl shadow-xl px-5 py-3.5 sm:px-7 sm:py-6">
+        <div className="mesh-bg relative overflow-hidden rounded-2xl shadow-lg px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="p-3 bg-white/15 ring-1 ring-white/25 rounded-2xl flex-shrink-0 backdrop-blur-sm">
-                {isAllJobs ? <Grid3x3 className="w-7 h-7 text-white" /> : <Briefcase className="w-7 h-7 text-white" />}
+              <div className="p-2.5 bg-white/15 ring-1 ring-white/25 rounded-xl flex-shrink-0 backdrop-blur-sm">
+                {isAllJobs ? <Grid3x3 className="w-6 h-6 text-white" /> : <Briefcase className="w-6 h-6 text-white" />}
               </div>
               <div className="min-w-0">
                 {isAllJobs ? (
                   <>
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+                    <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight truncate">
                       {greeting}{firstName ? `, ${firstName}` : ''}
                     </h1>
-                    <p className="text-white/90 text-sm mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
-                    <p className="text-white/70 text-xs mt-0.5">{thisWeekRotas.length} {thisWeekRotas.length === 1 ? 'Shift' : 'Shifts'} This Week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
+                    <p className="text-white/90 text-xs mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
+                    <p className="text-white/70 text-[11px] mt-0.5">{thisWeekRotas.length} {thisWeekRotas.length === 1 ? 'Shift' : 'Shifts'} This Week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
                   </>
                 ) : (
                   <>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white tracking-tight truncate">{selectedJob?.name || 'Job'}</h1>
+                      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight truncate">{selectedJob?.name || 'Job'}</h1>
                       {selectedJob?.status && (
                         <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-white/20 text-white ring-1 ring-white/30 backdrop-blur-sm">
                           {titleCase(selectedJob.status.replace(/_/g, ' '))}
@@ -287,8 +287,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           if (sectionWidgets.length === 0) return null;
           const Icon = section.icon;
           return (
-            <section key={section.id} className="mb-7">
-              <div className="flex items-center gap-2.5 mb-3 px-1">
+            <section key={section.id} className="mb-5">
+              <div className="flex items-center gap-2 mb-2 px-1">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-sm">
                   <Icon className="w-4 h-4 text-white" />
                 </div>
