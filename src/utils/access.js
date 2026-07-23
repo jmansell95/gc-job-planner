@@ -24,6 +24,9 @@ export function resolveRole(profile, isPlatformAdmin) {
 
 // Check if a user can access a specific admin section.
 export function canAccessSection(profile, sectionId, isPlatformAdmin) {
+  // While the profile is still loading, show all standard nav items so the
+  // sidebar isn't blank. Items are re-filtered once the profile resolves.
+  if (!profile) return true;
   const role = resolveRole(profile, isPlatformAdmin);
   if (role) {
     if (sectionId === 'staff_schedule') return true;
