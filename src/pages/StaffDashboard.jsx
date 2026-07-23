@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, CalendarDays, CalendarClock, Clock, Briefcase, WifiOff, HardHat, MessageCircle, History, CheckCircle2, UserCircle, ShieldCheck, AlertTriangle, Truck, HelpCircle } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Clock, HardHat, CheckCircle2, UserCircle, ShieldCheck, AlertTriangle, Truck, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isPast } from 'date-fns';
 import { motion } from 'framer-motion';
@@ -13,8 +13,7 @@ import { syncAllOfflineData, getOfflineDeliveryCount } from '@/utils/offlineSync
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME, SITE_EARLY_ACCESS_TIME } from '@/utils/siteHours';
 import { complianceDaysUntil } from '@/utils/complianceDate';
 import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
-import StatCard from '@/components/dashboard/StatCard';
-import Logo from '@/components/Logo';
+
 import ShiftWizard from '@/components/staff/ShiftWizard';
 import EarlyLeaveModal from '@/components/staff/EarlyLeaveModal';
 import ScheduleSplash from '@/components/staff/ScheduleSplash';
@@ -22,27 +21,13 @@ import NextJobPrompt from '@/components/staff/NextJobPrompt';
 import AdHocVisitModal from '@/components/staff/AdHocVisitModal';
 import StaffBookings from '@/components/staff/StaffBookings';
 import TodayPrepStrip from '@/components/staff/TodayPrepStrip';
-import LiveClock from '@/components/staff/LiveClock';
 import SyncHUD from '@/components/staff/SyncHUD';
 import WeeklyProgress from '@/components/staff/WeeklyProgress';
 import StaffTabBar from '@/components/staff/StaffTabBar';
 import LogWorkFab from '@/components/staff/LogWorkFab';
-
-const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
-
-function SectionHeader({ icon: Icon, title, count, tone = 'dark' }) {
-  const textTone = tone === 'muted' ? 'text-slate-500' : 'text-slate-900';
-  const gradient = tone === 'muted' ? 'from-slate-400 to-slate-500' : 'from-[#F5821F] to-[#e06a0a]';
-  return (
-    <div className="flex items-center gap-2.5 mb-3 md:mb-4">
-      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-sm`}>
-        <Icon className="w-4 h-4 text-white" />
-      </div>
-      <h2 className={`text-lg md:text-xl font-bold ${textTone} tracking-tight`}>{title}</h2>
-      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${tone === 'muted' ? 'bg-slate-100 text-slate-400' : 'bg-orange-50 text-[#c95f0a] ring-1 ring-orange-100'}`}>{count}</span>
-    </div>
-  );
-}
+import StaffHeader from '@/components/staff/StaffHeader';
+import StaffAlerts from '@/components/staff/StaffAlerts';
+import ActiveJobCard from '@/components/staff/ActiveJobCard';
 
 export default function StaffDashboard() {
   const navigate = useNavigate();
@@ -507,241 +492,112 @@ export default function StaffDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28">
-      {/* Header */}
-      <div className="mesh-bg relative overflow-hidden">
-        <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-7">
-          <div className="flex flex-col items-center text-center gap-2.5 mb-5">
-            <Logo variant="full" height={72} />
-            <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight">My Schedule</h1>
-              <p className="text-white/85 text-sm md:text-base mt-0.5">Welcome back, {staff.name.split(' ')[0]}</p>
-              <LiveClock
-                className="mt-0.5 flex flex-col items-center"
-                dateClassName="text-white/70 text-xs md:text-sm"
-                timeClassName="text-white/90 text-base md:text-lg font-semibold tabular-nums"
-              />
-            </div>
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-1.5 w-full max-w-xs sm:max-w-none">
-              {staff.delivery_dashboard_enabled && (
-                <button onClick={() => navigate('/deliveries')} type="button"
-                  className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-base font-semibold active:scale-95 transition touch-manipulation">
-                  <Truck className="w-6 h-6" />
-                  <span>Deliveries</span>
-                </button>
-              )}
-              <button onClick={() => navigate('/help')} type="button"
-                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-base font-semibold active:scale-95 transition touch-manipulation">
-                <HelpCircle className="w-6 h-6" />
-                <span>Help</span>
-              </button>
-              <button onClick={() => setShowScheduleSummary(true)} type="button"
-                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-base font-semibold active:scale-95 transition touch-manipulation">
-                <CalendarDays className="w-6 h-6" />
-                <span>Schedule</span>
-              </button>
-              <button onClick={() => navigate('/staff-profile')} type="button"
-                className="flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-base font-semibold active:scale-95 transition touch-manipulation">
-                <UserCircle className="w-6 h-6" />
-                <span>Profile</span>
-              </button>
-            </div>
-          </div>
+      <StaffHeader staff={staff} onShowSchedule={() => setShowScheduleSummary(true)} />
 
-          {/* Quick stats strip */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <StatCard icon={Calendar} value={upcomingAssignments.length} label="Upcoming" gradient="stat-gradient-brand" />
-            <StatCard icon={Briefcase} value={visibleAssignments.length} label="Total" gradient="stat-gradient-brand-green" />
-          </div>
-        </div>
-      </div>
-
-      {/* Today Tab — SyncHUD, info, weekly progress, today's jobs */}
+      {/* Today Tab — zero-scroll, action-first */}
       {activeTab === 'today' && (
-        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-5 space-y-4">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-4 space-y-3">
           <SyncHUD />
-          {/* Info banners — consolidated stack */}
-        <div className="space-y-2 mb-5">
-          {/* Early access — most important, shown first */}
-          {!canPerformActions && isBeforeSiteOpen() && (
-            <div className="flex items-center gap-2.5 bg-blue-50/80 border border-blue-100 rounded-xl px-4 py-3 text-sm text-blue-900">
-              <Clock className="w-4 h-4 text-blue-600 flex-shrink-0" />
-              <p className="font-medium">Early access — work actions unlock at {SITE_OPEN_TIME}.</p>
+
+          {/* Consolidated alert — single line */}
+          <StaffAlerts isOnline={isOnline} staff={staff} />
+
+          {/* Compliance alert */}
+          {(() => {
+            const myItems = myCompliance.filter(i => i.reference_id === staff?.id || i.reference_name === staff?.name);
+            const expired = myItems.filter(i => {
+              if (!i.expiry_date || i.status_override !== 'auto') return false;
+              const days = complianceDaysUntil(i.expiry_date);
+              return days !== null && days < 0;
+            });
+            const expiring = myItems.filter(i => {
+              if (!i.expiry_date || i.status_override !== 'auto') return false;
+              const days = complianceDaysUntil(i.expiry_date);
+              return days !== null && days >= 0 && days <= 30;
+            });
+            const hasCSCS = myItems.some(i => i.qualification_type === 'cscs_card' || /cscs/i.test(i.title));
+            if (expired.length === 0 && expiring.length === 0 && hasCSCS) return null;
+            const isUrgent = expired.length > 0 || !hasCSCS;
+            return (
+              <button onClick={() => navigate('/staff-profile')} type="button"
+                className={`w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-left transition ${isUrgent ? 'bg-red-50 border border-red-100 text-red-900' : 'bg-amber-50 border border-amber-100 text-amber-900'}`}>
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isUrgent ? 'bg-red-100' : 'bg-amber-100'}`}>
+                  <AlertTriangle className={`w-5 h-5 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold">{expired.length > 0 ? `${expired.length} compliance item${expired.length > 1 ? 's' : ''} expired` : expiring.length > 0 ? `${expiring.length} item${expiring.length > 1 ? 's' : ''} expiring soon` : 'CSCS card not on file'}</p>
+                  <p className="text-xs opacity-80 mt-0.5">Tap to view in your profile.</p>
+                </div>
+                <ShieldCheck className={`w-5 h-5 flex-shrink-0 ${isUrgent ? 'text-red-400' : 'text-amber-400'}`} />
+              </button>
+            );
+          })()}
+
+          {/* Today's assignments — active job hero + compact secondary cards */}
+          {assignmentsLoading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5">
+                  <Skeleton className="h-1.5 w-full mb-4 rounded-full" />
+                  <Skeleton className="h-4 w-1/3 mb-3" />
+                  <SkeletonText lines={3} />
+                </div>
+              ))}
+            </div>
+          ) : scheduleLocked ? (
+            <div className="bg-white rounded-2xl border border-slate-200">
+              <EmptyState icon={CalendarClock} title="New schedule on the way" message="Your manager is preparing your new rota. You'll get it by email once it's ready." />
+            </div>
+          ) : visibleAssignments.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200">
+              <EmptyState icon={CalendarDays} title="No shifts scheduled" message="Check back later — your manager will assign you to upcoming jobs." />
+            </div>
+          ) : todaysSorted.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200">
+              <EmptyState icon={CalendarDays} title="No jobs today" message="Check the Upcoming tab for your next shifts." />
+            </div>
+          ) : todaysAllDone ? (
+            <EndOfDayCard />
+          ) : (
+            <div className="space-y-3">
+              {/* Prep strip */}
+              <TodayPrepStrip
+                todaysSorted={todaysSorted}
+                jobs={jobs}
+                myCompliance={myCompliance}
+                myHotelBookings={myHotelBookings}
+                staffId={staff.id}
+              />
+              {/* Active / next job — hero card with big action button */}
+              {nextTodayAssignment && (
+                <div>
+                  {activeStarted && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-1 h-5 bg-[#2E5A1A] rounded-full" />
+                      <p className="text-sm font-bold text-slate-700 uppercase tracking-wide">In Progress</p>
+                    </div>
+                  )}
+                  {!activeStarted && todaysSorted.length > 1 && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-1 h-5 bg-amber-500 rounded-full" />
+                      <p className="text-sm font-bold text-slate-600 uppercase tracking-wide">Up Next</p>
+                    </div>
+                  )}
+                  <ActiveJobCard {...cardProps(nextTodayAssignment)} />
+                </div>
+              )}
+              {/* Other jobs today — compact cards */}
+              {todaysSorted.filter(a => a.id !== nextTodayAssignment?.id).map(a => (
+                <AssignmentCard key={a.id} {...cardProps(a)} />
+              ))}
             </div>
           )}
-
-          {/* WhatsApp reminder */}
-          <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm text-slate-600">
-            <MessageCircle className="w-4 h-4 text-slate-400 flex-shrink-0" />
-            <p className="font-medium">Check WhatsApp for updates at the start of each working day.</p>
-          </div>
-        </div>
-
-        {/* Compliance status alert */}
-        {(() => {
-          const myItems = myCompliance.filter(i => i.reference_id === staff?.id || i.reference_name === staff?.name);
-          const expired = myItems.filter(i => {
-            if (!i.expiry_date || i.status_override !== 'auto') return false;
-            const days = complianceDaysUntil(i.expiry_date);
-            return days !== null && days < 0;
-          });
-          const expiring = myItems.filter(i => {
-            if (!i.expiry_date || i.status_override !== 'auto') return false;
-            const days = complianceDaysUntil(i.expiry_date);
-            return days !== null && days >= 0 && days <= 30;
-          });
-          const hasCSCS = myItems.some(i => i.qualification_type === 'cscs_card' || /cscs/i.test(i.title));
-          if (expired.length === 0 && expiring.length === 0 && hasCSCS) return null;
-          const isUrgent = expired.length > 0 || !hasCSCS;
-          return (
-            <button onClick={() => navigate('/staff-profile')} type="button"
-              className={`mb-5 w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm text-left transition shadow-sm ${isUrgent ? 'bg-red-50 border border-red-100 text-red-900' : 'bg-amber-50 border border-amber-100 text-amber-900'}`}>
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isUrgent ? 'bg-red-100' : 'bg-amber-100'}`}>
-                <AlertTriangle className={`w-5 h-5 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-bold">{expired.length > 0 ? `${expired.length} compliance item${expired.length > 1 ? 's' : ''} expired` : expiring.length > 0 ? `${expiring.length} item${expiring.length > 1 ? 's' : ''} expiring soon` : 'CSCS card not on file'}</p>
-                <p className="text-xs opacity-80 mt-0.5">{expired.length > 0 ? 'Tap to view details in your profile.' : expiring.length > 0 ? 'Tap to check your compliance wallet.' : 'Field staff need a valid CSCS card. Tap to view your profile.'}</p>
-              </div>
-              <ShieldCheck className={`w-5 h-5 flex-shrink-0 ${isUrgent ? 'text-red-400' : 'text-amber-400'}`} />
-            </button>
-          );
-        })()}
-
-        {!isOnline && (
-          <div className="mb-5 flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
-            <WifiOff className="w-4 h-4 flex-shrink-0" />
-            You're offline. Showing cached schedule — changes will sync when you reconnect.
-          </div>
-        )}
-
-        {/* Weekly progress counter — motivates crews with their weekly contribution */}
-        {staff?.id && (
-          <div className="mb-5">
-            <WeeklyProgress staffId={staff.id} />
-          </div>
-        )}
-
-        {/* Assignments List */}
-        {assignmentsLoading ? (
-          <div className="space-y-4">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5">
-                <Skeleton className="h-1.5 w-full mb-4 rounded-full" />
-                <Skeleton className="h-4 w-1/3 mb-3" />
-                <SkeletonText lines={3} />
-              </div>
-            ))}
-          </div>
-        ) : scheduleLocked ? (
-          <div className="bg-white rounded-2xl border border-slate-200">
-            <EmptyState icon={CalendarClock} title="New schedule on the way" message="Your manager is preparing your new rota. You'll get it by email once it's ready." />
-          </div>
-        ) : visibleAssignments.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200">
-            <EmptyState icon={CalendarDays} title="No shifts scheduled" message="Check back later — your manager will assign you to upcoming jobs." />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Today's Timeline — all jobs for today in order */}
-            {todaysSorted.length > 0 && (
-              <div>
-                <SectionHeader icon={Clock} title="Today" count={todaysSorted.length} />
-                {!todaysAllDone && (
-                  <TodayPrepStrip
-                    todaysSorted={todaysSorted}
-                    jobs={jobs}
-                    myCompliance={myCompliance}
-                    myHotelBookings={myHotelBookings}
-                    staffId={staff.id}
-                  />
-                )}
-                {todaysAllDone ? (
-                  <EndOfDayCard />
-                ) : (
-                  <div className="space-y-3">
-                    {todaysSorted.map(a => {
-                      const isActive = a.id === nextTodayAssignment?.id;
-                      const isStarted = a.status === 'started';
-                      const isCompleted = a.status === 'completed';
-                      return (
-                        <div key={a.id}>
-                          {isActive && isStarted && (
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-1 h-5 bg-[#2E5A1A] rounded-full" />
-                              <p className="text-sm font-bold text-slate-700 uppercase tracking-wide">In Progress</p>
-                            </div>
-                          )}
-                          {isActive && !isStarted && !isCompleted && todaysSorted.length > 1 && (
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-1 h-5 bg-amber-500 rounded-full" />
-                              <p className="text-sm font-bold text-slate-600 uppercase tracking-wide">Up Next</p>
-                            </div>
-                          )}
-                          {isCompleted && (
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-1 h-5 bg-slate-300 rounded-full" />
-                              <p className="text-sm font-bold text-slate-400 uppercase tracking-wide">Completed</p>
-                            </div>
-                          )}
-                          <AssignmentCard {...cardProps(a)} defaultExpanded={isActive} />
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* No jobs today but upcoming exists */}
-            {todaysSorted.length === 0 && upcomingDates.length > 0 && (
-              <div className="bg-white rounded-2xl border border-slate-200">
-                <EmptyState icon={CalendarDays} title="No jobs today" message="Check the Upcoming tab for your next shifts." />
-              </div>
-            )}
-
-            {/* Upcoming Assignments — hidden here, shown on Upcoming tab */}
-            {upcomingDates.length > 0 && (
-              <div className="hidden">
-                <SectionHeader icon={Calendar} title="Upcoming" count={upcomingAssignments.length} tone="muted" />
-                <div className="space-y-4">
-                  {upcomingDates.slice(0, 10).map(date => {
-                    const dayAssignments = upcomingGrouped[date].sort((a, b) => (a.start_time || '23:59').localeCompare(b.start_time || '23:59'));
-                    const d = new Date(date + 'T00:00:00');
-                    return (
-                      <div key={date}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">{format(d, 'EEEE')}</span>
-                          <span className="text-xs text-slate-400">{format(d, 'dd MMM yyyy')}</span>
-                          <span className="text-xs text-slate-300">·</span>
-                          <span className="text-xs text-slate-400">{dayAssignments.length} {dayAssignments.length === 1 ? 'job' : 'jobs'}</span>
-                        </div>
-                        <div className="space-y-3">
-                          {dayAssignments.map(a => (
-                            <AssignmentCard key={a.id} {...cardProps(a)} />
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Nothing at all */}
-            {todaysSorted.length === 0 && upcomingDates.length === 0 && (
-              <div className="bg-white rounded-2xl border border-slate-200">
-                <EmptyState icon={CalendarDays} title="No shifts scheduled" message="Check back later — your manager will assign you to upcoming jobs." />
-                </div>
-                )}
-                </div>
-                )}
         </div>
       )}
 
       {/* Upcoming Tab */}
       {activeTab === 'upcoming' && (
-        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-5 space-y-4">
-          <SectionHeader icon={Calendar} title="Upcoming" count={upcomingAssignments.length} tone="muted" />
+        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-4 space-y-3">
           {assignmentsLoading ? (
             <div className="space-y-4">
               {Array.from({ length: 2 }).map((_, i) => (
@@ -817,6 +673,10 @@ export default function StaffDashboard() {
               <span className="text-base font-semibold text-slate-700">Help</span>
             </button>
           </div>
+
+          {staff?.id && (
+            <WeeklyProgress staffId={staff.id} />
+          )}
 
           {staff?.id && (
             <div>
