@@ -55,6 +55,8 @@ export function isAdmin(profile, isPlatformAdmin) {
 export function resolveRoleLandingPage(profile, isPlatformAdmin) {
   const role = resolveRole(profile, isPlatformAdmin);
   if (role === 'admin' || role === 'manager' || role === 'viewer') return '/admin';
+  // Sub-contractors get the minimalist logging portal — they don't see scheduling or admin data
+  if (profile?.worker_type === 'subcontractor') return '/subcontractor';
   if (profile?.team?.default_landing_page) return profile.team.default_landing_page;
   if (isPlatformAdmin) return '/admin';
   return '/staff-schedule';

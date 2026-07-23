@@ -27,6 +27,20 @@
       "default": "staff",
       "description": "Where this log originated. 'staff' = manually entered by a crew member in the app; 'ags_import' = ingested from a KeyLogBook AGS file. AGS-imported borehole/strata/SPT/sample data is read-only in the app \u2014 drillers must make changes in KeyLogBook and re-import. Used to show the correct guidance message (lead driller vs second man) and to badge logs by origin."
     },
+    "crew_type": {
+      "type": "string",
+      "enum": [
+        "internal",
+        "enabling",
+        "subcontractor"
+      ],
+      "default": "internal",
+      "description": "Which type of crew recorded this log. 'internal' = our own employees on the rota; 'enabling' = enabling works crews (site setup, reinstatement); 'subcontractor' = logged by a sub-contractor via their own login. Sub-contractor and enabling logs are flagged in Log QC with a distinct badge so managers apply the appropriate review and billing path."
+    },
+    "subcontractor_id": {
+      "type": "string",
+      "description": "Linked Contractor record when crew_type is 'subcontractor'. Used to identify which sub-contractor firm logged the work for billing and audit."
+    },
     "completed_by_type": {
       "type": "string",
       "enum": [
@@ -95,7 +109,7 @@
     },
     "units_completed": {
       "type": "number",
-      "description": "Number of units completed (e.g. 2 EV chargers installed, 3 trial pits dug)"
+      "description": "Number of units completed (e.g. 2 EV chargers installed, 3 trial pits dug, metres drilled)"
     },
     "units_label": {
       "type": "string",

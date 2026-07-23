@@ -43,6 +43,22 @@ function str(v: any): string {
   return String(v).trim();
 }
 
+// AI enrichment — cleans up raw driller remarks into professional, spell-checked
+// report-ready text. Preserves all technical accuracy. Never blocks the webhook
+// (falls back to raw text on any error).
+async function enrichRemarks(base44: any, rawText: string): Promise<string> {
+  if (!rawText || rawText.trim().length < 10) return rawText || '';
+  try {
+    const res = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      prompt: `You are a geotechnical field log editor. Clean up the following raw driller remark from a cable percussion or rotary borehole log. Fix spelling, grammar, and capitalisation. Convert informal shorthand into professional, report-ready English while preserving all technical accuracy (depths, strata descriptions, groundwater, obstructions, equipment). Do NOT add information that isn't in the original. Return ONLY the cleaned text, no preamble.\n\nRaw remark:\n${rawText}`,
+    });
+    const cleaned = typeof res === 'string' ? res.trim() : String((res as any)?.text || (res as any)?.response || '').trim();
+    return cleaned || rawText;
+  } catch (e) {
+    return rawText; // Never block the webhook — fall back to raw text
+  }
+}
+
 // Parse HH:MM into minutes from midnight
 function timeToMins(t: string | null | undefined): number | null {
   if (!t) return null;
@@ -88,7 +104,9 @@ Deno.serve(async (req) => {
     const explicitJobId = str(body.job_id);
     const workDate = str(body.date) || todayStr();
     const meterage = num(body.meterage);
-    const remarks = str(body.remarks || body.notes);
+    const rawRemarks = str(body.remarks || body.notes);
+    // AI enrichment — spell-check and professionalise the driller's raw remarks
+    const remarks = await enrichRemarks(base44, rawRemarks);
 
     // --- Match the job ---
     let job: any = null;

@@ -11,6 +11,7 @@ import Home from './pages/Home';
 import AdminDashboard from './pages/AdminDashboard';
 import StaffDashboard from './pages/StaffDashboard';
 import StaffProfile from './pages/StaffProfile';
+import SubcontractorDashboard from './pages/SubcontractorDashboard';
 import ClientPortal from './pages/ClientPortal';
 import DeliveryDashboard from './pages/DeliveryDashboard';
 import HelpGuide from './pages/HelpGuide';
@@ -58,6 +59,7 @@ const AuthenticatedApp = () => {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/staff-schedule" element={<StaffDashboard />} />
           <Route path="/staff-profile" element={<StaffProfile />} />
+          <Route path="/subcontractor" element={<SubcontractorDashboard />} />
           <Route path="/deliveries" element={<DeliveryDashboard />} />
           <Route path="/help" element={<HelpGuide />} />
         </Route>

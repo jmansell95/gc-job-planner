@@ -6,7 +6,7 @@ import {
   ShieldCheck, AlertTriangle, CheckCircle2, XCircle, Clock,
   ArrowDownToLine, TestTube, MapPin, Package, Wrench, Undo2, Ruler,
   Droplets, Calculator, Layers, Gauge, Waves, Camera, FileText, Eye,
-  Tablet, User, Download, Loader2, Filter, ChevronDown,
+  Tablet, User, Download, Loader2, Filter, ChevronDown, HardHat,
 } from 'lucide-react';
 import {
   strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig,
@@ -22,6 +22,7 @@ export default function LogQualityControl() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState('pending');
   const [originFilter, setOriginFilter] = useState('all'); // all | staff | ags_import
+  const [crewFilter, setCrewFilter] = useState('all'); // all | internal | enabling | subcontractor
   const [jobFilter, setJobFilter] = useState('all');
   const [selectedLog, setSelectedLog] = useState(null);
   const [reviewNote, setReviewNote] = useState('');
@@ -67,6 +68,7 @@ export default function LogQualityControl() {
     return logs.filter(l => {
       if (filter !== 'all' && (l.manager_review_status || 'pending') !== filter) return false;
       if (originFilter !== 'all' && (l.source || 'staff') !== originFilter) return false;
+      if (crewFilter !== 'all' && (l.crew_type || 'internal') !== crewFilter) return false;
       if (jobFilter !== 'all' && l.job_id !== jobFilter) return false;
       return true;
     });
@@ -244,6 +246,13 @@ export default function LogQualityControl() {
           <option value="staff">Field staff</option>
           <option value="ags_import">KeyLogBook (AGS)</option>
         </select>
+        <select value={crewFilter} onChange={e => setCrewFilter(e.target.value)}
+          className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:border-slate-400">
+          <option value="all">All crews</option>
+          <option value="internal">Internal</option>
+          <option value="enabling">Enabling</option>
+          <option value="subcontractor">Sub-contractor</option>
+        </select>
         <select value={jobFilter} onChange={e => setJobFilter(e.target.value)}
           className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:border-slate-400 max-w-[180px]">
           <option value="all">All jobs</option>
@@ -305,6 +314,16 @@ export default function LogQualityControl() {
                       {isAgs && (
                         <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
                           <Tablet className="w-2.5 h-2.5" /> KeyLogBook
+                        </span>
+                      )}
+                      {log.crew_type === 'enabling' && (
+                        <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+                          <Undo2 className="w-2.5 h-2.5" /> Enabling
+                        </span>
+                      )}
+                      {log.crew_type === 'subcontractor' && (
+                        <span className="text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+                          <HardHat className="w-2.5 h-2.5" /> Sub-con
                         </span>
                       )}
                       <LogTypeBadge logType={log.log_type} />

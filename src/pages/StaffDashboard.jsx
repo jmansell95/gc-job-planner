@@ -23,6 +23,8 @@ import AdHocVisitModal from '@/components/staff/AdHocVisitModal';
 import StaffBookings from '@/components/staff/StaffBookings';
 import TodayPrepStrip from '@/components/staff/TodayPrepStrip';
 import LiveClock from '@/components/staff/LiveClock';
+import SyncHUD from '@/components/staff/SyncHUD';
+import WeeklyProgress from '@/components/staff/WeeklyProgress';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -550,6 +552,11 @@ export default function StaffDashboard() {
         </div>
       </div>
 
+      {/* Sync HUD — persistent confidence indicator (sticky, sits just below the header) */}
+      <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3">
+        <SyncHUD />
+      </div>
+
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
         {/* Info banners — consolidated stack */}
@@ -604,6 +611,13 @@ export default function StaffDashboard() {
           <div className="mb-5 flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
             <WifiOff className="w-4 h-4 flex-shrink-0" />
             You're offline. Showing cached schedule — changes will sync when you reconnect.
+          </div>
+        )}
+
+        {/* Weekly progress counter — motivates crews with their weekly contribution */}
+        {staff?.id && (
+          <div className="mb-5">
+            <WeeklyProgress staffId={staff.id} />
           </div>
         )}
 
