@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, Upload, FileCheck, PoundSterling, X, AlertCircle } from 'lucide-react';
+import { Loader2, Upload, FileCheck, PoundSterling, X, AlertCircle, Sparkles, Wand2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
+import { extractDocumentData, QUOTE_SCHEMA } from '@/utils/documentExtraction';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
@@ -16,6 +17,8 @@ export default function ConfirmQuoteModal({ item, jobId, onClose }) {
   const [existingDocUrl, setExistingDocUrl] = useState(item?.quote_document_url || '');
   const [existingDocName, setExistingDocName] = useState(item?.quote_document_name || '');
   const [uploading, setUploading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extractedPrice, setExtractedPrice] = useState(null);
   const [saving, setSaving] = useState(false);
   const [userName, setUserName] = useState('');
 
@@ -28,11 +31,22 @@ export default function ConfirmQuoteModal({ item, jobId, onClose }) {
   const handleFile = async (file) => {
     if (!file) return;
     setUploading(true);
+    setExtractedPrice(null);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       setExistingDocUrl(file_url);
       setExistingDocName(file.name);
       setQuoteFile(null);
+      // Auto-extract the quoted unit price from the document
+      setExtracting(true);
+      try {
+        const extracted = await extractDocumentData(file_url, QUOTE_SCHEMA);
+        if (extracted?.unit_price != null && Number(extracted.unit_price) > 0) {
+          setNegotiatedCost(String(Number(extracted.unit_price).toFixed(2)));
+          setExtractedPrice(Number(extracted.unit_price));
+        }
+      } catch { /* best-effort */ }
+      setExtracting(false);
     } catch (e) {
       toast({ title: 'Upload failed', description: e?.message, variant: 'destructive' });
     }
@@ -159,8 +173,8 @@ export default function ConfirmQuoteModal({ item, jobId, onClose }) {
               </div>
             ) : (
               <label className="flex items-center gap-2 cursor-pointer border-2 border-dashed border-slate-300 rounded-lg px-3 py-3 hover:border-emerald-400 hover:bg-[#2E5A1A]/10 transition">
-                {uploading ? (
-                  <><Loader2 className="w-4 h-4 text-[#2E5A1A] animate-spin" /> <span className="text-sm text-slate-500">Uploading…</span></>
+                {uploading || extracting ? (
+                  <><Loader2 className="w-4 h-4 text-[#2E5A1A] animate-spin" /> <span className="text-sm text-slate-500">{uploading ? 'Uploading…' : 'Extracting price…'}</span></>
                 ) : (
                   <><Upload className="w-4 h-4 text-slate-400" /> <span className="text-sm text-slate-500">Upload quote PDF or contract</span></>
                 )}
@@ -169,11 +183,17 @@ export default function ConfirmQuoteModal({ item, jobId, onClose }) {
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.eml,.msg"
                   className="hidden"
                   onChange={(e) => handleFile(e.target.files?.[0])}
-                  disabled={uploading || saving}
+                  disabled={uploading || extracting || saving}
                 />
               </label>
             )}
-            <p className="text-xs text-slate-400 mt-1">Evidence of the agreed price — visible to admins on the job costing tab.</p>
+            {extractedPrice != null && (
+              <div className="flex items-center gap-1.5 text-xs text-purple-700 bg-purple-50 rounded-md px-3 py-2 border border-purple-200 mt-1.5">
+                <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>Auto-filled price from document: <strong>{fmt(extractedPrice)}</strong> per {item.unit_label || 'unit'}</span>
+              </div>
+            )}
+            <p className="text-xs text-slate-400 mt-1">Evidence of the agreed price — visible to admins on the job costing tab. The system will auto-extract the unit price for you.</p>
           </div>
 
           {/* Actions */}

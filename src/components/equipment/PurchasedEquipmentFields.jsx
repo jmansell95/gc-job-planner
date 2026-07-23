@@ -1,11 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { Upload, FileText, X, Package, Loader2, Receipt, Tag, AlertCircle } from 'lucide-react';
+import { Upload, FileText, X, Package, Loader2, Receipt, Tag, AlertCircle, Sparkles, Wand2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { inputCls, fmt } from './shared';
+import { extractDocumentData, ORDER_SLIP_SCHEMA, matchSupplierByName } from '@/utils/documentExtraction';
 
 export default function PurchasedEquipmentFields({ form, setForm, suppliers = [], rateCardItems = [] }) {
   const [orderSlipFile, setOrderSlipFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extractedFields, setExtractedFields] = useState(null);
   const [uploadError, setUploadError] = useState(false);
 
   // Materials from our company rate card — useful for purchased consumables
@@ -41,14 +44,41 @@ export default function PurchasedEquipmentFields({ form, setForm, suppliers = []
     });
   };
 
+  const applyExtracted = (data) => {
+    const updates = {};
+    const found = [];
+    if (data?.po_number && !form.po_number?.trim()) { updates.po_number = data.po_number; found.push('PO number'); }
+    if (data?.description && !form.description?.trim()) { updates.description = data.description; found.push('description'); }
+    if (data?.unit_cost != null && (!form.unit_cost || Number(form.unit_cost) === 0)) { updates.unit_cost = String(data.unit_cost); found.push('unit cost'); }
+    if (data?.quantity != null && (!form.quantity || Number(form.quantity) <= 1)) { updates.quantity = String(data.quantity); found.push('quantity'); }
+    if (data?.reference_number && !form.reference_number?.trim()) { updates.reference_number = data.reference_number; found.push('reference'); }
+    if (data?.supplier_name && !form.supplier_id) {
+      const matchedId = matchSupplierByName(data.supplier_name, suppliers);
+      if (matchedId) { updates.supplier_id = matchedId; found.push('supplier'); }
+    }
+    if (Object.keys(updates).length > 0) {
+      setForm({ ...form, ...updates });
+      setExtractedFields(found);
+    }
+  };
+
   const handleFile = async (file) => {
     if (!file) return;
     setOrderSlipFile(file);
     setUploadError(false);
+    setExtractedFields(null);
     setUploading(true);
     try {
       const res = await base44.integrations.Core.UploadFile({ file });
-      setForm({ ...form, order_slip_url: res.file_url, order_slip_name: file.name });
+      const fileUrl = res.file_url;
+      setForm({ ...form, order_slip_url: fileUrl, order_slip_name: file.name });
+      // Auto-extract data from the uploaded document
+      setExtracting(true);
+      try {
+        const extracted = await extractDocumentData(fileUrl, ORDER_SLIP_SCHEMA);
+        if (extracted) applyExtracted(extracted);
+      } catch { /* extraction is best-effort */ }
+      setExtracting(false);
     } catch (err) {
       console.error(err);
       setUploadError(true);
@@ -123,8 +153,15 @@ export default function PurchasedEquipmentFields({ form, setForm, suppliers = []
         )}
         {orderSlipFile && (
           <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 rounded-md px-3 py-2 border border-emerald-200 mt-1.5">
-            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" /> : <FileText className="w-3.5 h-3.5 flex-shrink-0" />}
+            {uploading || extracting ? <Loader2 className="w-3.5 h-3.5 animate-spin flex-shrink-0" /> : <FileText className="w-3.5 h-3.5 flex-shrink-0" />}
             <span className="truncate">{orderSlipFile.name}</span>
+            {extracting && <span className="ml-auto inline-flex items-center gap-1 text-purple-600 font-medium"><Wand2 className="w-3 h-3" /> Extracting…</span>}
+          </div>
+        )}
+        {extractedFields && extractedFields.length > 0 && (
+          <div className="flex items-start gap-1.5 text-xs text-purple-700 bg-purple-50 rounded-md px-3 py-2 border border-purple-200 mt-1.5">
+            <Sparkles className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+            <span>Auto-filled from document: <strong>{extractedFields.join(', ')}</strong></span>
           </div>
         )}
         {uploadError && <p className="text-[10px] text-red-500 mt-1">Upload failed. Please try again.</p>}

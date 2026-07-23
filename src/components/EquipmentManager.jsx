@@ -4,14 +4,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Truck, Wrench, ShoppingCart, Plus, Trash2, Edit2,
   Package, FileCheck, Undo2, ExternalLink, AlertTriangle, Boxes, HardHat, User,
-  ShieldCheck, ShieldAlert, ShieldX, AlertCircle
+  ShieldCheck, ShieldAlert, ShieldX, AlertCircle, Sparkles
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { format } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import EquipmentForm from '@/components/EquipmentForm';
 import EquipmentItemCard from '@/components/EquipmentItemCard';
 import ConfirmQuoteModal from '@/components/equipment/ConfirmQuoteModal';
+import { extractDocumentData, OFF_HIRE_SCHEMA } from '@/utils/documentExtraction';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -110,6 +111,8 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
   const [offHireDate, setOffHireDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [offHireFile, setOffHireFile] = useState(null);
   const [uploadingOffHire, setUploadingOffHire] = useState(false);
+  const [extractingOffHire, setExtractingOffHire] = useState(false);
+  const [extractedOffHireNote, setExtractedOffHireNote] = useState(null);
   const offHireFileRef = useRef(null);
   const [confirmingQuoteItem, setConfirmingQuoteItem] = useState(null);
 
@@ -331,16 +334,31 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
     setOffHiringId(c.id);
     setOffHireDate(format(new Date(), 'yyyy-MM-dd'));
     setOffHireFile(null);
+    setExtractedOffHireNote(null);
     if (offHireFileRef.current) offHireFileRef.current.value = '';
   };
 
   const confirmOffHire = async () => {
     setUploadingOffHire(true);
+    setExtractedOffHireNote(null);
     try {
       let noteUrl = '', noteName = '';
       if (offHireFile) {
         const res = await base44.integrations.Core.UploadFile({ file: offHireFile });
         noteUrl = res.file_url; noteName = offHireFile.name;
+        // Auto-extract return date from the off-hire note
+        setExtractingOffHire(true);
+        try {
+          const extracted = await extractDocumentData(noteUrl, OFF_HIRE_SCHEMA);
+          if (extracted?.return_date) {
+            const parsed = parseISO(extracted.return_date);
+            if (isValid(parsed)) {
+              setOffHireDate(format(parsed, 'yyyy-MM-dd'));
+              setExtractedOffHireNote('Return date auto-filled from document');
+            }
+          }
+        } catch { /* best-effort */ }
+        setExtractingOffHire(false);
       }
       await base44.entities.JobCostItem.update(offHiringId, {
         hire_status: 'off_hired', off_hire_date: offHireDate,
@@ -546,13 +564,15 @@ export default function EquipmentManager({ jobId, job, items: externalItems, onI
                 <label className="block text-xs font-medium text-slate-600 mb-1">Off-hire note (PDF / photo)</label>
                 <input ref={offHireFileRef} type="file" accept=".pdf,image/*,.doc,.docx" onChange={e => setOffHireFile(e.target.files[0])} className="block w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:text-emerald-700 file:font-medium hover:file:bg-emerald-100 cursor-pointer" />
                 {offHireFile && <p className="text-xs text-emerald-700 mt-1.5 inline-flex items-center gap-1"><FileCheck className="w-3 h-3" /> {offHireFile.name}</p>}
+                {extractingOffHire && <p className="text-xs text-purple-600 mt-1.5 inline-flex items-center gap-1"><span className="w-3 h-3 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin" /> Extracting details from note…</p>}
+                {extractedOffHireNote && <p className="text-xs text-purple-700 bg-purple-50 rounded-md px-2.5 py-1.5 border border-purple-200 mt-1.5 inline-flex items-center gap-1"><Sparkles className="w-3 h-3" /> {extractedOffHireNote}</p>}
               </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <button onClick={confirmOffHire} disabled={uploadingOffHire} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 transition text-sm font-semibold disabled:opacity-50">
-                {uploadingOffHire ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Uploading…</> : <><FileCheck className="w-3.5 h-3.5" /> Confirm return</>}
+              <button onClick={confirmOffHire} disabled={uploadingOffHire || extractingOffHire} className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 transition text-sm font-semibold disabled:opacity-50">
+                {uploadingOffHire || extractingOffHire ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {uploadingOffHire ? 'Uploading…' : 'Extracting…'}</> : <><FileCheck className="w-3.5 h-3.5" /> Confirm return</>}
               </button>
-              <button onClick={() => setOffHiringId(null)} disabled={uploadingOffHire} className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">Cancel</button>
+              <button onClick={() => setOffHiringId(null)} disabled={uploadingOffHire || extractingOffHire} className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">Cancel</button>
             </div>
           </div>
         </div>
