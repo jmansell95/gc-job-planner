@@ -25,6 +25,8 @@ import TodayPrepStrip from '@/components/staff/TodayPrepStrip';
 import LiveClock from '@/components/staff/LiveClock';
 import SyncHUD from '@/components/staff/SyncHUD';
 import WeeklyProgress from '@/components/staff/WeeklyProgress';
+import StaffTabBar from '@/components/staff/StaffTabBar';
+import LogWorkFab from '@/components/staff/LogWorkFab';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -54,6 +56,7 @@ export default function StaffDashboard() {
   const [showScheduleSummary, setShowScheduleSummary] = useState(false);
   const [showNextJobPrompt, setShowNextJobPrompt] = useState(false);
   const [showAdHocVisit, setShowAdHocVisit] = useState(false);
+  const [activeTab, setActiveTab] = useState('today');
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -503,7 +506,7 @@ export default function StaffDashboard() {
     };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 pb-20">
       {/* Header */}
       <div className="mesh-bg relative overflow-hidden">
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-7">
@@ -552,14 +555,11 @@ export default function StaffDashboard() {
         </div>
       </div>
 
-      {/* Sync HUD — persistent confidence indicator (sticky, sits just below the header) */}
-      <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3">
-        <SyncHUD />
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
-        {/* Info banners — consolidated stack */}
+      {/* Today Tab — SyncHUD, info, weekly progress, today's jobs */}
+      {activeTab === 'today' && (
+        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-5 space-y-4">
+          <SyncHUD />
+          {/* Info banners — consolidated stack */}
         <div className="space-y-2 mb-5">
           {/* Early access — most important, shown first */}
           {!canPerformActions && isBeforeSiteOpen() && (
@@ -695,13 +695,13 @@ export default function StaffDashboard() {
             {/* No jobs today but upcoming exists */}
             {todaysSorted.length === 0 && upcomingDates.length > 0 && (
               <div className="bg-white rounded-2xl border border-slate-200">
-                <EmptyState icon={CalendarDays} title="No jobs today" message="Check your upcoming shifts below." />
+                <EmptyState icon={CalendarDays} title="No jobs today" message="Check the Upcoming tab for your next shifts." />
               </div>
             )}
 
-            {/* Upcoming Assignments grouped by date */}
+            {/* Upcoming Assignments — hidden here, shown on Upcoming tab */}
             {upcomingDates.length > 0 && (
-              <div>
+              <div className="hidden">
                 <SectionHeader icon={Calendar} title="Upcoming" count={upcomingAssignments.length} tone="muted" />
                 <div className="space-y-4">
                   {upcomingDates.slice(0, 10).map(date => {
@@ -735,21 +735,108 @@ export default function StaffDashboard() {
                 )}
                 </div>
                 )}
+        </div>
+      )}
 
-        {/* My Bookings — maintenance & training */}
-        {staff?.id && (
-          <div className="mt-6">
-            <div className="flex items-center gap-2.5 mb-3 md:mb-4">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                <CalendarClock className="w-4 h-4 text-amber-600" />
-              </div>
-              <h2 className="text-lg md:text-xl font-bold text-slate-900">My Bookings</h2>
+      {/* Upcoming Tab */}
+      {activeTab === 'upcoming' && (
+        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-5 space-y-4">
+          <SectionHeader icon={Calendar} title="Upcoming" count={upcomingAssignments.length} tone="muted" />
+          {assignmentsLoading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5">
+                  <Skeleton className="h-1.5 w-full mb-4 rounded-full" />
+                  <Skeleton className="h-4 w-1/3 mb-3" />
+                  <SkeletonText lines={3} />
+                </div>
+              ))}
             </div>
-            <StaffBookings staffId={staff.id} compact />
-          </div>
-        )}
+          ) : upcomingDates.length > 0 ? (
+            <div className="space-y-4">
+              {upcomingDates.slice(0, 20).map(date => {
+                const dayAssignments = upcomingGrouped[date].sort((a, b) => (a.start_time || '23:59').localeCompare(b.start_time || '23:59'));
+                const d = new Date(date + 'T00:00:00');
+                return (
+                  <div key={date}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">{format(d, 'EEEE')}</span>
+                      <span className="text-xs text-slate-400">{format(d, 'dd MMM yyyy')}</span>
+                      <span className="text-xs text-slate-300">·</span>
+                      <span className="text-xs text-slate-400">{dayAssignments.length} {dayAssignments.length === 1 ? 'job' : 'jobs'}</span>
+                    </div>
+                    <div className="space-y-3">
+                      {dayAssignments.map(a => (
+                        <AssignmentCard key={a.id} {...cardProps(a)} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200">
+              <EmptyState icon={CalendarDays} title="No upcoming jobs" message="Check back later — your manager will assign you to upcoming jobs." />
+            </div>
+          )}
+        </div>
+      )}
 
-      </div>
+      {/* More Tab — bookings + quick links */}
+      {activeTab === 'more' && (
+        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-5 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            {staff.delivery_dashboard_enabled && (
+              <button onClick={() => navigate('/deliveries')} type="button"
+                className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                  <Truck className="w-5 h-5 text-blue-600" />
+                </div>
+                <span className="text-sm font-semibold text-slate-700">Deliveries</span>
+              </button>
+            )}
+            <button onClick={() => navigate('/staff-profile')} type="button"
+              className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                <UserCircle className="w-5 h-5 text-purple-600" />
+              </div>
+              <span className="text-sm font-semibold text-slate-700">Profile</span>
+            </button>
+            <button onClick={() => setShowScheduleSummary(true)} type="button"
+              className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <CalendarDays className="w-5 h-5 text-emerald-600" />
+              </div>
+              <span className="text-sm font-semibold text-slate-700">Schedule</span>
+            </button>
+            <button onClick={() => navigate('/help')} type="button"
+              className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                <HelpCircle className="w-5 h-5 text-amber-600" />
+              </div>
+              <span className="text-sm font-semibold text-slate-700">Help</span>
+            </button>
+          </div>
+
+          {staff?.id && (
+            <div>
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                  <CalendarClock className="w-4 h-4 text-amber-600" />
+                </div>
+                <h2 className="text-lg md:text-xl font-bold text-slate-900">My Bookings</h2>
+              </div>
+              <StaffBookings staffId={staff.id} compact />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Log My Work FAB */}
+      <LogWorkFab assignments={visibleAssignments} jobs={jobs} staff={staff} canLog={canPerformActions} />
+
+      {/* Bottom Tab Bar */}
+      <StaffTabBar activeTab={activeTab} onChange={setActiveTab} counts={{ today: todaysSorted.length, upcoming: upcomingAssignments.length }} />
 
       {/* Unified Shift Wizard — full-screen step-by-step flow:
           arrive → briefing → tasks → finish day */}
