@@ -122,6 +122,8 @@ export function canAccessRoute(profile, isPlatformAdmin, path) {
 }
 
 // Resolve landing page based on role.
+// IMPORTANT: the returned page must always be one that canAccessRoute allows
+// for this user — otherwise the RouteGuard redirects back here and loops.
 export function resolveRoleLandingPage(profile, isPlatformAdmin) {
   // Drivers go straight to the delivery dashboard — they see nothing else
   if (isDriver(profile)) return '/deliveries';
@@ -130,7 +132,12 @@ export function resolveRoleLandingPage(profile, isPlatformAdmin) {
   if (role === 'admin' || role === 'manager' || role === 'viewer') return '/admin';
   // Sub-contractors get the minimalist logging portal — they don't see scheduling or admin data
   if (profile?.worker_type === 'subcontractor') return '/subcontractor';
-  if (profile?.team?.default_landing_page) return profile.team.default_landing_page;
+  // Field staff — only allow schedule/profile landing pages, never admin.
+  // A team may have default_landing_page '/admin' (e.g. a depot team whose
+  // member has no system_role), but sending a field-staff user there would
+  // cause a redirect loop, so clamp it to their allowed schedule view.
+  const teamLanding = profile?.team?.default_landing_page;
+  if (teamLanding === '/staff-schedule' || teamLanding === '/staff-profile') return teamLanding;
   if (isPlatformAdmin) return '/admin';
   return '/staff-schedule';
 }

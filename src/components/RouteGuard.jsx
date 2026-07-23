@@ -11,7 +11,7 @@ import { canAccessRoute, resolveRoleLandingPage } from '@/utils/access';
 export default function RouteGuard({ children }) {
   const { user, isAuthenticated, isLoadingAuth } = useAuth();
   const location = useLocation();
-  const { data: profile, isPending } = useQuery({
+  const { data: profile, isLoading } = useQuery({
     queryKey: ['my-staff-profile'],
     queryFn: async () => {
       const res = await base44.functions.invoke('getMyStaffProfile');
@@ -22,7 +22,7 @@ export default function RouteGuard({ children }) {
     retry: 1,
   });
 
-  if (isLoadingAuth || isPending) {
+  if (isLoadingAuth || isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
@@ -50,7 +50,13 @@ export default function RouteGuard({ children }) {
   }
 
   if (!canAccessRoute(profile, isPlatformAdmin, location.pathname)) {
-    const landing = resolveRoleLandingPage(profile, isPlatformAdmin);
+    let landing = resolveRoleLandingPage(profile, isPlatformAdmin);
+    // Safety net: if the resolved landing page is the same inaccessible route
+    // we're already on, fall back to a guaranteed-safe default to avoid a
+    // redirect loop.
+    if (landing === location.pathname) {
+      landing = isPlatformAdmin ? '/admin' : '/staff-schedule';
+    }
     return <Navigate to={landing} replace />;
   }
 
