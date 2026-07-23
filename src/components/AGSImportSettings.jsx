@@ -4,6 +4,7 @@ import { UploadCloud, FileText, CheckCircle2, AlertCircle, Loader2, Link2 } from
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
+import KeyLogBookWebhookSection from '@/components/keylogbook/KeyLogBookWebhookSection';
 
 export default function AGSImportSettings() {
   const { toast } = useToast();
@@ -46,10 +47,13 @@ export default function AGSImportSettings() {
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
       <SettingsSectionHeader
-        title="AGS Import (KeyLogBook)"
-        description="Upload an AGS data export from KeyLogBook. Re-importing overwrites the previous data for the job — borehole locations, strata, core runs, installations, water readings, samples and SPT results are refreshed each time. Core data in the GEOL group is detected automatically."
+        title="KeyLogBook Settings"
+        description="Connect KeyLogBook for real-time borehole data sync via webhook, or manually upload an AGS export. The webhook automatically creates draft timesheets for your drilling crew — they review and submit at the end of their shift."
         icon={UploadCloud}
       />
+
+      {/* Real-time webhook sync configuration */}
+      <KeyLogBookWebhookSection />
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-5">
         {/* Job selector */}
@@ -146,6 +150,17 @@ export default function AGSImportSettings() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Manual upload section header */}
+      <div className="flex items-center gap-2.5 pt-2">
+        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+          <UploadCloud className="w-4 h-4 text-slate-500" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold text-slate-900">Manual AGS File Upload</h3>
+          <p className="text-xs text-slate-500">Use this if real-time sync isn't set up yet, or to re-import a file.</p>
+        </div>
       </div>
 
       {/* Help */}

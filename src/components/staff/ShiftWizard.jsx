@@ -10,7 +10,7 @@ import {
 import { format } from 'date-fns';
 import JobBriefingModal from '@/components/staff/JobBriefingModal';
 import EndOfShiftWizard from '@/components/staff/EndOfShiftWizard';
-import DailyTaskLog from '@/components/DailyTaskLog';
+import WorkingStep from '@/components/staff/WorkingStep';
 
 const fmtDur = (mins) => {
   const m = Math.round(Number(mins) || 0);
@@ -99,13 +99,8 @@ function ArriveStep({ job, jobLocation, inductionRequired, onConfirm, saving }) 
 }
 
 // ── Working Step ─────────────────────────────────────────────────────────
-function WorkingStep({ staffId, job, assignment }) {
-  return (
-    <div className="px-0 py-0">
-      <DailyTaskLog staffId={staffId} hideSubmit />
-    </div>
-  );
-}
+// Now lives in its own component (src/components/staff/WorkingStep.jsx) with
+// smart KeyLogBook detection — imported above.
 
 // ── Main ShiftWizard ──────────────────────────────────────────────────────
 export default function ShiftWizard({
@@ -321,6 +316,7 @@ export default function ShiftWizard({
                     staffId={staffId}
                     job={job}
                     assignment={assignment}
+                    onGoToEndOfShift={() => setStep('end_of_shift')}
                   />
                 )}
               </motion.div>

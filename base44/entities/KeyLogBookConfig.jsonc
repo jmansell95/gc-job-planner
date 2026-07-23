@@ -1,0 +1,53 @@
+{
+  "name": "KeyLogBookConfig",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Singleton key \u2014 always 'global'. Used to fetch the single config record."
+    },
+    "webhook_secret": {
+      "type": "string",
+      "description": "Shared secret that KeyLogBook sends with each webhook payload to authenticate it. Enter this same value in your KeyLogBook webhook configuration. The webhook receiver validates every incoming request against this secret."
+    },
+    "api_base_url": {
+      "type": "string",
+      "description": "KeyLogBook REST API base URL (for future pull-based synchronisation). Leave blank if using webhooks only."
+    },
+    "api_key": {
+      "type": "string",
+      "description": "KeyLogBook API key / bearer token (for future pull-based synchronisation). Leave blank if using webhooks only."
+    },
+    "auto_generate_timesheets": {
+      "type": "boolean",
+      "default": true,
+      "description": "When true, incoming KeyLogBook webhook data automatically creates draft timesheet entries for the lead driller and second man assigned to the job that day. The crew then reviews and submits them at the end of their shift."
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Master toggle for the KeyLogBook real-time sync. When false, incoming webhooks are rejected even if the secret matches."
+    },
+    "last_webhook_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last webhook payload received from KeyLogBook."
+    },
+    "last_webhook_status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failed",
+        "never"
+      ],
+      "default": "never",
+      "description": "Outcome of the last webhook received \u2014 'success' = payload processed, 'failed' = validation or processing error, 'never' = no webhook received yet."
+    },
+    "last_webhook_summary": {
+      "type": "string",
+      "description": "Short human-readable summary of the last webhook result (e.g. 'Processed 14 log entries \u00b7 2 timesheets drafted for BH-01 job')."
+    }
+  },
+  "required": [
+    "key"
+  ]
+}
