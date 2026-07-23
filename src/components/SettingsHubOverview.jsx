@@ -15,7 +15,7 @@ export default function SettingsHubOverview({ onNavigate }) {
   const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list() });
   const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: () => base44.entities.Supplier.list() });
   const { data: rateItems = [] } = useQuery({ queryKey: ['rate-card-items'], queryFn: () => base44.entities.RateCardItem.list('-created_date', 500) });
-  const { data: catalogue = [] } = useQuery({ queryKey: ['equipment-catalogue'], queryFn: () => base44.entities.EquipmentCatalogue.list('-created_date', 500) });
+  const { data: costPresets = [] } = useQuery({ queryKey: ['cost-presets-hub'], queryFn: () => base44.entities.CostPreset.list('-created_date', 500) });
   const { data: assets = [] } = useQuery({ queryKey: ['site-assets-catalogue'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: billingRules = [] } = useQuery({ queryKey: ['billing-rules'], queryFn: () => base44.entities.BillingRule.list() });
@@ -23,7 +23,6 @@ export default function SettingsHubOverview({ onNavigate }) {
   const { data: invLogs = [] } = useQuery({ queryKey: ['inv-logs-hub'], queryFn: () => base44.entities.InvestigationLog.list('-created_date', 200) });
   const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets-hub'], queryFn: () => base44.entities.Timesheet.list('-created_date', 200) });
 
-  const activeCatalogue = catalogue.filter(c => c.is_active !== false).length;
   const ourRateItems = rateItems.filter(r => r.rate_card_source !== 'supplier').length;
   const pendingReviewLogs = invLogs.filter(l => l.manager_review_status === 'pending').length;
   const pendingTimesheets = timesheets.filter(t => t.status === 'submitted').length;
@@ -37,7 +36,7 @@ export default function SettingsHubOverview({ onNavigate }) {
     { group: 'Operations', items: [
       { id: 'assets', icon: Wrench, label: 'Compliance Sync', value: assets.length, sub: 'GC Compliance sync', color: 'blue' },
       { id: 'asset-panda', icon: Database, label: 'Asset Panda Sync', value: '—', sub: 'Inventory sync', color: 'cyan' },
-      { id: 'equipment-library', icon: Boxes, label: 'Equipment Sets', value: catalogue.length, sub: `${activeCatalogue} active`, color: 'emerald' },
+      { id: 'equipment-library', icon: Boxes, label: 'Equipment Sets', value: costPresets.length, sub: 'Pre-built sets', color: 'emerald' },
       { id: 'vehicles', icon: Truck, label: 'Vehicles', value: vehicles.length, sub: 'Fleet & MOTs', color: 'amber' },
       { id: 'job-types', icon: Tag, label: 'Job Types', value: '—', sub: 'Types & colours', color: 'slate' },
       { id: 'dropdowns', icon: ListChecks, label: 'Dropdown Manager', value: '—', sub: 'Edit every dropdown', color: 'violet' },
