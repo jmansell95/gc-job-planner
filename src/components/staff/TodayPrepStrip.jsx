@@ -2,7 +2,7 @@ import React from 'react';
 import { ShieldCheck, Clock, Hotel, CheckCircle2, AlertTriangle, Ruler } from 'lucide-react';
 import { format } from 'date-fns';
 
-const chipBase = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap';
+const chipBase = 'inline-flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-semibold whitespace-nowrap';
 
 // Gap in minutes between two HH:MM times
 function gapMinutes(endTime, startTime) {
@@ -81,15 +81,15 @@ export default function TodayPrepStrip({ todaysSorted = [], jobs = [], myComplia
 
   return (
     <div className="mb-4">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-2.5">
         <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Today's Prep</p>
       </div>
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1.5">
         {items.map((item, i) => {
           const Icon = item.icon;
           return (
             <span key={i} className={`${chipBase} ${toneClasses[item.tone]}`}>
-              <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+              <Icon className="w-5 h-5 flex-shrink-0" />
               {item.label}
             </span>
           );

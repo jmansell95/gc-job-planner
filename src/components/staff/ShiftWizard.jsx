@@ -324,23 +324,23 @@ export default function ShiftWizard({
           </div>
 
           {/* Footer */}
-          <div className="border-t border-slate-100 p-4 flex gap-2 flex-shrink-0 safe-area-bottom">
+          <div className="border-t border-slate-100 p-4 flex gap-2.5 flex-shrink-0 safe-area-bottom">
             {step === 'arrive' && (
               <>
                 <button onClick={onClose} disabled={saving}
-                  className="flex items-center justify-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 active:scale-95 transition text-sm font-semibold">
+                  className="flex items-center justify-center gap-2 px-5 py-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 active:scale-95 transition text-base font-semibold touch-manipulation">
                   Cancel
                 </button>
                 <button onClick={advanceFromArrive} disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-4 py-3 bg-[#2E5A1A] text-white rounded-xl hover:bg-[#1c4a12] active:scale-95 transition text-sm font-bold disabled:opacity-50 touch-manipulation">
-                  {saving ? 'Saving…' : 'Confirm Arrival'} <ChevronRight className="w-4 h-4" />
+                  className="flex-1 flex items-center justify-center gap-2 px-5 py-4 bg-[#2E5A1A] text-white rounded-2xl hover:bg-[#1c4a12] active:scale-95 transition text-base font-bold disabled:opacity-50 touch-manipulation">
+                  {saving ? 'Saving…' : 'Confirm Arrival'} <ChevronRight className="w-5 h-5" />
                 </button>
               </>
             )}
             {step === 'working' && (
               <button onClick={() => setStep('end_of_shift')}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#2E5A1A] text-white rounded-xl hover:bg-[#1c4a12] active:scale-95 transition text-sm font-bold touch-manipulation">
-                Finish My Day <ChevronRight className="w-4 h-4" />
+                className="flex-1 flex items-center justify-center gap-2 px-5 py-4 bg-[#2E5A1A] text-white rounded-2xl hover:bg-[#1c4a12] active:scale-95 transition text-base font-bold touch-manipulation">
+                Finish My Day <ChevronRight className="w-5 h-5" />
               </button>
             )}
           </div>

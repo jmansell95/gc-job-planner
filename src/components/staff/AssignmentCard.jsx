@@ -64,44 +64,44 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
       )}
 
       {/* Compact header — always visible */}
-      <button onClick={() => setExpanded(e => !e)} className="w-full text-left p-4 flex items-start gap-3 hover:bg-slate-50/60 transition">
-        <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${assignment.status === 'completed' ? 'bg-[#2E5A1A]' : assignment.status === 'started' ? 'bg-blue-500' : 'bg-slate-300'}`} />
+      <button onClick={() => setExpanded(e => !e)} className="w-full text-left p-4 md:p-5 flex items-start gap-3 hover:bg-slate-50/60 transition">
+        <div className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ${assignment.status === 'completed' ? 'bg-[#2E5A1A]' : assignment.status === 'started' ? 'bg-blue-500' : 'bg-slate-300'}`} />
         <div className="min-w-0 flex-1">
-          <h3 className="text-base font-bold text-slate-900 leading-tight truncate">{job.name}</h3>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${jobTypeBadgeColors[job.job_type]}`}>{formatJobType(job.job_type)}</span>
+          <h3 className="text-lg font-bold text-slate-900 leading-tight truncate">{job.name}</h3>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${jobTypeBadgeColors[job.job_type]}`}>{formatJobType(job.job_type)}</span>
             {assignment.is_overtime && (
-              <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700">
+              <span className="inline-block px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700">
                 OT{assignment.rate_multiplier ? ` ${Number(assignment.rate_multiplier)}x` : ''}
               </span>
             )}
-            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+            <span className="inline-flex items-center gap-1 text-sm text-slate-500">
+              <Calendar className="w-4 h-4 text-slate-400" />
               <span className="font-medium">{format(new Date(assignment.assigned_date), 'EEE dd MMM')}</span>
             </span>
             {assignment.start_time && (
-              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
+              <span className="inline-flex items-center gap-1 text-sm text-slate-500">
+                <Clock className="w-4 h-4 text-slate-400" />
                 <span className="font-medium">{assignment.start_time}{assignment.end_time ? `–${assignment.end_time}` : ''}</span>
               </span>
             )}
             {vehicle && (
-              <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-                <Truck className="w-3.5 h-3.5 text-slate-400" />
+              <span className="inline-flex items-center gap-1 text-sm text-slate-500">
+                <Truck className="w-4 h-4 text-slate-400" />
                 <span className="font-mono font-medium">{vehicle.registration_number}</span>
               </span>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${status.badge}`}>
-            <StatusIcon className="w-3 h-3" /> <span className="hidden sm:inline">{status.label}</span>
+        <div className="flex items-center gap-2.5 flex-shrink-0">
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold ${status.badge}`}>
+            <StatusIcon className="w-4 h-4" /> <span className="hidden sm:inline">{status.label}</span>
           </span>
 
           {assignment.status === 'started' && assignment.started_at && (
-            <span className="text-[10px] text-slate-400 hidden md:inline">since {format(new Date(assignment.started_at), 'HH:mm')}</span>
+            <span className="text-xs text-slate-400 hidden md:inline">since {format(new Date(assignment.started_at), 'HH:mm')}</span>
           )}
-          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
@@ -124,12 +124,12 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
                 )}
                 {canStart ? (
                   <button onClick={() => onOpenShiftWizard(assignment.id)}
-                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-xl hover:bg-[#1c4a12] active:scale-95 transition text-sm font-bold touch-manipulation">
-                    <PlayCircle className="w-4 h-4" /> Start Shift
+                    className="flex items-center justify-center gap-2 px-5 py-4 bg-[#2E5A1A] text-white rounded-2xl hover:bg-[#1c4a12] active:scale-95 transition text-base font-bold touch-manipulation">
+                    <PlayCircle className="w-6 h-6" /> Start Shift
                   </button>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-500 rounded-xl text-xs font-semibold">
-                    <Clock className="w-3.5 h-3.5" /> Starts {format(new Date(assignment.assigned_date + 'T00:00:00'), 'dd MMM')}{assignment.start_time ? ` · ${assignment.start_time}` : ''}
+                  <span className="inline-flex items-center gap-2 px-4 py-3 bg-slate-100 text-slate-500 rounded-2xl text-sm font-semibold">
+                    <Clock className="w-5 h-5" /> Starts {format(new Date(assignment.assigned_date + 'T00:00:00'), 'dd MMM')}{assignment.start_time ? ` · ${assignment.start_time}` : ''}
                   </span>
                 )}
               </div>
@@ -140,19 +140,19 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               </div>
             )}
             {assignment.status === 'started' && canPerformActions && (
-              <div className="flex flex-wrap gap-2 w-full">
+              <div className="flex flex-wrap gap-2.5 w-full">
                 <button onClick={() => onOpenShiftWizard(assignment.id)}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-xl hover:bg-[#1c4a12] active:scale-95 transition text-sm font-bold touch-manipulation flex-1 min-w-[160px]">
-                  <PlayCircle className="w-4 h-4" /> Continue Shift
+                  className="flex items-center justify-center gap-2 px-5 py-4 bg-[#2E5A1A] text-white rounded-2xl hover:bg-[#1c4a12] active:scale-95 transition text-base font-bold touch-manipulation flex-1 min-w-[160px]">
+                  <PlayCircle className="w-6 h-6" /> Continue Shift
                 </button>
                 <button onClick={() => onEarlyLeave(assignment.id)}
-                  className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 active:scale-95 transition text-xs font-semibold">
-                  <PauseCircle className="w-3.5 h-3.5" /> Early Leave
+                  className="flex items-center gap-2 px-4 py-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 active:scale-95 transition text-sm font-semibold">
+                  <PauseCircle className="w-5 h-5" /> Early Leave
                 </button>
                 {onAdHocVisit && (
                   <button onClick={onAdHocVisit}
-                    className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 active:scale-95 transition text-xs font-semibold">
-                    <Navigation className="w-3.5 h-3.5" /> Ad-hoc Visit
+                    className="flex items-center gap-2 px-4 py-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 active:scale-95 transition text-sm font-semibold">
+                    <Navigation className="w-5 h-5" /> Ad-hoc Visit
                   </button>
                 )}
               </div>
