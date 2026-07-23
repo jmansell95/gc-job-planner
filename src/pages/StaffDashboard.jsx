@@ -48,7 +48,7 @@ export default function StaffDashboard() {
       try {
         const res = await base44.functions.invoke('getMyStaffProfile');
         const profile = res.data;
-        if (profile && profile.id && !profile.no_staff_profile) {
+        if (profile && (profile.id || profile.is_admin)) {
           setStaff(profile);
         }
       } catch (error) {
