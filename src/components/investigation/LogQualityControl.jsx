@@ -1,23 +1,48 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
-  FlaskConical, ShieldCheck, AlertTriangle, CheckCircle2, XCircle, Clock,
+  ShieldCheck, AlertTriangle, CheckCircle2, XCircle, Clock,
   ArrowDownToLine, TestTube, MapPin, Package, Wrench, Undo2, Ruler,
-  Droplets, Calculator, Layers, Gauge, Waves, MapPinned, Camera, FileText, Eye
+  Droplets, Calculator, Layers, Gauge, Waves, Camera, FileText, Eye,
+  Tablet, User, Download, Loader2, Filter, ChevronDown,
 } from 'lucide-react';
-import { strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig, getMissingFields, getAnomalyFlags } from './shared';
+import {
+  strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig,
+  getMissingFields, getAnomalyFlags,
+} from './shared';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
+import { useToast } from '@/components/ui/use-toast';
 
 const fmt = (n) => n != null ? (Number(n).toFixed(n % 1 === 0 ? 0 : 1)) : '—';
 
 export default function LogQualityControl() {
+  const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [filter, setFilter] = useState('pending'); // pending | approved | queried | all
+  const [filter, setFilter] = useState('pending');
+  const [originFilter, setOriginFilter] = useState('all'); // all | staff | ags_import
+  const [jobFilter, setJobFilter] = useState('all');
   const [selectedLog, setSelectedLog] = useState(null);
   const [reviewNote, setReviewNote] = useState('');
+  const [queryReason, setQueryReason] = useState('');
   const [reviewing, setReviewing] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selected, setSelected] = useState(new Set());
+  const [exporting, setExporting] = useState(false);
+  const [exportJobId, setExportJobId] = useState('all');
+
+  const queryReasons = [
+    'Inconsistent strata description',
+    'Missing photo evidence',
+    'Out-of-range depth',
+    'SPT value anomaly',
+    'Missing mandatory field',
+    'Water level discrepancy',
+    'Core recovery mismatch',
+    'Refusal cause unclear',
+    'Other (see note)',
+  ];
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['log-quality-control'],
@@ -39,9 +64,13 @@ export default function LogQualityControl() {
   }, [jobs]);
 
   const filteredLogs = useMemo(() => {
-    if (filter === 'all') return logs;
-    return logs.filter(l => (l.manager_review_status || 'pending') === filter);
-  }, [logs, filter]);
+    return logs.filter(l => {
+      if (filter !== 'all' && (l.manager_review_status || 'pending') !== filter) return false;
+      if (originFilter !== 'all' && (l.source || 'staff') !== originFilter) return false;
+      if (jobFilter !== 'all' && l.job_id !== jobFilter) return false;
+      return true;
+    });
+  }, [logs, filter, originFilter, jobFilter]);
 
   const stats = useMemo(() => {
     const pending = logs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
@@ -49,57 +78,197 @@ export default function LogQualityControl() {
     const queried = logs.filter(l => l.manager_review_status === 'queried').length;
     const withAnomalies = logs.filter(l => getAnomalyFlags(l).length > 0).length;
     const incomplete = logs.filter(l => getMissingFields(l).length > 0).length;
-    return { pending, approved, queried, withAnomalies, incomplete, total: logs.length };
+    const agsImported = logs.filter(l => l.source === 'ags_import').length;
+    return { pending, approved, queried, withAnomalies, incomplete, agsImported, total: logs.length };
   }, [logs]);
+
+  // Jobs that have approved logs ready for OpenGround export
+  const exportableJobs = useMemo(() => {
+    const jobIdsWithApproved = new Set(logs.filter(l => l.manager_review_status === 'approved').map(l => l.job_id));
+    return jobs.filter(j => jobIdsWithApproved.has(j.id));
+  }, [logs, jobs]);
 
   const handleReview = async (status) => {
     if (!selectedLog) return;
     setReviewing(true);
     try {
       const me = await base44.auth.me();
+      const finalNote = queryReason && queryReason !== 'Other (see note)'
+        ? `${queryReason}${reviewNote ? ' — ' + reviewNote : ''}`
+        : reviewNote;
       await base44.entities.InvestigationLog.update(selectedLog.id, {
         manager_review_status: status,
-        manager_review_note: reviewNote || '',
+        manager_review_note: finalNote || '',
         manager_reviewed_by: me?.full_name || me?.email || 'Manager',
         manager_reviewed_at: new Date().toISOString(),
       });
       queryClient.invalidateQueries({ queryKey: ['log-quality-control'] });
       queryClient.invalidateQueries({ queryKey: ['investigation-logs'] });
+      toast({ title: status === 'approved' ? 'Log approved' : 'Log queried', duration: 2000 });
       setSelectedLog(null);
       setReviewNote('');
+      setQueryReason('');
     } catch (e) {
-      console.error(e);
+      toast({ title: 'Error reviewing log', variant: 'destructive' });
     }
     setReviewing(false);
   };
 
+  const handleBulkApprove = async () => {
+    if (selected.size === 0) return;
+    setReviewing(true);
+    try {
+      const me = await base44.auth.me();
+      const updates = [...selected].map(id => ({
+        id,
+        manager_review_status: 'approved',
+        manager_review_note: 'Bulk approved (no issues found)',
+        manager_reviewed_by: me?.full_name || me?.email || 'Manager',
+        manager_reviewed_at: new Date().toISOString(),
+      }));
+      await base44.entities.InvestigationLog.bulkUpdate(updates);
+      queryClient.invalidateQueries({ queryKey: ['log-quality-control'] });
+      queryClient.invalidateQueries({ queryKey: ['investigation-logs'] });
+      toast({ title: `${selected.size} log${selected.size !== 1 ? 's' : ''} approved` });
+      setSelected(new Set());
+      setBulkMode(false);
+    } catch (e) {
+      toast({ title: 'Error during bulk approval', variant: 'destructive' });
+    }
+    setReviewing(false);
+  };
+
+  const toggleSelect = (id) => {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelected(next);
+  };
+
+  const selectAllVisible = () => {
+    if (selected.size === filteredLogs.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filteredLogs.map(l => l.id)));
+    }
+  };
+
+  const handleExport = async () => {
+    if (exportJobId === 'all') return;
+    setExporting(true);
+    try {
+      const job = jobMap[exportJobId];
+      const fileName = `${(job?.name || exportJobId).replace(/[^a-zA-Z0-9-_]/g, '_')}_OpenGround_${new Date().toISOString().slice(0, 10)}.ags`;
+      const response = await base44.functions.invoke('generateJobAGSExport', { job_id: exportJobId });
+      // response is an Axios response — data is in response.data
+      const text = typeof response.data === 'string' ? response.data : await response.data?.text();
+      if (!text) throw new Error('Empty export');
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: 'AGS file downloaded for OpenGround', duration: 3000 });
+    } catch (e) {
+      toast({ title: e?.response?.data?.error || 'Export failed', variant: 'destructive' });
+    }
+    setExporting(false);
+  };
+
   return (
     <div className="space-y-4">
-      <SettingsSectionHeader icon={ShieldCheck} title="Log Quality Control" description="Review field logs for geotechnical accuracy and reporting readiness" />
+      <SettingsSectionHeader icon={ShieldCheck} title="Log Quality Control" description="Review all field & KeyLogBook data, approve it, then export to OpenGround for the Senior Engineer" />
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <StatCard label="Pending Review" value={stats.pending} icon={Clock} color="text-amber-700 bg-amber-50 border-amber-200" onClick={() => setFilter('pending')} active={filter === 'pending'} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <StatCard label="Pending" value={stats.pending} icon={Clock} color="text-amber-700 bg-amber-50 border-amber-200" onClick={() => setFilter('pending')} active={filter === 'pending'} />
         <StatCard label="Approved" value={stats.approved} icon={CheckCircle2} color="text-emerald-700 bg-emerald-50 border-emerald-200" onClick={() => setFilter('approved')} active={filter === 'approved'} />
         <StatCard label="Queried" value={stats.queried} icon={XCircle} color="text-red-700 bg-red-50 border-red-200" onClick={() => setFilter('queried')} active={filter === 'queried'} />
+        <StatCard label="KeyLogBook" value={stats.agsImported} icon={Tablet} color="text-indigo-700 bg-indigo-50 border-indigo-200" onClick={() => setOriginFilter(originFilter === 'ags_import' ? 'all' : 'ags_import')} active={originFilter === 'ags_import'} />
         <StatCard label="Incomplete" value={stats.incomplete} icon={AlertTriangle} color="text-orange-700 bg-orange-50 border-orange-200" />
-        <StatCard label="Anomalies" value={stats.withAnomalies} icon={AlertTriangle} color="text-red-700 bg-red-50 border-red-200" />
+        <StatCard label="Anomalies" value={stats.withAnomalies} icon={AlertTriangle} color="text-rose-700 bg-rose-50 border-rose-200" />
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-lg w-full sm:w-auto sm:inline-flex">
-        {[
-          { key: 'pending', label: 'Pending' },
-          { key: 'approved', label: 'Approved' },
-          { key: 'queried', label: 'Queried' },
-          { key: 'all', label: 'All' },
-        ].map(t => (
-          <button key={t.key} onClick={() => setFilter(t.key)}
-            className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-xs font-medium transition ${filter === t.key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
-            {t.label}
-          </button>
-        ))}
+      {/* OpenGround Export bar */}
+      <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl border border-indigo-200 p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center flex-shrink-0">
+              <Download className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-slate-900">Export to OpenGround</h3>
+              <p className="text-xs text-slate-500">Download a complete AGS file of all <span className="font-semibold text-indigo-700">approved</span> logs for a job — includes review comments for the Senior Engineer.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <select value={exportJobId} onChange={e => setExportJobId(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white max-w-[200px] focus:outline-none focus:border-indigo-600">
+              <option value="all">Select a job…</option>
+              {exportableJobs.map(j => (
+                <option key={j.id} value={j.id}>{j.name}</option>
+              ))}
+            </select>
+            <button onClick={handleExport} disabled={exportJobId === 'all' || exporting}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
+              {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {exporting ? 'Building…' : 'Export AGS'}
+            </button>
+          </div>
+        </div>
+        {exportableJobs.length === 0 && (
+          <p className="text-xs text-amber-700 mt-2">No jobs have approved logs yet. Approve logs below to enable export.</p>
+        )}
       </div>
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+          {[
+            { key: 'pending', label: 'Pending' },
+            { key: 'approved', label: 'Approved' },
+            { key: 'queried', label: 'Queried' },
+            { key: 'all', label: 'All' },
+          ].map(t => (
+            <button key={t.key} onClick={() => setFilter(t.key)}
+              className={`px-4 py-1.5 rounded-md text-xs font-medium transition ${filter === t.key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <select value={originFilter} onChange={e => setOriginFilter(e.target.value)}
+          className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:border-slate-400">
+          <option value="all">All sources</option>
+          <option value="staff">Field staff</option>
+          <option value="ags_import">KeyLogBook (AGS)</option>
+        </select>
+        <select value={jobFilter} onChange={e => setJobFilter(e.target.value)}
+          className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:border-slate-400 max-w-[180px]">
+          <option value="all">All jobs</option>
+          {jobs.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
+        </select>
+        <button onClick={() => { setBulkMode(!bulkMode); setSelected(new Set()); }}
+          className={`ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${bulkMode ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+          <Filter className="w-3.5 h-3.5" /> {bulkMode ? 'Exit bulk' : 'Bulk approve'}
+        </button>
+      </div>
+
+      {/* Bulk action bar */}
+      {bulkMode && (
+        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2.5">
+          <button onClick={selectAllVisible} className="text-xs font-medium text-emerald-700 hover:text-emerald-900">
+            {selected.size === filteredLogs.length ? 'Deselect all' : 'Select all visible'}
+          </button>
+          <span className="text-xs text-slate-600">{selected.size} selected</span>
+          <button onClick={handleBulkApprove} disabled={selected.size === 0 || reviewing}
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 disabled:opacity-50">
+            {reviewing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+            Approve {selected.size > 0 ? `(${selected.size})` : ''}
+          </button>
+        </div>
+      )}
 
       {/* Log list */}
       {isLoading ? (
@@ -117,13 +286,27 @@ export default function LogQualityControl() {
             const reviewStatus = log.manager_review_status || 'pending';
             const rc = reviewStatusConfig[reviewStatus];
             const photos = (log.photo_urls || log.verification_photo_urls || '').split(',').filter(Boolean);
+            const isAgs = log.source === 'ags_import';
+            const isSelected = selected.has(log.id);
             return (
-              <div key={log.id} className="bg-white border border-slate-200 rounded-xl p-3 hover:shadow-sm transition">
+              <div key={log.id} className={`bg-white border rounded-xl p-3 hover:shadow-sm transition ${isSelected ? 'border-emerald-400 ring-1 ring-emerald-300' : 'border-slate-200'}`}>
                 <div className="flex items-start gap-3">
+                  {bulkMode && (
+                    <button onClick={() => toggleSelect(log.id)} className="mt-1 flex-shrink-0">
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition ${isSelected ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
+                        {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                      </div>
+                    </button>
+                  )}
                   <div className={`w-1.5 h-full min-h-[3rem] rounded-full ${rc.dot} flex-shrink-0`} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${rc.badge}`}>{rc.label}</span>
+                      {isAgs && (
+                        <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+                          <Tablet className="w-2.5 h-2.5" /> KeyLogBook
+                        </span>
+                      )}
                       <LogTypeBadge logType={log.log_type} />
                       {log.borehole_ref && <span className="text-xs font-mono font-bold text-slate-700">{log.borehole_ref}</span>}
                       {log.sample_id && <span className="text-xs font-mono font-bold text-purple-700">{log.sample_id}</span>}
@@ -173,12 +356,6 @@ export default function LogQualityControl() {
                           <Gauge className="w-2.5 h-2.5" /> CBR {fmt(log.cbr_value)}%
                         </span>
                       )}
-                      {log.vane_strength != null && (
-                        <span className="text-xs bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">Vane {fmt(log.vane_strength)}kPa</span>
-                      )}
-                      {log.reinstatement_type && log.reinstatement_type !== 'none' && (
-                        <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-medium">{log.reinstatement_type.replace(/_/g, ' ')}</span>
-                      )}
                       {photos.length > 0 && (
                         <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
                           <Camera className="w-2.5 h-2.5" /> {photos.length}
@@ -206,14 +383,25 @@ export default function LogQualityControl() {
                     <div className="mt-1.5 flex items-center gap-2">
                       {log.strata_description_detail && <p className="text-xs text-slate-600 truncate">{log.strata_description_detail}</p>}
                       {log.description && <p className="text-xs text-slate-500 truncate">{log.description}</p>}
-                      <span className="text-xs text-slate-400 ml-auto flex-shrink-0">{log.staff_name || '—'}</span>
+                      <span className="text-xs text-slate-400 ml-auto flex-shrink-0 inline-flex items-center gap-1">
+                        <User className="w-2.5 h-2.5" />{log.staff_name || (isAgs ? 'KeyLogBook' : '—')}
+                      </span>
                     </div>
 
+                    {/* Review note preview */}
+                    {log.manager_review_note && (
+                      <div className="mt-1.5 text-xs bg-slate-50 border border-slate-100 rounded-lg px-2 py-1 text-slate-600">
+                        <span className="font-medium">{log.manager_reviewed_by}:</span> {log.manager_review_note}
+                      </div>
+                    )}
+
                     {/* Action button */}
-                    <button onClick={() => { setSelectedLog(log); setReviewNote(log.manager_review_note || ''); }}
-                      className="mt-2 text-xs font-medium text-blue-700 hover:text-blue-900 inline-flex items-center gap-1">
-                      <Eye className="w-3 h-3" /> Review
-                    </button>
+                    {!bulkMode && (
+                      <button onClick={() => { setSelectedLog(log); setReviewNote(log.manager_review_note || ''); setQueryReason(''); }}
+                        className="mt-2 text-xs font-medium text-blue-700 hover:text-blue-900 inline-flex items-center gap-1">
+                        <Eye className="w-3 h-3" /> Review
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -226,13 +414,29 @@ export default function LogQualityControl() {
       {selectedLog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setSelectedLog(null)}>
           <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-slate-100 px-5 py-3 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900">Review Log Entry</h3>
+            <div className="sticky top-0 bg-white border-b border-slate-100 px-5 py-3 flex items-center justify-between z-10">
+              <div className="flex items-center gap-2">
+                {selectedLog.source === 'ags_import' && (
+                  <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+                    <Tablet className="w-3 h-3" /> KeyLogBook
+                  </span>
+                )}
+                <h3 className="font-bold text-slate-900">Review Log Entry</h3>
+              </div>
               <button onClick={() => setSelectedLog(null)} className="text-slate-400 hover:text-slate-600 text-sm">Close</button>
             </div>
             <div className="p-5 space-y-4">
               <LogDetailBlock log={selectedLog} />
               <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">Query Reason (optional)</label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {queryReasons.map(r => (
+                    <button key={r} onClick={() => setQueryReason(r)}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition ${queryReason === r ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>
+                      {r}
+                    </button>
+                  ))}
+                </div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Review Note</label>
                 <textarea value={reviewNote} onChange={e => setReviewNote(e.target.value)} rows={2}
                   placeholder="Add a note for the crew (optional)…"
@@ -245,7 +449,7 @@ export default function LogQualityControl() {
                 </button>
                 <button onClick={() => handleReview('queried')} disabled={reviewing}
                   className="flex-1 px-4 py-2.5 bg-red-700 text-white rounded-xl font-semibold text-sm hover:bg-red-800 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5">
-                  <XCircle className="w-4 h-4" /> Query
+                  <XCircle className="w-4 h-4" /> Query / Deny
                 </button>
               </div>
             </div>
@@ -277,6 +481,8 @@ function LogTypeBadge({ logType }) {
     installation: { label: 'Installation', icon: Package, badge: 'bg-emerald-100 text-emerald-700' },
     site_setup: { label: 'Setup', icon: Wrench, badge: 'bg-slate-100 text-slate-600' },
     reinstatement: { label: 'Reinstatement', icon: Undo2, badge: 'bg-teal-100 text-teal-700' },
+    standpipe_reading: { label: 'Standpipe', icon: Gauge, badge: 'bg-cyan-100 text-cyan-700' },
+    core_inspection: { label: 'Core', icon: Layers, badge: 'bg-fuchsia-100 text-fuchsia-700' },
     other: { label: 'Other', icon: FileText, badge: 'bg-slate-100 text-slate-600' },
   };
   const c = config[logType] || config.other;
@@ -305,6 +511,7 @@ function LogDetailBlock({ log }) {
     { label: 'Water Strike', value: log.groundwater_strike_depth != null ? `${log.groundwater_strike_depth}m` : null },
     { label: 'Static Water Level', value: log.groundwater_static_level != null ? `${log.groundwater_static_level}m` : null },
     { label: 'Core Run', value: log.core_run_number },
+    { label: 'Core Box', value: log.core_box_number },
     { label: 'Core Recovery', value: log.coring_recovery != null ? `${log.coring_recovery}%` : null },
     { label: 'RQD', value: log.coring_rqd != null ? `${log.coring_rqd}%` : null },
     { label: 'Dimensions', value: log.dimensions },
@@ -316,7 +523,9 @@ function LogDetailBlock({ log }) {
     { label: 'Reinstatement', value: log.reinstatement_type && log.reinstatement_type !== 'none' ? log.reinstatement_type.replace(/_/g, ' ') : null },
     { label: 'Backfill', value: log.backfill_material },
     { label: 'Description', value: log.description },
-    { label: 'Staff', value: log.staff_name },
+    { label: 'Staff', value: log.staff_name || (log.source === 'ags_import' ? 'KeyLogBook import' : null) },
+    { label: 'Reviewed By', value: log.manager_reviewed_by },
+    { label: 'Review Date', value: log.manager_reviewed_at ? format(new Date(log.manager_reviewed_at), 'dd MMM yyyy HH:mm') : null },
   ].filter(f => f.value);
 
   return (
@@ -329,6 +538,12 @@ function LogDetailBlock({ log }) {
           </div>
         ))}
       </div>
+      {log.manager_review_note && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <p className="text-xs font-semibold text-amber-700 mb-1">Existing Review Note</p>
+          <p className="text-sm text-amber-900">{log.manager_review_note}</p>
+        </div>
+      )}
       {allPhotos.length > 0 && (
         <div>
           <p className="text-xs font-semibold text-slate-600 mb-2">Photos ({allPhotos.length})</p>

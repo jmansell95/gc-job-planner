@@ -10,6 +10,7 @@ import {
 import { format } from 'date-fns';
 import JobLogisticsHub from '@/components/logistics/JobLogisticsHub';
 import InvestigationLogManager from '@/components/InvestigationLogManager';
+import LogReviewQuickStat from '@/components/investigation/LogReviewQuickStat';
 import BoreholeDrillDown from '@/components/BoreholeDrillDown';
 import JobHotelBookings from '@/components/JobHotelBookings';
 import JobCostingManager from '@/components/JobCostingManager';
@@ -219,6 +220,8 @@ export default function JobDetailTabs({
               </div>
             ) : <p className="text-xs text-slate-400">No vehicles assigned</p>}
           </InfoCard>
+
+          <LogReviewQuickStat job={job} />
         </div>
 
         {/* Project link + Portal visibility */}
