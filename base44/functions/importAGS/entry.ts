@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
-import { parseRemarks, professionaliseActivities, hasTimePattern, timeToMins } from '../../shared/keylogbookRemarks.ts';
+import { parseRemarks, professionaliseActivities, hasTimePattern, timeToMins, normaliseTime } from '../../shared/keylogbookRemarks.ts';
 
 // ============================================================
 // AGS v3/v4 parser with suffix-based field matching
@@ -212,7 +212,7 @@ function isRemarkField(fieldName: string, groupName: string): boolean {
   return REMARK_FIELD_SUFFIXES.includes(suffix);
 }
 
-interface RemarkChunk { text: string; date: string; }
+interface RemarkChunk { text: string; date: string; borehole_ref: string; }
 
 // Normalise an AGS date value to ISO YYYY-MM-DD. Handles the common formats
 // KeyLogBook exports (ISO, DD/MM/YYYY, YYYYMMDD) so remark rows dated with a
@@ -234,22 +234,45 @@ function normaliseDate(v: string): string {
 // from a LOCA_REM cell inherit that borehole's date. Standalone remark
 // / diary groups prefer an explicit DATE column on the row, then the
 // borehole's date (via locaDates), then the supplied default date.
+// Resolve the best date for a remark row: an explicit DATE column on the row
+// wins (KeyLogBook exports one diary row per day); otherwise the borehole's
+// own date (LOCA_STAR/ENDD); only as an absolute last resort fall back to the
+// supplied default. Falling back to "today" too eagerly collapses multi-day
+// diaries onto a single date and makes days vanish from the timeline.
+function resolveRemarkDate(r: Record<string, string>, ref: string, locaDates: Record<string, string>, defaultDate: string): string {
+  const explicit = normaliseDate(
+    pick(r, 'DATE', 'LOCA_DATE', 'REMARK_DATE', 'DIARY_DATE', 'DAY', 'LOCA_STAR', 'LOCA_START', 'STAR', 'LOCA_ENDD', 'LOCA_END', 'ENDD')
+  );
+  if (explicit) return explicit;
+  if (ref && locaDates[ref]) return normaliseDate(locaDates[ref]) || defaultDate;
+  return defaultDate;
+}
+
 function extractRemarkChunks(groups: Record<string, GroupData>, defaultDate: string, locaDates: Record<string, string>): RemarkChunk[] {
   const chunks: RemarkChunk[] = [];
+  // De-duplicate the same diary text harvested from multiple remark columns on
+  // the same row (a row often carries the diary in REM, NOTE and REMARK columns
+  // simultaneously). Keyed by date + borehole + text so the diary is parsed once
+  // per day, preventing identical time blocks overlapping on the same date.
+  const seen = new Set<string>();
+  const push = (text: string, date: string, ref: string) => {
+    if (!text || !hasTimePattern(text)) return;
+    const key = `${date}|${ref || ''}|${text.trim()}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    chunks.push({ text, date, borehole_ref: ref });
+  };
 
-  // LOCA group — per-row remark fields inherit the row's date
+  // LOCA group — per-row remark fields inherit that borehole's date + ref
   if (groups.LOCA && groups.LOCA.rows.length) {
     for (const row of groups.LOCA.rows) {
       const r = buildRow(groups.LOCA, row);
       const locaId = pick(r, 'LOCA_ID', 'LOCA_REF', 'LOCA_NO', 'LOCATION_ID', 'HOLE_ID', 'BH_ID', 'ID', 'REF');
-      const rowDate = normaliseDate((locaId && locaDates[locaId]) || pick(r, 'LOCA_STAR', 'LOCA_START', 'STAR', 'LOCA_ENDD', 'LOCA_END', 'ENDD', 'LOCA_DATE', 'DATE')) || defaultDate;
+      const rowDate = resolveRemarkDate(r, locaId, locaDates, defaultDate);
       groups.LOCA.headings.forEach((h) => {
         const full = h.toUpperCase();
-        const val = r[full];
-        if (val == null || val === '') return;
-        if (isRemarkField(h, 'LOCA') && hasTimePattern(val)) {
-          chunks.push({ text: val, date: rowDate });
-        }
+        if (!isRemarkField(h, 'LOCA')) return;
+        push(r[full] || '', rowDate, locaId);
       });
     }
   }
@@ -262,21 +285,12 @@ function extractRemarkChunks(groups: Record<string, GroupData>, defaultDate: str
     if (!wholeGroupRemark && !g.headings.some(h => REMARK_FIELD_SUFFIXES.includes(normalizeKey(h, name)))) continue;
     for (const row of g.rows) {
       const r = buildRow(g, row);
-      // Date the remarks: prefer an explicit date column on the row, then the
-      // borehole's date (via locaDates), then the supplied default date. Without
-      // this, a standalone REMARK/DIARY group with no borehole ref falls back
-      // to "today" and multiple days of driller remarks collapse into one date.
       const ref = pick(r, 'LOCA_ID', 'LOCA_REF', 'LOCA_NO', 'HOLE_ID', 'BH_ID', 'ID', 'REF');
-      const rowDate = normaliseDate(
-        pick(r, 'DATE', 'LOCA_DATE', 'REMARK_DATE', 'DIARY_DATE', 'DAY', 'LOCA_STAR', 'LOCA_START', 'STAR', 'LOCA_ENDD', 'LOCA_END', 'ENDD')
-      ) || (ref && locaDates[ref] ? normaliseDate(locaDates[ref]) : '') || defaultDate;
+      const rowDate = resolveRemarkDate(r, ref, locaDates, defaultDate);
       g.headings.forEach((h) => {
         const full = h.toUpperCase();
-        const val = r[full];
-        if (val == null || val === '') return;
-        if (wholeGroupRemark || isRemarkField(h, name)) {
-          if (hasTimePattern(val)) chunks.push({ text: val, date: rowDate });
-        }
+        if (!(wholeGroupRemark || isRemarkField(h, name))) return;
+        push(r[full] || '', rowDate, ref);
       });
     }
   }
@@ -659,10 +673,13 @@ Deno.serve(async (req) => {
     // approve them into a timesheet from the Site Logs tab.
     const remarkChunks = extractRemarkChunks(groups, today, locaDates);
     if (remarkChunks.length > 0) {
-      const allActivities: { activity: any; date: string }[] = [];
+      // Parse each chunk (already de-duplicated per date+borehole+text) and tag
+      // every activity with its chunk's date AND borehole ref so the imported
+      // Site Logs are linked to the correct borehole and day.
+      const allActivities: { activity: any; date: string; borehole_ref: string }[] = [];
       for (const chunk of remarkChunks) {
         const acts = parseRemarks(chunk.text);
-        for (const a of acts) allActivities.push({ activity: a, date: chunk.date });
+        for (const a of acts) allActivities.push({ activity: a, date: chunk.date, borehole_ref: chunk.borehole_ref });
       }
       if (allActivities.length > 0) {
         const cleaned = await professionaliseActivities(base44, allActivities.map(x => x.activity));
@@ -682,6 +699,7 @@ Deno.serve(async (req) => {
             staff_name: 'AGS Import (KeyLogBook)',
             date: x.date,
             log_type: 'other',
+            borehole_ref: x.borehole_ref || null,
             source: 'keylogbook_remarks',
             start_time: x.activity.start_time,
             end_time: x.activity.end_time,

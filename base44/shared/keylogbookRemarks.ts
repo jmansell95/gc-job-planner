@@ -26,6 +26,16 @@ export function timeToMins(t: string | null | undefined): number | null {
   return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
 }
 
+// Normalise a time string to zero-padded HH:MM ("7:30" → "07:30").
+// Driller diaries inconsistently use "7:30" and "07:30" for the same moment;
+// normalising lets de-duplication collapse them into a single record.
+export function normaliseTime(t: string | null | undefined): string {
+  if (!t) return '';
+  const m = String(t).trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return String(t).trim();
+  return `${String(m[1]).padStart(2, '0')}:${m[2]}`;
+}
+
 export function minsToTime(mins: number): string {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
@@ -42,8 +52,8 @@ export function parseRemarks(rawText: string): ParsedActivity[] {
   const activities: ParsedActivity[] = [];
   let match;
   while ((match = pattern.exec(rawText)) !== null) {
-    const startTime = match[1].trim();
-    const endTime = match[2].trim();
+    const startTime = normaliseTime(match[1].trim());
+    const endTime = normaliseTime(match[2].trim());
     let description = match[3].trim().replace(/\.+$/, '').trim();
     if (!description) continue;
     const startMins = timeToMins(startTime);
