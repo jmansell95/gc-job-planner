@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Menu } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import StaffManager from '@/components/StaffManager';
+import StaffCommand from '@/components/StaffCommand';
 import VehicleManager from '@/components/VehicleManager';
 import ContractorManager from '@/components/ContractorManager';
 import ClientManager from '@/components/ClientManager';
@@ -15,7 +15,7 @@ import JobTypeManager from '@/components/JobTypeManager';
 import SiteAssetManager from '@/components/SiteAssetManager';
 import BillingRulesManager from '@/components/BillingRulesManager';
 import EquipmentLibraryManager from '@/components/EquipmentLibraryManager';
-import TeamManager from '@/components/TeamManager';
+import CrewTypeCommand from '@/components/CrewTypeCommand';
 import AssetPandaSettings from '@/components/AssetPandaSettings';
 import RateCardManager from '@/components/RateCardManager';
 import DropdownConfigManager from '@/components/DropdownConfigManager';
@@ -62,8 +62,8 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
   const renderContent = () => {
     switch (activeTab) {
       case 'hub': return <SettingsHubOverview onNavigate={setActiveTab} />;
-      case 'staff': return <StaffManager />;
-      case 'teams': return <TeamManager />;
+      case 'staff': return <StaffCommand />;
+      case 'teams': return <CrewTypeCommand />;
       case 'asset-panda': return <AssetPandaSettings />;
       case 'vehicles': return <VehicleManager />;
       case 'clients': return <ClientManager />;

@@ -7,7 +7,7 @@ import StatCard from '@/components/dashboard/StatCard';
 import SearchFilterBar from '@/components/SearchFilterBar';
 import { EmptyState, ErrorState, CardGridSkeleton } from '@/components/StateViews';
 import JobDetail from '@/components/JobDetail';
-import JobForm from '@/components/JobForm';
+import JobWizardModal from '@/components/JobWizardModal';
 import PrintReportButton from '@/components/PrintReportButton';
 import JobCreatedModal from '@/components/JobCreatedModal';
 import ProjectManager from '@/components/ProjectManager';
@@ -59,15 +59,13 @@ const emptyForm = {
 
 export default function JobManager({ onNavigateRota }) {
   const [selectedJob, setSelectedJob] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [uploadingFile, setUploadingFile] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
+  const [editingJob, setEditingJob] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [clientFilter, setClientFilter] = useState('all');
   const [projectFilter, setProjectFilter] = useState('all');
-  const [formData, setFormData] = useState(emptyForm);
   const [createdJob, setCreatedJob] = useState(null);
   const [view, setView] = useState('jobs'); // 'jobs' | 'projects'
 
@@ -84,81 +82,21 @@ export default function JobManager({ onNavigateRota }) {
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200) });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const { equipment_items, ...cleanData } = { ...formData };
-      ['budget_amount', 'actual_cost', 'meterage', 'client_charge', 'markup_percentage', 'vat_rate'].forEach(k => {
-        if (cleanData[k] === '' || cleanData[k] === undefined || cleanData[k] === null) delete cleanData[k];
-      });
-      let savedJob = null;
-      if (editingId) {
-        await base44.entities.Job.update(editingId, cleanData);
-      } else {
-        savedJob = await base44.entities.Job.create(cleanData);
-        if (savedJob && equipment_items?.length > 0) {
-          try {
-            await base44.entities.JobCostItem.bulkCreate(
-              equipment_items.map(item => {
-                const isContractor = item.category === 'contractor_supplied';
-                return {
-                  job_id: savedJob.id,
-                  category: item.category || 'hired_equipment',
-                  supplier_id: isContractor ? '' : (item.supplier_id || ''),
-                  contractor_id: isContractor ? (item.contractor_id || '') : '',
-                  description: item.description,
-                  reference_number: item.reference_number || '',
-                  po_number: item.po_number || '',
-                  start_date: item.start_date || '',
-                  end_date: item.end_date || '',
-                  unit_cost: isContractor ? 0 : (Number(item.unit_cost) || 0),
-                  quantity: Number(item.quantity) || 1,
-                  unit_label: isContractor ? 'each' : (item.unit_label || 'each'),
-                  vat_exempt: isContractor ? false : !!item.vat_exempt,
-                  notes: item.notes || '',
-                  hire_status: 'active',
-                  current_location: isContractor ? 'site' : 'yard'
-                };
-              })
-            );
-          } catch (e) { console.error('Equipment creation error:', e); }
-        }
-      }
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      setFormData(emptyForm);
-      setShowForm(false);
-      setEditingId(null);
-      if (savedJob) setCreatedJob(savedJob);
-    } catch (error) {
-      console.error('Error saving job:', error);
-      alert('Could not save the job: ' + (error?.message || 'Please check all required fields.'));
-    }
-  };
-
   const handleEdit = (job) => {
-    setFormData({ ...emptyForm, ...job });
-    setEditingId(job.id);
-    setShowForm(true);
+    setEditingJob(job);
+    setShowWizard(true);
   };
 
   const handleAddJobToProject = (project) => {
-    setFormData({ ...emptyForm, project_id: project?.id || '', client_id: project?.client_id || '' });
-    setEditingId(null);
-    setShowForm(true);
+    setEditingJob({ project_id: project?.id || '', client_id: project?.client_id || '' });
+    setShowWizard(true);
     setView('jobs');
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploadingFile(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setFormData(prev => ({ ...prev, requisition_list_url: file_url, requisition_list_name: file.name }));
-    } catch (error) {
-      console.error('Error uploading file:', error);
-    }
-    setUploadingFile(false);
+  const handleWizardCreated = (savedJob) => {
+    setShowWizard(false);
+    setEditingJob(null);
+    if (savedJob && !editingJob?.id) setCreatedJob(savedJob);
   };
 
   const handleDelete = async (id) => {
@@ -230,7 +168,7 @@ export default function JobManager({ onNavigateRota }) {
             </div>
             <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Jobs List" />
             <button
-              onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(emptyForm); }}
+              onClick={() => { setEditingJob(null); setShowWizard(true); }}
               className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-[#2E5A1A] rounded-lg hover:bg-[#2E5A1A]/10 transition text-sm font-semibold shadow-sm"
             >
               <Plus className="w-4 h-4" /> Add Job
@@ -239,22 +177,17 @@ export default function JobManager({ onNavigateRota }) {
         }
       />
 
-      {showForm && (
-        <JobForm
-          formData={formData}
-          setFormData={setFormData}
-          onSubmit={handleSubmit}
-          onCancel={() => setShowForm(false)}
-          editingId={editingId}
-          clients={clients}
-          contractors={contractors}
-          onFileUpload={handleFileUpload}
-          uploadingFile={uploadingFile}
+      {showWizard && (
+        <JobWizardModal
+          open={showWizard}
+          onClose={() => { setShowWizard(false); setEditingJob(null); }}
+          onCreated={handleWizardCreated}
+          editingJob={editingJob}
         />
       )}
 
       {/* Projects view — group jobs by project */}
-      {view === 'projects' && !showForm && (
+      {view === 'projects' && (
         <ProjectManager
           jobs={jobs}
           teams={teams}
@@ -333,7 +266,7 @@ export default function JobManager({ onNavigateRota }) {
           ) : isError ? (
             <ErrorState message="Couldn't load jobs" onRetry={refetch} />
           ) : jobs.length === 0 ? (
-            <EmptyState icon={Briefcase} title="No jobs yet" message="Add your first job to start scheduling crews and shifts." actionLabel="Add Job" onAction={() => { setEditingId(null); setShowForm(true); }} />
+            <EmptyState icon={Briefcase} title="No jobs yet" message="Add your first job to start scheduling crews and shifts." actionLabel="Add Job" onAction={() => { setEditingJob(null); setShowWizard(true); }} />
           ) : filteredJobs.length === 0 ? (
             <EmptyState icon={Search} title="No jobs match your search" message="Try a different name, location, or status filter." />
           ) : (
