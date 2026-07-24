@@ -18,6 +18,12 @@ function fmtWeek(weekStart) {
 function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+// Parse compliance dates — staff items use YYYY-MM, others use YYYY-MM-DD
+function parseComplianceDate(str) {
+  if (!str) return null;
+  if (/^\d{4}-\d{2}$/.test(str)) return new Date(str + '-01T00:00:00');
+  return new Date(str + 'T00:00:00');
+}
 function linkBlock(baseUrl, path, label) {
   if (!baseUrl) return '';
   const href = baseUrl.replace(/\/+$/, '') + (path || '');
@@ -120,8 +126,77 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
-    const { weekStart } = await req.json().catch(() => ({}));
+    const { weekStart, force } = await req.json().catch(() => ({}));
     if (!weekStart) return Response.json({ error: 'weekStart required' }, { status: 400 });
+
+    // ── Compliance gate ──
+    // Block the rota from going live if any assigned staff or assets have
+    // expired compliance (CSCS/CPCS cards, rig certificates, etc.).
+    // The manager can override with force: true after reviewing the list.
+    const preRotas = await base44.asServiceRole.entities.RotaAssignment.filter({ week_start: weekStart });
+    if (preRotas.length > 0) {
+      const preStaffIds = [...new Set(preRotas.map((r) => r.staff_id))];
+      const preJobIds = [...new Set(preRotas.map((r) => r.job_id).filter(Boolean))];
+      const [complianceItems, assetAssignments, allAssets, staffList] = await Promise.all([
+        base44.asServiceRole.entities.ComplianceItem.list('-created_date', 500),
+        base44.asServiceRole.entities.JobAssetAssignment.list('-created_date', 500),
+        base44.asServiceRole.entities.SiteAsset.list('-created_date', 500),
+        Promise.all(preStaffIds.map((id) => base44.asServiceRole.entities.Staff.get(id).catch(() => null))),
+      ]);
+      const todayStr = new Date().toISOString().split('T')[0];
+      const violations = [];
+
+      // Staff compliance — expired CSCS / CPCS / NPORS cards etc.
+      preStaffIds.forEach((staffId) => {
+        const member = staffList.find((s) => s && s.id === staffId);
+        complianceItems
+          .filter((c) => c.category === 'staff' && c.reference_id === staffId && c.status_override === 'auto')
+          .forEach((c) => {
+            if (!c.expiry_date) return;
+            const expiry = parseComplianceDate(c.expiry_date);
+            if (expiry && !isNaN(expiry.getTime()) && expiry < new Date(todayStr + 'T00:00:00')) {
+              violations.push({
+                type: 'staff',
+                staffId,
+                staffName: (member && member.name) || c.reference_name || 'Unknown',
+                title: c.title,
+                expiryDate: c.expiry_date,
+              });
+            }
+          });
+      });
+
+      // Asset compliance — expired rigs / equipment certificates
+      preJobIds.forEach((jobId) => {
+        assetAssignments
+          .filter((a) => a.job_id === jobId)
+          .forEach((a) => {
+            const asset = allAssets.find((ast) => ast.id === a.asset_id);
+            const liveStatus = (asset && asset.compliance_status) || a.compliance_status || 'unknown';
+            const expiry = (asset && asset.compliance_expiry_date) || null;
+            const isEvergreen =
+              (asset && (asset.asset_type === 'machinery' || asset.asset_type === 'trailer')) ||
+              a.asset_type === 'machinery' || a.asset_type === 'trailer';
+            let effectiveStatus = liveStatus;
+            if (!isEvergreen && expiry && liveStatus !== 'expired') {
+              if (expiry < todayStr) effectiveStatus = 'expired';
+            }
+            if (effectiveStatus === 'expired') {
+              violations.push({
+                type: 'asset',
+                jobId,
+                assetName: a.asset_name || (asset && asset.name) || 'Unknown',
+                assetType: a.asset_type || (asset && asset.asset_type),
+                expiryDate: expiry,
+              });
+            }
+          });
+      });
+
+      if (violations.length > 0 && !force) {
+        return Response.json({ error: 'compliance_violations', violations }, { status: 422 });
+      }
+    }
 
     // Upsert the RotaWeek as published
     const existing = await base44.asServiceRole.entities.RotaWeek.filter({ week_start: weekStart });

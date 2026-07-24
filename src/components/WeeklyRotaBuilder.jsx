@@ -9,6 +9,7 @@ import {
   LogIn, LogOut
 } from 'lucide-react';
 import AssignmentModal from '@/components/AssignmentModal';
+import ComplianceBlockModal from '@/components/ComplianceBlockModal';
 import { EmptyState, ErrorState, RotaSkeleton, Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatJobType } from '@/utils/format';
 import { getJobPrimaryType } from '@/utils/jobTeams';
@@ -42,6 +43,7 @@ export default function WeeklyRotaBuilder() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [notice, setNotice] = useState(null);
   const [showWeekends, setShowWeekends] = useState(false);
+  const [complianceViolations, setComplianceViolations] = useState(null);
 
   const queryClient = useQueryClient();
   const weekStart = startOfWeek(selectedWeek, { weekStartsOn: 1 });
@@ -211,14 +213,15 @@ export default function WeeklyRotaBuilder() {
     }
   };
 
-  const handleSubmitWeek = async () => {
+  const handleSubmitWeek = async (force = false) => {
     if (rotas.length === 0) { setNotice({ type: 'error', msg: 'No assignments to submit yet.' }); return; }
     const label = `${format(weekStart, 'dd MMM')} – ${format(addDays(weekStart, 6), 'dd MMM yyyy')}`;
-    if (!confirm(`Submit the rota for ${label}?\n\nThis will email each assigned staff member their personal schedule.`)) return;
+    if (!force && !confirm(`Submit the rota for ${label}?\n\nThis will email each assigned staff member their personal schedule.`)) return;
     setPublishing(true);
     try {
-      const res = await base44.functions.invoke('publishRotaWeek', { weekStart: weekStartStr });
+      const res = await base44.functions.invoke('publishRotaWeek', { weekStart: weekStartStr, force });
       const d = res.data || {};
+      setComplianceViolations(null);
       queryClient.invalidateQueries({ queryKey: ['rota-week'] });
       queryClient.invalidateQueries({ queryKey: ['rota-weeks'] });
       const parts = [`Rota published — ${d.emailed || 0} staff emailed`];
@@ -227,7 +230,12 @@ export default function WeeklyRotaBuilder() {
       if (d.disabled) parts.push('schedule email is disabled in Settings');
       setNotice({ type: 'success', msg: parts.join(', ') + '.' });
     } catch (e) {
-      setNotice({ type: 'error', msg: e.response?.data?.error || e.message || 'Failed to publish rota' });
+      const errData = e.response?.data || e.response || {};
+      if (errData.error === 'compliance_violations' && errData.violations) {
+        setComplianceViolations(errData.violations);
+      } else {
+        setNotice({ type: 'error', msg: errData.error || e.message || 'Failed to publish rota' });
+      }
     } finally {
       setPublishing(false);
     }
@@ -364,7 +372,7 @@ export default function WeeklyRotaBuilder() {
                 className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium disabled:opacity-50 backdrop-blur-sm">
                 {savingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} <span className="hidden sm:inline">Draft</span>
               </button>
-              <button onClick={handleSubmitWeek} disabled={publishing}
+              <button onClick={() => handleSubmitWeek()} disabled={publishing}
                 className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white rounded-lg hover:bg-amber-400 transition text-sm font-semibold disabled:opacity-50 shadow-sm">
                 {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} <span className="hidden sm:inline">{isPublished ? 'Resend' : 'Publish'}</span>
               </button>
@@ -495,6 +503,14 @@ export default function WeeklyRotaBuilder() {
         jobs={jobs}
         vehicles={vehicles}
         existingRotas={rotas}
+      />
+
+      <ComplianceBlockModal
+        open={!!complianceViolations}
+        violations={complianceViolations || []}
+        publishing={publishing}
+        onForce={() => handleSubmitWeek(true)}
+        onCancel={() => { setComplianceViolations(null); setPublishing(false); }}
       />
 
       {/* Desktop Grid */}
