@@ -44,6 +44,28 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, summaries: [], message: 'No tasks to submit' });
     }
 
+    // ── 9-hour on-site validation ──
+    // On-site work excludes travel_to / travel_from. Staff may submit under 9
+    // hours ONLY if they recorded an early-leave reason on their rota assignment.
+    const REQUIRED_WORK_MINS = 540; // 9 hours
+    const onSiteMinsTotal = onSiteTasks.reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
+    const meetsRequiredHours = onSiteMinsTotal >= REQUIRED_WORK_MINS;
+
+    // Check for an early-leave reason across today's assignments
+    let earlyLeaveReason = '';
+    for (const a of assignments) {
+      if (a.early_leave_reason) { earlyLeaveReason = String(a.early_leave_reason); break; }
+    }
+
+    if (!meetsRequiredHours && !earlyLeaveReason) {
+      return Response.json({
+        error: 'On-site work is under 9 hours and no early-leave reason was recorded. Use the Leave Site Early button on your job card to record why you left early, or add the missing tasks.',
+        code: 'UNDER_9H_NO_EARLY_LEAVE',
+        on_site_minutes: onSiteMinsTotal,
+        required_minutes: REQUIRED_WORK_MINS
+      }, { status: 422 });
+    }
+
     // Calculate travel times
     const TRAVEL_DEDUCTIBLE = 90; // 1.5 hours per leg
     const travelToMins = travelTo ? (Number(travelTo.task_duration_minutes) || 0) : 0;

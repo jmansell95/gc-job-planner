@@ -271,9 +271,18 @@ export default function StaffDashboard() {
           });
         }
       }
+      let submitResult = null;
       try {
-        await base44.functions.invoke('submitDailyTimesheet', { staff_id: staff.id, date: todayStr });
-      } catch (e) { console.error('Timesheet submit error:', e); }
+        submitResult = await base44.functions.invoke('submitDailyTimesheet', { staff_id: staff.id, date: todayStr });
+      } catch (e) {
+        console.error('Timesheet submit error:', e);
+        const msg = e?.message || '';
+        if (msg.includes('under 9 hours') || msg.includes('UNDER_9H_NO_EARLY_LEAVE')) {
+          toast({ title: 'Cannot submit timesheet', description: 'Your on-site work is under 9 hours and no early-leave reason was recorded. Use the Leave Site Early button to record why you left early, or add the missing tasks.', variant: 'destructive' });
+          queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });
+          return;
+        }
+      }
       const updateData = {
         status: 'completed',
         completed_at: new Date().toISOString()
