@@ -21,7 +21,6 @@ import DocumentManager from '@/components/DocumentManager';
 import JobCommentsViewer from '@/components/JobCommentsViewer';
 import JobWorkLog from '@/components/JobWorkLog';
 import MilestoneManager from '@/components/MilestoneManager';
-import PortalLinkManager from '@/components/PortalLinkManager';
 import PortalSectionManager from '@/components/PortalSectionManager';
 import JobScheduleOverview from '@/components/JobScheduleOverview';
 import StaffActivityBreakdown from '@/components/StaffActivityBreakdown';
@@ -221,21 +220,23 @@ export default function JobDetailTabs({
             ) : <p className="text-xs text-slate-400">No vehicles assigned</p>}
           </InfoCard>
 
-          <LogReviewQuickStat job={job} />
         </div>
 
-        {/* Project link + Portal visibility */}
+        {/* Project link */}
+        {jobProject && (
+          <button onClick={() => setShowProjectJobs(true)} className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 hover:shadow-md transition text-left">
+            <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0"><FolderOpen className="w-4 h-4 text-indigo-600" /></div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-slate-900 text-sm truncate">{jobProject.name}</p>
+              <p className="text-xs text-slate-400">{siblingJobs.length} other job{siblingJobs.length !== 1 ? 's' : ''} in this project</p>
+            </div>
+            <FolderOpen className="w-4 h-4 text-slate-300 flex-shrink-0" />
+          </button>
+        )}
+
+        {/* Log review + Client portal — in line */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {jobProject && (
-            <button onClick={() => setShowProjectJobs(true)} className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 hover:shadow-md transition text-left">
-              <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0"><FolderOpen className="w-4 h-4 text-indigo-600" /></div>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-slate-900 text-sm truncate">{jobProject.name}</p>
-                <p className="text-xs text-slate-400">{siblingJobs.length} other job{siblingJobs.length !== 1 ? 's' : ''} in this project</p>
-              </div>
-              <FolderOpen className="w-4 h-4 text-slate-300 flex-shrink-0" />
-            </button>
-          )}
+          <LogReviewQuickStat job={job} />
           <div className={`rounded-xl border shadow-sm overflow-hidden transition ${portalEnabled ? 'border-[#2E5A1A]/30 bg-gradient-to-br from-[#2E5A1A]/5 to-white' : 'border-slate-200 bg-white'}`}>
             <div className="flex items-center gap-3 px-4 py-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition ${portalEnabled ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-400'}`}>
@@ -358,7 +359,6 @@ export default function JobDetailTabs({
         <JobCommentsViewer job={job} />
         <JobWorkLog job={job} />
         <MilestoneManager job={job} />
-        <PortalLinkManager job={job} />
       </TabsContent>
     </Tabs>
   );

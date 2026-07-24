@@ -79,7 +79,7 @@ export default function LogReviewQuickStat({ job }) {
             <Tablet className="w-2.5 h-2.5" /> {agsImported} KeyLogBook
           </span>
         )}
-        <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{total} logs</span>
+        <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{total} Logs</span>
       </div>
 
       {/* Progress bar */}
@@ -93,16 +93,16 @@ export default function LogReviewQuickStat({ job }) {
       {/* Breakdown chips */}
       <div className="flex items-center gap-1.5 flex-wrap mb-3">
         <span className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
-          <CheckCircle2 className="w-2.5 h-2.5" /> {approved} approved
+          <CheckCircle2 className="w-2.5 h-2.5" /> {approved} Approved
         </span>
         {pending > 0 && (
           <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
-            <Clock className="w-2.5 h-2.5" /> {pending} pending
+            <Clock className="w-2.5 h-2.5" /> {pending} Pending
           </span>
         )}
         {queried > 0 && (
           <span className="text-xs bg-red-50 text-red-700 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
-            <AlertTriangle className="w-2.5 h-2.5" /> {queried} queried
+            <AlertTriangle className="w-2.5 h-2.5" /> {queried} Queried
           </span>
         )}
       </div>

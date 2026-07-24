@@ -4,9 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   FlaskConical, Layers, Ruler, TestTube, Wrench, MapPin, Package, ClipboardList, ArrowDownToLine,
-  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban, Beaker, Radar, Boxes, ShieldCheck, Tablet, Mountain, Eye, EyeOff
+  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban, Beaker, Radar, Boxes, ShieldCheck, Tablet, Mountain, Eye, EyeOff, ChevronDown
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
+import { titleCase } from '@/utils/format';
 import {
   strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig,
   fluidLossConfig, obstructionConfig, logTypeConfig,
@@ -32,7 +33,7 @@ export default function InvestigationLogManager({ job, isDrillingJob }) {
     if (!byDate[l.date]) byDate[l.date] = [];
     byDate[l.date].push(l);
   });
-  const sortedDates = Object.keys(byDate).sort().reverse();
+  const sortedDates = Object.keys(byDate).sort();
 
   const totalDepth = displayLogs.reduce((sum, l) => {
     if (l.depth_from != null && l.depth_to != null) return sum + (l.depth_to - l.depth_from);
@@ -169,27 +170,52 @@ export default function InvestigationLogManager({ job, isDrillingJob }) {
         ) : displayLogs.length === 0 ? (
           <EmptyState icon={FlaskConical} title="No field activity yet" message={isDrillingJob ? "Borehole data is imported from KeyLogBook. Field crew activity (site setup, grouting, decommissioning) will appear here." : "Groundworks crews will log trial pits, installations and site setup here during shifts."} />
         ) : (
-          <div className="space-y-5">
-            {sortedDates.map(date => {
-              const dayLogs = byDate[date].sort((a, b) => (a.depth_from || 0) - (b.depth_from || 0));
-              const d = new Date(date + 'T00:00:00');
-              return (
-                <div key={date}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">{format(d, 'EEEE, dd MMM yyyy')}</span>
-                    <span className="text-xs text-slate-400">{dayLogs.length} entries</span>
-                  </div>
-                  <div className="space-y-2">
-                    {dayLogs.map(log => (
-                      <LogEntryCard key={log.id} log={log} />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="space-y-3">
+            {sortedDates.map(date => (
+              <DayGroup key={date} date={date} logs={byDate[date]} isDrillingJob={isDrillingJob} />
+            ))}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function DayGroup({ date, logs, isDrillingJob }) {
+  const [open, setOpen] = useState(false);
+  const dayLogs = [...logs].sort((a, b) => new Date(a.created_at || a.date) - new Date(b.created_at || b.date));
+  const d = new Date(date + 'T00:00:00');
+  const dayDepth = dayLogs.reduce((sum, l) => (l.depth_from != null && l.depth_to != null) ? sum + (l.depth_to - l.depth_from) : sum, 0);
+  const daySamples = dayLogs.filter(l => l.sample_type && l.sample_type !== 'none').length;
+  const dayPits = dayLogs.filter(l => l.log_type === 'pit_excavation' || l.log_type === 'inspection_pit').length;
+  const dayBoreholes = [...new Set(dayLogs.filter(l => l.borehole_ref).map(l => l.borehole_ref))];
+  const pending = dayLogs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
+  const queried = dayLogs.filter(l => l.manager_review_status === 'queried').length;
+
+  return (
+    <div className="border border-slate-200 rounded-xl overflow-hidden">
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 transition text-left">
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform flex-shrink-0 ${open ? '' : '-rotate-90'}`} />
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className="text-sm font-bold text-slate-700">{format(d, 'EEEE, dd MMM yyyy')}</span>
+          <span className="text-xs text-slate-400">{dayLogs.length} {dayLogs.length === 1 ? 'Entry' : 'Entries'}</span>
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          {isDrillingJob && dayDepth > 0 && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">{dayDepth.toFixed(1)}m</span>}
+          {dayBoreholes.length > 0 && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{dayBoreholes.length} BH</span>}
+          {daySamples > 0 && <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full font-medium">{daySamples} Samples</span>}
+          {dayPits > 0 && <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">{dayPits} Pits</span>}
+          {pending > 0 && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">{pending} Pending</span>}
+          {queried > 0 && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">{queried} Queried</span>}
+        </div>
+      </button>
+      {open && (
+        <div className="p-3 space-y-2 bg-white">
+          {dayLogs.map(log => (
+            <LogEntryCard key={log.id} log={log} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -305,7 +331,7 @@ function LogEntryCard({ log }) {
           )}
           {log.reinstatement_type && log.reinstatement_type !== 'none' && (
             <span className="text-xs bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
-              <Undo2 className="w-2.5 h-2.5" /> {log.reinstatement_type.replace(/_/g, ' ')}
+              <Undo2 className="w-2.5 h-2.5" /> {titleCase(log.reinstatement_type)}
             </span>
           )}
           {log.mixer_type && log.mixer_type !== 'none' && (
