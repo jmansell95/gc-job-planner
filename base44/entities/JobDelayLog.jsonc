@@ -1,0 +1,97 @@
+{
+  "name": "JobDelayLog",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this delay was logged against"
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display)"
+    },
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member who logged the delay"
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Staff member name (denormalised for display)"
+    },
+    "reported_at": {
+      "type": "string",
+      "description": "ISO timestamp when the delay was reported"
+    },
+    "delay_type": {
+      "type": "string",
+      "enum": [
+        "ground_conditions",
+        "utility_clash",
+        "weather",
+        "mechanical_failure",
+        "access_issue",
+        "client_request",
+        "third_party",
+        "other"
+      ],
+      "default": "ground_conditions",
+      "description": "Reason for the delay. 'ground_conditions' = boulders/obstructions/voids slowing drilling; 'utility_clash' = uncharted services; 'weather'; 'mechanical_failure' = rig/plant breakdown; 'access_issue' = plant can't reach the location; 'client_request' = scope change by client; 'third_party' = another contractor on site; 'other'."
+    },
+    "impacted_days": {
+      "type": "number",
+      "default": 0,
+      "description": "Whole working days this delay adds to the job. When a manager approves the log, future rota assignments and the job end date are shifted by this many working days."
+    },
+    "impacted_hours": {
+      "type": "number",
+      "default": 0,
+      "description": "Additional hours for a sub-day delay (tracked but does not shift the rota)"
+    },
+    "description": {
+      "type": "string",
+      "description": "What happened and the estimated impact"
+    },
+    "manager_review_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "Manager review status. 'pending' = awaiting review; 'approved' = accepted and future rotas/job end date shifted by impacted_days; 'rejected' = no schedule change."
+    },
+    "manager_reviewed_by": {
+      "type": "string",
+      "description": "Name of the manager who reviewed this delay log"
+    },
+    "manager_reviewed_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the manager reviewed this delay log"
+    },
+    "manager_note": {
+      "type": "string",
+      "description": "Optional note from the manager"
+    },
+    "rota_adjusted": {
+      "type": "boolean",
+      "default": false,
+      "description": "True once approval automatically shifted future rota assignments and extended the job end date."
+    }
+  },
+  "required": [
+    "job_id",
+    "staff_id",
+    "delay_type"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

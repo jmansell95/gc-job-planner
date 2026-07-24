@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp, X, Car, Briefcase, PoundSterling, ShieldAlert, ExternalLink } from 'lucide-react';
+import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp, X, Car, Briefcase, PoundSterling, ShieldAlert, ExternalLink, Hourglass } from 'lucide-react';
 import { format } from 'date-fns';
 import { canViewCostings } from '@/utils/access';
+import DelayLogForm from '@/components/DelayLogForm';
 
 const SAFETY_REPORT_URL = 'https://app.safetyculture.com/inspection/audit_3f1be1e08438431a9bacaab5137107f7?page=1&isNew=true&holisticOnboarding=false';
 
@@ -43,6 +44,7 @@ export default function DailyTaskLog({ staffId, hideSubmit = false }) {
   const [adding, setAdding] = useState(false);
   const [submittingDay, setSubmittingDay] = useState(false);
   const [fixingGapId, setFixingGapId] = useState(null);
+  const [showDelayForm, setShowDelayForm] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: assignments = [] } = useQuery({ queryKey: ['staff-assignments', staffId], queryFn: () => base44.entities.RotaAssignment.filter({ staff_id: staffId }), enabled: !!staffId });
@@ -258,6 +260,35 @@ export default function DailyTaskLog({ staffId, hideSubmit = false }) {
             <Briefcase className="w-4 h-4 text-emerald-600 flex-shrink-0" />
             <span className="text-slate-600">Assigned to <b className="text-slate-900">{todayJobs.map(j => j.name).join(', ')}</b> today</span>
           </div>
+        )}
+
+        {/* Log a site delay — surfaces delays so managers can shift the rota */}
+        {assignedJobs.length > 0 && (
+          <>
+            <button type="button" onClick={() => setShowDelayForm(true)}
+              className="w-full flex items-center justify-between gap-3 p-3.5 bg-amber-50 rounded-xl border border-amber-200 hover:bg-amber-100 transition text-left">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0">
+                  <Hourglass className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-amber-900 text-sm">Log a Site Delay</p>
+                  <p className="text-xs text-amber-600">Hit ground, breakdown, weather? Tell your manager so the rota can be updated.</p>
+                </div>
+              </div>
+              <Plus className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            </button>
+            <DelayLogForm
+              open={showDelayForm}
+              onOpenChange={setShowDelayForm}
+              jobId={todayJobs[0]?.id || assignedJobs[0]?.id}
+              jobName={todayJobs[0]?.name || assignedJobs[0]?.name}
+              staffId={staffId}
+              staffName={profile?.name}
+              jobOptions={assignedJobs.map(j => ({ id: j.id, name: j.name }))}
+              onSaved={() => { queryClient.invalidateQueries({ queryKey: ['job-delay-logs'] }); }}
+            />
+          </>
         )}
 
         {/* Add task form */}

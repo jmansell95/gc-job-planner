@@ -24,6 +24,7 @@ import MilestoneManager from '@/components/MilestoneManager';
 import PortalSectionManager from '@/components/PortalSectionManager';
 import JobScheduleOverview from '@/components/JobScheduleOverview';
 import StaffActivityBreakdown from '@/components/StaffActivityBreakdown';
+import DelayLogManager from '@/components/DelayLogManager';
 import RigCompliancePanel from '@/components/RigCompliancePanel';
 import { getJobTypeLabel } from '@/utils/jobTeams';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -302,6 +303,7 @@ export default function JobDetailTabs({
 
       {/* ── Schedule Tab ── */}
       <TabsContent value="schedule" className="space-y-4 mt-0">
+        <DelayLogManager job={job} />
         <JobScheduleOverview primaryType={primaryType} assignedStaff={assignedStaff} rotas={rotas} allStaff={allStaff} vehicles={vehicles} rotasByDate={rotasByDate} sortedDates={sortedDates} />
         <StaffActivityBreakdown job={job} assignedStaff={assignedStaff} primaryType={primaryType} />
       </TabsContent>
