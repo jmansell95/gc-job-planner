@@ -212,7 +212,7 @@ function isRemarkField(fieldName: string, groupName: string): boolean {
   return REMARK_FIELD_SUFFIXES.includes(suffix);
 }
 
-interface RemarkChunk { text: string; date: string; borehole_ref: string; }
+interface RemarkChunk { text: string; borehole_ref: string; explicitDate: string; }
 
 // Normalise an AGS date value to ISO YYYY-MM-DD. Handles the common formats
 // KeyLogBook exports (ISO, DD/MM/YYYY, YYYYMMDD) so remark rows dated with a
@@ -229,55 +229,62 @@ function normaliseDate(v: string): string {
   return '';
 }
 
-// Collect time-stamped remark text paired with the date it belongs to.
-// LOCA rows carry their own date (LOCA_STAR/ENDD), so remarks harvested
-// from a LOCA_REM cell inherit that borehole's date. Standalone remark
-// / diary groups prefer an explicit DATE column on the row, then the
-// borehole's date (via locaDates), then the supplied default date.
-// Resolve the best date for a remark row: an explicit DATE column on the row
-// wins (KeyLogBook exports one diary row per day); otherwise the borehole's
-// own date (LOCA_STAR/ENDD); only as an absolute last resort fall back to the
-// supplied default. Falling back to "today" too eagerly collapses multi-day
-// diaries onto a single date and makes days vanish from the timeline.
-function resolveRemarkDate(r: Record<string, string>, ref: string, locaDates: Record<string, string>, defaultDate: string): string {
-  const explicit = normaliseDate(
-    pick(r, 'DATE', 'LOCA_DATE', 'REMARK_DATE', 'DIARY_DATE', 'DAY', 'LOCA_STAR', 'LOCA_START', 'STAR', 'LOCA_ENDD', 'LOCA_END', 'ENDD')
-  );
-  if (explicit) return explicit;
-  if (ref && locaDates[ref]) return normaliseDate(locaDates[ref]) || defaultDate;
-  return defaultDate;
+// Working-day helpers. Each diary fragment represents one shift day
+// (Mon–Fri, activities ~7:30–17:00). When an AGS file carries several
+// diary fragments for one borehole but no explicit per-row date, we
+// spread them across consecutive working days starting from the
+// borehole's start date so every shift becomes its own Site Log day
+// instead of all collapsing onto the single drilling date (which is
+// what made the other days vanish from the timeline).
+function addDays(iso: string, n: number): string {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function isWeekend(iso: string): boolean {
+  const day = new Date(iso + 'T00:00:00Z').getUTCDay(); // 0=Sun .. 6=Sat
+  return day === 0 || day === 6;
+}
+function nextWorkingDay(iso: string): string {
+  let d = iso;
+  while (isWeekend(d)) d = addDays(d, 1);
+  return d;
 }
 
-function extractRemarkChunks(groups: Record<string, GroupData>, defaultDate: string, locaDates: Record<string, string>): RemarkChunk[] {
+// Collect time-stamped remark text from every *_REM / *_NOTE field and
+// REMARK / DIARY group. Each chunk keeps the borehole ref it came from and
+// any explicit DATE column value found on its row; the final calendar date
+// is resolved later by assignChunkDates so multiple fragments for one
+// borehole land on distinct working days rather than all on one date.
+function extractRemarkChunks(groups: Record<string, GroupData>): RemarkChunk[] {
   const chunks: RemarkChunk[] = [];
-  // De-duplicate the same diary text harvested from multiple remark columns on
-  // the same row (a row often carries the diary in REM, NOTE and REMARK columns
-  // simultaneously). Keyed by date + borehole + text so the diary is parsed once
-  // per day, preventing identical time blocks overlapping on the same date.
+  // De-duplicate identical diary text harvested from several remark columns
+  // on the same row (a row often carries the same diary in REM, NOTE and
+  // REMARK columns). Keyed by borehole + text so the diary is parsed once.
   const seen = new Set<string>();
-  const push = (text: string, date: string, ref: string) => {
+  const push = (text: string, ref: string, explicitDate: string) => {
     if (!text || !hasTimePattern(text)) return;
-    const key = `${date}|${ref || ''}|${text.trim()}`;
+    const key = `${ref || ''}|${text.trim()}`;
     if (seen.has(key)) return;
     seen.add(key);
-    chunks.push({ text, date, borehole_ref: ref });
+    chunks.push({ text, borehole_ref: ref, explicitDate });
   };
 
-  // LOCA group — per-row remark fields inherit that borehole's date + ref
+  // LOCA group — per-row remark fields belong to that borehole.
   if (groups.LOCA && groups.LOCA.rows.length) {
     for (const row of groups.LOCA.rows) {
       const r = buildRow(groups.LOCA, row);
       const locaId = pick(r, 'LOCA_ID', 'LOCA_REF', 'LOCA_NO', 'LOCATION_ID', 'HOLE_ID', 'BH_ID', 'ID', 'REF');
-      const rowDate = resolveRemarkDate(r, locaId, locaDates, defaultDate);
+      const explicit = normaliseDate(pick(r, 'DATE', 'LOCA_DATE', 'REMARK_DATE', 'DIARY_DATE', 'DAY'));
       groups.LOCA.headings.forEach((h) => {
         const full = h.toUpperCase();
         if (!isRemarkField(h, 'LOCA')) return;
-        push(r[full] || '', rowDate, locaId);
+        push(r[full] || '', locaId, explicit);
       });
     }
   }
 
-  // Other groups — remark/diary groups or any *_REM field
+  // Other groups — remark/diary groups or any *_REM field.
   for (const [name, g] of Object.entries(groups)) {
     if (name === 'LOCA') continue;
     if (!g.headings || g.rows.length === 0) continue;
@@ -286,15 +293,51 @@ function extractRemarkChunks(groups: Record<string, GroupData>, defaultDate: str
     for (const row of g.rows) {
       const r = buildRow(g, row);
       const ref = pick(r, 'LOCA_ID', 'LOCA_REF', 'LOCA_NO', 'HOLE_ID', 'BH_ID', 'ID', 'REF');
-      const rowDate = resolveRemarkDate(r, ref, locaDates, defaultDate);
+      const explicit = normaliseDate(pick(r, 'DATE', 'LOCA_DATE', 'REMARK_DATE', 'DIARY_DATE', 'DAY'));
       g.headings.forEach((h) => {
         const full = h.toUpperCase();
         if (!(wholeGroupRemark || isRemarkField(h, name))) return;
-        push(r[full] || '', rowDate, ref);
+        push(r[full] || '', ref, explicit);
       });
     }
   }
   return chunks;
+}
+
+// Assign each chunk a calendar date. Chunks with an explicit DATE column keep
+// it (and consume that working day). Undated chunks for the same borehole are
+// spread across consecutive working days (Mon–Fri) starting from the
+// borehole's start date (LOCA_STAR via locaDates), then the job start date,
+// then today — skipping weekends and any day already taken by an explicit
+// chunk. This guarantees one diary fragment per shift day so no days vanish.
+function assignChunkDates(rawChunks: RemarkChunk[], locaDates: Record<string, string>, jobStartDate: string, defaultDate: string): { text: string; date: string; borehole_ref: string }[] {
+  const byBorehole: Record<string, RemarkChunk[]> = {};
+  const order: string[] = [];
+  for (const c of rawChunks) {
+    const key = c.borehole_ref || '';
+    if (!byBorehole[key]) { byBorehole[key] = []; order.push(key); }
+    byBorehole[key].push(c);
+  }
+  const out: { text: string; date: string; borehole_ref: string }[] = [];
+  for (const ref of order) {
+    const list = byBorehole[ref];
+    const startRaw = normaliseDate(locaDates[ref] || '') || jobStartDate || defaultDate;
+    const used = new Set<string>();
+    let cursor = nextWorkingDay(startRaw);
+    for (const c of list) {
+      const explicit = c.explicitDate ? normaliseDate(c.explicitDate) : '';
+      if (explicit) {
+        used.add(explicit);
+        out.push({ text: c.text, date: explicit, borehole_ref: ref });
+        continue;
+      }
+      while (isWeekend(cursor) || used.has(cursor)) cursor = addDays(cursor, 1);
+      out.push({ text: c.text, date: cursor, borehole_ref: ref });
+      used.add(cursor);
+      cursor = addDays(cursor, 1);
+    }
+  }
+  return out;
 }
 
 // Build a map of borehole ref → date from the LOCA group, used to date
@@ -671,11 +714,11 @@ Deno.serve(async (req) => {
     // activities, AI-professionalise in a single call, and save as
     // source='keylogbook_remarks' (pending review) so the manager can
     // approve them into a timesheet from the Site Logs tab.
-    const remarkChunks = extractRemarkChunks(groups, today, locaDates);
+    const rawChunks = extractRemarkChunks(groups);
+    const remarkChunks = assignChunkDates(rawChunks, locaDates, job.start_date || today, today);
     if (remarkChunks.length > 0) {
-      // Parse each chunk (already de-duplicated per date+borehole+text) and tag
-      // every activity with its chunk's date AND borehole ref so the imported
-      // Site Logs are linked to the correct borehole and day.
+      // Parse each dated chunk and tag every activity with its chunk's date AND
+      // borehole ref so the imported Site Logs are linked to the correct day.
       const allActivities: { activity: any; date: string; borehole_ref: string }[] = [];
       for (const chunk of remarkChunks) {
         const acts = parseRemarks(chunk.text);
