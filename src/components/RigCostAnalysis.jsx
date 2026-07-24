@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Truck, Calculator, AlertTriangle, Plus, Loader2, Trash2, CalendarDays } from 'lucide-react';
-import { eachDayOfInterval, isWeekend } from 'date-fns';
+import { eachDayOfInterval, isWeekend, format } from 'date-fns';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -13,6 +13,14 @@ function workingDaysBetween(startDate, endDate) {
   if (end < start) return 0;
   return eachDayOfInterval({ start, end }).filter(d => !isWeekend(d)).length;
 }
+
+// On-site status of a rig assignment — surfaces whether the rig is actually on
+// the job vs just planned, so managers can read the cost against reality.
+const RIG_STATUS = {
+  on_site:   { label: 'On Site',  bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  assigned:  { label: 'Planned',  bg: 'bg-amber-100',    text: 'text-amber-700' },
+  returned:  { label: 'Returned', bg: 'bg-slate-100',    text: 'text-slate-500' },
+};
 
 export default function RigCostAnalysis({ job }) {
   const [rateSelections, setRateSelections] = useState({});
@@ -149,21 +157,23 @@ export default function RigCostAnalysis({ job }) {
         <span className="ml-auto text-xs text-slate-500">vs job budget</span>
       </div>
 
-      {/* Days control */}
+      {/* Working days — the denominator for every rig/crew line below */}
       <div className="flex flex-wrap items-center gap-3 mb-3 bg-white rounded-lg p-3 border border-slate-200">
-        <div className="flex items-center gap-1.5 text-sm text-slate-600">
-          <CalendarDays className="w-4 h-4 text-slate-400" />
-          <span className="font-medium">Working days:</span>
+        <CalendarDays className="w-4 h-4 text-slate-400 flex-shrink-0" />
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-slate-600">Working days</span>
           <input type="number" min="0" value={daysOverride ?? plannedDays}
             onChange={e => setDaysOverride(e.target.value)}
-            className="w-16 px-2 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:border-emerald-600" />
-          <span className="text-xs text-slate-400 ml-1">
-            {daysOverride == null && `auto from job dates (${job.start_date || '?'} → ${job.end_date || '?'})`}
-          </span>
-          {daysOverride != null && (
-            <button onClick={() => setDaysOverride(null)} className="text-xs text-emerald-700 hover:underline ml-1">reset</button>
-          )}
+            className="w-16 px-2 py-1 border border-slate-300 rounded text-sm font-semibold text-center focus:outline-none focus:border-emerald-600" />
         </div>
+        <span className="text-xs text-slate-400">
+          {daysOverride == null
+            ? `auto from job dates · ${job.start_date || '?'} → ${job.end_date || '?'}`
+            : 'manual override'}
+        </span>
+        {daysOverride != null && (
+          <button onClick={() => setDaysOverride(null)} className="text-xs text-emerald-700 hover:underline">reset to auto</button>
+        )}
       </div>
 
       {isLoading ? (
@@ -176,18 +186,28 @@ export default function RigCostAnalysis({ job }) {
               {rigAssignments.map(a => {
                 const rateId = rateSelections[a.id];
                 const rate = rateItems.find(r => r.id === rateId);
+                const st = RIG_STATUS[a.status] || RIG_STATUS.assigned;
+                const dateLabel = a.status === 'on_site' && a.arrived_on_site_date
+                  ? `On site ${format(new Date(a.arrived_on_site_date + 'T00:00:00'), 'dd MMM')}`
+                  : a.assigned_date ? `Assigned ${format(new Date(a.assigned_date + 'T00:00:00'), 'dd MMM')}` : '';
                 return (
                   <div key={a.id} className="bg-white rounded-lg border border-slate-200 p-3">
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <div className="min-w-0">
+                    {/* Rig actually on the job */}
+                    <div className="flex items-start gap-2.5 mb-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0"><Truck className="w-4 h-4 text-emerald-700" /></div>
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-slate-800 truncate">{a.asset_name || 'Rig'}</p>
-                        <p className="text-xs text-slate-400">{a.rig_type === 'rotary' ? 'Rotary rig' : a.rig_type === 'cp' ? 'Cable Percussive' : 'Rig'}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                          <span className="text-[11px] text-slate-500">{a.rig_type === 'rotary' ? 'Rotary' : a.rig_type === 'cp' ? 'Cable Percussive' : 'Rig'}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${st.bg} ${st.text}`}>{st.label}</span>
+                          {dateLabel && <span className="text-[10px] text-slate-400">· {dateLabel}</span>}
+                        </div>
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className="text-sm font-bold text-slate-900">{rate ? fmt(rate.price * plannedDays) : '—'}</p>
-                        {rate && <p className="text-[11px] text-slate-400">{fmt(rate.price)} × {plannedDays} days</p>}
                       </div>
                     </div>
+                    {/* Crew day rate applied across the working days above */}
                     <select value={rateId || ''} onChange={e => setRigRate(a.id, e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs focus:outline-none focus:border-emerald-600">
                       <option value="">Select crew rate…</option>
@@ -197,6 +217,12 @@ export default function RigCostAnalysis({ job }) {
                         </optgroup>
                       ))}
                     </select>
+                    {rate && (
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 text-[11px]">
+                        <span className="text-slate-500">{fmt(rate.price)} × {plannedDays} working days</span>
+                        <span className="font-semibold text-slate-700">{fmt(rate.price * plannedDays)}</span>
+                      </div>
+                    )}
                   </div>
                 );
               })}

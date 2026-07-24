@@ -216,11 +216,11 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
         {/* Budget & Margin tracker */}
         <BudgetMarginTracker budget={Number(job.budget_amount) || 0} actualNet={internalNet} clientNet={clientNet} markup={Number(markup) || 0} />
 
-        {/* Meterage rate & revenue report (drilling jobs billed per metre) */}
-        {isDrillingJob && <MeterageReport job={job} />}
-
         {/* Rig & crew cost analysis from schedule of rates */}
         <RigCostAnalysis job={job} />
+
+        {/* Meterage rate & revenue report (drilling jobs billed per metre) */}
+        {isDrillingJob && <MeterageReport job={job} />}
 
         {/* System-generated cost summary */}
         <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/40">
@@ -245,16 +245,6 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
                 </div>
               ))}
             </div>
-          )}
-        </div>
-
-        {/* Internal cost summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard icon={Calculator} value={fmt(equipmentNet)} label="Equipment (net)" gradient="stat-gradient-slate" />
-          <StatCard icon={Hotel} value={fmt(hotelNet)} label="Accommodation (net)" gradient="stat-gradient-blue" valueClassName="text-blue-700" />
-          <StatCard icon={PoundSterling} value={fmt(internalTotal)} label="Internal total" gradient="stat-gradient-brand" />
-          {additionalCharges > 0 && (
-            <StatCard icon={TrendingUp} value={fmt(additionalCharges)} label="Delivery & Task Charges" sub={`${deliveries.filter(d => d.chargeable !== false && Number(d.charge_amount) > 0).length} deliveries · ${jobTimesheets.filter(t => t.chargeable && Number(t.charge_amount) > 0).length} chargeable tasks`} gradient="stat-gradient-brand" valueClassName="text-[#2E5A1A]" />
           )}
         </div>
 
