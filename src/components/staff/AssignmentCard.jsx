@@ -7,7 +7,7 @@ import EquipmentComplianceSection from '@/components/staff/EquipmentComplianceSe
 import JobDocumentViewer from '@/components/staff/JobDocumentViewer';
 
 import { formatJobType } from '@/utils/format';
-import { isCheckInDeadlinePassed, isWithinSiteHours, isBeforeSiteOpen } from '@/utils/siteHours';
+import { isWithinSiteHours, isBeforeSiteOpen } from '@/utils/siteHours';
 
 const jobTypeDot = {
   groundworks: 'bg-green-500',
@@ -44,8 +44,6 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
   const accent = jobTypeAccent[job?.job_type] || jobTypeAccent.depot;
   const scheduledStart = new Date(assignment.assigned_date + 'T' + (assignment.start_time || '00:00:00'));
   const canStart = new Date() >= scheduledStart;
-  const isToday = assignment.assigned_date === format(new Date(), 'yyyy-MM-dd');
-  const deadlinePassed = isToday && isCheckInDeadlinePassed() && !assignment.briefing_start_at && !assignment.briefing_signed && (assignment.status || 'assigned') === 'assigned';
   if (!job) return null;
 
   return (
@@ -117,11 +115,6 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
             )}
             {(assignment.status || 'assigned') === 'assigned' && canPerformActions && (
               <div className="flex flex-col gap-2 w-full">
-                {deadlinePassed && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-xl text-xs font-semibold ring-1 ring-red-200">
-                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> Check-in deadline passed (8:15 AM) — contact your supervisor
-                  </div>
-                )}
                 {canStart ? (
                   <button onClick={() => onOpenShiftWizard(assignment.id)}
                     className="flex items-center justify-center gap-2 px-5 py-4 bg-[#2E5A1A] text-white rounded-2xl hover:bg-[#1c4a12] active:scale-95 transition text-base font-bold touch-manipulation">
