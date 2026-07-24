@@ -272,7 +272,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
       {/* Live Site Activity — visual snapshot grid of active sites (click to open quick drawer) */}
       {!customizeMode && isAllJobs && (
-        <SiteSnapshotGrid onSelectJob={openJobDrawer} />
+        <SiteSnapshotGrid onSelectJob={openJobDrawer} onNavigate={onNavigate} />
       )}
 
       {customizeMode && (

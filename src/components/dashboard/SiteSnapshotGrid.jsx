@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   MapPin, Users, Cog, ShieldCheck, ShieldAlert, ShieldX,
-  Calendar, ChevronRight, AlertTriangle, Activity, Radio, Loader2
+  Calendar, ChevronRight, AlertTriangle, Activity, Radio, Loader2, ClipboardList, CalendarClock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
@@ -25,7 +25,7 @@ const statusBadge = {
   on_hold: { cls: 'bg-amber-100 text-amber-700 ring-amber-200', label: 'On Hold', dot: 'bg-amber-500' },
 };
 
-export default function SiteSnapshotGrid({ onSelectJob }) {
+export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
   const { selectedJobId } = useJobFilter();
   const isAll = selectedJobId === 'all';
 
@@ -162,11 +162,14 @@ export default function SiteSnapshotGrid({ onSelectJob }) {
             : null;
 
           return (
-            <motion.button
+            <motion.div
               key={job.id}
               variants={cardAnim}
+              role="button"
+              tabIndex={0}
               onClick={() => onSelectJob(job)}
-              className={`insight-card relative rounded-2xl p-5 text-left group overflow-hidden ${hasCritical ? 'ring-2 ring-rose-300' : ''}`}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectJob(job); } }}
+              className={`insight-card relative rounded-2xl p-5 text-left group overflow-hidden cursor-pointer ${hasCritical ? 'ring-2 ring-rose-300' : ''}`}
             >
               {/* Accent stripe */}
               <div className={`absolute left-0 top-0 bottom-0 w-1 ${colors.bar}`} />
@@ -266,7 +269,21 @@ export default function SiteSnapshotGrid({ onSelectJob }) {
                   </div>
                 </div>
               )}
-            </motion.button>
+
+              {/* Quick actions — jump straight to rota or logs without opening detail */}
+              {onNavigate && (
+                <div className="mt-3 pl-1.5 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  <button type="button" onClick={() => onNavigate('scheduling')}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-[#2E5A1A] bg-[#2E5A1A]/8 hover:bg-[#2E5A1A]/15 transition">
+                    <CalendarClock className="w-3 h-3" /> Rota
+                  </button>
+                  <button type="button" onClick={() => onNavigate('log-qc')}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 transition">
+                    <ClipboardList className="w-3 h-3" /> Logs
+                  </button>
+                </div>
+              )}
+            </motion.div>
           );
         })}
       </div>
