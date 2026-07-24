@@ -12,6 +12,8 @@ import { computeBillingRow, groupByJob, READY_STATUSES } from '@/utils/billingSu
 import { getTotalMetres } from '@/utils/geotechBilling';
 import { canViewCostings } from '@/utils/access';
 import GeotechBillingReport from '@/components/GeotechBillingReport';
+import GenerateInvoiceModal from '@/components/billing/GenerateInvoiceModal';
+import InvoiceHistoryPanel from '@/components/billing/InvoiceHistoryPanel';
 
 const fmt = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -45,7 +47,9 @@ export default function BillingPage({ onSelectJob }) {
   const [statusFilter, setStatusFilter] = useState('ready');
   const [reportingJobId, setReportingJobId] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [view, setView] = useState('summary'); // 'summary' | 'geotech'
+  const [view, setView] = useState('summary'); // 'summary' | 'geotech' | 'invoices'
+  const [invoiceJob, setInvoiceJob] = useState(null);
+  const [companyName, setCompanyName] = useState('Ground Control');
 
   useEffect(() => {
     (async () => {
@@ -141,6 +145,21 @@ export default function BillingPage({ onSelectJob }) {
     setReportingJobId(null);
   };
 
+  const groupedForJob = (job) => ({
+    costItems: (groupByJob(costItems)[job.id]) || [],
+    hotelBookings: (groupByJob(hotelBookings)[job.id]) || [],
+    deliveries: (groupByJob(deliveries)[job.id]) || [],
+    timesheets: (groupByJob(timesheets)[job.id]) || [],
+    invLogs: (groupByJob(invLogs)[job.id]) || [],
+    rigAssignments: (groupByJob(rigAssignments)[job.id]) || [],
+    rateItems,
+  });
+
+  const openInvoice = (job) => {
+    if (!job.client_id) { alert('This job has no client assigned. Add a client before raising an invoice.'); return; }
+    setInvoiceJob(job);
+  };
+
   const exportCsv = () => {
     const headers = [
       'Job Reference', 'Job Name', 'Client', 'Status', 'Billing Method',
@@ -189,17 +208,29 @@ export default function BillingPage({ onSelectJob }) {
   if (view === 'geotech') {
     return (
       <div>
-        <div className="flex gap-1.5 mb-5 bg-white rounded-xl border border-slate-200 p-1.5 shadow-sm w-fit">
-          <button onClick={() => setView('summary')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100">
-            <Receipt className="w-4 h-4" /> Invoice Summary
-          </button>
-          <button onClick={() => setView('geotech')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition bg-[#2E5A1A] text-white shadow-sm">
-            <Mountain className="w-4 h-4" /> Geotechnical Report
-          </button>
+        <div className="flex gap-1.5 mb-5 bg-white rounded-xl border border-slate-200 p-1.5 shadow-sm w-fit flex-wrap">
+          <button onClick={() => setView('summary')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'summary' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}><Receipt className="w-4 h-4" /> Invoice Summary</button>
+          <button onClick={() => setView('geotech')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition bg-[#2E5A1A] text-white shadow-sm"><Mountain className="w-4 h-4" /> Geotechnical Report</button>
+          <button onClick={() => setView('invoices')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><PoundSterling className="w-4 h-4" /> Invoices</button>
         </div>
         <GeotechBillingReport onSelectJob={onSelectJob} />
+      </div>
+    );
+  }
+
+  if (view === 'invoices') {
+    return (
+      <div>
+        <div className="flex gap-1.5 mb-5 bg-white rounded-xl border border-slate-200 p-1.5 shadow-sm w-fit flex-wrap">
+          <button onClick={() => setView('summary')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><Receipt className="w-4 h-4" /> Invoice Summary</button>
+          <button onClick={() => setView('geotech')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><Mountain className="w-4 h-4" /> Geotechnical Report</button>
+          <button onClick={() => setView('invoices')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition bg-[#2E5A1A] text-white shadow-sm"><PoundSterling className="w-4 h-4" /> Invoices</button>
+        </div>
+        <SettingsSectionHeader icon={PoundSterling} title="Raised Invoices" description="Track every invoice raised from the billing summary — mark sent, paid, or void, and reprint anytime." />
+        <InvoiceHistoryPanel companyName={companyName} />
+        <GenerateInvoiceModal open={!!invoiceJob} onClose={() => setInvoiceJob(null)} job={invoiceJob}
+          client={clientById[invoiceJob?.client_id]} data={invoiceJob ? groupedForJob(invoiceJob) : {}}
+          companyName={companyName} raisedByName={profile?.name} />
       </div>
     );
   }
@@ -219,7 +250,7 @@ export default function BillingPage({ onSelectJob }) {
       />
 
       {/* View toggle */}
-      <div className="flex gap-1.5 mb-5 bg-white rounded-xl border border-slate-200 p-1.5 shadow-sm w-fit">
+      <div className="flex gap-1.5 mb-5 bg-white rounded-xl border border-slate-200 p-1.5 shadow-sm w-fit flex-wrap">
         <button onClick={() => setView('summary')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'summary' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
           <Receipt className="w-4 h-4" /> Invoice Summary
@@ -227,6 +258,10 @@ export default function BillingPage({ onSelectJob }) {
         <button onClick={() => setView('geotech')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'geotech' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
           <Mountain className="w-4 h-4" /> Geotechnical Report
+        </button>
+        <button onClick={() => setView('invoices')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'invoices' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+          <PoundSterling className="w-4 h-4" /> Invoices
         </button>
       </div>
 
@@ -289,6 +324,7 @@ export default function BillingPage({ onSelectJob }) {
                     <th className="text-right px-4 py-2.5 font-medium">Net Cost</th>
                     <th className="text-right px-4 py-2.5 font-medium">VAT</th>
                     <th className="text-right px-4 py-2.5 font-medium">Invoice Total</th>
+                    <th className="text-right px-4 py-2.5 font-medium">Invoice</th>
                     <th className="text-right px-4 py-2.5 font-medium">Report</th>
                   </tr>
                 </thead>
@@ -314,6 +350,12 @@ export default function BillingPage({ onSelectJob }) {
                       <td className="px-4 py-3 text-right text-slate-600">{fmt(r.totalCostNet)}</td>
                       <td className="px-4 py-3 text-right text-slate-500">{fmt(r.revenueVat)}</td>
                       <td className="px-4 py-3 text-right font-bold text-[#2E5A1A]">{fmt(r.revenueGross)}</td>
+                      <td className="px-4 py-3 text-right">
+                        <button onClick={() => openInvoice(r.job)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-[11px] font-medium hover:bg-[#1c4a12] transition">
+                          <PoundSterling className="w-3 h-3" /> Raise
+                        </button>
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <button onClick={() => downloadReport(r.job)} disabled={reportingJobId === r.job.id}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 text-white rounded-lg text-[11px] font-medium hover:bg-slate-900 transition disabled:opacity-50">
@@ -359,17 +401,27 @@ export default function BillingPage({ onSelectJob }) {
                       <p className="text-sm font-bold text-[#2E5A1A]">{fmt(r.revenueGross)}</p>
                     </div>
                   </div>
-                  <button onClick={() => downloadReport(r.job)} disabled={reportingJobId === r.job.id}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-900 transition disabled:opacity-50">
-                    {reportingJobId === r.job.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileBarChart className="w-3.5 h-3.5" />}
-                    {reportingJobId === r.job.id ? 'Generating…' : 'Download Report'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={() => openInvoice(r.job)}
+                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg text-xs font-medium hover:bg-[#1c4a12] transition">
+                      <PoundSterling className="w-3.5 h-3.5" /> Raise Invoice
+                    </button>
+                    <button onClick={() => downloadReport(r.job)} disabled={reportingJobId === r.job.id}
+                      className="flex items-center justify-center gap-2 px-3 py-2 bg-slate-800 text-white rounded-lg text-xs font-medium hover:bg-slate-900 transition disabled:opacity-50">
+                      {reportingJobId === r.job.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileBarChart className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           </>
         )}
       </div>
+
+      <GenerateInvoiceModal open={!!invoiceJob} onClose={() => setInvoiceJob(null)} job={invoiceJob}
+        client={invoiceJob ? clientById[invoiceJob.client_id] : null}
+        data={invoiceJob ? groupedForJob(invoiceJob) : {}}
+        companyName={companyName} raisedByName={profile?.name} />
     </div>
   );
 }

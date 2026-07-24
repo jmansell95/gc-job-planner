@@ -1,0 +1,153 @@
+{
+  "name": "Invoice",
+  "type": "object",
+  "properties": {
+    "invoice_number": {
+      "type": "string",
+      "description": "Human-readable invoice number (e.g. INV-2026-0007). Generated sequentially per calendar year when the invoice is raised."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job this invoice was raised against"
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display on the invoice and in lists)"
+    },
+    "job_reference": {
+      "type": "string",
+      "description": "Job reference / PO number (denormalised)"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Client being invoiced"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Client company name (denormalised for the invoice document)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sent",
+        "paid",
+        "void"
+      ],
+      "default": "draft",
+      "description": "Invoice lifecycle status. 'draft' = raised but not yet sent; 'sent' = issued to the client; 'paid' = settled; 'void' = cancelled/credited."
+    },
+    "issue_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the invoice was raised"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date payment is due (issue date + payment terms)"
+    },
+    "line_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_label": {
+            "type": "string"
+          },
+          "unit_cost": {
+            "type": "number"
+          },
+          "line_total": {
+            "type": "number"
+          },
+          "category": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "Itemised charge lines assembled from the job's cost items, hotel bookings, chargeable deliveries, chargeable approved timesheets and the revenue method (meterage / unit / day rate / flat fee)."
+    },
+    "net_total": {
+      "type": "number",
+      "description": "Sum of all line item totals (net, excluding VAT)"
+    },
+    "vat_rate": {
+      "type": "number",
+      "default": 20,
+      "description": "VAT rate (%) applied to this invoice"
+    },
+    "vat_total": {
+      "type": "number",
+      "description": "VAT amount (net_total \u00d7 vat_rate / 100)"
+    },
+    "gross_total": {
+      "type": "number",
+      "description": "Total payable (net_total + vat_total)"
+    },
+    "revenue_method": {
+      "type": "string",
+      "enum": [
+        "none",
+        "day_rate",
+        "meterage_rate",
+        "unit_rate",
+        "flat_fee"
+      ],
+      "description": "Revenue method used to calculate the charge (denormalised from the job for the invoice record)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes shown on the invoice (payment terms, bank details, etc.)"
+    },
+    "raised_by_name": {
+      "type": "string",
+      "description": "Name of the user who raised the invoice"
+    },
+    "sent_at": {
+      "type": "string",
+      "description": "ISO timestamp when the invoice was marked as sent to the client"
+    },
+    "paid_at": {
+      "type": "string",
+      "description": "ISO timestamp when the invoice was marked as paid"
+    }
+  },
+  "required": [
+    "invoice_number",
+    "job_id",
+    "client_id",
+    "issue_date",
+    "net_total",
+    "gross_total"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -190,6 +190,48 @@ export default function WeeklyRotaBuilder() {
     setSmartFillLoading(false);
   };
 
+  // Multi-week copy: replicate THIS week's assignments forward N weeks so a
+  // stable plan can be propagated without re-entering every shift by hand.
+  const handleCopyForward = async () => {
+    if (rotas.length === 0) { setNotice({ type: 'error', msg: 'Nothing in this week to copy yet.' }); return; }
+    const input = window.prompt(`Copy this week's ${rotas.length} assignments forward how many weeks?`, '2');
+    if (!input) return;
+    const weeks = parseInt(input, 10);
+    if (isNaN(weeks) || weeks < 1 || weeks > 8) { setNotice({ type: 'error', msg: 'Enter a number of weeks between 1 and 8.' }); return; }
+    if (!confirm(`Replicate this week's ${rotas.length} assignments across the next ${weeks} ${weeks === 1 ? 'week' : 'weeks'}?`)) return;
+    setSmartFillLoading(true);
+    try {
+      const all = [];
+      for (let w = 1; w <= weeks; w++) {
+        const targetWeekStart = format(addDays(weekStart, w * 7), 'yyyy-MM-dd');
+        rotas.forEach(r => {
+          const srcDate = new Date(r.assigned_date + 'T00:00:00');
+          all.push({
+            job_id: r.job_id,
+            staff_id: r.staff_id,
+            assigned_date: format(addDays(srcDate, w * 7), 'yyyy-MM-dd'),
+            vehicle_id: r.vehicle_id || '',
+            start_time: r.start_time || '',
+            end_time: r.end_time || '',
+            notes: r.notes || '',
+            is_overtime: !!r.is_overtime,
+            rate_multiplier: r.rate_multiplier != null ? r.rate_multiplier : null,
+            week_start: targetWeekStart,
+            status: 'assigned'
+          });
+        });
+      }
+      await base44.entities.RotaAssignment.bulkCreate(all);
+      queryClient.invalidateQueries({ queryKey: ['rotas'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+      setNotice({ type: 'success', msg: `Copied ${rotas.length} assignments × ${weeks} weeks (${all.length} shifts created).` });
+    } catch (error) {
+      console.error('Error copying forward:', error);
+      setNotice({ type: 'error', msg: 'Failed to copy assignments forward.' });
+    }
+    setSmartFillLoading(false);
+  };
+
   const handleSaveDraft = async () => {
     setSavingDraft(true);
     try {
