@@ -1,10 +1,10 @@
 import React from 'react';
-import { GripVertical, EyeOff } from 'lucide-react';
+import { GripVertical, EyeOff, ChevronUp, ChevronDown } from 'lucide-react';
 import { WIDGET_REGISTRY } from '@/components/dashboard/registry';
 
 const SIZE_LABELS = { sm: 'S', md: 'M', lg: 'L' };
 
-export default function WidgetCard({ widgetId, customizeMode, dragHandleProps, onHide, size = 'md', onResize, children }) {
+export default function WidgetCard({ widgetId, customizeMode, dragHandleProps, onHide, size = 'md', onResize, onMoveUp, onMoveDown, canMoveUp = true, canMoveDown = true, children }) {
   const config = WIDGET_REGISTRY[widgetId];
   if (!config) return <div>{children}</div>;
 
@@ -21,6 +21,17 @@ export default function WidgetCard({ widgetId, customizeMode, dragHandleProps, o
         <GripVertical className="w-4 h-4 text-emerald-600 flex-shrink-0" />
         <span className="text-sm font-semibold text-emerald-800 truncate">{config.title}</span>
         <div className="ml-auto flex items-center gap-1.5 flex-shrink-0" onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
+          {/* Click to reorder — no dragging needed */}
+          <div className="flex items-center gap-0.5 bg-white rounded-lg border border-slate-200 p-0.5">
+            <button onClick={onMoveUp} type="button" disabled={!canMoveUp}
+              className="w-6 h-6 flex items-center justify-center rounded transition disabled:opacity-30 disabled:cursor-not-allowed text-slate-500 hover:bg-slate-100 enabled:hover:text-emerald-700">
+              <ChevronUp className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={onMoveDown} type="button" disabled={!canMoveDown}
+              className="w-6 h-6 flex items-center justify-center rounded transition disabled:opacity-30 disabled:cursor-not-allowed text-slate-500 hover:bg-slate-100 enabled:hover:text-emerald-700">
+              <ChevronDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
           <div className="flex items-center gap-0.5 bg-white rounded-lg border border-slate-200 p-0.5">
             {['sm', 'md', 'lg'].map(s => (
               <button key={s} onClick={() => onResize?.(s)} type="button"

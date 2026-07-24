@@ -81,7 +81,7 @@ export const GLOBAL_ONLY_WIDGETS = ['compliance-overview', 'supervisor-overview'
 // one focus area, cutting scroll depth. Applied as an allow-list on top of the
 // user's saved widget order (saved customisation still respected within a profile).
 export const VIEW_PROFILES = [
-  { id: 'operations', label: 'Operations', icon: Activity, widgets: ['kpi-stats', 'field-crews', 'job-assets', 'delivery-stats', 'supervisor-overview', 'site-hazards'] },
-  { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['kpi-stats', 'efficiency-snapshot', 'job-profitability', 'cost-analytics', 'charts'] },
+  { id: 'operations', label: 'Operations', icon: Activity, widgets: ['kpi-stats', 'field-crews', 'job-assets', 'delivery-stats', 'supervisor-overview'] },
+  { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['efficiency-snapshot', 'job-profitability', 'cost-analytics', 'charts'] },
   { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['compliance-overview', 'maintenance-quick-view', 'site-hazards'] },
 ];

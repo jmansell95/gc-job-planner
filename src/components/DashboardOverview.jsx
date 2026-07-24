@@ -179,6 +179,23 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     setWidgetSizes(prev => ({ ...prev, [widgetId]: size }));
   };
 
+  // Click-to-reorder a widget within its section (no dragging required).
+  const moveWidget = (widgetId, dir) => {
+    setWidgetOrder(prev => {
+      const sectionId = WIDGET_TO_SECTION[widgetId];
+      const sectionSlots = prev
+        .map((id, i) => ({ id, i }))
+        .filter(x => WIDGET_TO_SECTION[x.id] === sectionId && canShowWidget(x.id));
+      const pos = sectionSlots.findIndex(x => x.id === widgetId);
+      if (pos === -1) return prev;
+      const target = dir === 'up' ? sectionSlots[pos - 1] : sectionSlots[pos + 1];
+      if (!target) return prev;
+      const arr = [...prev];
+      [arr[sectionSlots[pos].i], arr[target.i]] = [arr[target.i], arr[sectionSlots[pos].i]];
+      return arr;
+    });
+  };
+
   const getWidgetSize = (widgetId) => widgetSizes[widgetId] || DEFAULT_WIDGET_SIZES[widgetId] || 'md';
 
   const sizeColSpan = (size) => {
@@ -300,7 +317,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
       {customizeMode && (
         <div className="mb-4 bg-[#2E5A1A]/10 border border-[#2E5A1A]/20 rounded-xl px-4 py-3 text-sm text-[#2E5A1A]">
-          Drag sections to reorder them. Tap S, M or L to resize a section, or Hide to remove it from your dashboard.
+          Use the ▲ / ▼ arrows to reorder a section, tap S / M / L to resize it, or Hide to remove it. (Dragging still works too.)
         </div>
       )}
 
@@ -332,6 +349,10 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                               onHide={() => handleToggleWidget(widgetId)}
                               size={getWidgetSize(widgetId)}
                               onResize={(s) => handleResize(widgetId, s)}
+                              onMoveUp={() => moveWidget(widgetId, 'up')}
+                              onMoveDown={() => moveWidget(widgetId, 'down')}
+                              canMoveUp={index > 0}
+                              canMoveDown={index < sectionWidgets.length - 1}
                             >
                               {renderWidget(widgetId)}
                             </WidgetCard>
