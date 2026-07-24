@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
@@ -11,7 +10,6 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import RouteGuard from '@/components/RouteGuard';
 import Home from './pages/Home';
 import AdminDashboard from './pages/AdminDashboard';
-import JobDetailRoute from './pages/JobDetailRoute';
 import StaffDashboard from './pages/StaffDashboard';
 import StaffProfile from './pages/StaffProfile';
 import SubcontractorDashboard from './pages/SubcontractorDashboard';
@@ -64,7 +62,6 @@ const AuthenticatedApp = () => {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/" element={<Home />} />
-          <Route path="/admin/jobs/:jobId" element={<RouteGuard><JobDetailRoute /></RouteGuard>} />
           <Route path="/admin" element={<RouteGuard><AdminDashboard /></RouteGuard>} />
           <Route path="/staff-schedule" element={<RouteGuard><StaffDashboard /></RouteGuard>} />
           <Route path="/staff-profile" element={<RouteGuard><StaffProfile /></RouteGuard>} />
@@ -83,16 +80,6 @@ const AuthenticatedApp = () => {
 
 
 function App() {
-  // Auto-sync the app theme with the system dark-mode preference.
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const apply = () => {
-      document.documentElement.classList.toggle('dark', mq.matches);
-    };
-    apply();
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-  }, []);
 
   return (
     <AuthProvider>

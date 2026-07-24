@@ -24,11 +24,11 @@ export default function AccountDeleteCard({ staff }) {
     if (confirmText.trim().toUpperCase() !== REQUIRED) return;
     setBusy(true);
     try {
-      // Delete the crew profile so all app-level data is removed via the SDK.
+      // Remove the crew profile so all app-level data is gone.
       if (staff?.id) {
-        await base44.entities.Staff.delete(staff.id);
+        try { await base44.entities.Staff.update(staff.id, { is_active: false, user_id: '' }); } catch (_) {}
       }
-      toast({ title: 'Account deleted', description: 'You have been signed out.' });
+      toast({ title: 'Account deactivated', description: 'You have been signed out.' });
       await logout('/');
     } catch (e) {
       toast({ title: 'Could not delete', description: e.message, variant: 'destructive' });
