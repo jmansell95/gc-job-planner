@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import { parseRemarks, professionaliseActivities, hasTimePattern } from '../../shared/keylogbookRemarks.ts';
 
 // ============================================================
 // AGS v3/v4 parser with suffix-based field matching
@@ -186,6 +187,49 @@ function mapSampleType(agsType: string): string {
   return 'none';
 }
 
+// ============================================================
+// Driller remarks extraction from AGS files
+// ============================================================
+// KeyLogBook embeds the driller's time-stamped daily diary
+// ("7:30_8:45 = Start briefing...") into AGS remark/note fields.
+// Standard AGS also carries per-record remarks (LOCA_REM, GEOL_REM,
+// SAMP_REM) and project remarks (PROJ_REM). We harvest every remark
+// field value and feed it through the same parseRemarks pipeline
+// the webhook uses, so manual uploads populate the Site Logs tab
+// identically to real-time webhooks.
+//
+// Only text matching the time-stamped activity pattern is treated as
+// daily remarks — plain descriptions stay on their technical logs.
+
+const REMARK_FIELD_SUFFIXES = ['REM', 'REMARK', 'REMARKS', 'NOTE', 'NOTES', 'COMMENT', 'COMMENTS', 'DIARY', 'DAILY'];
+const REMARK_GROUP_NAMES = ['REMARK', 'REMARKS', 'NOTE', 'NOTES', 'COMMENT', 'COMMENTS', 'DIARY', 'DAILY', 'LOG', 'LOGS'];
+
+function isRemarkField(fieldName: string, groupName: string): boolean {
+  const suffix = normalizeKey(fieldName, groupName);
+  return REMARK_FIELD_SUFFIXES.includes(suffix);
+}
+
+function extractRemarkText(groups: Record<string, GroupData>): string {
+  const chunks: string[] = [];
+  for (const [name, g] of Object.entries(groups)) {
+    if (!g.headings || g.rows.length === 0) continue;
+    // If the whole group is a remarks/diary group, harvest every cell.
+    const wholeGroupRemark = REMARK_GROUP_NAMES.includes(name.toUpperCase());
+    for (const row of g.rows) {
+      const r = buildRow(g, row);
+      g.headings.forEach((h) => {
+        const full = h.toUpperCase();
+        const val = r[full];
+        if (val == null || val === '') return;
+        if (wholeGroupRemark || isRemarkField(h, name)) {
+          if (hasTimePattern(val)) chunks.push(val);
+        }
+      });
+    }
+  }
+  return chunks.join('\n');
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -257,7 +301,7 @@ Deno.serve(async (req) => {
 
     const today = new Date().toISOString().slice(0, 10);
     const logs: any[] = [];
-    const counts = { locations: 0, strata: 0, core: 0, samples: 0, spt: 0, installations: 0, waterReadings: 0 };
+    const counts = { locations: 0, strata: 0, core: 0, samples: 0, spt: 0, installations: 0, waterReadings: 0, remarks: 0 };
 
     let lastLocaRef = '';
     const resolveLocaRef = (r: Record<string, string>) => {
@@ -499,6 +543,50 @@ Deno.serve(async (req) => {
           });
           counts.waterReadings++;
         }
+      }
+    }
+
+    // ---- Driller remarks (daily diary) — same pipeline as the webhook ----
+    // Harvest time-stamped remark text from *_REM / *_NOTE fields and
+    // REMARK/DIARY groups, parse into activities, AI-professionalise, and
+    // save as source='keylogbook_remarks' (pending review) so the manager
+    // can approve them into a timesheet from the Site Logs tab.
+    let remarksActivities = 0;
+    const remarkText = extractRemarkText(groups);
+    if (remarkText) {
+      const activities = parseRemarks(remarkText);
+      if (activities.length > 0) {
+        const cleaned = await professionaliseActivities(base44, activities);
+        // Overwrite previous remarks logs for this job (manual re-import)
+        try {
+          const prevRemarks = await base44.asServiceRole.entities.InvestigationLog.filter({ job_id: job.id, source: 'keylogbook_remarks' });
+          if (prevRemarks.length > 0) {
+            await base44.asServiceRole.entities.InvestigationLog.deleteMany({ job_id: job.id, source: 'keylogbook_remarks' });
+            deletedCount += prevRemarks.length;
+          }
+        } catch (e) { /* continue */ }
+
+        activities.forEach((activity, i) => {
+          logs.push({
+            job_id: job.id,
+            staff_id: staffId,
+            staff_name: 'AGS Import (KeyLogBook)',
+            date: today,
+            log_type: 'other',
+            source: 'keylogbook_remarks',
+            start_time: activity.start_time,
+            end_time: activity.end_time,
+            duration_minutes: activity.duration_minutes,
+            description: cleaned[i] || activity.raw_description,
+            completed_by_type: 'internal_staff',
+            completed_by_name: 'AGS Import (KeyLogBook)',
+            manager_review_status: 'pending',
+            chargeable: false,
+            billing_status: 'no_charge',
+          });
+          counts.remarks++;
+          remarksActivities++;
+        });
       }
     }
 
