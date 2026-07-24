@@ -37,7 +37,8 @@ export default function AGSImportSettings() {
       toast({ title: 'AGS data imported', description: `${res.data.inserted} log entries added to ${res.data.job_name}.` });
       setFile(null);
     } catch (err) {
-      const msg = err?.response?.data?.error || err?.message || 'Import failed';
+      console.error('AGS import error:', err);
+      const msg = err?.response?.data?.error || err?.data?.error || err?.message || 'Import failed';
       setError(msg);
     } finally {
       setBusy(false);
