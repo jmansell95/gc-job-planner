@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function PageHeader({ title, icon: Icon, subtitle, actions }) {
   return (
-    <div className="hero-gradient relative overflow-hidden rounded-2xl mb-6">
+    <div className="hero-gradient relative overflow-hidden rounded-t-none rounded-b-2xl md:rounded-2xl mb-6">
       <div className="relative px-5 md:px-7 py-5 md:py-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
