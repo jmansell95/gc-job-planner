@@ -23,6 +23,8 @@ import ResetPassword from './pages/ResetPassword';
 import { StaffAssistantProvider } from '@/components/StaffAssistantChat';
 import { SchedulingAssistantProvider } from '@/components/SchedulingAssistantChat';
 import AppBaseUrlSync from '@/components/AppBaseUrlSync';
+import MobileTabBar from '@/components/MobileTabBar';
+import PullToRefresh from '@/components/PullToRefresh';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -45,11 +47,14 @@ const AuthenticatedApp = () => {
     return <UserNotRegisteredError />;
   }
 
+  const refreshAll = () => queryClientInstance.refetchQueries({ type: 'active' });
+
   // Render the main app
   return (
     <StaffAssistantProvider>
       <SchedulingAssistantProvider>
         <AppBaseUrlSync />
+        <PullToRefresh onRefresh={refreshAll} />
         <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -67,6 +72,7 @@ const AuthenticatedApp = () => {
         <Route path="/client-portal/:token" element={<ClientPortal />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
+      <MobileTabBar />
       </SchedulingAssistantProvider>
     </StaffAssistantProvider>
   );

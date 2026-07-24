@@ -11,6 +11,7 @@ import TrainingHistory from '@/components/staff/TrainingHistory';
 import StaffDocuments from '@/components/staff/StaffDocuments';
 import TeamMiniFeed from '@/components/staff/TeamMiniFeed';
 import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
+import AccountDeleteCard from '@/components/AccountDeleteCard';
 import { useStaffAssistant } from '@/components/StaffAssistantChat';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useToast } from '@/components/ui/use-toast';
@@ -207,6 +208,9 @@ export default function StaffProfile() {
         {staff.team_id && (
           <TeamMiniFeed teamId={staff.team_id} currentStaffId={staff.id} />
         )}
+
+        {/* Account Deletion — danger zone */}
+        <AccountDeleteCard staff={staff} />
       </div>
 
       {/* Approvals Sheet */}
