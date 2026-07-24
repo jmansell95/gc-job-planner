@@ -31,8 +31,13 @@ export default function AGSImportSettings() {
     setError('');
     setResult(null);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const res = await base44.functions.invoke('importAGS', { file_url, job_id: jobId || null });
+      // Read the AGS file as text in the browser and send the raw content
+      // straight to the import function. AGS files are plain text and small,
+      // so there's no need to upload via the file integration — and sending
+      // raw content avoids the admin-only UploadFile step so managers can
+      // import without hitting "Authentication required to view users".
+      const fileContent = await file.text();
+      const res = await base44.functions.invoke('importAGS', { file_content: fileContent, job_id: jobId || null });
       setResult(res.data);
       toast({ title: 'AGS data imported', description: `${res.data.inserted} log entries added to ${res.data.job_name}.` });
       setFile(null);

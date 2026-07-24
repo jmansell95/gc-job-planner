@@ -328,13 +328,22 @@ Deno.serve(async (req) => {
     // non-chargeable, manager-reviewed log entries. Access to the settings
     // page itself is already gated by the app's route guard.
     const body = await req.json();
+    const fileContent = body.file_content;
     const fileUrl = body.file_url;
     const jobId: string | null = body.job_id || null;
-    if (!fileUrl) return Response.json({ error: 'file_url is required' }, { status: 400 });
+    if (!fileContent && !fileUrl) return Response.json({ error: 'An AGS file is required.' }, { status: 400 });
 
-    const fileRes = await fetch(fileUrl);
-    if (!fileRes.ok) return Response.json({ error: 'Could not download AGS file' }, { status: 422 });
-    const text = await fileRes.text();
+    // Prefer the raw text sent directly from the browser (avoids the admin-only
+    // UploadFile integration so managers can import). Fall back to fetching a
+    // previously-uploaded file URL for backward compatibility.
+    let text: string;
+    if (fileContent) {
+      text = String(fileContent);
+    } else {
+      const fileRes = await fetch(fileUrl);
+      if (!fileRes.ok) return Response.json({ error: 'Could not download AGS file' }, { status: 422 });
+      text = await fileRes.text();
+    }
     const groups = parseAGS(text);
 
     // Resolve the target job
