@@ -214,10 +214,26 @@ function isRemarkField(fieldName: string, groupName: string): boolean {
 
 interface RemarkChunk { text: string; date: string; }
 
+// Normalise an AGS date value to ISO YYYY-MM-DD. Handles the common formats
+// KeyLogBook exports (ISO, DD/MM/YYYY, YYYYMMDD) so remark rows dated with a
+// different format than LOCA still land on the correct day.
+function normaliseDate(v: string): string {
+  if (!v) return '';
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = s.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/);
+  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return '';
+}
+
 // Collect time-stamped remark text paired with the date it belongs to.
 // LOCA rows carry their own date (LOCA_STAR/ENDD), so remarks harvested
 // from a LOCA_REM cell inherit that borehole's date. Standalone remark
-// / diary groups fall back to the supplied default date.
+// / diary groups prefer an explicit DATE column on the row, then the
+// borehole's date (via locaDates), then the supplied default date.
 function extractRemarkChunks(groups: Record<string, GroupData>, defaultDate: string, locaDates: Record<string, string>): RemarkChunk[] {
   const chunks: RemarkChunk[] = [];
 
@@ -226,7 +242,7 @@ function extractRemarkChunks(groups: Record<string, GroupData>, defaultDate: str
     for (const row of groups.LOCA.rows) {
       const r = buildRow(groups.LOCA, row);
       const locaId = pick(r, 'LOCA_ID', 'LOCA_REF', 'LOCA_NO', 'LOCATION_ID', 'HOLE_ID', 'BH_ID', 'ID', 'REF');
-      const rowDate = (locaId && locaDates[locaId]) || pick(r, 'LOCA_STAR', 'LOCA_START', 'STAR', 'LOCA_ENDD', 'LOCA_END', 'ENDD', 'LOCA_DATE', 'DATE') || defaultDate;
+      const rowDate = normaliseDate((locaId && locaDates[locaId]) || pick(r, 'LOCA_STAR', 'LOCA_START', 'STAR', 'LOCA_ENDD', 'LOCA_END', 'ENDD', 'LOCA_DATE', 'DATE')) || defaultDate;
       groups.LOCA.headings.forEach((h) => {
         const full = h.toUpperCase();
         const val = r[full];
@@ -246,9 +262,14 @@ function extractRemarkChunks(groups: Record<string, GroupData>, defaultDate: str
     if (!wholeGroupRemark && !g.headings.some(h => REMARK_FIELD_SUFFIXES.includes(normalizeKey(h, name)))) continue;
     for (const row of g.rows) {
       const r = buildRow(g, row);
-      // Try to associate with a borehole ref for dating
-      const ref = pick(r, 'LOCA_ID', 'LOCA_REF', 'HOLE_ID', 'BH_ID', 'ID', 'REF');
-      const rowDate = (ref && locaDates[ref]) || defaultDate;
+      // Date the remarks: prefer an explicit date column on the row, then the
+      // borehole's date (via locaDates), then the supplied default date. Without
+      // this, a standalone REMARK/DIARY group with no borehole ref falls back
+      // to "today" and multiple days of driller remarks collapse into one date.
+      const ref = pick(r, 'LOCA_ID', 'LOCA_REF', 'LOCA_NO', 'HOLE_ID', 'BH_ID', 'ID', 'REF');
+      const rowDate = normaliseDate(
+        pick(r, 'DATE', 'LOCA_DATE', 'REMARK_DATE', 'DIARY_DATE', 'DAY', 'LOCA_STAR', 'LOCA_START', 'STAR', 'LOCA_ENDD', 'LOCA_END', 'ENDD')
+      ) || (ref && locaDates[ref] ? normaliseDate(locaDates[ref]) : '') || defaultDate;
       g.headings.forEach((h) => {
         const full = h.toUpperCase();
         const val = r[full];
