@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Boxes, PoundSterling, FolderOpen, FileText, Eye, Download, Activity, Mountain,
   LayoutGrid, CalendarDays, ShieldCheck, Users, Briefcase, Truck, User, HardHat,
-  Phone, MapPin, Send, CheckCircle2, UsersRound, CalendarClock, Ruler, StickyNote
+  Phone, MapPin, Send, CheckCircle2, UsersRound, CalendarClock, Ruler, StickyNote, Hotel
 } from 'lucide-react';
 import { format } from 'date-fns';
 import JobLogisticsHub from '@/components/logistics/JobLogisticsHub';
@@ -107,6 +107,7 @@ export default function JobDetailTabs({
           <TabsTrigger value="activity" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Activity className="w-3.5 h-3.5 shrink-0" />Site Logs</TabsTrigger>
           <TabsTrigger value="logistics" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Boxes className="w-3.5 h-3.5 shrink-0" />Logistics</TabsTrigger>
           <TabsTrigger value="boreholes" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Mountain className="w-3.5 h-3.5 shrink-0" />Boreholes</TabsTrigger>
+          <TabsTrigger value="accommodation" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Hotel className="w-3.5 h-3.5 shrink-0" />Accommodation</TabsTrigger>
           <TabsTrigger value="compliance" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><ShieldCheck className="w-3.5 h-3.5 shrink-0" />Compliance</TabsTrigger>
           {canSeeCosts && <TabsTrigger value="financials" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><PoundSterling className="w-3.5 h-3.5 shrink-0" />Financials</TabsTrigger>}
           <TabsTrigger value="documents" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><FolderOpen className="w-3.5 h-3.5 shrink-0" />Documents</TabsTrigger>
@@ -310,8 +311,7 @@ export default function JobDetailTabs({
 
       {/* ── Site Logs Tab ── */}
       <TabsContent value="activity" className="space-y-4 mt-0">
-        <InvestigationLogManager job={job} isDrillingJob={isDrillingJob} />
-        <JobHotelBookings job={job} assignedStaff={assignedStaff} allStaff={allStaff} />
+        <InvestigationLogManager job={job} isDrillingJob={isDrillingJob} assignedStaff={assignedStaff} allStaff={allStaff} canSeeCosts={canSeeCosts} />
       </TabsContent>
 
       {/* ── Logistics Tab ── */}
@@ -322,6 +322,11 @@ export default function JobDetailTabs({
       {/* ── Boreholes Tab ── */}
       <TabsContent value="boreholes" className="space-y-4 mt-0">
         <BoreholeDrillDown job={job} jobType={primaryType} />
+      </TabsContent>
+
+      {/* ── Accommodation Tab ── */}
+      <TabsContent value="accommodation" className="space-y-4 mt-0">
+        <JobHotelBookings job={job} assignedStaff={assignedStaff} allStaff={allStaff} />
       </TabsContent>
 
       {/* ── Compliance Tab ── */}

@@ -22,10 +22,19 @@
       "type": "string",
       "enum": [
         "staff",
-        "ags_import"
+        "ags_import",
+        "keylogbook_remarks"
       ],
       "default": "staff",
-      "description": "Where this log originated. 'staff' = manually entered by a crew member in the app; 'ags_import' = ingested from a KeyLogBook AGS file. AGS-imported borehole/strata/SPT/sample data is read-only in the app \u2014 drillers must make changes in KeyLogBook and re-import. Used to show the correct guidance message (lead driller vs second man) and to badge logs by origin."
+      "description": "Where this log originated. 'staff' = manually entered by a crew member in the app; 'ags_import' = ingested from a KeyLogBook AGS file (borehole/strata/SPT/sample data, read-only); 'keylogbook_remarks' = parsed from the driller's time-stamped daily remarks via the KeyLogBook webhook \u2014 each activity (e.g. '7:30_8:45 = Start briefing...') becomes its own log entry with start_time/end_time/duration_minutes. These are the professionalised Site Logs that feed the timesheet on manager approval."
+    },
+    "start_time": {
+      "type": "string",
+      "description": "Start time of this activity in HH:MM format \u2014 parsed from KeyLogBook driller remarks (e.g. '7:30' from '7:30_8:45 = ...'). Used for Site Logs display and timesheet generation."
+    },
+    "end_time": {
+      "type": "string",
+      "description": "End time of this activity in HH:MM format \u2014 parsed from KeyLogBook driller remarks (e.g. '8:45' from '7:30_8:45 = ...'). Used for Site Logs display and timesheet generation."
     },
     "crew_type": {
       "type": "string",

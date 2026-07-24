@@ -1,17 +1,22 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 
 // ============================================================
-// KeyLogBook Webhook Receiver
+// KeyLogBook Webhook Receiver — Professionalised Site Logs Pipeline
 // ============================================================
-// Receives real-time borehole log data pushed from KeyLogBook
-// (Option A: API / Webhook). Validates a shared secret, creates
-// InvestigationLog records, and auto-generates draft Timesheet
-// entries for the lead driller and second man assigned to the
-// job that day.
+// Receives real-time borehole log data pushed from KeyLogBook.
 //
-// This endpoint is called by KeyLogBook (no authenticated user),
-// so it uses the service role for all database operations and
-// validates the shared secret stored in KeyLogBookConfig.
+// Two data streams:
+//   1. Structured borehole data (boreholes[], logs[]) → source='ags_import'
+//      Read-only technical records shown in the Borehole Data Explorer.
+//
+//   2. Driller remarks string (e.g. "7:30_8:45 = Start briefing... 8:45_9:00 = ...")
+//      → Parsed into individual time-stamped activities, AI-professionalised,
+//        and saved as source='keylogbook_remarks' with manager_review_status='pending'.
+//        An admin reviews/edits these in the Site Logs tab, then approves them
+//        to auto-generate the timesheet via the approveKeyLogBookLogs function.
+//
+// This endpoint is called by KeyLogBook (no authenticated user), so it uses the
+// service role for all database operations and validates the shared secret.
 
 interface WebhookPayload {
   job_reference?: string;
@@ -26,6 +31,13 @@ interface WebhookPayload {
   boreholes?: Array<Record<string, any>>;
   logs?: Array<Record<string, any>>;
   [key: string]: any;
+}
+
+interface ParsedActivity {
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+  raw_description: string;
 }
 
 function todayStr(): string {
@@ -43,28 +55,70 @@ function str(v: any): string {
   return String(v).trim();
 }
 
-// AI enrichment — cleans up raw driller remarks into professional, spell-checked
-// report-ready text. Preserves all technical accuracy. Never blocks the webhook
-// (falls back to raw text on any error).
-async function enrichRemarks(base44: any, rawText: string): Promise<string> {
-  if (!rawText || rawText.trim().length < 10) return rawText || '';
-  try {
-    const res = await base44.asServiceRole.integrations.Core.InvokeLLM({
-      prompt: `You are a geotechnical field log editor. Clean up the following raw driller remark from a cable percussion or rotary borehole log. Fix spelling, grammar, and capitalisation. Convert informal shorthand into professional, report-ready English while preserving all technical accuracy (depths, strata descriptions, groundwater, obstructions, equipment). Do NOT add information that isn't in the original. Return ONLY the cleaned text, no preamble.\n\nRaw remark:\n${rawText}`,
-    });
-    const cleaned = typeof res === 'string' ? res.trim() : String((res as any)?.text || (res as any)?.response || '').trim();
-    return cleaned || rawText;
-  } catch (e) {
-    return rawText; // Never block the webhook — fall back to raw text
-  }
-}
-
-// Parse HH:MM into minutes from midnight
+// Parse "HH:MM" into minutes from midnight
 function timeToMins(t: string | null | undefined): number | null {
   if (!t) return null;
   const m = String(t).match(/^(\d{1,2}):(\d{2})/);
   if (!m) return null;
   return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+}
+
+function minsToTime(mins: number): string {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+// Parse raw driller remarks into individual time-stamped activities.
+// Format: "7:30_8:45 = Start briefing... 8:45_9:00 = Mobilised rig... 9:00_9:45 = Offload..."
+// Each activity: HH:MM_HH:MM = description (until next HH:MM_HH:MM= or end)
+function parseRemarks(rawText: string): ParsedActivity[] {
+  if (!rawText || !rawText.trim()) return [];
+  // Regex: capture (start_time)_(end_time) = (description until next pattern or end)
+  const pattern = /(\d{1,2}:\d{2})\s*[_-]\s*(\d{1,2}:\d{2})\s*=\s*([^]*?)(?=\s*\d{1,2}:\d{2}\s*[_-]\s*\d{1,2}:\d{2}\s*=|$)/g;
+  const activities: ParsedActivity[] = [];
+  let match;
+  while ((match = pattern.exec(rawText)) !== null) {
+    const startTime = match[1].trim();
+    const endTime = match[2].trim();
+    let description = match[3].trim().replace(/\.+$/, '').trim();
+    if (!description) continue;
+    const startMins = timeToMins(startTime);
+    const endMins = timeToMins(endTime);
+    let duration = 0;
+    if (startMins != null && endMins != null && endMins > startMins) {
+      duration = endMins - startMins;
+    }
+    activities.push({ start_time: startTime, end_time: endTime, duration_minutes: duration, raw_description: description });
+  }
+  return activities;
+}
+
+// AI enrichment — professionalise raw driller remarks into report-ready English.
+// Processes all activities in one LLM call for efficiency. Never blocks the webhook.
+async function professionaliseActivities(base44: any, activities: ParsedActivity[]): Promise<string[]> {
+  if (activities.length === 0) return [];
+  const input = activities.map((a, i) => `${i + 1}. [${a.start_time}–${a.end_time}] ${a.raw_description}`).join('\n');
+  try {
+    const res = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      prompt: `You are a geotechnical field log editor. Clean up the following raw driller remarks from a cable percussion or rotary borehole shift. For each numbered activity, fix spelling, grammar, and capitalisation. Convert informal shorthand into professional, report-ready English while preserving ALL technical accuracy (depths, strata, groundwater, obstructions, equipment names, times). Do NOT add information that isn't in the original. Keep "Standby" and "Lunch" as valid activities. Return ONLY the cleaned activities, one per line, numbered exactly as input (format: "N. [HH:MM–HH:MM] Cleaned description").\n\nRaw activities:\n${input}`,
+    });
+    const text = typeof res === 'string' ? res.trim() : String((res as any)?.text || (res as any)?.response || '').trim();
+    if (!text) return activities.map(a => a.raw_description);
+    // Parse numbered lines back out
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const cleaned: string[] = [];
+    for (const line of lines) {
+      const m = line.match(/^\d+\.\s*\[?\d{1,2}:\d{2}[–-]\d{1,2}:\d{2}\]?\s*(.*)$/);
+      if (m) cleaned.push(m[1].trim());
+      else cleaned.push(line.replace(/^\d+\.\s*/, '').trim());
+    }
+    // Fallback: if count mismatch, use raw descriptions
+    if (cleaned.length !== activities.length) return activities.map(a => a.raw_description);
+    return cleaned;
+  } catch (e) {
+    return activities.map(a => a.raw_description);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -76,7 +130,6 @@ Deno.serve(async (req) => {
     const config = configs[0];
 
     // --- Validate the shared secret ---
-    // KeyLogBook sends it via the x-klb-signature header, or as a ?secret= query param.
     const url = new URL(req.url);
     const providedSecret =
       req.headers.get('x-klb-signature') ||
@@ -105,8 +158,6 @@ Deno.serve(async (req) => {
     const workDate = str(body.date) || todayStr();
     const meterage = num(body.meterage);
     const rawRemarks = str(body.remarks || body.notes);
-    // AI enrichment — spell-check and professionalise the driller's raw remarks
-    const remarks = await enrichRemarks(base44, rawRemarks);
 
     // --- Match the job ---
     let job: any = null;
@@ -128,36 +179,84 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Could not match an existing job. Ensure job_reference matches the Job reference field.' }, { status: 422 });
     }
 
-    // --- Delete previous AGS-imported logs for this job (overwrite mode) ---
+    // --- Delete previous KeyLogBook-imported data for this job+date (overwrite mode) ---
     let deletedCount = 0;
     try {
-      const existing = await base44.asServiceRole.entities.InvestigationLog.filter({ job_id: job.id, source: 'ags_import' });
-      deletedCount = existing.length;
+      const existingRemarks = await base44.asServiceRole.entities.InvestigationLog.filter({ job_id: job.id, source: 'keylogbook_remarks', date: workDate });
+      deletedCount = existingRemarks.length;
       if (deletedCount > 0) {
+        await base44.asServiceRole.entities.InvestigationLog.deleteMany({ job_id: job.id, source: 'keylogbook_remarks', date: workDate });
+      }
+      // Also clear previous ags_import logs for this job (overwrite mode)
+      const existingAgs = await base44.asServiceRole.entities.InvestigationLog.filter({ job_id: job.id, source: 'ags_import' });
+      if (existingAgs.length > 0) {
         await base44.asServiceRole.entities.InvestigationLog.deleteMany({ job_id: job.id, source: 'ags_import' });
+        deletedCount += existingAgs.length;
       }
     } catch (e) { /* continue */ }
 
-    // --- Build InvestigationLog records from the payload ---
+    // --- Identify the lead driller (for staff_name on remarks logs) ---
+    let leadDrillerName = str(body.lead_driller_name);
+    let leadDrillerId = '';
+    try {
+      const assignments = await base44.asServiceRole.entities.RotaAssignment.filter({ job_id: job.id, assigned_date: workDate });
+      if (assignments.length > 0) {
+        // First assignment is typically the lead driller
+        leadDrillerId = assignments[0].staff_id || '';
+        if (!leadDrillerName) {
+          const staff = await base44.asServiceRole.entities.Staff.get(leadDrillerId);
+          leadDrillerName = staff?.name || '';
+        }
+      }
+    } catch (e) { /* skip */ }
+
     const logs: any[] = [];
 
-    // Top-level remarks → a borehole_progress log entry
-    if (remarks) {
+    // --- Stream 1: Parse driller remarks into professionalised time-stamped activities ---
+    const activities = parseRemarks(rawRemarks);
+    let professionalised: string[] = [];
+    if (activities.length > 0) {
+      professionalised = await professionaliseActivities(base44, activities);
+    }
+    activities.forEach((activity, i) => {
       logs.push({
         job_id: job.id,
-        staff_id: null,
+        staff_id: leadDrillerId || null,
+        staff_name: leadDrillerName || '',
         date: workDate,
-        log_type: 'borehole_progress',
-        description: `Imported from KeyLogBook webhook — daily remarks: ${remarks}`,
-        source: 'ags_import',
+        log_type: 'other',
+        source: 'keylogbook_remarks',
+        start_time: activity.start_time,
+        end_time: activity.end_time,
+        duration_minutes: activity.duration_minutes,
+        description: professionalised[i] || activity.raw_description,
         completed_by_type: 'internal_staff',
-        completed_by_name: 'KeyLogBook Webhook',
-        manager_review_status: 'approved',
+        completed_by_name: leadDrillerName || 'KeyLogBook Webhook',
+        manager_review_status: 'pending',
         chargeable: false,
+        billing_status: 'no_charge',
+      });
+    });
+
+    // Fallback: if remarks exist but didn't parse into activities, store as one entry
+    if (activities.length === 0 && rawRemarks) {
+      logs.push({
+        job_id: job.id,
+        staff_id: leadDrillerId || null,
+        staff_name: leadDrillerName || '',
+        date: workDate,
+        log_type: 'other',
+        source: 'keylogbook_remarks',
+        description: rawRemarks,
+        completed_by_type: 'internal_staff',
+        completed_by_name: leadDrillerName || 'KeyLogBook Webhook',
+        manager_review_status: 'pending',
+        chargeable: false,
+        billing_status: 'no_charge',
       });
     }
 
-    // Borehole-level entries (flexible field names)
+    // --- Stream 2: Structured borehole data (AGS import — read-only technical records) ---
     const boreholes = Array.isArray(body.boreholes) ? body.boreholes : [];
     for (const bh of boreholes) {
       const bhRef = str(bh.reference || bh.borehole_ref || bh.id || bh.loca_id);
@@ -171,7 +270,7 @@ Deno.serve(async (req) => {
         log_type: 'borehole_progress',
         borehole_ref: bhRef || null,
         depth_to: bhDepth || null,
-        description: `Imported from KeyLogBook webhook — borehole ${bhRef || '—'}${bhRemarks ? `: ${bhRemarks}` : ''}`,
+        description: `Imported from KeyLogBook — borehole ${bhRef || '—'}${bhRemarks ? `: ${bhRemarks}` : ''}`,
         source: 'ags_import',
         completed_by_type: 'internal_staff',
         completed_by_name: 'KeyLogBook Webhook',
@@ -184,7 +283,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Generic log entries array (if KeyLogBook sends structured logs)
     const genericLogs = Array.isArray(body.logs) ? body.logs : [];
     for (const gl of genericLogs) {
       logs.push({
@@ -195,7 +293,7 @@ Deno.serve(async (req) => {
         borehole_ref: str(gl.borehole_ref || gl.reference) || null,
         depth_from: num(gl.depth_from),
         depth_to: num(gl.depth_to),
-        description: `Imported from KeyLogBook webhook — ${str(gl.description || gl.remarks || gl.notes) || 'log entry'}`,
+        description: `Imported from KeyLogBook — ${str(gl.description || gl.remarks || gl.notes) || 'log entry'}`,
         source: 'ags_import',
         completed_by_type: 'internal_staff',
         completed_by_name: 'KeyLogBook Webhook',
@@ -213,72 +311,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // --- Auto-generate draft Timesheets for the crew ---
-    let timesheetsDrafted = 0;
-    let crewNames: string[] = [];
-
-    if (config.auto_generate_timesheets !== false) {
-      // Find rota assignments for this job on the work date
-      const assignments = await base44.asServiceRole.entities.RotaAssignment.filter({
-        job_id: job.id,
-        assigned_date: workDate,
-      });
-
-      for (const a of assignments) {
-        // Skip if a draft or submitted timesheet already exists for this staff+date+job
-        // (avoids duplicates if the driller already logged manually)
-        const existing = await base44.asServiceRole.entities.Timesheet.filter({
-          staff_id: a.staff_id,
-          date: workDate,
-          job_id: job.id,
-        });
-        const hasExisting = existing.some((t: any) => t.status === 'draft' || t.status === 'submitted');
-        if (hasExisting) continue;
-
-        // Fetch the staff name for display
-        let staffName = '';
-        try {
-          const staff = await base44.asServiceRole.entities.Staff.get(a.staff_id);
-          staffName = staff?.name || '';
-        } catch (e) { /* skip */ }
-
-        const startTime = str(a.start_time);
-        const endTime = str(a.end_time);
-        const startMins = timeToMins(startTime);
-        const endMins = timeToMins(endTime);
-        let durationMins = 0;
-        if (startMins != null && endMins != null && endMins > startMins) {
-          durationMins = endMins - startMins;
-        }
-
-        const taskDesc = meterage != null
-          ? `Drilling — ${meterage}m drilled (auto-generated from KeyLogBook)`
-          : remarks
-            ? `Drilling — ${remarks.slice(0, 120)} (auto-generated from KeyLogBook)`
-            : 'Drilling shift (auto-generated from KeyLogBook)';
-
-        await base44.asServiceRole.entities.Timesheet.create({
-          staff_id: a.staff_id,
-          job_id: job.id,
-          date: workDate,
-          task_description: taskDesc,
-          task_type: 'on_site',
-          start_time: startTime || null,
-          end_time: endTime || null,
-          task_duration_minutes: durationMins || 0,
-          total_hours: Math.round((durationMins / 60) * 100) / 100,
-          meterage: meterage || 0,
-          status: 'draft',
-          is_summary: false,
-          notes: remarks || '',
-        });
-        timesheetsDrafted++;
-        if (staffName) crewNames.push(staffName);
-      }
-    }
-
     // --- Update the config with the last webhook status ---
-    const summary = `Processed ${insertedLogs} log entr${insertedLogs === 1 ? 'y' : 'ies'}${timesheetsDrafted > 0 ? ` · ${timesheetsDrafted} timesheet${timesheetsDrafted === 1 ? '' : 's'} drafted` : ''}${crewNames.length ? ` for ${crewNames.join(', ')}` : ''}`;
+    const remarksCount = logs.filter(l => l.source === 'keylogbook_remarks').length;
+    const agsCount = logs.filter(l => l.source === 'ags_import').length;
+    const summary = `Processed ${insertedLogs} log entr${insertedLogs === 1 ? 'y' : 'ies'}${remarksCount > 0 ? ` · ${remarksCount} site log activit${remarksCount === 1 ? 'y' : 'ies'} (pending review)` : ''}${agsCount > 0 ? ` · ${agsCount} borehole record${agsCount === 1 ? '' : 's'}` : ''}`;
     await updateWebhookStatus(base44, config, 'success', summary);
 
     return Response.json({
@@ -287,12 +323,12 @@ Deno.serve(async (req) => {
       job_name: job.name,
       deleted: deletedCount,
       logs_inserted: insertedLogs,
-      timesheets_drafted: timesheetsDrafted,
-      crew: crewNames,
+      remarks_activities: remarksCount,
+      borehole_records: agsCount,
+      lead_driller: leadDrillerName || '',
       summary,
     });
   } catch (error) {
-    // Try to record the failure on the config (best-effort)
     try {
       const base44 = createClientFromRequest(req);
       const configs = await base44.asServiceRole.entities.KeyLogBookConfig.filter({ key: 'global' });

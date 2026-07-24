@@ -8,23 +8,31 @@ import {
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { titleCase } from '@/utils/format';
+import SiteLogReviewManager from '@/components/investigation/SiteLogReviewManager';
 import {
   strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig,
   fluidLossConfig, obstructionConfig, logTypeConfig,
   getMissingFields, getAnomalyFlags
 } from '@/components/investigation/shared';
 
-export default function InvestigationLogManager({ job, isDrillingJob }) {
+export default function InvestigationLogManager({ job, isDrillingJob, assignedStaff, allStaff, canSeeCosts }) {
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['investigation-logs', job.id],
     queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job.id }),
   });
+  const [showAgsData, setShowAgsData] = useState(false);
+
+  // For drilling jobs, render the KeyLogBook site log review manager instead.
+  // Drilling site logs come exclusively from the driller's KeyLogBook remarks
+  // — parsed, professionalised, and pending manager review/approval.
+  if (isDrillingJob) {
+    return <SiteLogReviewManager job={job} assignedStaff={assignedStaff} />;
+  }
 
   // Separate AGS-imported borehole data from field crew activity.
   // Borehole technical data (strata, core, SPT, samples, installations) comes
   // exclusively from KeyLogBook AGS imports and is shown in the Borehole Data
   // Explorer. This activity log shows field crew activity only.
-  const [showAgsData, setShowAgsData] = useState(false);
   const agsLogs = logs.filter(l => l.source === 'ags_import');
   const displayLogs = showAgsData ? logs : logs.filter(l => l.source !== 'ags_import');
 
