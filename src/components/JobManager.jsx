@@ -6,7 +6,7 @@ import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/dashboard/StatCard';
 import SearchFilterBar from '@/components/SearchFilterBar';
 import { EmptyState, ErrorState, CardGridSkeleton } from '@/components/StateViews';
-import JobDetail from '@/components/JobDetail';
+import { useNavigate } from 'react-router-dom';
 import JobWizardModal from '@/components/JobWizardModal';
 import PrintReportButton from '@/components/PrintReportButton';
 import JobCreatedModal from '@/components/JobCreatedModal';
@@ -58,7 +58,7 @@ const emptyForm = {
 };
 
 export default function JobManager({ onNavigateRota }) {
-  const [selectedJob, setSelectedJob] = useState(null);
+  const navigate = useNavigate();
   const [showWizard, setShowWizard] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,10 +146,6 @@ export default function JobManager({ onNavigateRota }) {
     completed: filteredJobs.filter(j => j.status === 'completed').length,
   };
 
-  if (selectedJob) {
-    return <JobDetail job={selectedJob} onBack={() => setSelectedJob(null)} />;
-  }
-
   return (
     <div>
       <PageHeader
@@ -193,7 +189,7 @@ export default function JobManager({ onNavigateRota }) {
           teams={teams}
           jobTypes={jobTypes}
           clients={clients}
-          onSelectJob={(job) => setSelectedJob(job)}
+          onSelectJob={(job) => navigate(`/admin/jobs/${job.id}`)}
           onAddJob={handleAddJobToProject}
         />
       )}
@@ -307,7 +303,7 @@ export default function JobManager({ onNavigateRota }) {
                     </div>
                   </div>
                   <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <button onClick={() => setSelectedJob(job)} className="flex items-center gap-1.5 text-sm font-medium text-[#2E5A1A] hover:text-[#1c4a12] transition"><Eye className="w-4 h-4" /> View Details</button>
+                    <button onClick={() => navigate(`/admin/jobs/${job.id}`)} className="flex items-center gap-1.5 text-sm font-medium text-[#2E5A1A] hover:text-[#1c4a12] transition"><Eye className="w-4 h-4" /> View Details</button>
                     <div className="flex gap-1">
                       <button onClick={() => handleEdit(job)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
                       <button onClick={() => handleDelete(job.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
@@ -324,7 +320,7 @@ export default function JobManager({ onNavigateRota }) {
       {createdJob && (
         <JobCreatedModal
           job={createdJob}
-          onView={() => { setSelectedJob(createdJob); setCreatedJob(null); }}
+          onView={() => { navigate(`/admin/jobs/${createdJob.id}`); setCreatedJob(null); }}
           onBuildRota={onNavigateRota ? () => { onNavigateRota(); setCreatedJob(null); } : undefined}
           onLater={() => setCreatedJob(null)}
           onClose={() => setCreatedJob(null)}
