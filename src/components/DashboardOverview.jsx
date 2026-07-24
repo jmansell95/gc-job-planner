@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Plus, Calendar, Settings2, Check, Eye, MapPin } from 'lucide-react';
+import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Calendar, Settings2, Check, Eye, MapPin } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
@@ -88,6 +88,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const firstName = profile?.name?.split(' ')[0] || '';
 
   const titleCase = (s) => s ? s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : s;
+  const gbp = (n) => (n != null && !isNaN(n)) ? '£' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 }) : null;
 
   // Apply job filter to all dashboard data
   const scopedJobs = isAllJobs ? jobs : jobs.filter(j => j.id === selectedJobId);
@@ -265,14 +266,59 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               {!customizeMode ? (
                 <>
-                  {isAllJobs && (
-                    <button onClick={() => onNavigate('jobs')} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm w-full sm:w-auto">
-                      <Plus className="w-4 h-4" /> Add Job
-                    </button>
-                  )}
-                  <button onClick={() => onNavigate('rota')} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-[#2E5A1A] rounded-lg hover:bg-[#2E5A1A]/10 transition text-sm font-semibold shadow-sm w-full sm:w-auto">
-                    <Calendar className="w-4 h-4" /> Build Rota
-                  </button>
+                  {/* Contextual live snapshot — reflects exactly what's on screen */}
+                  <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                    {isAllJobs ? (
+                      <>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                          <Briefcase className="w-3.5 h-3.5 text-white/90" />
+                          <span className="text-sm font-bold text-white tabular-nums">{activeJobs.length}</span>
+                          <span className="text-[11px] text-white/75 font-medium">Active</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                          <Users className="w-3.5 h-3.5 text-white/90" />
+                          <span className="text-sm font-bold text-white tabular-nums">{staffToday}</span>
+                          <span className="text-[11px] text-white/75 font-medium">On Site</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                          <ClipboardCheck className="w-3.5 h-3.5 text-white/90" />
+                          <span className="text-sm font-bold text-white tabular-nums">{pendingTs}</span>
+                          <span className="text-[11px] text-white/75 font-medium">TS Queue</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                          <Truck className="w-3.5 h-3.5 text-white/90" />
+                          <span className="text-sm font-bold text-white tabular-nums">{pendingDeliveries}</span>
+                          <span className="text-[11px] text-white/75 font-medium">Deliveries</span>
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        {gbp(selectedJob?.budget_amount) && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                            <span className="text-[11px] text-white/75 font-medium">Budget</span>
+                            <span className="text-sm font-bold text-white tabular-nums">{gbp(selectedJob.budget_amount)}</span>
+                          </span>
+                        )}
+                        {gbp(selectedJob?.actual_cost) && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                            <span className="text-[11px] text-white/75 font-medium">Spent</span>
+                            <span className="text-sm font-bold text-white tabular-nums">{gbp(selectedJob.actual_cost)}</span>
+                          </span>
+                        )}
+                        {(selectedJob?.meterage || selectedJob?.meterage_target) && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                            <span className="text-[11px] text-white/75 font-medium">Meterage</span>
+                            <span className="text-sm font-bold text-white tabular-nums">{selectedJob.meterage || 0}{selectedJob.meterage_target ? ` / ${selectedJob.meterage_target}` : ''}m</span>
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                          <Users className="w-3.5 h-3.5 text-white/90" />
+                          <span className="text-sm font-bold text-white tabular-nums">{staffToday}</span>
+                          <span className="text-[11px] text-white/75 font-medium">Crew Today</span>
+                        </span>
+                      </>
+                    )}
+                  </div>
                   <button onClick={() => setCustomizeMode(true)} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm w-full sm:w-auto">
                     <Settings2 className="w-4 h-4" /> Customise
                   </button>
