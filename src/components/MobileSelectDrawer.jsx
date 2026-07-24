@@ -15,6 +15,7 @@ export default function MobileSelectDrawer({
   label,
   placeholder = 'Select…',
   className = '',
+  required = false,
 }) {
   const [open, setOpen] = useState(false);
   const selected = options.find(o => o.value === value);
@@ -26,7 +27,7 @@ export default function MobileSelectDrawer({
     <>
       {/* Desktop: native select */}
       <div className="hidden md:block">
-        <select value={value ?? ''} onChange={e => onChange?.(e.target.value)} className={triggerCls}>
+        <select value={value ?? ''} onChange={e => onChange?.(e.target.value)} required={required} className={triggerCls}>
           {placeholder && <option value="">{placeholder}</option>}
           {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>

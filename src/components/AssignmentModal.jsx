@@ -7,6 +7,7 @@ import { isStaffOutsideJobTeams, getJobTeamIds } from '@/utils/jobTeams';
 import { isWeekend, buildRateMap } from '@/utils/overtime';
 import { getCurrentTimeStr, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { findConflict, suggestAutoTimes, getDailyShiftSummary } from '@/utils/rotaScheduling';
+import MobileSelectDrawer from '@/components/MobileSelectDrawer';
 
 export default function AssignmentModal({ isOpen, onClose, assignment, defaultStaffId, defaultDate, weekStartStr, staff, jobs, vehicles, existingRotas }) {
   const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '', notes: '', is_overtime: false, rate_multiplier: '', start_delayed: false, actual_start_date: '' });
@@ -359,11 +360,14 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-slate-600 mb-1">Job *</label>
-              <select value={formData.job_id} onChange={(e) => handleJobChange(e.target.value)} required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="">Select Job</option>
-                {jobs.map(job => <option key={job.id} value={job.id}>{job.name}</option>)}
-              </select>
+              <MobileSelectDrawer
+                value={formData.job_id}
+                onChange={(v) => handleJobChange(v)}
+                label="Job"
+                placeholder="Select Job"
+                required
+                options={jobs.map(job => ({ value: job.id, label: job.name }))}
+              />
               {selectedJob && requiredTeamNames.length > 0 && (
                 <p className="text-[11px] text-slate-400 mt-1">Required teams: {requiredTeamNames.join(', ')}</p>
               )}
@@ -447,15 +451,18 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
             )}
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Staff Member *</label>
-              <select value={formData.staff_id} onChange={(e) => handleStaffChange(e.target.value)} required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="">Select Staff</option>
-                {staff.map(s => {
+              <MobileSelectDrawer
+                value={formData.staff_id}
+                onChange={(v) => handleStaffChange(v)}
+                label="Staff Member"
+                placeholder="Select Staff"
+                required
+                options={staff.map(s => {
                   const teamName = teams.find(t => t.id === s.team_id)?.name || 'No team';
                   const aligned = selectedJob ? !isStaffOutsideJobTeams(s, selectedJob, teams) : false;
-                  return <option key={s.id} value={s.id}>{s.name} — {teamName}{selectedJob && aligned ? ' ✓' : ''}</option>;
+                  return { value: s.id, label: `${s.name} — ${teamName}${selectedJob && aligned ? ' ✓' : ''}` };
                 })}
-              </select>
+              />
               {selectedJob && (
                 <p className="text-[11px] text-slate-400 mt-1">All staff are listed. Those in the required teams are marked ✓.</p>
               )}
@@ -492,11 +499,13 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
             )}
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Vehicle</label>
-              <select value={formData.vehicle_id} onChange={(e) => handleVehicleChange(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="">Select Vehicle (Optional)</option>
-                {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} — {v.name}</option>)}
-              </select>
+              <MobileSelectDrawer
+                value={formData.vehicle_id}
+                onChange={(v) => handleVehicleChange(v)}
+                label="Vehicle"
+                placeholder="Select Vehicle (Optional)"
+                options={vehicles.map(v => ({ value: v.id, label: `${v.registration_number} — ${v.name}` }))}
+              />
             </div>
             <div className="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 space-y-2.5">
               <div className="flex items-center justify-between gap-3">
@@ -550,14 +559,18 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
               {formData.is_overtime && (
                 <div className="mt-3 flex items-center gap-2">
                   <label className="text-xs font-medium text-slate-600 whitespace-nowrap">Rate multiplier</label>
-                  <select value={formData.rate_multiplier} onChange={(e) => setFormData({ ...formData, rate_multiplier: e.target.value })}
-                    className="flex-1 px-2.5 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-amber-500 text-sm">
-                    <option value="">Use day default</option>
-                    <option value="1.5">1.5x (time-and-a-half)</option>
-                    <option value="2">2.0x (double time)</option>
-                    <option value="2.5">2.5x</option>
-                    <option value="3">3.0x</option>
-                  </select>
+                  <MobileSelectDrawer
+                    value={formData.rate_multiplier}
+                    onChange={(v) => setFormData({ ...formData, rate_multiplier: v })}
+                    label="Rate multiplier"
+                    options={[
+                      { value: '', label: 'Use day default' },
+                      { value: '1.5', label: '1.5x (time-and-a-half)' },
+                      { value: '2', label: '2.0x (double time)' },
+                      { value: '2.5', label: '2.5x' },
+                      { value: '3', label: '3.0x' },
+                    ]}
+                  />
                   {formData.rate_multiplier && (
                     <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-1 rounded-md whitespace-nowrap">
                       {Number(formData.rate_multiplier).toFixed(1)}x

@@ -7,6 +7,7 @@ import EquipmentManager from '@/components/EquipmentManager';
 import FormSection from '@/components/forms/FormSection';
 import ChipMultiSelect from '@/components/forms/ChipMultiSelect';
 import ProjectSelect from '@/components/ProjectSelect';
+import MobileSelectDrawer from '@/components/MobileSelectDrawer';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
@@ -97,10 +98,13 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
               <input type="text" value={formData.job_reference || ''} onChange={(e) => setFormData({ ...formData, job_reference: e.target.value })} placeholder="e.g. PO-10245" className={inputCls} />
             </Field>
             <Field label="Job Type">
-              <select value={formData.job_type || ''} onChange={(e) => setFormData({ ...formData, job_type: e.target.value })} className={inputCls}>
-                <option value="">Select Type</option>
-                {jobTypes.map(jt => <option key={jt.id} value={jt.key}>{jt.label}</option>)}
-              </select>
+              <MobileSelectDrawer
+                value={formData.job_type || ''}
+                onChange={(v) => setFormData({ ...formData, job_type: v })}
+                label="Job Type"
+                placeholder="Select Type"
+                options={jobTypes.map(jt => ({ value: jt.key, label: jt.label }))}
+              />
             </Field>
             <Field label="Location" full required>
               <input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} required className={inputCls} />
@@ -145,16 +149,22 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
             </FormSection>
             <FormSection title="Clients & Contacts" icon={Users}>
               <Field label="Client">
-                <select value={formData.client_id} onChange={(e) => setFormData({ ...formData, client_id: e.target.value })} className={inputCls}>
-                  <option value="">Select Client (Optional)</option>
-                  {clients.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}
-                </select>
+                <MobileSelectDrawer
+                  value={formData.client_id || ''}
+                  onChange={(v) => setFormData({ ...formData, client_id: v })}
+                  label="Client"
+                  placeholder="Select Client (Optional)"
+                  options={clients.map(c => ({ value: c.id, label: c.name }))}
+                />
               </Field>
               <Field label="Contractor">
-                <select value={formData.contractor_id} onChange={(e) => setFormData({ ...formData, contractor_id: e.target.value })} className={inputCls}>
-                  <option value="">Select Contractor (Optional)</option>
-                  {contractors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <MobileSelectDrawer
+                  value={formData.contractor_id || ''}
+                  onChange={(v) => setFormData({ ...formData, contractor_id: v })}
+                  label="Contractor"
+                  placeholder="Select Contractor (Optional)"
+                  options={contractors.map(c => ({ value: c.id, label: c.name }))}
+                />
               </Field>
               <Field label="Project Manager">
                 <input type="text" value={formData.project_manager || ''} onChange={(e) => setFormData({ ...formData, project_manager: e.target.value })} placeholder="Person responsible" className={inputCls} />
