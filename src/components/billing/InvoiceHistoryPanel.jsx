@@ -12,6 +12,10 @@ const STATUS_STYLES = {
   void: 'bg-rose-100 text-rose-700 line-through',
 };
 
+function statusBadgeClass(status) {
+  return 'inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ' + (STATUS_STYLES[status] || 'bg-slate-100 text-slate-600');
+}
+
 function invoiceHtml(invoice, clients, companyName) {
   const client = clients.find((c) => c.id === invoice.client_id) || {};
   const rows = (invoice.line_items || []).map((l, i) => {
@@ -82,7 +86,13 @@ export default function InvoiceHistoryPanel({ companyName }) {
     }
   };
 
-  if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>;
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-10">
+        <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+      </div>
+    );
+  }
 
   if (invoices.length === 0) {
     return (
@@ -137,20 +147,28 @@ export default function InvoiceHistoryPanel({ companyName }) {
                   <td className="px-4 py-3 max-w-[160px] truncate text-slate-600">{inv.job_name || '—'}</td>
                   <td className="px-4 py-3 max-w-[140px] truncate text-slate-600">{inv.client_name || '—'}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_STYLES[inv.status] || 'bg-slate-100 text-slate-600'}`}>{inv.status}</span>
+                    <span className={statusBadgeClass(inv.status)}>{inv.status}</span>
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-[#2E5A1A] tabular-nums">{gbp(inv.gross_total)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <button title="Reprint" onClick={() => reprint(inv)} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition"><Printer className="w-3.5 h-3.5" /></button>
+                      <button title="Reprint" onClick={() => reprint(inv)} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition">
+                        <Printer className="w-3.5 h-3.5" />
+                      </button>
                       {inv.status === 'draft' && (
-                        <button title="Mark sent" onClick={() => setStatus(inv, 'sent')} disabled={busyId === inv.id} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition disabled:opacity-50">{busyId === inv.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}</button>
+                        <button title="Mark sent" onClick={() => setStatus(inv, 'sent')} disabled={busyId === inv.id} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition disabled:opacity-50">
+                          {busyId === inv.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                        </button>
                       )}
                       {inv.status === 'sent' && (
-                        <button title="Mark paid" onClick={() => setStatus(inv, 'paid')} disabled={busyId === inv.id} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition disabled:opacity-50">{busyId === inv.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" /></button>
+                        <button title="Mark paid" onClick={() => setStatus(inv, 'paid')} disabled={busyId === inv.id} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition disabled:opacity-50">
+                          {busyId === inv.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                        </button>
                       )}
                       {inv.status !== 'void' && inv.status !== 'paid' && (
-                        <button title="Void" onClick={() => setStatus(inv, 'void')} disabled={busyId === inv.id} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition disabled:opacity-50"><Ban className="w-3.5 h-3.5" /></button>
+                        <button title="Void" onClick={() => setStatus(inv, 'void')} disabled={busyId === inv.id} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition disabled:opacity-50">
+                          <Ban className="w-3.5 h-3.5" />
+                        </button>
                       )}
                     </div>
                   </td>
