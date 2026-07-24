@@ -2,15 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Calendar, Settings2, Check, Eye, MapPin } from 'lucide-react';
+import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Calendar, Settings2, Check, Eye, MapPin, ArrowRight } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
-import JobCostAnalytics from '@/components/JobCostAnalytics';
 import DeliveryStats from '@/components/DeliveryStats';
 import WidgetCard from '@/components/dashboard/WidgetCard';
 import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES, DASHBOARD_SECTIONS, WIDGET_TO_SECTION, COST_WIDGETS, GLOBAL_ONLY_WIDGETS, VIEW_PROFILES } from '@/components/dashboard/registry';
-import { KpiStatsWidget, FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
+import { FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
 import SupervisorOverviewWidget from '@/components/dashboard/SupervisorOverviewWidget';
 import JobAssetsWidget from '@/components/dashboard/JobAssetsWidget';
@@ -18,7 +17,6 @@ import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
 import SiteHazardMapWidget from '@/components/dashboard/SiteHazardMapWidget';
 import EfficiencySnapshotWidget from '@/components/dashboard/EfficiencySnapshotWidget';
 import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
-import AssetCrewProfitability from '@/components/AssetCrewProfitability';
 import RigProfitabilityWidget from '@/components/dashboard/RigProfitabilityWidget';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
@@ -97,21 +95,12 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const scopedRotas = isAllJobs ? thisWeekRotas : thisWeekRotas.filter(r => r.job_id === selectedJobId);
 
   const activeJobs = scopedJobs.filter(j => (j.status || 'planning') === 'in_progress');
-  const onHoldJobs = scopedJobs.filter(j => j.status === 'on_hold');
   const todaysRotas = scopedRotas.filter(r => r.assigned_date === todayStr);
   const staffToday = [...new Set(todaysRotas.map(r => r.staff_id))].length;
   const pendingTs = scopedTimesheets.filter(t => t.status === 'submitted').length;
   const activeStaff = staff.filter(s => s.is_active !== false).length;
 
   const pendingDeliveries = scopedDeliveries.filter(d => d.status === 'pending' || d.status === 'in_progress').length;
-  const planningJobs = scopedJobs.filter(j => (j.status || 'planning') === 'planning').length;
-
-  const stats = [
-    { label: isAllJobs ? 'Active Jobs' : 'Job Status', value: isAllJobs ? activeJobs.length : titleCase((scopedJobs[0]?.status || '—').replace(/_/g, ' ')), isText: !isAllJobs, sub: isAllJobs ? (onHoldJobs.length ? `${onHoldJobs.length} On Hold · ${planningJobs} Planning` : `${planningJobs} Planning · ${scopedJobs.length} Total`) : (scopedJobs[0]?.location || ''), icon: Briefcase, gradient: 'stat-gradient-emerald', nav: 'jobs' },
-    { label: 'Crews Deployed', value: staffToday, sub: `${activeStaff} Active Crew`, icon: Users, gradient: 'stat-gradient-blue', nav: 'rota' },
-    { label: 'Timesheet Queue', value: pendingTs, sub: 'Awaiting Approval', icon: ClipboardCheck, gradient: pendingTs > 0 ? 'stat-gradient-amber' : 'stat-gradient-slate', nav: 'timesheets' },
-    { label: 'Deliveries Today', value: pendingDeliveries, sub: `${scopedDeliveries.length} Scheduled`, icon: Truck, gradient: pendingDeliveries > 0 ? 'stat-gradient-rose' : 'stat-gradient-slate', nav: 'deliveries' },
-  ];
 
   const canViewCosts = canViewCostings(profile);
 
@@ -120,17 +109,14 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const renderWidget = (widgetId) => {
     switch (widgetId) {
       case 'delivery-stats': return <DeliveryStats onNavigate={onNavigate} onSelectJob={openJobDrawer} jobs={scopedJobs} />;
-      case 'kpi-stats': return <KpiStatsWidget stats={stats} onNavigate={onNavigate} />;
       case 'compliance-overview': return <ComplianceOverviewWidget onNavigate={onNavigate} />;
       case 'supervisor-overview': return <SupervisorOverviewWidget profile={profile} onSelectJob={openJobDrawer} />;
       case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={scopedJobs} vehicles={vehicles} onSelectJob={openJobDrawer} onNavigate={onNavigate} />;
       case 'charts': return <ChartsWidget jobs={scopedJobs} staff={staff} rotas={scopedRotas} weekDays={weekDays} />;
-      case 'cost-analytics': return canViewCosts ? <JobCostAnalytics onSelectJob={openJobDrawer} /> : null;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
       case 'job-assets': return <JobAssetsWidget onSelectJob={openJobDrawer} />;
       case 'ai-insights': return <AiInsightsWidget />;
       case 'job-profitability': return canViewCosts ? <ProfitabilityDashboard onSelectJob={openJobDrawer} /> : null;
-      case 'asset-crew-profitability': return canViewCosts ? <AssetCrewProfitability onSelectJob={openJobDrawer} /> : null;
       case 'rig-profitability': return canViewCosts ? <RigProfitabilityWidget onSelectJob={openJobDrawer} /> : null;
       case 'efficiency-snapshot': return canViewCosts ? <EfficiencySnapshotWidget onSelectJob={openJobDrawer} /> : null;
       case 'site-hazards': return <SiteHazardMapWidget onNavigate={onNavigate} />;
@@ -270,26 +256,30 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                   <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
                     {isAllJobs ? (
                       <>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                        <button type="button" onClick={() => onNavigate('jobs')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm hover:bg-white/25 transition group">
                           <Briefcase className="w-3.5 h-3.5 text-white/90" />
                           <span className="text-sm font-bold text-white tabular-nums">{activeJobs.length}</span>
                           <span className="text-[11px] text-white/75 font-medium">Active</span>
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                          <ArrowRight className="w-3 h-3 text-white/50 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
+                        </button>
+                        <button type="button" onClick={() => onNavigate('rota')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm hover:bg-white/25 transition group">
                           <Users className="w-3.5 h-3.5 text-white/90" />
                           <span className="text-sm font-bold text-white tabular-nums">{staffToday}</span>
                           <span className="text-[11px] text-white/75 font-medium">On Site</span>
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                          <ArrowRight className="w-3 h-3 text-white/50 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
+                        </button>
+                        <button type="button" onClick={() => onNavigate('timesheets')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm hover:bg-white/25 transition group">
                           <ClipboardCheck className="w-3.5 h-3.5 text-white/90" />
                           <span className="text-sm font-bold text-white tabular-nums">{pendingTs}</span>
                           <span className="text-[11px] text-white/75 font-medium">TS Queue</span>
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                          <ArrowRight className="w-3 h-3 text-white/50 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
+                        </button>
+                        <button type="button" onClick={() => onNavigate('deliveries')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm hover:bg-white/25 transition group">
                           <Truck className="w-3.5 h-3.5 text-white/90" />
                           <span className="text-sm font-bold text-white tabular-nums">{pendingDeliveries}</span>
                           <span className="text-[11px] text-white/75 font-medium">Deliveries</span>
-                        </span>
+                          <ArrowRight className="w-3 h-3 text-white/50 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
+                        </button>
                       </>
                     ) : (
                       <>
