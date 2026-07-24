@@ -324,7 +324,20 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
+    // Allow platform admins, plus managers (system_role on Staff). Managers
+    // run operations and the AGS import feeds the site logs/timesheets they
+    // manage. Viewers and field staff are still blocked.
+    const isPlatformAdmin = user.role === 'admin';
+    if (!isPlatformAdmin) {
+      let systemRole: string | null = null;
+      try {
+        const staff = await base44.asServiceRole.entities.Staff.filter({ user_id: user.id });
+        if (staff.length) systemRole = staff[0].system_role || null;
+      } catch (e) { /* fall back to blocked */ }
+      if (systemRole !== 'admin' && systemRole !== 'manager') {
+        return Response.json({ error: 'Only admins and managers can import AGS files.' }, { status: 403 });
+      }
+    }
 
     const body = await req.json();
     const fileUrl = body.file_url;

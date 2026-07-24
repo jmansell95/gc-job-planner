@@ -35,7 +35,7 @@ export default function TeamManager() {
 
   const { data: teams = [], isLoading: teamsLoading } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: staff = [], isLoading: staffLoading } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
-  const { data: users = [] } = useQuery({ queryKey: ['users-list'], queryFn: () => base44.entities.User.list() });
+  const { data: users = [] } = useQuery({ queryKey: ['users-list'], queryFn: () => base44.entities.User.list().catch(() => []) });
   const isLoading = teamsLoading || staffLoading;
 
   // Dynamic dropdown options — fetched from ConfigList (editable in Settings → Dropdown Manager)

@@ -57,7 +57,7 @@ export default function StaffManager() {
   const { data: staff = [], isLoading: staffLoading } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: teams = [], isLoading: teamsLoading } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
-  const { data: users = [] } = useQuery({ queryKey: ['users-list'], queryFn: () => base44.entities.User.list() });
+  const { data: users = [] } = useQuery({ queryKey: ['users-list'], queryFn: () => base44.entities.User.list().catch(() => []) });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs-for-hotel'], queryFn: () => base44.entities.Job.list() });
 
   const getUserForStaff = (member) => users.find(u => u.email?.toLowerCase() === member.email?.toLowerCase());
