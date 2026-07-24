@@ -2,6 +2,8 @@
 // Determines what a user can see and do based on their system_role
 // (admin/manager/viewer) or team capabilities for field staff.
 
+import { SECTION_TO_MODULE, normalizePermissions, resolveModuleLevel, canWriteModule } from '@/utils/permissions';
+
 export const SYSTEM_ROLES = [
   { value: 'admin', label: 'Admin', description: 'Full access to everything including settings and crews' },
   { value: 'manager', label: 'Manager', description: 'Manage jobs, rotas, timesheets and compliance — no settings' },
@@ -23,6 +25,7 @@ export function resolveRole(profile, isPlatformAdmin) {
 }
 
 // Check if a user can access a specific admin section.
+// Priority: platform admin → system role → team permission group → legacy allowed_tool_access.
 export function canAccessSection(profile, sectionId, isPlatformAdmin) {
   // While the profile is still loading, show all standard nav items so the
   // sidebar isn't blank. Items are re-filtered once the profile resolves.
@@ -32,6 +35,21 @@ export function canAccessSection(profile, sectionId, isPlatformAdmin) {
   if (role === 'admin') return true;
   // The "My Schedule" link is available to all office staff
   if (sectionId === 'staff_schedule') return true;
+
+  // Field staff with a permission group — use the granular permission registry.
+  // This is the new lockdown engine: the group defines read/write/none per
+  // module, superseding the legacy allowed_tool_access list.
+  const group = profile?.team?.permission_group;
+  if (group) {
+    const moduleKey = SECTION_TO_MODULE[sectionId];
+    if (moduleKey) {
+      const level = group.is_read_only
+        ? (normalizePermissions(group.permissions)[moduleKey] === 'none' ? 'none' : 'read')
+        : (normalizePermissions(group.permissions)[moduleKey] || 'none');
+      return level !== 'none';
+    }
+  }
+
   if (role === 'manager' || role === 'viewer') {
     // Office staff: role sections, further restricted by their team's
     // allowed_tool_access when the team defines one.
@@ -51,6 +69,16 @@ export function canAccessSection(profile, sectionId, isPlatformAdmin) {
 export function canEdit(profile, isPlatformAdmin) {
   const role = resolveRole(profile, isPlatformAdmin);
   return role === 'admin' || role === 'manager';
+}
+
+// Check if user can edit (create/update/delete) within a specific admin module.
+// Uses the permission group for field staff; admins/managers always can.
+export function canEditModule(profile, isPlatformAdmin, sectionId) {
+  const role = resolveRole(profile, isPlatformAdmin);
+  if (role === 'admin' || role === 'manager') return true;
+  const moduleKey = SECTION_TO_MODULE[sectionId];
+  if (!moduleKey) return canEdit(profile, isPlatformAdmin);
+  return canWriteModule(profile, isPlatformAdmin, moduleKey);
 }
 
 // Check if user is authorized to view financial/costing data.

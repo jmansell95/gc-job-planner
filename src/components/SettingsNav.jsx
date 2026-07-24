@@ -13,6 +13,7 @@ export const settingsGroups = [
     items: [
       { id: 'staff', label: 'Staff Command', icon: Users, desc: 'Manage everything about each crew member — profile, access, compliance, training, schedule & bookings' },
       { id: 'teams', label: 'Crew Types', icon: Users, desc: 'Manage everything about each crew type — capabilities, qualifications, revenue, assets & roster' },
+      { id: 'access-levels', label: 'Access Levels', icon: ShieldCheck, desc: 'Define permission groups (read-only, full access, custom) and assign them to crew types', roles: ['admin'] },
       { id: 'absences', label: 'Absences', icon: CalendarX, desc: 'Approve leave and recurring days off' },
     ],
   },

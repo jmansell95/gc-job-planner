@@ -1,0 +1,151 @@
+{
+  "name": "PermissionGroup",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of this access level (e.g. 'Full Access', 'Read Only', 'Field Supervisor')."
+    },
+    "description": {
+      "type": "string",
+      "description": "What this permission group lets its members do."
+    },
+    "is_system": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for built-in groups (Super Admin, Read Only). System groups can't be deleted."
+    },
+    "is_read_only": {
+      "type": "boolean",
+      "default": false,
+      "description": "Master read-only toggle. When true, every module is forced to read-only access regardless of the per-module level below \u2014 used for the strict 'Read Only' lockdown."
+    },
+    "permissions": {
+      "type": "object",
+      "description": "Per-module access level: 'none' (hidden), 'read' (view only, no edits), or 'write' (full create/update/delete). Teams assigned this group inherit these levels for every admin section.",
+      "properties": {
+        "overview": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "read"
+        },
+        "jobs": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none"
+        },
+        "rota": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none"
+        },
+        "calendar": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "read"
+        },
+        "scheduling": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none"
+        },
+        "timesheets": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none"
+        },
+        "compliance": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none"
+        },
+        "log-qc": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none"
+        },
+        "audit-trail": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none"
+        },
+        "teams": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none"
+        },
+        "billing": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none"
+        },
+        "settings": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none"
+        },
+        "ags_import": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none",
+          "description": "AGS / KeyLogBook upload & sync. Write = can upload AGS files and edit webhook config."
+        }
+      }
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

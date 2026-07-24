@@ -27,6 +27,7 @@ import AuditTrailHub from '@/components/audit/AuditTrailHub';
 import TimesheetManager from '@/components/TimesheetManager';
 import BillingPage from '@/components/BillingPage';
 import AGSImportSettings from '@/components/AGSImportSettings';
+import PermissionGroupManager from '@/components/PermissionGroupManager';
 import { resolveRole } from '@/utils/access';
 import { base44 } from '@/api/base44Client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -64,6 +65,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'hub': return <SettingsHubOverview onNavigate={setActiveTab} />;
       case 'staff': return <StaffCommand />;
       case 'teams': return <CrewTypeCommand />;
+      case 'access-levels': return <PermissionGroupManager />;
       case 'asset-panda': return <AssetPandaSettings />;
       case 'vehicles': return <VehicleManager />;
       case 'clients': return <ClientManager />;

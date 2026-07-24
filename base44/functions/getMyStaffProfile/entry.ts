@@ -42,6 +42,16 @@ Deno.serve(async (req) => {
       } catch (_) {}
     }
 
+    // Fetch the team's linked permission group so the frontend can enforce
+    // granular read/write/none access per admin module.
+    let permissionGroup = null;
+    if (team?.permission_group_id) {
+      try {
+        const pgList = await base44.asServiceRole.entities.PermissionGroup.filter({ id: team.permission_group_id });
+        permissionGroup = pgList[0] || null;
+      } catch (_) {}
+    }
+
     return Response.json({
       id: s.id,
       name: s.name,
@@ -55,7 +65,15 @@ Deno.serve(async (req) => {
         category: team.category || null,
         job_type: team.job_type || null,
         default_landing_page: team.default_landing_page || null,
-        allowed_tool_access: team.allowed_tool_access || []
+        allowed_tool_access: team.allowed_tool_access || [],
+        permission_group_id: team.permission_group_id || null,
+        permission_group: permissionGroup ? {
+          id: permissionGroup.id,
+          name: permissionGroup.name,
+          is_read_only: permissionGroup.is_read_only === true,
+          is_system: permissionGroup.is_system === true,
+          permissions: permissionGroup.permissions || {}
+        } : null
       } : null,
       is_admin: isAdmin,
       email_notifications_enabled: s.email_notifications_enabled !== false,

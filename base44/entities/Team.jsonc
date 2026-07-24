@@ -51,6 +51,10 @@
       },
       "description": "Admin sections this team can access when viewing the admin dashboard."
     },
+    "permission_group_id": {
+      "type": "string",
+      "description": "Linked PermissionGroup that defines this team's granular access levels (read/write/none) per admin module. Takes precedence over allowed_tool_access when set. Leave blank to use the legacy allowed_tool_access list."
+    },
     "revenue_stream_type": {
       "type": "string",
       "enum": [

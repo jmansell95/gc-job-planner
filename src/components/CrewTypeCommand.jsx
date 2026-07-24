@@ -345,10 +345,25 @@ function AccessTab({ team }) {
   const update = useTeamUpdate();
   const [landing, setLanding] = useState(team.default_landing_page || '');
   const [access, setAccess] = useState(team.allowed_tool_access || []);
-  React.useEffect(() => { setLanding(team.default_landing_page || ''); setAccess(team.allowed_tool_access || []); }, [team.id]);
-  const save = async (e) => { e.preventDefault(); await update(team.id, { default_landing_page: landing, allowed_tool_access: access }); };
+  const [groupId, setGroupId] = useState(team.permission_group_id || '');
+  const { data: groups = [] } = useQuery({ queryKey: ['permission-groups'], queryFn: () => base44.entities.PermissionGroup.list('-created_date', 100) });
+  React.useEffect(() => { setLanding(team.default_landing_page || ''); setAccess(team.allowed_tool_access || []); setGroupId(team.permission_group_id || ''); }, [team.id]);
+  const save = async (e) => { e.preventDefault(); await update(team.id, { default_landing_page: landing, allowed_tool_access: access, permission_group_id: groupId || '' }); };
+  const selectedGroup = groups.find(g => g.id === groupId);
   return (
     <form onSubmit={save} className="space-y-4">
+      <Field label="Permission Group (Access Level)" hint="Assign a granular access level — takes precedence over the legacy tool access list below. Define levels in Settings → Access Levels.">
+        <select value={groupId} onChange={e => setGroupId(e.target.value)} className={inputCls}>
+          <option value="">— No permission group (use legacy list) —</option>
+          {groups.map(g => <option key={g.id} value={g.id}>{g.name}{g.is_read_only ? ' (Read-Only Lockdown)' : ''}{g.is_system ? ' · SYSTEM' : ''}</option>)}
+        </select>
+      </Field>
+      {selectedGroup && (
+        <div className={`rounded-lg border p-3 text-xs ${selectedGroup.is_read_only ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
+          <p className="font-semibold text-slate-700">{selectedGroup.name}{selectedGroup.is_read_only ? ' — Read-Only Lockdown' : ''}</p>
+          {selectedGroup.description && <p className="text-slate-500 mt-0.5">{selectedGroup.description}</p>}
+        </div>
+      )}
       <div>
         <label className="block text-xs font-medium text-slate-600 mb-2">Default Landing Page (first page after login)</label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -360,8 +375,8 @@ function AccessTab({ team }) {
         </div>
       </div>
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-2">Admin Tool Access</label>
-        <ChipMultiSelect options={CAPABILITY_KEYS.map(c => ({ value: c.key, label: c.label }))} value={access} onChange={setAccess} columns={2} hint="Pick which admin sections this crew can access. Field crews typically only need Schedule View." />
+        <label className="block text-xs font-medium text-slate-600 mb-2">Admin Tool Access (legacy)</label>
+        <ChipMultiSelect options={CAPABILITY_KEYS.map(c => ({ value: c.key, label: c.label }))} value={access} onChange={setAccess} columns={2} hint={groupId ? "Overridden by the permission group above — kept for reference." : "Pick which admin sections this crew can access. Field crews typically only need Schedule View."} />
       </div>
       <button type="submit" className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition">
         <Save className="w-4 h-4" /> Save
