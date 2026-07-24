@@ -17,6 +17,22 @@ function fmtDur(mins) {
   return m > 0 ? `${r}m` : '0m';
 }
 
+// Compare activities by clock order (not lexicographic — "7:30" must come
+// after "08:45" but before "12:30"). Activities without a time sort last.
+function timeToMins(t) {
+  if (!t) return null;
+  const m = String(t).match(/^(\d{1,2}):(\d{2})/);
+  return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null;
+}
+function byClockOrder(a, b) {
+  const av = timeToMins(a.start_time);
+  const bv = timeToMins(b.start_time);
+  if (av == null && bv == null) return 0;
+  if (av == null) return 1;
+  if (bv == null) return -1;
+  return av - bv;
+}
+
 // SiteLogReviewManager — for drilling jobs, shows the AI-professionalised
 // driller activities parsed from KeyLogBook remarks. Admins can edit each
 // activity (description, times) before approving. Approving generates the
@@ -151,7 +167,7 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
 
           {/* Day groups */}
           {sortedDates.map(date => {
-            const dayLogs = byDate[date].sort((a, b) => (a.start_time || '99:99').localeCompare(b.start_time || '99:99'));
+            const dayLogs = byDate[date].sort(byClockOrder);
             const dayPending = dayLogs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
             const dayTotalMins = dayLogs.reduce((s, l) => s + (l.duration_minutes || 0), 0);
             const d = new Date(date + 'T00:00:00');

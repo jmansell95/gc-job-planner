@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
-import { parseRemarks, professionaliseActivities, hasTimePattern } from '../../shared/keylogbookRemarks.ts';
+import { parseRemarks, professionaliseActivities, hasTimePattern, timeToMins } from '../../shared/keylogbookRemarks.ts';
 
 // ============================================================
 // AGS v3/v4 parser with suffix-based field matching
@@ -194,12 +194,15 @@ function mapSampleType(agsType: string): string {
 // ("7:30_8:45 = Start briefing...") into AGS remark/note fields.
 // Standard AGS also carries per-record remarks (LOCA_REM, GEOL_REM,
 // SAMP_REM) and project remarks (PROJ_REM). We harvest every remark
-// field value and feed it through the same parseRemarks pipeline
-// the webhook uses, so manual uploads populate the Site Logs tab
-// identically to real-time webhooks.
+// field value that matches the time-stamped activity pattern and feed
+// it through the same parseRemarks pipeline the webhook uses, so
+// manual uploads populate the Site Logs tab identically to real-time
+// webhooks.
 //
-// Only text matching the time-stamped activity pattern is treated as
-// daily remarks — plain descriptions stay on their technical logs.
+// Each remark chunk is tagged with the date of the borehole row it
+// came from (LOCA_STAR / LOCA_ENDD), so the imported activities land
+// on the correct day rather than all on "today". Plain descriptive
+// remarks without a time pattern stay on their technical logs.
 
 const REMARK_FIELD_SUFFIXES = ['REM', 'REMARK', 'REMARKS', 'NOTE', 'NOTES', 'COMMENT', 'COMMENTS', 'DIARY', 'DAILY'];
 const REMARK_GROUP_NAMES = ['REMARK', 'REMARKS', 'NOTE', 'NOTES', 'COMMENT', 'COMMENTS', 'DIARY', 'DAILY', 'LOG', 'LOGS'];
@@ -209,25 +212,90 @@ function isRemarkField(fieldName: string, groupName: string): boolean {
   return REMARK_FIELD_SUFFIXES.includes(suffix);
 }
 
-function extractRemarkText(groups: Record<string, GroupData>): string {
-  const chunks: string[] = [];
+interface RemarkChunk { text: string; date: string; }
+
+// Collect time-stamped remark text paired with the date it belongs to.
+// LOCA rows carry their own date (LOCA_STAR/ENDD), so remarks harvested
+// from a LOCA_REM cell inherit that borehole's date. Standalone remark
+// / diary groups fall back to the supplied default date.
+function extractRemarkChunks(groups: Record<string, GroupData>, defaultDate: string, locaDates: Record<string, string>): RemarkChunk[] {
+  const chunks: RemarkChunk[] = [];
+
+  // LOCA group — per-row remark fields inherit the row's date
+  if (groups.LOCA && groups.LOCA.rows.length) {
+    for (const row of groups.LOCA.rows) {
+      const r = buildRow(groups.LOCA, row);
+      const locaId = pick(r, 'LOCA_ID', 'LOCA_REF', 'LOCA_NO', 'LOCATION_ID', 'HOLE_ID', 'BH_ID', 'ID', 'REF');
+      const rowDate = (locaId && locaDates[locaId]) || pick(r, 'LOCA_STAR', 'LOCA_START', 'STAR', 'LOCA_ENDD', 'LOCA_END', 'ENDD', 'LOCA_DATE', 'DATE') || defaultDate;
+      groups.LOCA.headings.forEach((h) => {
+        const full = h.toUpperCase();
+        const val = r[full];
+        if (val == null || val === '') return;
+        if (isRemarkField(h, 'LOCA') && hasTimePattern(val)) {
+          chunks.push({ text: val, date: rowDate });
+        }
+      });
+    }
+  }
+
+  // Other groups — remark/diary groups or any *_REM field
   for (const [name, g] of Object.entries(groups)) {
+    if (name === 'LOCA') continue;
     if (!g.headings || g.rows.length === 0) continue;
-    // If the whole group is a remarks/diary group, harvest every cell.
     const wholeGroupRemark = REMARK_GROUP_NAMES.includes(name.toUpperCase());
+    if (!wholeGroupRemark && !g.headings.some(h => REMARK_FIELD_SUFFIXES.includes(normalizeKey(h, name)))) continue;
     for (const row of g.rows) {
       const r = buildRow(g, row);
+      // Try to associate with a borehole ref for dating
+      const ref = pick(r, 'LOCA_ID', 'LOCA_REF', 'HOLE_ID', 'BH_ID', 'ID', 'REF');
+      const rowDate = (ref && locaDates[ref]) || defaultDate;
       g.headings.forEach((h) => {
         const full = h.toUpperCase();
         const val = r[full];
         if (val == null || val === '') return;
         if (wholeGroupRemark || isRemarkField(h, name)) {
-          if (hasTimePattern(val)) chunks.push(val);
+          if (hasTimePattern(val)) chunks.push({ text: val, date: rowDate });
         }
       });
     }
   }
-  return chunks.join('\n');
+  return chunks;
+}
+
+// Build a map of borehole ref → date from the LOCA group, used to date
+// every technical log (strata, samples, SPT, installations, readings)
+// and the driller remarks harvested from those boreholes.
+function buildLocaDates(groups: Record<string, GroupData>, fallback: string): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (groups.LOCA && groups.LOCA.rows.length) {
+    for (const row of groups.LOCA.rows) {
+      const r = buildRow(groups.LOCA, row);
+      const id = pick(r, 'LOCA_ID', 'LOCA_REF', 'LOCA_NO', 'LOCATION_ID', 'HOLE_ID', 'BH_ID', 'ID', 'REF');
+      if (!id) continue;
+      const date = pick(r, 'LOCA_STAR', 'LOCA_START', 'STAR', 'LOCA_ENDD', 'LOCA_END', 'ENDD', 'LOCA_DATE', 'DATE') || fallback;
+      map[id] = date;
+    }
+  }
+  return map;
+}
+
+// Stable signature for de-duplicating logs within a single import.
+// Two rows that produce the same signature are treated as the same
+// entry and only the first is kept.
+function logSignature(log: any): string {
+  return [
+    log.date || '',
+    log.log_type || '',
+    log.borehole_ref || '',
+    log.sample_id || '',
+    log.standpipe_ref || '',
+    log.depth_from ?? '',
+    log.depth_to ?? '',
+    log.core_run_number || '',
+    log.start_time || '',
+    log.end_time || '',
+    (log.description || '').trim().toLowerCase(),
+  ].join('|');
 }
 
 Deno.serve(async (req) => {
@@ -300,8 +368,20 @@ Deno.serve(async (req) => {
     } catch (e) { /* continue with insert */ }
 
     const today = new Date().toISOString().slice(0, 10);
+    const locaDates = buildLocaDates(groups, today);
+
     const logs: any[] = [];
-    const counts = { locations: 0, strata: 0, core: 0, samples: 0, spt: 0, installations: 0, waterReadings: 0, remarks: 0 };
+    const seen = new Set<string>();
+    const counts = { locations: 0, strata: 0, core: 0, samples: 0, spt: 0, installations: 0, waterReadings: 0, remarks: 0, duplicates: 0 };
+
+    // Push a log only if it is not a duplicate of one already staged.
+    const addLog = (log: any) => {
+      const sig = logSignature(log);
+      if (seen.has(sig)) { counts.duplicates++; return false; }
+      seen.add(sig);
+      logs.push(log);
+      return true;
+    };
 
     let lastLocaRef = '';
     const resolveLocaRef = (r: Record<string, string>) => {
@@ -309,6 +389,7 @@ Deno.serve(async (req) => {
       if (id) { lastLocaRef = id; return id; }
       return lastLocaRef || '';
     };
+    const resolveDate = (ref: string) => (ref && locaDates[ref]) || today;
 
     // ---- LOCA — borehole locations ----
     if (groups.LOCA && groups.LOCA.rows.length) {
@@ -318,7 +399,7 @@ Deno.serve(async (req) => {
         if (!locaId) continue;
         lastLocaRef = locaId;
         const locaType = pick(r, 'LOCA_TYPE', 'LOCA_LETT', 'TYPE', 'LETT');
-        const locaDate = pick(r, 'LOCA_STAR', 'LOCA_START', 'STAR', 'LOCA_ENDD', 'LOCA_END', 'ENDD', 'LOCA_DATE', 'DATE');
+        const locaDate = pick(r, 'LOCA_STAR', 'LOCA_START', 'STAR', 'LOCA_ENDD', 'LOCA_END', 'ENDD', 'LOCA_DATE', 'DATE') || today;
         const locaElev = num(pick(r, 'LOCA_GL', 'LOCA_ELEV', 'LOCA_LEVEL', 'LOCA_DATUM', 'GL', 'ELEV', 'LEVEL'));
         const locaX = pick(r, 'LOCA_NATE', 'LOCA_X', 'LOCA_EAST', 'NATE', 'EASTING', 'EAST', 'X');
         const locaY = pick(r, 'LOCA_NATN', 'LOCA_Y', 'LOCA_NORTH', 'NATN', 'NORTHING', 'NORTH', 'Y');
@@ -327,8 +408,8 @@ Deno.serve(async (req) => {
           locaElev != null ? `, ground level ${locaElev}m` : '',
           locaX && locaY ? `, coordinates ${locaX}, ${locaY}` : '',
         ];
-        logs.push({
-          job_id: job.id, staff_id: staffId, date: locaDate || today,
+        if (addLog({
+          job_id: job.id, staff_id: staffId, date: locaDate,
           log_type: 'borehole_progress', borehole_ref: locaId,
           depth_to: num(pick(r, 'LOCA_FDEP', 'LOCA_FDEPTH', 'LOCA_DEPTH', 'LOCA_FINAL_DEPTH', 'LOCA_TD', 'FDEP', 'FDEPTH', 'DEPTH', 'TD')) || null,
           groundwater_strike_depth: num(pick(r, 'LOCA_GND', 'LOCA_GW_DEPTH', 'LOCA_GWL', 'LOCA_WATER', 'GND', 'GW_DEPTH', 'GWL', 'WATER')) || null,
@@ -336,8 +417,7 @@ Deno.serve(async (req) => {
           source: 'ags_import', completed_by_type: 'internal_staff',
           completed_by_name: 'AGS Import (KeyLogBook)',
           manager_review_status: 'approved', chargeable: false,
-        });
-        counts.locations++;
+        })) counts.locations++;
       }
     }
 
@@ -356,14 +436,15 @@ Deno.serve(async (req) => {
           const ref = resolveLocaRef(r);
           const dFrom = num(pick(r, 'GEOL_TOP', 'CHIS_TOP', 'TOP', 'DEPTH_FROM', 'DEPTH_TOP', 'TOP_DEPTH', 'FROM'));
           const dTo = num(pick(r, 'GEOL_BASE', 'GEOL_BOT', 'CHIS_BASE', 'CHIS_BOT', 'BASE', 'BOT', 'DEPTH_TO', 'DEPTH_BASE', 'BOT_DEPTH', 'TO'));
+          const logDate = resolveDate(ref);
 
           if (hasCoreFields) {
             const rqd = num(pick(r, 'GEOL_RQD', 'RQD', 'CORE_RQD', 'ROCK_QUALITY'));
             const recovery = num(pick(r, 'GEOL_REC', 'GEOL_RECOVERY', 'GEOL_PER_REC', 'CORE_REC', 'REC', 'RECOVERY', 'PER_REC'));
             const runNo = pick(r, 'GEOL_RUN', 'GEOL_RUN_NO', 'CORE_RUN', 'RUN_NO', 'RUN');
             const boxNo = pick(r, 'GEOL_BOX', 'GEOL_BOX_NO', 'CORE_BOX', 'BOX_NO', 'BOX');
-            logs.push({
-              job_id: job.id, staff_id: staffId, date: today,
+            if (addLog({
+              job_id: job.id, staff_id: staffId, date: logDate,
               log_type: 'core_inspection', borehole_ref: ref,
               core_run_number: runNo || null, core_box_number: boxNo || null,
               depth_from: dFrom || null, depth_to: dTo || null,
@@ -372,11 +453,10 @@ Deno.serve(async (req) => {
               source: 'ags_import', completed_by_type: 'internal_staff',
               completed_by_name: 'AGS Import (KeyLogBook)',
               manager_review_status: 'approved', chargeable: false,
-            });
-            counts.core++;
+            })) counts.core++;
           } else {
-            logs.push({
-              job_id: job.id, staff_id: staffId, date: today,
+            if (addLog({
+              job_id: job.id, staff_id: staffId, date: logDate,
               log_type: 'borehole_progress', borehole_ref: ref,
               depth_from: dFrom || null, depth_to: dTo || null,
               strata_descriptor: mapStrataDescriptor(desc), strata_description_detail: desc,
@@ -384,8 +464,7 @@ Deno.serve(async (req) => {
               source: 'ags_import', completed_by_type: 'internal_staff',
               completed_by_name: 'AGS Import (KeyLogBook)',
               manager_review_status: 'approved', chargeable: false,
-            });
-            counts.strata++;
+            })) counts.strata++;
           }
         }
       }
@@ -404,8 +483,8 @@ Deno.serve(async (req) => {
         const ref = resolveLocaRef(r);
         const dFrom = num(pick(r, 'CORE_TOP', 'CORE_FROM', 'CORE_DEPTH_FROM', 'CORE_TOP_DEPTH', 'TOP', 'FROM', 'DEPTH_FROM'));
         const dTo = num(pick(r, 'CORE_BASE', 'CORE_BOT', 'CORE_BOTTOM', 'CORE_TO', 'CORE_DEPTH_TO', 'CORE_BOT_DEPTH', 'BASE', 'BOT', 'TO', 'DEPTH_TO'));
-        logs.push({
-          job_id: job.id, staff_id: staffId, date: today,
+        if (addLog({
+          job_id: job.id, staff_id: staffId, date: resolveDate(ref),
           log_type: 'core_inspection', borehole_ref: ref,
           core_run_number: runNo || coreId || null, core_box_number: boxNo || null,
           depth_from: dFrom || null, depth_to: dTo || null,
@@ -414,8 +493,7 @@ Deno.serve(async (req) => {
           source: 'ags_import', completed_by_type: 'internal_staff',
           completed_by_name: 'AGS Import (KeyLogBook)',
           manager_review_status: 'approved', chargeable: false,
-        });
-        counts.core++;
+        })) counts.core++;
       }
     }
 
@@ -427,8 +505,8 @@ Deno.serve(async (req) => {
         const sampType = pick(r, 'SAMP_TYPE', 'SAMPLE_TYPE', 'TYPE');
         const ref = resolveLocaRef(r);
         const dFrom = num(pick(r, 'SAMP_TOP', 'SAMP_DEP', 'SAMP_DEPTH', 'TOP', 'DEPTH', 'DEPTH_FROM', 'DEP', 'FROM'));
-        logs.push({
-          job_id: job.id, staff_id: staffId, date: today,
+        if (addLog({
+          job_id: job.id, staff_id: staffId, date: resolveDate(ref),
           log_type: 'sample_collection', borehole_ref: ref,
           sample_id: sampId, depth_from: dFrom || null,
           sample_type: mapSampleType(sampType),
@@ -436,8 +514,7 @@ Deno.serve(async (req) => {
           source: 'ags_import', completed_by_type: 'internal_staff',
           completed_by_name: 'AGS Import (KeyLogBook)',
           manager_review_status: 'approved', chargeable: false,
-        });
-        counts.samples++;
+        })) counts.samples++;
       }
     }
 
@@ -458,8 +535,8 @@ Deno.serve(async (req) => {
           const ref = resolveLocaRef(r);
           const dFrom = num(pick(r, 'SPT_TOP', 'SPT_DEPTH', 'DENS_TOP', 'TOP', 'DEPTH_FROM', 'DEP', 'FROM'));
           const dTo = num(pick(r, 'SPT_BASE', 'SPT_BOT', 'DENS_BASE', 'DENS_BOT', 'BASE', 'BOT', 'DEPTH_TO', 'TO'));
-          logs.push({
-            job_id: job.id, staff_id: staffId, date: today,
+          if (addLog({
+            job_id: job.id, staff_id: staffId, date: resolveDate(ref),
             log_type: 'borehole_progress', borehole_ref: ref,
             depth_from: dFrom || null, depth_to: dTo || null,
             spt_blows: blows, spt_n_value: nval,
@@ -467,8 +544,7 @@ Deno.serve(async (req) => {
             source: 'ags_import', completed_by_type: 'internal_staff',
             completed_by_name: 'AGS Import (KeyLogBook)',
             manager_review_status: 'approved', chargeable: false,
-          });
-          counts.spt++;
+          })) counts.spt++;
         }
       }
     }
@@ -486,8 +562,8 @@ Deno.serve(async (req) => {
         const parts = [tremType, tremMat, tremDiam ? `${tremDiam}mm` : ''].filter(Boolean);
         const summary = parts.length > 0 ? parts.join(' · ') : 'Installation pipe';
         const detail = tremDesc ? `${summary} — ${tremDesc}` : summary;
-        logs.push({
-          job_id: job.id, staff_id: staffId, date: today,
+        if (addLog({
+          job_id: job.id, staff_id: staffId, date: resolveDate(ref),
           log_type: 'installation', borehole_ref: ref, standpipe_ref: tremId || null,
           depth_from: num(pick(r, 'TREM_TOP', 'TOP', 'DEPTH_FROM', 'FROM')) || null,
           depth_to: num(pick(r, 'TREM_BASE', 'TREM_BOT', 'BASE', 'BOT', 'DEPTH_TO', 'TO')) || null,
@@ -495,8 +571,7 @@ Deno.serve(async (req) => {
           source: 'ags_import', completed_by_type: 'internal_staff',
           completed_by_name: 'AGS Import (KeyLogBook)',
           manager_review_status: 'approved', chargeable: false,
-        });
-        counts.installations++;
+        })) counts.installations++;
       }
     }
 
@@ -514,49 +589,52 @@ Deno.serve(async (req) => {
         const dTo = num(pick(r, 'WSTG_BASE', 'WSTG_BOT', 'BASE', 'BOT', 'DEPTH_TO', 'TO'));
         const waterLevel = num(pick(r, 'WSTG_DP', 'WSTG_READ', 'WSTG_DEPTH', 'WSTG_LEVEL', 'WSTG_WLEVEL', 'WATER_DEPTH', 'DP', 'READ', 'LEVEL', 'WLEVEL', 'DEPTH'));
         const readDate = pick(r, 'WSTG_DATE', 'WSTG_READ_DATE', 'WSTG_DP_DATE', 'DATE', 'READ_DATE');
+        const logDate = resolveDate(ref);
 
         if (wstgType || wstgMat || wstgDiam || dFrom != null || dTo != null) {
           const parts = [wstgType, wstgMat, wstgDiam ? `${wstgDiam}mm` : ''].filter(Boolean);
           const summary = parts.length > 0 ? parts.join(' · ') : 'Standpipe installation';
           const detail = wstgDesc ? `${summary} — ${wstgDesc}` : summary;
-          logs.push({
-            job_id: job.id, staff_id: staffId, date: today,
+          if (addLog({
+            job_id: job.id, staff_id: staffId, date: logDate,
             log_type: 'installation', borehole_ref: ref, standpipe_ref: wstgId || null,
             depth_from: dFrom, depth_to: dTo,
             description: `Imported from KeyLogBook AGS — standpipe${wstgId ? ` ${wstgId}` : ''}: ${detail}.`,
             source: 'ags_import', completed_by_type: 'internal_staff',
             completed_by_name: 'AGS Import (KeyLogBook)',
             manager_review_status: 'approved', chargeable: false,
-          });
-          counts.installations++;
+          })) counts.installations++;
         }
 
         if (waterLevel != null) {
-          logs.push({
-            job_id: job.id, staff_id: staffId, date: readDate || today,
+          if (addLog({
+            job_id: job.id, staff_id: staffId, date: readDate || logDate,
             log_type: 'standpipe_reading', borehole_ref: ref, standpipe_ref: wstgId || null,
             standpipe_reading_m: waterLevel,
             description: `Imported from KeyLogBook AGS — groundwater monitoring reading: ${waterLevel}mBGL${wstgId ? ` on standpipe ${wstgId}` : ''}.`,
             source: 'ags_import', completed_by_type: 'internal_staff',
             completed_by_name: 'AGS Import (KeyLogBook)',
             manager_review_status: 'approved', chargeable: false,
-          });
-          counts.waterReadings++;
+          })) counts.waterReadings++;
         }
       }
     }
 
     // ---- Driller remarks (daily diary) — same pipeline as the webhook ----
     // Harvest time-stamped remark text from *_REM / *_NOTE fields and
-    // REMARK/DIARY groups, parse into activities, AI-professionalise, and
-    // save as source='keylogbook_remarks' (pending review) so the manager
-    // can approve them into a timesheet from the Site Logs tab.
-    let remarksActivities = 0;
-    const remarkText = extractRemarkText(groups);
-    if (remarkText) {
-      const activities = parseRemarks(remarkText);
-      if (activities.length > 0) {
-        const cleaned = await professionaliseActivities(base44, activities);
+    // REMARK/DIARY groups, tagged with the borehole's date. Parse into
+    // activities, AI-professionalise in a single call, and save as
+    // source='keylogbook_remarks' (pending review) so the manager can
+    // approve them into a timesheet from the Site Logs tab.
+    const remarkChunks = extractRemarkChunks(groups, today, locaDates);
+    if (remarkChunks.length > 0) {
+      const allActivities: { activity: any; date: string }[] = [];
+      for (const chunk of remarkChunks) {
+        const acts = parseRemarks(chunk.text);
+        for (const a of acts) allActivities.push({ activity: a, date: chunk.date });
+      }
+      if (allActivities.length > 0) {
+        const cleaned = await professionaliseActivities(base44, allActivities.map(x => x.activity));
         // Overwrite previous remarks logs for this job (manual re-import)
         try {
           const prevRemarks = await base44.asServiceRole.entities.InvestigationLog.filter({ job_id: job.id, source: 'keylogbook_remarks' });
@@ -566,26 +644,24 @@ Deno.serve(async (req) => {
           }
         } catch (e) { /* continue */ }
 
-        activities.forEach((activity, i) => {
-          logs.push({
+        allActivities.forEach((x, i) => {
+          if (addLog({
             job_id: job.id,
             staff_id: staffId,
             staff_name: 'AGS Import (KeyLogBook)',
-            date: today,
+            date: x.date,
             log_type: 'other',
             source: 'keylogbook_remarks',
-            start_time: activity.start_time,
-            end_time: activity.end_time,
-            duration_minutes: activity.duration_minutes,
-            description: cleaned[i] || activity.raw_description,
+            start_time: x.activity.start_time,
+            end_time: x.activity.end_time,
+            duration_minutes: x.activity.duration_minutes,
+            description: cleaned[i] || x.activity.raw_description,
             completed_by_type: 'internal_staff',
             completed_by_name: 'AGS Import (KeyLogBook)',
             manager_review_status: 'pending',
             chargeable: false,
             billing_status: 'no_charge',
-          });
-          counts.remarks++;
-          remarksActivities++;
+          })) counts.remarks++;
         });
       }
     }
@@ -596,6 +672,20 @@ Deno.serve(async (req) => {
         error: `No LOCA, GEOL, CORE, SAMP, SPT/ISPT, TREM or WSTG records were found in this AGS file. Groups found: ${found || '(none)'}.`
       }, { status: 422 });
     }
+
+    // Organise: sort by date, then start time, then borehole ref so the
+    // imported logs read chronologically day-by-day, activity-by-activity.
+    logs.sort((a, b) => {
+      if (a.date !== b.date) return (a.date || '').localeCompare(b.date || '');
+      const at = timeToMins(a.start_time);
+      const bt = timeToMins(b.start_time);
+      // Activities with a real time sort by clock order; entries without a
+      // time (borehole/strata/sample logs) sort after the timed activities.
+      const av = at != null ? at : 9999;
+      const bv = bt != null ? bt : 9999;
+      if (av !== bv) return av - bv;
+      return (a.borehole_ref || '').localeCompare(b.borehole_ref || '');
+    });
 
     let inserted = 0;
     for (let i = 0; i < logs.length; i += 500) {
@@ -612,7 +702,7 @@ Deno.serve(async (req) => {
     return Response.json({
       status: 'success', job_id: job.id, job_name: job.name,
       job_reference: job.job_reference, deleted: deletedCount, inserted,
-      counts, groups: groupDebug,
+      duplicates: counts.duplicates, counts, groups: groupDebug,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
