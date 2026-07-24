@@ -36,6 +36,10 @@ export default function ActiveJobCard({
 
   if (!job) return null;
 
+  const isCompleted = assignment.status === 'completed';
+  const isStarted = assignment.status === 'started';
+  const isAssigned = (assignment.status || 'assigned') === 'assigned';
+
   // "Leave Site" grace window — after staff record that they've left site the
   // job stays open (still 'started') for up to 5 hours so they can enter their
   // travel-home time and review/submit their timesheet when they get home.
@@ -49,10 +53,6 @@ export default function ActiveJobCard({
     const h = Math.floor(totalMin / 60), m = totalMin % 60;
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
   };
-
-  const isCompleted = assignment.status === 'completed';
-  const isStarted = assignment.status === 'started';
-  const isAssigned = (assignment.status || 'assigned') === 'assigned';
 
   // Determine the single primary action button
   let primaryButton = null;
