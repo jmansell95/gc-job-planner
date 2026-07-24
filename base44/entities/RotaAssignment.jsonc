@@ -46,6 +46,10 @@
       "type": "string",
       "description": "Timestamp when staff confirmed arrival on site (travel-to-site logged). The first step of the daily workflow \u2014 set before the briefing/induction can begin."
     },
+    "left_site_at": {
+      "type": "string",
+      "description": "Timestamp when staff recorded that they've left site at the end of work. The job stays open (status 'started') for up to 5 hours so they can enter their travel-home time and review/submit their timesheet when they get home."
+    },
     "early_leave_reason": {
       "type": "string",
       "description": "Reason recorded when a staff member leaves site before the end of the shift. One of the predefined quick-select reasons or a custom reason entered by the staff member."

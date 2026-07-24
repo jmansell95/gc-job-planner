@@ -201,6 +201,20 @@ export default function StaffDashboard() {
     setEarlyLeaveAssignment(assignment);
   };
 
+  // Records that the staff member has left site without completing the shift.
+  // The job stays open ('started') for up to 5 hours so they can enter their
+  // travel-home time and review/submit their timesheet when they get home.
+  const handleLeaveSite = async (assignmentId) => {
+    try {
+      await base44.entities.RotaAssignment.update(assignmentId, { left_site_at: new Date().toISOString() });
+      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
+      toast({ title: 'Left site recorded', description: 'Enter your travel home & submit your timesheet within 5 hours.' });
+    } catch (error) {
+      console.error('Error recording leave site:', error);
+      toast({ title: 'Error', description: 'Could not record leave site. Please try again.', variant: 'destructive' });
+    }
+  };
+
   // Confirms an early departure: records the reason on the assignment then
   // runs the normal completion flow (travel-home capture + timesheet submit).
   const handleEarlyLeaveConfirm = async ({ reason, note }) => {
@@ -468,8 +482,9 @@ export default function StaffDashboard() {
     vehicle: vehicles.find(v => v.id === assignment.vehicle_id),
     client: clients.find(c => c.id === jobs.find(j => j.id === assignment.job_id)?.client_id),
     staff,
-    onOpenShiftWizard: (id) => handleOpenShiftWizard(id),
+    onOpenShiftWizard: (id, opts) => handleOpenShiftWizard(id, opts),
     onEarlyLeave: handleEarlyLeave,
+    onLeaveSite: handleLeaveSite,
     canPerformActions,
     tasksSubmitted: mgrTimesheets.some(t => t.job_id === assignment.job_id && t.date === todayStr && (t.status === 'submitted' || t.status === 'approved')),
     arrivedOnSite: !!assignment.arrived_on_site_at,

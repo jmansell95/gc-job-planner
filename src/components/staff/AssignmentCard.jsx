@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle, PauseCircle, AlertTriangle, Phone, Hotel, Navigation } from 'lucide-react';
+import { MapPin, Calendar, Briefcase, Truck, FileText, ExternalLink, Clock, CheckCircle2, PlayCircle, ClipboardCheck, Ruler, ChevronDown, Camera, ShieldCheck, MessageSquare, XCircle, PauseCircle, AlertTriangle, Phone, Hotel, Navigation, DoorOpen, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import EquipmentComplianceSection from '@/components/staff/EquipmentComplianceSection';
@@ -36,7 +36,7 @@ const statusConfig = {
   completed: { label: 'Completed', icon: CheckCircle2, badge: 'bg-[#2E5A1A]/10 text-[#2E5A1A] ring-1 ring-[#2E5A1A]/20' }
 };
 
-export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onOpenShiftWizard, onEarlyLeave, tasksSubmitted = false, needsBriefing = false, arrivedOnSite = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true, hotelBooking = null, onAdHocVisit, jobAssets = [], assetMap = {}, complianceItems = [] }) {
+export default function AssignmentCard({ assignment, job, vehicle, client, staff, defaultExpanded = false, onOpenShiftWizard, onEarlyLeave, onLeaveSite, tasksSubmitted = false, needsBriefing = false, arrivedOnSite = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false, previousProgress = [], onConfirmShift, onDeclineShift, canPerformActions = true, hotelBooking = null, onAdHocVisit, jobAssets = [], assetMap = {}, complianceItems = [] }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
   const StatusIcon = status.icon;
@@ -44,6 +44,8 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
   const accent = jobTypeAccent[job?.job_type] || jobTypeAccent.depot;
   const scheduledStart = new Date(assignment.assigned_date + 'T' + (assignment.start_time || '00:00:00'));
   const canStart = new Date() >= scheduledStart;
+  const leftSiteAt = assignment.left_site_at ? new Date(assignment.left_site_at) : null;
+  const hasLeftSite = assignment.status === 'started' && !!leftSiteAt;
   if (!job) return null;
 
   return (
@@ -133,21 +135,42 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
               </div>
             )}
             {assignment.status === 'started' && canPerformActions && (
-              <div className="flex flex-wrap gap-2.5 w-full">
-                <button onClick={() => onOpenShiftWizard(assignment.id)}
-                  className="flex items-center justify-center gap-2 px-5 py-4 bg-[#2E5A1A] text-white rounded-2xl hover:bg-[#1c4a12] active:scale-95 transition text-base font-bold touch-manipulation flex-1 min-w-[160px]">
-                  <PlayCircle className="w-6 h-6" /> Continue Shift
-                </button>
-                <button onClick={() => onEarlyLeave(assignment.id)}
-                  className="flex items-center gap-2 px-4 py-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 active:scale-95 transition text-sm font-semibold">
-                  <PauseCircle className="w-5 h-5" /> Early Leave
-                </button>
-                {onAdHocVisit && (
-                  <button onClick={onAdHocVisit}
-                    className="flex items-center gap-2 px-4 py-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 active:scale-95 transition text-sm font-semibold">
-                    <Navigation className="w-5 h-5" /> Ad-hoc Visit
-                  </button>
+              <div className="flex flex-col gap-2 w-full">
+                {hasLeftSite && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium bg-amber-50 text-amber-800 ring-1 ring-amber-200">
+                    <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                    Left site at {format(leftSiteAt, 'HH:mm')} — submit your travel home & timesheet.
+                  </div>
                 )}
+                <div className="flex flex-wrap gap-2.5 w-full">
+                  {hasLeftSite ? (
+                    <button onClick={() => onOpenShiftWizard(assignment.id, { forceStep: 'end_of_shift' })}
+                      className="flex items-center justify-center gap-2 px-5 py-4 bg-[#2E5A1A] text-white rounded-2xl hover:bg-[#1c4a12] active:scale-95 transition text-base font-bold touch-manipulation flex-1 min-w-[160px]">
+                      <Send className="w-6 h-6" /> Finish & Submit Timesheet
+                    </button>
+                  ) : (
+                    <>
+                      <button onClick={() => onOpenShiftWizard(assignment.id)}
+                        className="flex items-center justify-center gap-2 px-5 py-4 bg-[#2E5A1A] text-white rounded-2xl hover:bg-[#1c4a12] active:scale-95 transition text-base font-bold touch-manipulation flex-1 min-w-[160px]">
+                        <PlayCircle className="w-6 h-6" /> Continue Shift
+                      </button>
+                      <button onClick={() => onLeaveSite?.(assignment.id)}
+                        className="flex items-center gap-2 px-4 py-4 bg-[#2E5A1A]/10 text-[#2E5A1A] rounded-2xl hover:bg-[#2E5A1A]/15 active:scale-95 transition text-sm font-semibold">
+                        <DoorOpen className="w-5 h-5" /> Leave Site
+                      </button>
+                      <button onClick={() => onEarlyLeave(assignment.id)}
+                        className="flex items-center gap-2 px-4 py-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 active:scale-95 transition text-sm font-semibold">
+                        <PauseCircle className="w-5 h-5" /> Early Leave
+                      </button>
+                      {onAdHocVisit && (
+                        <button onClick={onAdHocVisit}
+                          className="flex items-center gap-2 px-4 py-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 active:scale-95 transition text-sm font-semibold">
+                          <Navigation className="w-5 h-5" /> Ad-hoc Visit
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>

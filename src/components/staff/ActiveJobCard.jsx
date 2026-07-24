@@ -3,11 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin, Calendar, Clock, Truck, PlayCircle, PauseCircle, Navigation,
   ChevronDown, ShieldCheck, Briefcase, Phone, Hotel, FileText, ExternalLink,
-  Ruler, CheckCircle2, AlertTriangle, MessageSquare, Camera,
+  Ruler, CheckCircle2, AlertTriangle, MessageSquare, Camera, DoorOpen, Send,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatJobType } from '@/utils/format';
-import { isCheckInDeadlinePassed, isBeforeSiteOpen } from '@/utils/siteHours';
+import { isBeforeSiteOpen } from '@/utils/siteHours';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import EquipmentComplianceSection from '@/components/staff/EquipmentComplianceSection';
 import JobDocumentViewer from '@/components/staff/JobDocumentViewer';
@@ -22,7 +22,7 @@ const statusConfig = {
 // Details are collapsible so the button is always visible without scrolling.
 export default function ActiveJobCard({
   assignment, job, vehicle, client, staff,
-  onOpenShiftWizard, onEarlyLeave,
+  onOpenShiftWizard, onEarlyLeave, onLeaveSite,
   canPerformActions = true, tasksSubmitted = false, needsBriefing = false,
   arrivedOnSite = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false,
   previousProgress = [], hotelBooking = null, onAdHocVisit,
@@ -33,15 +33,22 @@ export default function ActiveJobCard({
   const StatusIcon = status.icon;
   const scheduledStart = new Date(assignment.assigned_date + 'T' + (assignment.start_time || '00:00:00'));
   const canStart = new Date() >= scheduledStart;
-  const isToday = assignment.assigned_date === format(new Date(), 'yyyy-MM-dd');
-  const deadlinePassed =
-    isToday &&
-    isCheckInDeadlinePassed() &&
-    !assignment.briefing_start_at &&
-    !assignment.briefing_signed &&
-    (assignment.status || 'assigned') === 'assigned';
 
   if (!job) return null;
+
+  // "Leave Site" grace window — after staff record that they've left site the
+  // job stays open (still 'started') for up to 5 hours so they can enter their
+  // travel-home time and review/submit their timesheet when they get home.
+  const LEFT_SITE_WINDOW_MS = 5 * 60 * 60 * 1000;
+  const leftSiteAt = assignment.left_site_at ? new Date(assignment.left_site_at) : null;
+  const hasLeftSite = isStarted && !!leftSiteAt;
+  const windowMsLeft = hasLeftSite ? (leftSiteAt.getTime() + LEFT_SITE_WINDOW_MS) - Date.now() : 0;
+  const windowExpired = hasLeftSite && windowMsLeft <= 0;
+  const fmtRemaining = (ms) => {
+    const totalMin = Math.max(0, Math.floor(ms / 60000));
+    const h = Math.floor(totalMin / 60), m = totalMin % 60;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  };
 
   const isCompleted = assignment.status === 'completed';
   const isStarted = assignment.status === 'started';
@@ -49,11 +56,18 @@ export default function ActiveJobCard({
 
   // Determine the single primary action button
   let primaryButton = null;
-  if (isAssigned && canPerformActions && canStart && !deadlinePassed) {
+  if (isAssigned && canPerformActions && canStart) {
     primaryButton = (
       <button onClick={() => onOpenShiftWizard(assignment.id)} type="button"
         className="w-full flex items-center justify-center gap-2.5 px-5 py-5 command-gradient text-white rounded-2xl text-lg font-bold shadow-lg shadow-[#2E5A1A]/30 active:scale-95 transition touch-manipulation">
         <PlayCircle className="w-7 h-7" /> Start Shift
+      </button>
+    );
+  } else if (isStarted && canPerformActions && hasLeftSite) {
+    primaryButton = (
+      <button onClick={() => onOpenShiftWizard(assignment.id, { forceStep: 'end_of_shift' })} type="button"
+        className="w-full flex items-center justify-center gap-2.5 px-5 py-5 command-gradient text-white rounded-2xl text-lg font-bold shadow-lg shadow-[#2E5A1A]/30 active:scale-95 transition touch-manipulation">
+        <Send className="w-7 h-7" /> Finish & Submit Timesheet
       </button>
     );
   } else if (isStarted && canPerformActions) {
@@ -73,12 +87,6 @@ export default function ActiveJobCard({
     primaryButton = (
       <div className="w-full flex items-center justify-center gap-2.5 px-5 py-4 bg-slate-100 text-slate-500 rounded-2xl text-base font-semibold">
         <Clock className="w-6 h-6" /> Starts {format(scheduledStart, 'dd MMM')}{assignment.start_time ? ` · ${assignment.start_time}` : ''}
-      </div>
-    );
-  } else if (isAssigned && deadlinePassed) {
-    primaryButton = (
-      <div className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-red-50 text-red-700 rounded-2xl text-sm font-semibold ring-1 ring-red-200">
-        <AlertTriangle className="w-5 h-5" /> Check-in deadline passed — call supervisor
       </div>
     );
   } else if (isAssigned && !canPerformActions) {
@@ -140,8 +148,12 @@ export default function ActiveJobCard({
         <div className="mt-4">{primaryButton}</div>
 
         {/* Secondary actions for started jobs */}
-        {isStarted && canPerformActions && (
+        {isStarted && canPerformActions && !hasLeftSite && (
           <div className="flex gap-2.5 mt-3">
+            <button onClick={() => onLeaveSite?.(assignment.id)} type="button"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-[#2E5A1A]/10 text-[#2E5A1A] rounded-2xl hover:bg-[#2E5A1A]/15 active:scale-95 transition text-sm font-semibold touch-manipulation">
+              <DoorOpen className="w-5 h-5" /> Leave Site
+            </button>
             <button onClick={() => onEarlyLeave(assignment.id)} type="button"
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 active:scale-95 transition text-sm font-semibold touch-manipulation">
               <PauseCircle className="w-5 h-5" /> Early Leave
@@ -152,6 +164,14 @@ export default function ActiveJobCard({
                 <Navigation className="w-5 h-5" /> Ad-hoc Visit
               </button>
             )}
+          </div>
+        )}
+        {isStarted && canPerformActions && hasLeftSite && (
+          <div className={`mt-3 flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium ${windowExpired ? 'bg-red-50 text-red-700 ring-1 ring-red-200' : 'bg-amber-50 text-amber-800 ring-1 ring-amber-200'}`}>
+            <Clock className="w-4 h-4 flex-shrink-0" />
+            {windowExpired
+              ? <>5-hour window has passed — please submit your timesheet now.</>
+              : <>Left site at {format(leftSiteAt, 'HH:mm')} · {fmtRemaining(windowMsLeft)} left to submit your timesheet.</>}
           </div>
         )}
 
