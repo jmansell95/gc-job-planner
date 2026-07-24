@@ -1,4 +1,4 @@
-import { Truck, Grid3x3, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Shield, Boxes, Sparkles, TrendingUp, HardHat, Waves } from 'lucide-react';
+import { Truck, Grid3x3, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Shield, Boxes, Sparkles, TrendingUp, HardHat, Waves, Activity } from 'lucide-react';
 
 export const WIDGET_REGISTRY = {
   'delivery-stats': { title: 'Delivery & Collection', icon: Truck },
@@ -12,6 +12,7 @@ export const WIDGET_REGISTRY = {
   'job-assets': { title: 'Job Equipment', icon: Boxes },
   'ai-insights': { title: 'AI Weekly Insights', icon: Sparkles },
   'job-profitability': { title: 'Job Profitability', icon: PoundSterling },
+  'efficiency-snapshot': { title: 'Efficiency Snapshot', icon: TrendingUp },
   'asset-crew-profitability': { title: 'On Jobs Now', icon: TrendingUp },
   'rig-profitability': { title: 'Rig Profitability', icon: HardHat },
   'site-hazards': { title: 'Site Hazard Map', icon: Waves },
@@ -29,6 +30,7 @@ export const DEFAULT_WIDGET_ORDER = [
   'job-assets',
   'ai-insights',
   'job-profitability',
+  'efficiency-snapshot',
   'asset-crew-profitability',
   'rig-profitability',
   'site-hazards',
@@ -40,7 +42,7 @@ export const DEFAULT_WIDGET_ORDER = [
 // permission, so empty sections automatically collapse out of view.
 export const DASHBOARD_SECTIONS = [
   { id: 'overview', label: 'Overview', icon: Grid3x3, widgets: ['kpi-stats', 'field-crews', 'job-assets', 'delivery-stats', 'supervisor-overview', 'site-hazards'] },
-  { id: 'performance', label: 'Performance & Insights', icon: TrendingUp, widgets: ['charts', 'cost-analytics', 'job-profitability', 'asset-crew-profitability', 'rig-profitability', 'ai-insights'] },
+  { id: 'performance', label: 'Performance & Insights', icon: TrendingUp, widgets: ['charts', 'cost-analytics', 'job-profitability', 'efficiency-snapshot', 'asset-crew-profitability', 'rig-profitability', 'ai-insights'] },
   { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'maintenance-quick-view'] },
 ];
 
@@ -61,15 +63,25 @@ export const DEFAULT_WIDGET_SIZES = {
   'job-assets': 'md',
   'ai-insights': 'lg',
   'job-profitability': 'lg',
+  'efficiency-snapshot': 'lg',
   'asset-crew-profitability': 'lg',
   'rig-profitability': 'lg',
   'site-hazards': 'lg',
 };
 
 // Widgets that require costing permission (admin / manager only).
-export const COST_WIDGETS = ['cost-analytics', 'job-profitability', 'asset-crew-profitability', 'rig-profitability'];
+export const COST_WIDGETS = ['cost-analytics', 'job-profitability', 'efficiency-snapshot', 'asset-crew-profitability', 'rig-profitability'];
 
 // Widgets that show company-wide data (not specific to a job). These are hidden
 // when the dashboard is focused on a single job, since they don't reflect that
 // job's data. The remaining widgets already scope themselves via JobFilterContext.
 export const GLOBAL_ONLY_WIDGETS = ['compliance-overview', 'supervisor-overview', 'maintenance-quick-view', 'ai-insights'];
+
+// View profiles — quick-toggle scopes that surface only the widgets relevant to
+// one focus area, cutting scroll depth. Applied as an allow-list on top of the
+// user's saved widget order (saved customisation still respected within a profile).
+export const VIEW_PROFILES = [
+  { id: 'operations', label: 'Operations', icon: Activity, widgets: ['kpi-stats', 'field-crews', 'job-assets', 'delivery-stats', 'supervisor-overview', 'site-hazards'] },
+  { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['kpi-stats', 'efficiency-snapshot', 'job-profitability', 'cost-analytics', 'charts'] },
+  { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['compliance-overview', 'maintenance-quick-view', 'site-hazards'] },
+];

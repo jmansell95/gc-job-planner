@@ -9,13 +9,14 @@ import MaintenanceQuickView from '@/components/MaintenanceQuickView';
 import JobCostAnalytics from '@/components/JobCostAnalytics';
 import DeliveryStats from '@/components/DeliveryStats';
 import WidgetCard from '@/components/dashboard/WidgetCard';
-import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES, DASHBOARD_SECTIONS, WIDGET_TO_SECTION, COST_WIDGETS, GLOBAL_ONLY_WIDGETS } from '@/components/dashboard/registry';
+import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES, DASHBOARD_SECTIONS, WIDGET_TO_SECTION, COST_WIDGETS, GLOBAL_ONLY_WIDGETS, VIEW_PROFILES } from '@/components/dashboard/registry';
 import { KpiStatsWidget, FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
 import SupervisorOverviewWidget from '@/components/dashboard/SupervisorOverviewWidget';
 import JobAssetsWidget from '@/components/dashboard/JobAssetsWidget';
 import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
 import SiteHazardMapWidget from '@/components/dashboard/SiteHazardMapWidget';
+import EfficiencySnapshotWidget from '@/components/dashboard/EfficiencySnapshotWidget';
 import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
 import AssetCrewProfitability from '@/components/AssetCrewProfitability';
 import RigProfitabilityWidget from '@/components/dashboard/RigProfitabilityWidget';
@@ -34,6 +35,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [layoutId, setLayoutId] = useState(null);
   const [drawerJob, setDrawerJob] = useState(null);
   const [modalJob, setModalJob] = useState(null);
+  const [viewProfile, setViewProfile] = useState('operations');
   const queryClient = useQueryClient();
   const { selectedJobId } = useJobFilter();
   const isAllJobs = selectedJobId === 'all';
@@ -129,6 +131,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'job-profitability': return canViewCosts ? <ProfitabilityDashboard onSelectJob={openJobDrawer} /> : null;
       case 'asset-crew-profitability': return canViewCosts ? <AssetCrewProfitability onSelectJob={openJobDrawer} /> : null;
       case 'rig-profitability': return canViewCosts ? <RigProfitabilityWidget onSelectJob={openJobDrawer} /> : null;
+      case 'efficiency-snapshot': return canViewCosts ? <EfficiencySnapshotWidget onSelectJob={openJobDrawer} /> : null;
       case 'site-hazards': return <SiteHazardMapWidget onNavigate={onNavigate} />;
       default: return null;
     }
@@ -191,9 +194,13 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   const hiddenWidgets = DEFAULT_WIDGET_ORDER.filter(id => !widgetOrder.includes(id));
 
+  // Active view profile — allow-list of widgets to surface for the current focus.
+  const profileWidgets = (VIEW_PROFILES.find(p => p.id === viewProfile) || VIEW_PROFILES[0]).widgets;
+
   // Hide cost-gated widgets from users who can't view financials.
   // Hide global-only widgets when the dashboard is focused on a single job.
-  const canShowWidget = (id) => (canViewCosts || !COST_WIDGETS.includes(id)) && (isAllJobs || !GLOBAL_ONLY_WIDGETS.includes(id));
+  // Apply the active view profile on top so only that focus area's widgets show.
+  const canShowWidget = (id) => (canViewCosts || !COST_WIDGETS.includes(id)) && (isAllJobs || !GLOBAL_ONLY_WIDGETS.includes(id)) && profileWidgets.includes(id);
   const visibleOrder = widgetOrder.filter(canShowWidget);
   const visibleHidden = hiddenWidgets.filter(canShowWidget);
 
@@ -265,13 +272,29 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
       <JobSelectorBar />
 
-      {/* At-a-glance intelligence — surfaces critical items needing attention */}
-      {!customizeMode && isAllJobs && (
+      {/* View profile toggle — scopes the widget grid to one focus area to cut scroll depth */}
+      {!customizeMode && (
+        <div className="mb-4 flex items-center gap-1.5 bg-white rounded-xl border border-slate-200 p-1 shadow-sm w-fit">
+          {VIEW_PROFILES.map(p => {
+            const Icon = p.icon;
+            const active = viewProfile === p.id;
+            return (
+              <button key={p.id} type="button" onClick={() => setViewProfile(p.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${active ? 'bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}>
+                <Icon className="w-3.5 h-3.5" /> {p.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* At-a-glance intelligence — surfaces critical items needing attention (Operations only) */}
+      {!customizeMode && isAllJobs && viewProfile === 'operations' && (
         <PulseRibbon onNavigate={onNavigate} />
       )}
 
-      {/* Live Site Activity — visual snapshot grid of active sites (click to open quick drawer) */}
-      {!customizeMode && isAllJobs && (
+      {/* Live Site Activity — visual snapshot grid of active sites (Operations only) */}
+      {!customizeMode && isAllJobs && viewProfile === 'operations' && (
         <SiteSnapshotGrid onSelectJob={openJobDrawer} onNavigate={onNavigate} />
       )}
 
