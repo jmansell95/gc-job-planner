@@ -214,7 +214,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     <div>
       {/* Hero header — context-aware */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-5 mt-0">
-        <div className="mesh-bg relative overflow-hidden rounded-2xl shadow-lg px-4 py-3 sm:px-6 sm:py-4">
+        <div className="mesh-bg relative overflow-hidden rounded-t-none rounded-b-2xl md:rounded-2xl shadow-lg px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
           <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="p-2.5 bg-white/15 ring-1 ring-white/25 rounded-xl flex-shrink-0 backdrop-blur-sm">
