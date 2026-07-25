@@ -211,6 +211,89 @@ export default function PresentationPack() {
 
       drawFooter(doc, margin, pageW, pageH);
 
+      // === Page 5: Meeting Script (facilitator notes) ===
+      doc.addPage();
+      drawSectionHeader(doc, margin, pageW, 'Meeting Script', 'Read-from notes — what to say, show and ask', FileText);
+      y = 120;
+
+      const script = [
+        {
+          phase: 'Before you start (2 min)',
+          items: [
+            { tag: 'Setup', text: 'Open the app on the big screen, logged in to the admin dashboard. Have a drilling job with approved logs ready in a tab.' },
+            { tag: 'Say', text: '"Thanks for your time. I want to show you how we\'ve turned site logs from a paperwork problem into a safety and billing advantage. I\'ll keep it to 20 minutes and leave room for questions."' },
+          ],
+        },
+        {
+          phase: 'Section 1 — Safety (5 min)',
+          items: [
+            { tag: 'Show', text: 'Compliance → Site Assets. The compliance tiles and one expired or expiring asset card.' },
+            { tag: 'Say', text: '"Every rig, machine and trailer is synced from our compliance system. If something expires, it\'s flagged here and can\'t be sent to a job. That\'s our first line of defence."' },
+            { tag: 'Show', text: 'Click that asset → Asset Passport. The maintenance timeline, responsible person, service history.' },
+            { tag: 'Say', text: '"This is the audit trail for that asset. If HSE walk in tomorrow, this is what we hand them — in one click, not after a morning in the filing cabinet."' },
+            { tag: 'Ask', text: '"How long does it take us today to pull that together for an auditor?"' },
+            { tag: 'Show', text: 'Log Quality Control dashboard. Point at the pending / approved / queried counts and the review progress bar.' },
+            { tag: 'Say', text: '"Every entry from site comes in here for manager review. The system flags missing photos, SPT anomalies and water level discrepancies the same day — not three weeks later when we\'re writing the report."' },
+            { tag: 'Show', text: 'Open one Queried log. Point at the flagged issue.' },
+            { tag: 'Ask', text: '"How often do we find missing data after the crew has left site?"' },
+          ],
+        },
+        {
+          phase: 'Section 2 — Financial (5 min)',
+          items: [
+            { tag: 'Show', text: 'A drilling job → Site Logs tab. Point at the "Days Logged" counter and "Driller Activities" count.' },
+            { tag: 'Say', text: '"Every day logged here is tied to a rate in our Schedule of Rates. The crew can\'t drill a metre that isn\'t captured, and we can\'t bill a metre that isn\'t logged."' },
+            { tag: 'Show', text: 'Billing tab for the same job.' },
+            { tag: 'Say', text: '"Because the logs are approved, the timesheets and client charges come from the same data. One source of truth — no re-keying, no billing leakage."' },
+            { tag: 'Ask', text: '"Where do we currently lose money between site and invoice?"' },
+            { tag: 'Show', text: 'Run the one-click AGS export live.' },
+            { tag: 'Say', text: '"That\'s our OpenGround file. Done. That used to be hours of manual formatting — it\'s now seconds."' },
+          ],
+        },
+        {
+          phase: 'Close (3 min)',
+          items: [
+            { tag: 'Say', text: '"So two promises: safer, audit-ready site records; and every metre we drill gets billed accurately and faster."' },
+            { tag: 'Ask', text: '"What would make you confident to roll this out across all crews?"' },
+            { tag: 'Capture', text: 'Write down every concern raised. Commit to a follow-up with a date before you leave the room.' },
+          ],
+        },
+      ];
+
+      script.forEach((section) => {
+        if (y > pageH - 100) { doc.addPage(); y = 120; }
+        // phase heading
+        doc.setFillColor(BRAND_DARK);
+        doc.roundedRect(margin, y, pageW - margin * 2, 24, 4, 4, 'F');
+        doc.setTextColor(WHITE);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(section.phase, margin + 10, y + 16);
+        y += 36;
+
+        section.items.forEach((it) => {
+          if (y > pageH - 70) { doc.addPage(); y = 120; }
+          // tag chip
+          const tagColor = it.tag === 'Say' ? BRAND_DARK : it.tag === 'Ask' ? '#b45309' : it.tag === 'Show' ? '#1d4ed8' : SLATE_500;
+          doc.setFillColor(tagColor);
+          doc.roundedRect(margin, y, 42, 16, 3, 3, 'F');
+          doc.setTextColor(WHITE);
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'bold');
+          doc.text(it.tag.toUpperCase(), margin + 21, y + 11, { align: 'center' });
+
+          doc.setTextColor(SLATE_700);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(10);
+          const lines = doc.splitTextToSize(it.text, pageW - margin - 50 - margin);
+          doc.text(lines, margin + 50, y + 12);
+          y += 22 + lines.length * 13;
+        });
+        y += 8;
+      });
+
+      drawFooter(doc, margin, pageW, pageH);
+
       doc.save(`Ground-Control-Manager-Pack-${new Date().toISOString().slice(0,10)}.pdf`);
     } catch (e) {
       console.error('PDF generation failed:', e);
@@ -233,7 +316,7 @@ export default function PresentationPack() {
           {/* Preview body */}
           <div className="p-6 md:p-10">
             <p className="text-slate-600 text-sm leading-relaxed">
-              A polished PDF you can present from or hand out. It covers the safety and compliance story first, then the financial and margin protection story, and finishes with the recommended order to walk managers through the live app.
+              A polished PDF you can present from or hand out. It covers the safety and compliance story, the financial and margin protection story, the recommended walk-through order, and — most importantly — a ready-to-read facilitator script with exactly what to say, what to show and what to ask the room.
             </p>
 
             {/* What's inside */}
@@ -241,7 +324,7 @@ export default function PresentationPack() {
               <PreviewItem icon={ShieldCheck} title="Safety & Compliance" desc="Hazard mapping, compliance sync, audit trail" />
               <PreviewItem icon={TrendingUp} title="Financial Performance" desc="Charge accuracy, timesheets, cash collection" />
               <PreviewItem icon={Map} title="Walk-through order" desc="The 4 steps to cover in the meeting" />
-              <PreviewItem icon={FileText} title="Branded with logo" desc="Ground Control colours throughout" />
+              <PreviewItem icon={FileText} title="Facilitator script" desc="What to Say, Show and Ask at each step" />
             </div>
 
             {/* Download button */}
