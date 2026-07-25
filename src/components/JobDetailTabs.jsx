@@ -21,7 +21,7 @@ import DocumentManager from '@/components/DocumentManager';
 import JobCommentsViewer from '@/components/JobCommentsViewer';
 import JobWorkLog from '@/components/JobWorkLog';
 import MilestoneManager from '@/components/MilestoneManager';
-import PortalSectionManager from '@/components/PortalSectionManager';
+import PortalLinkManager from '@/components/PortalLinkManager';
 import JobScheduleOverview from '@/components/JobScheduleOverview';
 import StaffActivityBreakdown from '@/components/StaffActivityBreakdown';
 import DelayLogManager from '@/components/DelayLogManager';
@@ -74,27 +74,7 @@ export default function JobDetailTabs({
 }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
-  const [showPortalDialog, setShowPortalDialog] = useState(false);
   const [showProjectJobs, setShowProjectJobs] = useState(false);
-  const [portalEnabled, setPortalEnabled] = useState(job.portal_enabled || false);
-  const [togglingPortal, setTogglingPortal] = useState(false);
-
-  useEffect(() => { setPortalEnabled(job.portal_enabled || false); }, [job.id, job.portal_enabled]);
-
-  const enabledSections = job.portal_sections ? Object.values(job.portal_sections).filter(Boolean).length : 10;
-
-  const handleTogglePortal = async () => {
-    const next = !portalEnabled;
-    setPortalEnabled(next);
-    setTogglingPortal(true);
-    try {
-      await base44.entities.Job.update(job.id, { portal_enabled: next });
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-    } catch (e) {
-      setPortalEnabled(!next);
-    }
-    setTogglingPortal(false);
-  };
 
   const assignedVehicleIds = [...new Set(rotas.map(r => r.vehicle_id).filter(Boolean))];
   const assignedVehicles = assignedVehicleIds.map(id => vehicles.find(v => v.id === id)).filter(Boolean);
@@ -240,30 +220,7 @@ export default function JobDetailTabs({
         {/* Log review + Client portal — in line */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <LogReviewQuickStat job={job} />
-          <div className={`rounded-xl border shadow-sm overflow-hidden transition ${portalEnabled ? 'border-[#2E5A1A]/30 bg-gradient-to-br from-[#2E5A1A]/5 to-white' : 'border-slate-200 bg-white'}`}>
-            <div className="flex items-center gap-3 px-4 py-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition ${portalEnabled ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-400'}`}>
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-slate-900 text-sm">Client Portal Access</p>
-                <p className="text-xs text-slate-400">{portalEnabled ? 'Client can view this job' : 'Hidden from client'} · {enabledSections}/10 sections visible</p>
-              </div>
-              <button
-                onClick={handleTogglePortal}
-                disabled={togglingPortal}
-                className={`relative inline-flex h-7 w-12 items-center rounded-full transition flex-shrink-0 disabled:opacity-50 ${portalEnabled ? 'bg-[#2E5A1A]' : 'bg-slate-300'}`}
-                aria-pressed={portalEnabled}
-                aria-label="Toggle client portal access"
-              >
-                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${portalEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-              </button>
-            </div>
-            <button onClick={() => setShowPortalDialog(true)} className="w-full flex items-center justify-between gap-2 px-4 py-2.5 border-t border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition text-left">
-              <span className="flex items-center gap-2 text-xs font-medium text-[#2E5A1A]"><Eye className="w-3.5 h-3.5" /> Manage which sections the client can see</span>
-              <span className="text-xs text-slate-400">{enabledSections}/10 →</span>
-            </button>
-          </div>
+          <PortalLinkManager job={job} />
         </div>
 
         {/* Full notes */}
@@ -278,12 +235,6 @@ export default function JobDetailTabs({
         )}
 
         {/* Dialogs */}
-        <Dialog open={showPortalDialog} onOpenChange={setShowPortalDialog}>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-            <DialogHeader><DialogTitle className="flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-[#2E5A1A]" /> Client Portal Visibility</DialogTitle></DialogHeader>
-            <PortalSectionManager job={job} embedded />
-          </DialogContent>
-        </Dialog>
 
         <Dialog open={showProjectJobs} onOpenChange={setShowProjectJobs}>
           <DialogContent className="max-w-lg">
