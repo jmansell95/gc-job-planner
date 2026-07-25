@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { parseRemarks, professionaliseActivities } from '../../shared/keylogbookRemarks.ts';
 
 // ============================================================
 // KeyLogBook Webhook Receiver — Professionalised Site Logs Pipeline

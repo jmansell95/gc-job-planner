@@ -11,13 +11,16 @@ Deno.serve(async (req) => {
     const configs = await base44.asServiceRole.entities.AssetPandaConfig.filter({ key: 'global' });
     const config = configs && configs[0];
     if (!config) {
-      return Response.json({ error: 'No Asset Panda configuration found. Add your API details in Settings → Asset Panda Sync Data.' }, { status: 400 });
+      // Not configured yet — skip gracefully (200) so the daily automation
+      // doesn't register a failure and auto-pause. Once credentials are
+      // saved in Settings → Asset Panda Sync Data, the next run syncs.
+      return Response.json({ skipped: true, reason: 'No Asset Panda configuration found. Add your API details in Settings → Asset Panda Sync Data.' });
     }
 
     const baseUrl = (config.base_url || 'https://api.assetpanda.com').replace(/\/+$/, '');
     const groupId = config.group_id;
     if (!groupId) {
-      return Response.json({ error: 'No Asset Panda group ID configured. Enter the group ID in Settings → Asset Panda Sync Data.' }, { status: 400 });
+      return Response.json({ skipped: true, reason: 'No Asset Panda group ID configured. Enter the group ID in Settings → Asset Panda Sync Data.' });
     }
 
     // --- Resolve a bearer token ---
@@ -39,7 +42,7 @@ Deno.serve(async (req) => {
       }
     }
     if (!token) {
-      return Response.json({ error: 'No API token configured. Enter your Asset Panda token (or email + password) in Settings → Asset Panda Sync Data.' }, { status: 400 });
+      return Response.json({ skipped: true, reason: 'No API token configured. Enter your Asset Panda token (or email + password) in Settings → Asset Panda Sync Data.' });
     }
 
     const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };

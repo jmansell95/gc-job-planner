@@ -436,11 +436,16 @@ Deno.serve(async (req) => {
     }
 
     // === Purge SiteAssets no longer in GC Compliance Manager ===
+    // Only purge assets that were PREVIOUSLY linked to GC Compliance Manager
+    // (have an external_compliance_id) but are no longer found there. Assets
+    // with no external_compliance_id came from Asset Panda or manual entry —
+    // the compliance sync is not the source of truth for what assets exist,
+    // only for their compliance status, so it must never delete those.
     let purged = 0;
     let jobAssignmentsRemoved = 0;
     let jobCostItemsRemoved = 0;
     const orphanedAssetIds = siteAssets
-      .filter(a => !matchedSiteAssetIds.has(a.id))
+      .filter(a => a.external_compliance_id && !matchedSiteAssetIds.has(a.id))
       .map(a => a.id);
 
     if (orphanedAssetIds.length > 0) {
