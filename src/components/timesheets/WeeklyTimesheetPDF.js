@@ -121,15 +121,41 @@ export async function downloadWeeklyTimesheetPDF(data) {
   if (data.totals.otMins > 0) doc.text(`Overtime: ${fmtDur(data.totals.otMins)}`, margin + 70, y);
   y += 12;
 
-  // Sign-off
-  doc.setDrawColor(180, 180, 180);
-  doc.line(margin, y, margin + 70, y);
-  doc.line(margin + 85, y, margin + 70 + 85, y);
+  // Sign-off — inject captured signature images (draw-to-sign) where present
+  const sigH = 18;
+  const empUrl = data.employeeSignatureUrl;
+  const mgrUrl = data.managerSignatureUrl;
+  const loadImg = async (url) => {
+    if (!url) return null;
+    try {
+      const res = await fetch(url);
+      const buf = await res.arrayBuffer();
+      const u8 = new Uint8Array(buf);
+      // Detect PNG vs JPEG from magic bytes
+      const isPng = u8[0] === 0x89 && u8[1] === 0x50;
+      return { data: u8, format: isPng ? 'PNG' : 'JPEG' };
+    } catch { return null; }
+  };
+  const [empImg, mgrImg] = await Promise.all([loadImg(empUrl), loadImg(mgrUrl)]);
+
+  if (empImg) {
+    doc.addImage(empImg.data, empImg.format, margin, y - sigH, 65, sigH);
+  } else {
+    doc.setDrawColor(180, 180, 180);
+    doc.line(margin, y, margin + 65, y);
+  }
+  if (mgrImg) {
+    doc.addImage(mgrImg.data, mgrImg.format, margin + 85, y - sigH, 65, sigH);
+  } else {
+    doc.setDrawColor(180, 180, 180);
+    doc.line(margin + 85, y, margin + 85 + 65, y);
+  }
   doc.setFontSize(8);
   doc.setTextColor(120, 120, 120);
   doc.text('Employee signature', margin, y + 4);
   doc.text('Manager signature', margin + 85, y + 4);
   y += 14;
+  doc.setDrawColor(180, 180, 180);
   doc.line(margin, y, pageW - margin, y);
   doc.text(`Approved by: ${data.approvedByName || '—'}`, margin, y + 4);
 

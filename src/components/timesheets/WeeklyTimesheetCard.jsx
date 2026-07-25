@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   CheckCircle2, Clock, XCircle, Circle, CalendarDays, Download,
-  Loader2, ChevronDown, ChevronRight, Merge, AlertTriangle, Ruler, TrendingUp, Car, User,
+  Loader2, ChevronDown, ChevronRight, Merge, AlertTriangle, Ruler, TrendingUp, Car, User, ShieldCheck,
 } from 'lucide-react';
 import { downloadWeeklyTimesheetPDF } from './WeeklyTimesheetPDF';
+import { fetchSignaturesForWeek, markSignatureInjected } from '@/utils/signatureFlow';
+import WeeklySignOffModal from './WeeklySignOffModal';
 
 const fmtDur = (mins) => {
   const m = Math.round(Number(mins) || 0);
@@ -39,6 +41,22 @@ export default function WeeklyTimesheetCard({ staffMember, weekStart, dailySumma
   const [expanded, setExpanded] = useState(false);
   const [merging, setMerging] = useState(false);
   const [approvingId, setApprovingId] = useState(null);
+  const [signOffOpen, setSignOffOpen] = useState(false);
+  const [weekSignedOff, setWeekSignedOff] = useState(false);
+
+  // Check whether the week already has an official sign-off signature
+  useEffect(() => {
+    if (!isMerged) return;
+    let alive = true;
+    (async () => {
+      try {
+        const sigs = await fetchSignaturesForWeek(weekStart, staffMember?.id);
+        if (alive) setWeekSignedOff(!!sigs.find((s) => s.tier === 'weekly_official'));
+      } catch { /* ignore */ }
+    })();
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMerged, weekStart, staffMember?.id]);
 
   // Build the 7 days of the week (Mon–Sun)
   const weekDates = Array.from({ length: 7 }, (_, i) => {
@@ -107,6 +125,16 @@ export default function WeeklyTimesheetCard({ staffMember, weekStart, dailySumma
   };
 
   const handleDownload = async () => {
+    // Fetch captured signatures for this week to inject into the PDF
+    let employeeSignatureUrl = null, managerSignatureUrl = null;
+    try {
+      const sigs = await fetchSignaturesForWeek(weekStart, staffMember?.id);
+      const emp = sigs.find((s) => s.tier === 'daily_worker');
+      const mgr = sigs.find((s) => s.tier === 'weekly_official') || sigs.find((s) => s.tier === 'manager_approval');
+      employeeSignatureUrl = emp?.signature_url;
+      managerSignatureUrl = mgr?.signature_url;
+      setWeekSignedOff(!!sigs.find((s) => s.tier === 'weekly_official'));
+    } catch { /* non-critical — fall back to blank lines */ }
     const dailyEntries = weekDates.map((date, i) => {
       const entries = (byDate[date] || []).filter((t) => !t.is_weekly_summary);
       const entry = entries[0];
@@ -134,7 +162,18 @@ export default function WeeklyTimesheetCard({ staffMember, weekStart, dailySumma
       dailyEntries,
       totals: { totalMins, onSiteMins, travelMins, otMins, meterage },
       approvedByName: weeklyRecord?.approved_by_name || currentUser?.full_name,
+      employeeSignatureUrl,
+      managerSignatureUrl,
     });
+    // Mark injected signatures as recorded on the PDF
+    try {
+      const sigs = await fetchSignaturesForWeek(weekStart, staffMember?.id);
+      for (const s of sigs) {
+        if (!s.pdf_injected && (s.tier === 'daily_worker' || s.tier === 'weekly_official' || s.tier === 'manager_approval')) {
+          await markSignatureInjected(s.id);
+        }
+      }
+    } catch { /* non-critical */ }
   };
 
   const weekEndDate = new Date(weekStart + 'T00:00:00');
@@ -171,7 +210,11 @@ export default function WeeklyTimesheetCard({ staffMember, weekStart, dailySumma
               <p className="text-sm font-bold text-violet-600">{meterage}m</p>
             </div>
           )}
-          {isMerged ? (
+          {isMerged && weekSignedOff ? (
+            <span className="inline-flex items-center gap-1 text-xs bg-emerald-700 text-white px-2.5 py-1 rounded-full font-semibold">
+              <ShieldCheck className="w-3.5 h-3.5" /> Signed off
+            </span>
+          ) : isMerged ? (
             <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-semibold">
               <CheckCircle2 className="w-3.5 h-3.5" /> Merged
             </span>
@@ -212,10 +255,18 @@ export default function WeeklyTimesheetCard({ staffMember, weekStart, dailySumma
           </button>
         )}
         {isMerged && (
-          <button onClick={handleDownload}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 transition">
-            <Download className="w-3.5 h-3.5" /> Download PDF
-          </button>
+          <>
+            <button onClick={handleDownload}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 transition">
+              <Download className="w-3.5 h-3.5" /> Download PDF
+            </button>
+            {!weekSignedOff && (
+              <button onClick={() => setSignOffOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-lg text-xs font-semibold hover:bg-emerald-800 transition">
+                <ShieldCheck className="w-3.5 h-3.5" /> Official sign-off
+              </button>
+            )}
+          </>
         )}
         {!isMerged && !allApproved && workedDays.length > 0 && (
           <span className="text-[11px] text-slate-400 inline-flex items-center gap-1">
@@ -302,6 +353,21 @@ export default function WeeklyTimesheetCard({ staffMember, weekStart, dailySumma
           })}
         </div>
       )}
+      <WeeklySignOffModal
+        open={signOffOpen}
+        onClose={(signed) => {
+          setSignOffOpen(false);
+          if (signed) {
+            setWeekSignedOff(true);
+            queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+            queryClient.invalidateQueries({ queryKey: ['all-timesheets-mgr'] });
+          }
+        }}
+        staffMember={staffMember}
+        weekStart={weekStart}
+        weeklyRecord={weeklyRecord}
+        currentUser={currentUser}
+      />
     </div>
   );
 }

@@ -1,0 +1,111 @@
+{
+  "name": "Signature",
+  "type": "object",
+  "properties": {
+    "tier": {
+      "type": "string",
+      "enum": [
+        "daily_worker",
+        "manager_approval",
+        "weekly_official"
+      ],
+      "description": "Signing tier. 'daily_worker' = crew member signs off their own daily site log / timesheet summary; 'manager_approval' = a manager signs to approve a daily summary; 'weekly_official' = the official weekly sign-off that locks the week for payroll. Each tier is dynamically injected into the generated payroll PDF."
+    },
+    "signer_type": {
+      "type": "string",
+      "enum": [
+        "staff",
+        "manager",
+        "admin"
+      ],
+      "description": "Role of the person who signed. 'staff' = field crew member, 'manager' = site/office manager, 'admin' = senior approver (official sign-off)."
+    },
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member who signed (for daily_worker tier) or the staff the signature relates to (for approval tiers)."
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Name of the staff member (denormalised for audit display)."
+    },
+    "manager_id": {
+      "type": "string",
+      "description": "ID of the manager/admin who approved or signed off (for manager_approval and weekly_official tiers)."
+    },
+    "manager_name": {
+      "type": "string",
+      "description": "Name of the manager/admin who signed (denormalised for the payroll PDF)."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job this signature relates to. May be blank for weekly_official signatures that span multiple jobs."
+    },
+    "assignment_id": {
+      "type": "string",
+      "description": "RotaAssignment this signature belongs to (for daily_worker tier)."
+    },
+    "timesheet_id": {
+      "type": "string",
+      "description": "Timesheet entry this signature approves (for manager_approval tier, links to the daily summary)."
+    },
+    "week_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Monday of the week this signature covers (used for weekly_official and grouping daily signatures by week)."
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "The working date this signature covers (for daily_worker and manager_approval tiers)."
+    },
+    "signature_url": {
+      "type": "string",
+      "description": "URL of the uploaded drawn signature image (PNG data captured from the signature pad)."
+    },
+    "signed_at": {
+      "type": "string",
+      "description": "ISO timestamp when the signature was captured."
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "IP address of the signer when the signature was captured (for audit traceability)."
+    },
+    "device_info": {
+      "type": "string",
+      "description": "Brief user-agent / device descriptor of the signer (for audit traceability)."
+    },
+    "payload_snapshot": {
+      "type": "string",
+      "description": "JSON snapshot of the data being signed off (e.g. the daily timesheet summary or weekly totals) at the moment of signing \u2014 frozen for legal audit."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes accompanying the signature (e.g. a manager's approval note or a query)."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "superseded",
+        "void"
+      ],
+      "default": "active",
+      "description": "Lifecycle of the signature. 'active' = current; 'superseded' = replaced by a re-sign (e.g. daily summary was amended after first sign); 'void' = cancelled (week re-opened)."
+    },
+    "pdf_injected": {
+      "type": "boolean",
+      "default": false,
+      "description": "True once this signature image has been injected into a generated payroll PDF. Set so we can prove the official document carries the wet-style signature."
+    },
+    "synced_from_offline": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this signature was captured while offline and synced later."
+    }
+  },
+  "required": [
+    "tier",
+    "signature_url",
+    "signed_at"
+  ]
+}
