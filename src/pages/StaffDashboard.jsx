@@ -130,6 +130,7 @@ export default function StaffDashboard() {
   const { data: allAssignments = [] } = useQuery({ queryKey: ['all-rota-assignments'], queryFn: () => base44.entities.RotaAssignment.list('-created_date', 500) });
   const { data: mgrTimesheets = [] } = useQuery({ queryKey: ['all-timesheets-mgr'], queryFn: () => base44.entities.Timesheet.list('-created_date', 500) });
   const { data: rotaWeeks = [] } = useQuery({ queryKey: ['rota-weeks'], queryFn: () => base44.entities.RotaWeek.list() });
+  const { data: bizConfig } = useQuery({ queryKey: ['business-config'], queryFn: async () => { const list = await base44.entities.BusinessConfig.filter({ key: 'global' }); return list[0] || null; } });
   const { data: myCompliance = [] } = useQuery({ queryKey: ['staff-compliance', staff?.id], queryFn: () => base44.entities.ComplianceItem.filter({ category: 'staff' }), enabled: !!staff?.id });
   const { data: jobAssets = [] } = useQuery({ queryKey: ['job-asset-assignments-staff'], queryFn: () => base44.entities.JobAssetAssignment.list('-created_date', 500) });
   const { data: siteAssetsStaff = [] } = useQuery({ queryKey: ['site-assets-staff'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
@@ -208,7 +209,7 @@ export default function StaffDashboard() {
     try {
       await base44.entities.RotaAssignment.update(assignmentId, { left_site_at: new Date().toISOString() });
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
-      toast({ title: 'Left site recorded', description: 'Enter your travel home & submit your timesheet within 5 hours.' });
+      toast({ title: 'Left site recorded', description: `Enter your travel home & submit your timesheet within ${Number(bizConfig?.post_leave_site_window_hours) || 5} hours.` });
     } catch (error) {
       console.error('Error recording leave site:', error);
       toast({ title: 'Error', description: 'Could not record leave site. Please try again.', variant: 'destructive' });

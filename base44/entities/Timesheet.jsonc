@@ -38,7 +38,7 @@
     },
     "break_minutes": {
       "type": "number",
-      "default": 30,
+      "default": 60,
       "description": "Break duration in minutes"
     },
     "total_hours": {

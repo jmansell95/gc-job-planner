@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
 
     if (!meetsRequiredHours && !earlyLeaveReason) {
       return Response.json({
-        error: 'On-site work is under 9 hours and no early-leave reason was recorded. Use the Leave Site Early button on your job card to record why you left early, or add the missing tasks.',
+        error: `On-site work is under ${(REQUIRED_WORK_MINS / 60)} hours and no early-leave reason was recorded. Use the Leave Site Early button on your job card to record why you left early, or add the missing tasks.`,
         code: 'UNDER_9H_NO_EARLY_LEAVE',
         on_site_minutes: onSiteMinsTotal,
         required_minutes: REQUIRED_WORK_MINS

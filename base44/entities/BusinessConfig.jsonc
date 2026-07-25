@@ -9,12 +9,27 @@
     "required_daily_on_site_minutes": {
       "type": "number",
       "default": 540,
-      "description": "Minimum on-site working minutes required for a full day before an early-leave reason is needed. 540 = 9 hours. Drives the validation in the daily timesheet submission flow."
+      "description": "Minimum on-site working minutes required for a full day before an early-leave reason is needed. 540 = 9 hours. Drives validation in the daily timesheet submission flow and the crew task-log day-completion check."
     },
     "travel_deductible_minutes": {
       "type": "number",
       "default": 90,
       "description": "Travel time (minutes) deducted from each leg of travel (to-site and from-site) before it becomes payable. 90 = 1.5 hours per leg. Depot teams are exempt from this deduction."
+    },
+    "default_vat_rate": {
+      "type": "number",
+      "default": 20,
+      "description": "Default VAT rate (%) applied when a job has no explicit VAT rate set. Used as the fallback in invoice generation."
+    },
+    "default_break_minutes": {
+      "type": "number",
+      "default": 60,
+      "description": "Daily lunch break duration in minutes required for a day to be 'complete'. Drives the crew task-log day-completion check. 60 = 1 hour."
+    },
+    "post_leave_site_window_hours": {
+      "type": "number",
+      "default": 5,
+      "description": "Hours a job stays open after a crew member leaves site, so they can enter travel-home time and submit their timesheet from home. 5 = 5 hours."
     }
   },
   "required": [

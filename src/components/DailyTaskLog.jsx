@@ -53,6 +53,7 @@ export default function DailyTaskLog({ staffId, hideSubmit = false }) {
   const { data: shifts = [] } = useQuery({ queryKey: ['staff-shifts', staffId], queryFn: () => base44.entities.StaffShift.filter({ staff_id: staffId }), enabled: !!staffId });
   const { data: taskBillingRules = [] } = useQuery({ queryKey: ['billing-rules-task'], queryFn: () => base44.entities.BillingRule.filter({ rule_type: 'task', is_active: true }) });
   const { data: profile } = useQuery({ queryKey: ['my-staff-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
+  const { data: bizConfig } = useQuery({ queryKey: ['business-config'], queryFn: async () => { const list = await base44.entities.BusinessConfig.filter({ key: 'global' }); return list[0] || null; } });
   const canSeeCosts = canViewCostings(profile);
 
   const todayAssignments = assignments.filter(a => a.assigned_date === today);
@@ -201,8 +202,8 @@ export default function DailyTaskLog({ staffId, hideSubmit = false }) {
     : null;
 
   // Day completion: no gaps, 9 hours total (incl. 1h break), overtime excluded.
-  const TARGET_MINS = 9 * 60;
-  const BREAK_MINS = 60;
+  const TARGET_MINS = Number(bizConfig?.required_daily_on_site_minutes) || 540;
+  const BREAK_MINS = Number(bizConfig?.default_break_minutes) || 60;
   const nonOTEntries = entries.filter(t => !t.is_overtime && t.task_type !== 'travel_to' && t.task_type !== 'travel_from');
   const nonOTTotal = nonOTEntries.reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
   const breakTotal = entries.filter(t => t.is_break).reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
@@ -222,8 +223,8 @@ export default function DailyTaskLog({ staffId, hideSubmit = false }) {
   const dayComplete = entries.length > 0 && !gap && nonOTTotal === TARGET_MINS && breakTotal === BREAK_MINS;
   const checks = [
     { ok: entries.length > 0 && !gap, label: 'No gaps in your schedule', detail: gap ? `Gap ${gap.from}–${gap.to}` : null },
-    { ok: nonOTTotal === TARGET_MINS, label: '9 hours total (incl. break)', detail: `${fmtDur(nonOTTotal)} of ${fmtDur(TARGET_MINS)}` },
-    { ok: breakTotal === BREAK_MINS, label: '1 hour lunch break', detail: `${fmtDur(breakTotal)} of ${fmtDur(BREAK_MINS)}` },
+    { ok: nonOTTotal === TARGET_MINS, label: `${fmtDur(TARGET_MINS)} total (incl. break)`, detail: `${fmtDur(nonOTTotal)} of ${fmtDur(TARGET_MINS)}` },
+    { ok: breakTotal === BREAK_MINS, label: `${fmtDur(BREAK_MINS)} lunch break`, detail: `${fmtDur(breakTotal)} of ${fmtDur(BREAK_MINS)}` },
   ];
 
   return (
@@ -516,7 +517,7 @@ export default function DailyTaskLog({ staffId, hideSubmit = false }) {
               className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation">
               <Send className="w-4 h-4" /> {submittingDay ? 'Submitting…' : dayComplete ? 'Submit Timesheet' : 'Complete the day to submit'}
             </button>
-            <p className="text-[11px] text-slate-400 text-center mt-2">Overtime tasks are extra and don't count toward the 9 hours.</p>
+            <p className="text-[11px] text-slate-400 text-center mt-2">Overtime tasks are extra and don't count toward the {fmtDur(TARGET_MINS)}.</p>
           </div>
         )}
       </div>

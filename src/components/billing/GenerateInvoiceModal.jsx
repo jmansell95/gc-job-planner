@@ -155,9 +155,13 @@ export default function GenerateInvoiceModal({ open, onClose, job, client, data,
     queryFn: () => base44.entities.Invoice.filter({ job_id: job?.id }),
     enabled: open && !!job?.id,
   });
+  const { data: bizConfig } = useQuery({
+    queryKey: ['business-config'],
+    queryFn: async () => { const list = await base44.entities.BusinessConfig.filter({ key: 'global' }); return list[0] || null; },
+  });
 
   const lines = useMemo(() => (job ? buildInvoiceLines(job, data) : []), [job, data]);
-  const vatRate = Number(job?.vat_rate) || 20;
+  const vatRate = Number(job?.vat_rate) || Number(bizConfig?.default_vat_rate) || 20;
   const netTotal = lines.reduce((s, l) => s + (Number(l.line_total) || 0), 0);
   const vatTotal = netTotal * (vatRate / 100);
   const grossTotal = netTotal + vatTotal;
