@@ -145,8 +145,10 @@ Deno.serve(async (req) => {
       return isNaN(num) ? null : num;
     };
 
-    // --- Load existing SiteAssets for matching ---
-    const existing = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
+    // --- Load existing SiteAssets for matching — exclude demo assets so sync
+    // never touches or deactivates showcase data created by the Demo Data Manager.
+    const allExisting = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
+    const existing = allExisting.filter(a => !a.is_demo_data);
     const byPandaId = {};
     const bySerial = {};
     const byName = {};

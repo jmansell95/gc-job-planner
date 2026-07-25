@@ -29,6 +29,7 @@ import TimesheetManager from '@/components/TimesheetManager';
 import BillingPage from '@/components/BillingPage';
 import AGSImportSettings from '@/components/AGSImportSettings';
 import SafetyCultureSettings from '@/components/SafetyCultureSettings';
+import DemoDataManager from '@/components/DemoDataManager';
 import PermissionGroupManager from '@/components/PermissionGroupManager';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { resolveRole } from '@/utils/access';
@@ -93,6 +94,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'invoicing': return <BillingPage onSelectJob={onSelectJob} />;
       case 'ags-import': return <AGSImportSettings />;
       case 'safety-culture': return <SafetyCultureSettings />;
+      case 'demo-data': return <DemoDataManager />;
       default: return null;
     }
   };

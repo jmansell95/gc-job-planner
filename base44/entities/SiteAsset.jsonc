@@ -156,6 +156,11 @@
     "notes": {
       "type": "string",
       "description": "Additional notes about this asset"
+    },
+    "is_demo_data": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this asset was created by the Demo Data Manager for showcase purposes. Sync functions (Asset Panda, GC Compliance Manager) skip demo assets so they are never pushed to or purged from external systems."
     }
   },
   "required": [

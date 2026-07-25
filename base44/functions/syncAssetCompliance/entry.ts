@@ -33,8 +33,10 @@ Deno.serve(async (req) => {
       console.error('Could not fetch Rig records:', rigFetchErr.message);
     }
 
-    // Fetch all SiteAssets in this app
-    const siteAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
+    // Fetch all SiteAssets in this app — exclude demo assets so sync never
+    // touches or purges showcase data created by the Demo Data Manager.
+    const allSiteAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
+    const siteAssets = allSiteAssets.filter(a => !a.is_demo_data);
 
     // === Helpers for Equipment records ===
 
@@ -300,6 +302,9 @@ Deno.serve(async (req) => {
     }
 
     // === Create new SiteAssets from unmatched Equipment records ===
+    // Skip any demo-tagged assets that may have matched — they must never be
+    // overwritten by the sync. (siteAssets list already excludes demo records,
+    // so matchedEquipmentIds only contains real assets.)
     const newEquipmentAssets = [];
     for (const eq of equipmentRecords) {
       if (matchedEquipmentIds.has(eq.id)) continue;
