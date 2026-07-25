@@ -35,7 +35,7 @@ export default function StateMonitorBar({ monitors, onNavigate, className = '' }
               <p className={`text-xl font-bold tabular-nums leading-none ${t.text}`}>{m.value}</p>
               <p className="text-[11px] font-semibold text-slate-500 mt-1 truncate uppercase tracking-wide">{m.label}</p>
             </div>
-            <ArrowRight className="w-3.5 h-3.5 text-white/50 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition flex-shrink-0" />
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition flex-shrink-0" />
           </button>
         );
       })}
