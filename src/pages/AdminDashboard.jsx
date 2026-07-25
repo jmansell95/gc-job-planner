@@ -8,6 +8,7 @@ import JobManager from '@/components/JobManager';
 import SettingsPage from '@/components/SettingsPage';
 import JobDetail from '@/components/JobDetail';
 import SchedulingHub from '@/components/SchedulingHub';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 
 export default function AdminDashboard() {
@@ -55,6 +56,7 @@ export default function AdminDashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
           >
+            <ErrorBoundary key={activeSection}>
             {activeSection === 'overview' && (
               <JobFilterProvider>
                 <DashboardOverview
@@ -76,6 +78,7 @@ export default function AdminDashboard() {
             {activeSection === 'log-qc' && <SettingsPage initialTab="log-qc" />}
             {activeSection === 'billing' && <SettingsPage initialTab="invoicing" onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}
             {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}
+            </ErrorBoundary>
           </motion.div>
         </div>
       </main>
