@@ -38,17 +38,17 @@ export default function VehicleManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
 
+  const queryClient = useQueryClient();
+  const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
+  const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
+  const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
+
   const filteredVehicles = vehicles.filter(v => {
     const q = searchQuery.trim().toLowerCase();
     const matchesSearch = !q || (v.name?.toLowerCase().includes(q) || v.registration_number?.toLowerCase().includes(q));
     const matchesTeam = teamFilter === 'all' || v.team_id === teamFilter;
     return matchesSearch && matchesTeam;
   });
-
-  const queryClient = useQueryClient();
-  const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
-  const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
-  const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
 
   const handleSubmit = async (e) => {
     e.preventDefault();

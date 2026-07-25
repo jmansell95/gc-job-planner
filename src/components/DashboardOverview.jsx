@@ -303,8 +303,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           monitors={[
             { key: 'active', icon: Briefcase, label: 'Active Jobs', value: activeJobs.length, tone: 'emerald', nav: 'jobs' },
             { key: 'onsite', icon: Users, label: 'On Site', value: staffToday, tone: 'blue', nav: 'rota' },
-            { key: 'ts', icon: ClipboardCheck, label: 'TS Queue', value: pendingTs, tone: 'amber', nav: 'timesheets' },
-            { key: 'del', icon: Truck, label: 'Deliveries', value: pendingDeliveries, tone: 'violet', nav: 'deliveries' },
+            { key: 'ts', icon: ClipboardCheck, label: 'Timesheet Queue', value: pendingTs, tone: 'amber', nav: 'timesheets' },
           ]}
           onNavigate={onNavigate}
         />

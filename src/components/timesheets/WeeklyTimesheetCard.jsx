@@ -44,20 +44,6 @@ export default function WeeklyTimesheetCard({ staffMember, weekStart, dailySumma
   const [signOffOpen, setSignOffOpen] = useState(false);
   const [weekSignedOff, setWeekSignedOff] = useState(false);
 
-  // Check whether the week already has an official sign-off signature
-  useEffect(() => {
-    if (!isMerged) return;
-    let alive = true;
-    (async () => {
-      try {
-        const sigs = await fetchSignaturesForWeek(weekStart, staffMember?.id);
-        if (alive) setWeekSignedOff(!!sigs.find((s) => s.tier === 'weekly_official'));
-      } catch { /* ignore */ }
-    })();
-    return () => { alive = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMerged, weekStart, staffMember?.id]);
-
   // Build the 7 days of the week (Mon–Sun)
   const weekDates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart + 'T00:00:00');
@@ -88,6 +74,20 @@ export default function WeeklyTimesheetCard({ staffMember, weekStart, dailySumma
   // A week is "ready to merge" when every worked day is approved (no submitted/rejected/draft left)
   const allApproved = workedDays.length > 0 && workedDays.every((d) => d.entries.every((e) => e.status === 'approved'));
   const isMerged = !!weeklyRecord || mergedDays.length > 0;
+
+  // Check whether the week already has an official sign-off signature
+  useEffect(() => {
+    if (!isMerged) return;
+    let alive = true;
+    (async () => {
+      try {
+        const sigs = await fetchSignaturesForWeek(weekStart, staffMember?.id);
+        if (alive) setWeekSignedOff(!!sigs.find((s) => s.tier === 'weekly_official'));
+      } catch { /* ignore */ }
+    })();
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMerged, weekStart, staffMember?.id]);
 
   // Aggregate totals (from approved + merged entries)
   const countedEntries = dailySummaries.filter((t) => t.status === 'approved' || t.status === 'merged' || t.is_weekly_summary);
