@@ -5,12 +5,11 @@
     "role": {
       "type": "string",
       "enum": [
-        "viewer",
-        "user",
-        "admin"
+        "admin",
+        "user"
       ],
       "default": "user",
-      "description": "User access role"
+      "description": "Platform access role. 'admin' = Super Admin (full platform bypass including user management and all app data), 'user' = standard authenticated user (app-level access is controlled by their linked Staff record's system_role)."
     }
   }
 }

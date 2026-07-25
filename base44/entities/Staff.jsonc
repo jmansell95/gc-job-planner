@@ -66,11 +66,15 @@
     "system_role": {
       "type": "string",
       "enum": [
+        "super_admin",
         "admin",
-        "manager",
-        "viewer"
+        "management",
+        "user",
+        "field",
+        "read_only"
       ],
-      "description": "App-level access role. 'admin' = full access including settings and crews, 'manager' = manage operations without settings, 'viewer' = read-only dashboard access. Blank/null for field staff (schedule-only, controlled by team capabilities)."
+      "default": "field",
+      "description": "App-level access role. 'super_admin' = unrestricted (set automatically when the linked User has platform admin), 'admin' = full dashboard access including settings, 'management' = operations access without settings/crew types, 'user' = basic office dashboard (overview/jobs/calendar read-only), 'field' = field crew (schedule & profile only), 'read_only' = strict read-only dashboard."
     },
     "last_acknowledged_week": {
       "type": "string",

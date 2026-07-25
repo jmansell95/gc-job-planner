@@ -21,11 +21,18 @@ const workerBadge = {
   agency: 'bg-blue-100 text-blue-700',
 };
 
+import { SYSTEM_ROLES } from '@/utils/access';
+
 const roleBadge = {
-  admin: 'bg-purple-100 text-purple-700 border border-purple-200',
-  manager: 'bg-indigo-100 text-indigo-700 border border-indigo-200',
-  viewer: 'bg-slate-100 text-slate-600 border border-slate-200',
+  super_admin: 'bg-purple-100 text-purple-700 border border-purple-200',
+  admin: 'bg-indigo-100 text-indigo-700 border border-indigo-200',
+  management: 'bg-blue-100 text-blue-700 border border-blue-200',
+  user: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+  field: 'bg-amber-100 text-amber-700 border border-amber-200',
+  read_only: 'bg-slate-100 text-slate-600 border border-slate-200',
 };
+
+const roleLabel = Object.fromEntries(SYSTEM_ROLES.map(r => [r.value, r.label]));
 
 export default function StaffManager() {
   const { toast } = useToast();
@@ -42,7 +49,7 @@ export default function StaffManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
   const [workerFilter, setWorkerFilter] = useState('all');
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: 'field' });
 
   const queryClient = useQueryClient();
 
@@ -97,7 +104,7 @@ export default function StaffManager() {
       }
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
-      setFormData({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: '' });
+      setFormData({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: 'field' });
       setShowForm(false);
       setEditingId(null);
     } catch (error) {
@@ -285,12 +292,14 @@ export default function StaffManager() {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Access Level</label>
-              <select value={formData.system_role || ''} onChange={e => setFormData({ ...formData, system_role: e.target.value })}
+              <select value={formData.system_role || 'field'} onChange={e => setFormData({ ...formData, system_role: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="">Field Staff (schedule & profile only)</option>
-                <option value="viewer">Viewer (read-only operations)</option>
-                <option value="manager">Manager (operations access)</option>
-                <option value="admin">Admin (full access)</option>
+                <option value="field">Field (schedule & profile only)</option>
+                <option value="read_only">Read Only (read-only dashboard)</option>
+                <option value="user">User (basic office access)</option>
+                <option value="management">Management (operations access)</option>
+                <option value="admin">Admin (full dashboard access)</option>
+                <option value="super_admin">Super Admin (unrestricted)</option>
               </select>
             </div>
             <div>
@@ -412,9 +421,8 @@ export default function StaffManager() {
                         </span>
                         <select value={linkedUser.role || 'user'} onChange={e => handleRoleChange(linkedUser.id, e.target.value)}
                           className="text-xs px-2 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600">
-                          <option value="viewer">Viewer</option>
-                          <option value="user">User</option>
-                          <option value="admin">Admin</option>
+                          <option value="user">Standard</option>
+                          <option value="admin">Super Admin (platform)</option>
                         </select>
                       </>
                     ) : member.invite_sent ? (
@@ -445,8 +453,8 @@ export default function StaffManager() {
                       </span>
                     )}
                     {member.system_role && (
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${roleBadge[member.system_role] || 'bg-slate-100 text-slate-600'}`}>
-                        {member.system_role}
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${roleBadge[member.system_role] || 'bg-slate-100 text-slate-600'}`}>
+                        {roleLabel[member.system_role] || member.system_role}
                       </span>
                     )}
                   </div>
