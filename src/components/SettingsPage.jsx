@@ -29,6 +29,7 @@ import BillingPage from '@/components/BillingPage';
 import AGSImportSettings from '@/components/AGSImportSettings';
 import SafetyCultureSettings from '@/components/SafetyCultureSettings';
 import PermissionGroupManager from '@/components/PermissionGroupManager';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { resolveRole } from '@/utils/access';
 import { base44 } from '@/api/base44Client';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -118,7 +119,9 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
 
         {/* Main content */}
         <div className="flex-1 min-w-0">
-          {renderContent()}
+          <ErrorBoundary key={activeTab}>
+            {renderContent()}
+          </ErrorBoundary>
         </div>
       </div>
 

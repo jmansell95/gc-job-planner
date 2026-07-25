@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Eye, CheckCircle2, CalendarDays, Users, CalendarRange } from 'lucide-react';
-import { format } from 'date-fns';
+import { safeFormat } from '@/utils/format';
 
 const weekStart = (dateStr) => {
+  if (!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return '';
   const day = (d.getDay() + 6) % 7; // Monday = 0
   d.setDate(d.getDate() - day);
-  return format(d, 'yyyy-MM-dd');
+  return safeFormat(d, 'yyyy-MM-dd', '');
 };
 
 const MODES = [
@@ -53,8 +55,8 @@ export default function WithdrawnAcknowledgementPanel({ timesheets, staff, jobs,
   if (pending.length === 0) return null;
 
   const groupLabel = (key) => {
-    if (mode === 'day') return format(new Date(key + 'T00:00:00'), 'EEEE, dd MMM yyyy');
-    if (mode === 'week') return `Week starting ${format(new Date(key + 'T00:00:00'), 'dd MMM yyyy')}`;
+    if (mode === 'day') return safeFormat(new Date(key + 'T00:00:00'), 'EEEE, dd MMM yyyy');
+    if (mode === 'week') return `Week starting ${safeFormat(new Date(key + 'T00:00:00'), 'dd MMM yyyy')}`;
     const m = staff.find(s => s.id === key);
     return m?.name || 'Unknown staff';
   };
@@ -98,7 +100,7 @@ export default function WithdrawnAcknowledgementPanel({ timesheets, staff, jobs,
                 const job = jobs.find(j => j.id === t.job_id);
                 const who = mode === 'staff'
                   ? (job?.name || '—')
-                  : `${member?.name || 'Unknown staff'}${mode === 'week' ? ` · ${format(new Date(t.date + 'T00:00:00'), 'dd MMM')}` : ''}`;
+                  : `${member?.name || 'Unknown staff'}${mode === 'week' ? ` · ${safeFormat(new Date(t.date + 'T00:00:00'), 'dd MMM')}` : ''}`;
                 return (
                   <div key={t.id} className="text-xs flex gap-2 items-start">
                     <span className="font-medium text-slate-700 flex-shrink-0 min-w-[90px]">{who}</span>

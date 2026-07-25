@@ -42,3 +42,20 @@ export function titleCase(str) {
   if (!str) return '';
   return str.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
+
+import { format as dfFormat } from 'date-fns';
+
+/**
+ * Safe date formatter — returns a fallback string instead of throwing
+ * when the input is null, undefined, or an invalid date. This prevents
+ * a single bad record from blanking out an entire page.
+ */
+export function safeFormat(date, formatStr, fallback = '—') {
+  try {
+    const d = date instanceof Date ? date : new Date(date);
+    if (isNaN(d.getTime())) return fallback;
+    return dfFormat(d, formatStr);
+  } catch {
+    return fallback;
+  }
+}
