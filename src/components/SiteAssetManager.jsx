@@ -86,7 +86,7 @@ export default function SiteAssetManager() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         {[
           { label: 'Compliant', value: assets.filter(a => a.compliance_status === 'compliant').length, grad: 'stat-gradient-emerald', Icon: ShieldCheck },
-          { label: 'Expiring', value: expiringCount, grad: 'stat-gradient-amber', Icon: ShieldAlert },
+          { label: 'Expiring in 30 days', value: expiringCount, grad: 'stat-gradient-amber', Icon: ShieldAlert },
           { label: 'Expired', value: expiredCount, grad: 'stat-gradient-rose', Icon: ShieldX },
           { label: 'Unknown', value: unknownCount, grad: 'stat-gradient-slate', Icon: HelpCircle },
         ].map(s => {

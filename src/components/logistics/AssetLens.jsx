@@ -132,7 +132,7 @@ export default function AssetLens({ open, onClose, assets = [] }) {
               />
             </div>
             <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-              <Database className="w-3 h-3" /> {assets.length} assets in local cache · last sync {config?.last_sync_at ? safeFormat(config.last_sync_at, 'dd MMM HH:mm') : 'never'}
+              <Database className="w-3 h-3" /> {allAssets.length} assets in local cache · last sync {config?.last_sync_at ? safeFormat(config.last_sync_at, 'dd MMM HH:mm') : 'never'}
             </p>
           </div>
 
@@ -230,7 +230,7 @@ export default function AssetLens({ open, onClose, assets = [] }) {
                   <p className="text-[10px] uppercase font-medium text-slate-400 mb-1">{match.linked_equipment_ids.length} linked item(s)</p>
                   <div className="flex flex-wrap gap-1">
                     {match.linked_equipment_ids.slice(0, 6).map((id) => {
-                      const eq = assets.find((a) => a.id === id);
+                      const eq = allAssets.find((a) => a.id === id);
                       return eq ? (
                         <span key={id} className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{eq.name}</span>
                       ) : null;
