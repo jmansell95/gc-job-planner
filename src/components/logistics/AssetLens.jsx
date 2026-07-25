@@ -52,16 +52,25 @@ export default function AssetLens({ open, onClose, assets = [] }) {
     enabled: open,
   });
 
+  // Fetch assets when none are passed in as a prop (e.g. when opened from the
+  // admin nav sidebar rather than the SiteAssetManager page).
+  const { data: fetchedAssets = [] } = useQuery({
+    queryKey: ['site-assets'],
+    queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
+    enabled: open && assets.length === 0,
+  });
+  const allAssets = assets.length > 0 ? assets : fetchedAssets;
+
   const match = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return null;
-    return assets.find((a) => {
+    return allAssets.find((a) => {
       const sn = (a.serial_number || '').toLowerCase().trim();
       const pid = (a.panda_asset_id || '').toLowerCase().trim();
       const nm = (a.name || '').toLowerCase().trim();
       return sn === q || pid === q || nm === q || (sn && sn.includes(q)) || (pid && pid.includes(q));
     }) || null;
-  }, [query, assets]);
+  }, [query, allAssets]);
 
   if (!open) return null;
 

@@ -38,8 +38,70 @@ Deno.serve(async (req) => {
 
     // === Helpers for Equipment records ===
 
+    // GC Compliance Manager stores expiry dates in inconsistent formats
+    // (ISO "2026-10-01", DD/MM/YYYY "28/11/2026", DD-MM-YYYY "05-09-2026",
+    // and truncated month names like "26 Decembe"). The native Date constructor
+    // returns Invalid Date for most of these, which silently made every item
+    // "unknown" — so the expired/expiring counts on the settings page read 0.
+    // This parser handles all the formats GC actually emits.
+    const parseFlexibleDate = (raw) => {
+      if (!raw) return null;
+      const s = String(raw).trim();
+      if (!s || /^null$/i.test(s)) return null;
+      // DD/MM/YYYY or DD/MM/YY
+      const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+      if (m) {
+        let [, d, mo, y] = m;
+        if (y.length === 2) y = '20' + y;
+        const dt = new Date(`${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00`);
+        return isNaN(dt.getTime()) ? null : dt;
+      }
+      // DD-MM-YYYY
+      const m2 = s.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
+      if (m2) {
+        let [, d, mo, y] = m2;
+        if (y.length === 2) y = '20' + y;
+        const dt = new Date(`${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00`);
+        return isNaN(dt.getTime()) ? null : dt;
+      }
+      // Truncated month name — "26 Decembe" -> pad to "26 December"
+      const monthShort = s.match(/^(\d{1,2})\s+([A-Za-z]{3,})/);
+      if (monthShort && !s.match(/^\d{4}-/)) {
+        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const partial = monthShort[2].toLowerCase();
+        const fullMonth = months.find(mn => mn.toLowerCase().startsWith(partial));
+        if (fullMonth) {
+          const yearMatch = s.match(/(\d{4})/);
+          const y = yearMatch ? yearMatch[1] : String(new Date().getFullYear());
+          const mo = String(months.indexOf(fullMonth) + 1).padStart(2, '0');
+          const dt = new Date(`${y}-${mo}-${monthShort[1].padStart(2, '0')}T00:00:00`);
+          return isNaN(dt.getTime()) ? null : dt;
+        }
+      }
+      // ISO or anything Date can parse
+      const dt = new Date(s);
+      return isNaN(dt.getTime()) ? null : dt;
+    };
+
+    const extractExpiry = (e) => {
+      return e.expiry_date || e.compliance_expiry_date || e.next_inspection_date || e.next_service_date || e.nextTestDate || e.inspection_due_date || e.loler_expiry || e.test_due_date || '';
+    };
+
+    // Status is driven by the expiry/inspection date (the source of truth), not
+    // the raw status text — GC sometimes marks items "compliant" even when the
+    // expiry date has already passed. If a valid date exists, it wins.
     const extractEquipmentStatus = (e) => {
       const raw = e.status || e.compliance_status || e.complianceStatus || '';
+      const expiryRaw = extractExpiry(e);
+      const expiryDate = parseFlexibleDate(expiryRaw);
+      if (expiryDate) {
+        const now = new Date();
+        const daysUntil = (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysUntil < 0) return 'expired';
+        if (daysUntil < 30) return 'expiring';
+        return 'compliant';
+      }
+      // No usable date — fall back to the raw status text
       if (raw) {
         const lower = String(raw).toLowerCase();
         if (lower.includes('compliant') && !lower.includes('non')) return 'compliant';
@@ -47,22 +109,7 @@ Deno.serve(async (req) => {
         if (lower.includes('expired') || lower.includes('lapsed') || lower.includes('non')) return 'expired';
         if (lower.includes('unknown') || lower.includes('pending')) return 'unknown';
       }
-      // Fall back to computing status from expiry / inspection date
-      const expiry = e.expiry_date || e.compliance_expiry_date || e.next_inspection_date || e.next_service_date || e.nextTestDate || e.inspection_due_date || e.loler_expiry || e.test_due_date || '';
-      if (expiry) {
-        const now = new Date();
-        const expiryDate = new Date(expiry);
-        if (isNaN(expiryDate.getTime())) return 'unknown';
-        const daysUntil = (expiryDate - now) / (1000 * 60 * 60 * 24);
-        if (daysUntil < 0) return 'expired';
-        if (daysUntil < 30) return 'expiring';
-        return 'compliant';
-      }
       return 'unknown';
-    };
-
-    const extractExpiry = (e) => {
-      return e.expiry_date || e.compliance_expiry_date || e.next_inspection_date || e.next_service_date || e.nextTestDate || e.inspection_due_date || e.loler_expiry || e.test_due_date || '';
     };
 
     const extractSerial = (e) => {

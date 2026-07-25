@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Wrench, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, Anchor, RefreshCw, Info, ScanLine, HelpCircle } from 'lucide-react';
+import { Wrench, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, Anchor, RefreshCw, Info, HelpCircle } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import SyncComplianceButton from '@/components/SyncComplianceButton';
 import ComplianceAttentionPanel from '@/components/ComplianceAttentionPanel';
-import AssetLens from '@/components/logistics/AssetLens';
 import { useConfigLists } from '@/hooks/useConfigLists';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
@@ -43,7 +42,6 @@ export default function SiteAssetManager() {
   const [typeTab, setTypeTab] = useState('all');
   const [search, setSearch] = useState('');
   const [compFilter, setCompFilter] = useState('all');
-  const [lensOpen, setLensOpen] = useState(false);
 
   const typeTabs = [
     { key: 'all', label: 'All', icon: null },
@@ -71,17 +69,8 @@ export default function SiteAssetManager() {
         icon={Wrench}
         title="Compliance Sync"
         description="Rigs, machinery & trailers — synced from GC Compliance Manager only"
-        actions={
-          <>
-            <button onClick={() => setLensOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-700 text-white rounded-lg text-sm font-semibold hover:bg-emerald-800 transition">
-              <ScanLine className="w-4 h-4" /> Asset Lens
-            </button>
-            <SyncComplianceButton />
-          </>
-        }
+        actions={<SyncComplianceButton />}
       />
-      <AssetLens open={lensOpen} onClose={() => setLensOpen(false)} assets={assets} />
 
       {/* Sync-only info banner */}
       <div className="insight-card rounded-xl p-3.5 mb-4 flex items-start gap-2.5">

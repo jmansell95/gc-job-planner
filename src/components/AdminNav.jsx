@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt } from 'lucide-react';
+import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -7,6 +7,7 @@ import { useStaffAssistant } from '@/components/StaffAssistantChat';
 import { useNavigate } from 'react-router-dom';
 import MobileNavDrawer from '@/components/MobileNavDrawer';
 import GlobalSearch from '@/components/GlobalSearch';
+import AssetLens from '@/components/logistics/AssetLens';
 import { canAccessSection } from '@/utils/access';
 import Logo from '@/components/Logo';
 
@@ -14,6 +15,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
   const navigate = useNavigate();
   const [notifOpen, setNotifOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [lensOpen, setLensOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const notifications = useNotifications();
   const notifCount = notifications.count;
@@ -77,6 +79,11 @@ export default function AdminNav({ activeSection, setActiveSection }) {
               {notifCount > 9 ? '9+' : notifCount}
             </span>
           )}
+        </button>
+        <button onClick={() => setLensOpen(true)} type="button"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+          <ScanLine className="w-4 h-4" />
+          Asset Lens
         </button>
       </div>
       <div className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -170,6 +177,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       />
 
       <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} onNavigate={setActiveSection} notifications={notifications} />
+      <AssetLens open={lensOpen} onClose={() => setLensOpen(false)} />
     </>
   );
 }
