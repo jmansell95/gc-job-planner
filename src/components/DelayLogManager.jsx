@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, AlertTriangle, CheckCircle2, XCircle, Loader2, Plus, CalendarClock } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle2, XCircle, Loader2, Plus, CalendarClock, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import DelayLogForm from '@/components/DelayLogForm';
@@ -27,6 +27,7 @@ export default function DelayLogManager({ job }) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [busyId, setBusyId] = useState(null);
+  const [scanning, setScanning] = useState(false);
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['job-delay-logs', job.id],
@@ -85,6 +86,22 @@ export default function DelayLogManager({ job }) {
     setBusyId(null);
   };
 
+  const scanRemarks = async () => {
+    setScanning(true);
+    try {
+      const res = await base44.functions.invoke('generateDelayLogFromRemarks', { job_id: job.id, job_name: job.name });
+      const d = res.data || res;
+      toast({
+        title: d.created > 0 ? `${d.created} delay(s) auto-logged` : 'Scan complete',
+        description: d.message || `Scanned ${d.scanned || 0} remark(s).`,
+      });
+      invalidate();
+    } catch (e) {
+      toast({ title: e?.response?.data?.error || 'Scan failed', variant: 'destructive' });
+    }
+    setScanning(false);
+  };
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
@@ -95,6 +112,11 @@ export default function DelayLogManager({ job }) {
             {pending.length} pending{totalApprovedDays > 0 ? ` · ${totalApprovedDays} day(s) added to schedule` : ''}
           </p>
         </div>
+        <button onClick={scanRemarks} disabled={scanning}
+          className="inline-flex items-center gap-1 px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-semibold hover:bg-violet-700 transition disabled:opacity-50">
+          {scanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+          {scanning ? 'Scanning…' : 'Scan remarks'}
+        </button>
         <button onClick={() => setShowForm(true)}
           className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-semibold hover:bg-amber-700 transition">
           <Plus className="w-3.5 h-3.5" /> Log Delay
