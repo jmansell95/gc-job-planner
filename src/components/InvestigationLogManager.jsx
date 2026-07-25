@@ -8,25 +8,25 @@ import {
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { titleCase } from '@/utils/format';
-import SiteLogReviewManager from '@/components/investigation/SiteLogReviewManager';
+import DrillingSiteLogs from '@/components/investigation/DrillingSiteLogs';
 import {
   strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig,
   fluidLossConfig, obstructionConfig, logTypeConfig,
   getMissingFields, getAnomalyFlags
 } from '@/components/investigation/shared';
 
-export default function InvestigationLogManager({ job, isDrillingJob, assignedStaff, allStaff, canSeeCosts }) {
+export default function InvestigationLogManager({ job, isDrillingJob, assignedStaff, allStaff, canSeeCosts, onViewBoreholes }) {
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['investigation-logs', job.id],
     queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job.id }),
   });
   const [showAgsData, setShowAgsData] = useState(false);
 
-  // For drilling jobs, render the KeyLogBook site log review manager instead.
-  // Drilling site logs come exclusively from the driller's KeyLogBook remarks
-  // — parsed, professionalised, and pending manager review/approval.
+  // For drilling jobs, show a reconciled view: driller activity remarks
+  // (review/approve) plus an index of AGS-imported borehole records — so the
+  // count on this tab matches the Overview "Log Review" card.
   if (isDrillingJob) {
-    return <SiteLogReviewManager job={job} assignedStaff={assignedStaff} />;
+    return <DrillingSiteLogs job={job} assignedStaff={assignedStaff} onViewBoreholes={onViewBoreholes} />;
   }
 
   // Separate AGS-imported borehole data from field crew activity.
