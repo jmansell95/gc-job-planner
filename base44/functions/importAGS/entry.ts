@@ -442,6 +442,48 @@ Deno.serve(async (req) => {
     // log is attributed to them (shown on the Borehole / Logs pages).
     const importerName = (user.full_name || user.email || 'AGS Import (KeyLogBook)');
 
+    // --- Resolve the actual driller for this job (for remarks / Site Logs) ---
+    // Priority: 1) Driller / engineer name found in the AGS file itself
+    //           2) Staff assigned to the job whose team is a drilling crew (cp/rotary)
+    //           3) First assigned staff member
+    let drillerName = '';
+    let drillerStaffId = '';
+
+    // 1) Scan the AGS groups for any driller / engineer / logger name fields
+    const agsNameSuffixes = ['DRILLER', 'DRILL', 'ENG', 'ENGINEER', 'LOGGER', 'LOG', 'OPER', 'OPERATOR', 'RCV', 'BY', 'REC_BY', 'RECORDED', 'INSPECT', 'RECORDED_BY', 'LOGGED_BY'];
+    for (const [name, g] of Object.entries(groups)) {
+      if (drillerName) break;
+      if (!g.headings || g.rows.length === 0) continue;
+      for (const row of g.rows) {
+        if (drillerName) break;
+        const r = buildRow(g, row);
+        for (const h of g.headings) {
+          const suffix = normalizeKey(h, name);
+          if (agsNameSuffixes.includes(suffix.toUpperCase())) {
+            const val = (r[h.toUpperCase()] || '').trim();
+            if (val) { drillerName = val; break; }
+          }
+        }
+      }
+    }
+
+    // 2 & 3) Resolve from the rota — prefer a staff member on a drilling team
+    try {
+      const assignments = await base44.asServiceRole.entities.RotaAssignment.filter({ job_id: job.id });
+      if (assignments.length > 0) {
+        const teams = await base44.asServiceRole.entities.Team.list('-created_date', 500);
+        const drillingJobTypes = ['cp_drilling', 'rotary_drilling'];
+        const drillingTeamIds = new Set(teams.filter((t: any) => drillingJobTypes.includes(t.job_type)).map((t: any) => t.id));
+        const staffIds = [...new Set(assignments.map(a => a.staff_id).filter(Boolean))];
+        const allStaff = (await Promise.all(staffIds.map(id => base44.asServiceRole.entities.Staff.get(id).catch(() => null)))).filter(Boolean) as any[];
+        const drillerStaff = allStaff.find(s => drillingTeamIds.has(s.team_id));
+        const chosen = drillerStaff || allStaff[0];
+        const chosenAssignment = assignments.find(a => a.staff_id === chosen?.id) || assignments[0];
+        drillerStaffId = chosenAssignment.staff_id || '';
+        if (!drillerName) drillerName = chosen?.name || '';
+      }
+    } catch (e) { /* skip */ }
+
     // Overwrite mode: delete existing AGS-imported logs for this job
     let deletedCount = 0;
     try {
@@ -741,8 +783,8 @@ Deno.serve(async (req) => {
         allActivities.forEach((x, i) => {
           if (addLog({
             job_id: job.id,
-            staff_id: staffId,
-            staff_name: importerName,
+            staff_id: drillerStaffId || staffId,
+            staff_name: drillerName || importerName,
             date: x.date,
             log_type: 'other',
             borehole_ref: x.borehole_ref || null,
@@ -752,7 +794,7 @@ Deno.serve(async (req) => {
             duration_minutes: x.activity.duration_minutes,
             description: cleaned[i] || x.activity.raw_description,
             completed_by_type: 'internal_staff',
-            completed_by_name: importerName,
+            completed_by_name: drillerName || importerName,
             manager_review_status: 'pending',
             chargeable: false,
             billing_status: 'no_charge',
