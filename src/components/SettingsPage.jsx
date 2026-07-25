@@ -10,6 +10,7 @@ import EmailAlertsSettings from '@/components/EmailAlertsSettings';
 import GlobalBrandingSettings from '@/components/GlobalBrandingSettings';
 import SupplierManager from '@/components/SupplierManager';
 import OvertimeRatesManager from '@/components/OvertimeRatesManager';
+import BusinessConfigManager from '@/components/BusinessConfigManager';
 import AutomationCenter from '@/components/AutomationCenter';
 import JobTypeManager from '@/components/JobTypeManager';
 import SiteAssetManager from '@/components/SiteAssetManager';
@@ -75,6 +76,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'suppliers': return <SupplierManager />;
       case 'absences': return <AbsenceManager />;
       case 'overtime': return <OvertimeRatesManager />;
+      case 'business-rules': return <BusinessConfigManager />;
       case 'email-alerts': return <EmailAlertsSettings />;
       case 'global-branding': return <GlobalBrandingSettings />;
       case 'automations': return <AutomationCenter />;

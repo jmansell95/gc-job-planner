@@ -44,10 +44,9 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, summaries: [], message: 'No tasks to submit' });
     }
 
-    // ── 9-hour on-site validation ──
-    // On-site work excludes travel_to / travel_from. Staff may submit under 9
-    // hours ONLY if they recorded an early-leave reason on their rota assignment.
-    const REQUIRED_WORK_MINS = 540; // 9 hours
+    // ── on-site validation (threshold from BusinessConfig) ──
+    // On-site work excludes travel_to / travel_from. Staff may submit under the
+    // required threshold ONLY if they recorded an early-leave reason on their rota assignment.
     const onSiteMinsTotal = onSiteTasks.reduce((s, t) => s + (Number(t.task_duration_minutes) || 0), 0);
     const meetsRequiredHours = onSiteMinsTotal >= REQUIRED_WORK_MINS;
 
@@ -66,8 +65,7 @@ Deno.serve(async (req) => {
       }, { status: 422 });
     }
 
-    // Calculate travel times
-    const TRAVEL_DEDUCTIBLE = 90; // 1.5 hours per leg
+    // Calculate travel times (deductible loaded from BusinessConfig above)
     const travelToMins = travelTo ? (Number(travelTo.task_duration_minutes) || 0) : 0;
     const travelFromMins = travelFrom ? (Number(travelFrom.task_duration_minutes) || 0) : 0;
     const payableTravelTo = isDepot ? travelToMins : Math.max(0, travelToMins - TRAVEL_DEDUCTIBLE);

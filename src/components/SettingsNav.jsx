@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale } from 'lucide-react';
 
 export const settingsGroups = [
   {
@@ -55,6 +55,7 @@ export const settingsGroups = [
       { id: 'billing', label: 'Billing Rules', icon: Banknote, desc: 'Delivery, task & consumable pricing rules' },
       { id: 'invoicing', label: 'Billing & Invoicing', icon: Receipt, desc: 'Per-job cost summary & invoice totals — reconcile CDRs and raise invoices', roles: ['admin', 'manager'] },
       { id: 'overtime', label: 'Overtime', icon: Timer, desc: 'Overtime multipliers by day' },
+      { id: 'business-rules', label: 'Business Rules', icon: Scale, desc: 'Core working rules — required daily hours & travel deductions — that drive the timesheet engine' },
     ],
   },
   {
