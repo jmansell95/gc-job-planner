@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { canAccessSection } from '@/utils/access';
 import AdminNav from '@/components/AdminNav';
@@ -12,10 +13,22 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('overview');
   const [selectedJob, setSelectedJob] = useState(null);
   const [settingsTab, setSettingsTab] = useState('hub');
   const [profile, setProfile] = useState(null);
+
+  // The dashboard "Deliveries" stat monitor routes to the dedicated driver
+  // delivery page rather than an embedded admin section. Intercept the
+  // navigation, push the route, and reset the section so the admin dashboard
+  // doesn't render a blank panel.
+  useEffect(() => {
+    if (activeSection === 'deliveries') {
+      navigate('/deliveries');
+      setActiveSection('overview');
+    }
+  }, [activeSection, navigate]);
 
   useEffect(() => {
     (async () => {
