@@ -7,7 +7,10 @@ import { format } from 'date-fns';
 // using jsPDF's native drawing API — selectable text, small file
 // size, automatic page breaks, branded headers and footers.
 
-const LOGO_URL = 'https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/01db80967_GCLogo.jpg';
+// Transparent PNG logo (same lockup used across the app) — so the brand
+// colour of the header/cover shows through the logo's transparent areas
+// instead of a white box behind it.
+const LOGO_URL = 'https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/993ce8312_GC_Logo-removebg-preview.png';
 
 const BRAND = {
   // Ground Control brand palette
@@ -101,9 +104,9 @@ export async function generateJobPackPDF({ job, clientName, contractorName, data
     // Slim header bar — brand orange
     doc.setFillColor(...BRAND.orange);
     doc.rect(0, 0, PAGE.width, 12, 'F');
-    // Logo mark in header (small)
+    // Logo mark in header (small) — transparent PNG, no background box
     if (logoData) {
-      try { doc.addImage(logoData, 'JPEG', PAGE.marginLeft, 2.5, 16, 7, undefined, 'FAST'); } catch (e) {}
+      try { doc.addImage(logoData, 'PNG', PAGE.marginLeft, 2.5, 16, 7, undefined, 'FAST'); } catch (e) {}
     }
     doc.setTextColor(...BRAND.white);
     doc.setFont('helvetica', 'bold');
@@ -320,12 +323,10 @@ export async function generateJobPackPDF({ job, clientName, contractorName, data
   doc.rect(0, 0, PAGE.width, PAGE.height, 'F');
   doc.setFillColor(...BRAND.orange);
   doc.rect(0, 0, PAGE.width, 120, 'F');
-  // Brand logo — large, white-backed, top-left
+  // Brand logo — large, transparent PNG on the orange cover band (no white box)
   if (logoData) {
     try {
-      doc.setFillColor(...BRAND.white);
-      doc.roundedRect(PAGE.marginLeft, 16, 60, 26, 3, 3, 'F');
-      doc.addImage(logoData, 'JPEG', PAGE.marginLeft + 3, 19, 54, 20, undefined, 'FAST');
+      doc.addImage(logoData, 'PNG', PAGE.marginLeft, 18, 56, 20, undefined, 'FAST');
     } catch (e) {}
   }
   // Decorative accent lines
