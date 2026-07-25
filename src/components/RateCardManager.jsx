@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   PoundSterling, Search, Plus, Pencil, Check, X, Users, Wrench, Package,
-  Loader2, Receipt, Building2, TrendingUp, Percent
+  Loader2, Receipt, Building2, TrendingUp, Percent, Copy
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
@@ -190,6 +190,9 @@ export default function RateCardManager() {
   const [bulkScope, setBulkScope] = useState('category');
   const [bulkApplying, setBulkApplying] = useState(false);
   const [viewMode, setViewMode] = useState('master');
+  const [cloneOpen, setCloneOpen] = useState(false);
+  const [clonePct, setClonePct] = useState('');
+  const [cloning, setCloning] = useState(false);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['rate-card-items'],
@@ -288,6 +291,54 @@ export default function RateCardManager() {
     setBulkApplying(false);
   };
 
+  // Clone the entire live "our_company" rate card into a draft supplier tab
+  // (e.g. "Our Rate Card — 2027 Draft") with an optional % uplift. This gives
+  // a safe Draft/Live workflow without changing the rate-card matcher or
+  // affecting live job billing — edit the draft, then swap when ready.
+  const cloneToDraft = async () => {
+    const pct = parseFloat(clonePct);
+    const multiplier = isNaN(pct) ? 1 : 1 + pct / 100;
+    const nextYear = new Date().getFullYear() + 1;
+    const draftName = `Our Rate Card — ${nextYear} Draft`;
+    setCloning(true);
+    try {
+      const sourceItems = items.filter(i => i.rate_card_source !== 'supplier' && i.price != null);
+      if (sourceItems.length === 0) {
+        toast({ title: 'No rates to clone', description: 'Add rates to the live card first.', variant: 'destructive' });
+        setCloning(false); return;
+      }
+      let draftSupplier = suppliers.find(s => s.name === draftName);
+      if (!draftSupplier) {
+        draftSupplier = await base44.entities.Supplier.create({ name: draftName, notes: 'Draft rate card clone — edit prices here before going live.' });
+      }
+      const clones = sourceItems.map(i => ({
+        category: i.category,
+        subcategory: i.subcategory || null,
+        description: i.description,
+        unit: i.unit || null,
+        men: i.men ?? null,
+        size: i.size || null,
+        notes: i.notes || null,
+        sort_order: i.sort_order || 0,
+        is_active: true,
+        rate_card_source: 'supplier',
+        supplier_id: draftSupplier.id,
+        price: i.price != null ? Math.round(i.price * multiplier * 100) / 100 : null,
+        price_text: i.price_text || null,
+      }));
+      for (let i = 0; i < clones.length; i += 500) {
+        await base44.entities.RateCardItem.bulkCreate(clones.slice(i, i + 500));
+      }
+      toast({ title: 'Draft rate card created', description: `${clones.length} rates cloned to "${draftName}"${!isNaN(pct) ? ` with ${pct > 0 ? '+' : ''}${pct}% uplift` : ''}.` });
+      setCloneOpen(false); setClonePct('');
+      refresh();
+      setActiveRateCard(draftSupplier.id);
+    } catch (e) {
+      toast({ title: 'Clone failed', description: e?.message, variant: 'destructive' });
+    }
+    setCloning(false);
+  };
+
   if (viewMode === 'sor') {
     return (
       <div className="space-y-4">
@@ -366,6 +417,9 @@ export default function RateCardManager() {
           <button onClick={() => setBulkOpen(!bulkOpen)} className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition w-full sm:w-auto flex-shrink-0 ${bulkOpen ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
             <TrendingUp className="w-4 h-4" /> Bulk Adjust
           </button>
+          <button onClick={() => setCloneOpen(!cloneOpen)} className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition w-full sm:w-auto flex-shrink-0 ${cloneOpen ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+            <Copy className="w-4 h-4" /> Clone to Draft
+          </button>
         </div>
         {bulkOpen && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2.5">
@@ -383,6 +437,21 @@ export default function RateCardManager() {
                 {bulkApplying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Apply
               </button>
               <button onClick={() => { setBulkOpen(false); setBulkPct(''); }} className="px-3 py-2 text-amber-700 hover:bg-amber-100 rounded-lg text-sm font-medium transition">Cancel</button>
+            </div>
+          </div>
+        )}
+        {cloneOpen && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 space-y-2.5">
+            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800">
+              <Copy className="w-3.5 h-3.5" /> Clone Live Rate Card to a {new Date().getFullYear() + 1} Draft
+            </div>
+            <p className="text-xs text-emerald-700">Copies every rate from "Our Rate Card" into a new draft supplier tab so you can prepare next year's prices without affecting live billing. Optionally apply an uplift %.</p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input type="number" step="0.1" value={clonePct} onChange={e => setClonePct(e.target.value)} placeholder="Uplift % (e.g. 5, or leave blank)" className="flex-1 px-3 py-2 border border-emerald-300 rounded-lg text-sm bg-white focus:outline-none focus:border-emerald-500" />
+              <button onClick={cloneToDraft} disabled={cloning} className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] disabled:opacity-50 transition">
+                {cloning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />} Clone
+              </button>
+              <button onClick={() => { setCloneOpen(false); setClonePct(''); }} className="px-3 py-2 text-emerald-700 hover:bg-emerald-100 rounded-lg text-sm font-medium transition">Cancel</button>
             </div>
           </div>
         )}

@@ -143,7 +143,7 @@ export default function BoreholeDetailModal({ boreholeRef, logs, jobType, onClos
         {/* Footer */}
         <div className="border-t border-slate-100 px-5 py-2.5 bg-slate-50/50 flex items-center justify-between text-xs text-slate-400 flex-shrink-0">
           <span>
-            {logs.filter(l => l.source === 'ags_import').length} of {logs.length} entries from KeyLogBook
+            {logs.filter(l => l.source === 'ags_import').length} of {logs.length} entries from KeyLogBook{summary.progressLog?.completed_by_name ? ` · imported by ${summary.progressLog.completed_by_name}` : ''}
           </span>
           <span>{logs.length} total records</span>
         </div>

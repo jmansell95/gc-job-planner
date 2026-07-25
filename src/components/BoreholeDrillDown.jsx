@@ -134,8 +134,8 @@ export default function BoreholeDrillDown({ job, jobType }) {
                         {s.groundwaterDepth}m
                       </span>
                     )}
-                    {s.type && (
-                      <span className="text-slate-400 text-[10px] uppercase tracking-wide truncate">{s.type}</span>
+                    {s.imported_by && (
+                      <span className="text-slate-400 text-[10px] truncate inline-flex items-center gap-0.5"><Tablet className="w-2.5 h-2.5 flex-shrink-0" />{s.imported_by}</span>
                     )}
                   </div>
 
@@ -267,6 +267,7 @@ function getBoreholeSummary(logs) {
     maxDepth: allDepths.length ? Math.max(...allDepths) : null,
     groundwaterDepth: progressLogs[0]?.groundwater_strike_depth,
     type: progressLogs[0]?.completed_by_name?.replace('AGS Import (KeyLogBook)', '').trim() || null,
+    imported_by: progressLogs[0]?.completed_by_name || null,
     sampleCount: sampleLogs.length,
     sptCount: sptLogs.length,
     strataCount: strataLogs.length,
