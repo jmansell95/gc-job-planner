@@ -82,6 +82,14 @@ Deno.serve(async (req) => {
       byJob[jid].push(t);
     });
 
+    // Compute the Monday of the week for this date (matches utils/overtime weekKey)
+    const _d = new Date(date + 'T00:00:00');
+    const _day = _d.getDay();
+    const _diff = _day === 0 ? 6 : _day - 1;
+    const _monday = new Date(_d);
+    _monday.setDate(_d.getDate() - _diff);
+    const weekStart = `${_monday.getFullYear()}-${String(_monday.getMonth() + 1).padStart(2, '0')}-${String(_monday.getDate()).padStart(2, '0')}`;
+
     const jobIds = Object.keys(byJob);
     const summaries = [];
 
@@ -99,6 +107,7 @@ Deno.serve(async (req) => {
         staff_id,
         job_id: jid === 'no_job' ? '' : jid,
         date,
+        week_start: weekStart,
         task_description: 'Daily Summary',
         task_duration_minutes: totalMins,
         total_hours: Math.round((totalMins / 60) * 100) / 100,

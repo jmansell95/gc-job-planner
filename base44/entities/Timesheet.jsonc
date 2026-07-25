@@ -15,6 +15,11 @@
       "format": "date",
       "description": "Date worked"
     },
+    "week_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Monday of the week this entry belongs to. Set automatically so entries can be grouped into a weekly timesheet for merging and payroll."
+    },
     "task_description": {
       "type": "string",
       "description": "What the staff member was doing (e.g. setting up the rig, putting up heras fencing). 'Break' for break entries."
@@ -75,11 +80,11 @@
     "is_summary": {
       "type": "boolean",
       "default": false,
-      "description": "True for merged daily summary entries created by submitDailyTimesheet. These are what managers approve."
+      "description": "True for merged daily summary entries created by submitDailyTimesheet or approveKeyLogBookLogs. These are what managers approve."
     },
     "summary_entry_ids": {
       "type": "string",
-      "description": "Comma-separated IDs of the granular entries merged into this summary"
+      "description": "Comma-separated IDs of the granular entries merged into this daily summary"
     },
     "on_site_minutes": {
       "type": "number",
@@ -113,6 +118,31 @@
       "type": "string",
       "description": "Time arrived home (HH:MM) \u2014 from the travel_from entry"
     },
+    "is_weekly_summary": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for the single merged weekly record created by mergeWeeklyTimesheet. One per staff per week \u2014 aggregates all approved daily summaries so the week can be downloaded as one payroll document."
+    },
+    "weekly_entry_ids": {
+      "type": "string",
+      "description": "For weekly summaries: comma-separated IDs of the daily summary entries merged into this weekly record."
+    },
+    "weekly_total_minutes": {
+      "type": "number",
+      "description": "For weekly summaries: total payable minutes across the whole week (on-site + payable travel)."
+    },
+    "weekly_standard_minutes": {
+      "type": "number",
+      "description": "For weekly summaries: minutes paid at standard rate (below the overtime threshold)."
+    },
+    "weekly_overtime_minutes": {
+      "type": "number",
+      "description": "For weekly summaries: minutes paid at overtime rate (above the weekly threshold or flagged is_overtime)."
+    },
+    "weekly_meterage": {
+      "type": "number",
+      "description": "For weekly summaries: total metres drilled across the week."
+    },
     "approved_by_name": {
       "type": "string",
       "description": "Name of the manager who approved this timesheet"
@@ -128,7 +158,7 @@
         "merged"
       ],
       "default": "submitted",
-      "description": "Timesheet approval status. 'draft' = still being edited, 'submitted' = awaiting approval, 'approved'/'rejected' = manager decision, 'deleted' = withdrawn by staff, 'merged' = granular entry merged into a daily summary (no longer individually approvable)."
+      "description": "Timesheet approval status. 'draft' = still being edited, 'submitted' = awaiting approval, 'approved'/'rejected' = manager decision, 'deleted' = withdrawn by staff, 'merged' = daily summary merged into a weekly record (no longer individually approvable)."
     },
     "deletion_reason": {
       "type": "string",

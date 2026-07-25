@@ -122,6 +122,7 @@ export default function StaffTimesheets({ staffId, staffName }) {
     staff_id: staffId,
     job_id: form.job_id,
     date: form.date,
+    week_start: weekKey(form.date),
     task_description: form.task_description.trim(),
     start_time: form.start_time,
     end_time: form.end_time,
