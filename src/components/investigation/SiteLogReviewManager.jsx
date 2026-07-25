@@ -171,7 +171,8 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
             const dayPending = dayLogs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
             const dayTotalMins = dayLogs.reduce((s, l) => s + (l.duration_minutes || 0), 0);
             const d = new Date(date + 'T00:00:00');
-            const drillerName = dayLogs[0]?.staff_name || dayLogs[0]?.completed_by_name || '';
+            const namedLog = dayLogs.find(l => l.staff_name || l.completed_by_name);
+            const drillerName = namedLog?.staff_name || namedLog?.completed_by_name || '';
 
             return (
               <div key={date} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -185,10 +186,9 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
                   <span className="text-xs text-slate-400">·</span>
                   <span className="text-xs text-slate-500 flex items-center gap-1"><Clock className="w-3 h-3" /> {fmtDur(dayTotalMins)}</span>
                   {drillerName && (
-                    <>
-                      <span className="text-xs text-slate-400">·</span>
-                      <span className="text-xs text-slate-500 flex items-center gap-1"><User className="w-3 h-3" /> {drillerName}</span>
-                    </>
+                    <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+                      <User className="w-3 h-3" /> {drillerName}
+                    </span>
                   )}
                   {dayPending > 0 ? (
                     <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
@@ -256,6 +256,12 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
                             </span>
                             <span className="text-xs text-slate-400">·</span>
                             <span className="text-xs font-medium text-slate-500">{fmtDur(log.duration_minutes)}</span>
+                            {(log.staff_name || log.completed_by_name) && (
+                              <>
+                                <span className="text-xs text-slate-400">·</span>
+                                <span className="text-xs text-slate-500 flex items-center gap-1"><User className="w-3 h-3" /> {log.staff_name || log.completed_by_name}</span>
+                              </>
+                            )}
                             {isPending ? (
                               <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
                                 <AlertTriangle className="w-2.5 h-2.5" /> Pending
