@@ -390,22 +390,35 @@ Deno.serve(async (req) => {
     // by the app's route guard.
     let user: any = null;
     try { user = await base44.auth.me(); } catch (e) { /* token not forwarded — proceed with service role */ }
-    const body = await req.json();
-    const fileContent = body.file_content;
-    const fileUrl = body.file_url;
-    const jobId: string | null = body.job_id || null;
-    if (!fileContent && !fileUrl) return Response.json({ error: 'An AGS file is required.' }, { status: 400 });
 
-    // Prefer the raw text sent directly from the browser (avoids the admin-only
-    // UploadFile integration so managers can import). Fall back to fetching a
-    // previously-uploaded file URL for backward compatibility.
+    // Accept the AGS file three ways for maximum compatibility:
+    //   1. Multipart form upload (preferred — functions.invoke with a File
+    //      object uses multipart/form-data, no JSON body size limit, no
+    //      admin-only UploadFile integration).
+    //   2. Raw text in a JSON body (file_content) — legacy inline path.
+    //   3. A previously-uploaded file URL (file_url) — legacy fallback.
     let text: string;
-    if (fileContent) {
-      text = String(fileContent);
+    let jobId: string | null = null;
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      const filePart = formData.get('file');
+      jobId = (formData.get('job_id') as string) || null;
+      if (!filePart) return Response.json({ error: 'An AGS file is required.' }, { status: 400 });
+      text = await (filePart as File).text();
     } else {
-      const fileRes = await fetch(fileUrl);
-      if (!fileRes.ok) return Response.json({ error: 'Could not download AGS file' }, { status: 422 });
-      text = await fileRes.text();
+      const body = await req.json();
+      const fileContent = body.file_content;
+      const fileUrl = body.file_url;
+      jobId = body.job_id || null;
+      if (!fileContent && !fileUrl) return Response.json({ error: 'An AGS file is required.' }, { status: 400 });
+      if (fileContent) {
+        text = String(fileContent);
+      } else {
+        const fileRes = await fetch(fileUrl);
+        if (!fileRes.ok) return Response.json({ error: 'Could not download AGS file' }, { status: 422 });
+        text = await fileRes.text();
+      }
     }
     const groups = parseAGS(text);
 

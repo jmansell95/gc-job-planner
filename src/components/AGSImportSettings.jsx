@@ -31,15 +31,14 @@ export default function AGSImportSettings() {
     setError('');
     setResult(null);
     try {
-      // Read the AGS file as text in the browser and send the raw content
-      // straight to the import function. We deliberately do NOT use the
-      // UploadFile integration here: on the published site that integration
-      // requires admin-level file access and throws "authentication required
-      // to view users" for non-admin managers. The backend importAGS function
-      // reads file_content directly, so this works for any authenticated
-      // user whose route guard lets them reach this settings page.
-      const fileContent = await file.text();
-      const res = await base44.functions.invoke('importAGS', { file_content: fileContent, job_id: jobId || null });
+      // Send the AGS file directly to the import function as a multipart
+      // upload. We deliberately do NOT use the UploadFile integration here:
+      // on the published site that integration requires admin-level file
+      // access and throws "authentication required to view users" for
+      // non-admin managers. Passing the File object straight to
+      // functions.invoke uses multipart/form-data (no JSON body size limit,
+      // no admin-only integration), and the backend reads it via req.formData().
+      const res = await base44.functions.invoke('importAGS', { file, job_id: jobId || null });
       setResult(res.data);
       toast({ title: 'AGS data imported', description: `${res.data.inserted} log entries added to ${res.data.job_name}.` });
       setFile(null);
