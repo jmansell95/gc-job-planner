@@ -190,7 +190,8 @@ export default function WeeklyTimesheetCard({ staffMember, weekStart, dailySumma
       {/* Day chips */}
       <div className="px-4 sm:px-5 py-3 grid grid-cols-7 gap-1.5 sm:gap-2">
         {dayStates.map((d) => {
-          const { status, Icon } = d;
+          const { status } = d;
+          const Icon = status.Icon;
           return (
             <div key={d.date} className={`flex flex-col items-center gap-1 p-1.5 rounded-lg ring-1 ${status.bg} ${status.ring}`}>
               <span className="text-[10px] font-bold text-slate-500 uppercase">{d.label}</span>
