@@ -135,17 +135,50 @@ Deno.serve(async (req) => {
     } catch (e) { /* continue */ }
 
     // --- Identify the lead driller (for staff_name on remarks logs) ---
-    let leadDrillerName = str(body.lead_driller_name);
+    // Priority: 1) Driller name embedded in the AGS / borehole / log payload
+    //           2) lead_driller_name from the webhook body
+    //           3) Staff assigned that day whose team is a drilling crew (cp/rotary)
+    //           4) First assigned staff member (last-resort fallback)
+    let leadDrillerName = '';
     let leadDrillerId = '';
+
+    // 1) Scan the AGS / borehole / log payloads for a driller / engineer name
+    const agsNameFields = ['driller_name', 'driller', 'logged_by', 'engineer', 'operator', 'recorded_by', 'inspected_by'];
+    const scanForDriller = (...arrs: any[][]) => {
+      for (const arr of arrs) {
+        if (!Array.isArray(arr)) continue;
+        for (const item of arr) {
+          if (!item || typeof item !== 'object') continue;
+          for (const f of agsNameFields) {
+            const val = str(item[f]);
+            if (val) return val;
+          }
+        }
+      }
+      return '';
+    };
+    leadDrillerName = scanForDriller(body.boreholes, body.logs, body.remarks_data, body.ags_data);
+
+    // 2) Fall back to the webhook body's explicit lead_driller_name
+    if (!leadDrillerName) leadDrillerName = str(body.lead_driller_name);
+
+    // 3 & 4) Resolve from the rota — prefer a staff member on a drilling team
     try {
       const assignments = await base44.asServiceRole.entities.RotaAssignment.filter({ job_id: job.id, assigned_date: workDate });
       if (assignments.length > 0) {
-        // First assignment is typically the lead driller
-        leadDrillerId = assignments[0].staff_id || '';
-        if (!leadDrillerName) {
-          const staff = await base44.asServiceRole.entities.Staff.get(leadDrillerId);
-          leadDrillerName = staff?.name || '';
-        }
+        const teams = await base44.asServiceRole.entities.Team.list('-created_date', 500);
+        const drillingJobTypes = ['cp_drilling', 'rotary_drilling'];
+        const drillingTeamIds = new Set(teams.filter((t: any) => drillingJobTypes.includes(t.job_type)).map((t: any) => t.id));
+
+        const staffIds = [...new Set(assignments.map(a => a.staff_id).filter(Boolean))];
+        const allStaff = (await Promise.all(staffIds.map(id => base44.asServiceRole.entities.Staff.get(id).catch(() => null)))).filter(Boolean) as any[];
+
+        const drillerStaff = allStaff.find(s => drillingTeamIds.has(s.team_id));
+        const chosen = drillerStaff || allStaff[0];
+        const chosenAssignment = assignments.find(a => a.staff_id === chosen?.id) || assignments[0];
+
+        leadDrillerId = chosenAssignment.staff_id || '';
+        if (!leadDrillerName) leadDrillerName = chosen?.name || '';
       }
     } catch (e) { /* skip */ }
 
