@@ -267,14 +267,15 @@ Deno.serve(async (req) => {
       if (!cfg || cfg.enabled === false) {
         return Response.json({ error: 'Invitation email is disabled. Enable it in Email Alerts.' }, { status: 400 });
       }
-      if (!cfg.template) {
-        return Response.json({ error: 'No invitation template configured. Add one under the App Invitation tab first.' }, { status: 400 });
-      }
       const name = staff_name || (email.split('@')[0] || 'there');
-      const subject = cfg.subject
+      // Fall back to a sensible default invitation message when no custom
+      // template has been configured, so the branded invite always sends.
+      const defaultTemplate = 'Hi {staff_name},\n\nYou have been invited to join the GC Job Planner app. Use the login link sent to {email} to set up your account and start viewing your schedule and logging timesheets.\n\nGC Job Planner';
+      const template = (cfg && cfg.template) ? cfg.template : defaultTemplate;
+      const subject = (cfg && cfg.subject)
         ? cfg.subject.replace(/\{staff_name\}/g, name).replace(/\{email\}/g, email)
         : 'You are invited to GC Job Planner';
-      const text = cfg.template.replace(/\{staff_name\}/g, name).replace(/\{email\}/g, email);
+      const text = template.replace(/\{staff_name\}/g, name).replace(/\{email\}/g, email);
       const baseUrl = await getAppBaseUrl(base44);
       const bodyHtml = textToHtml(text) + linkBlock(baseUrl, '', 'Open the app');
       const html = styledHtml(bodyHtml, cfg);

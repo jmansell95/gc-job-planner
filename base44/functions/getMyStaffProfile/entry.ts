@@ -6,9 +6,18 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    let staff = await base44.entities.Staff.filter({ email: user.email });
-    if (staff.length === 0 && user.id) {
-      try { staff = await base44.entities.Staff.filter({ user_id: user.id }); } catch (_) {}
+    // Match robustly using the service role (avoids any RLS edge cases) with
+    // a case-insensitive email comparison and a user_id fallback. A manually
+    // created Staff record often has user_id blank, and the user-context email
+    // filter can miss exact-but-different-case matches — so we do both.
+    const allStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 500);
+    let staff = [];
+    if (user.id) {
+      staff = allStaff.filter(s => s.user_id && s.user_id === user.id);
+    }
+    if (staff.length === 0 && user.email) {
+      const lc = user.email.toLowerCase();
+      staff = allStaff.filter(s => s.email && s.email.toLowerCase() === lc);
     }
 
     const isAdmin = user.role === 'admin';

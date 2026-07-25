@@ -81,6 +81,12 @@ export default function StaffManager() {
           try {
             await base44.users.inviteUser(formData.email, 'user');
             await base44.entities.Staff.update(created.id, { invite_sent: true });
+            // Also send the customisable branded invitation email (editable
+            // in Settings → Email Alerts → App Invitation) so the crew member
+            // receives your custom message in addition to the platform invite.
+            try {
+              await base44.functions.invoke('manageEmailAlerts', { action: 'send_invitation', email: formData.email, staff_name: formData.name });
+            } catch (e) { /* branded invite is non-fatal */ }
             toast({ title: 'Crew member added', description: `Invite sent to ${formData.email}` });
           } catch (err) {
             toast({ title: 'Crew member added', description: 'App invite could not be sent — use the "Send app invite" button on the card.', variant: 'destructive' });
