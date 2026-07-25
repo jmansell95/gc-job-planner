@@ -13,6 +13,7 @@ import { syncAllOfflineData, getOfflineDeliveryCount } from '@/utils/offlineSync
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME, SITE_EARLY_ACCESS_TIME } from '@/utils/siteHours';
 import { complianceDaysUntil } from '@/utils/complianceDate';
 import OutsideSiteHours from '@/components/staff/OutsideSiteHours';
+import { useAuth } from '@/lib/AuthContext';
 
 import ShiftWizard from '@/components/staff/ShiftWizard';
 import EarlyLeaveModal from '@/components/staff/EarlyLeaveModal';
@@ -32,6 +33,8 @@ export default function StaffDashboard() {
   const navigate = useNavigate();
   const [staff, setStaff] = useState(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isPlatformAdmin = user?.role === 'admin';
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [shiftWizard, setShiftWizard] = useState(null);
@@ -50,9 +53,16 @@ export default function StaffDashboard() {
         const profile = res.data;
         if (profile && (profile.id || profile.is_admin)) {
           setStaff(profile);
+        } else if (isPlatformAdmin) {
+          // Super admin with no linked crew profile — preview the schedule
+          // instead of hitting the "No crew profile found" dead-end.
+          setStaff({ id: null, name: user?.full_name || user?.email, email: user?.email, is_admin: true, system_role: 'admin', team: null, no_staff_profile: true });
         }
       } catch (error) {
         console.error('Error loading staff:', error);
+        if (isPlatformAdmin) {
+          setStaff({ id: null, name: user?.full_name || user?.email, email: user?.email, is_admin: true, system_role: 'admin', team: null, no_staff_profile: true });
+        }
       } finally {
         setLoading(false);
       }
@@ -448,10 +458,10 @@ export default function StaffDashboard() {
     );
   }
 
-  if (!isWithinSiteHours() && !isBeforeSiteOpen() && !staff?.is_admin) {
+  if (!isWithinSiteHours() && !isBeforeSiteOpen() && !staff?.is_admin && !isPlatformAdmin) {
     return <OutsideSiteHours openTime={SITE_OPEN_TIME} closeTime={SITE_CLOSE_TIME} />;
   }
-  const canPerformActions = isWithinSiteHours() || staff?.is_admin;
+  const canPerformActions = isWithinSiteHours() || staff?.is_admin || isPlatformAdmin;
 
   // Staff only see assignments from the latest published (non-superseded) rota week.
   // When a new draft is created, old weeks are superseded and staff see nothing until
