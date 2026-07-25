@@ -7,6 +7,7 @@ import {
   ArrowDownToLine, TestTube, MapPin, Package, Wrench, Undo2, Ruler,
   Droplets, Calculator, Layers, Gauge, Waves, Camera, FileText, Eye,
   Tablet, User, Download, Loader2, Filter, ChevronDown, HardHat,
+  Activity, Search,
 } from 'lucide-react';
 import {
   strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig,
@@ -32,6 +33,9 @@ export default function LogQualityControl() {
   const [selected, setSelected] = useState(new Set());
   const [exporting, setExporting] = useState(false);
   const [exportJobId, setExportJobId] = useState('all');
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('date');
+  const [anomalyOnly, setAnomalyOnly] = useState(false);
 
   const queryReasons = [
     'Inconsistent strata description',
@@ -65,14 +69,32 @@ export default function LogQualityControl() {
   }, [jobs]);
 
   const filteredLogs = useMemo(() => {
-    return logs.filter(l => {
+    let result = logs.filter(l => {
       if (filter !== 'all' && (l.manager_review_status || 'pending') !== filter) return false;
       if (originFilter !== 'all' && (l.source || 'staff') !== originFilter) return false;
       if (crewFilter !== 'all' && (l.crew_type || 'internal') !== crewFilter) return false;
       if (jobFilter !== 'all' && l.job_id !== jobFilter) return false;
+      if (anomalyOnly && getAnomalyFlags(l).length === 0 && getMissingFields(l).length === 0) return false;
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const matches = (l.borehole_ref || '').toLowerCase().includes(q) ||
+          (l.sample_id || '').toLowerCase().includes(q) ||
+          (l.description || '').toLowerCase().includes(q) ||
+          (l.strata_description_detail || '').toLowerCase().includes(q) ||
+          (l.staff_name || '').toLowerCase().includes(q);
+        if (!matches) return false;
+      }
       return true;
     });
-  }, [logs, filter, originFilter, jobFilter]);
+    if (sortBy === 'depth') {
+      result = [...result].sort((a, b) => (b.depth_to || 0) - (a.depth_to || 0));
+    } else if (sortBy === 'borehole') {
+      result = [...result].sort((a, b) => (a.borehole_ref || 'zzz').localeCompare(b.borehole_ref || 'zzz'));
+    } else if (sortBy === 'oldest') {
+      result = [...result].sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+    return result;
+  }, [logs, filter, originFilter, crewFilter, jobFilter, anomalyOnly, search, sortBy]);
 
   const stats = useMemo(() => {
     const pending = logs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
@@ -81,7 +103,18 @@ export default function LogQualityControl() {
     const withAnomalies = logs.filter(l => getAnomalyFlags(l).length > 0).length;
     const incomplete = logs.filter(l => getMissingFields(l).length > 0).length;
     const agsImported = logs.filter(l => l.source === 'ags_import').length;
-    return { pending, approved, queried, withAnomalies, incomplete, agsImported, total: logs.length };
+    // Total meters drilled = sum of max depth per borehole
+    const maxDepthByRef = {};
+    logs.filter(l => l.log_type === 'borehole_progress' && l.borehole_ref && l.depth_to != null).forEach(l => {
+      if (!maxDepthByRef[l.borehole_ref] || l.depth_to > maxDepthByRef[l.borehole_ref]) {
+        maxDepthByRef[l.borehole_ref] = l.depth_to;
+      }
+    });
+    const totalMeters = Object.values(maxDepthByRef).reduce((a, b) => a + b, 0);
+    const boreholeCount = Object.keys(maxDepthByRef).length;
+    const reviewRate = logs.length > 0 ? Math.round(((approved + queried) / logs.length) * 100) : 0;
+
+    return { pending, approved, queried, withAnomalies, incomplete, agsImported, totalMeters, boreholeCount, reviewRate, total: logs.length };
   }, [logs]);
 
   // Jobs that have approved logs ready for OpenGround export
@@ -190,7 +223,34 @@ export default function LogQualityControl() {
         <StatCard label="Queried" value={stats.queried} icon={XCircle} color="text-red-700 bg-red-50 border-red-200" onClick={() => setFilter('queried')} active={filter === 'queried'} />
         <StatCard label="KeyLogBook" value={stats.agsImported} icon={Tablet} color="text-indigo-700 bg-indigo-50 border-indigo-200" onClick={() => setOriginFilter(originFilter === 'ags_import' ? 'all' : 'ags_import')} active={originFilter === 'ags_import'} />
         <StatCard label="Incomplete" value={stats.incomplete} icon={AlertTriangle} color="text-orange-700 bg-orange-50 border-orange-200" />
-        <StatCard label="Anomalies" value={stats.withAnomalies} icon={AlertTriangle} color="text-rose-700 bg-rose-50 border-rose-200" />
+        <StatCard label="Anomalies" value={stats.withAnomalies} icon={AlertTriangle} color="text-rose-700 bg-rose-50 border-rose-200" onClick={() => setAnomalyOnly(!anomalyOnly)} active={anomalyOnly} />
+        <StatCard label="Total Drilled" value={`${stats.totalMeters}m`} icon={ArrowDownToLine} color="text-blue-700 bg-blue-50 border-blue-200" />
+      </div>
+
+      {/* Review progress bar */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+              <Activity className="w-4 h-4 text-slate-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Review Progress</h3>
+              <p className="text-xs text-slate-500">{stats.approved + stats.queried} of {stats.total} logs reviewed · {stats.boreholeCount} boreholes · {stats.totalMeters}m drilled</p>
+            </div>
+          </div>
+          <span className="text-2xl font-bold text-slate-900 tabular-nums">{stats.reviewRate}%</span>
+        </div>
+        <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
+          <div className="bg-emerald-500 h-full transition-all" style={{ width: `${stats.total ? (stats.approved / stats.total) * 100 : 0}%` }} title={`${stats.approved} approved`} />
+          <div className="bg-red-400 h-full transition-all" style={{ width: `${stats.total ? (stats.queried / stats.total) * 100 : 0}%` }} title={`${stats.queried} queried`} />
+          <div className="bg-amber-400 h-full transition-all" style={{ width: `${stats.total ? (stats.pending / stats.total) * 100 : 0}%` }} title={`${stats.pending} pending`} />
+        </div>
+        <div className="flex items-center gap-4 mt-2 text-xs">
+          <span className="inline-flex items-center gap-1 text-slate-600"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> {stats.approved} approved</span>
+          <span className="inline-flex items-center gap-1 text-slate-600"><span className="w-2.5 h-2.5 rounded-full bg-red-400" /> {stats.queried} queried</span>
+          <span className="inline-flex items-center gap-1 text-slate-600"><span className="w-2.5 h-2.5 rounded-full bg-amber-400" /> {stats.pending} pending</span>
+        </div>
       </div>
 
       {/* OpenGround Export bar */}
@@ -258,6 +318,29 @@ export default function LogQualityControl() {
           <option value="all">All jobs</option>
           {jobs.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
         </select>
+        <div className="relative">
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search ref, sample, staff…"
+            className="pl-8 pr-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:border-slate-400 w-44"
+          />
+        </div>
+        <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+          className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:border-slate-400">
+          <option value="date">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="borehole">Borehole ref</option>
+          <option value="depth">Deepest first</option>
+        </select>
+        {anomalyOnly && (
+          <button onClick={() => setAnomalyOnly(false)}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-100 text-rose-700 hover:bg-rose-200 transition">
+            <AlertTriangle className="w-3.5 h-3.5" /> Anomalies only ✕
+          </button>
+        )}
         <button onClick={() => { setBulkMode(!bulkMode); setSelected(new Set()); }}
           className={`ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${bulkMode ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
           <Filter className="w-3.5 h-3.5" /> {bulkMode ? 'Exit bulk' : 'Bulk approve'}

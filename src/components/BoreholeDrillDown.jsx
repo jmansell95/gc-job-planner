@@ -46,6 +46,28 @@ export default function BoreholeDrillDown({ job, jobType }) {
     return boreholes.filter(([ref]) => ref.toLowerCase().includes(q));
   }, [boreholes, search]);
 
+  // Aggregate totals across all boreholes
+  const totals = useMemo(() => {
+    let totalMeters = 0;
+    let totalSamples = 0;
+    let totalSPTs = 0;
+    let totalCores = 0;
+    let totalInstallations = 0;
+    let avgRecovery = null;
+    const allRecoveries = [];
+    boreholes.forEach(([, refLogs]) => {
+      const s = getBoreholeSummary(refLogs);
+      if (s.maxDepth != null) totalMeters += s.maxDepth;
+      totalSamples += s.sampleCount;
+      totalSPTs += s.sptCount;
+      totalCores += s.coreCount;
+      totalInstallations += s.installCount;
+      if (s.avgRecovery != null) allRecoveries.push(s.avgRecovery);
+    });
+    if (allRecoveries.length) avgRecovery = Math.round(allRecoveries.reduce((a, b) => a + b, 0) / allRecoveries.length);
+    return { totalMeters, totalSamples, totalSPTs, totalCores, totalInstallations, avgRecovery };
+  }, [boreholes]);
+
   const activeLogs = selectedRef ? boreholes.find(([ref]) => ref === selectedRef)?.[1] || [] : [];
 
   if (isLoading) {
@@ -94,6 +116,47 @@ export default function BoreholeDrillDown({ job, jobType }) {
             placeholder="Search borehole ref…"
             className="pl-9 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 w-48 sm:w-56"
           />
+        </div>
+      </div>
+
+      {/* Summary stats banner */}
+      <div className="px-5 py-3.5 bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 border-b border-slate-100">
+        <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+              <ArrowDownToLine className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-slate-900 leading-none tabular-nums">
+                {totals.totalMeters}<span className="text-sm font-semibold text-slate-400 ml-0.5">m</span>
+              </p>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">Total Drilled</p>
+            </div>
+          </div>
+          <div className="h-9 w-px bg-slate-200" />
+          <SummaryStat icon={Mountain} value={boreholes.length} label="Boreholes" color="text-emerald-700" />
+          <div className="h-9 w-px bg-slate-200 hidden sm:block" />
+          <SummaryStat icon={TestTube} value={totals.totalSamples} label="Samples" color="text-purple-700" />
+          <div className="h-9 w-px bg-slate-200 hidden sm:block" />
+          <SummaryStat icon={Calculator} value={totals.totalSPTs} label="SPTs" color="text-violet-700" />
+          {totals.totalCores > 0 && (
+            <>
+              <div className="h-9 w-px bg-slate-200 hidden sm:block" />
+              <SummaryStat icon={Boxes} value={totals.totalCores} label="Core Runs" color="text-fuchsia-700" />
+            </>
+          )}
+          {totals.totalInstallations > 0 && (
+            <>
+              <div className="h-9 w-px bg-slate-200 hidden sm:block" />
+              <SummaryStat icon={Package} value={totals.totalInstallations} label="Installations" color="text-emerald-700" />
+            </>
+          )}
+          {totals.avgRecovery != null && (
+            <>
+              <div className="h-9 w-px bg-slate-200 hidden md:block" />
+              <SummaryStat icon={Activity} value={`${totals.avgRecovery}%`} label="Avg Recovery" color="text-fuchsia-700" />
+            </>
+          )}
         </div>
       </div>
 
@@ -237,6 +300,18 @@ function MiniStrataBar({ strataLogs, maxDepth }) {
           />
         );
       })}
+    </div>
+  );
+}
+
+function SummaryStat({ icon: Icon, value, label, color }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Icon className={`w-4 h-4 ${color}`} />
+      <div>
+        <p className="text-base font-bold text-slate-900 leading-none tabular-nums">{value}</p>
+        <p className="text-xs text-slate-500 font-medium mt-0.5">{label}</p>
+      </div>
     </div>
   );
 }
