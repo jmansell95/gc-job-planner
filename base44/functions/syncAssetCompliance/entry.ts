@@ -246,26 +246,16 @@ Deno.serve(async (req) => {
       // Skip assets that are rigs — they'll be matched against rig records below
       if (asset.asset_type === 'rig') continue;
 
+      // Match STRICTLY by the GC compliance record ID. The previous serial and
+      // name fallbacks silently re-linked orphaned assets (whose original GC
+      // record had been deleted) to a DIFFERENT GC record that happened to
+      // share a serial or name — overwriting external_compliance_id and
+      // hiding the orphan from the purge, so phantom assets not in the real
+      // GC app kept appearing. ID-only matching keeps the link honest; true
+      // orphans now fall through to the purge below.
       let match = null;
-
       if (asset.external_compliance_id) {
         match = equipmentRecords.find(e => e.id === asset.external_compliance_id);
-      }
-
-      if (!match && asset.serial_number) {
-        const assetSerial = String(asset.serial_number).toLowerCase().trim();
-        match = equipmentRecords.find(e => {
-          const eSerial = String(extractSerial(e)).toLowerCase().trim();
-          return eSerial && eSerial === assetSerial;
-        });
-      }
-
-      if (!match && asset.name) {
-        const assetName = String(asset.name).toLowerCase().trim();
-        match = equipmentRecords.find(e => {
-          const eName = String(e.name || '').toLowerCase().trim();
-          return eName && eName === assetName;
-        });
       }
 
       if (!match) {
@@ -350,30 +340,14 @@ Deno.serve(async (req) => {
       // Only process rig-type assets against rig records
       if (asset.asset_type !== 'rig') continue;
 
+      // Strict ID-only matching (see equipment loop comment above).
       let match = null;
-
       if (asset.external_compliance_id) {
         match = rigRecords.find(r => r.id === asset.external_compliance_id);
       }
 
-      if (!match && asset.serial_number) {
-        const assetSerial = String(asset.serial_number).toLowerCase().trim();
-        match = rigRecords.find(r => {
-          const rSerial = String(r.registration_number || '').toLowerCase().trim();
-          return rSerial && rSerial === assetSerial;
-        });
-      }
-
-      if (!match && asset.name) {
-        const assetName = String(asset.name).toLowerCase().trim();
-        match = rigRecords.find(r => {
-          const rName = String(r.name || '').toLowerCase().trim();
-          return rName && rName === assetName;
-        });
-      }
-
       if (!match) {
-        // Rig no longer in compliance app — keep it but mark unknown
+        // Rig no longer in compliance app — leave it for the purge below.
         continue;
       }
 
@@ -435,17 +409,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // === Purge SiteAssets no longer in GC Compliance Manager ===
-    // Only purge assets that were PREVIOUSLY linked to GC Compliance Manager
-    // (have an external_compliance_id) but are no longer found there. Assets
-    // with no external_compliance_id came from Asset Panda or manual entry —
-    // the compliance sync is not the source of truth for what assets exist,
-    // only for their compliance status, so it must never delete those.
+    // === Purge SiteAssets not in GC Compliance Manager ===
+    // GC Compliance Manager is the single source of truth for the asset list.
+    // Any non-demo SiteAsset that was NOT matched to a current GC record is
+    // removed — both orphans (external_compliance_id pointing to a deleted GC
+    // record) and assets that originated elsewhere — so the dashboard only
+    // ever shows what actually exists in GC right now.
     let purged = 0;
     let jobAssignmentsRemoved = 0;
     let jobCostItemsRemoved = 0;
     const orphanedAssetIds = siteAssets
-      .filter(a => a.external_compliance_id && !matchedSiteAssetIds.has(a.id))
+      .filter(a => !matchedSiteAssetIds.has(a.id))
       .map(a => a.id);
 
     if (orphanedAssetIds.length > 0) {
