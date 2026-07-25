@@ -24,6 +24,7 @@ export default function DrillingSiteLogs({ job, assignedStaff, onViewBoreholes }
   const remarksLogs = logs.filter(l => l.source === 'keylogbook_remarks');
   const agsLogs = logs.filter(l => l.source === 'ags_import');
   const otherLogs = logs.filter(l => l.source !== 'keylogbook_remarks' && l.source !== 'ags_import');
+  const loggedDays = new Set(logs.map(l => l.date).filter(Boolean)).size;
 
   const byBorehole = {};
   agsLogs.forEach(l => {
@@ -53,7 +54,8 @@ export default function DrillingSiteLogs({ job, assignedStaff, onViewBoreholes }
           <h2 className="font-semibold text-slate-900">Site Logs</h2>
           <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{logs.length} total</span>
         </div>
-        <div className="grid grid-cols-2 gap-3 px-5 py-4 bg-slate-50/50 border-b border-slate-100">
+        <div className="grid grid-cols-3 gap-3 px-5 py-4 bg-slate-50/50 border-b border-slate-100">
+          <SummaryStat label="Days Logged" value={loggedDays} hint="unique dates" tone="emerald" />
           <SummaryStat label="Driller Activities" value={remarksLogs.length} hint="KeyLogBook remarks" tone="indigo" />
           <SummaryStat label="Other Entries" value={otherLogs.length} hint="field logs" tone="slate" />
         </div>
