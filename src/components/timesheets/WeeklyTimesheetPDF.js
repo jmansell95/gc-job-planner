@@ -1,7 +1,6 @@
 // Weekly timesheet PDF generator — uses jspdf (installed).
 // Renders a clean, payroll-ready weekly timesheet for one staff member.
 
-import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 
 const fmtDur = (mins) => {
@@ -15,7 +14,8 @@ const fmtDur = (mins) => {
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 // data: { staffName, staffRole, weekStart, dailyEntries: [{date, dayLabel, jobName, taskDescription, onSiteMins, travelMins, totalMins, isOvertime, otMultiplier, meterage, status}], totals: { totalMins, onSiteMins, travelMins, otMins, meterage } }
-export function downloadWeeklyTimesheetPDF(data) {
+export async function downloadWeeklyTimesheetPDF(data) {
+  const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 15;

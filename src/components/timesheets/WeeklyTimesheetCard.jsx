@@ -6,7 +6,6 @@ import {
   CheckCircle2, Clock, XCircle, Circle, CalendarDays, Download,
   Loader2, ChevronDown, ChevronRight, Merge, AlertTriangle, Ruler, TrendingUp, Car, User,
 } from 'lucide-react';
-import { weekKey, entryMinutes } from '@/utils/overtime';
 import { downloadWeeklyTimesheetPDF } from './WeeklyTimesheetPDF';
 
 const fmtDur = (mins) => {
@@ -107,7 +106,7 @@ export default function WeeklyTimesheetCard({ staffMember, weekStart, dailySumma
     setMerging(false);
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     const dailyEntries = weekDates.map((date, i) => {
       const entries = (byDate[date] || []).filter((t) => !t.is_weekly_summary);
       const entry = entries[0];
@@ -128,7 +127,7 @@ export default function WeeklyTimesheetCard({ staffMember, weekStart, dailySumma
         status: entry?.status,
       };
     });
-    downloadWeeklyTimesheetPDF({
+    await downloadWeeklyTimesheetPDF({
       staffName: staffMember?.name || 'Staff',
       staffRole: staffMember?.job_role,
       weekStart,
