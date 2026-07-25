@@ -1,12 +1,12 @@
 import React from 'react';
-import { ShieldCheck, ShieldAlert, ShieldX, FileText, Download, ExternalLink, Cog, Anchor, Wrench, Package, Truck, Layers, X, FileCheck2, Calendar } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, ShieldX, FileText, Download, ExternalLink, Cog, Anchor, Wrench, Package, Truck, Layers, X, FileCheck2, Calendar, HelpCircle } from 'lucide-react';
 import { formatComplianceDate } from '@/utils/complianceDate';
 
 const complianceBadge = {
   compliant: { label: 'Compliant', icon: ShieldCheck, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   expiring: { label: 'Expiring', icon: ShieldAlert, cls: 'bg-amber-50 text-amber-700 border-amber-200' },
   expired: { label: 'Expired', icon: ShieldX, cls: 'bg-red-50 text-red-700 border-red-200' },
-  unknown: { label: 'Unknown', icon: ShieldCheck, cls: 'bg-slate-100 text-slate-500 border-slate-200' },
+  unknown: { label: 'Unknown', icon: HelpCircle, cls: 'bg-slate-100 text-slate-500 border-slate-200' },
 };
 
 const assetTypeIcon = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Anchor };

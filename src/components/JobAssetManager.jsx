@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cog, Plus, Trash2, ShieldCheck, ShieldAlert, ShieldX, Truck, Wrench, Package, AlertTriangle, Link2, Anchor, ArrowRight, Check, X, ChevronDown } from 'lucide-react';
+import { Cog, Plus, Trash2, ShieldCheck, ShieldAlert, ShieldX, Truck, Wrench, Package, AlertTriangle, Link2, Anchor, ArrowRight, Check, X, ChevronDown, HelpCircle } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/use-toast';
@@ -29,7 +29,7 @@ const complianceConfig = {
   expiring: { label: 'Expiring', icon: ShieldAlert, badge: 'bg-amber-50 text-amber-700 border-amber-200' },
   expired: { label: 'Expired', icon: ShieldX, badge: 'bg-red-50 text-red-700 border-red-200' },
   non_compliant: { label: 'Not Compliant', icon: ShieldX, badge: 'bg-red-50 text-red-700 border-red-200' },
-  unknown: { label: 'Unknown', icon: ShieldAlert, badge: 'bg-slate-50 text-slate-600 border-slate-200' },
+  unknown: { label: 'Unknown', icon: HelpCircle, badge: 'bg-slate-50 text-slate-500 border-slate-200' },
 };
 
 const tabConfig = {

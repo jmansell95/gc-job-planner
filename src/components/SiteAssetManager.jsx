@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Wrench, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, Anchor, RefreshCw, Info, ScanLine } from 'lucide-react';
+import { Wrench, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, Anchor, RefreshCw, Info, ScanLine, HelpCircle } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import SyncComplianceButton from '@/components/SyncComplianceButton';
 import ComplianceAttentionPanel from '@/components/ComplianceAttentionPanel';
@@ -21,7 +21,7 @@ const complianceConfig = {
   compliant: { label: 'Compliant', icon: ShieldCheck, badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500' },
   expiring: { label: 'Expiring Soon', icon: ShieldAlert, badge: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
   expired: { label: 'Expired', icon: ShieldX, badge: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
-  unknown: { label: 'Unknown', icon: ShieldAlert, badge: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' },
+  unknown: { label: 'Unknown', icon: HelpCircle, badge: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400' },
 };
 
 export default function SiteAssetManager() {
@@ -37,7 +37,7 @@ export default function SiteAssetManager() {
   const expiredCount = assets.filter(a => a.compliance_status === 'expired').length;
   const unknownCount = assets.filter(a => a.compliance_status === 'unknown').length;
   const expiringCount = assets.filter(a => a.compliance_status === 'expiring').length;
-  const neverSyncedCount = assets.filter(a => !a.compliance_last_checked).length;
+
 
   // Filter state
   const [typeTab, setTypeTab] = useState('all');
@@ -51,7 +51,6 @@ export default function SiteAssetManager() {
     { key: 'lifting', label: 'Lifting', icon: Anchor },
     { key: 'machinery', label: 'Machinery', icon: Wrench },
     { key: 'trailer', label: 'Trailers', icon: Package },
-    { key: 'vehicle', label: 'Vehicles', icon: Truck },
   ];
 
   const filteredAssets = assets.filter(a => {
@@ -100,7 +99,7 @@ export default function SiteAssetManager() {
           { label: 'Compliant', value: assets.filter(a => a.compliance_status === 'compliant').length, grad: 'stat-gradient-emerald', Icon: ShieldCheck },
           { label: 'Expiring', value: expiringCount, grad: 'stat-gradient-amber', Icon: ShieldAlert },
           { label: 'Expired', value: expiredCount, grad: 'stat-gradient-rose', Icon: ShieldX },
-          { label: 'Never Synced', value: neverSyncedCount, grad: 'stat-gradient-slate', Icon: RefreshCw },
+          { label: 'Unknown', value: unknownCount, grad: 'stat-gradient-slate', Icon: HelpCircle },
         ].map(s => {
           const SIcon = s.Icon;
           return (

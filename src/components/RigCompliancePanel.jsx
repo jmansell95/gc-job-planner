@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import {
   ShieldCheck, ShieldAlert, ShieldX, Download, FileText, Clock,
-  Cog, AlertTriangle, Loader2, CheckCircle2, ExternalLink
+  Cog, Anchor, Wrench, Package, AlertTriangle, CheckCircle2, HelpCircle,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
@@ -12,9 +12,16 @@ const complianceConfig = {
   compliant: { icon: ShieldCheck, badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200', label: 'Compliant', dot: 'bg-emerald-500' },
   expiring: { icon: ShieldAlert, badge: 'bg-amber-50 text-amber-700 ring-amber-200', label: 'Expiring', dot: 'bg-amber-500' },
   expired: { icon: ShieldX, badge: 'bg-rose-50 text-rose-700 ring-rose-200', label: 'Expired', dot: 'bg-rose-500' },
-  unknown: { icon: ShieldCheck, badge: 'bg-slate-100 text-slate-600 ring-slate-200', label: 'Unknown', dot: 'bg-slate-400' },
+  unknown: { icon: HelpCircle, badge: 'bg-slate-100 text-slate-500 ring-slate-200', label: 'Unknown', dot: 'bg-slate-400' },
 };
 
+const assetTypeIcon = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Package, lifting: Anchor };
+const assetTypeLabel = { rig: 'Rig', machinery: 'Machinery', trailer: 'Trailer', vehicle: 'Vehicle', lifting: 'Lifting Gear' };
+
+// Shows EVERY asset assigned to the job (rigs, lifting gear, machinery, trailers)
+// with its compliance status and a View/Download button for each certificate on
+// file. Staff and managers use this to access rig LOLER/PUWER certs and lifting
+// gear inspection reports before or during a shift.
 export default function RigCompliancePanel({ job }) {
   const { toast } = useToast();
   const [downloadedIds, setDownloadedIds] = useState(new Set());
@@ -29,45 +36,43 @@ export default function RigCompliancePanel({ job }) {
     queryFn: () => base44.entities.ComplianceItem.filter({ category: 'equipment' }),
   });
 
-  // Only rigs assigned to this job
-  const rigAssignments = assignments.filter(a => a.asset_type === 'rig');
-  const rigs = rigAssignments.map(a => ({
+  // All assigned assets, rigs first then everything else
+  const assigned = assignments.map(a => ({
     assignment: a,
     asset: assets.find(as => as.id === a.asset_id),
   })).filter(r => r.asset);
 
-  // For each rig, find its compliance certificates
-  const rigsWithCerts = rigs.map(r => {
-    const certs = complianceItems.filter(c => c.reference_id === r.asset.id);
+  const ordered = [...assigned].sort((a, b) => {
+    const rank = { rig: 0, lifting: 1 };
+    return (rank[a.asset.asset_type] ?? 9) - (rank[b.asset.asset_type] ?? 9);
+  });
+
+  const withCerts = ordered.map(r => {
+    const certs = complianceItems.filter(c => c.reference_id === r.asset.id && c.document_url);
     return { ...r, certs };
   });
 
-  const handleDownload = (cert, rigName) => {
+  const totalCerts = withCerts.reduce((sum, r) => sum + r.certs.length, 0);
+
+  const handleDownload = (cert, assetName) => {
     if (!cert.document_url) {
       toast({ title: 'No document', description: 'This certificate has no uploaded file.', variant: 'destructive' });
       return;
     }
-    // Open the document URL in a new tab to trigger download/view
     window.open(cert.document_url, '_blank');
     setDownloadedIds(prev => new Set([...prev, cert.id]));
     toast({
       title: 'Certificate accessed',
-      description: `${cert.title} for ${rigName} — opened for download. Recorded for audit trail.`,
+      description: `${cert.title} for ${assetName} — opened for download. Recorded for audit trail.`,
     });
   };
 
-  const handleDownloadBack = (cert, rigName) => {
-    if (!cert.back_document_url) return;
-    window.open(cert.back_document_url, '_blank');
-    setDownloadedIds(prev => new Set([...prev, cert.id]));
-  };
-
-  if (rigs.length === 0) {
+  if (assigned.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-slate-200 p-5 text-center">
         <Cog className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-        <p className="text-sm text-slate-400">No rigs assigned to this job</p>
-        <p className="text-xs text-slate-300 mt-1">Assign a rig to access its compliance certificates</p>
+        <p className="text-sm text-slate-400">No equipment assigned to this job</p>
+        <p className="text-xs text-slate-300 mt-1">Assign equipment to access its compliance certificates</p>
       </div>
     );
   }
@@ -79,28 +84,33 @@ export default function RigCompliancePanel({ job }) {
           <ShieldCheck className="w-4 h-4 text-white" />
         </div>
         <div>
-          <h3 className="font-bold text-slate-900 text-sm">Rig Compliance & Certificates</h3>
-          <p className="text-xs text-slate-400">Download certificates for audit purposes — every access is recorded</p>
+          <h3 className="font-bold text-slate-900 text-sm">Equipment Compliance & Certificates</h3>
+          <p className="text-xs text-slate-400">{assigned.length} asset{assigned.length !== 1 ? 's' : ''} · {totalCerts} certificate{totalCerts !== 1 ? 's' : ''} on file — every access is recorded</p>
         </div>
       </div>
 
-      {rigsWithCerts.map(({ assignment, asset, certs }) => {
+      {withCerts.map(({ assignment, asset, certs }) => {
         const comp = complianceConfig[asset.compliance_status] || complianceConfig.unknown;
         const CompIcon = comp.icon;
-        const hasCerts = certs.length > 0;
+        const TypeIcon = assetTypeIcon[asset.asset_type] || Cog;
+        const typeLabel = assetTypeLabel[asset.asset_type] || 'Equipment';
+        const isRig = asset.asset_type === 'rig' || asset.rig_type === 'cp' || asset.rig_type === 'rotary';
         const allDownloaded = certs.length > 0 && certs.every(c => downloadedIds.has(c.id));
 
         return (
           <div key={asset.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            {/* Rig header */}
+            {/* Asset header */}
             <div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                <Cog className="w-5 h-5 text-emerald-700" />
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isRig ? 'bg-emerald-50' : 'bg-slate-100'}`}>
+                <TypeIcon className={`w-5 h-5 ${isRig ? 'text-emerald-700' : 'text-slate-500'}`} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-semibold text-slate-900 text-sm truncate">{asset.name}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-semibold text-slate-900 text-sm truncate">{asset.name}</p>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold uppercase tracking-wide">{typeLabel}</span>
+                </div>
                 <p className="text-xs text-slate-400 truncate">
-                  {asset.serial_number || 'No serial'} · {asset.rig_type === 'cp' ? 'CP Rig' : asset.rig_type === 'rotary' ? 'Rotary Rig' : 'Rig'}
+                  {asset.serial_number || 'No serial'}{asset.equipment_type ? ` · ${asset.equipment_type}` : ''}
                 </p>
               </div>
               <span className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-semibold ring-1 ${comp.badge}`}>
@@ -129,7 +139,7 @@ export default function RigCompliancePanel({ job }) {
               )}
 
               {/* Certificates */}
-              {hasCerts ? (
+              {certs.length > 0 ? (
                 <div className="pt-2 space-y-2">
                   <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Certificates</p>
                   {certs.map(cert => {
@@ -146,18 +156,24 @@ export default function RigCompliancePanel({ job }) {
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-medium text-slate-800 truncate">{cert.title}</p>
                           <p className="text-[10px] text-slate-400">
-                            {cert.expiry_date ? `Expires ${cert.expiry_date}` : 'No expiry'} 
+                            {cert.expiry_date ? `Expires ${cert.expiry_date}` : 'No expiry'}
                             {cert.document_name ? ` · ${cert.document_name}` : ''}
                           </p>
                         </div>
-                        <button
-                          onClick={() => handleDownload(cert, asset.name)}
-                          disabled={!cert.document_url}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] transition disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
-                        >
-                          {isDownloaded ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Download className="w-3.5 h-3.5" />}
-                          {isDownloaded ? 'Accessed' : 'Download'}
-                        </button>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <a href={cert.document_url} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-200 transition">
+                            View
+                          </a>
+                          <button
+                            onClick={() => handleDownload(cert, asset.name)}
+                            disabled={!cert.document_url}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            {isDownloaded ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Download className="w-3.5 h-3.5" />}
+                            {isDownloaded ? 'Accessed' : 'Download'}
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -165,11 +181,11 @@ export default function RigCompliancePanel({ job }) {
               ) : (
                 <div className="pt-2 flex items-center gap-2 bg-amber-50 rounded-lg px-3 py-2.5">
                   <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                  <p className="text-xs text-amber-700">No compliance certificates uploaded for this rig</p>
+                  <p className="text-xs text-amber-700">No compliance certificates on file for this asset</p>
                 </div>
               )}
 
-              {allDownloaded && hasCerts && (
+              {allDownloaded && certs.length > 0 && (
                 <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium pt-1">
                   <CheckCircle2 className="w-3.5 h-3.5" /> All certificates accessed — audit trail updated
                 </div>
