@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2, Clock, MapPin, Calendar, CalendarClock, User, Phone, Briefcase, FileText } from 'lucide-react';
+import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2, Clock, MapPin, Calendar, CalendarClock, User, Phone, Briefcase, FileText, ShieldX, ShieldAlert } from 'lucide-react';
+import { evaluateAssignmentCompliance, qualLabel } from '@/utils/complianceLock';
 import { format, differenceInDays, addDays } from 'date-fns';
 import { isStaffOutsideJobTeams, getJobTeamIds } from '@/utils/jobTeams';
 import { isWeekend, buildRateMap } from '@/utils/overtime';
@@ -13,11 +14,13 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   const [conflictWarnings, setConflictWarnings] = useState([]);
   const [timeConflict, setTimeConflict] = useState(null);
   const [resetting, setResetting] = useState(false);
+  const [complianceOverride, setComplianceOverride] = useState(false);
   const queryClient = useQueryClient();
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
   const { data: recurring = [] } = useQuery({ queryKey: ['recurring-absences'], queryFn: () => base44.entities.RecurringAbsence.list() });
   const { data: overtimeRates = [] } = useQuery({ queryKey: ['overtime-rates'], queryFn: () => base44.entities.OvertimeRate.list() });
+  const { data: complianceItems = [] } = useQuery({ queryKey: ['compliance-staff-all'], queryFn: () => base44.entities.ComplianceItem.filter({ category: 'staff' }) });
   const rateMap = buildRateMap(overtimeRates);
 
   const computeWeekStart = (dateStr) => {
@@ -76,6 +79,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
       }
       setConflictWarnings([]);
       setTimeConflict(null);
+      setComplianceOverride(false);
     }
   }, [isOpen, assignment, defaultStaffId, defaultDate]);
 
@@ -170,6 +174,11 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   const requiredTeamNames = selectedJob ? getJobTeamIds(selectedJob).map(id => teams.find(t => t.id === id)?.name).filter(Boolean) : [];
   const selectedStaffTeamName = selectedStaff ? (teams.find(t => t.id === selectedStaff.team_id)?.name || 'No team') : '';
 
+  // Compliance hard-lock: evaluate required qualifications for the selected staff + job
+  const complianceEval = evaluateAssignmentCompliance({ staff: selectedStaff, job: selectedJob, teams, complianceItems });
+  const complianceBlocked = complianceEval.blocked.length > 0;
+  const complianceExpiring = complianceEval.expiring.length > 0;
+
   const handleDateChange = (date) => {
     const weekend = isWeekend(date);
     const dayCount = formData.staff_id ? existingRotas.filter(r => r.staff_id === formData.staff_id && r.assigned_date === date && r.id !== assignment?.id).length : 0;
@@ -247,6 +256,11 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
     const effectiveDate = formData.start_delayed && formData.actual_start_date ? formData.actual_start_date : formData.assigned_date;
     if (!isEditing && isDateLocked(effectiveDate)) {
       alert('Cannot create assignments for past days or after the working day has ended.');
+      return;
+    }
+    // Hard block: expired or missing required qualifications can't be assigned unless overridden.
+    if (complianceBlocked && !complianceOverride) {
+      alert(`Compliance hard-lock — ${selectedStaff?.name || 'this staff member'} is missing or has expired required qualifications:\n\n${complianceEval.blocked.map(q => '• ' + qualLabel(q)).join('\n')}\n\nTo assign anyway, tick "Override compliance block" in the warning below.`);
       return;
     }
     if (teamMismatch) {
@@ -586,6 +600,46 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
             <div className="mt-3 flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
               <span>{selectedStaff.name} is in a required team for this job.</span>
+            </div>
+          )}
+          {complianceBlocked && (
+            <div className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-3 space-y-2.5">
+              <div className="flex items-start gap-2">
+                <ShieldX className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-red-700">Compliance hard-lock</p>
+                  <p className="text-xs text-red-600 mt-0.5">
+                    {selectedStaff?.name} cannot be assigned — required qualifications are missing or expired:
+                  </p>
+                  <ul className="mt-1.5 space-y-0.5">
+                    {complianceEval.missing.map((q) => (
+                      <li key={`m-${q}`} className="text-xs text-red-700 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> {qualLabel(q)} <span className="text-red-400">— missing</span>
+                      </li>
+                    ))}
+                    {complianceEval.expired.map((q) => (
+                      <li key={`e-${q}`} className="text-xs text-red-700 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> {qualLabel(q)} <span className="text-red-400">— expired</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-xs font-medium text-red-700 cursor-pointer bg-white/60 rounded-md px-2.5 py-2 border border-red-200">
+                <input type="checkbox" checked={complianceOverride} onChange={(e) => setComplianceOverride(e.target.checked)} className="w-4 h-4 accent-red-600" />
+                Override — assign anyway and accept responsibility
+              </label>
+            </div>
+          )}
+          {!complianceBlocked && complianceExpiring && (
+            <div className="mt-3 flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Expiring qualifications</p>
+                <p className="text-xs text-amber-600 mt-0.5">
+                  {complianceEval.expiring.map((q) => qualLabel(q)).join(', ')} expire(s) within 30 days. Assignment is allowed, but book renewal training soon.
+                </p>
+              </div>
             </div>
           )}
           {conflictWarnings.length > 0 && (
