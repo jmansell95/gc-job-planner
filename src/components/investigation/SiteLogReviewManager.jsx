@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   Activity, Clock, CheckCircle2, AlertTriangle, Tablet, Edit2, X, Save,
-  Send, Loader2, Calendar, User, FileText, RefreshCw
+  Send, Loader2, Calendar, User, FileText, RefreshCw, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
@@ -44,6 +44,16 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
   const [editForm, setEditForm] = useState({});
   const [approving, setApproving] = useState(false);
   const [savingId, setSavingId] = useState(null);
+  const [expandedDays, setExpandedDays] = useState(new Set()); // collapsed by default
+
+  const toggleDay = (date) => {
+    setExpandedDays(prev => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+  };
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['investigation-logs', job.id],
@@ -176,9 +186,15 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
 
             return (
               <div key={date} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                {/* Day header */}
-                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-3 flex-wrap">
+                {/* Day header — clickable to expand/collapse */}
+                <button
+                  onClick={() => toggleDay(date)}
+                  className="w-full px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-3 flex-wrap text-left hover:bg-slate-100/70 transition"
+                >
                   <div className="flex items-center gap-2">
+                    {expandedDays.has(date)
+                      ? <ChevronDown className="w-4 h-4 text-slate-500" />
+                      : <ChevronRight className="w-4 h-4 text-slate-500" />}
                     <Calendar className="w-4 h-4 text-slate-400" />
                     <span className="text-sm font-bold text-slate-700">{format(d, 'EEEE, dd MMM yyyy')}</span>
                   </div>
@@ -199,9 +215,10 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
                       <CheckCircle2 className="w-3 h-3" /> Approved
                     </span>
                   )}
-                </div>
+                </button>
 
-                {/* Activity list */}
+                {/* Activity list — collapsed by default */}
+                {expandedDays.has(date) && (
                 <div className="divide-y divide-slate-100">
                   {dayLogs.map(log => {
                     const isPending = (log.manager_review_status || 'pending') === 'pending';
@@ -285,9 +302,10 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
                     );
                   })}
                 </div>
+                )}
 
-                {/* Approve button */}
-                {dayPending > 0 && (
+                {/* Approve button — only when expanded */}
+                {dayPending > 0 && expandedDays.has(date) && (
                   <div className="px-4 py-3 bg-amber-50/40 border-t border-amber-100">
                     <button onClick={() => handleApproveDate(date)} disabled={approving}
                       className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-bold disabled:opacity-50 touch-manipulation">
