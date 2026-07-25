@@ -25,6 +25,8 @@ import { canViewCostings } from '@/utils/access';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import PulseRibbon from '@/components/dashboard/PulseRibbon';
+import CommandCentreTabs from '@/components/dashboard/CommandCentreTabs';
+import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [customizeMode, setCustomizeMode] = useState(false);
@@ -252,63 +254,34 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               {!customizeMode ? (
                 <>
-                  {/* Contextual live snapshot — reflects exactly what's on screen */}
-                  <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                    {isAllJobs ? (
-                      <>
-                        <button type="button" onClick={() => onNavigate('jobs')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm hover:bg-white/25 transition group">
-                          <Briefcase className="w-3.5 h-3.5 text-white/90" />
-                          <span className="text-sm font-bold text-white tabular-nums">{activeJobs.length}</span>
-                          <span className="text-[11px] text-white/75 font-medium">Active</span>
-                          <ArrowRight className="w-3 h-3 text-white/50 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
-                        </button>
-                        <button type="button" onClick={() => onNavigate('rota')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm hover:bg-white/25 transition group">
-                          <Users className="w-3.5 h-3.5 text-white/90" />
-                          <span className="text-sm font-bold text-white tabular-nums">{staffToday}</span>
-                          <span className="text-[11px] text-white/75 font-medium">On Site</span>
-                          <ArrowRight className="w-3 h-3 text-white/50 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
-                        </button>
-                        <button type="button" onClick={() => onNavigate('timesheets')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm hover:bg-white/25 transition group">
-                          <ClipboardCheck className="w-3.5 h-3.5 text-white/90" />
-                          <span className="text-sm font-bold text-white tabular-nums">{pendingTs}</span>
-                          <span className="text-[11px] text-white/75 font-medium">TS Queue</span>
-                          <ArrowRight className="w-3 h-3 text-white/50 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
-                        </button>
-                        <button type="button" onClick={() => onNavigate('deliveries')} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm hover:bg-white/25 transition group">
-                          <Truck className="w-3.5 h-3.5 text-white/90" />
-                          <span className="text-sm font-bold text-white tabular-nums">{pendingDeliveries}</span>
-                          <span className="text-[11px] text-white/75 font-medium">Deliveries</span>
-                          <ArrowRight className="w-3 h-3 text-white/50 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        {gbp(selectedJob?.budget_amount) && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-                            <span className="text-[11px] text-white/75 font-medium">Budget</span>
-                            <span className="text-sm font-bold text-white tabular-nums">{gbp(selectedJob.budget_amount)}</span>
-                          </span>
-                        )}
-                        {gbp(selectedJob?.actual_cost) && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-                            <span className="text-[11px] text-white/75 font-medium">Spent</span>
-                            <span className="text-sm font-bold text-white tabular-nums">{gbp(selectedJob.actual_cost)}</span>
-                          </span>
-                        )}
-                        {(selectedJob?.meterage || selectedJob?.meterage_target) && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-                            <span className="text-[11px] text-white/75 font-medium">Meterage</span>
-                            <span className="text-sm font-bold text-white tabular-nums">{selectedJob.meterage || 0}{selectedJob.meterage_target ? ` / ${selectedJob.meterage_target}` : ''}m</span>
-                          </span>
-                        )}
+                  {/* Job-scoped snapshot only — All Jobs pills moved to StateMonitorBar below */}
+                  {!isAllJobs && (
+                    <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                      {gbp(selectedJob?.budget_amount) && (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-                          <Users className="w-3.5 h-3.5 text-white/90" />
-                          <span className="text-sm font-bold text-white tabular-nums">{staffToday}</span>
-                          <span className="text-[11px] text-white/75 font-medium">Crew Today</span>
+                          <span className="text-[11px] text-white/75 font-medium">Budget</span>
+                          <span className="text-sm font-bold text-white tabular-nums">{gbp(selectedJob.budget_amount)}</span>
                         </span>
-                      </>
-                    )}
-                  </div>
+                      )}
+                      {gbp(selectedJob?.actual_cost) && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                          <span className="text-[11px] text-white/75 font-medium">Spent</span>
+                          <span className="text-sm font-bold text-white tabular-nums">{gbp(selectedJob.actual_cost)}</span>
+                        </span>
+                      )}
+                      {(selectedJob?.meterage || selectedJob?.meterage_target) && (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                          <span className="text-[11px] text-white/75 font-medium">Meterage</span>
+                          <span className="text-sm font-bold text-white tabular-nums">{selectedJob.meterage || 0}{selectedJob.meterage_target ? ` / ${selectedJob.meterage_target}` : ''}m</span>
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
+                        <Users className="w-3.5 h-3.5 text-white/90" />
+                        <span className="text-sm font-bold text-white tabular-nums">{staffToday}</span>
+                        <span className="text-[11px] text-white/75 font-medium">Crew Today</span>
+                      </span>
+                    </div>
+                  )}
                   <button onClick={() => setCustomizeMode(true)} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm w-full sm:w-auto">
                     <Settings2 className="w-4 h-4" /> Customise
                   </button>
@@ -323,22 +296,25 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         </div>
       </motion.div>
 
+      {/* State Monitor Bar — upgraded real-time status cards (replaces the old pills) */}
+      {!customizeMode && isAllJobs && (
+        <StateMonitorBar
+          className="mb-5"
+          monitors={[
+            { key: 'active', icon: Briefcase, label: 'Active Jobs', value: activeJobs.length, tone: 'emerald', nav: 'jobs' },
+            { key: 'onsite', icon: Users, label: 'On Site', value: staffToday, tone: 'blue', nav: 'rota' },
+            { key: 'ts', icon: ClipboardCheck, label: 'TS Queue', value: pendingTs, tone: 'amber', nav: 'timesheets' },
+            { key: 'del', icon: Truck, label: 'Deliveries', value: pendingDeliveries, tone: 'violet', nav: 'deliveries' },
+          ]}
+          onNavigate={onNavigate}
+        />
+      )}
+
       <JobSelectorBar />
 
-      {/* View profile toggle — scopes the widget grid to one focus area to cut scroll depth */}
+      {/* Command Centre Tabs — full-width focus switcher (Operations / Financials / Compliance) */}
       {!customizeMode && (
-        <div className="mb-4 flex items-center gap-1.5 bg-white rounded-xl border border-slate-200 p-1 shadow-sm w-fit">
-          {VIEW_PROFILES.map(p => {
-            const Icon = p.icon;
-            const active = viewProfile === p.id;
-            return (
-              <button key={p.id} type="button" onClick={() => setViewProfile(p.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${active ? 'bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}>
-                <Icon className="w-3.5 h-3.5" /> {p.label}
-              </button>
-            );
-          })}
-        </div>
+        <CommandCentreTabs activeId={viewProfile} onChange={setViewProfile} />
       )}
 
       {/* At-a-glance intelligence — surfaces critical items needing attention (Operations only) */}
