@@ -84,26 +84,37 @@ export default function SiteAssetManager() {
       <AssetLens open={lensOpen} onClose={() => setLensOpen(false)} assets={assets} />
 
       {/* Sync-only info banner */}
-      <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl p-3.5 mb-4">
-        <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-blue-700">
+      <div className="insight-card rounded-xl p-3.5 mb-4 flex items-start gap-2.5">
+        <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+          <Info className="w-4 h-4 text-blue-600" />
+        </div>
+        <p className="text-sm text-slate-600 pt-1">
           This list is <strong>sync-only</strong> from the GC Compliance Manager. Assets not present there are automatically removed. Use the <strong>Sync Compliance</strong> button to refresh.
         </p>
       </div>
 
-      {/* Issue banners */}
-      {(expiredCount > 0 || unknownCount > 0 || neverSyncedCount > 0) && (
-        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3.5 mb-4">
-          <ShieldAlert className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            {expiredCount > 0 && <p className="text-sm font-semibold text-red-700">{expiredCount} expired</p>}
-            {expiringCount > 0 && <p className="text-sm font-semibold text-amber-700">{expiringCount} expiring soon</p>}
-            {unknownCount > 0 && <p className="text-sm font-semibold text-slate-600">{unknownCount} unknown status</p>}
-            {neverSyncedCount > 0 && <p className="text-sm font-semibold text-blue-600">{neverSyncedCount} never synced</p>}
-            <p className="text-xs text-amber-600 w-full">Click "Sync Compliance" to refresh statuses from GC Compliance Manager.</p>
-          </div>
-        </div>
-      )}
+      {/* Compliance summary tiles */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        {[
+          { label: 'Compliant', value: assets.filter(a => a.compliance_status === 'compliant').length, grad: 'stat-gradient-emerald', Icon: ShieldCheck },
+          { label: 'Expiring', value: expiringCount, grad: 'stat-gradient-amber', Icon: ShieldAlert },
+          { label: 'Expired', value: expiredCount, grad: 'stat-gradient-rose', Icon: ShieldX },
+          { label: 'Never Synced', value: neverSyncedCount, grad: 'stat-gradient-slate', Icon: RefreshCw },
+        ].map(s => {
+          const SIcon = s.Icon;
+          return (
+            <div key={s.label} className="insight-card rounded-xl p-3.5 flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl ${s.grad} flex items-center justify-center shadow-md icon-tile-glow`}>
+                <SIcon className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-slate-900 leading-none tabular-nums">{s.value}</p>
+                <p className="text-xs text-slate-500 font-medium mt-1">{s.label}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Filters */}
       {assets.length > 0 && (
@@ -155,11 +166,11 @@ export default function SiteAssetManager() {
               asset.compliance_status === 'unknown' ? 'border-l-4 border-l-slate-300' :
               !asset.compliance_last_checked ? 'border-l-4 border-l-blue-300' : '';
             return (
-              <div key={asset.id} className={`bg-white rounded-xl border border-slate-200 shadow-sm p-4 ${cardBorder}`}>
+              <div key={asset.id} className={`insight-card rounded-xl p-4 ${cardBorder}`}>
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                      <TypeIcon className="w-5 h-5 text-slate-600" />
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <TypeIcon className="w-5 h-5 text-white" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-slate-900 truncate">{asset.name}</p>

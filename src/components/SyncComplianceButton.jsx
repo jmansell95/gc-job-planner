@@ -30,7 +30,7 @@ export default function SyncComplianceButton({ className = '' }) {
 
   return (
     <button onClick={handleSync} disabled={syncing}
-      className={`flex items-center gap-2 px-3.5 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition text-sm font-medium disabled:opacity-50 ${className}`}>
+      className={`flex items-center gap-2 px-3.5 py-2 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white rounded-lg hover:brightness-110 active:scale-95 transition text-sm font-semibold shadow-sm disabled:opacity-60 ${className}`}>
       <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
       {syncing ? 'Syncing…' : 'Sync Compliance'}
     </button>

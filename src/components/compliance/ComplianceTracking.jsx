@@ -151,13 +151,13 @@ export default function ComplianceTracking() {
         {stats.map(s => {
           const Icon = s.icon;
           return (
-            <div key={s.label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div key={s.label} className="insight-card rounded-xl p-4">
               <div className="flex items-center gap-2.5">
-                <div className={`w-10 h-10 rounded-xl ${s.gradient} flex items-center justify-center shadow-sm`}>
+                <div className={`w-11 h-11 rounded-xl ${s.gradient} flex items-center justify-center shadow-md icon-tile-glow`}>
                   <Icon className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-slate-900 leading-none">{s.value}</p>
+                  <p className="text-2xl font-bold text-slate-900 leading-none tabular-nums">{s.value}</p>
                   <p className="text-xs text-slate-500 font-medium mt-1">{s.label}</p>
                 </div>
               </div>

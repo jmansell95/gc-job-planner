@@ -1,19 +1,19 @@
 import React from 'react';
 
 /**
- * Consistent section header for every settings sub-page.
+ * Consistent premium section header for every settings sub-page.
  * Sits below the parent "Settings" hero header and provides a uniform,
- * professional layout: icon + title + description on the left, optional
- * action buttons on the right.
+ * professional layout: gradient icon tile + title + description on the left,
+ * optional action buttons on the right.
  */
 export default function SettingsSectionHeader({ icon: Icon, title, description, actions }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-5 mb-5">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
+    <div className="insight-card relative rounded-2xl p-4 md:p-5 mb-5 overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 relative z-10">
+        <div className="flex items-center gap-3.5 min-w-0">
           {Icon && (
-            <div className="w-10 h-10 rounded-xl bg-[#2E5A1A]/10 flex items-center justify-center flex-shrink-0">
-              <Icon className="w-5 h-5 text-[#2E5A1A]" />
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-md icon-tile-glow">
+              <Icon className="w-5 h-5 text-white" />
             </div>
           )}
           <div className="min-w-0">
