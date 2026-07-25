@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Wrench, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, Anchor, RefreshCw, Info, HelpCircle } from 'lucide-react';
+import { Wrench, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, Anchor, RefreshCw, Info, HelpCircle, ScanLine } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import SyncComplianceButton from '@/components/SyncComplianceButton';
 import ComplianceAttentionPanel from '@/components/ComplianceAttentionPanel';
 import { useConfigLists } from '@/hooks/useConfigLists';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
+import AssetPassport from '@/components/logistics/AssetPassport';
 
 const assetTypeConfig = {
   rig: { label: 'Rig', icon: Cog, badge: 'bg-blue-100 text-blue-700' },
@@ -42,6 +43,7 @@ export default function SiteAssetManager() {
   const [typeTab, setTypeTab] = useState('all');
   const [search, setSearch] = useState('');
   const [compFilter, setCompFilter] = useState('all');
+  const [passportAsset, setPassportAsset] = useState(null);
 
   const typeTabs = [
     { key: 'all', label: 'All', icon: null },
@@ -199,11 +201,18 @@ export default function SiteAssetManager() {
                 {asset.tooling_notes && (
                   <p className="text-xs text-slate-500 mt-2 line-clamp-2">{asset.tooling_notes}</p>
                 )}
+                <button
+                  onClick={() => setPassportAsset(asset)}
+                  className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition"
+                >
+                  <ScanLine className="w-3.5 h-3.5" /> View Passport
+                </button>
               </div>
             );
           })}
         </div>
       )}
+      <AssetPassport asset={passportAsset} onClose={() => setPassportAsset(null)} allAssets={assets} />
     </div>
   );
 }

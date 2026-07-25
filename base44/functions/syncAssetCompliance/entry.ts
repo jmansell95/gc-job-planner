@@ -134,6 +134,65 @@ Deno.serve(async (req) => {
       return String(e.responsible_person || e.responsiblePerson || e.owner || e.assigned_to || e.person_responsible || e.operator || e.manager || e.inspector || e.tested_by || e.examiner || '').trim();
     };
 
+    // === Maintenance / Service data (GC Compliance Manager) ===
+    // GC stores service history as "last test" (LOLER/PUWER inspection) data:
+    // last_test_date = when the asset was last inspected/serviced,
+    // inspection_interval_months = the re-test cadence (e.g. 6 or 12 months),
+    // expiry_date = the next inspection due date. We compute next_service_date
+    // from last_test_date + interval when possible, falling back to expiry_date.
+    // Repair info comes from decommissioned_reason / decommissioned_date.
+    const toDateStr = (dt) => (dt instanceof Date && !isNaN(dt.getTime())) ? dt.toISOString().slice(0, 10) : null;
+
+    const addMonths = (dt, months) => {
+      if (!dt || !months) return null;
+      const d = new Date(dt.getTime());
+      d.setMonth(d.getMonth() + Number(months));
+      return d;
+    };
+
+    const extractLastServiceDate = (e) => {
+      const raw = e.last_test_date || e.lastTestDate || e.issue_date || e.date_last_serviced || '';
+      return parseFlexibleDate(raw);
+    };
+
+    const extractNextServiceDate = (e) => {
+      const lastTest = parseFlexibleDate(e.last_test_date || e.lastTestDate);
+      const interval = Number(e.inspection_interval_months || e.inspectionIntervalMonths) || 0;
+      if (lastTest && interval) {
+        const computed = addMonths(lastTest, interval);
+        if (computed) return computed;
+      }
+      // Fall back to the compliance expiry date (which IS the next inspection due)
+      return parseFlexibleDate(e.expiry_date || e.next_inspection_date || e.next_service_date || '');
+    };
+
+    const extractServiceNotes = (e) => {
+      const parts = [
+        e.last_test_notes && `Notes: ${e.last_test_notes}`,
+        e.last_test_result && `Result: ${e.last_test_result}`,
+        e.last_test_company && `Tested by: ${e.last_test_company}`,
+        e.inspector && `Inspector: ${e.inspector}`,
+      ].filter(Boolean);
+      return parts.join(' · ').trim();
+    };
+
+    const extractRepairNotes = (e) => {
+      const parts = [
+        e.decommissioned_reason && `Decommissioned: ${e.decommissioned_reason}`,
+        e.decommissioned_date && `Date: ${e.decommissioned_date}`,
+      ].filter(Boolean);
+      return parts.join(' · ').trim();
+    };
+
+    const deriveMaintenanceStatus = (nextServiceDate) => {
+      if (!nextServiceDate) return 'unknown';
+      const now = new Date();
+      const daysUntil = (nextServiceDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysUntil < 0) return 'overdue';
+      if (daysUntil < 30) return 'due_soon';
+      return 'ok';
+    };
+
     const extractEquipmentAssetType = (e) => {
       // Build a combined string from equipment_type, name, and category —
       // some lifting gear has equipment_type "Other" but the asset NAME contains
@@ -231,6 +290,11 @@ Deno.serve(async (req) => {
         responsible_person: extractResponsiblePerson(match),
         tooling_notes: extractToolingNotes(match) || asset.tooling_notes || '',
         notes: match.notes || match.last_test_notes || asset.notes || '',
+        last_service_date: toDateStr(extractLastServiceDate(match)),
+        next_service_date: toDateStr(extractNextServiceDate(match)),
+        service_notes: extractServiceNotes(match),
+        repair_notes: extractRepairNotes(match),
+        maintenance_status: deriveMaintenanceStatus(extractNextServiceDate(match)),
       });
       synced++;
     }
@@ -259,6 +323,11 @@ Deno.serve(async (req) => {
         tooling_notes: extractToolingNotes(eq),
         is_active: true,
         notes: eq.notes || eq.last_test_notes || '',
+        last_service_date: toDateStr(extractLastServiceDate(eq)),
+        next_service_date: toDateStr(extractNextServiceDate(eq)),
+        service_notes: extractServiceNotes(eq),
+        repair_notes: extractRepairNotes(eq),
+        maintenance_status: deriveMaintenanceStatus(extractNextServiceDate(eq)),
       });
     }
 
@@ -316,6 +385,11 @@ Deno.serve(async (req) => {
         tooling_notes: extractToolingNotes(match) || asset.tooling_notes || '',
         notes: match.notes || asset.notes || '',
         is_rig: true,
+        last_service_date: toDateStr(extractLastServiceDate(match)),
+        next_service_date: toDateStr(extractNextServiceDate(match)),
+        service_notes: extractServiceNotes(match),
+        repair_notes: extractRepairNotes(match),
+        maintenance_status: deriveMaintenanceStatus(extractNextServiceDate(match)),
       });
       rigsSynced++;
     }
@@ -339,6 +413,11 @@ Deno.serve(async (req) => {
         tooling_notes: extractToolingNotes(rig),
         is_active: true,
         notes: rig.notes || '',
+        last_service_date: toDateStr(extractLastServiceDate(rig)),
+        next_service_date: toDateStr(extractNextServiceDate(rig)),
+        service_notes: extractServiceNotes(rig),
+        repair_notes: extractRepairNotes(rig),
+        maintenance_status: deriveMaintenanceStatus(extractNextServiceDate(rig)),
       });
     }
 

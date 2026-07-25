@@ -103,6 +103,35 @@
       "type": "string",
       "description": "ISO timestamp of when the compliance status was last synced from GC Compliance Manager"
     },
+    "last_service_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the last service / repair carried out on this asset, pulled from GC Compliance Manager. Shown on the Asset Passport maintenance timeline."
+    },
+    "next_service_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the next service is due, pulled from GC Compliance Manager. Drives the maintenance_status indicator on the Asset Passport."
+    },
+    "service_notes": {
+      "type": "string",
+      "description": "Free-text notes from the last service carried out on this asset (from GC Compliance Manager)."
+    },
+    "repair_notes": {
+      "type": "string",
+      "description": "Free-text notes describing repair history or faults recorded in GC Compliance Manager for this asset."
+    },
+    "maintenance_status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "due_soon",
+        "overdue",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Derived maintenance status from next_service_date. 'ok' = next service >30 days away, 'due_soon' = within 30 days, 'overdue' = past due, 'unknown' = no service date recorded in GC."
+    },
     "responsible_person": {
       "type": "string",
       "description": "Person responsible for this asset (synced from GC Compliance Manager)"

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { safeFormat } from '@/utils/format';
+import AssetPassport from '@/components/logistics/AssetPassport';
 
 const TYPE_META = {
   rig: { label: 'Rig', icon: Cog, tint: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -45,6 +46,7 @@ export default function AssetLens({ open, onClose, assets = [] }) {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
   const [syncError, setSyncError] = useState(null);
+  const [passportAsset, setPassportAsset] = useState(null);
 
   const { data: config = null, isLoading: cfgLoading } = useQuery({
     queryKey: ['assetpanda-config'],
@@ -224,6 +226,16 @@ export default function AssetLens({ open, onClose, assets = [] }) {
                 )}
               </div>
 
+              {/* Maintenance summary */}
+              {match.maintenance_status && match.maintenance_status !== 'unknown' && (
+                <div className="px-4 py-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500">Next service</span>
+                  <span className={`font-semibold ${match.maintenance_status === 'overdue' ? 'text-red-600' : match.maintenance_status === 'due_soon' ? 'text-amber-600' : 'text-emerald-600'}`}>
+                    {match.next_service_date ? safeFormat(match.next_service_date, 'dd MMM yyyy') : '—'}
+                  </span>
+                </div>
+              )}
+
               {/* Linked equipment */}
               {Array.isArray(match.linked_equipment_ids) && match.linked_equipment_ids.length > 0 && (
                 <div className="px-4 py-2.5 border-t border-slate-100">
@@ -238,6 +250,15 @@ export default function AssetLens({ open, onClose, assets = [] }) {
                   </div>
                 </div>
               )}
+
+              <div className="px-4 py-3 border-t border-slate-100">
+                <button
+                  onClick={() => setPassportAsset(match)}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-medium transition"
+                >
+                  <ScanLine className="w-3.5 h-3.5" /> Open full passport
+                </button>
+              </div>
             </div>
           )}
 
@@ -265,6 +286,7 @@ export default function AssetLens({ open, onClose, assets = [] }) {
           </div>
         </div>
       </div>
+      <AssetPassport asset={passportAsset} onClose={() => setPassportAsset(null)} allAssets={allAssets} />
     </div>
   );
 }
