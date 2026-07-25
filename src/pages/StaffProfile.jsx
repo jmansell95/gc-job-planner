@@ -40,7 +40,9 @@ export default function StaffProfile() {
     (async () => {
       try {
         const res = await base44.functions.invoke('getMyStaffProfile');
-        if (res.data?.id && !res.data.no_staff_profile) setStaff(res.data);
+        // Platform admins can view the profile page even without a linked
+        // Staff record — the backend returns is_admin + a fallback identity.
+        if (res.data?.id || res.data?.is_admin) setStaff(res.data);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     })();
