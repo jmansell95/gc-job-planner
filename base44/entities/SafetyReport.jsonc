@@ -1,0 +1,132 @@
+{
+  "name": "SafetyReport",
+  "type": "object",
+  "properties": {
+    "safetyculture_audit_id": {
+      "type": "string",
+      "description": "Unique audit ID from SafetyCulture (iAuditor). Used to de-duplicate incoming webhooks."
+    },
+    "audit_template_name": {
+      "type": "string",
+      "description": "Name of the SafetyCulture template the audit was built from (e.g. 'Site Risk Assessment', 'Daily Plant Inspection', 'Permit to Dig')."
+    },
+    "audit_title": {
+      "type": "string",
+      "description": "Title of the individual audit instance"
+    },
+    "auditor_name": {
+      "type": "string",
+      "description": "Name of the person who conducted the audit (from SafetyCulture)"
+    },
+    "auditor_email": {
+      "type": "string",
+      "description": "Email of the auditor \u2014 used to auto-link the report to a sub-contractor record."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Linked Job \u2014 auto-matched by site name / job reference when the audit metadata contains one."
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display)"
+    },
+    "contractor_id": {
+      "type": "string",
+      "description": "Linked Contractor when the auditor's email matches a sub-contractor's safetyculture_email."
+    },
+    "site_name": {
+      "type": "string",
+      "description": "Site / location recorded on the audit"
+    },
+    "conducted_at": {
+      "type": "string",
+      "description": "ISO timestamp the audit was conducted (started)"
+    },
+    "completed_at": {
+      "type": "string",
+      "description": "ISO timestamp the audit was completed / submitted"
+    },
+    "overall_score": {
+      "type": "number",
+      "description": "Total score achieved on the audit"
+    },
+    "max_score": {
+      "type": "number",
+      "description": "Maximum possible score for this audit template"
+    },
+    "score_percentage": {
+      "type": "number",
+      "description": "Overall score as a percentage (overall_score / max_score \u00d7 100)"
+    },
+    "pass_fail": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "pending"
+      ],
+      "default": "pending",
+      "description": "Pass/fail outcome. 'pending' = the audit doesn't use pass/fail scoring."
+    },
+    "audit_report_url": {
+      "type": "string",
+      "description": "Direct URL to the PDF audit report in SafetyCulture (opens the branded report for the client pack)."
+    },
+    "items_failed": {
+      "type": "number",
+      "default": 0,
+      "description": "Count of failed / non-conformant items in the audit"
+    },
+    "items_passed": {
+      "type": "number",
+      "default": 0,
+      "description": "Count of passed items in the audit"
+    },
+    "action_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "assignee": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "default": [],
+      "description": "Corrective actions raised by the audit, extracted from the SafetyCulture payload."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "actioned",
+        "closed"
+      ],
+      "default": "open",
+      "description": "Internal follow-up status. 'open' = new audit with unresolved actions; 'actioned' = actions assigned/in progress; 'closed' = all actions resolved and verified."
+    },
+    "raw_payload": {
+      "type": "string",
+      "description": "JSON snapshot of the original SafetyCulture webhook payload, kept for audit traceability."
+    }
+  },
+  "required": [
+    "safetyculture_audit_id"
+  ]
+}

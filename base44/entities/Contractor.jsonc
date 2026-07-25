@@ -4,7 +4,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "description": "Contractor company or individual name"
+      "description": "Sub-contractor company or individual name"
     },
     "contact_name": {
       "type": "string",
@@ -21,6 +21,119 @@
     "notes": {
       "type": "string",
       "description": "Additional notes"
+    },
+    "onboarding_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "documents_requested",
+        "under_review",
+        "approved",
+        "rejected",
+        "suspended"
+      ],
+      "default": "pending",
+      "description": "Onboarding lifecycle. 'pending' = new lead not yet contacted; 'documents_requested' = onboarding link sent; 'under_review' = documents returned, awaiting approval; 'approved' = cleared to work on jobs; 'rejected' = failed checks; 'suspended' = previously approved but stopped (insurance lapsed, performance, etc.)."
+    },
+    "services_offered": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Work this sub-contractor carries out (e.g. ['drilling','groundworks','enabling','coring','trial_pit','depot']). Used to match them to jobs needing that skill."
+    },
+    "company_reg_number": {
+      "type": "string",
+      "description": "Companies House registration number"
+    },
+    "vat_number": {
+      "type": "string",
+      "description": "VAT registration number"
+    },
+    "hse_registration": {
+      "type": "string",
+      "description": "HSE / UKAS / other regulatory registration reference"
+    },
+    "accreditations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "chas",
+          "constructionline",
+          "smas",
+          "safecontractor",
+          "iso9001",
+          "iso14001",
+          "iso45001",
+          "achilles",
+          "other"
+        ]
+      },
+      "default": [],
+      "description": "Pre-qualification & accreditation schemes the sub-contractor holds (CHAS, Constructionline, SMAS, SafeContractor, ISO 9001/14001/45001, Achilles)."
+    },
+    "insurance_provider": {
+      "type": "string",
+      "description": "Name of the insurer providing public liability & professional indemnity cover"
+    },
+    "insurance_policy_number": {
+      "type": "string",
+      "description": "Public liability / combined liability policy number"
+    },
+    "insurance_expiry": {
+      "type": "string",
+      "format": "date",
+      "description": "Expiry date of the public liability insurance policy. A safety alert flags any approved sub-contractor whose insurance has expired."
+    },
+    "public_liability_limit": {
+      "type": "number",
+      "description": "Public liability cover limit in GBP (e.g. 5000000 = \u00a35m)"
+    },
+    "employers_liability_limit": {
+      "type": "number",
+      "description": "Employers liability cover limit in GBP (e.g. 10000000 = \u00a310m)"
+    },
+    "professional_indemnity_limit": {
+      "type": "number",
+      "description": "Professional indemnity cover limit in GBP"
+    },
+    "safetyculture_email": {
+      "type": "string",
+      "description": "SafetyCulture (iAuditor) account email for this sub-contractor. Audits submitted from this email are auto-linked to this contractor record."
+    },
+    "safetyculture_user_id": {
+      "type": "string",
+      "description": "SafetyCulture user ID, auto-captured when an audit webhook matches this contractor by email."
+    },
+    "onboarding_token": {
+      "type": "string",
+      "description": "Unique token for the sub-contractor onboarding portal link. Generated when an onboarding request is sent."
+    },
+    "onboarding_sent_at": {
+      "type": "string",
+      "description": "ISO timestamp when the onboarding request link was last sent to the sub-contractor."
+    },
+    "onboarding_completed_at": {
+      "type": "string",
+      "description": "ISO timestamp when the sub-contractor submitted their onboarding details via the portal link."
+    },
+    "approved_by_name": {
+      "type": "string",
+      "description": "Name of the manager who approved this sub-contractor's onboarding"
+    },
+    "approved_at": {
+      "type": "string",
+      "description": "ISO timestamp when the sub-contractor was approved"
+    },
+    "rejection_reason": {
+      "type": "string",
+      "description": "Reason recorded when a sub-contractor is rejected or suspended"
+    },
+    "default_daily_rate": {
+      "type": "number",
+      "description": "Default daily charge rate for this sub-contractor's crew (used as a fallback when billing a job they worked on)"
     }
   },
   "required": [

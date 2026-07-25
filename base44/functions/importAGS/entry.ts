@@ -438,6 +438,9 @@ Deno.serve(async (req) => {
       const staff = await base44.asServiceRole.entities.Staff.filter({ user_id: user.id });
       if (staff.length) staffId = staff[0].id;
     } catch (e) { /* fall back to user.id */ }
+    // Capture the real person performing the import so every AGS-imported
+    // log is attributed to them (shown on the Borehole / Logs pages).
+    const importerName = (user.full_name || user.email || 'AGS Import (KeyLogBook)');
 
     // Overwrite mode: delete existing AGS-imported logs for this job
     let deletedCount = 0;
@@ -503,7 +506,7 @@ Deno.serve(async (req) => {
           groundwater_strike_depth: num(pick(r, 'LOCA_GND', 'LOCA_GW_DEPTH', 'LOCA_GWL', 'LOCA_WATER', 'GND', 'GW_DEPTH', 'GWL', 'WATER')) || null,
           description: `Imported from KeyLogBook AGS — ${descParts.join('')}.`,
           source: 'ags_import', completed_by_type: 'internal_staff',
-          completed_by_name: 'AGS Import (KeyLogBook)',
+          completed_by_name: importerName,
           manager_review_status: 'approved', chargeable: false,
         })) counts.locations++;
       }
@@ -539,7 +542,7 @@ Deno.serve(async (req) => {
               coring_rqd: rqd, coring_recovery: recovery, strata_description_detail: desc,
               description: `Imported from KeyLogBook AGS — core run${runNo ? ` ${runNo}` : ''}${rqd != null ? ` (RQD ${rqd}%)` : ''}${recovery != null ? ` (recovery ${recovery}%)` : ''}.`,
               source: 'ags_import', completed_by_type: 'internal_staff',
-              completed_by_name: 'AGS Import (KeyLogBook)',
+              completed_by_name: importerName,
               manager_review_status: 'approved', chargeable: false,
             })) counts.core++;
           } else {
@@ -550,7 +553,7 @@ Deno.serve(async (req) => {
               strata_descriptor: mapStrataDescriptor(desc), strata_description_detail: desc,
               description: 'Imported from KeyLogBook AGS — strata.',
               source: 'ags_import', completed_by_type: 'internal_staff',
-              completed_by_name: 'AGS Import (KeyLogBook)',
+              completed_by_name: importerName,
               manager_review_status: 'approved', chargeable: false,
             })) counts.strata++;
           }
@@ -579,7 +582,7 @@ Deno.serve(async (req) => {
           coring_rqd: rqd, coring_recovery: recovery, strata_description_detail: coreDesc || null,
           description: `Imported from KeyLogBook AGS — core run${runNo || coreId ? ` ${runNo || coreId}` : ''}${rqd != null ? ` (RQD ${rqd}%)` : ''}${recovery != null ? ` (recovery ${recovery}%)` : ''}.${coreDesc ? ' ' + coreDesc : ''}`,
           source: 'ags_import', completed_by_type: 'internal_staff',
-          completed_by_name: 'AGS Import (KeyLogBook)',
+          completed_by_name: importerName,
           manager_review_status: 'approved', chargeable: false,
         })) counts.core++;
       }
@@ -600,7 +603,7 @@ Deno.serve(async (req) => {
           sample_type: mapSampleType(sampType),
           description: `Imported from KeyLogBook AGS — sample ${sampId} (${sampType}).`,
           source: 'ags_import', completed_by_type: 'internal_staff',
-          completed_by_name: 'AGS Import (KeyLogBook)',
+          completed_by_name: importerName,
           manager_review_status: 'approved', chargeable: false,
         })) counts.samples++;
       }
@@ -630,7 +633,7 @@ Deno.serve(async (req) => {
             spt_blows: blows, spt_n_value: nval,
             description: `Imported from KeyLogBook AGS — SPT (N=${nval != null ? nval : 'n/a'}).`,
             source: 'ags_import', completed_by_type: 'internal_staff',
-            completed_by_name: 'AGS Import (KeyLogBook)',
+            completed_by_name: importerName,
             manager_review_status: 'approved', chargeable: false,
           })) counts.spt++;
         }
@@ -657,7 +660,7 @@ Deno.serve(async (req) => {
           depth_to: num(pick(r, 'TREM_BASE', 'TREM_BOT', 'BASE', 'BOT', 'DEPTH_TO', 'TO')) || null,
           description: `Imported from KeyLogBook AGS — installation pipe${tremId ? ` ${tremId}` : ''}: ${detail}.`,
           source: 'ags_import', completed_by_type: 'internal_staff',
-          completed_by_name: 'AGS Import (KeyLogBook)',
+          completed_by_name: importerName,
           manager_review_status: 'approved', chargeable: false,
         })) counts.installations++;
       }
@@ -689,7 +692,7 @@ Deno.serve(async (req) => {
             depth_from: dFrom, depth_to: dTo,
             description: `Imported from KeyLogBook AGS — standpipe${wstgId ? ` ${wstgId}` : ''}: ${detail}.`,
             source: 'ags_import', completed_by_type: 'internal_staff',
-            completed_by_name: 'AGS Import (KeyLogBook)',
+            completed_by_name: importerName,
             manager_review_status: 'approved', chargeable: false,
           })) counts.installations++;
         }
@@ -701,7 +704,7 @@ Deno.serve(async (req) => {
             standpipe_reading_m: waterLevel,
             description: `Imported from KeyLogBook AGS — groundwater monitoring reading: ${waterLevel}mBGL${wstgId ? ` on standpipe ${wstgId}` : ''}.`,
             source: 'ags_import', completed_by_type: 'internal_staff',
-            completed_by_name: 'AGS Import (KeyLogBook)',
+            completed_by_name: importerName,
             manager_review_status: 'approved', chargeable: false,
           })) counts.waterReadings++;
         }
@@ -739,7 +742,7 @@ Deno.serve(async (req) => {
           if (addLog({
             job_id: job.id,
             staff_id: staffId,
-            staff_name: 'AGS Import (KeyLogBook)',
+            staff_name: importerName,
             date: x.date,
             log_type: 'other',
             borehole_ref: x.borehole_ref || null,
@@ -749,7 +752,7 @@ Deno.serve(async (req) => {
             duration_minutes: x.activity.duration_minutes,
             description: cleaned[i] || x.activity.raw_description,
             completed_by_type: 'internal_staff',
-            completed_by_name: 'AGS Import (KeyLogBook)',
+            completed_by_name: importerName,
             manager_review_status: 'pending',
             chargeable: false,
             billing_status: 'no_charge',

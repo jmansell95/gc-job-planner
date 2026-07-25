@@ -1,0 +1,49 @@
+{
+  "name": "SafetyCultureConfig",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Singleton key \u2014 always 'global'. Used to fetch the single config record."
+    },
+    "webhook_secret": {
+      "type": "string",
+      "description": "Shared secret that SafetyCulture sends with each webhook payload to authenticate it. Enter this same value in your SafetyCulture webhook configuration. The webhook receiver validates every incoming request against this secret."
+    },
+    "api_token": {
+      "type": "string",
+      "description": "SafetyCulture API bearer token (optional, for future pull-based synchronisation of audit reports). Leave blank if using webhooks only."
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Master toggle for the SafetyCulture webhook receiver. When false, incoming webhooks are rejected even if the secret matches."
+    },
+    "auto_link_to_jobs": {
+      "type": "boolean",
+      "default": true,
+      "description": "When true, incoming audit reports are automatically matched to a job by site name / job reference found in the audit metadata."
+    },
+    "last_webhook_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last webhook payload received from SafetyCulture."
+    },
+    "last_webhook_status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failed",
+        "never"
+      ],
+      "default": "never",
+      "description": "Outcome of the last webhook received \u2014 'success' = audit stored, 'failed' = validation or processing error, 'never' = no webhook received yet."
+    },
+    "last_webhook_summary": {
+      "type": "string",
+      "description": "Short human-readable summary of the last webhook result (e.g. 'Stored audit \u201cSite RAMS Inspection\u201d \u00b7 2 action items')."
+    }
+  },
+  "required": [
+    "key"
+  ]
+}

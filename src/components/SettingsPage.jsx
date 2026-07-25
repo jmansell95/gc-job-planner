@@ -27,6 +27,7 @@ import AuditTrailHub from '@/components/audit/AuditTrailHub';
 import TimesheetManager from '@/components/TimesheetManager';
 import BillingPage from '@/components/BillingPage';
 import AGSImportSettings from '@/components/AGSImportSettings';
+import SafetyCultureSettings from '@/components/SafetyCultureSettings';
 import PermissionGroupManager from '@/components/PermissionGroupManager';
 import { resolveRole } from '@/utils/access';
 import { base44 } from '@/api/base44Client';
@@ -88,6 +89,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'timesheets': return <TimesheetManager />;
       case 'invoicing': return <BillingPage onSelectJob={onSelectJob} />;
       case 'ags-import': return <AGSImportSettings />;
+      case 'safety-culture': return <SafetyCultureSettings />;
       default: return null;
     }
   };

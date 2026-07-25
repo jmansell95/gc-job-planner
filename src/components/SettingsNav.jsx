@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert } from 'lucide-react';
 
 export const settingsGroups = [
   {
@@ -43,7 +43,8 @@ export const settingsGroups = [
     label: 'Contacts',
     items: [
       { id: 'clients', label: 'Clients', icon: Building2, desc: 'Manage client contacts' },
-      { id: 'contractors', label: 'Contractors', icon: HardHat, desc: 'Manage contractor contacts' },
+      { id: 'contractors', label: 'Sub-contractors', icon: HardHat, desc: 'Onboard, vet & approve sub-contractors — insurance, accreditations & SafetyCulture email' },
+      { id: 'safety-culture', label: 'SafetyCulture', icon: ShieldAlert, desc: 'Sync site safety audits & inspection forms from SafetyCulture (iAuditor)', roles: ['admin', 'manager'] },
       { id: 'suppliers', label: 'Suppliers', icon: Package, desc: 'Suppliers & their rate cards — upload to auto-populate job costing' },
     ],
   },
