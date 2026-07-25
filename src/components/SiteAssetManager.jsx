@@ -174,13 +174,16 @@ export default function SiteAssetManager() {
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-slate-900 truncate">{asset.name}</p>
-                      {asset.equipment_type && <p className="text-[11px] text-emerald-600 font-medium truncate">{asset.equipment_type}</p>}
+                      {asset.equipment_type && <p className="text-[11px] text-emerald-700 font-semibold truncate" title={`Equipment type: ${asset.equipment_type}`}>{asset.equipment_type}</p>}
                       {asset.serial_number && <p className="text-xs text-slate-400 font-mono truncate">{asset.serial_number}</p>}
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${typeCfg.badge}`}>{typeCfg.label}</span>
+                  {asset.compliance_category && (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600 truncate" title={`GC category: ${asset.compliance_category}`}>{asset.compliance_category}</span>
+                  )}
                   {asset.rig_type && asset.rig_type !== 'n/a' && (
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600 uppercase">{asset.rig_type}</span>
                   )}

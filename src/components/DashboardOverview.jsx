@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Calendar, Settings2, Check, Eye, MapPin, ArrowRight } from 'lucide-react';
+import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Calendar, Settings2, Check, Eye, MapPin, ArrowRight, ShieldAlert, Percent, Timer } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
@@ -45,6 +45,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets'], queryFn: () => base44.entities.Timesheet.list('-created_date', 100) });
   const { data: deliveries = [] } = useQuery({ queryKey: ['deliveries'], queryFn: () => base44.entities.DeliveryLog.filter({ scheduled_date: todayStr }) });
+  const { data: safetyReports = [] } = useQuery({ queryKey: ['safety-reports-open'], queryFn: () => base44.entities.SafetyReport.filter({ status: 'open' }) });
 
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
@@ -103,6 +104,12 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const activeStaff = staff.filter(s => s.is_active !== false).length;
 
   const pendingDeliveries = scopedDeliveries.filter(d => d.status === 'pending' || d.status === 'in_progress').length;
+
+  // Intelligence metrics — contextual, not just raw counts
+  const utilizationPct = activeStaff > 0 ? Math.round((staffToday / activeStaff) * 100) : 0;
+  const nowMs = Date.now();
+  const overdueSubmittedTs = scopedTimesheets.filter(t => t.status === 'submitted' && t.created_date && (nowMs - new Date(t.created_date).getTime()) > 48 * 3600 * 1000).length;
+  const overdueActions = safetyReports.flatMap(r => (r.action_items || [])).filter(a => a && a.due_date && new Date(a.due_date) < new Date()).length;
 
   const canViewCosts = canViewCostings(profile);
 
@@ -301,9 +308,10 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         <StateMonitorBar
           className="mb-5"
           monitors={[
-            { key: 'active', icon: Briefcase, label: 'Active Jobs', value: activeJobs.length, tone: 'emerald', nav: 'jobs' },
-            { key: 'onsite', icon: Users, label: 'On Site', value: staffToday, tone: 'blue', nav: 'rota' },
-            { key: 'ts', icon: ClipboardCheck, label: 'Timesheet Queue', value: pendingTs, tone: 'amber', nav: 'timesheets' },
+            { key: 'active', icon: Briefcase, label: 'Active Jobs', value: activeJobs.length, sublabel: `${scopedJobs.length} total in system`, tone: 'emerald', nav: 'jobs' },
+            { key: 'util', icon: Percent, label: 'Crew Utilisation', value: utilizationPct, unit: '%', sublabel: `${staffToday} of ${activeStaff} active crew on site`, tone: 'blue', nav: 'rota' },
+            { key: 'ts', icon: ClipboardCheck, label: 'Timesheet Queue', value: pendingTs, sublabel: overdueSubmittedTs > 0 ? `${overdueSubmittedTs} overdue (>48h)` : 'All within target', tone: overdueSubmittedTs > 0 ? 'rose' : 'amber', nav: 'timesheets' },
+            { key: 'actions', icon: ShieldAlert, label: 'Overdue Actions', value: overdueActions, sublabel: overdueActions > 0 ? 'Safety items past due' : 'No overdue safety actions', tone: overdueActions > 0 ? 'rose' : 'slate', nav: 'compliance' },
           ]}
           onNavigate={onNavigate}
         />

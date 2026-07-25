@@ -70,7 +70,17 @@ Deno.serve(async (req) => {
     };
 
     const extractEquipmentType = (e) => {
-      return String(e.equipment_type || e.type || e.category || e.type_name || e.category_label || '').trim();
+      return String(e.equipment_type || e.type_name || e.type || '').trim();
+    };
+
+    // Raw category value copied verbatim from the GC Compliance Manager record.
+    // Kept separate from equipment_type so the original GC grouping is preserved exactly.
+    const extractCategory = (e) => {
+      return String(e.category || e.asset_type || e.equipment_category || e.group || e.category_label || '').trim();
+    };
+
+    const extractToolingNotes = (e) => {
+      return String(e.tooling_notes || e.tooling || e.casing_sizes || e.augers || e.core_barrels || e.specifications || e.tooling || '').trim();
     };
 
     const extractResponsiblePerson = (e) => {
@@ -170,7 +180,9 @@ Deno.serve(async (req) => {
         external_compliance_id: match.id,
         asset_type: assetType,
         equipment_type: extractEquipmentType(match) || asset.equipment_type || '',
+        compliance_category: extractCategory(match) || asset.compliance_category || '',
         responsible_person: extractResponsiblePerson(match),
+        tooling_notes: extractToolingNotes(match) || asset.tooling_notes || '',
         notes: match.notes || match.last_test_notes || asset.notes || '',
       });
       synced++;
@@ -189,6 +201,7 @@ Deno.serve(async (req) => {
         asset_type: assetType,
         is_rig: false,
         equipment_type: extractEquipmentType(eq),
+        compliance_category: extractCategory(eq),
         rig_type: 'n/a',
         serial_number: serial,
         external_compliance_id: eq.id,
@@ -196,6 +209,7 @@ Deno.serve(async (req) => {
         compliance_expiry_date: (assetType === 'machinery' || assetType === 'trailer') ? null : (extractExpiry(eq) || null),
         compliance_last_checked: now,
         responsible_person: extractResponsiblePerson(eq),
+        tooling_notes: extractToolingNotes(eq),
         is_active: true,
         notes: eq.notes || eq.last_test_notes || '',
       });
@@ -250,7 +264,9 @@ Deno.serve(async (req) => {
         external_compliance_id: match.id,
         rig_type: extractRigType(match),
         serial_number: match.registration_number || asset.serial_number || '',
+        compliance_category: extractCategory(match) || asset.compliance_category || '',
         responsible_person: extractResponsiblePerson(match),
+        tooling_notes: extractToolingNotes(match) || asset.tooling_notes || '',
         notes: match.notes || asset.notes || '',
         is_rig: true,
       });
@@ -271,7 +287,9 @@ Deno.serve(async (req) => {
         compliance_status: extractRigStatus(rig),
         compliance_expiry_date: null,
         compliance_last_checked: now,
+        compliance_category: extractCategory(rig),
         responsible_person: extractResponsiblePerson(rig),
+        tooling_notes: extractToolingNotes(rig),
         is_active: true,
         notes: rig.notes || '',
       });

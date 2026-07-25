@@ -19,7 +19,11 @@
     },
     "equipment_type": {
       "type": "string",
-      "description": "Equipment type/category pulled from GC Compliance Manager (e.g. 'Overshot Tool', 'Sling', 'Shackle'). More specific than asset_type."
+      "description": "Equipment type pulled from GC Compliance Manager (e.g. 'Overshot Tool', 'Sling', 'Shackle'). More specific than asset_type."
+    },
+    "compliance_category": {
+      "type": "string",
+      "description": "Raw category copied verbatim from the GC Compliance Manager record (e.g. 'Lifting Gear', 'Plant', 'Vehicle'). Stored alongside the derived asset_type enum so the GC category is always reflected exactly."
     },
     "rig_type": {
       "type": "string",
@@ -105,7 +109,7 @@
     },
     "tooling_notes": {
       "type": "string",
-      "description": "Associated tooling for this rig/equipment (e.g. casing sizes, augers, core barrels)"
+      "description": "Associated tooling for this rig/equipment (e.g. casing sizes, augers, core barrels). Synced from GC Compliance Manager where available."
     },
     "linked_equipment_ids": {
       "type": "array",
