@@ -31,16 +31,15 @@ export default function AGSImportSettings() {
     setError('');
     setResult(null);
     try {
-      // Upload the AGS file via the UploadFile integration first, then pass
-      // the resulting public file_url to the import function. Sending the
-      // raw file content inside the JSON request body works in the editor
-      // preview but hits the request-body size limit on the published site
-      // (AGS exports are often several MB). Uploading first avoids that
-      // limit and the backend function already supports the file_url path.
-      const uploadRes = await base44.integrations.Core.UploadFile({ file });
-      const fileUrl = uploadRes?.file_url;
-      if (!fileUrl) throw new Error('Could not upload the AGS file. Please try again.');
-      const res = await base44.functions.invoke('importAGS', { file_url: fileUrl, job_id: jobId || null });
+      // Read the AGS file as text in the browser and send the raw content
+      // straight to the import function. We deliberately do NOT use the
+      // UploadFile integration here: on the published site that integration
+      // requires admin-level file access and throws "authentication required
+      // to view users" for non-admin managers. The backend importAGS function
+      // reads file_content directly, so this works for any authenticated
+      // user whose route guard lets them reach this settings page.
+      const fileContent = await file.text();
+      const res = await base44.functions.invoke('importAGS', { file_content: fileContent, job_id: jobId || null });
       setResult(res.data);
       toast({ title: 'AGS data imported', description: `${res.data.inserted} log entries added to ${res.data.job_name}.` });
       setFile(null);
