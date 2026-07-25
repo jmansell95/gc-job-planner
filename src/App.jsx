@@ -16,6 +16,7 @@ import SubcontractorDashboard from './pages/SubcontractorDashboard';
 import ClientPortal from './pages/ClientPortal';
 import DeliveryDashboard from './pages/DeliveryDashboard';
 import HelpGuide from './pages/HelpGuide';
+import PresentationPack from './pages/PresentationPack';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -63,6 +64,7 @@ const AuthenticatedApp = () => {
           <Route path="/subcontractor" element={<RouteGuard><SubcontractorDashboard /></RouteGuard>} />
           <Route path="/deliveries" element={<RouteGuard><DeliveryDashboard /></RouteGuard>} />
           <Route path="/help" element={<HelpGuide />} />
+          <Route path="/presentation-pack" element={<PresentationPack />} />
         </Route>
         <Route path="/client-portal/:token" element={<ClientPortal />} />
         <Route path="*" element={<PageNotFound />} />
