@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 
 // ============================================================
@@ -73,6 +72,7 @@ const gbp = (n) => `£${Number(n || 0).toFixed(2)}`;
 const clean = (s) => s ? String(s).replace(/_/g, ' ') : '';
 
 export async function generateJobPackPDF({ job, clientName, contractorName, data }) {
+  const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
   let page = 1;
   const logoData = await loadLogoDataUrl();
