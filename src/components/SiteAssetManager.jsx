@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Wrench, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, Anchor, RefreshCw, Info, ScanLine } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import SyncComplianceButton from '@/components/SyncComplianceButton';
+import ComplianceAttentionPanel from '@/components/ComplianceAttentionPanel';
 import AssetLens from '@/components/logistics/AssetLens';
 import { useConfigLists } from '@/hooks/useConfigLists';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
@@ -115,6 +116,9 @@ export default function SiteAssetManager() {
           );
         })}
       </div>
+
+      {/* Non-compliant items pulled from GC — actionable list to fix then re-sync */}
+      <ComplianceAttentionPanel assets={assets} />
 
       {/* Filters */}
       {assets.length > 0 && (
