@@ -90,29 +90,34 @@
 
   body {
     @apply bg-background text-foreground font-body;
-    font-size: 16px;
-    line-height: 1.6;
+    font-size: 17px;
+    line-height: 1.55;
+    font-weight: 400;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4 {
-    letter-spacing: -0.018em;
+    letter-spacing: -0.022em;
+    font-weight: 700;
   }
+  h1 { line-height: 1.2; }
+  h2 { line-height: 1.25; }
+  h3 { line-height: 1.3; }
 
   button {
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Mobile-first readable controls: 16px prevents iOS auto-zoom on focus.
+  /* Mobile-first readable controls: 17px prevents iOS auto-zoom on focus.
      Enforced on phones so utility classes (text-sm etc.) can't shrink inputs
-     below the accessibility threshold. Desktop keeps the compact 14px default. */
+     below the accessibility threshold. Desktop keeps the compact 15px default. */
   @media (max-width: 639px) {
-    input, select, textarea { font-size: 16px !important; }
+    input, select, textarea { font-size: 17px !important; }
   }
   @media (min-width: 640px) {
-    input, select, textarea { font-size: 14px; }
+    input, select, textarea { font-size: 15px; }
   }
 
   /* Comfortable tap targets on touch devices */
