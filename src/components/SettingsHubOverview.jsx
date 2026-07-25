@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Users, Briefcase, Truck, Building2, Receipt, Package, Wrench, TrendingUp, HardHat, Boxes, Mail, Palette, Zap, Timer, Banknote, CalendarX, Database, Tag, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck } from 'lucide-react';
+import { Users, Briefcase, Truck, Building2, Receipt, Package, Wrench, TrendingUp, HardHat, Boxes, Mail, Palette, Zap, Timer, Banknote, CalendarX, Database, Tag, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert } from 'lucide-react';
 
 /**
  * Settings Command Hub — an at-a-glance overview of everything configurable.
@@ -31,6 +31,7 @@ export default function SettingsHubOverview({ onNavigate }) {
     { group: 'People & Teams', items: [
       { id: 'staff', icon: Users, label: 'Crew Members', value: staff.length, sub: `${staff.filter(s => s.is_active !== false).length} active`, color: 'emerald' },
       { id: 'teams', icon: Users, label: 'Crews', value: teams.length, sub: 'Teams & sub-teams', color: 'blue' },
+      { id: 'access-levels', icon: ShieldCheck, label: 'Access Levels', value: '—', sub: 'Permission groups', color: 'slate' },
       { id: 'absences', icon: CalendarX, label: 'Absences', value: '—', sub: 'Leave & time off', color: 'amber' },
     ]},
     { group: 'Operations', items: [
@@ -42,6 +43,7 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'dropdowns', icon: ListChecks, label: 'Dropdown Manager', value: '—', sub: 'Edit every dropdown', color: 'violet' },
       { id: 'automations', icon: Zap, label: 'Automations', value: '—', sub: 'Background tasks', color: 'violet' },
       { id: 'ags-import', icon: FileUp, label: 'KeyLogBook Settings', value: '—', sub: 'Webhook sync & imports', color: 'cyan' },
+      { id: 'safety-culture', icon: ShieldAlert, label: 'Safety Culture Sync', value: '—', sub: 'Audit & form sync', color: 'rose' },
     ]},
     { group: 'Compliance & Review', items: [
       { id: 'compliance', icon: ShieldCheck, label: 'Compliance', value: complianceItems.length, sub: 'Training & qualifications', color: 'rose' },

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { ShieldAlert, Loader2, Save, ExternalLink, CheckCircle2, XCircle, FileWarning } from 'lucide-react';
+import { ShieldAlert, Loader2, Save, ExternalLink, CheckCircle2, XCircle, FileWarning, Copy, ChevronDown, ChevronUp, Webhook, KeyRound, BookOpen, AlertCircle } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 const ACCENT = '#2E5A1A';
@@ -39,21 +39,31 @@ export default function SafetyCultureSettings() {
       });
       return created;
     },
-    // Initialise the editable form once the config loads
-    onSuccess: (c) => setForm({
-      webhook_secret: c.webhook_secret || '',
-      api_token: c.api_token || '',
-      enabled: !!c.enabled,
-      auto_link_to_jobs: c.auto_link_to_jobs !== false,
-    }),
   });
+
+  // Initialise the editable form once the config loads (React Query v5 removed onSuccess)
+  useEffect(() => {
+    if (config) {
+      setForm({
+        webhook_secret: config.webhook_secret || '',
+        api_token: config.api_token || '',
+        enabled: !!config.enabled,
+        auto_link_to_jobs: config.auto_link_to_jobs !== false,
+      });
+    }
+  }, [config]);
 
   const { data: reports = [] } = useQuery({
     queryKey: ['safety-reports'],
     queryFn: () => base44.entities.SafetyReport.list('-created_date', 50),
   });
 
-  const webhookUrl = (typeof window !== 'undefined' ? window.location.origin : '') + '/api/functions/receiveSafetyCultureData?webhook_secret=' + (form?.webhook_secret ? 'YOUR_SECRET' : 'YOUR_SECRET');
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const webhookUrl = origin + '/api/functions/receiveSafetyCultureData';
+  const isConfigured = !!(form?.webhook_secret);
+  const [expandedPayload, setExpandedPayload] = useState(null);
+
+  const copyToClipboard = (text) => { navigator.clipboard?.writeText(text); };
 
   const handleSave = async () => {
     if (!config) return;
@@ -87,9 +97,40 @@ export default function SafetyCultureSettings() {
     <div className="space-y-6">
       <SettingsSectionHeader
         icon={ShieldAlert}
-        title="SafetyCulture (iAuditor) Integration"
+        title="SafetyCulture (iAuditor) Sync"
         description="Sync site safety audits & inspection forms from SafetyCulture — every audit auto-links to its job and sub-contractor"
       />
+
+      {/* Get Started guide — shown until the webhook secret is set */}
+      {!isConfigured && (
+        <div className="rounded-xl border border-[#2E5A1A]/20 bg-gradient-to-br from-[#2E5A1A]/5 to-white p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <BookOpen className="w-5 h-5 text-[#2E5A1A]" />
+            <h3 className="font-bold text-slate-900">Get Started — 3 Steps</h3>
+            <span className="ml-auto text-xs text-slate-400">Everything is built and ready — add your details when you have them</span>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-[#2E5A1A] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</div>
+              <div className="text-sm text-slate-600">
+                <span className="font-semibold text-slate-800">Enter a webhook secret below</span> — any strong password-like string. You'll set the same value in SafetyCulture.
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-[#2E5A1A] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</div>
+              <div className="text-sm text-slate-600">
+                <span className="font-semibold text-slate-800">Copy the Webhook Endpoint URL</span> below and add it in SafetyCulture → Integrations → Webhooks, appending <code className="px-1 bg-slate-100 rounded">?webhook_secret=YOUR_SECRET</code>.
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-[#2E5A1A] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</div>
+              <div className="text-sm text-slate-600">
+                <span className="font-semibold text-slate-800">Enable the receiver</span> and Save. Your API token can be added later for pull-based sync — the system is ready whenever you are.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Status banner */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -115,7 +156,15 @@ export default function SafetyCultureSettings() {
 
       {/* Config form */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <h3 className="font-semibold text-slate-900 mb-4">Webhook Configuration</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <Webhook className="w-4 h-4 text-[#2E5A1A]" />
+          <h3 className="font-semibold text-slate-900">Webhook Configuration</h3>
+          {isConfigured ? (
+            <span className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-700"><CheckCircle2 className="w-3 h-3" /> Secret set</span>
+          ) : (
+            <span className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700"><AlertCircle className="w-3 h-3" /> Awaiting secret</span>
+          )}
+        </div>
         <div className="space-y-4">
           <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
             <input id="sc-enabled" type="checkbox" checked={form.enabled}
@@ -152,12 +201,10 @@ export default function SafetyCultureSettings() {
             <label className="block text-xs font-medium text-slate-600 mb-1">Webhook Endpoint URL</label>
             <div className="flex items-center gap-2">
               <code className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 break-all">
-                {typeof window !== 'undefined' ? window.location.origin : ''}/api/functions/receiveSafetyCultureData
+                {webhookUrl}
               </code>
-              <button onClick={() => {
-                navigator.clipboard?.writeText((typeof window !== 'undefined' ? window.location.origin : '') + '/api/functions/receiveSafetyCultureData');
-              }} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition" title="Copy URL">
-                <ExternalLink className="w-4 h-4" />
+              <button onClick={() => copyToClipboard(webhookUrl)} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition" title="Copy URL">
+                <Copy className="w-4 h-4" />
               </button>
             </div>
             <p className="text-[11px] text-slate-400 mt-1">Add this URL in SafetyCulture → Integrations → Webhooks, and append <code className="px-1 bg-slate-100 rounded">?webhook_secret=YOUR_SECRET</code>.</p>
@@ -170,6 +217,31 @@ export default function SafetyCultureSettings() {
           </button>
         </div>
       </div>
+
+      {/* Webhook Debug Log — raw payload viewer */}
+      {reports.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
+            <Webhook className="w-4 h-4 text-slate-500" />
+            <h3 className="font-semibold text-slate-900">Webhook Debug Log</h3>
+            <span className="text-xs text-slate-400 hidden sm:inline">Expand a row to inspect the raw SafetyCulture payload</span>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {reports.slice(0, 10).map((r) => (
+              <div key={r.id}>
+                <button onClick={() => setExpandedPayload(expandedPayload === r.id ? null : r.id)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition text-left">
+                  {expandedPayload === r.id ? <ChevronUp className="w-4 h-4 text-slate-400 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" />}
+                  <p className="text-xs font-medium text-slate-700 flex-1 truncate">{r.audit_title || r.audit_template_name || 'Untitled audit'}</p>
+                  <span className="text-[10px] text-slate-400 flex-shrink-0">{r.conducted_at ? new Date(r.conducted_at).toLocaleDateString('en-GB') : '—'}</span>
+                </button>
+                {expandedPayload === r.id && (
+                  <pre className="px-4 pb-3 text-[11px] text-slate-600 bg-slate-50 overflow-x-auto max-h-64 overflow-y-auto border-t border-slate-100">{r.raw_payload || 'No raw payload stored'}</pre>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recent reports */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
