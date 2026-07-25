@@ -53,9 +53,8 @@ export default function DrillingSiteLogs({ job, assignedStaff, onViewBoreholes }
           <h2 className="font-semibold text-slate-900">Site Logs</h2>
           <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{logs.length} total</span>
         </div>
-        <div className="grid grid-cols-3 gap-3 px-5 py-4 bg-slate-50/50 border-b border-slate-100">
+        <div className="grid grid-cols-2 gap-3 px-5 py-4 bg-slate-50/50 border-b border-slate-100">
           <SummaryStat label="Driller Activities" value={remarksLogs.length} hint="KeyLogBook remarks" tone="indigo" />
-          <SummaryStat label="Borehole Records" value={agsLogs.length} hint="AGS import" tone="emerald" />
           <SummaryStat label="Other Entries" value={otherLogs.length} hint="field logs" tone="slate" />
         </div>
       </div>
@@ -63,40 +62,6 @@ export default function DrillingSiteLogs({ job, assignedStaff, onViewBoreholes }
       {/* 1. Driller activity review */}
       <SiteLogReviewManager job={job} assignedStaff={assignedStaff} />
 
-      {/* 2. Borehole records index */}
-      {agsLogs.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
-            <Tablet className="w-4 h-4 text-indigo-600" />
-            <h3 className="font-semibold text-slate-900">Borehole Records from KeyLogBook</h3>
-            <span className="ml-auto text-xs bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full font-medium">{agsLogs.length} records · {boreholeEntries.length} boreholes</span>
-          </div>
-          <div className="p-4">
-            <p className="text-xs text-slate-500 mb-3">Strata, SPT, core, sample and groundwater detail for each borehole is on the Boreholes tab.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {boreholeEntries.map(([ref, refLogs]) => {
-                const depths = refLogs.map(l => l.depth_to).filter(d => d != null);
-                const maxDepth = depths.length ? Math.max(...depths) : null;
-                const pending = refLogs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
-                return (
-                  <button key={ref} onClick={onViewBoreholes} className="text-left p-3 rounded-lg border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition">
-                    <div className="flex items-center gap-2">
-                      <Mountain className="w-4 h-4 text-indigo-600 flex-shrink-0" />
-                      <span className="font-mono font-bold text-slate-900 text-sm truncate">{ref}</span>
-                      <ChevronRight className="w-3.5 h-3.5 ml-auto text-slate-300 flex-shrink-0" />
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
-                      <span>{refLogs.length} records</span>
-                      {maxDepth != null && <span>· {maxDepth}m</span>}
-                      {pending > 0 && <span className="text-amber-600 font-medium">· {pending} pending</span>}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

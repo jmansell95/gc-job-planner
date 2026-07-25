@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   FlaskConical, Layers, Ruler, TestTube, Wrench, MapPin, Package, ClipboardList, ArrowDownToLine,
-  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban, Beaker, Radar, Boxes, ShieldCheck, Tablet, Mountain, Eye, EyeOff, ChevronDown
+  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban, Beaker, Radar, Boxes,   ShieldCheck, Tablet, Mountain, Eye, EyeOff, ChevronDown, User
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { titleCase } from '@/utils/format';
@@ -207,6 +207,7 @@ function DayGroup({ date, logs, isDrillingJob }) {
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <span className="text-sm font-bold text-slate-700">{format(d, 'EEEE, dd MMM yyyy')}</span>
           <span className="text-xs text-slate-400">{dayLogs.length} {dayLogs.length === 1 ? 'Entry' : 'Entries'}</span>
+          {(() => { const names = [...new Set(dayLogs.map(l => l.staff_name || l.completed_by_name).filter(Boolean))]; return names.length > 0 ? <span className="text-xs text-slate-400 inline-flex items-center gap-1"><User className="w-3 h-3" /> {names.join(', ')}</span> : null; })()}
         </div>
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
           {isDrillingJob && dayDepth > 0 && <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">{dayDepth.toFixed(1)}m</span>}
@@ -254,15 +255,16 @@ function LogEntryCard({ log }) {
           )}
           {log.borehole_ref && <span className="text-xs font-mono font-bold text-blue-700">{log.borehole_ref}</span>}
           {log.sample_id && <span className="text-xs font-mono font-bold text-purple-700">{log.sample_id}</span>}
-          {log.core_run_number && <span className="text-xs font-mono text-purple-600">Run {log.core_run_number}</span>}
-          {log.core_box_number && <span className="text-xs font-mono font-bold text-fuchsia-700 inline-flex items-center gap-0.5"><Boxes className="w-2.5 h-2.5" /> {log.core_box_number}</span>}
           <span className="text-xs text-slate-400 ml-auto inline-flex items-center gap-1">
+            <User className="w-3 h-3" />
             {log.completed_by_type && log.completed_by_type !== 'internal_staff' ? (
               <>
                 <span className="bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full font-medium">{log.completed_by_type === 'client' ? 'Client' : 'Contractor'}</span>
-                {log.completed_by_name || ''}{log.created_at ? ` @ ${format(new Date(log.created_at), 'HH:mm')}` : ''}
+                {log.completed_by_name || 'Unknown'}{log.created_at ? ` · ${format(new Date(log.created_at), 'HH:mm')}` : ''}
               </>
-            ) : log.staff_name}
+            ) : (
+              <>{log.staff_name || 'Staff member'}{log.created_at ? ` · ${format(new Date(log.created_at), 'HH:mm')}` : ''}</>
+            )}
           </span>
         </div>
 
@@ -273,11 +275,6 @@ function LogEntryCard({ log }) {
               <Ruler className="w-2.5 h-2.5" /> {log.depth_from}→{log.depth_to}m
             </span>
           )}
-          {log.spt_n_value != null && (
-            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
-              <Calculator className="w-2.5 h-2.5" /> N={log.spt_n_value}
-            </span>
-          )}
           {strata && strata.label && log.strata_descriptor !== 'other' && (
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${strata.color}`}>{strata.label}</span>
           )}
@@ -286,32 +283,9 @@ function LogEntryCard({ log }) {
               <Droplets className="w-2.5 h-2.5" /> {log.groundwater_strike_depth}m
             </span>
           )}
-          {log.coring_recovery != null && (
-            <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
-              <Layers className="w-2.5 h-2.5" /> {log.coring_recovery}%
-            </span>
-          )}
-          {log.coring_rqd != null && (
-            <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">RQD {log.coring_rqd}%</span>
-          )}
           {log.standpipe_ref && (
             <span className="text-xs bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
               <Gauge className="w-2.5 h-2.5" /> {log.standpipe_ref}{log.standpipe_reading_m != null ? ` · ${log.standpipe_reading_m}m` : ''}
-            </span>
-          )}
-          {log.drilling_fluid_loss && log.drilling_fluid_loss !== 'none' && fluidLossConfig[log.drilling_fluid_loss] && (
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${fluidLossConfig[log.drilling_fluid_loss].badge}`}>
-              {fluidLossConfig[log.drilling_fluid_loss].label}
-            </span>
-          )}
-          {log.refusal_encountered && (
-            <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
-              <Ban className="w-2.5 h-2.5" /> Refusal
-            </span>
-          )}
-          {log.obstruction_type && log.obstruction_type !== 'none' && obstructionConfig[log.obstruction_type] && (
-            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${obstructionConfig[log.obstruction_type].badge}`}>
-              {obstructionConfig[log.obstruction_type].label}
             </span>
           )}
           {stability && log.pit_stability_rating !== 'not_assessed' && (
