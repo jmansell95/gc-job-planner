@@ -418,6 +418,45 @@ Deno.serve(async (req) => {
     let jobAssignmentsRemoved = 0;
     let jobCostItemsRemoved = 0;
 
+    // === Seed ServiceRecord history from each asset's last-test data ===
+    // On import, create one historical entry per asset from the GC last_test
+    // fields so the new Service History timeline isn't empty. Only created if
+    // the asset doesn't already have a record (re-runs are additive-safe).
+    let serviceRecordsSeeded = 0;
+    try {
+      const freshForHistory = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
+      let existingRecords = [];
+      try {
+        existingRecords = await base44.asServiceRole.entities.ServiceRecord.list('-created_date', 500);
+      } catch (_) { /* entity may not exist yet on first run */ }
+      const assetsWithRecords = new Set(existingRecords.map(r => r.site_asset_id));
+
+      const newRecords = [];
+      for (const a of freshForHistory) {
+        if (assetsWithRecords.has(a.id)) continue;
+        if (!a.last_service_date && !a.service_notes && !a.compliance_expiry_date) continue;
+        // Determine the source record type — lifting gear uses LOLER, others PUWER/service
+        const recordType = a.asset_type === 'lifting' || a.asset_type === 'rig' ? 'loler_inspection' : 'puwer_inspection';
+        newRecords.push({
+          site_asset_id: a.id,
+          record_type: recordType,
+          date: a.last_service_date || a.compliance_last_checked || now.slice(0, 10),
+          result: a.compliance_status === 'expired' ? 'fail' : 'pass',
+          tested_by: a.responsible_person || '',
+          company: '',
+          resulting_expiry_date: a.compliance_expiry_date || null,
+          notes: a.service_notes || 'Imported from GC Compliance Manager',
+          imported_from_gc: true,
+        });
+      }
+      if (newRecords.length > 0) {
+        try {
+          const created = await base44.asServiceRole.entities.ServiceRecord.bulkCreate(newRecords);
+          serviceRecordsSeeded = created.length;
+        } catch (seedErr) { console.error('Error seeding service records:', seedErr.message); }
+      }
+    } catch (e) { console.error('Service record seeding skipped:', e.message); }
+
     // === Sync linked equipment — group equipment records by rig_id ===
     const freshSiteAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
     let linksUpdated = 0;
@@ -614,6 +653,7 @@ Deno.serve(async (req) => {
       catalogue_links_updated: catalogueLinksUpdated,
       rate_card_links_set: rateCardLinksSet,
       rate_card_costs_set: rateCardCostsSet,
+      service_records_seeded: serviceRecordsSeeded,
       unmatched_assets: unmatchedAssets,
       purged,
       job_assignments_removed: jobAssignmentsRemoved,

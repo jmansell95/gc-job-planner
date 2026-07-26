@@ -234,7 +234,7 @@ export default function SiteAssetManager() {
           })}
         </div>
       )}
-      <AssetPassport asset={passportAsset} onClose={() => setPassportAsset(null)} allAssets={assets} />
+      <AssetPassport asset={passportAsset} onClose={() => setPassportAsset(null)} allAssets={assets} onEdit={(a) => { setPassportAsset(null); openEdit(a); }} />
       {editorOpen && (
         <AssetComplianceEditor asset={editorAsset} onClose={() => { setEditorOpen(false); setEditorAsset(null); }} />
       )}

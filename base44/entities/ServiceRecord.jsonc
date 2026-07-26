@@ -1,0 +1,75 @@
+{
+  "name": "ServiceRecord",
+  "type": "object",
+  "properties": {
+    "site_asset_id": {
+      "type": "string",
+      "description": "SiteAsset this service/inspection record belongs to."
+    },
+    "record_type": {
+      "type": "string",
+      "enum": [
+        "loler_inspection",
+        "puwer_inspection",
+        "service",
+        "repair",
+        "calibration",
+        "pre_use_check",
+        "other"
+      ],
+      "default": "service",
+      "description": "Type of record. 'loler_inspection' = statutory LOLER thorough examination (lifting equipment), 'puwer_inspection' = PUWER work equipment inspection, 'service' = routine maintenance, 'repair' = fault repair, 'calibration' = instrument calibration, 'pre_use_check' = daily/pre-use check, 'other'."
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the inspection/service/repair was carried out."
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "advisory",
+        "n/a"
+      ],
+      "default": "pass",
+      "description": "Outcome of the inspection. 'pass' = safe to use, 'fail' = defective/withdrawn from service, 'advisory' = passed with observations, 'n/a' = not applicable (routine service/repair)."
+    },
+    "tested_by": {
+      "type": "string",
+      "description": "Name of the person who carried out the inspection/service."
+    },
+    "company": {
+      "type": "string",
+      "description": "Testing/inspection company or workshop (e.g. 'LOLER Inspections Ltd', 'In-house fitter')."
+    },
+    "certificate_url": {
+      "type": "string",
+      "description": "URL of the uploaded report of thorough examination / service certificate (LOLER reg 9 report)."
+    },
+    "certificate_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded certificate."
+    },
+    "resulting_expiry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "New compliance expiry date set by this inspection (the date the next LOLER test is due). The most recent record's resulting_expiry_date drives the asset's compliance_expiry_date."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Findings, defects noted, parts replaced, observations."
+    },
+    "imported_from_gc": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this record was seeded from the GC Compliance Manager's last-test data during the one-time import, rather than created directly in this app."
+    }
+  },
+  "required": [
+    "site_asset_id",
+    "record_type",
+    "date"
+  ]
+}
