@@ -409,48 +409,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    // === Purge SiteAssets not in GC Compliance Manager ===
-    // GC Compliance Manager is the single source of truth for the asset list.
-    // Any non-demo SiteAsset that was NOT matched to a current GC record is
-    // removed — both orphans (external_compliance_id pointing to a deleted GC
-    // record) and assets that originated elsewhere — so the dashboard only
-    // ever shows what actually exists in GC right now.
+    // Purge removed — GC Job Planner is now the master for SiteAssets. Assets
+    // are managed locally (added/edited/deleted via the Asset Compliance Editor).
+    // The GC import is additive only: records no longer present in GC are kept
+    // so the dashboard never silently drops assets the team still relies on
+    // (which would happen if the GC app is deleted and an empty list is pulled).
     let purged = 0;
     let jobAssignmentsRemoved = 0;
     let jobCostItemsRemoved = 0;
-    const orphanedAssetIds = siteAssets
-      .filter(a => !matchedSiteAssetIds.has(a.id))
-      .map(a => a.id);
-
-    if (orphanedAssetIds.length > 0) {
-      // Remove job asset assignments pointing to orphaned assets
-      try {
-        const assignments = await base44.asServiceRole.entities.JobAssetAssignment.list('-created_date', 500);
-        const staleAssignments = assignments.filter(a => orphanedAssetIds.includes(a.asset_id));
-        for (const sa of staleAssignments) {
-          await base44.asServiceRole.entities.JobAssetAssignment.delete(sa.id);
-        }
-        jobAssignmentsRemoved = staleAssignments.length;
-      } catch (e) { console.error('Error cleaning job asset assignments:', e.message); }
-
-      // Remove job cost items pointing to orphaned assets
-      try {
-        const costItems = await base44.asServiceRole.entities.JobCostItem.list('-created_date', 500);
-        const staleCostItems = costItems.filter(c => orphanedAssetIds.includes(c.site_asset_id));
-        for (const sc of staleCostItems) {
-          await base44.asServiceRole.entities.JobCostItem.delete(sc.id);
-        }
-        jobCostItemsRemoved = staleCostItems.length;
-      } catch (e) { console.error('Error cleaning job cost items:', e.message); }
-
-      // Delete the orphaned SiteAssets
-      try {
-        for (const id of orphanedAssetIds) {
-          await base44.asServiceRole.entities.SiteAsset.delete(id);
-        }
-        purged = orphanedAssetIds.length;
-      } catch (e) { console.error('Error purging orphaned assets:', e.message); }
-    }
 
     // === Sync linked equipment — group equipment records by rig_id ===
     const freshSiteAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Wrench, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, Anchor, RefreshCw, Info, HelpCircle, ScanLine } from 'lucide-react';
+import { Wrench, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, Anchor, RefreshCw, Info, HelpCircle, ScanLine, Plus, Pencil } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import SyncComplianceButton from '@/components/SyncComplianceButton';
+import AssetComplianceEditor from '@/components/AssetComplianceEditor';
 import ComplianceAttentionPanel from '@/components/ComplianceAttentionPanel';
 import { useConfigLists } from '@/hooks/useConfigLists';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
@@ -44,6 +45,11 @@ export default function SiteAssetManager() {
   const [search, setSearch] = useState('');
   const [compFilter, setCompFilter] = useState('all');
   const [passportAsset, setPassportAsset] = useState(null);
+  const [editorAsset, setEditorAsset] = useState(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+
+  const openAdd = () => { setEditorAsset(null); setEditorOpen(true); };
+  const openEdit = (asset) => { setEditorAsset(asset); setEditorOpen(true); };
 
   const typeTabs = [
     { key: 'all', label: 'All', icon: null },
@@ -69,18 +75,26 @@ export default function SiteAssetManager() {
     <div>
       <SettingsSectionHeader
         icon={Wrench}
-        title="Compliance Sync"
-        description="Rigs, machinery & trailers — synced from GC Compliance Manager only"
-        actions={<SyncComplianceButton />}
+        title="Asset Compliance"
+        description="Rigs, machinery, trailers & lifting gear — managed here as the master record"
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={openAdd} type="button"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white rounded-lg hover:brightness-110 active:scale-95 transition text-sm font-semibold shadow-sm">
+              <Plus className="w-4 h-4" /> Add Asset
+            </button>
+            <SyncComplianceButton />
+          </div>
+        }
       />
 
-      {/* Sync-only info banner */}
+      {/* Master-system info banner */}
       <div className="insight-card rounded-xl p-3.5 mb-4 flex items-start gap-2.5">
-        <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-          <Info className="w-4 h-4 text-blue-600" />
+        <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+          <Info className="w-4 h-4 text-emerald-600" />
         </div>
         <p className="text-sm text-slate-600 pt-1">
-          This list is <strong>sync-only</strong> from the GC Compliance Manager. Assets not present there are automatically removed. Use the <strong>Sync Compliance</strong> button to refresh.
+          This app is the <strong>master</strong> for asset compliance. Add and edit records directly here. Use <strong>Import from GC</strong> to pull the latest from the old Compliance Manager app before you delete it — imported records are kept permanently.
         </p>
       </div>
 
@@ -142,7 +156,7 @@ export default function SiteAssetManager() {
         <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}</div>
       ) : assets.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200">
-          <EmptyState icon={Wrench} title="No assets synced" message="Run a compliance sync to pull rigs, machinery and trailers from GC Compliance Manager." />
+          <EmptyState icon={Wrench} title="No assets yet" message="Add an asset, or use Import from GC to pull your existing rigs, machinery and trailers from the Compliance Manager." actionLabel="Add Asset" onAction={openAdd} />
         </div>
       ) : filteredAssets.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200">
@@ -201,18 +215,29 @@ export default function SiteAssetManager() {
                 {asset.tooling_notes && (
                   <p className="text-xs text-slate-500 mt-2 line-clamp-2">{asset.tooling_notes}</p>
                 )}
-                <button
-                  onClick={() => setPassportAsset(asset)}
-                  className="mt-3 w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition"
-                >
-                  <ScanLine className="w-3.5 h-3.5" /> View Passport
-                </button>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => openEdit(asset)}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A]/10 hover:bg-[#2E5A1A]/20 text-[#2E5A1A] rounded-lg text-xs font-semibold transition"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </button>
+                  <button
+                    onClick={() => setPassportAsset(asset)}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition"
+                  >
+                    <ScanLine className="w-3.5 h-3.5" /> Passport
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
       )}
       <AssetPassport asset={passportAsset} onClose={() => setPassportAsset(null)} allAssets={assets} />
+      {editorOpen && (
+        <AssetComplianceEditor asset={editorAsset} onClose={() => { setEditorOpen(false); setEditorAsset(null); }} />
+      )}
     </div>
   );
 }
