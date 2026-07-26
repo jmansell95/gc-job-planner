@@ -108,10 +108,10 @@ export default function StaffProfile() {
         <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-7">
           <div className="flex items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-3 min-w-0">
-              <button onClick={() => navigate('/staff-schedule')} type="button"
+              <button onClick={() => navigate(canAccessAdmin ? '/admin' : '/staff-schedule')} type="button"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation flex-shrink-0">
                 <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Schedule</span>
+                <span className="hidden sm:inline">{canAccessAdmin ? 'Dashboard' : 'Schedule'}</span>
               </button>
               <div className="min-w-0">
                 <h1 className="text-xl md:text-2xl font-bold text-white truncate tracking-tight">My Profile</h1>
