@@ -77,8 +77,8 @@ export default function SiteAssetManager() {
     <div>
       <SettingsSectionHeader
         icon={Wrench}
-        title="Asset Compliance"
-        description="Rigs, machinery, trailers & lifting gear — managed here as the master record"
+        title="Asset Manager"
+        description="Add & manage all rigs, machinery, trailers, vehicles, lifting gear & PAT — this app is the master record"
         actions={
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={openAdd} type="button"
@@ -96,7 +96,7 @@ export default function SiteAssetManager() {
           <Info className="w-4 h-4 text-emerald-600" />
         </div>
         <p className="text-sm text-slate-600 pt-1">
-          This app is the <strong>master</strong> for asset compliance. Add and edit records directly here. Use <strong>Import from GC</strong> to pull the latest from the old Compliance Manager app before you delete it — imported records are kept permanently.
+          This app is the <strong>master record</strong> for all assets. Add and edit rigs, machinery, trailers, vehicles, lifting gear and PAT directly here. Use <strong>Import from GC</strong> once to pull your existing records from the old Compliance Manager before you delete it — imported records are kept permanently.
         </p>
       </div>
 

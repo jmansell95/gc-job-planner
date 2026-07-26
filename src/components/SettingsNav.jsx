@@ -20,7 +20,7 @@ export const settingsGroups = [
   {
     label: 'Operations',
     items: [
-      { id: 'assets', label: 'Compliance Sync', icon: Wrench, desc: 'Rigs, machinery & trailers — synced from GC Compliance Manager only' },
+      { id: 'assets', label: 'Asset Manager', icon: Wrench, desc: 'Add & manage all rigs, machinery, trailers, vehicles, lifting gear & PAT — this app is the master record' },
       { id: 'asset-panda', label: 'Asset Panda Sync', icon: Database, desc: 'Connect Asset Panda & sync live inventory, stock levels and billing rates' },
       { id: 'equipment-library', label: 'Equipment Sets', icon: Package, desc: 'Pre-built equipment sets (presets) — individual items now sync from Asset Panda' },
       { id: 'vehicles', label: 'Vehicles', icon: Truck, desc: 'Track vehicles, MOTs and service dates' },
