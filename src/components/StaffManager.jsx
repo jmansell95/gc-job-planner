@@ -152,16 +152,6 @@ export default function StaffManager() {
     setInviteLoading(null);
   };
 
-  const handleRoleChange = async (userId, newRole) => {
-    try {
-      await base44.entities.User.update(userId, { role: newRole });
-      queryClient.invalidateQueries({ queryKey: ['users-list'] });
-      toast({ title: 'Role updated' });
-    } catch (error) {
-      toast({ title: 'Could not update role', description: error?.message, variant: 'destructive' });
-    }
-  };
-
   const handleToggleDelivery = async (member) => {
     try {
       await base44.entities.Staff.update(member.id, { delivery_dashboard_enabled: !member.delivery_dashboard_enabled });
@@ -414,26 +404,17 @@ export default function StaffManager() {
                   </div>
 
                   <div className="mb-3 flex items-center gap-2">
-                    {linkedUser ? (
-                      <>
-                        <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3" /> Active
+                    {!linkedUser && (
+                      member.invite_sent ? (
+                        <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium border border-blue-200">
+                          <Mail className="w-3 h-3" /> Awaiting Confirmation
                         </span>
-                        <select value={linkedUser.role || 'user'} onChange={e => handleRoleChange(linkedUser.id, e.target.value)}
-                          className="text-xs px-2 py-1 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600">
-                          <option value="user">Standard</option>
-                          <option value="admin">Super Admin (platform)</option>
-                        </select>
-                      </>
-                    ) : member.invite_sent ? (
-                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium border border-blue-200">
-                        <Mail className="w-3 h-3" /> Awaiting Confirmation
-                      </span>
-                    ) : (
-                      <button onClick={() => handleInvite(member)} disabled={inviteLoading === member.id}
-                        className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-medium border border-amber-200 hover:bg-amber-100 transition disabled:opacity-50">
-                        <UserPlus className="w-3 h-3" /> {inviteLoading === member.id ? 'Sending...' : 'Send app invite'}
-                      </button>
+                      ) : (
+                        <button onClick={() => handleInvite(member)} disabled={inviteLoading === member.id}
+                          className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-amber-50 text-amber-700 font-medium border border-amber-200 hover:bg-amber-100 transition disabled:opacity-50">
+                          <UserPlus className="w-3 h-3" /> {inviteLoading === member.id ? 'Sending...' : 'Send app invite'}
+                        </button>
+                      )
                     )}
                   </div>
 
