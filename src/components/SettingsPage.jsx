@@ -23,6 +23,7 @@ import DropdownConfigManager from '@/components/DropdownConfigManager';
 import SettingsHubOverview from '@/components/SettingsHubOverview';
 import SettingsNav, { accessibleSettingsItems } from '@/components/SettingsNav';
 import ComplianceManager from '@/components/ComplianceManager';
+import ComplianceRulesSettings from '@/components/ComplianceRulesSettings';
 import LogQualityControl from '@/components/investigation/LogQualityControl';
 import AuditTrailHub from '@/components/audit/AuditTrailHub';
 import TimesheetManager from '@/components/TimesheetManager';
@@ -88,6 +89,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'billing': return <BillingRulesManager />;
       case 'equipment-library': return <EquipmentLibraryManager />;
       case 'compliance': return <ComplianceManager />;
+      case 'compliance-rules': return <ComplianceRulesSettings />;
       case 'log-qc': return <LogQualityControl />;
       case 'audit-trail': return <AuditTrailHub />;
       case 'timesheets': return <TimesheetManager />;

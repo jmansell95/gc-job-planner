@@ -206,6 +206,7 @@ Deno.serve(async (req) => {
       const combined = `${typeRaw} ${nameRaw} ${catRaw}`;
       const liftingKeywords = ['lift', 'shackle', 'sling', 'chain', 'rope', 'hook', 'hoist', 'crane', 'rigging', 'swl', 'lever', 'pull', 'beam', 'spreader', 'thimble', 'ferrule', 'sheave', 'sleeve', 'eyebolt', 'eye bolt', 'd-shackle', 'bow shackle', 'wire rope', 'sinker', 'clevis', 'tipping hook', 'winch'];
       if (combined.includes('trailer')) return 'trailer';
+      if (['pat', 'portable appliance', '110v', '240v', 'transformer', 'power tool', 'extension lead', 'rcd'].some(kw => combined.includes(kw))) return 'portable_appliance';
       if (liftingKeywords.some(kw => combined.includes(kw))) return 'lifting';
       if (combined.includes('machine') || combined.includes('excav') || combined.includes('digger') || combined.includes('grout') || combined.includes('mixer')) return 'machinery';
       if (combined.includes('vehicle') || combined.includes('van') || combined.includes('truck')) return 'vehicle';
@@ -436,7 +437,7 @@ Deno.serve(async (req) => {
         if (assetsWithRecords.has(a.id)) continue;
         if (!a.last_service_date && !a.service_notes && !a.compliance_expiry_date) continue;
         // Determine the source record type — lifting gear uses LOLER, others PUWER/service
-        const recordType = a.asset_type === 'lifting' || a.asset_type === 'rig' ? 'loler_inspection' : 'puwer_inspection';
+        const recordType = a.asset_type === 'portable_appliance' ? 'pat_inspection' : (a.asset_type === 'lifting' || a.asset_type === 'rig' ? 'loler_inspection' : 'puwer_inspection');
         newRecords.push({
           site_asset_id: a.id,
           record_type: recordType,

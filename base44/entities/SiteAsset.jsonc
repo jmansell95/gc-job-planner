@@ -4,7 +4,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "description": "Asset name (e.g. 'Truck-mounted Rig 1', 'Trailer T-03', 'Excavator CAT 320')"
+      "description": "Asset name (e.g. 'Truck-mounted Rig 1', 'Trailer T-03', 'Excavator CAT 320', '110V Transformer T-12')"
     },
     "asset_type": {
       "type": "string",
@@ -13,17 +13,18 @@
         "machinery",
         "trailer",
         "vehicle",
-        "lifting"
+        "lifting",
+        "portable_appliance"
       ],
-      "description": "Type of asset \u2014 'lifting' covers lifting gear (shackles, slings, chains, hooks) linked to rigs"
+      "description": "Type of asset \u2014 'lifting' covers lifting gear (shackles, slings, chains, hooks) linked to rigs; 'portable_appliance' covers portable electrical equipment (110V transformers, power tools, leads, RCDs) requiring PAT testing."
     },
     "equipment_type": {
       "type": "string",
-      "description": "Equipment type pulled from GC Compliance Manager (e.g. 'Overshot Tool', 'Sling', 'Shackle'). More specific than asset_type."
+      "description": "Equipment type (e.g. 'Overshot Tool', 'Sling', 'Shackle', '110V Transformer'). More specific than asset_type."
     },
     "compliance_category": {
       "type": "string",
-      "description": "Raw category copied verbatim from the GC Compliance Manager record (e.g. 'Lifting Gear', 'Plant', 'Vehicle'). Stored alongside the derived asset_type enum so the GC category is always reflected exactly."
+      "description": "Raw category label (e.g. 'Lifting Gear', 'Plant', 'Vehicle', 'Portable Appliance'). Stored alongside the derived asset_type enum so the original grouping is always reflected exactly."
     },
     "rig_type": {
       "type": "string",
@@ -38,7 +39,7 @@
     "is_rig": {
       "type": "boolean",
       "default": false,
-      "description": "True when this asset is a drilling rig (CP or Rotary). Used to decouple rig assignment (handled via the dedicated rig flow) from general owned-equipment selection on jobs. Set automatically by the Asset Panda sync based on the asset type / category."
+      "description": "True when this asset is a drilling rig (CP or Rotary). Used to decouple rig assignment (handled via the dedicated rig flow) from general owned-equipment selection on jobs. Set automatically based on the asset type."
     },
     "serial_number": {
       "type": "string",
@@ -46,7 +47,7 @@
     },
     "external_compliance_id": {
       "type": "string",
-      "description": "ID of this asset in the GC Compliance Manager app \u2014 used to cross-reference compliance records"
+      "description": "ID of this asset in the GC Compliance Manager app \u2014 used to cross-reference compliance records during the one-time import."
     },
     "panda_asset_id": {
       "type": "string",
@@ -92,34 +93,34 @@
         "unknown"
       ],
       "default": "unknown",
-      "description": "Current compliance status. Synced from the GC Compliance Manager app \u2014 admins update this when compliance changes."
+      "description": "Current compliance status. Managed directly in this app \u2014 updated automatically when a LOLER, PUWER or PAT inspection is logged via the service history."
     },
     "compliance_expiry_date": {
       "type": "string",
       "format": "date",
-      "description": "Date the asset's compliance expires (from GC Compliance Manager)"
+      "description": "Date the asset's compliance expires (next LOLER/PUWER/PAT test due)."
     },
     "compliance_last_checked": {
       "type": "string",
-      "description": "ISO timestamp of when the compliance status was last synced from GC Compliance Manager"
+      "description": "ISO timestamp of when the compliance status was last updated."
     },
     "last_service_date": {
       "type": "string",
       "format": "date",
-      "description": "Date of the last service / repair carried out on this asset, pulled from GC Compliance Manager. Shown on the Asset Passport maintenance timeline."
+      "description": "Date of the last service / inspection carried out on this asset. Shown on the Asset Passport maintenance timeline."
     },
     "next_service_date": {
       "type": "string",
       "format": "date",
-      "description": "Date the next service is due, pulled from GC Compliance Manager. Drives the maintenance_status indicator on the Asset Passport."
+      "description": "Date the next service is due. Drives the maintenance_status indicator on the Asset Passport."
     },
     "service_notes": {
       "type": "string",
-      "description": "Free-text notes from the last service carried out on this asset (from GC Compliance Manager)."
+      "description": "Free-text notes from the last service/inspection carried out on this asset."
     },
     "repair_notes": {
       "type": "string",
-      "description": "Free-text notes describing repair history or faults recorded in GC Compliance Manager for this asset."
+      "description": "Free-text notes describing repair history or faults recorded for this asset."
     },
     "maintenance_status": {
       "type": "string",
@@ -130,15 +131,15 @@
         "unknown"
       ],
       "default": "unknown",
-      "description": "Derived maintenance status from next_service_date. 'ok' = next service >30 days away, 'due_soon' = within 30 days, 'overdue' = past due, 'unknown' = no service date recorded in GC."
+      "description": "Derived maintenance status from next_service_date. 'ok' = next service >30 days away, 'due_soon' = within 30 days, 'overdue' = past due, 'unknown' = no service date recorded."
     },
     "responsible_person": {
       "type": "string",
-      "description": "Person responsible for this asset (synced from GC Compliance Manager)"
+      "description": "Person responsible for this asset."
     },
     "tooling_notes": {
       "type": "string",
-      "description": "Associated tooling for this rig/equipment (e.g. casing sizes, augers, core barrels). Synced from GC Compliance Manager where available."
+      "description": "Associated tooling for this rig/equipment (e.g. casing sizes, augers, core barrels)."
     },
     "linked_equipment_ids": {
       "type": "array",
@@ -146,7 +147,7 @@
         "type": "string"
       },
       "default": [],
-      "description": "IDs of SiteAsset equipment (lifting gear, machinery, trailers) linked to this rig \u2014 shown when assigning the rig to a job for quick bulk assignment"
+      "description": "IDs of SiteAsset equipment (lifting gear, machinery, trailers) linked to this rig \u2014 shown when assigning the rig to a job for quick bulk assignment."
     },
     "is_active": {
       "type": "boolean",
@@ -155,7 +156,7 @@
     },
     "notes": {
       "type": "string",
-      "description": "Additional notes about this asset"
+      "description": "Additional notes about this asset."
     },
     "is_demo_data": {
       "type": "boolean",

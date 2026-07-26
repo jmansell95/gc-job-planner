@@ -1,0 +1,33 @@
+{
+  "name": "ComplianceConfig",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Singleton key \u2014 always 'global'. Used to fetch the single config record."
+    },
+    "default_loler_interval_months": {
+      "type": "number",
+      "default": 6,
+      "description": "Default re-test interval in months for LOLER thorough examinations (lifting equipment & rigs). 6 months is the UK statutory default for lifting equipment under LOLER reg 9."
+    },
+    "default_puwer_interval_months": {
+      "type": "number",
+      "default": 12,
+      "description": "Default re-inspection interval in months for PUWER work equipment inspections (machinery, trailers, vehicles). 12 months is typical; high-risk plant may need shorter."
+    },
+    "default_pat_interval_months": {
+      "type": "number",
+      "default": 12,
+      "description": "Default re-test interval in months for Portable Appliance Testing (PAT) of portable electrical equipment. Construction sites often require 3 months (110V tools/leads); office equipment 12 months. Edit per asset if needed."
+    },
+    "expiring_warning_days": {
+      "type": "number",
+      "default": 30,
+      "description": "Number of days before a compliance expiry date when an asset is flagged 'expiring soon'. 30 = amber warning one month before expiry. Drives the compliance status tiles and attention panel."
+    }
+  },
+  "required": [
+    "key"
+  ]
+}

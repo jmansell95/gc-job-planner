@@ -11,6 +11,7 @@
       "enum": [
         "loler_inspection",
         "puwer_inspection",
+        "pat_inspection",
         "service",
         "repair",
         "calibration",
@@ -18,7 +19,7 @@
         "other"
       ],
       "default": "service",
-      "description": "Type of record. 'loler_inspection' = statutory LOLER thorough examination (lifting equipment), 'puwer_inspection' = PUWER work equipment inspection, 'service' = routine maintenance, 'repair' = fault repair, 'calibration' = instrument calibration, 'pre_use_check' = daily/pre-use check, 'other'."
+      "description": "Type of record. 'loler_inspection' = statutory LOLER thorough examination (lifting equipment), 'puwer_inspection' = PUWER work equipment inspection, 'pat_inspection' = Portable Appliance Testing (PAT) of portable electrical equipment (110V transformers, power tools, leads), 'service' = routine maintenance, 'repair' = fault repair, 'calibration' = instrument calibration, 'pre_use_check' = daily/pre-use check, 'other'."
     },
     "date": {
       "type": "string",
@@ -55,7 +56,7 @@
     "resulting_expiry_date": {
       "type": "string",
       "format": "date",
-      "description": "New compliance expiry date set by this inspection (the date the next LOLER test is due). The most recent record's resulting_expiry_date drives the asset's compliance_expiry_date."
+      "description": "New compliance expiry date set by this inspection (the date the next LOLER/PAT test is due). The most recent record's resulting_expiry_date drives the asset's compliance_expiry_date."
     },
     "notes": {
       "type": "string",

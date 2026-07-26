@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Wrench, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, Anchor, RefreshCw, Info, HelpCircle, ScanLine, Plus, Pencil } from 'lucide-react';
+import { Wrench, ShieldCheck, ShieldAlert, ShieldX, Truck, Cog, Package, Anchor, RefreshCw, Info, HelpCircle, ScanLine, Plus, Pencil, Plug } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import SyncComplianceButton from '@/components/SyncComplianceButton';
 import AssetComplianceEditor from '@/components/AssetComplianceEditor';
@@ -16,6 +16,7 @@ const assetTypeConfig = {
   trailer: { label: 'Trailer', icon: Package, badge: 'bg-amber-100 text-amber-700' },
   vehicle: { label: 'Vehicle', icon: Truck, badge: 'bg-slate-100 text-slate-700' },
   lifting: { label: 'Lifting Equipment', icon: Anchor, badge: 'bg-teal-100 text-teal-700' },
+  portable_appliance: { label: 'PAT / Electrical', icon: Plug, badge: 'bg-amber-100 text-amber-700' },
 };
 
 const complianceConfig = {
@@ -57,6 +58,7 @@ export default function SiteAssetManager() {
     { key: 'lifting', label: 'Lifting', icon: Anchor },
     { key: 'machinery', label: 'Machinery', icon: Wrench },
     { key: 'trailer', label: 'Trailers', icon: Package },
+    { key: 'portable_appliance', label: 'PAT', icon: Plug },
   ];
 
   const filteredAssets = assets.filter(a => {

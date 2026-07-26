@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, X, Save, FileText, ShieldCheck, Wrench, AlertTriangle, CalendarClock, Upload, ExternalLink, ClipboardCheck } from 'lucide-react';
+import { Plus, Trash2, X, Save, FileText, ShieldCheck, Wrench, AlertTriangle, CalendarClock, Upload, ExternalLink, ClipboardCheck, Plug } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { safeFormat } from '@/utils/format';
 
 const RECORD_TYPES = [
   { value: 'loler_inspection', label: 'LOLER Inspection', icon: ShieldCheck, tint: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   { value: 'puwer_inspection', label: 'PUWER Inspection', icon: ClipboardCheck, tint: 'bg-blue-50 text-blue-700 border-blue-200' },
+  { value: 'pat_inspection', label: 'PAT Test', icon: Plug, tint: 'bg-amber-50 text-amber-700 border-amber-200' },
   { value: 'service', label: 'Service', icon: Wrench, tint: 'bg-slate-50 text-slate-700 border-slate-200' },
   { value: 'repair', label: 'Repair', icon: Wrench, tint: 'bg-amber-50 text-amber-700 border-amber-200' },
   { value: 'calibration', label: 'Calibration', icon: ClipboardCheck, tint: 'bg-purple-50 text-purple-700 border-purple-200' },
@@ -25,7 +26,7 @@ const RESULTS = [
 function typeMeta(value) { return RECORD_TYPES.find(t => t.value === value) || RECORD_TYPES[6]; }
 function resultMeta(value) { return RESULTS.find(r => r.value === value) || RESULTS[0]; }
 
-export default function ServiceHistoryPanel({ assetId, assetName }) {
+export default function ServiceHistoryPanel({ assetId, assetName, assetType }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     record_type: 'loler_inspection', date: new Date().toISOString().slice(0, 10),
@@ -43,6 +44,27 @@ export default function ServiceHistoryPanel({ assetId, assetName }) {
     queryFn: () => base44.entities.ServiceRecord.filter({ site_asset_id: assetId }, '-date', 100),
     enabled: !!assetId,
   });
+
+  const { data: compConfig } = useQuery({
+    queryKey: ['compliance-config'],
+    queryFn: async () => { const l = await base44.entities.ComplianceConfig.filter({ key: 'global' }); return l[0] || null; },
+  });
+
+  const defaultRecordType = () => {
+    if (assetType === 'lifting' || assetType === 'rig') return 'loler_inspection';
+    if (assetType === 'portable_appliance') return 'pat_inspection';
+    if (assetType === 'machinery' || assetType === 'trailer' || assetType === 'vehicle') return 'puwer_inspection';
+    return 'loler_inspection';
+  };
+
+  const openForm = () => {
+    setForm({
+      record_type: defaultRecordType(), date: new Date().toISOString().slice(0, 10),
+      result: 'pass', tested_by: '', company: '', resulting_expiry_date: '', notes: '',
+      certificate_url: '', certificate_name: '',
+    });
+    setShowForm(true);
+  };
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
@@ -63,6 +85,16 @@ export default function ServiceHistoryPanel({ assetId, assetName }) {
     if (!form.date) { toast({ title: 'Date required', variant: 'destructive' }); return; }
     setSaving(true);
     try {
+      // Auto-calculate next-due date from the compliance rules when not entered manually
+      let expiryDate = form.resulting_expiry_date || null;
+      if (!expiryDate && ['loler_inspection', 'puwer_inspection', 'pat_inspection'].includes(form.record_type)) {
+        const interval = form.record_type === 'loler_inspection' ? (Number(compConfig?.default_loler_interval_months) || 6)
+          : form.record_type === 'pat_inspection' ? (Number(compConfig?.default_pat_interval_months) || 12)
+          : (Number(compConfig?.default_puwer_interval_months) || 12);
+        const d = new Date(form.date + 'T00:00:00');
+        d.setMonth(d.getMonth() + interval);
+        expiryDate = d.toISOString().slice(0, 10);
+      }
       await base44.entities.ServiceRecord.create({
         site_asset_id: assetId,
         record_type: form.record_type,
@@ -70,21 +102,24 @@ export default function ServiceHistoryPanel({ assetId, assetName }) {
         result: form.result,
         tested_by: form.tested_by,
         company: form.company,
-        resulting_expiry_date: form.resulting_expiry_date || null,
+        resulting_expiry_date: expiryDate,
         notes: form.notes,
         certificate_url: form.certificate_url || '',
         certificate_name: form.certificate_name || '',
       });
       // Update the parent asset's compliance snapshot from this latest record
-      if (form.record_type === 'loler_inspection' || form.record_type === 'puwer_inspection') {
+      if (['loler_inspection', 'puwer_inspection', 'pat_inspection'].includes(form.record_type)) {
+        const warnDays = Number(compConfig?.expiring_warning_days) || 30;
+        const daysUntil = expiryDate ? Math.floor((new Date(expiryDate + 'T00:00:00') - new Date()) / 86400000) : null;
         const status = form.result === 'fail' ? 'expired'
           : form.result === 'advisory' ? 'expiring'
-          : form.resulting_expiry_date ? (new Date(form.resulting_expiry_date) < new Date() ? 'expired' : 'compliant')
+          : (daysUntil !== null && daysUntil < 0) ? 'expired'
+          : (daysUntil !== null && daysUntil <= warnDays) ? 'expiring'
           : 'compliant';
         await base44.entities.SiteAsset.update(assetId, {
           last_service_date: form.date,
-          next_service_date: form.resulting_expiry_date || null,
-          compliance_expiry_date: form.resulting_expiry_date || null,
+          next_service_date: expiryDate || null,
+          compliance_expiry_date: expiryDate || null,
           compliance_status: status,
           compliance_last_checked: new Date().toISOString(),
           service_notes: form.notes ? `${form.tested_by ? 'Tested by ' + form.tested_by + ': ' : ''}${form.notes}` : '',
@@ -116,7 +151,7 @@ export default function ServiceHistoryPanel({ assetId, assetName }) {
     <div>
       <div className="flex items-center justify-between mb-2.5">
         <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Inspection & Service History</p>
-        <button onClick={() => setShowForm(s => !s)} type="button"
+        <button onClick={() => showForm ? setShowForm(false) : openForm()} type="button"
           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#2E5A1A]/10 hover:bg-[#2E5A1A]/20 text-[#2E5A1A] rounded-lg text-xs font-semibold transition">
           <Plus className="w-3.5 h-3.5" /> Log Service
         </button>

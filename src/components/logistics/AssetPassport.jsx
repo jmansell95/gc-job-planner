@@ -154,7 +154,7 @@ export default function AssetPassport({ asset, onClose, allAssets = [], onEdit }
               </div>
             </div>
             <div className="p-4">
-              <ServiceHistoryPanel assetId={asset.id} assetName={asset.name} />
+              <ServiceHistoryPanel assetId={asset.id} assetName={asset.name} assetType={asset.asset_type} />
             </div>
           </div>
 

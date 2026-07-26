@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { X, Save, Trash2, Cog, Wrench, Package, Truck, Anchor, AlertTriangle } from 'lucide-react';
+import { X, Save, Trash2, Cog, Wrench, Package, Truck, Anchor, AlertTriangle, Plug } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 const ASSET_TYPES = [
@@ -10,6 +10,7 @@ const ASSET_TYPES = [
   { value: 'trailer', label: 'Trailer', icon: Package },
   { value: 'vehicle', label: 'Vehicle', icon: Truck },
   { value: 'lifting', label: 'Lifting Gear', icon: Anchor },
+  { value: 'portable_appliance', label: 'PAT / Electrical', icon: Plug },
 ];
 
 const COMPLIANCE_STATUSES = [
@@ -143,7 +144,7 @@ export default function AssetComplianceEditor({ asset, onClose }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1.5">Asset Type</label>
-                <div className="grid grid-cols-5 gap-1">
+                <div className="grid grid-cols-3 gap-1">
                   {ASSET_TYPES.map(t => {
                     const Icon = t.icon;
                     const active = form.asset_type === t.value;
