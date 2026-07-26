@@ -26,6 +26,7 @@ import JobScheduleOverview from '@/components/JobScheduleOverview';
 import StaffActivityBreakdown from '@/components/StaffActivityBreakdown';
 import DelayLogManager from '@/components/DelayLogManager';
 import RigCompliancePanel from '@/components/RigCompliancePanel';
+import JobHazardMap from '@/components/JobHazardMap';
 import { getJobTypeLabel } from '@/utils/jobTeams';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -283,6 +284,7 @@ export default function JobDetailTabs({
 
       {/* ── Compliance Tab ── */}
       <TabsContent value="compliance" className="space-y-4 mt-0">
+        <JobHazardMap job={job} />
         <RigCompliancePanel job={job} />
       </TabsContent>
 

@@ -11,10 +11,8 @@ import WidgetCard from '@/components/dashboard/WidgetCard';
 import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES, DASHBOARD_SECTIONS, WIDGET_TO_SECTION, COST_WIDGETS, GLOBAL_ONLY_WIDGETS, VIEW_PROFILES } from '@/components/dashboard/registry';
 import { FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
-import SupervisorOverviewWidget from '@/components/dashboard/SupervisorOverviewWidget';
 import JobAssetsWidget from '@/components/dashboard/JobAssetsWidget';
 import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
-import SiteHazardMapWidget from '@/components/dashboard/SiteHazardMapWidget';
 import EfficiencySnapshotWidget from '@/components/dashboard/EfficiencySnapshotWidget';
 import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
 import RigProfitabilityWidget from '@/components/dashboard/RigProfitabilityWidget';
@@ -119,7 +117,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     switch (widgetId) {
       case 'delivery-stats': return <DeliveryStats onNavigate={onNavigate} onSelectJob={openJobDrawer} jobs={scopedJobs} />;
       case 'compliance-overview': return <ComplianceOverviewWidget onNavigate={onNavigate} />;
-      case 'supervisor-overview': return <SupervisorOverviewWidget profile={profile} onSelectJob={openJobDrawer} />;
       case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={scopedJobs} vehicles={vehicles} onSelectJob={openJobDrawer} onNavigate={onNavigate} />;
       case 'charts': return <ChartsWidget jobs={scopedJobs} staff={staff} rotas={scopedRotas} weekDays={weekDays} />;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
@@ -128,7 +125,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'job-profitability': return canViewCosts ? <ProfitabilityDashboard onSelectJob={openJobDrawer} /> : null;
       case 'rig-profitability': return canViewCosts ? <RigProfitabilityWidget onSelectJob={openJobDrawer} /> : null;
       case 'efficiency-snapshot': return canViewCosts ? <EfficiencySnapshotWidget onSelectJob={openJobDrawer} /> : null;
-      case 'site-hazards': return <SiteHazardMapWidget onNavigate={onNavigate} />;
       default: return null;
     }
   };
