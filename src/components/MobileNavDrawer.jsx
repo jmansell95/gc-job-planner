@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, LogOut, HelpCircle } from 'lucide-react';
+import { X, Sparkles, LogOut, HelpCircle, User, CalendarDays } from 'lucide-react';
 import Logo from '@/components/Logo';
 
-export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onHelp }) {
+export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onHelp, onProfile }) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -62,6 +62,13 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
             </nav>
 
             <div className="p-3 border-t border-white/10 space-y-1">
+              {onProfile && (
+                <button type="button" onClick={onProfile}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition touch-manipulation select-none">
+                  <User className="w-5 h-5 flex-shrink-0" />
+                  <span>My Profile</span>
+                </button>
+              )}
               {onHelp && (
                 <button type="button" onClick={onHelp}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition touch-manipulation select-none">

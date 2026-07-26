@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine } from 'lucide-react';
+import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine, User } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -70,6 +70,11 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             My Schedule
           </button>
         )}
+        <button onClick={() => navigate('/staff-profile')} type="button"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+          <User className="w-4 h-4" />
+          My Profile
+        </button>
         <button onClick={() => setNotifOpen(true)} type="button"
           className="relative w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
           <Bell className="w-4 h-4" />
@@ -140,6 +145,10 @@ export default function AdminNav({ activeSection, setActiveSection }) {
                 <CalendarDays className="w-5 h-5" />
               </button>
             )}
+            <button onClick={() => navigate('/staff-profile')} aria-label="My Profile" type="button"
+              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
+              <User className="w-5 h-5" />
+            </button>
             <button onClick={openChat} aria-label="Ask Assistant" type="button"
               className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <Sparkles className="w-5 h-5" />
@@ -174,6 +183,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         onLogout={handleLogout}
         onAssistant={openChat}
         onHelp={() => { navigate('/help'); setDrawerOpen(false); }}
+        onProfile={() => { navigate('/staff-profile'); setDrawerOpen(false); }}
       />
 
       <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} onNavigate={setActiveSection} notifications={notifications} />

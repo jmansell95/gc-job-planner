@@ -15,6 +15,7 @@ import { useStaffAssistant } from '@/components/StaffAssistantChat';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useToast } from '@/components/ui/use-toast';
 import { EmptyState } from '@/components/StateViews';
+import { resolveRole, isOfficeStaff, SYSTEM_ROLES } from '@/utils/access';
 
 const ABSENCE_REASONS = [
   { value: 'holiday', label: 'Holiday' },
@@ -96,7 +97,9 @@ export default function StaffProfile() {
     );
   }
 
-  const canAccessAdmin = staff.is_admin || (staff.team?.allowed_tool_access?.length > 0);
+  const role = resolveRole(staff, staff.is_admin);
+  const roleLabel = SYSTEM_ROLES.find(r => r.value === role)?.label;
+  const canAccessAdmin = isOfficeStaff(staff, staff.is_admin);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -112,7 +115,14 @@ export default function StaffProfile() {
               </button>
               <div className="min-w-0">
                 <h1 className="text-xl md:text-2xl font-bold text-white truncate tracking-tight">My Profile</h1>
-                <p className="text-emerald-100 text-sm truncate">{staff.name}{staff.team?.name ? ` · ${staff.team.name}` : ''}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-emerald-100 text-sm truncate">{staff.name}{staff.team?.name ? ` · ${staff.team.name}` : ''}</p>
+                  {roleLabel && (
+                    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-white/15 text-white font-semibold ring-1 ring-white/20 whitespace-nowrap">
+                      <ShieldCheck className="w-3 h-3" /> {roleLabel}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
