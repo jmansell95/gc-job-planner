@@ -13,7 +13,6 @@ import OvertimeRatesManager from '@/components/OvertimeRatesManager';
 import BusinessConfigManager from '@/components/BusinessConfigManager';
 import AutomationCenter from '@/components/AutomationCenter';
 import JobTypeManager from '@/components/JobTypeManager';
-import SiteAssetManager from '@/components/SiteAssetManager';
 import BillingRulesManager from '@/components/BillingRulesManager';
 import EquipmentLibraryManager from '@/components/EquipmentLibraryManager';
 import CrewTypeCommand from '@/components/CrewTypeCommand';
@@ -84,7 +83,6 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'automations': return <AutomationCenter />;
       case 'job-types': return <JobTypeManager />;
       case 'dropdowns': return <DropdownConfigManager />;
-      case 'assets': return <SiteAssetManager />;
       case 'rate-card': return <RateCardManager />;
       case 'billing': return <BillingRulesManager />;
       case 'equipment-library': return <EquipmentLibraryManager />;

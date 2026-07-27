@@ -16,6 +16,8 @@ import EquipmentFilters from '@/components/righub/EquipmentFilters';
 import RecertActionModal from '@/components/righub/RecertActionModal';
 import AssetComplianceEditor from '@/components/AssetComplianceEditor';
 import FleetMaintenancePanel from '@/components/righub/FleetMaintenancePanel';
+import FleetHealthGauge from '@/components/righub/FleetHealthGauge';
+import AttentionSpotlight from '@/components/righub/AttentionSpotlight';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { Skeleton } from '@/components/StateViews';
 import { RefreshCw, Lock } from 'lucide-react';
@@ -67,6 +69,11 @@ export default function RigHub() {
     const d = daysUntil(a.compliance_expiry_date);
     return a.compliance_status === 'expired' || a.compliance_status === 'expiring' || (d !== null && d <= 30) || (d === null && a.compliance_status !== 'compliant');
   }).length;
+
+  // Fleet compliance health score — % of assets with a known, compliant status
+  const totalKnown = assets.filter(a => a.compliance_status && a.compliance_status !== 'unknown').length;
+  const compliantCount = assets.filter(a => a.compliance_status === 'compliant').length;
+  const fleetHealthPct = totalKnown > 0 ? (compliantCount / totalKnown) * 100 : 0;
 
   const q = search.toLowerCase().trim();
   const filterFn = (a) => {
@@ -121,8 +128,12 @@ export default function RigHub() {
             </div>
           </div>
 
-          {/* Summary tiles */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {/* Fleet health gauge + summary tiles */}
+          <div className="flex flex-col lg:flex-row gap-4 items-center lg:items-stretch">
+            <div className="flex items-center justify-center bg-white/10 backdrop-blur-sm rounded-xl ring-1 ring-white/15 px-6 py-3 flex-shrink-0">
+              <FleetHealthGauge percent={fleetHealthPct} />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 flex-1 w-full">
             {[
               { label: 'Rig Systems', value: rigs.length, icon: Boxes },
               { label: 'Healthy Rigs', value: rigsCompliant, icon: ShieldCheck },
@@ -141,6 +152,7 @@ export default function RigHub() {
                 </Wrapper>
               );
             })}
+          </div>
           </div>
         </div>
       </div>
@@ -196,6 +208,9 @@ export default function RigHub() {
           </div>
         </div>
 
+        {!isLoading && (view === 'rigs' || view === 'equipment') && (
+          <AttentionSpotlight assets={assets} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} />
+        )}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}
@@ -246,6 +261,21 @@ export default function RigHub() {
                         </span>
                       ))}
                     </div>
+                    {(() => {
+                      const totalUnits = (rig.linked_equipment_ids || []).length + 1;
+                      const pct = totalUnits > 0 ? Math.round((rollup.counts.compliant / totalUnits) * 100) : 0;
+                      return (
+                        <div className="mt-2">
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                            <span>Compliance</span>
+                            <span className="font-semibold text-slate-600">{pct}%</span>
+                          </div>
+                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full ${pct >= 85 ? 'bg-emerald-500' : pct >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {rig.next_service_date && (
                       <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
                         <ScanLine className="w-3 h-3" /> Next service {safeFmt(rig.next_service_date)}
