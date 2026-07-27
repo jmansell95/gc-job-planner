@@ -81,14 +81,18 @@ export const allSettingsItems = settingsGroups.flatMap(g => g.items);
 // managers/viewers need (compliance, log-qc, timesheets) declare `roles`.
 export function accessibleSettingsItems(role) {
   if (!role) return [];
-  return allSettingsItems.filter(i => !i.roles || i.roles.includes(role));
+  // Platform admins resolve to 'super_admin', but settings item roles use
+  // 'admin'. Treat super_admin as admin so they see the same gated tabs.
+  const effective = role === 'super_admin' ? 'admin' : role;
+  return allSettingsItems.filter(i => !i.roles || i.roles.includes(effective));
 }
 
 export default function SettingsNav({ activeId, onChange, role = 'admin' }) {
   const [query, setQuery] = useState('');
+  const effectiveRole = role === 'super_admin' ? 'admin' : role;
 
   const roleFiltered = settingsGroups
-    .map(g => ({ ...g, items: g.items.filter(i => !i.roles || i.roles.includes(role)) }))
+    .map(g => ({ ...g, items: g.items.filter(i => !i.roles || i.roles.includes(effectiveRole)) }))
     .filter(g => g.items.length > 0);
 
   const q = query.toLowerCase().trim();
