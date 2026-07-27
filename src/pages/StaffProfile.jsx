@@ -12,6 +12,7 @@ import StaffDocuments from '@/components/staff/StaffDocuments';
 import TeamMiniFeed from '@/components/staff/TeamMiniFeed';
 import ManagerTimesheetApprovals from '@/components/ManagerTimesheetApprovals';
 import { useStaffAssistant } from '@/components/StaffAssistantChat';
+import { useAuth } from '@/lib/AuthContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useToast } from '@/components/ui/use-toast';
 import { EmptyState } from '@/components/StateViews';
@@ -30,6 +31,8 @@ export default function StaffProfile() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { openChat } = useStaffAssistant();
+  const { user } = useAuth();
+  const isPlatformAdmin = user?.role === 'admin';
   const queryClient = useQueryClient();
   const [staff, setStaff] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,11 +45,19 @@ export default function StaffProfile() {
     (async () => {
       try {
         const res = await base44.functions.invoke('getMyStaffProfile');
-        // Platform admins can view the profile page even without a linked
-        // Staff record — the backend returns is_admin + a fallback identity.
-        if (res.data?.id || res.data?.is_admin) setStaff(res.data);
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
+        if (res.data?.id || res.data?.is_admin) {
+          setStaff(res.data);
+        } else if (isPlatformAdmin) {
+          // Platform admin with no linked crew profile — show the page
+          // instead of the "No crew profile found" dead-end.
+          setStaff({ id: null, name: user?.full_name || user?.email, email: user?.email, is_admin: true, system_role: 'admin', team: null, no_staff_profile: true });
+        }
+      } catch (e) {
+        console.error(e);
+        if (isPlatformAdmin) {
+          setStaff({ id: null, name: user?.full_name || user?.email, email: user?.email, is_admin: true, system_role: 'admin', team: null, no_staff_profile: true });
+        }
+      } finally { setLoading(false); }
     })();
   }, []);
 
