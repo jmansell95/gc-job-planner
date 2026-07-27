@@ -9,6 +9,7 @@ import JobManager from '@/components/JobManager';
 import SettingsPage from '@/components/SettingsPage';
 import JobDetail from '@/components/JobDetail';
 import SchedulingHub from '@/components/SchedulingHub';
+import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 
@@ -88,6 +89,7 @@ export default function AdminDashboard() {
             {activeSection === 'timesheets' && <SettingsPage initialTab="timesheets" />}
             {activeSection === 'teams' && <SettingsPage initialTab="teams" />}
             {activeSection === 'compliance' && <SettingsPage initialTab="compliance" />}
+            {activeSection === 'safety-hub' && <SafetyCultureCheckHub onNavigate={setActiveSection} />}
             {activeSection === 'log-qc' && <SettingsPage initialTab="log-qc" />}
             {activeSection === 'billing' && <SettingsPage initialTab="invoicing" onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}
             {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}

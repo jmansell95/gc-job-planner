@@ -17,9 +17,9 @@ export const SYSTEM_ROLES = [
 // Admin sections visible to each role. Field staff use their team's
 // PermissionGroup (they can't access the admin dashboard anyway).
 export const ROLE_SECTIONS = {
-  super_admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import'],
-  admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import'],
-  management: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'billing'],
+  super_admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety-hub'],
+  admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety-hub'],
+  management: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'billing', 'safety-hub'],
   user: ['overview', 'jobs', 'calendar', 'audit-trail'],
   read_only: ['overview', 'jobs', 'calendar', 'audit-trail'],
 };

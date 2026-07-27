@@ -307,7 +307,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
             { key: 'active', icon: Briefcase, label: 'Active Jobs', value: activeJobs.length, sublabel: `${scopedJobs.length} total in system`, tone: 'emerald', nav: 'jobs' },
             { key: 'util', icon: Percent, label: 'Crew Utilisation', value: utilizationPct, unit: '%', sublabel: `${staffToday} of ${activeStaff} active crew on site`, tone: 'blue', nav: 'rota' },
             { key: 'ts', icon: ClipboardCheck, label: 'Timesheet Queue', value: pendingTs, sublabel: overdueSubmittedTs > 0 ? `${overdueSubmittedTs} overdue (>48h)` : 'All within target', tone: overdueSubmittedTs > 0 ? 'rose' : 'amber', nav: 'timesheets' },
-            { key: 'actions', icon: ShieldAlert, label: 'Overdue Actions', value: overdueActions, sublabel: overdueActions > 0 ? 'Safety items past due' : 'No overdue safety actions', tone: overdueActions > 0 ? 'rose' : 'slate', nav: 'compliance' },
+            { key: 'actions', icon: ShieldAlert, label: 'Overdue Actions', value: overdueActions, sublabel: overdueActions > 0 ? 'Safety items past due' : 'No overdue safety actions', tone: overdueActions > 0 ? 'rose' : 'slate', nav: 'safety-hub' },
           ]}
           onNavigate={onNavigate}
         />
