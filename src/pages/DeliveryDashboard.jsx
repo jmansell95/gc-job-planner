@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { saveOfflineDelivery, hasOfflineDelivery } from '@/utils/offlineSync';
 import { isDriver } from '@/utils/access';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -240,6 +241,7 @@ export default function DeliveryDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <Breadcrumbs />
       {/* Header */}
       <div className="hero-gradient relative overflow-hidden">
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-7">

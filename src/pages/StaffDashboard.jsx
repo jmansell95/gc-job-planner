@@ -28,6 +28,7 @@ import StaffTabBar from '@/components/staff/StaffTabBar';
 import StaffHeader from '@/components/staff/StaffHeader';
 import StaffAlerts from '@/components/staff/StaffAlerts';
 import ActiveJobCard from '@/components/staff/ActiveJobCard';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 export default function StaffDashboard() {
   const navigate = useNavigate();
@@ -526,6 +527,7 @@ export default function StaffDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
+      <Breadcrumbs />
       <StaffHeader staff={staff} onShowSchedule={() => setShowScheduleSummary(true)} />
 
       {/* Today Tab — zero-scroll, action-first */}

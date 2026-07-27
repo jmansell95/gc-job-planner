@@ -9,6 +9,7 @@ import SubcontractorLogForm from '@/components/staff/SubcontractorLogForm';
 import SyncHUD from '@/components/staff/SyncHUD';
 import WeeklyProgress from '@/components/staff/WeeklyProgress';
 import { useToast } from '@/components/ui/use-toast';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 // Sub-contractor "Lite" portal — a minimalist daily logging interface.
 // Sub-contractors log their day (including metres drilled), see their weekly
@@ -78,6 +79,7 @@ export default function SubcontractorDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <Breadcrumbs />
       {/* Header */}
       <div className="mesh-bg relative overflow-hidden">
         <div className="relative max-w-2xl mx-auto px-4 py-5">

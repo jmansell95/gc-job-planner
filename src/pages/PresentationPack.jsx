@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Download, Loader2, ShieldCheck, TrendingUp, Map, FileText } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { EMBLEM_URL } from '@/components/Logo';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const BRAND_DARK = '#2E5A1A';
 const BRAND_LEAF = '#8DC63F';
@@ -420,6 +421,7 @@ export default function PresentationPack() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-100/80 flex items-center justify-center p-4 md:p-8">
       <div className="max-w-2xl w-full">
+        <Breadcrumbs />
         {/* Header card */}
         <div className="insight-card rounded-2xl overflow-hidden">
           <div className="hero-gradient px-6 py-8 md:px-10 md:py-10 text-white">

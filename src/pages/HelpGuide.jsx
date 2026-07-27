@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { EmptyState, Skeleton } from '@/components/StateViews';
 import { Button } from '@/components/ui/button';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const categoryConfig = {
   delivery: { label: 'Deliveries', icon: Truck, color: 'text-[#2E5A1A]', bg: 'bg-[#2E5A1A]/10' },
@@ -104,6 +105,7 @@ export default function HelpGuide() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <Breadcrumbs />
       {/* Header */}
       <div className="hero-gradient relative overflow-hidden">
         <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-7">

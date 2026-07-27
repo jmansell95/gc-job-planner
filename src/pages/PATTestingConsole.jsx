@@ -9,6 +9,7 @@ import {
 import { daysUntil, ASSET_TYPE_META } from '@/utils/rigRollup';
 import { Skeleton } from '@/components/StateViews';
 import PATTestForm from '@/components/pat/PATTestForm';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { safeFormat } from '@/utils/format';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -86,6 +87,7 @@ export default function PATTestingConsole() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <Breadcrumbs />
       {/* Hero */}
       <div className="hero-gradient text-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">

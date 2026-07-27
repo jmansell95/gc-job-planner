@@ -16,6 +16,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { useToast } from '@/components/ui/use-toast';
 import { EmptyState } from '@/components/StateViews';
 import { resolveRole, isOfficeStaff, SYSTEM_ROLES } from '@/utils/access';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const ABSENCE_REASONS = [
   { value: 'holiday', label: 'Holiday' },
@@ -103,6 +104,7 @@ export default function StaffProfile() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <Breadcrumbs />
       {/* Header with Quick Actions bar */}
       <div className="hero-gradient relative overflow-hidden">
         <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-7">

@@ -11,6 +11,7 @@ import JobDetail from '@/components/JobDetail';
 import SchedulingHub from '@/components/SchedulingHub';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 
 export default function AdminDashboard() {
@@ -68,6 +69,7 @@ export default function AdminDashboard() {
       <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} />
       <main className="flex-1 overflow-auto pt-[calc(1.6875rem_+_env(safe-area-inset-top))] lg:pt-0 lg:pb-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="px-4 pb-4 md:px-6 md:pb-6 lg:pt-6 w-full">
+          <Breadcrumbs />
           <motion.div
             key={activeSection}
             initial={{ opacity: 0, y: 8 }}
