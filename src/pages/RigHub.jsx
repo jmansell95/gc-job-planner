@@ -12,6 +12,7 @@ import EquipmentDetailDrawer from '@/components/righub/EquipmentDetailDrawer';
 import RecertPipeline from '@/components/righub/RecertPipeline';
 import MasterCertificateVault from '@/components/righub/MasterCertificateVault';
 import CertificateVault from '@/components/righub/CertificateVault';
+import EquipmentFilters from '@/components/righub/EquipmentFilters';
 import RecertActionModal from '@/components/righub/RecertActionModal';
 import AssetComplianceEditor from '@/components/AssetComplianceEditor';
 import { Skeleton } from '@/components/StateViews';
@@ -30,6 +31,7 @@ export default function RigHub() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [recertAsset, setRecertAsset] = useState(null);
   const [certVaultRig, setCertVaultRig] = useState(null);
+  const [equipFilters, setEquipFilters] = useState({ type: null, category: null, person: null });
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
@@ -72,7 +74,13 @@ export default function RigHub() {
     return (rig.name || '').toLowerCase().includes(q) || (rig.serial_number || '').toLowerCase().includes(q);
   });
 
-  const filteredEquip = equipment.filter(filterFn).map(eq => ({
+  const filteredEquip = equipment.filter(eq => {
+    if (!filterFn(eq)) return false;
+    if (equipFilters.type && eq.asset_type !== equipFilters.type) return false;
+    if (equipFilters.category && (eq.compliance_category || '') !== equipFilters.category) return false;
+    if (equipFilters.person && (eq.responsible_person || '') !== equipFilters.person) return false;
+    return true;
+  }).map(eq => ({
     equip: eq,
     parentRig: findParentRig(eq.id, rigs),
   }));
@@ -237,6 +245,10 @@ export default function RigHub() {
             <p className="text-sm text-slate-400">No equipment found. {equipment.length === 0 ? 'Add equipment assets to get started.' : 'Try clearing your filters.'}</p>
           </div>
         ) : (
+          <>
+          <div className="mb-4">
+            <EquipmentFilters assets={equipment} filters={equipFilters} setFilters={setEquipFilters} />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredEquip.map(({ equip, parentRig }) => {
               const meta = COMPLIANCE_META[equip.compliance_status || 'unknown'];
@@ -276,6 +288,7 @@ export default function RigHub() {
               );
             })}
           </div>
+          </>
         )}
       </div>
 
@@ -324,6 +337,7 @@ export default function RigHub() {
             </div>
             <div className="p-4">
               <CertificateVault
+                assets={[certVaultRig, ...(certVaultRig.linked_equipment_ids || []).map(id => assets.find(a => a.id === id)).filter(Boolean)]}
                 assetIds={[certVaultRig.id, ...(certVaultRig.linked_equipment_ids || []).map(id => assets.find(a => a.id === id)).filter(Boolean).map(a => a.id)]}
                 assetNames={{
                   [certVaultRig.id]: certVaultRig.name,
