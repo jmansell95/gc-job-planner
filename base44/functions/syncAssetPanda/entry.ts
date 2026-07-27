@@ -120,6 +120,8 @@ Deno.serve(async (req) => {
       if (raw.includes('rig') || raw.includes('drill') || raw.includes('percuss') || raw.includes('rotary')) return 'rig';
       if (raw.includes('trailer')) return 'trailer';
       if (raw.includes('lift') || raw.includes('shackle') || raw.includes('sling') || raw.includes('chain') || raw.includes('hook') || raw.includes('hoist') || raw.includes('rigging')) return 'lifting';
+      // Portable appliances — PAT testing scope (110V transformers, power tools, leads, RCDs)
+      if (raw.includes('pat') || raw.includes('appliance') || raw.includes('110v') || raw.includes('transformer') || raw.includes('power tool') || raw.includes('lead') || raw.includes('ext lead') || raw.includes('extension') || raw.includes('rcd') || raw.includes('charger') || raw.includes('kettle') || raw.includes('microwave') || raw.includes('porter')) return 'portable_appliance';
       if (raw.includes('machine') || raw.includes('excav') || raw.includes('digger') || raw.includes('grout') || raw.includes('mixer')) return 'machinery';
       if (raw.includes('vehicle') || raw.includes('van') || raw.includes('truck')) return 'vehicle';
       return 'machinery';

@@ -66,6 +66,53 @@
       "type": "boolean",
       "default": false,
       "description": "True when this record was seeded from the GC Compliance Manager's last-test data during the one-time import, rather than created directly in this app."
+    },
+    "pat_appliance_class": {
+      "type": "string",
+      "enum": [
+        "class_I",
+        "class_II",
+        "class_III",
+        "extension_lead",
+        "n/a"
+      ],
+      "default": "n/a",
+      "description": "Appliance class for PAT testing. 'class_I' = earthed equipment (metal casing, needs earth continuity), 'class_II' = double-insulated (no earth), 'class_III' = extra-low voltage (110V SELV), 'extension_lead' = IEC lead / extension reel, 'n/a' = not a PAT record."
+    },
+    "pat_visual_pass": {
+      "type": "boolean",
+      "default": true,
+      "description": "PAT visual inspection result \u2014 plug, fuse, cable, casing checked by eye. False when a visual defect was found (damaged cable, cracked plug, wrong fuse)."
+    },
+    "pat_earth_continuity": {
+      "type": "number",
+      "description": "PAT earth continuity test reading in ohms (\u03a9). Class I appliances only \u2014 resistance between earth pin and exposed metal casing. Pass threshold typically <0.1\u03a9 (KEWPAT auto-evaluates). Null for Class II (no earth)."
+    },
+    "pat_insulation_resistance": {
+      "type": "number",
+      "description": "PAT insulation resistance test reading in megohms (M\u03a9). Measured at 500V test voltage. Pass threshold typically >1.0 M\u03a9 for Class I, >2.0 M\u03a9 for Class II. Null if not tested."
+    },
+    "pat_load_current": {
+      "type": "number",
+      "description": "PAT load / leakage current reading in milliamps (mA). Operational leakage current under load. Pass threshold typically <3.5 mA. Null if not tested."
+    },
+    "pat_leakage_current": {
+      "type": "number",
+      "description": "PAT touch leakage current reading in milliamps (mA). Null if not tested."
+    },
+    "pat_lead_polarity": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "n/a"
+      ],
+      "default": "n/a",
+      "description": "Lead polarity check result for IEC leads / extension reels. 'pass' = wiring correct, 'fail' = crossed/missing conductors, 'n/a' = not a lead."
+    },
+    "pat_tester_serial": {
+      "type": "string",
+      "description": "Serial number of the KEWPAT tester used for this test (for calibration traceability)."
     }
   },
   "required": [

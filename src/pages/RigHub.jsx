@@ -60,6 +60,11 @@ export default function RigHub() {
   const rigsCompliant = rigsByMaster.filter(r => r.rollup.master === 'compliant').length;
   const rigsWarning = rigsByMaster.filter(r => r.rollup.master === 'expiring' || r.rollup.master === 'expired').length;
   const equipExpired = equipment.filter(a => a.compliance_status === 'expired').length;
+  const patAssets = assets.filter(a => a.asset_type === 'portable_appliance');
+  const patDue = patAssets.filter(a => {
+    const d = daysUntil(a.compliance_expiry_date);
+    return a.compliance_status === 'expired' || a.compliance_status === 'expiring' || (d !== null && d <= 30) || (d === null && a.compliance_status !== 'compliant');
+  }).length;
 
   const q = search.toLowerCase().trim();
   const filterFn = (a) => {
@@ -103,26 +108,34 @@ export default function RigHub() {
                 <p className="text-sm text-white/70">Master record for every rig system, toolkit & certificate</p>
               </div>
             </div>
-            <button onClick={openAdd} className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2.5 bg-white text-[#2E5A1A] rounded-lg font-semibold text-sm hover:bg-white/90 active:scale-95 transition flex-shrink-0 shadow-sm">
-              <Plus className="w-4 h-4" /> Add Asset
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={() => navigate('/pat-testing')} className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-amber-400/90 hover:bg-amber-400 text-slate-900 rounded-lg font-semibold text-sm active:scale-95 transition shadow-sm">
+                <Plug className="w-4 h-4" /> PAT Console
+              </button>
+              <button onClick={openAdd} className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2.5 bg-white text-[#2E5A1A] rounded-lg font-semibold text-sm hover:bg-white/90 active:scale-95 transition flex-shrink-0 shadow-sm">
+                <Plus className="w-4 h-4" /> Add Asset
+              </button>
+            </div>
           </div>
 
           {/* Summary tiles */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {[
               { label: 'Rig Systems', value: rigs.length, icon: Boxes },
               { label: 'Healthy Rigs', value: rigsCompliant, icon: ShieldCheck },
               { label: 'Rigs Need Attention', value: rigsWarning, icon: ShieldAlert },
               { label: 'Expired Equipment', value: equipExpired, icon: ShieldX },
+              { label: 'PAT Due', value: patDue, icon: Plug, onClick: () => navigate('/pat-testing') },
             ].map(s => {
               const SIcon = s.icon;
+              const Wrapper = s.onClick ? 'button' : 'div';
               return (
-                <div key={s.label} className="bg-white/10 backdrop-blur-sm rounded-xl p-3.5 ring-1 ring-white/15">
+                <Wrapper key={s.label} onClick={s.onClick}
+                  className={`bg-white/10 backdrop-blur-sm rounded-xl p-3.5 ring-1 ring-white/15 text-left ${s.onClick ? 'hover:bg-white/15 active:scale-[0.98] transition cursor-pointer' : ''}`}>
                   <SIcon className="w-5 h-5 text-white/80 mb-1.5" />
                   <p className="text-2xl font-bold tabular-nums">{s.value}</p>
                   <p className="text-[11px] text-white/70 font-medium">{s.label}</p>
-                </div>
+                </Wrapper>
               );
             })}
           </div>
@@ -165,9 +178,14 @@ export default function RigHub() {
             </div>
             )}
             {view !== 'certificates' && (
-            <button onClick={openAdd} className="sm:hidden inline-flex items-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold">
-              <Plus className="w-4 h-4" /> Add
-            </button>
+            <div className="flex gap-2 sm:hidden">
+              <button onClick={() => navigate('/pat-testing')} className="inline-flex items-center gap-1 px-3 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold">
+                <Plug className="w-4 h-4" /> PAT
+              </button>
+              <button onClick={openAdd} className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold">
+                <Plus className="w-4 h-4" /> Add
+              </button>
+            </div>
             )}
           </div>
         </div>
