@@ -8,14 +8,29 @@ import SignaturePad from '@/components/staff/SignaturePad';
 import { saveOfflineBriefing } from '@/utils/offlineSync';
 
 const POWRA_URL = 'https://app.safetyculture.com/inspection/audit_349a23db07de4cfba675bb2a0a9f7bd8?page=1&isNew=true&holisticOnboarding=false';
+const VEHICLE_CHECK_URL = 'https://app.safetyculture.com/inspection/audit_a7b6591dc3064b2f8e4557c3ce1e432e?page=1&isNew=true&holisticOnboarding=false';
+
+const todayKey = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 export default function JobBriefingModal({ assignment, job, client, staff, crewAssignments = [], onSigned, onClose, skipTravel = false }) {
+  // Daily vehicle check — required once per staff member per day, before
+  // anything else. Persisted in localStorage so re-opening the briefing for
+  // another assignment the same day skips it automatically.
+  const vehicleCheckStorageKey = staff?.id ? `gc_vehicle_check_${staff.id}_${todayKey()}` : null;
+  const [vehicleCheckNeeded] = useState(() => {
+    if (!vehicleCheckStorageKey) return false;
+    try { return localStorage.getItem(vehicleCheckStorageKey) !== '1'; } catch { return true; }
+  });
+
   // When skipTravel is true, arrival/travel-to-site was already logged before
   // opening the briefing, so we skip the intro and travel phases and start
   // straight at documents/induction.
-  const initialPhase = skipTravel
-    ? null
-    : (assignment.briefing_start_at ? 'documents' : 'intro');
+  const initialPhase = vehicleCheckNeeded
+    ? 'vehicle'
+    : (skipTravel ? null : (assignment.briefing_start_at ? 'documents' : 'intro'));
   const [phase, setPhase] = useState(initialPhase);
   const [signing, setSigning] = useState(false);
   const [briefingStartAt, setBriefingStartAt] = useState(assignment.briefing_start_at || null);
@@ -43,6 +58,7 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
   });
 
   useEffect(() => {
+    if (phase === 'vehicle') return; // wait for the daily vehicle check to be completed
     if (skipTravel) {
       // Auto-record the briefing start time and jump straight to the first content step
       const ts = new Date().toISOString();
@@ -76,6 +92,20 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
     }
     setSavingStart(false);
     setPhase('travel');
+  };
+
+  const handleVehicleCheckComplete = () => {
+    try { if (vehicleCheckStorageKey) localStorage.setItem(vehicleCheckStorageKey, '1'); } catch (e) {}
+    if (skipTravel) {
+      const ts = new Date().toISOString();
+      setBriefingStartAt(ts);
+      setPhase(briefingDocs.length > 0 ? 'documents' : 'induction');
+      try { base44.entities.RotaAssignment.update(assignment.id, { briefing_start_at: ts }); } catch (e) {}
+    } else if (assignment.briefing_start_at) {
+      setPhase('documents');
+    } else {
+      setPhase('intro');
+    }
   };
 
   const handleSaveEditedStart = async () => {
@@ -214,13 +244,19 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
 
   if (!job) return null;
 
-  const stepLabels = skipTravel
-    ? ['Induction', 'Safety', 'Sign']
-    : ['Briefing', 'Travel', briefingDocs.length > 0 ? 'Documents' : null, 'Induction', 'Safety', 'Sign'].filter(Boolean);
+  const stepLabels = [
+    ...(vehicleCheckNeeded ? ['Vehicle'] : []),
+    ...(skipTravel
+      ? ['Induction', 'Safety', 'Sign']
+      : ['Briefing', 'Travel', briefingDocs.length > 0 ? 'Documents' : null, 'Induction', 'Safety', 'Sign'].filter(Boolean)),
+  ];
   const docOffset = briefingDocs.length > 0 ? 1 : 0;
-  const activeStep = skipTravel
-    ? (phase === 'induction' ? 0 : phase === 'risk' ? 1 : 2)
-    : (phase === 'intro' ? 0 : phase === 'travel' ? 1 : phase === 'documents' ? 2 : phase === 'induction' ? (2 + docOffset) : phase === 'risk' ? (3 + docOffset) : (4 + docOffset));
+  const vcOffset = vehicleCheckNeeded ? 1 : 0;
+  const activeStep = phase === 'vehicle'
+    ? 0
+    : skipTravel
+      ? vcOffset + (phase === 'induction' ? 0 : phase === 'risk' ? 1 : 2)
+      : vcOffset + (phase === 'intro' ? 0 : phase === 'travel' ? 1 : phase === 'documents' ? 2 : phase === 'induction' ? (2 + docOffset) : phase === 'risk' ? (3 + docOffset) : (4 + docOffset));
 
   return (
     <AnimatePresence>
@@ -295,6 +331,36 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
 
           {/* Content */}
           <div className="overflow-y-auto px-5 py-5 flex-1">
+            {/* VEHICLE CHECK — daily, required before anything else */}
+            {phase === 'vehicle' && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">Daily Vehicle Check</h3>
+                  <p className="text-sm text-slate-500">Before starting work today, complete your daily vehicle inspection on Safety Culture. Tap the link below to open it.</p>
+                </div>
+
+                <a href={VEHICLE_CHECK_URL} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-3 p-4 bg-amber-50 rounded-xl border-2 border-amber-200 hover:bg-amber-100 transition">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center flex-shrink-0">
+                      <Car className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-amber-900 text-sm">Open Daily Vehicle Check</p>
+                      <p className="text-xs text-amber-600 flex items-center gap-1">Tap to start the inspection <ExternalLink className="w-3 h-3" /></p>
+                    </div>
+                  </div>
+                  <ExternalLink className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                </a>
+
+                <button onClick={handleVehicleCheckComplete}
+                  className="flex items-center justify-center gap-2 w-full px-5 py-3.5 bg-amber-500 text-white rounded-xl hover:bg-amber-600 active:scale-95 transition text-sm font-bold touch-manipulation">
+                  <CheckCircle2 className="w-5 h-5" /> I've Completed the Vehicle Check
+                </button>
+                <p className="text-xs text-slate-400 text-center">You only need to do this once per day.</p>
+              </div>
+            )}
+
             {/* INTRO */}
             {phase === 'intro' && (
               <div className="text-center py-4">
