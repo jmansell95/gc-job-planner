@@ -136,6 +136,18 @@ Deno.serve(async (req) => {
       return String(e.responsible_person || e.responsiblePerson || e.owner || e.assigned_to || e.person_responsible || e.operator || e.manager || e.inspector || e.tested_by || e.examiner || '').trim();
     };
 
+    // Identifying colour of the asset (rigs are colour-coded for quick site ID).
+    const extractColour = (e) => String(e.colour || e.color || '').trim();
+
+    // Where the asset lives when not on a job — the GC "location" field holds
+    // the depot/yard name (e.g. 'Dartford Depot'). Drives the yard vs assigned view.
+    const extractStorageLocation = (e) => String(e.location || e.storage_location || e.depot || e.yard || '').trim();
+
+    // Certificate PDF URL + certificate number from the GC record. The GC app
+    // stores these as public Base44 file URLs, so they're fetchable without auth.
+    const extractCertificateFile = (e) => String(e.certificate_file || e.certificate_url || e.report_url || e.inspection_report_url || e.report_pdf || '').trim();
+    const extractCertificateNumber = (e) => String(e.certificate_number || e.certificate_no || e.cert_number || '').trim();
+
     // === Maintenance / Service data (GC Compliance Manager) ===
     // GC stores service history as "last test" (LOLER/PUWER inspection) data:
     // last_test_date = when the asset was last inspected/serviced,
@@ -281,6 +293,8 @@ Deno.serve(async (req) => {
         equipment_type: extractEquipmentType(match) || asset.equipment_type || '',
         compliance_category: extractCategory(match) || asset.compliance_category || '',
         responsible_person: extractResponsiblePerson(match),
+        colour: extractColour(match) || asset.colour || '',
+        storage_location: extractStorageLocation(match) || asset.storage_location || '',
         tooling_notes: extractToolingNotes(match) || asset.tooling_notes || '',
         notes: match.notes || match.last_test_notes || asset.notes || '',
         last_service_date: toDateStr(extractLastServiceDate(match)),
@@ -316,6 +330,8 @@ Deno.serve(async (req) => {
         compliance_expiry_date: (assetType === 'machinery' || assetType === 'trailer') ? null : (extractExpiry(eq) || null),
         compliance_last_checked: now,
         responsible_person: extractResponsiblePerson(eq),
+        colour: extractColour(eq),
+        storage_location: extractStorageLocation(eq),
         tooling_notes: extractToolingNotes(eq),
         is_active: true,
         notes: eq.notes || eq.last_test_notes || '',
@@ -362,6 +378,8 @@ Deno.serve(async (req) => {
         serial_number: match.registration_number || asset.serial_number || '',
         compliance_category: extractCategory(match) || asset.compliance_category || '',
         responsible_person: extractResponsiblePerson(match),
+        colour: extractColour(match) || asset.colour || '',
+        storage_location: extractStorageLocation(match) || asset.storage_location || '',
         tooling_notes: extractToolingNotes(match) || asset.tooling_notes || '',
         notes: match.notes || asset.notes || '',
         is_rig: true,
@@ -390,6 +408,8 @@ Deno.serve(async (req) => {
         compliance_last_checked: now,
         compliance_category: extractCategory(rig),
         responsible_person: extractResponsiblePerson(rig),
+        colour: extractColour(rig),
+        storage_location: extractStorageLocation(rig),
         tooling_notes: extractToolingNotes(rig),
         is_active: true,
         notes: rig.notes || '',
@@ -457,6 +477,82 @@ Deno.serve(async (req) => {
         } catch (seedErr) { console.error('Error seeding service records:', seedErr.message); }
       }
     } catch (e) { console.error('Service record seeding skipped:', e.message); }
+
+    // === Certificate re-hosting ===
+    // Pull each asset's certificate PDF out of the GC Compliance Manager and
+    // store it permanently in THIS app's storage so the records survive after
+    // the old GC app is deleted. GC certificate URLs are public Base44 file
+    // URLs, so fetch needs no auth. We cap re-hosts per run to stay within the
+    // function time budget — re-running continues from where we left off
+    // (records already pointing to a local URL are skipped).
+    const GC_APP_ID = "6a3be07293b53789beb4f09e";
+    const MAX_CERT_REHOSTS_PER_RUN = 30;
+    let certificatesLinked = 0;
+    let certificatesRehosted = 0;
+    let certificateErrors = 0;
+
+    try {
+      // Map external_compliance_id -> { file, number } for equipment + rigs.
+      const certByExtId = {};
+      for (const eq of equipmentRecords) {
+        const f = extractCertificateFile(eq);
+        if (f) certByExtId[eq.id] = { file: f, number: extractCertificateNumber(eq) };
+      }
+      for (const r of rigRecords) {
+        const f = extractCertificateFile(r);
+        if (f) certByExtId[r.id] = { file: f, number: extractCertificateNumber(r) };
+      }
+
+      const freshForCerts = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
+      const allServiceRecords = await base44.asServiceRole.entities.ServiceRecord.list('-created_date', 500);
+
+      // Group imported service records by their asset id (one per asset).
+      const importedByAsset = {};
+      for (const sr of allServiceRecords) {
+        if (sr.imported_from_gc && sr.site_asset_id) importedByAsset[sr.site_asset_id] = sr;
+      }
+
+      for (const a of freshForCerts) {
+        if (certificatesRehosted >= MAX_CERT_REHOSTS_PER_RUN) break;
+        const extId = a.external_compliance_id;
+        if (!extId) continue;
+        const cert = certByExtId[extId];
+        if (!cert || !cert.file) continue;
+        const sr = importedByAsset[a.id];
+        if (!sr) continue;
+
+        // Already re-hosted locally (URL no longer points to the GC app) — skip.
+        const alreadyLocal = sr.certificate_url && !sr.certificate_url.includes(GC_APP_ID);
+        if (alreadyLocal && sr.certificate_name) continue;
+
+        let localUrl = null;
+        try {
+          const resp = await fetch(cert.file);
+          if (!resp.ok) throw new Error(`fetch ${resp.status}`);
+          const blob = await resp.blob();
+          // Derive a filename from the URL path.
+          const urlPath = new URL(cert.file).pathname;
+          const filename = decodeURIComponent(urlPath.split('/').pop() || 'certificate.pdf');
+          const file = new File([blob], filename, { type: blob.type || 'application/pdf' });
+          const upload = await base44.asServiceRole.integrations.Core.UploadFile({ file });
+          localUrl = upload?.file_url || null;
+        } catch (fetchErr) {
+          console.error('Cert rehost failed for', a.name, ':', fetchErr.message);
+          certificateErrors++;
+        }
+
+        const finalUrl = localUrl || cert.file; // fall back to GC URL if re-host fails
+        const certName = cert.number || (localUrl ? null : 'GC certificate');
+        await base44.asServiceRole.entities.ServiceRecord.update(sr.id, {
+          certificate_url: finalUrl,
+          certificate_name: certName,
+        });
+        certificatesLinked++;
+        if (localUrl) certificatesRehosted++;
+      }
+    } catch (certErr) {
+      console.error('Certificate re-hosting pass failed:', certErr.message);
+    }
 
     // === Sync linked equipment — group equipment records by rig_id ===
     const freshSiteAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
@@ -655,6 +751,9 @@ Deno.serve(async (req) => {
       rate_card_links_set: rateCardLinksSet,
       rate_card_costs_set: rateCardCostsSet,
       service_records_seeded: serviceRecordsSeeded,
+      certificates_linked: certificatesLinked,
+      certificates_rehosted: certificatesRehosted,
+      certificate_errors: certificateErrors,
       unmatched_assets: unmatchedAssets,
       purged,
       job_assignments_removed: jobAssignmentsRemoved,

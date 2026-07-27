@@ -78,7 +78,7 @@ export default function SiteAssetManager() {
     <div>
       <SettingsSectionHeader
         icon={Wrench}
-        title="Asset Command Centre"
+        title="Asset Manager"
         description="Full fleet management — view, edit, download certificates & generate compliance packs"
         actions={
           <div className="flex items-center gap-2 flex-wrap">

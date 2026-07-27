@@ -45,6 +45,10 @@
       "type": "string",
       "description": "Serial number, asset tag or registration"
     },
+    "colour": {
+      "type": "string",
+      "description": "Identifying colour of the asset (e.g. rig painted red, blue). Pulled from GC Compliance Manager. Used for quick visual identification on site and in the yard."
+    },
     "external_compliance_id": {
       "type": "string",
       "description": "ID of this asset in the GC Compliance Manager app \u2014 used to cross-reference compliance records during the one-time import."
@@ -135,7 +139,11 @@
     },
     "responsible_person": {
       "type": "string",
-      "description": "Person responsible for this asset."
+      "description": "Person responsible for this asset \u2014 the lead driller who keeps it with them, or the yard manager for yard-held equipment."
+    },
+    "storage_location": {
+      "type": "string",
+      "description": "Where the asset lives when not on a job \u2014 e.g. 'Dartford Depot' (yard), a rig name, or a person. Pulled from GC Compliance Manager's location field. Used by the yard/assignment view to group yard-held equipment."
     },
     "tooling_notes": {
       "type": "string",

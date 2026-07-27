@@ -37,7 +37,7 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'absences', icon: CalendarX, label: 'Absences', value: '—', sub: 'Leave & time off', color: 'amber' },
     ]},
     { group: 'Operations', icon: Activity, accent: 'from-blue-500 to-cyan-600', items: [
-      { id: 'assets', icon: Wrench, label: 'Compliance Sync', value: assets.length, sub: 'GC Compliance sync', color: 'blue' },
+      { id: 'assets', icon: Wrench, label: 'Asset Manager', value: assets.length, sub: 'Rigs, gear & certificates', color: 'blue' },
       { id: 'asset-panda', icon: Database, label: 'Asset Panda Sync', value: '—', sub: 'Inventory sync', color: 'cyan' },
       { id: 'equipment-library', icon: Boxes, label: 'Equipment Sets', value: costPresets.length, sub: 'Pre-built sets', color: 'emerald' },
       { id: 'vehicles', icon: Truck, label: 'Vehicles', value: vehicles.length, sub: 'Fleet & MOTs', color: 'amber' },

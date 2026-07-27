@@ -17,7 +17,7 @@ export default function SyncComplianceButton({ className = '' }) {
       if (d?.error) {
         toast({ title: 'Sync failed', description: d.details || d.error, variant: 'destructive' });
       } else {
-        const msg = `${d.equipment_synced || 0} updated${d.equipment_created > 0 ? `, ${d.equipment_created} new` : ''}${d.rigs_synced || 0 ? `, ${d.rigs_synced} rigs` : ''}${d.rigs_created > 0 ? `, ${d.rigs_created} new rigs` : ''}. Records are kept permanently — safe to delete the old app now.`;
+        const msg = `${d.equipment_synced || 0} updated${d.equipment_created > 0 ? `, ${d.equipment_created} new` : ''}${d.rigs_synced || 0 ? `, ${d.rigs_synced} rigs` : ''}${d.rigs_created > 0 ? `, ${d.rigs_created} new rigs` : ''}${d.certificates_rehosted > 0 ? ` · ${d.certificates_rehosted} certificates pulled locally` : ''}. Records are kept permanently — safe to delete the old app now.`;
         toast({ title: 'Imported from GC', description: msg });
         queryClient.invalidateQueries({ queryKey: ['site-assets'] });
         queryClient.invalidateQueries({ queryKey: ['job-asset-assignments'] });

@@ -8,6 +8,17 @@ import { safeFormat } from '@/utils/format';
 import { daysUntil } from '@/utils/rigRollup';
 import { Skeleton } from '@/components/StateViews';
 
+const COLOUR_HEX = {
+  red: '#dc2626', blue: '#2563eb', green: '#16a34a', yellow: '#eab308',
+  orange: '#ea580c', white: '#f8fafc', black: '#1e293b', silver: '#cbd5e1',
+  grey: '#64748b', gray: '#64748b', purple: '#9333ea', brown: '#92400e',
+  beige: '#e7d3a1', cream: '#f5ecd9', gold: '#d4af37', navy: '#1e3a8a',
+};
+function colourToHex(c) {
+  const k = String(c || '').toLowerCase().trim();
+  return COLOUR_HEX[k] || '#94a3b8';
+}
+
 const TYPE_META = {
   rig: { label: 'Rig', icon: Cog, badge: 'bg-blue-100 text-blue-700' },
   machinery: { label: 'Machinery', icon: Wrench, badge: 'bg-purple-100 text-purple-700' },
@@ -33,6 +44,9 @@ const QUICK_VIEWS = [
   { key: 'lifting', label: 'Lifting Gear', predicate: a => a.asset_type === 'lifting' },
   { key: 'pat', label: 'PAT', predicate: a => a.asset_type === 'portable_appliance' },
   { key: 'inactive', label: 'Inactive', predicate: a => a.is_active === false },
+  { key: 'unassigned', label: 'No Owner', predicate: a => !a.responsible_person },
+  { key: 'yard', label: 'Yard', predicate: a => !!a.storage_location },
+  { key: 'linked', label: 'Rig-Linked', predicate: a => Array.isArray(a.linked_equipment_ids) ? a.linked_equipment_ids.length > 0 : false },
 ];
 
 const SORT_FIELDS = [
@@ -73,7 +87,9 @@ export default function FleetCommandGrid({ assets, isLoading, onOpenPassport, on
         const inName = (a.name || '').toLowerCase().includes(q);
         const inSerial = (a.serial_number || '').toLowerCase().includes(q);
         const inType = (a.equipment_type || '').toLowerCase().includes(q);
-        if (!inName && !inSerial && !inType) return false;
+        const inResp = (a.responsible_person || '').toLowerCase().includes(q);
+        const inLoc = (a.storage_location || '').toLowerCase().includes(q);
+        if (!inName && !inSerial && !inType && !inResp && !inLoc) return false;
       }
       return true;
     });
@@ -197,6 +213,8 @@ export default function FleetCommandGrid({ assets, isLoading, onOpenPassport, on
                   </th>
                 ))}
                 <th className="px-3 py-2.5">Serial</th>
+                <th className="px-3 py-2.5">Responsible</th>
+                <th className="px-3 py-2.5">Location</th>
                 <th className="px-3 py-2.5">Status</th>
                 <th className="px-3 py-2.5 text-right">Actions</th>
               </tr>
@@ -243,6 +261,27 @@ export default function FleetCommandGrid({ assets, isLoading, onOpenPassport, on
                     </td>
                     <td className="px-3 py-2.5 text-xs text-slate-600">{a.next_service_date ? safeFormat(a.next_service_date, 'dd MMM') : <span className="text-slate-300">—</span>}</td>
                     <td className="px-3 py-2.5 text-xs font-mono text-slate-500">{a.serial_number || <span className="text-slate-300">—</span>}</td>
+                    <td className="px-3 py-2.5 text-xs text-slate-600">
+                      {a.responsible_person ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          {a.responsible_person}
+                        </span>
+                      ) : <span className="text-slate-300">—</span>}
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-slate-600">
+                      {a.storage_location ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          {a.colour && <span className="w-2.5 h-2.5 rounded-full border border-slate-300 flex-shrink-0" style={{ background: colourToHex(a.colour) }} />}
+                          {a.storage_location}
+                        </span>
+                      ) : a.colour ? (
+                        <span className="inline-flex items-center gap-1.5 text-slate-500">
+                          <span className="w-2.5 h-2.5 rounded-full border border-slate-300" style={{ background: colourToHex(a.colour) }} />
+                          {a.colour}
+                        </span>
+                      ) : <span className="text-slate-300">—</span>}
+                    </td>
                     <td className="px-3 py-2.5">
                       <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${a.is_active !== false ? 'text-emerald-700' : 'text-slate-400'}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${a.is_active !== false ? 'bg-emerald-500' : 'bg-slate-300'}`} />
