@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Briefcase, FileText, ExternalLink, ShieldCheck, Clock, PlayCircle, CheckCircle2, Loader2, ChevronRight, ChevronLeft, HeartPulse, Flame, AlertTriangle, Users, WifiOff, PenLine, Info, Car, Navigation, ClipboardCheck } from 'lucide-react';
+import { X, MapPin, Briefcase, FileText, ExternalLink, ShieldCheck, Clock, PlayCircle, CheckCircle2, Loader2, ChevronRight, ChevronLeft, HeartPulse, Flame, AlertTriangle, Users, WifiOff, PenLine, Info, Car, Navigation, ClipboardCheck, Wrench } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import { saveOfflineBriefing } from '@/utils/offlineSync';
 
 const POWRA_URL = 'https://app.safetyculture.com/inspection/audit_349a23db07de4cfba675bb2a0a9f7bd8?page=1&isNew=true&holisticOnboarding=false';
 const VEHICLE_CHECK_URL = 'https://app.safetyculture.com/inspection/audit_a7b6591dc3064b2f8e4557c3ce1e432e?page=1&isNew=true&holisticOnboarding=false';
+const EQUIP_CHECK_URL = 'https://app.safetyculture.com/inspection/audit_bc585d98c32640b4a333d34afad8b3b9?page=1&isNew=true&holisticOnboarding=false';
 
 const todayKey = () => {
   const d = new Date();
@@ -38,6 +39,8 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
   const [reviewedDocIds, setReviewedDocIds] = useState(new Set());
   const [inductionConfirmed, setInductionConfirmed] = useState(false);
   const [powraConfirmed, setPowraConfirmed] = useState(false);
+  const [equipCheckConfirmed, setEquipCheckConfirmed] = useState(false);
+  const isDriller = !!staff?.drilling_crew_id;
   const [signatureDataUrl, setSignatureDataUrl] = useState(null);
   const [offlineSaved, setOfflineSaved] = useState(false);
   const [travelDepartHome, setTravelDepartHome] = useState('');
@@ -578,17 +581,55 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
                   </span>
                 </button>
 
+                {/* EQUIPMENT & PLANT INSPECTION — drillers only */}
+                {isDriller && (
+                  <>
+                    <div className="border-t border-slate-200 pt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Wrench className="w-4 h-4 text-blue-600" />
+                        <h4 className="text-sm font-bold text-slate-900">Equipment &amp; Plant Inspection</h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 uppercase tracking-wide">Drillers</span>
+                      </div>
+                      <p className="text-xs text-slate-500 mb-3">As a drilling crew member, complete the Equipment &amp; Plant Inspection on Safety Culture before you can start work.</p>
+                    </div>
+
+                    <a href={EQUIP_CHECK_URL} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-between gap-3 p-4 bg-blue-50 rounded-xl border-2 border-blue-200 hover:bg-blue-100 transition">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0">
+                          <Wrench className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-blue-900 text-sm">Open Equipment &amp; Plant Inspection</p>
+                          <p className="text-xs text-blue-600 flex items-center gap-1">Tap to start the inspection <ExternalLink className="w-3 h-3" /></p>
+                        </div>
+                      </div>
+                      <ExternalLink className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    </a>
+
+                    <button onClick={() => setEquipCheckConfirmed(!equipCheckConfirmed)}
+                      className={`flex items-start gap-2.5 w-full text-left rounded-xl border-2 p-3.5 transition ${equipCheckConfirmed ? 'border-blue-300 bg-blue-50/50' : 'border-slate-200 bg-white'}`}>
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${equipCheckConfirmed ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}`}>
+                        {equipCheckConfirmed && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                      </div>
+                      <span className={`text-sm font-medium ${equipCheckConfirmed ? 'text-blue-700' : 'text-slate-600'}`}>
+                        I have completed the Equipment &amp; Plant Inspection on Safety Culture.
+                      </span>
+                    </button>
+                  </>
+                )}
+
                 <div className="flex gap-2 pt-1">
                   <button onClick={goPrevSkipAware} className="flex items-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">
                     <ChevronLeft className="w-4 h-4" /> Back
                   </button>
-                  <button onClick={goNext} disabled={!powraConfirmed}
+                  <button onClick={goNext} disabled={!powraConfirmed || (isDriller && !equipCheckConfirmed)}
                     className="flex items-center justify-center gap-1.5 flex-1 px-4 py-3 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation">
                     Next <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-                {!powraConfirmed && (
-                  <p className="text-xs text-amber-600 text-center">Please confirm the POWRA is complete to continue.</p>
+                {(!powraConfirmed || (isDriller && !equipCheckConfirmed)) && (
+                  <p className="text-xs text-amber-600 text-center">Please confirm the POWRA{isDriller ? ' and Equipment & Plant Inspection' : ''} are complete to continue.</p>
                 )}
               </div>
             )}
