@@ -89,7 +89,7 @@ export default function SiteAssetManager() {
             </button>
             <button onClick={() => navigate('/rig-hub')} type="button"
               className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 active:scale-95 transition text-sm font-semibold shadow-sm">
-              <ScanLine className="w-4 h-4" /> Open Rig Hub
+              <ScanLine className="w-4 h-4" /> Open Asset Hub
             </button>
             <SyncComplianceButton />
           </div>
