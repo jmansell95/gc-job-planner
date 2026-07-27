@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { FileText, ExternalLink, ShieldCheck, ShieldAlert, ShieldX, Lock } from 'lucide-react';
+import { FileText, ExternalLink, ShieldCheck, ShieldAlert, ShieldX, Lock, Download, FolderDown } from 'lucide-react';
 import { safeFormat } from '@/utils/format';
 import { COMPLIANCE_META, daysUntil } from '@/utils/rigRollup';
 
@@ -11,7 +11,22 @@ import { COMPLIANCE_META, daysUntil } from '@/utils/rigRollup';
  * so the whole rig system's statutory documents are visible in one place.
  */
 export default function CertificateVault({ assetIds = [], assetNames = {} }) {
+  const [downloading, setDownloading] = useState(false);
   const idSet = new Set(assetIds);
+
+  const openAll = () => {
+    certs.slice(0, 15).forEach((c, i) => setTimeout(() => window.open(c.certificate_url, '_blank'), i * 200));
+  };
+  const downloadOne = async (url, name) => {
+    setDownloading(true);
+    try {
+      const res = await fetch(url); const blob = await res.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = objUrl; a.download = name || 'certificate';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(objUrl);
+    } catch { window.open(url, '_blank'); }
+    setDownloading(false);
+  };
 
   const { data: records = [], isLoading } = useQuery({
     queryKey: ['cert-vault', assetIds.join('|')],
@@ -46,6 +61,12 @@ export default function CertificateVault({ assetIds = [], assetNames = {} }) {
             {expiringCount > 0 && <span className="text-amber-600 font-medium"> · {expiringCount} expiring</span>}
           </p>
         </div>
+        {certs.length > 0 && (
+          <button onClick={openAll} title="Open all certificates"
+            className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[11px] font-semibold transition">
+            <FolderDown className="w-3 h-3" /> Open All
+          </button>
+        )}
       </div>
 
       <div className="p-4">
@@ -79,10 +100,16 @@ export default function CertificateVault({ assetIds = [], assetNames = {} }) {
                       </p>
                     )}
                   </div>
-                  <a href={c.certificate_url} target="_blank" rel="noreferrer"
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] transition flex-shrink-0">
-                    <ExternalLink className="w-3.5 h-3.5" /> View
-                  </a>
+                  <div className="inline-flex items-center gap-1 flex-shrink-0">
+                    <a href={c.certificate_url} target="_blank" rel="noreferrer" title="View"
+                      className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition">
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                    <button onClick={() => downloadOne(c.certificate_url, c.certificate_name || `${c._assetName}-certificate`)} disabled={downloading} title="Download"
+                      className="p-1.5 text-slate-500 hover:text-[#2E5A1A] hover:bg-[#2E5A1A]/10 rounded-lg transition disabled:opacity-50">
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               );
             })}

@@ -9,8 +9,12 @@ import {
 import { rollupCompliance, COMPLIANCE_META, ASSET_TYPE_META, findParentRig, daysUntil } from '@/utils/rigRollup';
 import RigDetailDrawer from '@/components/righub/RigDetailDrawer';
 import EquipmentDetailDrawer from '@/components/righub/EquipmentDetailDrawer';
+import RecertPipeline from '@/components/righub/RecertPipeline';
+import MasterCertificateVault from '@/components/righub/MasterCertificateVault';
+import RecertActionModal from '@/components/righub/RecertActionModal';
 import AssetComplianceEditor from '@/components/AssetComplianceEditor';
 import { Skeleton } from '@/components/StateViews';
+import { RefreshCw, Lock } from 'lucide-react';
 
 const TYPE_ICON = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Anchor, portable_appliance: Plug };
 
@@ -23,6 +27,16 @@ export default function RigHub() {
   const [openEquip, setOpenEquip] = useState(null);
   const [editorAsset, setEditorAsset] = useState(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [recertAsset, setRecertAsset] = useState(null);
+
+  // count of assets needing re-cert for the tab badge
+  const recertCount = useMemo(() => assets.filter(a => {
+    const d = daysUntil(a.compliance_expiry_date);
+    const sd = daysUntil(a.next_service_date);
+    return a.compliance_status === 'expired' || a.compliance_status === 'expiring'
+      || (d !== null && d <= 30) || (sd !== null && sd <= 30)
+      || (d === null && sd === null && a.compliance_status !== 'compliant');
+  }).length, [assets]);
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
@@ -109,14 +123,22 @@ export default function RigHub() {
         {/* View toggle + filters */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-5 space-y-3">
           <div className="flex gap-2 flex-wrap items-center">
-            <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
+            <div className="flex gap-1 p-1 bg-slate-100 rounded-lg flex-wrap">
               <button onClick={() => setView('rigs')} className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-semibold transition ${view === 'rigs' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
                 <Boxes className="w-4 h-4" /> Rigs <span className="text-xs text-slate-400">{rigs.length}</span>
               </button>
               <button onClick={() => setView('equipment')} className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-semibold transition ${view === 'equipment' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
-                <Layers className="w-4 h-4" /> All Equipment <span className="text-xs text-slate-400">{equipment.length}</span>
+                <Layers className="w-4 h-4" /> Equipment <span className="text-xs text-slate-400">{equipment.length}</span>
+              </button>
+              <button onClick={() => setView('recert')} className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-semibold transition ${view === 'recert' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
+                <RefreshCw className="w-4 h-4" /> Re-cert Pipeline
+                {recertCount > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-bold">{recertCount}</span>}
+              </button>
+              <button onClick={() => setView('certificates')} className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-semibold transition ${view === 'certificates' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
+                <Lock className="w-4 h-4" /> Certificate Vault
               </button>
             </div>
+            {(view === 'rigs' || view === 'equipment') && (
             <div className="flex gap-2 flex-1 min-w-[200px]">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -131,9 +153,12 @@ export default function RigHub() {
                 <option value="unknown">Unknown</option>
               </select>
             </div>
+            )}
+            {view !== 'certificates' && (
             <button onClick={openAdd} className="sm:hidden inline-flex items-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold">
               <Plus className="w-4 h-4" /> Add
             </button>
+            )}
           </div>
         </div>
 
@@ -141,6 +166,10 @@ export default function RigHub() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}
           </div>
+        ) : view === 'recert' ? (
+          <RecertPipeline assets={assets} onRecert={(a) => setRecertAsset(a)} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} />
+        ) : view === 'certificates' ? (
+          <MasterCertificateVault assets={assets} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} />
         ) : view === 'rigs' ? (
           filteredRigs.length === 0 ? (
             <div className="bg-white rounded-xl border border-slate-200 p-10 text-center">
@@ -260,6 +289,9 @@ export default function RigHub() {
       )}
       {editorOpen && (
         <AssetComplianceEditor asset={editorAsset} onClose={() => { setEditorOpen(false); setEditorAsset(null); }} />
+      )}
+      {recertAsset && (
+        <RecertActionModal asset={recertAsset} onClose={() => setRecertAsset(null)} />
       )}
     </div>
   );
