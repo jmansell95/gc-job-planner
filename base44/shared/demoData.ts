@@ -17,6 +17,9 @@ export const PRESERVED_ENTITIES = [
   'TrainingCourse',
   'HelpTopic',
   'JobType',
+  // Rate cards are precious uploaded data — NEVER wipe them on reset.
+  'RateCardItem',
+  'InvestigationSOR',
 ];
 
 // Entities wiped during a full reset — ordered so dependencies are deleted first
@@ -45,8 +48,6 @@ export const WIPE_ENTITIES = [
   'CostPreset',
   'PresetItem',
   'EquipmentCatalogue',
-  'RateCardItem',
-  'InvestigationSOR',
   'BillingRule',
   'Job',
   'Project',

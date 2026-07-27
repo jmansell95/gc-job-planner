@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   PoundSterling, Search, Plus, Pencil, Check, X, Users, Wrench, Package,
-  Loader2, Receipt, Building2, TrendingUp, Percent, Copy
+  Loader2, Receipt, Building2, TrendingUp, Percent, Copy, Upload
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
@@ -193,6 +193,27 @@ export default function RateCardManager() {
   const [cloneOpen, setCloneOpen] = useState(false);
   const [clonePct, setClonePct] = useState('');
   const [cloning, setCloning] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const masterFileInputRef = useRef(null);
+
+  const handleMasterUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      const res = await base44.functions.invoke('processMasterPriceListUpload', { file_url: uploadRes.file_url });
+      toast({
+        title: 'Master price list ingested',
+        description: `${res.data.ingested} rates loaded.`,
+      });
+      refresh();
+    } catch (err) {
+      toast({ title: 'Upload failed', description: err?.message || 'Could not process file', variant: 'destructive' });
+    }
+    setUploading(false);
+    if (masterFileInputRef.current) masterFileInputRef.current.value = '';
+  };
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['rate-card-items'],
@@ -372,6 +393,16 @@ export default function RateCardManager() {
         {isOurCard ? <Receipt className="w-5 h-5 text-[#2E5A1A]" /> : <Building2 className="w-5 h-5 text-[#2E5A1A]" />}
         <h2 className="font-semibold text-slate-900">{isOurCard ? 'Master Price List — Our Rate Card' : `Rate Card — ${activeSupplier?.name || 'Supplier'}`}</h2>
         <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{totalForCard} rates</span>
+        {isOurCard && (
+          <>
+            <input ref={masterFileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleMasterUpload} className="hidden" />
+            <button onClick={() => masterFileInputRef.current?.click()} disabled={uploading}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition bg-[#2E5A1A] text-white hover:bg-[#1c4a12] disabled:opacity-50 flex-shrink-0">
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {uploading ? 'Processing...' : 'Upload Master Price List'}
+            </button>
+          </>
+        )}
       </div>
 
       {/* Rate card source tabs */}

@@ -435,20 +435,10 @@ Deno.serve(async (req) => {
       { job_id: leeds.id, job_name: 'TP-01 Leeds', staff_id: garyW.id, staff_name: 'Gary Webb', reported_at: ISO(addDays(TODAY, -1)), delay_type: 'utility_clash', impacted_days: 0, impacted_hours: 4, description: 'Water service found in TP-02. Excavation halted pending service diversion. ~4 hours lost.', manager_review_status: 'pending', is_demo_data: true },
     ]);
 
-    // ============================================================
-    // 23. RATE CARD ITEMS (sample from Master Price List)
-    // ============================================================
-    log('Creating rate card items...');
-    await e.RateCardItem.bulkCreate([
-      { category: 'labour', subcategory: 'Cable Percussive Crews', description: 'Cable Percussive Crew', price: 540, price_text: '', unit: 'day', men: 2, rate_card_source: 'our_company', sort_order: 1, is_active: true, is_demo_data: true },
-      { category: 'labour', subcategory: 'Cable Percussive Crews', description: 'Cable Percussive Cutdown Crew (Diesel)', price: 420, price_text: '', unit: 'day', men: 2, rate_card_source: 'our_company', sort_order: 2, is_active: true, is_demo_data: true },
-      { category: 'labour', subcategory: 'Rotary Crews', description: 'Rotary Drilling Crew (Comacchio MC450)', price: 620, price_text: '', unit: 'day', men: 2, rate_card_source: 'our_company', sort_order: 3, is_active: true, is_demo_data: true },
-      { category: 'labour', subcategory: 'Groundworks Crews', description: 'Groundworks Crew (2 Men + Excavator)', price: 480, price_text: '', unit: 'day', men: 2, rate_card_source: 'our_company', sort_order: 4, is_active: true, is_demo_data: true },
-      { category: 'plant', subcategory: 'Rigs', description: 'Cable Percussion Rig Hire', price: 150, price_text: '', unit: 'day', rate_card_source: 'our_company', sort_order: 5, is_active: true, is_demo_data: true },
-      { category: 'plant', subcategory: 'Rigs', description: 'Rotary Drilling Rig Hire', price: 250, price_text: '', unit: 'day', rate_card_source: 'our_company', sort_order: 6, is_active: true, is_demo_data: true },
-      { category: 'materials', subcategory: 'Consumables', description: 'Bentonite Powder 25kg', price: 12.50, price_text: '', unit: 'bag', rate_card_source: 'our_company', sort_order: 7, is_active: true, is_demo_data: true },
-      { category: 'materials', subcategory: 'Consumables', description: 'Casing — 200mm', price: 8.50, price_text: '', unit: 'm', rate_card_source: 'our_company', sort_order: 8, is_active: true, is_demo_data: true },
-    ]);
+    // NOTE: Rate card items (RateCardItem) and the Drilling SOR
+    // (InvestigationSOR) are NEVER seeded or wiped by demo data / reset —
+    // they hold precious uploaded pricing data. See base44/shared/demoData.ts
+    // (PRESERVED_ENTITIES).
 
     log('Demo data complete!');
     return Response.json({
@@ -478,7 +468,6 @@ Deno.serve(async (req) => {
         hotel_bookings: 2,
         delivery_logs: 4,
         delay_logs: 2,
-        rate_card_items: 8,
       },
     });
   } catch (error) {
