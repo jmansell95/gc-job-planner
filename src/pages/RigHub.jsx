@@ -4,13 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
-  HelpCircle, Plus, Search, Pencil, Link2, ChevronRight, Boxes, Layers, ScanLine,
+  HelpCircle, Plus, Search, Pencil, Link2, ChevronRight, Boxes, Layers, ScanLine, X,
 } from 'lucide-react';
 import { rollupCompliance, COMPLIANCE_META, ASSET_TYPE_META, findParentRig, daysUntil } from '@/utils/rigRollup';
 import RigDetailDrawer from '@/components/righub/RigDetailDrawer';
 import EquipmentDetailDrawer from '@/components/righub/EquipmentDetailDrawer';
 import RecertPipeline from '@/components/righub/RecertPipeline';
 import MasterCertificateVault from '@/components/righub/MasterCertificateVault';
+import CertificateVault from '@/components/righub/CertificateVault';
 import RecertActionModal from '@/components/righub/RecertActionModal';
 import AssetComplianceEditor from '@/components/AssetComplianceEditor';
 import { Skeleton } from '@/components/StateViews';
@@ -28,6 +29,7 @@ export default function RigHub() {
   const [editorAsset, setEditorAsset] = useState(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [recertAsset, setRecertAsset] = useState(null);
+  const [certVaultRig, setCertVaultRig] = useState(null);
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
@@ -215,6 +217,15 @@ export default function RigHub() {
                         <ScanLine className="w-3 h-3" /> Next service {safeFmt(rig.next_service_date)}
                       </p>
                     )}
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); setCertVaultRig(rig); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setCertVaultRig(rig); } }}
+                      className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[#2E5A1A]/10 hover:bg-[#2E5A1A]/20 text-[#2E5A1A] rounded-lg text-[11px] font-semibold transition w-full justify-center"
+                    >
+                      <Lock className="w-3.5 h-3.5" /> View Certificates
+                    </span>
                   </button>
                 );
               })}
@@ -292,6 +303,40 @@ export default function RigHub() {
       )}
       {recertAsset && (
         <RecertActionModal asset={recertAsset} onClose={() => setRecertAsset(null)} />
+      )}
+      {certVaultRig && (
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 pt-8 sm:pt-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setCertVaultRig(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white rounded-t-2xl z-10 border-b border-slate-200 px-5 py-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0">
+                  <Lock className="w-4.5 h-4.5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-slate-900 truncate">{certVaultRig.name} — Certificates</h3>
+                  <p className="text-[11px] text-slate-400 truncate">Rig & all linked equipment · view or download</p>
+                </div>
+              </div>
+              <button onClick={() => setCertVaultRig(null)} className="p-1.5 hover:bg-slate-100 rounded-lg transition">
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+            <div className="p-4">
+              <CertificateVault
+                assetIds={[certVaultRig.id, ...(certVaultRig.linked_equipment_ids || []).map(id => assets.find(a => a.id === id)).filter(Boolean).map(a => a.id)]}
+                assetNames={{
+                  [certVaultRig.id]: certVaultRig.name,
+                  ...(certVaultRig.linked_equipment_ids || []).reduce((m, id) => {
+                    const a = assets.find(x => x.id === id);
+                    if (a) m[id] = a.name;
+                    return m;
+                  }, {}),
+                }}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
