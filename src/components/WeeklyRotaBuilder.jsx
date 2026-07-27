@@ -6,10 +6,11 @@ import {
   Plus, Calendar, ChevronLeft, ChevronRight, X, Copy,
   MapPin, Truck, Clock, CheckCircle2, PlayCircle, ClipboardCheck,
   Users, Briefcase, Search, Filter, StickyNote, Save, Send, Loader2, CalendarDays,
-  LogIn, LogOut
+  LogIn, LogOut, Repeat
 } from 'lucide-react';
 import AssignmentModal from '@/components/AssignmentModal';
 import ComplianceBlockModal from '@/components/ComplianceBlockModal';
+import StaffSwapModal from '@/components/StaffSwapModal';
 import { EmptyState, ErrorState, RotaSkeleton, Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatJobType } from '@/utils/format';
 import { getJobPrimaryType } from '@/utils/jobTeams';
@@ -44,6 +45,7 @@ export default function WeeklyRotaBuilder() {
   const [notice, setNotice] = useState(null);
   const [showWeekends, setShowWeekends] = useState(false);
   const [complianceViolations, setComplianceViolations] = useState(null);
+  const [swapAssignment, setSwapAssignment] = useState(null);
 
   const queryClient = useQueryClient();
   const weekStart = startOfWeek(selectedWeek, { weekStartsOn: 1 });
@@ -381,6 +383,10 @@ export default function WeeklyRotaBuilder() {
           {assignment.meterage > 0 && (
             <span className="text-[10px] text-amber-600 font-medium">{assignment.meterage}m</span>
           )}
+          <button onClick={(e) => { e.stopPropagation(); setSwapAssignment(assignment); }}
+            className="ml-auto text-[10px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded-md transition flex items-center gap-0.5">
+            <Repeat className="w-2.5 h-2.5" /> Swap/Add
+          </button>
         </div>
       </div>
     );
@@ -555,6 +561,17 @@ export default function WeeklyRotaBuilder() {
         onCancel={() => { setComplianceViolations(null); setPublishing(false); }}
       />
 
+      {swapAssignment && (
+        <StaffSwapModal
+          assignment={swapAssignment}
+          staff={staff}
+          jobs={jobs}
+          teams={teams}
+          existingRotas={rotas}
+          onClose={() => setSwapAssignment(null)}
+        />
+      )}
+
       {/* Desktop Grid */}
       <div className="hidden lg:block bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm">
         {staffLoading ? (
@@ -692,9 +709,14 @@ export default function WeeklyRotaBuilder() {
                               <p className="text-xs text-slate-600 truncate">{job?.name || '—'}</p>
                             </div>
                           </div>
-                          <button onClick={(e) => { e.stopPropagation(); handleDeleteAssignment(assignment.id); }} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition flex-shrink-0">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button onClick={(e) => { e.stopPropagation(); setSwapAssignment(assignment); }} className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded-lg transition" title="Swap / add staff">
+                              <Repeat className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); handleDeleteAssignment(assignment.id); }} className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
                           {job && <span className={`px-2 py-0.5 rounded-full font-medium ${colors.badge}`}>{formatJobType(getJobPrimaryType(job, teams))}</span>}
