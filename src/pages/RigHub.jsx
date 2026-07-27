@@ -18,11 +18,22 @@ import AssetComplianceEditor from '@/components/AssetComplianceEditor';
 import FleetMaintenancePanel from '@/components/righub/FleetMaintenancePanel';
 import FleetHealthGauge from '@/components/righub/FleetHealthGauge';
 import AttentionSpotlight from '@/components/righub/AttentionSpotlight';
+import FleetComplianceDonut from '@/components/righub/FleetComplianceDonut';
+import BulkActionBar from '@/components/righub/BulkActionBar';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { Skeleton } from '@/components/StateViews';
-import { RefreshCw, Lock } from 'lucide-react';
+import { RefreshCw, Lock, Check, CheckSquare } from 'lucide-react';
 
 const TYPE_ICON = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Anchor, portable_appliance: Plug };
+
+const TYPE_GRADIENT = {
+  rig: 'from-emerald-500 to-emerald-700',
+  machinery: 'from-violet-500 to-purple-700',
+  trailer: 'from-amber-500 to-orange-600',
+  vehicle: 'from-slate-500 to-slate-700',
+  lifting: 'from-teal-500 to-cyan-700',
+  portable_appliance: 'from-amber-400 to-yellow-600',
+};
 
 export default function RigHub() {
   const navigate = useNavigate();
@@ -36,6 +47,9 @@ export default function RigHub() {
   const [recertAsset, setRecertAsset] = useState(null);
   const [certVaultRig, setCertVaultRig] = useState(null);
   const [equipFilters, setEquipFilters] = useState({ type: null, category: null, person: null });
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selected, setSelected] = useState(new Set());
+  const [bulkCerts, setBulkCerts] = useState(null);
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
@@ -74,6 +88,12 @@ export default function RigHub() {
   const totalKnown = assets.filter(a => a.compliance_status && a.compliance_status !== 'unknown').length;
   const compliantCount = assets.filter(a => a.compliance_status === 'compliant').length;
   const fleetHealthPct = totalKnown > 0 ? (compliantCount / totalKnown) * 100 : 0;
+
+  const fleetCounts = useMemo(() => {
+    const c = { compliant: 0, expiring: 0, expired: 0, unknown: 0 };
+    assets.forEach(a => { c[(a.compliance_status || 'unknown')]++; });
+    return c;
+  }, [assets]);
 
   const q = search.toLowerCase().trim();
   const filterFn = (a) => {
@@ -128,27 +148,28 @@ export default function RigHub() {
             </div>
           </div>
 
-          {/* Fleet health gauge + summary tiles */}
+          {/* Fleet health gauge + compliance donut + colourful summary tiles */}
           <div className="flex flex-col lg:flex-row gap-4 items-center lg:items-stretch">
-            <div className="flex items-center justify-center bg-white/10 backdrop-blur-sm rounded-xl ring-1 ring-white/15 px-6 py-3 flex-shrink-0">
+            <div className="flex items-center gap-5 justify-center bg-white/10 backdrop-blur-sm rounded-xl ring-1 ring-white/15 px-6 py-3 flex-shrink-0">
               <FleetHealthGauge percent={fleetHealthPct} />
+              <FleetComplianceDonut counts={fleetCounts} />
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 flex-1 w-full">
             {[
-              { label: 'Rig Systems', value: rigs.length, icon: Boxes },
-              { label: 'Healthy Rigs', value: rigsCompliant, icon: ShieldCheck },
-              { label: 'Rigs Need Attention', value: rigsWarning, icon: ShieldAlert },
-              { label: 'Expired Equipment', value: equipExpired, icon: ShieldX },
-              { label: 'PAT Due', value: patDue, icon: Plug, onClick: () => navigate('/pat-testing') },
+              { label: 'Rig Systems', value: rigs.length, icon: Boxes, grad: 'stat-gradient-brand' },
+              { label: 'Healthy Rigs', value: rigsCompliant, icon: ShieldCheck, grad: 'stat-gradient-emerald' },
+              { label: 'Rigs Need Attention', value: rigsWarning, icon: ShieldAlert, grad: 'stat-gradient-amber' },
+              { label: 'Expired Equipment', value: equipExpired, icon: ShieldX, grad: 'stat-gradient-rose' },
+              { label: 'PAT Due', value: patDue, icon: Plug, grad: 'stat-gradient-cyan', onClick: () => navigate('/pat-testing') },
             ].map(s => {
               const SIcon = s.icon;
               const Wrapper = s.onClick ? 'button' : 'div';
               return (
                 <Wrapper key={s.label} onClick={s.onClick}
-                  className={`bg-white/10 backdrop-blur-sm rounded-xl p-3.5 ring-1 ring-white/15 text-left ${s.onClick ? 'hover:bg-white/15 active:scale-[0.98] transition cursor-pointer' : ''}`}>
-                  <SIcon className="w-5 h-5 text-white/80 mb-1.5" />
-                  <p className="text-2xl font-bold tabular-nums">{s.value}</p>
-                  <p className="text-[11px] text-white/70 font-medium">{s.label}</p>
+                  className={`${s.grad} rounded-xl p-3.5 text-left text-white shadow-lg ring-1 ring-white/20 ${s.onClick ? 'hover:brightness-110 active:scale-[0.98] transition cursor-pointer' : ''}`}>
+                  <SIcon className="w-5 h-5 text-white/90 mb-1.5" />
+                  <p className="text-2xl font-bold tabular-nums drop-shadow-sm">{s.value}</p>
+                  <p className="text-[11px] text-white/85 font-medium">{s.label}</p>
                 </Wrapper>
               );
             })}
@@ -232,7 +253,7 @@ export default function RigHub() {
               {filteredRigs.map(({ rig, linked, rollup }) => {
                 const meta = COMPLIANCE_META[rollup.master];
                 const MasterIcon = rollup.master === 'expired' ? ShieldX : rollup.master === 'expiring' ? ShieldAlert : rollup.master === 'unknown' ? HelpCircle : ShieldCheck;
-                const border = rollup.master === 'expired' ? 'border-l-4 border-l-red-400' : rollup.master === 'expiring' ? 'border-l-4 border-l-amber-400' : rollup.master === 'unknown' ? 'border-l-4 border-l-slate-300' : '';
+                const border = rollup.master === 'expired' ? 'border-l-4 border-l-red-500 ring-1 ring-red-100' : rollup.master === 'expiring' ? 'border-l-4 border-l-amber-500 ring-1 ring-amber-100' : rollup.master === 'unknown' ? 'border-l-4 border-l-slate-400 ring-1 ring-slate-100' : 'border-l-4 border-l-emerald-500 ring-1 ring-emerald-100';
                 return (
                   <button key={rig.id} onClick={() => setOpenRig(rig)} className={`insight-card rounded-xl p-4 text-left ${border}`}>
                     <div className="flex items-start justify-between gap-2 mb-3">
@@ -302,28 +323,43 @@ export default function RigHub() {
           </div>
         ) : (
           <>
-          <div className="mb-4">
+          <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
             <EquipmentFilters assets={equipment} filters={equipFilters} setFilters={setEquipFilters} />
+            <button onClick={() => { setSelectionMode(m => !m); setSelected(new Set()); }} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition flex-shrink-0 ${selectionMode ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}>
+              <CheckSquare className="w-4 h-4" /> {selectionMode ? 'Done' : 'Select'}
+            </button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredEquip.map(({ equip, parentRig }) => {
               const meta = COMPLIANCE_META[equip.compliance_status || 'unknown'];
               const Icon = TYPE_ICON[equip.asset_type] || Wrench;
-              const border = equip.compliance_status === 'expired' ? 'border-l-4 border-l-red-400' : equip.compliance_status === 'expiring' ? 'border-l-4 border-l-amber-400' : equip.compliance_status === 'unknown' ? 'border-l-4 border-l-slate-300' : '';
+              const statusAccent = equip.compliance_status === 'expired' ? 'border-l-4 border-l-red-500 ring-1 ring-red-100' : equip.compliance_status === 'expiring' ? 'border-l-4 border-l-amber-500 ring-1 ring-amber-100' : equip.compliance_status === 'unknown' ? 'border-l-4 border-l-slate-400 ring-1 ring-slate-100' : 'border-l-4 border-l-emerald-500 ring-1 ring-emerald-100';
+              const grad = TYPE_GRADIENT[equip.asset_type] || 'from-slate-500 to-slate-700';
               const d = daysUntil(equip.compliance_expiry_date);
+              const isSel = selected.has(equip.id);
+              const handleCardClick = () => {
+                if (selectionMode) {
+                  setSelected(prev => { const n = new Set(prev); n.has(equip.id) ? n.delete(equip.id) : n.add(equip.id); return n; });
+                } else { setOpenEquip(equip); }
+              };
               return (
-                <button key={equip.id} onClick={() => setOpenEquip(equip)} className={`insight-card rounded-xl p-4 text-left ${border}`}>
+                <div key={equip.id} onClick={handleCardClick} className={`insight-card rounded-xl p-4 text-left relative ${statusAccent} ${selectionMode ? 'cursor-pointer' : ''} ${isSel ? 'ring-2 ring-emerald-500' : ''}`}>
+                  {selectionMode && (
+                    <div className={`absolute top-2.5 right-2.5 w-6 h-6 rounded-md flex items-center justify-center border-2 transition ${isSel ? 'bg-emerald-500 border-emerald-500' : 'bg-white/80 border-slate-300'}`}>
+                      {isSel && <Check className="w-4 h-4 text-white" />}
+                    </div>
+                  )}
                   <div className="flex items-start justify-between gap-2 mb-2.5">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
-                        <Icon className="w-5 h-5 text-slate-600" />
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center flex-shrink-0 shadow-md`}>
+                        <Icon className="w-5 h-5 text-white" />
                       </div>
                       <div className="min-w-0">
                         <p className="font-semibold text-slate-900 truncate">{equip.name}</p>
                         <p className="text-[11px] text-slate-400 truncate">{ASSET_TYPE_META[equip.asset_type]?.label || equip.asset_type}{equip.equipment_type ? ` · ${equip.equipment_type}` : ''}</p>
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />
+                    {!selectionMode && <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />}
                   </div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full border ${meta.tone}`}>
@@ -340,7 +376,7 @@ export default function RigHub() {
                       {d < 0 ? 'Expired' : `Expires in ${d} days`} · {safeFmt(equip.compliance_expiry_date)}
                     </p>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
@@ -404,6 +440,39 @@ export default function RigHub() {
                   }, {}),
                 }}
               />
+            </div>
+          </div>
+        </div>
+      )}
+      {selectionMode && filteredEquip.length > 0 && (
+        <BulkActionBar
+          count={selected.size}
+          total={filteredEquip.length}
+          onClear={() => { setSelected(new Set()); setSelectionMode(false); }}
+          onSelectAll={() => setSelected(new Set(filteredEquip.map(({ equip }) => equip.id)))}
+          onViewCerts={() => setBulkCerts(filteredEquip.filter(({ equip }) => selected.has(equip.id)).map(({ equip }) => equip))}
+        />
+      )}
+      {bulkCerts && (
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 pt-8 sm:pt-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setBulkCerts(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white rounded-t-2xl z-10 border-b border-slate-200 px-5 py-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0">
+                  <Lock className="w-4 h-4 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-slate-900 truncate">{bulkCerts.length} Assets — Certificates</h3>
+                  <p className="text-[11px] text-slate-400 truncate">Bulk view · download any certificate</p>
+                </div>
+              </div>
+              <button onClick={() => setBulkCerts(null)} className="p-1.5 hover:bg-slate-100 rounded-lg transition">
+                <X className="w-4 h-4 text-slate-500" />
+              </button>
+            </div>
+            <div className="p-4">
+              <CertificateVault assets={bulkCerts} assetIds={bulkCerts.map(a => a.id)} assetNames={Object.fromEntries(bulkCerts.map(a => [a.id, a.name]))} />
             </div>
           </div>
         </div>
