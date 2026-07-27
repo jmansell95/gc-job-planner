@@ -25,6 +25,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import { StaffAssistantProvider } from '@/components/StaffAssistantChat';
 import { SchedulingAssistantProvider } from '@/components/SchedulingAssistantChat';
+import { DrillingIntelligenceProvider } from '@/components/DrillingIntelligenceChat';
 import AppBaseUrlSync from '@/components/AppBaseUrlSync';
 
 const AuthenticatedApp = () => {
@@ -52,6 +53,7 @@ const AuthenticatedApp = () => {
   return (
     <StaffAssistantProvider>
       <SchedulingAssistantProvider>
+        <DrillingIntelligenceProvider>
         <AppBaseUrlSync />
         <Routes>
         <Route path="/login" element={<Login />} />
@@ -73,6 +75,7 @@ const AuthenticatedApp = () => {
         <Route path="/client-portal/:token" element={<ClientPortal />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
+        </DrillingIntelligenceProvider>
       </SchedulingAssistantProvider>
     </StaffAssistantProvider>
   );

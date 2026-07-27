@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useStaffAssistant } from '@/components/StaffAssistantChat';
+import { useDrillingIntelligence } from '@/components/DrillingIntelligenceChat';
 import { useNavigate } from 'react-router-dom';
 import MobileNavDrawer from '@/components/MobileNavDrawer';
 import GlobalSearch from '@/components/GlobalSearch';
@@ -20,6 +21,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
   const notifications = useNotifications();
   const notifCount = notifications.count;
   const { openChat } = useStaffAssistant();
+  const { openChat: openDrillingIntelligence } = useDrillingIntelligence();
 
   useEffect(() => {
     (async () => {
@@ -77,6 +79,16 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       {/* Compact action cluster — moved from the top to free up space */}
       <div className="px-3 pt-3 pb-2 border-t border-white/10 space-y-2">
         <GlobalSearch />
+        <button onClick={openDrillingIntelligence} type="button"
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+          <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0">
+            <HardHat className="w-4 h-4 text-white" />
+          </span>
+          <span className="text-left">
+            <span className="block text-xs font-semibold leading-tight">Drilling Intelligence</span>
+            <span className="block text-[10px] text-white/55 leading-tight">Hazard &amp; log analysis</span>
+          </span>
+        </button>
         <div className="grid grid-cols-3 gap-1.5">
           <button onClick={openChat} type="button" title="Ask Assistant"
             className="flex items-center justify-center py-2.5 rounded-lg command-gradient text-white hover:brightness-110 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-sm">
