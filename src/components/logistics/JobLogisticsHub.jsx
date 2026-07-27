@@ -536,7 +536,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       </div>
 
       {selectedIds.size > 0 && !showLoadPlanner && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-lg safe-area-bottom">
+        <div className="hidden sm:block fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-lg safe-area-bottom">
           <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-slate-900">{selectedIds.size} item{selectedIds.size !== 1 ? 's' : ''} selected</p>
@@ -560,19 +560,29 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
           onAdd={addRigWithGear} onClose={() => setShowRigPicker(false)} adding={addingRigGear} />
       )}
 
-      {/* Mobile sticky Add bar — always thumb-reachable on phones */}
-      {canSeeCosts && !adding && selectedIds.size === 0 && !showLoadPlanner && !showRigPicker && (
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 safe-area-bottom px-4 py-3 flex items-center gap-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
-          <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }}
-            className="flex-1 inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3 rounded-xl bg-[#2E5A1A] active:scale-95 transition shadow-sm">
-            <Plus className="w-4 h-4" /> Billable Item
-          </button>
-          {isDrillingJob && allRigs.length > 0 && (
-            <button onClick={() => setShowRigPicker(true)} disabled={addingRigGear}
-              className="flex-1 inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3 rounded-xl bg-blue-600 active:scale-95 transition shadow-sm disabled:opacity-50">
-              <Plus className="w-4 h-4" /> Rig & Gear
-            </button>
+      {/* Mobile sticky action footer — Add buttons always thumb-reachable; Plan Load stacks above when items selected */}
+      {canSeeCosts && !adding && !showLoadPlanner && !showRigPicker && (
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 safe-area-bottom shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+          {selectedIds.size > 0 && (
+            <div className="px-4 pt-2.5 pb-1 flex items-center gap-2 border-b border-slate-100">
+              <button onClick={() => setShowLoadPlanner(true)} className="flex-1 inline-flex items-center justify-center gap-1.5 text-sm text-white font-semibold px-3 py-2.5 rounded-xl bg-emerald-700 active:scale-95 transition shadow-sm">
+                <Truck className="w-4 h-4" /> Plan Load ({selectedIds.size})
+              </button>
+              <button onClick={clearSelection} className="p-2.5 text-slate-400 hover:text-slate-600 rounded-lg flex-shrink-0"><X className="w-5 h-5" /></button>
+            </div>
           )}
+          <div className="px-4 py-3 flex items-center gap-2">
+            <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }}
+              className="flex-1 inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3 rounded-xl bg-[#2E5A1A] active:scale-95 transition shadow-sm">
+              <Plus className="w-4 h-4" /> Billable Item
+            </button>
+            {isDrillingJob && allRigs.length > 0 && (
+              <button onClick={() => setShowRigPicker(true)} disabled={addingRigGear}
+                className="flex-1 inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3 rounded-xl bg-blue-600 active:scale-95 transition shadow-sm disabled:opacity-50">
+                <Plus className="w-4 h-4" /> Rig & Gear
+              </button>
+            )}
+          </div>
         </div>
       )}
 
