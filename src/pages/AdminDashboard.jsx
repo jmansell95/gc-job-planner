@@ -29,6 +29,10 @@ export default function AdminDashboard() {
       navigate('/deliveries');
       setActiveSection('overview');
     }
+    if (activeSection === 'fleet') {
+      navigate('/rig-hub');
+      setActiveSection('overview');
+    }
   }, [activeSection, navigate]);
 
   useEffect(() => {

@@ -27,6 +27,15 @@ export function styledHtml(rawBodyHtml, cfg) {
     '</table></body></html>';
 }
 
+// Parse a stored date string into a Date at local midnight.
+// Supports YYYY-MM (staff compliance) and YYYY-MM-DD (other categories).
+export function parseDate(str) {
+  if (!str) return null;
+  if (/^\d{4}-\d{2}$/.test(str)) return new Date(str + '-01T00:00:00');
+  const d = new Date(str + 'T00:00:00');
+  return isNaN(d.getTime()) ? null : d;
+}
+
 export async function getAppBaseUrl(base44) {
   try {
     const list = await base44.asServiceRole.entities.AppSetting.filter({ key: 'global' });

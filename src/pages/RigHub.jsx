@@ -15,6 +15,7 @@ import CertificateVault from '@/components/righub/CertificateVault';
 import EquipmentFilters from '@/components/righub/EquipmentFilters';
 import RecertActionModal from '@/components/righub/RecertActionModal';
 import AssetComplianceEditor from '@/components/AssetComplianceEditor';
+import FleetMaintenancePanel from '@/components/righub/FleetMaintenancePanel';
 import { Skeleton } from '@/components/StateViews';
 import { RefreshCw, Lock } from 'lucide-react';
 
@@ -104,8 +105,8 @@ export default function RigHub() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div className="min-w-0">
-                <h1 className="text-2xl font-bold tracking-tight truncate">Asset Hub</h1>
-                <p className="text-sm text-white/70">Master record for every rig system, toolkit & certificate</p>
+                <h1 className="text-2xl font-bold tracking-tight truncate">Fleet Hub</h1>
+                <p className="text-sm text-white/70">Master record for every rig, equipment, certificate & maintenance booking</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -160,6 +161,9 @@ export default function RigHub() {
               <button onClick={() => setView('certificates')} className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-semibold transition ${view === 'certificates' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
                 <Lock className="w-4 h-4" /> Certificate Vault
               </button>
+              <button onClick={() => setView('maintenance')} className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-semibold transition ${view === 'maintenance' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
+                <Wrench className="w-4 h-4" /> Maintenance
+              </button>
             </div>
             {(view === 'rigs' || view === 'equipment') && (
             <div className="flex gap-2 flex-1 min-w-[200px]">
@@ -194,6 +198,8 @@ export default function RigHub() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}
           </div>
+        ) : view === 'maintenance' ? (
+          <FleetMaintenancePanel />
         ) : view === 'recert' ? (
           <RecertPipeline assets={assets} onRecert={(a) => setRecertAsset(a)} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} />
         ) : view === 'certificates' ? (
