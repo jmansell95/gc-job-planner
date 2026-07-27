@@ -393,7 +393,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   const offHiringItem = items.find(c => c.id === offHiringId);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-28 sm:pb-0">
       <LifecycleBar items={items} isDecommissioning={job?.status === 'decommissioning'} onBulkCollect={bulkCollectAll} />
 
       {/* Equipment & Assets — unified section: physical asset assignments (compliance) + billable hire items */}
@@ -407,7 +407,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
         </div>
         <div className="p-4 sm:p-5 space-y-4">
           {canSeeCosts && !adding && (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:flex-wrap">
+            <div className="hidden sm:flex sm:flex-row sm:items-center gap-2 sm:flex-wrap">
               <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }}
                 className="inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3 sm:px-4 sm:py-2.5 rounded-xl bg-[#2E5A1A] hover:bg-[#1c4a12] transition shadow-sm w-full sm:w-auto">
                 <Plus className="w-4 h-4" /> Add Billable Item
@@ -558,6 +558,22 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       {showRigPicker && (
         <RigGearPickerModal rigs={allRigs} assets={siteAssets} rateCardItems={rateCardItems}
           onAdd={addRigWithGear} onClose={() => setShowRigPicker(false)} adding={addingRigGear} />
+      )}
+
+      {/* Mobile sticky Add bar — always thumb-reachable on phones */}
+      {canSeeCosts && !adding && selectedIds.size === 0 && !showLoadPlanner && !showRigPicker && (
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200 safe-area-bottom px-4 py-3 flex items-center gap-2 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+          <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }}
+            className="flex-1 inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3 rounded-xl bg-[#2E5A1A] active:scale-95 transition shadow-sm">
+            <Plus className="w-4 h-4" /> Billable Item
+          </button>
+          {isDrillingJob && allRigs.length > 0 && (
+            <button onClick={() => setShowRigPicker(true)} disabled={addingRigGear}
+              className="flex-1 inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3 rounded-xl bg-blue-600 active:scale-95 transition shadow-sm disabled:opacity-50">
+              <Plus className="w-4 h-4" /> Rig & Gear
+            </button>
+          )}
+        </div>
       )}
 
       {offHiringId && offHiringItem && (
