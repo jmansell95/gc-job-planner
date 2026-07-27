@@ -29,6 +29,11 @@ export default function RigHub() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [recertAsset, setRecertAsset] = useState(null);
 
+  const { data: assets = [], isLoading } = useQuery({
+    queryKey: ['site-assets'],
+    queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
+  });
+
   // count of assets needing re-cert for the tab badge
   const recertCount = useMemo(() => assets.filter(a => {
     const d = daysUntil(a.compliance_expiry_date);
@@ -37,11 +42,6 @@ export default function RigHub() {
       || (d !== null && d <= 30) || (sd !== null && sd <= 30)
       || (d === null && sd === null && a.compliance_status !== 'compliant');
   }).length, [assets]);
-
-  const { data: assets = [], isLoading } = useQuery({
-    queryKey: ['site-assets'],
-    queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
-  });
 
   const rigs = useMemo(() => assets.filter(a => a.asset_type === 'rig'), [assets]);
   const equipment = useMemo(() => assets.filter(a => a.asset_type !== 'rig'), [assets]);
