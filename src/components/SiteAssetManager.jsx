@@ -9,6 +9,7 @@ import ComplianceAttentionPanel from '@/components/ComplianceAttentionPanel';
 import { useConfigLists } from '@/hooks/useConfigLists';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import AssetPassport from '@/components/logistics/AssetPassport';
+import { useNavigate } from 'react-router-dom';
 
 const assetTypeConfig = {
   rig: { label: 'Rig', icon: Cog, badge: 'bg-blue-100 text-blue-700' },
@@ -27,6 +28,7 @@ const complianceConfig = {
 };
 
 export default function SiteAssetManager() {
+  const navigate = useNavigate();
   const { getOptions } = useConfigLists();
   const complianceStatusOptions = getOptions('compliance_statuses');
 
@@ -84,6 +86,10 @@ export default function SiteAssetManager() {
             <button onClick={openAdd} type="button"
               className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white rounded-lg hover:brightness-110 active:scale-95 transition text-sm font-semibold shadow-sm">
               <Plus className="w-4 h-4" /> Add Asset
+            </button>
+            <button onClick={() => navigate('/rig-hub')} type="button"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 active:scale-95 transition text-sm font-semibold shadow-sm">
+              <ScanLine className="w-4 h-4" /> Open Rig Hub
             </button>
             <SyncComplianceButton />
           </div>

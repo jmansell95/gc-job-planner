@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine, User } from 'lucide-react';
+import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine, User, Boxes } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -89,6 +89,11 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white/10 text-white text-sm font-medium hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
           <ScanLine className="w-4 h-4" />
           Asset Lens
+        </button>
+        <button onClick={() => navigate('/rig-hub')} type="button"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white text-sm font-semibold hover:brightness-110 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-sm">
+          <Boxes className="w-4 h-4" />
+          Rig Hub
         </button>
       </div>
       <div className="flex-1 p-4 space-y-1 overflow-y-auto">
