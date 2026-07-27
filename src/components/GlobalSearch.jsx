@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { Briefcase, Users, Truck, Search } from 'lucide-react';
 
-export default function GlobalSearch() {
+export default function GlobalSearch({ compact = false }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -43,10 +43,11 @@ export default function GlobalSearch() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="hidden lg:flex items-center gap-2.5 w-full px-4 py-2.5 bg-emerald-900/40 text-emerald-300/60 hover:text-white hover:bg-emerald-800/60 rounded-lg transition cursor-pointer text-sm font-medium ring-1 ring-emerald-700/30"
+        title="Search jobs, crew, vehicles…"
+        className={`hidden lg:flex items-center ${compact ? 'justify-center px-2' : 'gap-2.5 px-4'} w-full py-2.5 bg-emerald-900/40 text-emerald-300/60 hover:text-white hover:bg-emerald-800/60 rounded-lg transition cursor-pointer text-sm font-medium ring-1 ring-emerald-700/30`}
       >
         <Search className="w-4 h-4 flex-shrink-0" />
-        <span>Search jobs, crew, vehicles…</span>
+        {!compact && <span>Search jobs, crew, vehicles…</span>}
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
