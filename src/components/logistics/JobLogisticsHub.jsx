@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -560,9 +561,11 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
           onAdd={addRigWithGear} onClose={() => setShowRigPicker(false)} adding={addingRigGear} />
       )}
 
-      {/* Mobile sticky action footer — Add buttons always thumb-reachable; Plan Load stacks above when items selected */}
-      {canSeeCosts && !adding && !showLoadPlanner && !showRigPicker && (
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 safe-area-bottom shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+      {/* Mobile sticky action footer — portaled to body so the dashboard's
+          framer-motion transform doesn't trap position:fixed off-viewport.
+          Add buttons always thumb-reachable; Plan Load stacks above when items selected. */}
+      {canSeeCosts && !adding && !showLoadPlanner && !showRigPicker && createPortal(
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[60] bg-white/95 backdrop-blur-md border-t border-slate-200 safe-area-bottom shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
           {selectedIds.size > 0 && (
             <div className="px-4 pt-2.5 pb-1 flex items-center gap-2 border-b border-slate-100">
               <button onClick={() => setShowLoadPlanner(true)} className="flex-1 inline-flex items-center justify-center gap-1.5 text-sm text-white font-semibold px-3 py-2.5 rounded-xl bg-emerald-700 active:scale-95 transition shadow-sm">
@@ -583,7 +586,8 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
               </button>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {offHiringId && offHiringItem && (
