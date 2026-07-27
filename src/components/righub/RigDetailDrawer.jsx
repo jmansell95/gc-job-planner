@@ -3,12 +3,13 @@ import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   X, Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
-  HelpCircle, Pencil, Link2, Unlink, Plus, Save, ChevronRight, ScanLine, Layers,
+  HelpCircle, Pencil, Link2, Unlink, Plus, Save, ChevronRight, ScanLine, Layers, RefreshCw,
 } from 'lucide-react';
 import { safeFormat } from '@/utils/format';
 import { rollupCompliance, COMPLIANCE_META, ASSET_TYPE_META, daysUntil } from '@/utils/rigRollup';
 import ServiceHistoryPanel from '@/components/compliance/ServiceHistoryPanel';
 import CertificateVault from '@/components/righub/CertificateVault';
+import AssetPandaInfoPanel from '@/components/righub/AssetPandaInfoPanel';
 
 const TYPE_ICON = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Anchor, portable_appliance: Plug };
 
@@ -22,7 +23,7 @@ function MasterBadge({ master }) {
   );
 }
 
-export default function RigDetailDrawer({ rig, allAssets = [], onClose, onOpenEquipment, onEdit }) {
+export default function RigDetailDrawer({ rig, allAssets = [], onClose, onOpenEquipment, onEdit, onRecert }) {
   const [showLinker, setShowLinker] = useState(false);
   const [pendingLinks, setPendingLinks] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -94,6 +95,11 @@ export default function RigDetailDrawer({ rig, allAssets = [], onClose, onOpenEq
                   <Pencil className="w-3.5 h-3.5" /> Edit
                 </button>
               )}
+              {onRecert && (
+                <button onClick={() => onRecert(rig)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg text-xs font-semibold transition">
+                  <RefreshCw className="w-3.5 h-3.5" /> Re-cert
+                </button>
+              )}
               <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition">
                 <X className="w-4 h-4 text-slate-500" />
               </button>
@@ -135,6 +141,9 @@ export default function RigDetailDrawer({ rig, allAssets = [], onClose, onOpenEq
             </div>
             {rig.tooling_notes && <p className="text-xs text-slate-500 mt-2.5"><span className="font-semibold text-slate-600">Tooling:</span> {rig.tooling_notes}</p>}
           </div>
+
+          {/* Asset Panda inventory source */}
+          <AssetPandaInfoPanel asset={rig} />
 
           {/* Linked Toolkit */}
           <div className="rounded-xl border border-slate-200 overflow-hidden">

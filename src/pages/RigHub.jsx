@@ -20,6 +20,7 @@ import FleetHealthGauge from '@/components/righub/FleetHealthGauge';
 import AttentionSpotlight from '@/components/righub/AttentionSpotlight';
 import FleetComplianceDonut from '@/components/righub/FleetComplianceDonut';
 import BulkActionBar from '@/components/righub/BulkActionBar';
+import FleetSyncPanel from '@/components/righub/FleetSyncPanel';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { Skeleton } from '@/components/StateViews';
 import { RefreshCw, Lock, Check, CheckSquare } from 'lucide-react';
@@ -139,6 +140,7 @@ export default function RigHub() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <FleetSyncPanel />
               <button onClick={() => navigate('/pat-testing')} className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-amber-400/90 hover:bg-amber-400 text-slate-900 rounded-lg font-semibold text-sm active:scale-95 transition shadow-sm">
                 <Plug className="w-4 h-4" /> PAT Console
               </button>
@@ -152,7 +154,7 @@ export default function RigHub() {
           <div className="flex flex-col lg:flex-row gap-4 items-center lg:items-stretch">
             <div className="flex items-center gap-5 justify-center bg-white/10 backdrop-blur-sm rounded-xl ring-1 ring-white/15 px-6 py-3 flex-shrink-0">
               <FleetHealthGauge percent={fleetHealthPct} />
-              <FleetComplianceDonut counts={fleetCounts} />
+              <FleetComplianceDonut counts={fleetCounts} onSegmentClick={(k) => setCompFilter(k)} />
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 flex-1 w-full">
             {[
@@ -392,6 +394,7 @@ export default function RigHub() {
           onClose={() => setOpenRig(null)}
           onOpenEquipment={(eq) => setOpenEquip(eq)}
           onEdit={(a) => { setOpenRig(null); openEdit(a); }}
+          onRecert={(a) => { setOpenRig(null); setRecertAsset(a); }}
         />
       )}
       {openEquip && (
@@ -401,6 +404,7 @@ export default function RigHub() {
           onClose={() => setOpenEquip(null)}
           onOpenRig={(rig) => { setOpenEquip(null); setOpenRig(rig); }}
           onEdit={(a) => { setOpenEquip(null); openEdit(a); }}
+          onRecert={(a) => { setOpenEquip(null); setRecertAsset(a); }}
         />
       )}
       {editorOpen && (

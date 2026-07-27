@@ -407,20 +407,23 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
         </div>
         <div className="p-4 sm:p-5 space-y-4">
           {canSeeCosts && !adding && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition">
-                <Plus className="w-3.5 h-3.5" /> Add Billable Item
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:flex-wrap">
+              <button onClick={() => { setForm(blankForm()); setEditingId(null); setAdding(true); }}
+                className="inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3 sm:px-4 sm:py-2.5 rounded-xl bg-[#2E5A1A] hover:bg-[#1c4a12] transition shadow-sm w-full sm:w-auto">
+                <Plus className="w-4 h-4" /> Add Billable Item
               </button>
+              {isDrillingJob && allRigs.length > 0 && (
+                <button onClick={() => setShowRigPicker(true)} disabled={addingRigGear}
+                  className="inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3 sm:px-4 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 transition shadow-sm disabled:opacity-50 w-full sm:w-auto">
+                  <Plus className="w-4 h-4" /> Add Rig & Gear
+                </button>
+              )}
               {presets.length > 0 && (
-                <select value="" onChange={applyPreset} disabled={applyingPreset} className="text-xs px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-white text-emerald-700 font-medium hover:bg-emerald-50 cursor-pointer disabled:opacity-50">
+                <select value="" onChange={applyPreset} disabled={applyingPreset}
+                  className="text-sm px-4 py-3 sm:py-2.5 rounded-xl border border-emerald-200 bg-white text-emerald-700 font-medium hover:bg-emerald-50 cursor-pointer disabled:opacity-50 w-full sm:w-auto">
                   <option value="">{applyingPreset ? 'Adding…' : '📋 Add from preset…'}</option>
                   {presets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
-              )}
-              {isDrillingJob && allRigs.length > 0 && (
-                <button onClick={() => setShowRigPicker(true)} disabled={addingRigGear} className="inline-flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 font-medium px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition disabled:opacity-50">
-                  <Plus className="w-3.5 h-3.5" /> Add Rig & Gear
-                </button>
               )}
             </div>
           )}

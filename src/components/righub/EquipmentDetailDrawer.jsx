@@ -1,16 +1,17 @@
 import React from 'react';
 import {
   X, Wrench, Package, Truck, Anchor, Plug, Cog, ShieldCheck, ShieldAlert, ShieldX,
-  HelpCircle, Pencil, ChevronRight, Link2, CalendarClock,
+  HelpCircle, Pencil, ChevronRight, Link2, CalendarClock, RefreshCw,
 } from 'lucide-react';
 import { safeFormat } from '@/utils/format';
 import { COMPLIANCE_META, ASSET_TYPE_META, daysUntil } from '@/utils/rigRollup';
 import ServiceHistoryPanel from '@/components/compliance/ServiceHistoryPanel';
 import CertificateVault from '@/components/righub/CertificateVault';
+import AssetPandaInfoPanel from '@/components/righub/AssetPandaInfoPanel';
 
 const TYPE_ICON = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Anchor, portable_appliance: Plug };
 
-export default function EquipmentDetailDrawer({ equipment, parentRig, onClose, onOpenRig, onEdit }) {
+export default function EquipmentDetailDrawer({ equipment, parentRig, onClose, onOpenRig, onEdit, onRecert }) {
   if (!equipment) return null;
   const Icon = TYPE_ICON[equipment.asset_type] || Wrench;
   const meta = COMPLIANCE_META[equipment.compliance_status || 'unknown'];
@@ -39,6 +40,11 @@ export default function EquipmentDetailDrawer({ equipment, parentRig, onClose, o
             {onEdit && (
               <button onClick={() => onEdit(equipment)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition">
                 <Pencil className="w-3.5 h-3.5" /> Edit
+              </button>
+            )}
+            {onRecert && (
+              <button onClick={() => onRecert(equipment)} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg text-xs font-semibold transition">
+                <RefreshCw className="w-3.5 h-3.5" /> Re-cert
               </button>
             )}
             <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg transition">
@@ -82,10 +88,18 @@ export default function EquipmentDetailDrawer({ equipment, parentRig, onClose, o
               <div className="flex justify-between"><span className="text-slate-500">Last service</span><span className="font-medium text-slate-700">{equipment.last_service_date ? safeFormat(equipment.last_service_date, 'dd MMM yyyy') : '—'}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Next service</span><span className="font-medium text-slate-700">{equipment.next_service_date ? safeFormat(equipment.next_service_date, 'dd MMM yyyy') : '—'}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Responsible</span><span className="font-medium text-slate-700">{equipment.responsible_person || '—'}</span></div>
+              {equipment.storage_location && <div className="flex justify-between"><span className="text-slate-500">Storage</span><span className="font-medium text-slate-700 truncate ml-2">{equipment.storage_location}</span></div>}
+              {equipment.colour && <div className="flex justify-between"><span className="text-slate-500">Colour</span><span className="font-medium text-slate-700 truncate ml-2">{equipment.colour}</span></div>}
+              {equipment.maintenance_status && equipment.maintenance_status !== 'unknown' && <div className="flex justify-between"><span className="text-slate-500">Maintenance</span><span className={`font-semibold capitalize ${equipment.maintenance_status === 'overdue' ? 'text-red-600' : equipment.maintenance_status === 'due_soon' ? 'text-amber-600' : 'text-emerald-600'}`}>{equipment.maintenance_status.replace('_', ' ')}</span></div>}
             </div>
             {equipment.tooling_notes && <p className="text-xs text-slate-500 mt-2.5"><span className="font-semibold text-slate-600">Tooling:</span> {equipment.tooling_notes}</p>}
             {equipment.service_notes && <p className="text-xs text-slate-500 mt-1"><span className="font-semibold text-slate-600">Service:</span> {equipment.service_notes}</p>}
+            {equipment.notes && <p className="text-xs text-slate-500 mt-1"><span className="font-semibold text-slate-600">Notes:</span> {equipment.notes}</p>}
+            {equipment.repair_notes && <p className="text-xs text-slate-500 mt-1"><span className="font-semibold text-slate-600">Repair history:</span> {equipment.repair_notes}</p>}
           </div>
+
+          {/* Asset Panda inventory source */}
+          <AssetPandaInfoPanel asset={equipment} />
 
           {/* Certificate vault for this equipment */}
           <CertificateVault assetIds={[equipment.id]} assetNames={{ [equipment.id]: equipment.name }} />
