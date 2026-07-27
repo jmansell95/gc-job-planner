@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = { compliant: '#10b981', expiring: '#f59e0b', expired: '#ef4444', unknown: '#94a3b8' };
 const LABELS = { compliant: 'Compliant', expiring: 'Expiring', expired: 'Expired', unknown: 'Unknown' };
@@ -18,13 +18,11 @@ export default function FleetComplianceDonut({ counts, size = 116 }) {
   return (
     <div className="flex items-center gap-4">
       <div style={{ width: size, height: size }} className="relative">
-        <ResponsiveContainer>
-          <PieChart>
-            <Pie data={data} dataKey="value" innerRadius={size * 0.32} outerRadius={size * 0.5} paddingAngle={2} stroke="none">
-              {data.map(d => <Cell key={d.key} fill={COLORS[d.key]} />)}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
+        <PieChart width={size} height={size}>
+          <Pie data={data} dataKey="value" innerRadius={size * 0.32} outerRadius={size * 0.5} paddingAngle={2} stroke="none" cx="50%" cy="50%">
+            {data.map(d => <Cell key={d.key} fill={COLORS[d.key]} />)}
+          </Pie>
+        </PieChart>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <span className="text-2xl font-bold text-white tabular-nums leading-none">{total}</span>
           <span className="text-[9px] text-white/70 font-semibold uppercase tracking-wide mt-0.5">Assets</span>
