@@ -3,9 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   PoundSterling, Receipt, Download, FileBarChart, Search, Loader2,
-  Wallet, TrendingUp, Briefcase, ArrowRight, Mountain, FileSpreadsheet,
+  Wallet, TrendingUp, Briefcase, ArrowRight, Mountain, FileSpreadsheet, Sparkles,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
+import { useToast } from '@/components/ui/use-toast';
 import StatCard from '@/components/dashboard/StatCard';
 import { Skeleton } from '@/components/StateViews';
 import { computeBillingRow, groupByJob, READY_STATUSES } from '@/utils/billingSummary';
@@ -44,6 +45,7 @@ function statusStyle(s) { return STATUS_STYLES[s] || 'bg-slate-100 text-slate-60
 function statusLabel(s) { return STATUS_LABELS[s] || (s ? s.replace(/_/g, ' ') : '—'); }
 
 export default function BillingPage({ onSelectJob }) {
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ready');
   const [reportingJobId, setReportingJobId] = useState(null);
@@ -51,6 +53,22 @@ export default function BillingPage({ onSelectJob }) {
   const [view, setView] = useState('summary'); // 'summary' | 'geotech' | 'invoices'
   const [invoiceJob, setInvoiceJob] = useState(null);
   const [companyName, setCompanyName] = useState('Ground Control');
+  const [autoRunning, setAutoRunning] = useState(false);
+
+  const runAutoInvoice = async () => {
+    setAutoRunning(true);
+    try {
+      const res = await base44.functions.invoke('autoGenerateInvoice', { all_ready: true });
+      const n = res.data?.created ?? 0;
+      toast({
+        title: n > 0 ? `${n} draft invoice${n === 1 ? '' : 's'} created` : 'No new drafts',
+        description: n > 0 ? 'Drafts assembled from approved work — review in the Invoices tab.' : 'Every ready job already has a draft or has no approved chargeable work yet.',
+      });
+    } catch (e) {
+      toast({ title: 'Auto-invoice failed', description: e?.message, variant: 'destructive' });
+    }
+    setAutoRunning(false);
+  };
 
   useEffect(() => {
     (async () => {
@@ -260,10 +278,16 @@ export default function BillingPage({ onSelectJob }) {
         title="Billing & Invoicing"
         description="Complete cost summary per job — reconcile CDRs and raise invoices in your finance system"
         actions={
-          <button onClick={exportCsv} disabled={filtered.length === 0}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-50 shadow-sm">
-            <Download className="w-4 h-4" /> Export CSV
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={runAutoInvoice} disabled={autoRunning}
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white rounded-lg text-sm font-semibold hover:brightness-110 transition disabled:opacity-50 shadow-sm">
+              {autoRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />} Run Auto-Invoice
+            </button>
+            <button onClick={exportCsv} disabled={filtered.length === 0}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white text-[#2E5A1A] border border-[#2E5A1A]/20 rounded-lg text-sm font-semibold hover:bg-[#2E5A1A]/5 transition disabled:opacity-50 shadow-sm">
+              <Download className="w-4 h-4" /> Export CSV
+            </button>
+          </div>
         }
       />
 
