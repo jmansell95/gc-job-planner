@@ -3,6 +3,7 @@ import { Calendar, Receipt, User, ShieldCheck, ShieldAlert, ShieldX, Factory, Ta
 import { differenceInCalendarDays } from 'date-fns';
 import { inputCls, fmt } from './shared';
 import { findOwnedAssetRateCardItem } from '@/components/logistics/rigRateMatcher';
+import OwnedItemPicker from './OwnedItemPicker';
 
 const assetTypeLabels = {
   rig: 'Drilling Rigs',
@@ -130,38 +131,13 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
         <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
           <Tag className="w-3 h-3 text-blue-600" /> Pick from Master Price List or Asset Panda inventory
         </label>
-        <select
+        <OwnedItemPicker
           value={form.site_asset_id ? `ap-${form.site_asset_id}` : form.rate_card_item_id ? `rc-${form.rate_card_item_id}` : ''}
-          onChange={(e) => handlePick(e.target.value)}
-          className={inputCls}
-        >
-          <option value="">Select an item…</option>
-          {rateCardGroups.map((g) => (
-            <optgroup key={`rc-${g.label}`} label={`📋 ${g.label}`}>
-              {g.items.map((r) => (
-                <option key={r.id} value={`rc-${r.id}`}>
-                  {r.description} · {r.price != null ? fmt(r.price) : r.price_text || 'POA'}{r.unit ? `/${r.unit}` : ''}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-          {assetGroups.map((g) => (
-            <optgroup key={`ap-${g.label}`} label={`🏭 ${g.label}`}>
-              {g.items.map((a) => {
-                const compText = complianceOptionText[a.compliance_status] || '';
-                const rc = findOwnedAssetRateCardItem(a, rateCardItems);
-                const priceText = rc && rc.price != null
-                  ? `${fmt(rc.price)}${rc.unit ? `/${rc.unit}` : '/day'}`
-                  : (a.daily_billing_rate != null ? `${fmt(a.daily_billing_rate)}/day` : 'no rate');
-                return (
-                  <option key={a.id} value={`ap-${a.id}`}>
-                    {a.name}{a.serial_number ? ` · ${a.serial_number}` : ''} · {priceText}{compText ? ` · ${compText}` : ''}
-                  </option>
-                );
-              })}
-            </optgroup>
-          ))}
-        </select>
+          onChange={handlePick}
+          rateCardGroups={rateCardGroups}
+          assetGroups={assetGroups}
+          rateCardItems={rateCardItems}
+        />
         {rateCardGroups.length === 0 && assetGroups.length === 0 && (
           <p className="text-xs text-slate-400 italic mt-1">No rate card items or Asset Panda assets found. Enter details manually below. Rate card items can be added in Settings → Rate Card; Asset Panda assets will appear once synced.</p>
         )}
