@@ -8,6 +8,7 @@ import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 import DeliveryCard from '@/components/delivery/DeliveryCard';
 import DeliveryCompleteModal from '@/components/delivery/DeliveryCompleteModal';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/lib/AuthContext';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { saveOfflineDelivery, hasOfflineDelivery } from '@/utils/offlineSync';
 import { isDriver } from '@/utils/access';
@@ -31,6 +32,8 @@ function SectionHeader({ icon: Icon, title, count, tone = 'dark' }) {
 export default function DeliveryDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isPlatformAdmin = user?.role === 'admin';
   const [staff, setStaff] = useState(null);
   const [loading, setLoading] = useState(true);
   const [completeDelivery, setCompleteDelivery] = useState(null);
@@ -49,15 +52,22 @@ export default function DeliveryDashboard() {
             return;
           }
           setStaff(res.data);
+        } else if (isPlatformAdmin) {
+          // Profile returned but wasn't usable — platform admin fallback.
+          setStaff({ id: null, name: user?.full_name || user?.email || 'Admin', email: user?.email, is_admin: true, delivery_dashboard_enabled: true, no_staff_profile: true });
         }
       } catch (e) {
         console.error('Error loading staff:', e);
+        // Profile fetch failed (401/500) — platform admins still get through.
+        if (isPlatformAdmin) {
+          setStaff({ id: null, name: user?.full_name || user?.email || 'Admin', email: user?.email, is_admin: true, delivery_dashboard_enabled: true, no_staff_profile: true });
+        }
       } finally {
         setLoading(false);
       }
     }
     loadStaff();
-  }, [navigate]);
+  }, [navigate, isPlatformAdmin, user]);
 
   // Real-time subscription
   useEffect(() => {
