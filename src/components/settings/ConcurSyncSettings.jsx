@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Landmark, Loader2, Save, Check, AlertTriangle, RefreshCw, Lock,
   ArrowDownToLine, ArrowUpFromLine, Link2, Link2Off, Settings2,
@@ -9,27 +9,46 @@ import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 const inputCls = "w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10";
 
+const DEFAULT_CONFIG = {
+  api_url: '',
+  client_id: '',
+  client_secret: '',
+  token_url: '',
+  company_uuid: '',
+  auto_sync_enabled: true,
+  sync_frequency: 'weekly',
+  lock_after_sync: true,
+  default_gl_currency: 'GBP',
+};
+
 /**
  * ConcurSyncSettings — the SAP Concur integration hub.
  * Lets admins configure the API bridge: connection status, GL code pull,
  * batch export of approved expenses/timesheets, and record locking.
  */
 export default function ConcurSyncSettings() {
-  const [config, setConfig] = useState({
-    api_url: '',
-    client_id: '',
-    client_secret: '',
-    token_url: '',
-    company_uuid: '',
-    auto_sync_enabled: true,
-    sync_frequency: 'weekly',
-    lock_after_sync: true,
-    default_gl_currency: 'GBP',
-  });
+  const queryClient = useQueryClient();
+  const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportResult, setExportResult] = useState(null);
+
+  // Load saved config from AppSetting on mount
+  const { data: settingsRec, isLoading: loadingSettings } = useQuery({
+    queryKey: ['concur-config'],
+    queryFn: () => base44.entities.AppSetting.filter({ key: 'concur_config' }, '-created_date', 5),
+  });
+
+  useEffect(() => {
+    if (settingsRec && settingsRec.length > 0 && settingsRec[0].value) {
+      setConfig({ ...DEFAULT_CONFIG, ...settingsRec[0].value });
+    }
+  }, [settingsRec]);
+
+  const configId = settingsRec?.[0]?.id;
 
   const { data: pendingCosts = [] } = useQuery({
     queryKey: ['daily-costs-pending-concur'],
@@ -46,24 +65,56 @@ export default function ConcurSyncSettings() {
     queryFn: () => base44.entities.DailyCost.filter({ status: 'synced_to_concur' }, '-synced_at', 50),
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true);
     setSaved(false);
-    // In a real integration this would store in AppSetting/secrets
-    setTimeout(() => {
-      setSaving(false);
+    try {
+      const payload = { key: 'concur_config', label: 'SAP Concur Sync Configuration', value: config };
+      if (configId) {
+        await base44.entities.AppSetting.update(configId, payload);
+      } else {
+        await base44.entities.AppSetting.create(payload);
+      }
+      queryClient.invalidateQueries({ queryKey: ['concur-config'] });
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    }, 600);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      setTestResult({ ok: false, msg: `Failed to save: ${e.message || e}` });
+    }
+    setSaving(false);
   };
 
-  const handleTest = () => {
+  const handleTest = async () => {
     setTesting(true);
     setTestResult(null);
-    setTimeout(() => {
-      setTesting(false);
-      setTestResult({ ok: false, msg: 'No API credentials configured yet — enter your SAP Concur client ID and secret to connect.' });
-    }, 800);
+    try {
+      const res = await base44.functions.invoke('syncConcurExpenses', { action: 'test' });
+      setTestResult({ ok: !!res.data?.ok, msg: res.data?.message || res.data?.error || 'Unknown response' });
+    } catch (e) {
+      setTestResult({ ok: false, msg: e.message || 'Connection test failed' });
+    }
+    setTesting(false);
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    setExportResult(null);
+    try {
+      const res = await base44.functions.invoke('syncConcurExpenses', { action: 'export' });
+      const d = res.data || {};
+      setExportResult({
+        ok: !!d.ok,
+        msg: d.message || d.error || 'Export complete',
+        exported: d.exported || 0,
+        errors: d.errors || 0,
+      });
+      queryClient.invalidateQueries({ queryKey: ['daily-costs-pending-concur'] });
+      queryClient.invalidateQueries({ queryKey: ['subcon-logs-pending-concur'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-costs-synced-concur'] });
+    } catch (e) {
+      setExportResult({ ok: false, msg: e.message || 'Export failed', exported: 0, errors: 1 });
+    }
+    setExporting(false);
   };
 
   return (
@@ -187,11 +238,17 @@ export default function ConcurSyncSettings() {
             <p className="text-xl font-bold text-violet-700 tabular-nums">{pendingSubcons.length}</p>
           </div>
         </div>
-        <button disabled={!config.client_id || pendingCount === 0}
+        <button onClick={handleExport} disabled={!config.client_id || pendingCount === 0 || exporting}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-bold hover:bg-[#1c4a12] disabled:opacity-40 transition">
-          <ArrowUpFromLine className="w-4 h-4" /> Export Batch to SAP Concur ({pendingCount})
+          {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowUpFromLine className="w-4 h-4" />} Export Batch to SAP Concur ({pendingCount})
         </button>
         {!config.client_id && <p className="text-[11px] text-amber-600 mt-2 text-center">Connect your API credentials first to enable batch export.</p>}
+        {exportResult && (
+          <div className={`mt-3 flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${exportResult.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+            <p>{exportResult.msg}</p>
+          </div>
+        )}
       </div>
 
       {/* Recently synced */}
