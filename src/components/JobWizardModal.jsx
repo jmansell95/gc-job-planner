@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { X, ChevronLeft, ChevronRight, Check, Briefcase, CalendarDays, Users, MapPin, FileText, Sparkles, Loader2, FolderOpen } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Check, Briefcase, CalendarDays, Users, MapPin, FileText, Sparkles, Loader2, FolderOpen, PoundSterling, Target } from 'lucide-react';
 import ProjectSelect from '@/components/ProjectSelect';
 import { getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 
@@ -18,6 +18,7 @@ const emptyForm = {
   status: 'planning', start_date: '', end_date: '', client_id: '', contractor_id: '',
   project_id: '', project_manager: '', site_contact_name: '', site_contact_phone: '',
   notes: '', budget_amount: '',
+  meterage_rate: '', meterage_target: '',
 };
 
 export default function JobWizardModal({ open, onClose, onCreated, editingJob }) {
@@ -58,7 +59,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
     setError('');
     try {
       const clean = { ...form };
-      ['budget_amount'].forEach(k => { if (clean[k] === '' || clean[k] === undefined) delete clean[k]; });
+      ['budget_amount', 'meterage_rate', 'meterage_target'].forEach(k => { if (clean[k] === '' || clean[k] === undefined) delete clean[k]; });
       let saved;
       if (editingJob?.id) {
         saved = await base44.entities.Job.update(editingJob.id, clean);
@@ -206,6 +207,32 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                       </div>
                     )}
                   </div>
+                  {/* Billing Setup */}
+                  <div className="bg-[#2E5A1A]/5 border border-[#2E5A1A]/15 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <PoundSterling className="w-4 h-4 text-[#2E5A1A]" />
+                      <span className="text-sm font-semibold text-slate-800">Billing Setup</span>
+                      <span className="text-xs text-slate-400">· set per-metre rate & target</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Metre Rate (£/m)</label>
+                        <div className="relative">
+                          <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                          <input type="number" min="0" step="0.01" value={form.meterage_rate || ''} onChange={e => set('meterage_rate', e.target.value)} placeholder="Auto from rate card" className={`${inputCls} pl-9`} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Target Meterage (m)</label>
+                        <div className="relative">
+                          <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                          <input type="number" min="0" step="0.1" value={form.meterage_target || ''} onChange={e => set('meterage_target', e.target.value)} placeholder="0" className={`${inputCls} pl-9`} />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-400">Leave metre rate blank to auto-price from the project rate card. Set a rate to bill a fixed £/m for all metres drilled.</p>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">Project Manager</label>
@@ -239,6 +266,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     <ReviewRow label="Project" value={projects.find(p => p.id === form.project_id)?.name} />
                     <ReviewRow label="Teams" value={selectedTeamIds.map(id => teams.find(t => t.id === id)?.name).filter(Boolean).join(', ')} />
                     <ReviewRow label="Budget" value={form.budget_amount ? `£${form.budget_amount}` : ''} />
+                    <ReviewRow label="Metre Rate" value={form.meterage_rate ? `£${form.meterage_rate}/m` : 'Auto'} />
+                    <ReviewRow label="Target" value={form.meterage_target ? `${form.meterage_target}m` : ''} />
                   </div>
                   <p className="text-xs text-slate-400">Equipment, documents and the full rota can be added from the job page after creation.</p>
                 </div>

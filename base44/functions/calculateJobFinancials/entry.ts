@@ -217,7 +217,68 @@ export default async function(req: Request): Promise<Response> {
     const taskCharges = timesheets.filter((t: any) => t.chargeable && !t.is_break).reduce((s: number, t: any) => s + (Number(t.charge_amount) || 0), 0);
     const additionalCharges = deliveryCharges + taskCharges;
 
-    const totalCostNet = equipmentNet + hotelNet;
+    // ── Rig crew cost (from rig assignments × matched day rates) ──
+    const rigAssignments = await base44.asServiceRole.entities.JobAssetAssignment.filter({ job_id: jobId });
+    const rigs = (rigAssignments as any[]).filter((a: any) => a.asset_type === 'rig');
+    let labourDayRates: RateCardItemLike[] = [];
+    try {
+      const allLabour = await base44.asServiceRole.entities.RateCardItem.filter({ category: 'labour', is_active: true }, '-sort_order', 500);
+      labourDayRates = (allLabour || []).filter((r: RateCardItemLike) => r.unit === 'day' && r.price != null && !isNaN(Number(r.price)));
+    } catch (_) {}
+    const autoMatchRigRate = (rigType: string, rigName: string = ''): RateCardItemLike | null => {
+      const name = String(rigName || '').toLowerCase();
+      const wsEntries = labourDayRates.filter(r => (r.subcategory || '').toLowerCase().includes('window sampling'));
+      if (wsEntries.length > 0) {
+        if (/modular/i.test(name)) { const m = wsEntries.find(r => /modular/i.test(r.description) && !/additional/i.test(r.description)); if (m) return m; }
+        if (/tracked|terrier/i.test(name)) { const t = wsEntries.find(r => /tracked/i.test(r.description)); if (t) return t; }
+      }
+      if (rigType === 'rotary') return labourDayRates.find(r => /rotary crew/i.test(r.description)) || null;
+      if (rigType === 'cp') return labourDayRates.find(r => /^cable percussive crew$/i.test((r.description || '').trim())) || null;
+      return null;
+    };
+    const workingDays = (() => {
+      if (!job.start_date || !job.end_date) return 0;
+      const s = new Date(job.start_date + 'T00:00:00');
+      const e = new Date(job.end_date + 'T00:00:00');
+      if (e < s) return 0;
+      let count = 0; const d = new Date(s);
+      while (d <= e) { const day = d.getUTCDay(); if (day !== 0 && day !== 6) count++; d.setUTCDate(d.getUTCDate() + 1); }
+      return count;
+    })();
+    const rigCostRows = rigs.map((a: any) => {
+      const rate = autoMatchRigRate(a.rig_type, a.asset_name);
+      return {
+        rig_name: a.asset_name || 'Rig',
+        rig_type: a.rig_type || '',
+        status: a.status || 'assigned',
+        day_rate: rate ? Number(rate.price) : 0,
+        rate_description: rate ? rate.description : 'No rate matched',
+        working_days: workingDays,
+        total_cost: rate ? Math.round(Number(rate.price) * workingDays * 100) / 100 : 0,
+      };
+    });
+    const totalRigCost = rigCostRows.reduce((s, r) => s + r.total_cost, 0);
+
+    // ── Per-borehole meterage breakdown ──
+    const bhMap: Record<string, { borehole_ref: string; metres: number; entries: number }> = {};
+    for (const log of logs) {
+      const ref = log.borehole_ref || 'Unspecified';
+      if (!bhMap[ref]) bhMap[ref] = { borehole_ref: ref, metres: 0, entries: 0 };
+      const dFrom = Number(log.depth_from) || 0;
+      const dTo = Number(log.depth_to) || 0;
+      if (dTo > dFrom && (log.log_type === 'borehole_progress' || log.log_type === 'core_inspection')) {
+        bhMap[ref].metres = Math.round((bhMap[ref].metres + (dTo - dFrom)) * 100) / 100;
+      }
+      bhMap[ref].entries++;
+    }
+    const boreholeMeterage = Object.values(bhMap).sort((a, b) => a.borehole_ref.localeCompare(b.borehole_ref));
+
+    // ── Meterage revenue & performance metrics ──
+    const meterageRate = Number(job.meterage_rate) || 0;
+    const meterageRevenue = meterageRate > 0 ? Math.round(totalMetres * meterageRate * 100) / 100 : 0;
+    const targetMetres = Number(job.meterage_target) || 0;
+
+    const totalCostNet = equipmentNet + hotelNet + totalRigCost;
     const totalCostVat = totalCostNet * (vatRate / 100);
     const totalCostGross = totalCostNet + totalCostVat;
 
@@ -229,6 +290,10 @@ export default async function(req: Request): Promise<Response> {
     // Profit & margin
     const profit = grandRevenueNet - totalCostNet;
     const marginPct = grandRevenueNet > 0 ? (profit / grandRevenueNet) * 100 : 0;
+    const costPerMetre = totalMetres > 0 ? Math.round((totalCostNet / totalMetres) * 100) / 100 : 0;
+    const revenuePerMetre = totalMetres > 0 ? Math.round((grandRevenueNet / totalMetres) * 100) / 100 : 0;
+    const profitPerMetre = totalMetres > 0 ? Math.round((profit / totalMetres) * 100) / 100 : 0;
+    const targetPct = targetMetres > 0 ? Math.round(Math.min((totalMetres / targetMetres) * 100, 100) * 10) / 10 : 0;
 
     // Group matched entries by rate source for the breakdown
     const bySource = {
@@ -261,10 +326,25 @@ export default async function(req: Request): Promise<Response> {
       cost_breakdown: {
         equipment_net: Math.round(equipmentNet * 100) / 100,
         hotel_net: Math.round(hotelNet * 100) / 100,
+        rig_cost: Math.round(totalRigCost * 100) / 100,
         hotel_rows: hotelRows,
         delivery_charges: Math.round(deliveryCharges * 100) / 100,
         task_charges: Math.round(taskCharges * 100) / 100,
       },
+      drilling_performance: {
+        total_metres: Math.round(totalMetres * 100) / 100,
+        target_metres: targetMetres,
+        target_pct: targetPct,
+        meterage_rate: meterageRate,
+        meterage_revenue: meterageRevenue,
+        rig_cost: Math.round(totalRigCost * 100) / 100,
+        cost_per_metre: costPerMetre,
+        revenue_per_metre: revenuePerMetre,
+        profit_per_metre: profitPerMetre,
+        working_days: workingDays,
+      },
+      rig_cost_rows: rigCostRows,
+      borehole_meterage: boreholeMeterage,
       rate_card_levels: {
         staff_rates_found: Object.keys(staffRates).filter(k => staffRates[k].length > 0).length,
         project_rates_found: projectRateItems.length,
