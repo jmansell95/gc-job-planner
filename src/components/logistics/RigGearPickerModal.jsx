@@ -11,7 +11,7 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFracti
  * Day rate is pulled from Our Rate Card via findRigRateCardItem, falling back
  * to the rig's daily_billing_rate (synced from Asset Panda).
  */
-export default function RigGearPickerModal({ rigs = [], assets = [], rateCardItems = [], onAdd, onClose, adding = false }) {
+export default function RigGearPickerModal({ rigs = [], assets = [], rateCardItems = [], projectId = null, onAdd, onClose, adding = false }) {
   const [selectedRig, setSelectedRig] = useState(null);
 
   const handleAdd = () => {
@@ -46,7 +46,7 @@ export default function RigGearPickerModal({ rigs = [], assets = [], rateCardIte
           {rigs.map(rig => {
             const gear = gearFor(rig);
             const isSelected = selectedRig === rig.id;
-            const rateCardItem = findRigRateCardItem(rig, rateCardItems);
+            const rateCardItem = findRigRateCardItem(rig, rateCardItems, projectId);
             const dayRate = rateCardItem ? (Number(rateCardItem.price) || 0) : rigFallbackDayRate(rig);
             const unit = rateCardItem?.unit || 'day';
             return (

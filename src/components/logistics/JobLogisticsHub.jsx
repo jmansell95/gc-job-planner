@@ -301,7 +301,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
 
   // Match a rig (SiteAsset) to its RateCardItem (Our Rate Card).
   // Uses the shared rigRateMatcher module — supports CP, Rotary, and Window Sampling rigs.
-  const matchRigRateCard = (rigAsset) => findRigRateCardItem(rigAsset, rateCardItems);
+  const matchRigRateCard = (rigAsset) => findRigRateCardItem(rigAsset, rateCardItems, job?.project_id);
 
   const addRigWithGear = async (rigId) => {
     if (!rigId) return;
@@ -568,7 +568,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       )}
 
       {showRigPicker && (
-        <RigGearPickerModal rigs={allRigs} assets={siteAssets} rateCardItems={rateCardItems}
+        <RigGearPickerModal rigs={allRigs} assets={siteAssets} rateCardItems={rateCardItems} projectId={job?.project_id}
           onAdd={addRigWithGear} onClose={() => setShowRigPicker(false)} adding={addingRigGear} />
       )}
 

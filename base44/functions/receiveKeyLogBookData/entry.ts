@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { parseRemarks, professionaliseActivities } from '../../shared/keylogbookRemarks.ts';
+import { loadProjectRateCardItems, resolveProjectCharge } from '../../shared/projectRateMatcher.ts';
 
 // ============================================================
 // KeyLogBook Webhook Receiver — Professionalised Site Logs Pipeline
@@ -119,6 +120,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Could not match an existing job. Ensure job_reference matches the Job reference field.' }, { status: 422 });
     }
 
+    // --- Load the project rate card so driller remarks can be auto-priced ---
+    // (project-scoped rate cards, e.g. EWR, take precedence over the Master Price List)
+    const rateCardItems = await loadProjectRateCardItems(base44, job.project_id);
+
     // --- Delete previous KeyLogBook-imported data for this job+date (overwrite mode) ---
     let deletedCount = 0;
     try {
@@ -192,6 +197,12 @@ Deno.serve(async (req) => {
       professionalised = await professionaliseActivities(base44, activities);
     }
     activities.forEach((activity, i) => {
+      const cleanDesc = professionalised[i] || activity.raw_description;
+      // Auto-price the activity against the project rate card. Try the cleaned
+      // description first, then the raw driller wording (which often matches the
+      // rate card terminology more closely, e.g. "bagging spoil").
+      const match = resolveProjectCharge(cleanDesc, rateCardItems, 1) ||
+        resolveProjectCharge(activity.raw_description, rateCardItems, 1);
       logs.push({
         job_id: job.id,
         staff_id: leadDrillerId || null,
@@ -202,12 +213,21 @@ Deno.serve(async (req) => {
         start_time: activity.start_time,
         end_time: activity.end_time,
         duration_minutes: activity.duration_minutes,
-        description: professionalised[i] || activity.raw_description,
+        description: cleanDesc,
         completed_by_type: 'internal_staff',
         completed_by_name: leadDrillerName || 'KeyLogBook Webhook',
         manager_review_status: 'pending',
-        chargeable: false,
-        billing_status: 'no_charge',
+        chargeable: !!match,
+        billing_status: match ? 'auto' : 'no_charge',
+        charge_amount: match ? match.total : null,
+        charge_breakdown: match ? JSON.stringify({
+          source: 'project_rate_card',
+          rate_card_item_id: match.rateCardItem.id,
+          rate_card_item: match.rateCardItem.description,
+          unit_price: match.unitPrice,
+          quantity: match.quantity,
+          total: match.total,
+        }) : null,
       });
     });
 
