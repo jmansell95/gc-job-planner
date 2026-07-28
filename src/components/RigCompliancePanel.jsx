@@ -30,17 +30,39 @@ export default function RigCompliancePanel({ job }) {
     queryKey: ['job-asset-assignments', job.id],
     queryFn: () => base44.entities.JobAssetAssignment.filter({ job_id: job.id }),
   });
+  // Also pull equipment added via the Logistics tab (JobCostItem with a linked
+  // SiteAsset). The Logistics tab writes to JobCostItem, not JobAssetAssignment,
+  // so we merge both sources to show every asset assigned to the job.
+  const { data: costItems = [] } = useQuery({
+    queryKey: ['job-cost-items-compliance', job.id],
+    queryFn: () => base44.entities.JobCostItem.filter({ job_id: job.id }),
+  });
   const { data: assets = [] } = useQuery({ queryKey: ['site-assets'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
   const { data: complianceItems = [] } = useQuery({
     queryKey: ['compliance-items-equipment'],
     queryFn: () => base44.entities.ComplianceItem.filter({ category: 'equipment' }),
   });
 
-  // All assigned assets, rigs first then everything else
-  const assigned = assignments.map(a => ({
-    assignment: a,
-    asset: assets.find(as => as.id === a.asset_id),
-  })).filter(r => r.asset);
+  // Merge assets from both sources, deduped by asset_id.
+  // JobAssetAssignment = dedicated assignment records; JobCostItem = equipment
+  // added via the Logistics tab (with site_asset_id linking to the SiteAsset).
+  const seenAssetIds = new Set();
+  const assigned = [];
+  for (const a of assignments) {
+    const asset = assets.find(as => as.id === a.asset_id);
+    if (asset && !seenAssetIds.has(asset.id)) {
+      seenAssetIds.add(asset.id);
+      assigned.push({ assignment: a, asset });
+    }
+  }
+  for (const c of costItems) {
+    if (!c.site_asset_id || seenAssetIds.has(c.site_asset_id)) continue;
+    const asset = assets.find(as => as.id === c.site_asset_id);
+    if (asset) {
+      seenAssetIds.add(asset.id);
+      assigned.push({ assignment: c, asset });
+    }
+  }
 
   const ordered = [...assigned].sort((a, b) => {
     const rank = { rig: 0, lifting: 1 };

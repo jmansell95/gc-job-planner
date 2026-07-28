@@ -61,6 +61,10 @@ export default async function(req: Request): Promise<Response> {
 
     // ── Drilling method detection ──
     // Priority: job.drilling_method field → rig assignments (rig_type) → log types
+    // Rigs can be registered two ways: JobAssetAssignment (dedicated assignment
+    // records) or JobCostItem entries created via the Logistics tab (with
+    // site_asset_id linking to a rig-type SiteAsset). We check both so rigs
+    // added in Logistics feed drilling-method detection.
     const rigAssignments = await base44.asServiceRole.entities.JobAssetAssignment.filter({ job_id: jobId });
     const rigs = (rigAssignments as any[]).filter((a: any) => a.asset_type === 'rig');
     const rigMethods = new Set<string>();
@@ -68,6 +72,25 @@ export default async function(req: Request): Promise<Response> {
       if (r.rig_type === 'cp') rigMethods.add('cp');
       if (r.rig_type === 'rotary') rigMethods.add('rotary');
     }
+    // Also detect rigs added via the Logistics tab (JobCostItem → SiteAsset)
+    let logisticsRigMethods: Set<string> = new Set();
+    try {
+      const earlyCostItems = await base44.asServiceRole.entities.JobCostItem.filter({ job_id: jobId });
+      const earlyAssetIds = [...new Set(earlyCostItems.map((c: any) => c.site_asset_id).filter(Boolean))] as string[];
+      if (earlyAssetIds.length > 0) {
+        const earlyAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
+        const earlyMap: Record<string, any> = {};
+        for (const a of earlyAssets) earlyMap[a.id] = a;
+        for (const id of earlyAssetIds) {
+          const a = earlyMap[id];
+          if (a && (a.is_rig === true || a.asset_type === 'rig')) {
+            if (a.rig_type === 'cp') logisticsRigMethods.add('cp');
+            if (a.rig_type === 'rotary') logisticsRigMethods.add('rotary');
+          }
+        }
+      }
+    } catch (_) {}
+    for (const m of logisticsRigMethods) rigMethods.add(m);
     const logMethods = new Set<string>();
     for (const l of logs) {
       if (l.log_type === 'core_inspection') logMethods.add('rotary');
