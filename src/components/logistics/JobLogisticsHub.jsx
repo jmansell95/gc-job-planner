@@ -6,7 +6,7 @@ import {
   Boxes, Plus, FileCheck, Undo2, ExternalLink, User, Truck, X, Loader2, Package
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { format, eachDayOfInterval, isWeekend } from 'date-fns';
+import { format, eachDayOfInterval, isWeekend, differenceInCalendarDays } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import EquipmentForm from '@/components/EquipmentForm';
@@ -283,18 +283,33 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       const presetItems = await base44.entities.PresetItem.filter({ preset_id: presetId });
       if (presetItems.length === 0) { toast({ title: 'Preset is empty' }); return; }
       const preset = presets.find(p => p.id === presetId);
-      const payload = presetItems.map(item => ({
-        job_id: jobId, category: item.category || 'hired_equipment', supplier_id: item.supplier_id || '',
-        description: item.description, reference_number: item.reference_number || '',
-        po_number: '', site_asset_id: item.site_asset_id || '', start_date: '', end_date: '',
-        unit_cost: Number(item.unit_cost) || 0, quantity: Number(item.quantity) || 1,
-        unit_label: item.unit_label || 'each', vat_exempt: !!item.vat_exempt,
-        hire_status: 'active', current_location: 'yard', notes: ''
-      }));
+      // Auto-fill day-rate preset items with the job's start/end dates so their
+      // cost is calculated for the full job duration (quantity = items × days).
+      const jobStart = job?.start_date || '';
+      const jobEnd = job?.end_date || '';
+      const payload = presetItems.map(item => {
+        const isDayRate = item.unit_label === 'day';
+        const startDate = isDayRate ? jobStart : '';
+        const endDate = isDayRate ? jobEnd : '';
+        let quantity = Number(item.quantity) || 1;
+        if (isDayRate && startDate && endDate) {
+          const d = differenceInCalendarDays(new Date(endDate + 'T00:00:00'), new Date(startDate + 'T00:00:00')) + 1;
+          if (d > 0) quantity = quantity * d;
+        }
+        return {
+          job_id: jobId, category: item.category || 'hired_equipment', supplier_id: item.supplier_id || '',
+          description: item.description, reference_number: item.reference_number || '',
+          po_number: '', site_asset_id: item.site_asset_id || '', start_date: startDate, end_date: endDate,
+          unit_cost: Number(item.unit_cost) || 0, quantity,
+          unit_label: item.unit_label || 'each', vat_exempt: !!item.vat_exempt,
+          hire_status: 'active', current_location: 'yard', notes: ''
+        };
+      });
       await base44.entities.JobCostItem.bulkCreate(payload);
       queryClient.invalidateQueries({ queryKey: ['job-cost-items', jobId] });
       queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', jobId] });
-      toast({ title: `Added ${payload.length} items`, description: `From "${preset?.name || 'Preset'}".` });
+      const datedCount = payload.filter(p => p.start_date).length;
+      toast({ title: `Added ${payload.length} items`, description: `From "${preset?.name || 'Preset'}"${datedCount > 0 ? ` · ${datedCount} day-rate item(s) set to job dates` : ''}.` });
     } catch (err) { console.error(err); toast({ title: 'Error', description: 'Could not apply preset.' }); }
     setApplyingPreset(false);
   };

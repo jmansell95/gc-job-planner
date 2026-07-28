@@ -385,11 +385,28 @@ export default async function(req: Request): Promise<Response> {
     const deliveries = await base44.asServiceRole.entities.DeliveryLog.filter({ job_id: jobId });
     const timesheets = await base44.asServiceRole.entities.Timesheet.filter({ job_id: jobId });
 
+    // Load SiteAssets early — needed to identify rig vs non-rig cost items
+    // so rigs aren't double-counted (they're costed separately in totalRigCost).
+    let allSiteAssets: any[] = [];
+    try {
+      allSiteAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
+    } catch (_) {}
+    const siteAssetMap: Record<string, any> = {};
+    for (const a of allSiteAssets) siteAssetMap[a.id] = a;
+
     const itemNet = (c: any) => {
       const rate = c.price_confirmed && c.negotiated_unit_cost != null ? Number(c.negotiated_unit_cost) : (Number(c.unit_cost) || 0);
       return rate * (Number(c.quantity) || 1);
     };
-    const equipmentNet = costItems.reduce((s: number, c: any) => s + itemNet(c), 0);
+    // Exclude rig cost items from equipmentNet — rigs are costed separately in
+    // totalRigCost (day rate × working days). Including them here would
+    // double-count the rig day rate.
+    const nonRigCostItems = costItems.filter((c: any) => {
+      if (!c.site_asset_id) return true;
+      const asset = siteAssetMap[c.site_asset_id];
+      return !(asset && (asset.is_rig === true || asset.asset_type === 'rig'));
+    });
+    const equipmentNet = nonRigCostItems.reduce((s: number, c: any) => s + itemNet(c), 0);
 
     const hotelRows = hotelBookings.map((b: any) => {
       const nights = b.check_in_date && b.check_out_date
@@ -409,14 +426,6 @@ export default async function(req: Request): Promise<Response> {
     // Price List. We read these directly — no rate re-matching needed. The
     // on-site period comes from start_date / end_date on the cost item, with
     // current_location tracking the live delivery status (yard → site → returned).
-
-    // Load SiteAssets to identify which cost items are rigs
-    let allSiteAssets: any[] = [];
-    try {
-      allSiteAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
-    } catch (_) {}
-    const siteAssetMap: Record<string, any> = {};
-    for (const a of allSiteAssets) siteAssetMap[a.id] = a;
 
     // Build rate card description lookup from already-loaded items (zero extra API calls)
     const rateCardDescMap: Record<string, string> = {};
