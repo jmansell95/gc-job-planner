@@ -80,13 +80,11 @@ export default async function(req: Request): Promise<Response> {
     const allNames = new Set();
     const crewRows = [];
     const hotelRows = [];
-    const debug = { crew_raw_rows: 0, accom_raw_rows: 0 };
 
     // --- Enabling Crew sheet ---
     const crewSheetName = workbook.SheetNames.find(n => /enabling\s*crew/i.test(n));
     if (crewSheetName) {
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[crewSheetName], { header: 1, raw: true, defval: null, blankrows: false });
-      debug.crew_raw_rows = rows.length;
       let lastStart = null, lastEnd = null;
       for (let r = 1; r < rows.length; r++) {
         const row = rows[r];
@@ -112,7 +110,6 @@ export default async function(req: Request): Promise<Response> {
     const accomSheetName = workbook.SheetNames.find(n => /accommodation/i.test(n));
     if (accomSheetName) {
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[accomSheetName], { header: 1, raw: true, defval: null, blankrows: false });
-      debug.accom_raw_rows = rows.length;
       let lastStart = null, lastEnd = null;
       for (let r = 1; r < rows.length; r++) {
         const row = rows[r];
@@ -257,7 +254,6 @@ export default async function(req: Request): Promise<Response> {
       crew_rows_parsed: crewRows.length,
       accommodation_rows_parsed: hotelRows.length,
       unique_people_found: allNames.size,
-      debug,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
