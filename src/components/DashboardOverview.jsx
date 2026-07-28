@@ -342,53 +342,65 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         </div>
       )}
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        {DASHBOARD_SECTIONS.map(section => {
-          const sectionWidgets = visibleOrder.filter(id => WIDGET_TO_SECTION[id] === section.id);
-          if (sectionWidgets.length === 0) return null;
-          const Icon = section.icon;
-          return (
-            <section key={section.id} className="mb-5">
-              <div className="flex items-center gap-2 mb-2 px-1">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-sm">
-                  <Icon className="w-4 h-4 text-white" />
-                </div>
-                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">{section.label}</h2>
-                <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-semibold">{sectionWidgets.length}</span>
-              </div>
-              <Droppable droppableId={section.id}>
-                {(provided) => (
-                  <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
-                    {sectionWidgets.map((widgetId, index) => (
-                      <Draggable key={widgetId} draggableId={widgetId} index={index} isDragDisabled={!customizeMode}>
-                        {(provided) => (
-                          <div ref={provided.innerRef} {...provided.draggableProps} className={sizeColSpan(getWidgetSize(widgetId))}>
-                            <WidgetCard
-                              widgetId={widgetId}
-                              customizeMode={customizeMode}
-                              dragHandleProps={provided.dragHandleProps}
-                              onHide={() => handleToggleWidget(widgetId)}
-                              size={getWidgetSize(widgetId)}
-                              onResize={(s) => handleResize(widgetId, s)}
-                              onMoveUp={() => moveWidget(widgetId, 'up')}
-                              onMoveDown={() => moveWidget(widgetId, 'down')}
-                              canMoveUp={index > 0}
-                              canMoveDown={index < sectionWidgets.length - 1}
-                            >
-                              {renderWidget(widgetId)}
-                            </WidgetCard>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
+      {customizeMode ? (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          {DASHBOARD_SECTIONS.map(section => {
+            const sectionWidgets = visibleOrder.filter(id => WIDGET_TO_SECTION[id] === section.id);
+            if (sectionWidgets.length === 0) return null;
+            const Icon = section.icon;
+            return (
+              <section key={section.id} className="mb-5">
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <Icon className="w-4 h-4 text-white" />
                   </div>
-                )}
-              </Droppable>
-            </section>
-          );
-        })}
-      </DragDropContext>
+                  <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">{section.label}</h2>
+                  <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-semibold">{sectionWidgets.length}</span>
+                </div>
+                <Droppable droppableId={section.id}>
+                  {(provided) => (
+                    <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+                      {sectionWidgets.map((widgetId, index) => (
+                        <Draggable key={widgetId} draggableId={widgetId} index={index} isDragDisabled={!customizeMode}>
+                          {(provided) => (
+                            <div ref={provided.innerRef} {...provided.draggableProps} className={sizeColSpan(getWidgetSize(widgetId))}>
+                              <WidgetCard
+                                widgetId={widgetId}
+                                customizeMode={customizeMode}
+                                dragHandleProps={provided.dragHandleProps}
+                                onHide={() => handleToggleWidget(widgetId)}
+                                size={getWidgetSize(widgetId)}
+                                onResize={(s) => handleResize(widgetId, s)}
+                                onMoveUp={() => moveWidget(widgetId, 'up')}
+                                onMoveDown={() => moveWidget(widgetId, 'down')}
+                                canMoveUp={index > 0}
+                                canMoveDown={index < sectionWidgets.length - 1}
+                              >
+                                {renderWidget(widgetId)}
+                              </WidgetCard>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </section>
+            );
+          })}
+        </DragDropContext>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+          {visibleOrder.map((widgetId) => (
+            <div key={widgetId} className={sizeColSpan(getWidgetSize(widgetId))}>
+              <WidgetCard widgetId={widgetId} customizeMode={false} size={getWidgetSize(widgetId)}>
+                {renderWidget(widgetId)}
+              </WidgetCard>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Hidden widgets — add them back */}
       {customizeMode && visibleHidden.length > 0 && (
