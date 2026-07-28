@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
-import JobForm from '@/components/JobForm';
+import JobWizardModal from '@/components/JobWizardModal';
 import { getJobPrimaryType, isDrillingJob as isDrillingJobByTeams, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import { getCrewLabel } from '@/utils/terminology';
 import { canViewCostings } from '@/utils/access';
@@ -37,10 +37,7 @@ const statusLabels = {
 export default function JobDetail({ job: initialJob, onBack }) {
   const [job, setJob] = useState(initialJob);
   const queryClient = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({});
-  const [editingId, setEditingId] = useState(null);
-  const [uploadingFile, setUploadingFile] = useState(false);
+  const [showEditWizard, setShowEditWizard] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
 
@@ -109,27 +106,12 @@ export default function JobDetail({ job: initialJob, onBack }) {
     queryClient.invalidateQueries({ queryKey: ['jobs'] });
   };
 
-  const handleEdit = () => { setFormData({ ...job }); setEditingId(job.id); setShowForm(true); };
+  const handleEdit = () => setShowEditWizard(true);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await base44.entities.Job.update(editingId, formData);
-      setJob(prev => ({ ...prev, ...formData }));
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      setShowForm(false); setEditingId(null);
-    } catch (err) { console.error('Error saving job:', err); }
-  };
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploadingFile(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setFormData(prev => ({ ...prev, requisition_list_url: file_url, requisition_list_name: file.name }));
-    } catch (err) { console.error('Error uploading file:', err); }
-    setUploadingFile(false);
+  const handleEditSaved = (savedJob) => {
+    setShowEditWizard(false);
+    setJob(prev => ({ ...prev, ...savedJob }));
+    queryClient.invalidateQueries({ queryKey: ['jobs'] });
   };
 
   const handleProjectJobSelect = (sib) => { setJob(sib); window.scrollTo(0, 0); };
@@ -146,16 +128,14 @@ export default function JobDetail({ job: initialJob, onBack }) {
     ${job.notes ? `<h2>Notes</h2><p>${job.notes}</p>` : ''}</body></html>`;
   };
 
-  if (showForm) {
+  if (showEditWizard) {
     return (
-      <div>
-        <div className="mb-5">
-          <button onClick={() => setShowForm(false)} className="flex items-center gap-2 text-sm text-[#2E5A1A] hover:text-[#1c4a12] font-medium transition">
-            <ArrowLeft className="w-4 h-4" /> Back to Job
-          </button>
-        </div>
-        <JobForm formData={formData} setFormData={setFormData} onSubmit={handleSubmit} onCancel={() => setShowForm(false)} editingId={editingId} clients={clients} contractors={contractors} onFileUpload={handleFileUpload} uploadingFile={uploadingFile} />
-      </div>
+      <JobWizardModal
+        open={showEditWizard}
+        onClose={() => setShowEditWizard(false)}
+        onCreated={handleEditSaved}
+        editingJob={job}
+      />
     );
   }
 

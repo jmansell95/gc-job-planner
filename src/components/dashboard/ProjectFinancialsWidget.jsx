@@ -179,6 +179,11 @@ export default function ProjectFinancialsWidget() {
                   <div className="flex items-center gap-1.5 min-w-0">
                     <FileText className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                     <span className="text-xs font-medium text-slate-700 truncate">{r.name}</span>
+                    {r.earnedMeterage > 0 && (
+                      <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0.5 rounded-full font-semibold flex-shrink-0 inline-flex items-center gap-0.5">
+                        <Mountain className="w-2.5 h-2.5" /> Meterage
+                      </span>
+                    )}
                     {r.earnedLog > 0 && (
                       <span className="text-[9px] bg-[#2E5A1A]/10 text-[#2E5A1A] px-1 py-0.5 rounded-full font-semibold flex-shrink-0 inline-flex items-center gap-0.5">
                         <Layers className="w-2.5 h-2.5" /> SOR
