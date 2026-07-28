@@ -15,6 +15,7 @@ import ExecutiveSnapshotWidget from '@/components/dashboard/ExecutiveSnapshotWid
 import JobAssetsWidget from '@/components/dashboard/JobAssetsWidget';
 import GeotechnicalHeatmapWidget from '@/components/dashboard/GeotechnicalHeatmapWidget';
 import UnbilledLiabilityWidget from '@/components/dashboard/UnbilledLiabilityWidget';
+import ProjectFinancialsWidget from '@/components/dashboard/ProjectFinancialsWidget';
 import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
 import EfficiencySnapshotWidget from '@/components/dashboard/EfficiencySnapshotWidget';
 import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
@@ -123,6 +124,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'compliance-overview': return <ComplianceOverviewWidget onNavigate={onNavigate} />;
       case 'geo-heatmap': return <GeotechnicalHeatmapWidget />;
       case 'unbilled-wip': return canViewCosts ? <UnbilledLiabilityWidget /> : null;
+      case 'project-financials': return canViewCosts ? <ProjectFinancialsWidget /> : null;
       case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={scopedJobs} vehicles={vehicles} onSelectJob={openJobDrawer} onNavigate={onNavigate} />;
       case 'charts': return <ChartsWidget jobs={scopedJobs} staff={staff} rotas={scopedRotas} weekDays={weekDays} />;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
