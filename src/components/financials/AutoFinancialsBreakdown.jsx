@@ -4,7 +4,8 @@ import { base44 } from '@/api/base44Client';
 import {
   PoundSterling, TrendingUp, Percent, Calculator, AlertTriangle,
   Loader2, RefreshCw, Mountain, ChevronDown, ChevronRight, User,
-  CheckCircle2, XCircle, FileText, Target, Gauge, Truck, Save, Check, Ruler
+  CheckCircle2, XCircle, Target, Gauge, Truck, Save, Check, Ruler,
+  HardHat
 } from 'lucide-react';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -23,6 +24,13 @@ const ROLE_LABELS = {
   unspecified: { label: 'No name entered', color: 'bg-red-100 text-red-600' },
 };
 
+const METHOD_LABELS = {
+  cp: { label: 'CP', full: 'Cable Percussion', color: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
+  rotary: { label: 'Rotary', full: 'Rotary Core', color: 'bg-orange-100 text-orange-700', dot: 'bg-orange-500' },
+  mixed: { label: 'Mixed', full: 'Mixed Methods', color: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500' },
+  not_applicable: { label: 'N/A', full: 'Non-Drilling', color: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400' },
+};
+
 export function RoleBadge({ role }) {
   const r = ROLE_LABELS[role] || ROLE_LABELS.unspecified;
   return (
@@ -33,23 +41,34 @@ export function RoleBadge({ role }) {
   );
 }
 
+function MethodBadge({ method }) {
+  const m = METHOD_LABELS[method] || METHOD_LABELS.not_applicable;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${m.color}`}>
+      <HardHat className="w-2.5 h-2.5" />
+      {m.label}
+    </span>
+  );
+}
+
 /**
- * AutoFinancialsBreakdown — the single, unified financial dashboard.
- * Calls calculateJobFinancials to get every activity matched against rate
- * cards, rig crew costs, per-borehole meterage, and drilling performance
- * metrics — all with zero manual input.
+ * AutoFinancialsBreakdown — the unified financial dashboard.
+ * Calls calculateJobFinancials to get drilling method detection,
+ * per-borehole revenue by method, rig/crew profitability, and
+ * billing setup warnings.
  */
 export default function AutoFinancialsBreakdown({ job }) {
   const queryClient = useQueryClient();
   const [showMatched, setShowMatched] = useState(false);
   const [showUnmatched, setShowUnmatched] = useState(false);
   const [showBoreholes, setShowBoreholes] = useState(false);
+  const [showRigs, setShowRigs] = useState(false);
 
-  // Inline billing setup editor
   const [billing, setBilling] = useState({
     meterage_rate: job.meterage_rate ?? '',
     meterage_target: job.meterage_target ?? '',
     budget_amount: job.budget_amount ?? '',
+    drilling_method: job.drilling_method || 'not_applicable',
   });
   const [savingBilling, setSavingBilling] = useState(false);
   const [billingSaved, setBillingSaved] = useState(false);
@@ -59,12 +78,14 @@ export default function AutoFinancialsBreakdown({ job }) {
       meterage_rate: job.meterage_rate ?? '',
       meterage_target: job.meterage_target ?? '',
       budget_amount: job.budget_amount ?? '',
+      drilling_method: job.drilling_method || 'not_applicable',
     });
-  }, [job.id, job.meterage_rate, job.meterage_target, job.budget_amount]);
+  }, [job.id, job.meterage_rate, job.meterage_target, job.budget_amount, job.drilling_method]);
 
   const billingDirty = (Number(job.meterage_rate) || 0) !== (parseFloat(billing.meterage_rate) || 0) ||
                        (Number(job.meterage_target) || 0) !== (parseFloat(billing.meterage_target) || 0) ||
-                       (Number(job.budget_amount) || 0) !== (parseFloat(billing.budget_amount) || 0);
+                       (Number(job.budget_amount) || 0) !== (parseFloat(billing.budget_amount) || 0) ||
+                       (job.drilling_method || 'not_applicable') !== billing.drilling_method;
 
   const saveBilling = async () => {
     setSavingBilling(true);
@@ -73,6 +94,7 @@ export default function AutoFinancialsBreakdown({ job }) {
         meterage_rate: parseFloat(billing.meterage_rate) || 0,
         meterage_target: parseFloat(billing.meterage_target) || 0,
         budget_amount: parseFloat(billing.budget_amount) || 0,
+        drilling_method: billing.drilling_method,
       });
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['auto-job-financials', job.id] });
@@ -105,19 +127,65 @@ export default function AutoFinancialsBreakdown({ job }) {
   const s = data.summary;
   const dp = data.drilling_performance || {};
   const cb = data.cost_breakdown || {};
+  const bs = data.billing_setup || {};
+  const dm = data.drilling_method || {};
   const hasData = s.matched_count > 0 || s.total_cost_net > 0 || dp.total_metres > 0;
   const profitColor = s.profit >= 0 ? 'stat-gradient-emerald' : 'stat-gradient-rose';
-  const isDrilling = dp.total_metres > 0 || (data.rig_cost_rows && data.rig_cost_rows.length > 0);
+  const isDrilling = dp.total_metres > 0 || (data.rig_profitability && data.rig_profitability.length > 0);
   const budget = Number(job.budget_amount) || 0;
   const overBudget = budget > 0 && s.total_cost_net > budget;
 
   return (
     <div className="space-y-4">
+      {/* === BILLING SETUP WARNING === */}
+      {bs.warnings && bs.warnings.length > 0 && (
+        <div className="bg-amber-50 border border-amber-300 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <h3 className="text-sm font-bold text-amber-800">Billing Setup Needs Attention</h3>
+          </div>
+          <div className="space-y-1.5">
+            {bs.warnings.map((w, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700">{w}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* === Rate card status strip === */}
+      <div className="flex flex-wrap items-center gap-2 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-2.5">
+        <div className="flex items-center gap-1.5">
+          <span className={`w-2 h-2 rounded-full ${bs.has_project ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+          <span className="text-xs font-medium text-slate-600">{bs.has_project ? 'Project Rate Card' : 'Global Only'}</span>
+        </div>
+        <span className="text-slate-200">|</span>
+        <div className="flex items-center gap-1.5">
+          <MethodBadge method={dm.job_method || 'not_applicable'} />
+          <span className="text-xs text-slate-500">{METHOD_LABELS[dm.job_method]?.full || 'Not set'}</span>
+        </div>
+        {dm.cp_per_metre_rate && (
+          <>
+            <span className="text-slate-200">|</span>
+            <span className="text-xs text-slate-600">CP: <strong className="text-slate-800">{fmt(dm.cp_per_metre_rate.price)}/m</strong></span>
+          </>
+        )}
+        {dm.rotary_per_metre_rate && (
+          <>
+            <span className="text-slate-200">|</span>
+            <span className="text-xs text-slate-600">Rotary: <strong className="text-slate-800">{fmt(dm.rotary_per_metre_rate.price)}/m</strong></span>
+          </>
+        )}
+        <span className="ml-auto text-xs text-slate-400">{data.rate_card_levels?.project_rates_found || 0} project · {data.rate_card_levels?.global_rates_found || 0} global rates</span>
+      </div>
+
       {/* === HERO: Total Revenue === */}
       <div className="hero-gradient rounded-xl p-5 text-white">
         <div className="flex items-center gap-2 mb-1">
           <TrendingUp className="w-4 h-4 text-white/70" />
-          <span className="text-xs font-medium text-white/80">Total Revenue (from rate cards & charges)</span>
+          <span className="text-xs font-medium text-white/80">Total Revenue (meterage + SOR + charges)</span>
           <button onClick={() => refetch()} disabled={isFetching} className="ml-auto text-white/60 hover:text-white transition">
             <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
           </button>
@@ -127,7 +195,8 @@ export default function AutoFinancialsBreakdown({ job }) {
           <span>Net: {fmt(s.total_revenue_net)}</span>
           <span>VAT: {fmt(s.total_revenue_vat)}</span>
           {dp.total_metres > 0 && <span className="flex items-center gap-1"><Mountain className="w-3 h-3" /> {dp.total_metres.toFixed(1)}m drilled</span>}
-          <span>{s.matched_count} activities matched</span>
+          {s.meterage_revenue > 0 && <span>Meterage: {fmt(s.meterage_revenue)}</span>}
+          {s.sor_revenue > 0 && <span>SOR lines: {fmt(s.sor_revenue)}</span>}
         </div>
       </div>
 
@@ -139,22 +208,6 @@ export default function AutoFinancialsBreakdown({ job }) {
         <SummaryStat icon={Percent} value={`${s.margin_pct.toFixed(1)}%`} label="Margin" gradient="stat-gradient-violet" />
       </div>
 
-      {/* === Budget vs Cost === */}
-      {budget > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-          <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="text-slate-500 font-medium">Cost vs Budget</span>
-            <span className={overBudget ? 'text-red-600 font-semibold' : 'text-slate-600'}>
-              {fmt(s.total_cost_net)} / {fmt(budget)}
-              {overBudget ? ` · ${fmt(s.total_cost_net - budget)} over` : ` · ${fmt(budget - s.total_cost_net)} remaining`}
-            </span>
-          </div>
-          <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full transition-all ${overBudget ? 'bg-red-500' : 'bg-[#2E5A1A]'}`} style={{ width: `${budget > 0 ? Math.min((s.total_cost_net / budget) * 100, 100) : 0}%` }} />
-          </div>
-        </div>
-      )}
-
       {/* === DRILLING PERFORMANCE (main focus) === */}
       {isDrilling && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
@@ -164,16 +217,16 @@ export default function AutoFinancialsBreakdown({ job }) {
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900">Drilling Performance</h3>
-              <p className="text-[11px] text-slate-400">Rig cost vs metre revenue</p>
+              <p className="text-[11px] text-slate-400">Rig cost vs metre revenue · {METHOD_LABELS[dm.job_method]?.full || 'Auto-detected'}</p>
             </div>
           </div>
 
           {/* Performance stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <PerfStat icon={Gauge} value={`${(dp.total_metres || 0).toFixed(1)}m`} label="Total Drilled" sub={dp.working_days ? `${dp.working_days} working days` : undefined} gradient="stat-gradient-blue" />
-            <PerfStat icon={PoundSterling} value={dp.meterage_rate > 0 ? fmt(dp.meterage_rate) : 'Auto'} label="Rate / metre" sub={dp.meterage_rate > 0 ? 'per metre' : 'from rate card'} gradient="stat-gradient-emerald" />
-            <PerfStat icon={TrendingUp} value={fmt(dp.meterage_revenue > 0 ? dp.meterage_revenue : s.total_revenue_net)} label={dp.meterage_rate > 0 ? 'Metre Revenue' : 'Matched Revenue'} sub={dp.meterage_rate > 0 ? `${dp.total_metres?.toFixed(1)}m × ${fmt(dp.meterage_rate)}` : `${s.matched_count} activities`} gradient="stat-gradient-brand" />
-            <PerfStat icon={Truck} value={fmt(dp.rig_cost)} label="Rig & Crew Cost" sub={data.rig_cost_rows?.length ? `${data.rig_cost_rows.length} rig(s)` : 'no rigs assigned'} gradient="stat-gradient-amber" />
+            <PerfStat icon={PoundSterling} value={dp.meterage_rate > 0 ? fmt(dp.meterage_rate) : (dm.cp_per_metre_rate || dm.rotary_per_metre_rate) ? fmt((dm.cp_per_metre_rate || dm.rotary_per_metre_rate).price) : '—'} label="Rate / metre" sub={dp.meterage_rate > 0 ? 'job metre rate' : 'from rate card'} gradient="stat-gradient-emerald" />
+            <PerfStat icon={TrendingUp} value={fmt(dp.meterage_revenue > 0 ? dp.meterage_revenue : s.total_revenue_net)} label={dp.meterage_revenue > 0 ? 'Metre Revenue' : 'Matched Revenue'} sub={dp.meterage_revenue > 0 ? `${dp.total_metres?.toFixed(1)}m drilled` : `${s.matched_count} activities`} gradient="stat-gradient-brand" />
+            <PerfStat icon={Truck} value={fmt(dp.rig_cost)} label="Rig & Crew Cost" sub={data.rig_profitability?.length ? `${data.rig_profitability.length} rig(s)` : 'no rigs assigned'} gradient="stat-gradient-amber" />
           </div>
 
           {/* Per-metre metrics */}
@@ -182,6 +235,28 @@ export default function AutoFinancialsBreakdown({ job }) {
               <MiniMetric label="Cost / metre" value={fmt(dp.cost_per_metre)} tone="amber" />
               <MiniMetric label="Revenue / metre" value={fmt(dp.revenue_per_metre)} tone="emerald" />
               <MiniMetric label="Profit / metre" value={fmt(dp.profit_per_metre)} tone={dp.profit_per_metre >= 0 ? 'emerald' : 'rose'} />
+            </div>
+          )}
+
+          {/* Revenue by method */}
+          {(dp.cp_revenue > 0 || dp.rotary_revenue > 0) && (
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                  <span className="text-xs font-semibold text-blue-700">CP Revenue</span>
+                </div>
+                <p className="text-lg font-bold text-blue-900 tabular-nums">{fmt(dp.cp_revenue)}</p>
+                {dm.cp_per_metre_rate && <p className="text-[10px] text-blue-500">@ {fmt(dm.cp_per_metre_rate.price)}/m</p>}
+              </div>
+              <div className="bg-orange-50 border border-orange-100 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+                  <span className="text-xs font-semibold text-orange-700">Rotary Revenue</span>
+                </div>
+                <p className="text-lg font-bold text-orange-900 tabular-nums">{fmt(dp.rotary_revenue)}</p>
+                {dm.rotary_per_metre_rate && <p className="text-[10px] text-orange-500">@ {fmt(dm.rotary_per_metre_rate.price)}/m</p>}
+              </div>
             </div>
           )}
 
@@ -198,20 +273,51 @@ export default function AutoFinancialsBreakdown({ job }) {
             </div>
           )}
 
-          {/* Rig cost rows */}
-          {data.rig_cost_rows?.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-xs font-semibold text-slate-600 mb-1">Rig & Crew Costs</p>
-              {data.rig_cost_rows.map((r, i) => (
-                <div key={i} className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
-                  <Truck className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-slate-700 truncate">{r.rig_name}</p>
-                    <p className="text-[10px] text-slate-400">{r.rate_description} · {fmt(r.day_rate)}/day × {r.working_days}d</p>
-                  </div>
-                  <span className="text-sm font-bold text-slate-900 tabular-nums">{fmt(r.total_cost)}</span>
+          {/* Rig profitability table */}
+          {data.rig_profitability?.length > 0 && (
+            <div className="space-y-2">
+              <button onClick={() => setShowRigs(!showRigs)} className="w-full flex items-center gap-2 text-left">
+                {showRigs ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
+                <Truck className="w-4 h-4 text-[#2E5A1A]" />
+                <p className="text-xs font-semibold text-slate-700">Rig & Crew Profitability</p>
+                <span className="ml-auto text-xs text-slate-400">{data.rig_profitability.length} rig(s)</span>
+              </button>
+              {showRigs && (
+                <div className="space-y-1.5">
+                  {data.rig_profitability.map((r, i) => (
+                    <div key={i} className={`rounded-lg border px-3 py-2.5 ${r.profit < 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100'}`}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Truck className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                        <p className="text-xs font-semibold text-slate-700 truncate">{r.rig_name}</p>
+                        <MethodBadge method={r.method} />
+                        <span className="text-[10px] text-slate-400">{r.status}</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2 text-xs">
+                        <div>
+                          <p className="text-[9px] text-slate-400 uppercase">Day Rate</p>
+                          <p className="font-semibold text-slate-700">{fmt(r.day_rate)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-slate-400 uppercase">Metres</p>
+                          <p className="font-semibold text-slate-700">{r.metres_drilled.toFixed(1)}m</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-slate-400 uppercase">Revenue</p>
+                          <p className="font-semibold text-emerald-700">{fmt(r.meterage_revenue)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-slate-400 uppercase">Profit</p>
+                          <p className={`font-bold ${r.profit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>{fmt(r.profit)}</p>
+                        </div>
+                      </div>
+                      {r.boreholes.length > 0 && (
+                        <p className="text-[10px] text-slate-400 mt-1">Boreholes: {r.boreholes.join(', ')}</p>
+                      )}
+                      <p className="text-[10px] text-slate-400 mt-0.5">{r.rate_description} · {fmt(r.day_rate)}/day × {r.working_days}d = {fmt(r.total_cost)} cost</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>
@@ -222,7 +328,25 @@ export default function AutoFinancialsBreakdown({ job }) {
         <div className="flex items-center gap-2 mb-3">
           <Ruler className="w-4 h-4 text-[#2E5A1A]" />
           <h3 className="text-sm font-semibold text-slate-800">Billing Setup</h3>
-          <span className="ml-auto text-xs text-slate-400">Set per-metre rate & target for this job</span>
+          <span className="ml-auto text-xs text-slate-400">Drilling method · per-metre rate · target · budget</span>
+        </div>
+        {/* Drilling method */}
+        <div className="mb-3">
+          <label className="block text-xs font-medium text-slate-600 mb-1.5">Drilling Method</label>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { val: 'cp', label: 'CP', desc: 'Cable Percussion' },
+              { val: 'rotary', label: 'Rotary', desc: 'Rotary Core' },
+              { val: 'mixed', label: 'Mixed', desc: 'Both Methods' },
+              { val: 'not_applicable', label: 'N/A', desc: 'Non-drilling' },
+            ].map(m => (
+              <button key={m.val} onClick={() => setBilling({ ...billing, drilling_method: m.val })}
+                className={`px-2 py-2 rounded-lg border text-center transition ${billing.drilling_method === m.val ? 'bg-[#2E5A1A] text-white border-[#2E5A1A]' : 'bg-white border-slate-200 text-slate-600 hover:border-[#2E5A1A]/40'}`}>
+                <span className="block text-xs font-bold">{m.label}</span>
+                <span className="block text-[9px] opacity-70">{m.desc}</span>
+              </button>
+            ))}
+          </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
@@ -253,31 +377,48 @@ export default function AutoFinancialsBreakdown({ job }) {
         </div>
       </div>
 
-      {/* === Per-borehole meterage === */}
-      {data.borehole_meterage?.length > 0 && (
+      {/* === Per-borehole revenue === */}
+      {data.borehole_revenue?.length > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <button onClick={() => setShowBoreholes(!showBoreholes)} className="w-full px-4 py-3 border-b border-slate-100 flex items-center gap-2 text-left hover:bg-slate-50/50 transition">
             {showBoreholes ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
             <Mountain className="w-4 h-4 text-blue-600" />
-            <h3 className="text-sm font-semibold text-slate-800">Per-Borehole Meterage</h3>
-            <span className="ml-auto text-xs text-slate-400">{data.borehole_meterage.length} boreholes · {dp.total_metres?.toFixed(1)}m total</span>
+            <h3 className="text-sm font-semibold text-slate-800">Per-Borehole Revenue</h3>
+            <span className="ml-auto text-xs text-slate-400">{data.borehole_revenue.length} boreholes · {dp.total_metres?.toFixed(1)}m · {fmt(s.meterage_revenue)}</span>
           </button>
           {showBoreholes && (
-            <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto">
-              {data.borehole_meterage.map(b => (
-                <div key={b.borehole_ref} className="px-4 py-2 flex items-center gap-3">
-                  <span className="font-mono text-xs font-bold text-blue-700 flex-shrink-0 w-32 truncate">{b.borehole_ref}</span>
-                  <div className="flex-1">
-                    <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-400 rounded-full" style={{ width: `${dp.total_metres > 0 ? Math.min((b.metres / dp.total_metres) * 100, 100) : 0}%` }} />
-                    </div>
+            <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+              {data.borehole_revenue.map(b => (
+                <div key={b.borehole_ref} className="px-4 py-2.5 flex items-center gap-3">
+                  <span className="font-mono text-xs font-bold text-slate-700 flex-shrink-0 w-24 truncate">{b.borehole_ref}</span>
+                  <MethodBadge method={b.method} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] text-slate-400 truncate">{b.rate_description}</p>
                   </div>
-                  <span className="text-sm font-semibold text-slate-700 tabular-nums flex-shrink-0 w-16 text-right">{b.metres.toFixed(1)}m</span>
-                  <span className="text-[10px] text-slate-400 flex-shrink-0 w-16 text-right">{b.entries} {b.entries === 1 ? 'entry' : 'entries'}</span>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-bold text-slate-900 tabular-nums">{fmt(b.revenue)}</p>
+                    <p className="text-[10px] text-slate-400">{b.metres.toFixed(1)}m × {fmt(b.rate_per_metre)}</p>
+                  </div>
                 </div>
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* === Budget vs Cost === */}
+      {budget > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="flex items-center justify-between text-xs mb-1.5">
+            <span className="text-slate-500 font-medium">Cost vs Budget</span>
+            <span className={overBudget ? 'text-red-600 font-semibold' : 'text-slate-600'}>
+              {fmt(s.total_cost_net)} / {fmt(budget)}
+              {overBudget ? ` · ${fmt(s.total_cost_net - budget)} over` : ` · ${fmt(budget - s.total_cost_net)} remaining`}
+            </span>
+          </div>
+          <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full transition-all ${overBudget ? 'bg-red-500' : 'bg-[#2E5A1A]'}`} style={{ width: `${budget > 0 ? Math.min((s.total_cost_net / budget) * 100, 100) : 0}%` }} />
+          </div>
         </div>
       )}
 
@@ -322,14 +463,14 @@ export default function AutoFinancialsBreakdown({ job }) {
         </div>
       )}
 
-      {/* === Matched activities === */}
+      {/* === Matched SOR activities === */}
       {s.matched_count > 0 && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <button onClick={() => setShowMatched(!showMatched)} className="w-full px-4 py-3 border-b border-slate-100 flex items-center gap-2 text-left hover:bg-slate-50/50 transition">
             {showMatched ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <h3 className="text-sm font-semibold text-slate-800">Matched Activities ({s.matched_count})</h3>
-            <span className="ml-auto text-xs text-slate-400">Click to expand</span>
+            <h3 className="text-sm font-semibold text-slate-800">Matched SOR Activities ({s.matched_count})</h3>
+            <span className="ml-auto text-xs text-slate-400">{fmt(s.sor_revenue)} revenue</span>
           </button>
           {showMatched && (
             <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">

@@ -167,6 +167,17 @@
       "type": "number",
       "description": "Target total metres to drill for this job. Used to track progress and completion percentage against the agreed scope."
     },
+    "drilling_method": {
+      "type": "string",
+      "enum": [
+        "cp",
+        "rotary",
+        "mixed",
+        "not_applicable"
+      ],
+      "default": "not_applicable",
+      "description": "Primary drilling method for this job \u2014 'cp' = cable percussion, 'rotary' = rotary drilling, 'mixed' = both methods on the same job, 'not_applicable' = non-drilling (groundworks, EV chargers). Used to auto-match per-metre drilling rates from the correct rate card section (CP Drilling vs Rotary Drilling subcategories) and to tag each borehole's revenue by method. When left as 'not_applicable' but rigs are assigned, the engine auto-detects from rig_type."
+    },
     "revenue_method": {
       "type": "string",
       "enum": [

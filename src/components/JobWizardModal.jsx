@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { X, ChevronLeft, ChevronRight, Check, Briefcase, CalendarDays, Users, MapPin, FileText, Sparkles, Loader2, FolderOpen, PoundSterling, Target } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Check, Briefcase, CalendarDays, Users, MapPin, FileText, Sparkles, Loader2, FolderOpen, PoundSterling, Target, AlertTriangle, HardHat } from 'lucide-react';
 import ProjectSelect from '@/components/ProjectSelect';
 import { getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 
@@ -18,7 +18,7 @@ const emptyForm = {
   status: 'planning', start_date: '', end_date: '', client_id: '', contractor_id: '',
   project_id: '', project_manager: '', site_contact_name: '', site_contact_phone: '',
   notes: '', budget_amount: '',
-  meterage_rate: '', meterage_target: '',
+  meterage_rate: '', meterage_target: '', drilling_method: 'not_applicable',
 };
 
 export default function JobWizardModal({ open, onClose, onCreated, editingJob }) {
@@ -212,7 +212,25 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     <div className="flex items-center gap-2">
                       <PoundSterling className="w-4 h-4 text-[#2E5A1A]" />
                       <span className="text-sm font-semibold text-slate-800">Billing Setup</span>
-                      <span className="text-xs text-slate-400">· set per-metre rate & target</span>
+                      <span className="text-xs text-slate-400">· drilling method & per-metre rates</span>
+                    </div>
+                    {/* Drilling method selector */}
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1.5">Drilling Method</label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {[
+                          { val: 'cp', label: 'CP', desc: 'Cable Percussion' },
+                          { val: 'rotary', label: 'Rotary', desc: 'Rotary Core' },
+                          { val: 'mixed', label: 'Mixed', desc: 'Both CP + Rotary' },
+                          { val: 'not_applicable', label: 'N/A', desc: 'Non-drilling' },
+                        ].map(m => (
+                          <button type="button" key={m.val} onClick={() => set('drilling_method', m.val)}
+                            className={`px-2 py-2 rounded-lg border text-center transition ${form.drilling_method === m.val ? 'bg-[#2E5A1A] text-white border-[#2E5A1A]' : 'bg-white border-slate-200 text-slate-600 hover:border-[#2E5A1A]/40'}`}>
+                            <span className="block text-xs font-bold">{m.label}</span>
+                            <span className="block text-[9px] opacity-70">{m.desc}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -230,6 +248,19 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                         </div>
                       </div>
                     </div>
+                    {/* Rate card warning */}
+                    {!form.project_id && (
+                      <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-amber-700">No project assigned — this job will bill against the <strong>Global Master Price List</strong> only. Assign a project to use project-specific rate cards (e.g. EWR schedule of rates).</p>
+                      </div>
+                    )}
+                    {form.project_id && form.drilling_method !== 'not_applicable' && (
+                      <div className="flex items-start gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                        <HardHat className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-emerald-700">Per-metre rates will auto-match from the project rate card's <strong>{form.drilling_method === 'cp' ? 'CP Drilling' : form.drilling_method === 'rotary' ? 'Rotary Drilling' : 'CP + Rotary'}</strong> section. Leave metre rate blank for auto-pricing.</p>
+                      </div>
+                    )}
                     <p className="text-[11px] text-slate-400">Leave metre rate blank to auto-price from the project rate card. Set a rate to bill a fixed £/m for all metres drilled.</p>
                   </div>
 
@@ -266,7 +297,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     <ReviewRow label="Project" value={projects.find(p => p.id === form.project_id)?.name} />
                     <ReviewRow label="Teams" value={selectedTeamIds.map(id => teams.find(t => t.id === id)?.name).filter(Boolean).join(', ')} />
                     <ReviewRow label="Budget" value={form.budget_amount ? `£${form.budget_amount}` : ''} />
-                    <ReviewRow label="Metre Rate" value={form.meterage_rate ? `£${form.meterage_rate}/m` : 'Auto'} />
+                    <ReviewRow label="Drilling Method" value={{ cp: 'Cable Percussion', rotary: 'Rotary', mixed: 'Mixed', not_applicable: 'N/A' }[form.drilling_method] || 'N/A'} />
+                    <ReviewRow label="Metre Rate" value={form.meterage_rate ? `£${form.meterage_rate}/m` : 'Auto from rate card'} />
                     <ReviewRow label="Target" value={form.meterage_target ? `${form.meterage_target}m` : ''} />
                   </div>
                   <p className="text-xs text-slate-400">Equipment, documents and the full rota can be added from the job page after creation.</p>

@@ -4,26 +4,18 @@ import { loadProjectRateCardItems, findBestRateCardMatch, type RateCardItemLike 
 // ============================================================
 // calculateJobFinancials — the zero-touch auto-financials engine
 // ============================================================
-// Given a job_id, this function reads every InvestigationLog (Site Logs +
-// borehole data), matches each activity against the correct rate card
-// (staff-specific → project-specific → global Master Price List), and
-// returns a complete revenue + cost breakdown with zero manual input.
-//
-// Matching priority for each logged activity:
-//   1. Staff rate card items (RateCardItem.staff_id = log.staff_id)
-//   2. Project rate card items (RateCardItem.project_id = job.project_id)
-//   3. Global Master Price List (no project_id, no staff_id)
-//
-// Revenue is derived from the matched rate × quantity:
-//   • Drilling meterage → metres drilled (sum of depth intervals) × £/m rate
-//   • Unit-rate activities → units_completed × £/unit
-//   • Day-rate crews → crew day rate × working days
-//   • Per-activity SOR lines → matched item price (sum / each / m / hour)
-//
-// Costs come from JobCostItem (equipment), HotelBooking (accommodation), and
-// chargeable Timesheet entries — the same sources useJobFinancials uses.
-//
-// The result powers the Financials tab "Auto-Calculated Breakdown" widget.
+// Given a job_id, this function:
+//   1. Detects the drilling method (CP / Rotary / Mixed) from rig
+//      assignments, log types, and the job's drilling_method field.
+//   2. Matches each logged activity against the correct rate card
+//      (staff → project → global Master Price List).
+//   3. Calculates per-metre drilling revenue by drilling method,
+//      using either job.meterage_rate or the matched "Advance
+//      borehole" / "Rotary drill" rate card item.
+//   4. Aggregates rig/crew costs from rig assignments × matched
+//      crew day rates.
+//   5. Returns per-borehole revenue breakdown (method, metres,
+//      rate, revenue) and per-rig profitability (revenue − cost).
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -35,7 +27,6 @@ export default async function(req: Request): Promise<Response> {
     const jobId = body.job_id;
     if (!jobId) return Response.json({ error: 'job_id is required' }, { status: 400 });
 
-    // Load the job
     const job = await base44.asServiceRole.entities.Job.get(jobId);
     if (!job) return Response.json({ error: 'Job not found' }, { status: 404 });
 
@@ -45,7 +36,6 @@ export default async function(req: Request): Promise<Response> {
     const logs: any[] = await base44.asServiceRole.entities.InvestigationLog.filter({ job_id: jobId });
 
     // ── Load rate card items at all three levels ──
-    // Staff-specific rates (keyed by staff_id)
     const staffIds = [...new Set(logs.map((l: any) => l.staff_id).filter(Boolean))] as string[];
     const staffRates: Record<string, RateCardItemLike[]> = {};
     for (const sid of staffIds) {
@@ -55,44 +45,106 @@ export default async function(req: Request): Promise<Response> {
       } catch (_) { staffRates[sid] = []; }
     }
 
-    // Project rate card (or global fallback)
     const projectRateItems = await loadProjectRateCardItems(base44, job.project_id);
 
-    // Global rates (always available as the last fallback)
     let globalItems: RateCardItemLike[] = [];
     if (job.project_id) {
       try {
         const global = await base44.asServiceRole.entities.RateCardItem.filter({ rate_card_source: 'our_company', is_active: true }, '-sort_order', 500);
         globalItems = (global || []).filter((i: RateCardItemLike) => i.price != null && !isNaN(Number(i.price)) && !i.project_id && !i.staff_id);
       } catch (_) {}
+    } else {
+      // No project — projectRateItems already IS the global list
+      globalItems = projectRateItems;
     }
 
-    // ── Match each log to a rate card item ──
+    // ── Drilling method detection ──
+    // Priority: job.drilling_method field → rig assignments (rig_type) → log types
+    const rigAssignments = await base44.asServiceRole.entities.JobAssetAssignment.filter({ job_id: jobId });
+    const rigs = (rigAssignments as any[]).filter((a: any) => a.asset_type === 'rig');
+    const rigMethods = new Set<string>();
+    for (const r of rigs) {
+      if (r.rig_type === 'cp') rigMethods.add('cp');
+      if (r.rig_type === 'rotary') rigMethods.add('rotary');
+    }
+    const logMethods = new Set<string>();
+    for (const l of logs) {
+      if (l.log_type === 'core_inspection') logMethods.add('rotary');
+      if (l.log_type === 'borehole_progress' || l.log_type === 'sample_collection' || l.log_type === 'window_sampling') logMethods.add('cp');
+    }
+
+    let jobDrillingMethod: string = job.drilling_method || 'not_applicable';
+    if (jobDrillingMethod === 'not_applicable') {
+      const detected = new Set([...rigMethods, ...logMethods]);
+      if (detected.size === 1) jobDrillingMethod = [...detected][0];
+      else if (detected.size > 1) jobDrillingMethod = 'mixed';
+    }
+
+    // Determine per-borehole drilling method
+    // A borehole is Rotary if it has core_inspection logs, otherwise CP (if it has borehole_progress)
+    const boreholeMethodMap: Record<string, string> = {};
+    for (const l of logs) {
+      const ref = l.borehole_ref;
+      if (!ref) continue;
+      if (l.log_type === 'core_inspection') boreholeMethodMap[ref] = 'rotary';
+      else if (!boreholeMethodMap[ref] && (l.log_type === 'borehole_progress' || l.log_type === 'sample_collection' || l.log_type === 'window_sampling')) {
+        boreholeMethodMap[ref] = 'cp';
+      }
+    }
+    // Fall back to the rig method if we have exactly one rig type
+    if (rigMethods.size === 1) {
+      const singleRigMethod = [...rigMethods][0];
+      for (const l of logs) {
+        const ref = l.borehole_ref;
+        if (ref && !boreholeMethodMap[ref]) boreholeMethodMap[ref] = singleRigMethod;
+      }
+    }
+
+    // ── Per-metre drilling rate from the rate card ──
+    // Find "Advance borehole" (CP) or "Rotary drill" (Rotary) rate card items
+    // with unit = 'm', filtered by the subcategory prefix for the drilling method.
+    const findPerMetreDrillingRate = (method: string, pool: RateCardItemLike[]): RateCardItemLike | null => {
+      if (!pool || pool.length === 0) return null;
+      const methodPrefix = method === 'rotary' ? 'Rotary Drilling' : 'CP Drilling';
+      // Filter to per-metre items in the correct drilling section
+      const perMetre = pool.filter(i =>
+        i.unit === 'm' &&
+        i.price != null &&
+        !isNaN(Number(i.price)) &&
+        String(i.subcategory || '').includes(methodPrefix)
+      );
+      if (perMetre.length === 0) return null;
+      // Prefer the "advance borehole" or "rotary drill" description (the main drilling rate),
+      // specifically the shallowest depth band (first item, since they're sorted by sort_order)
+      const advance = perMetre.filter(i =>
+        /advance borehole|rotary drill/i.test(i.description) &&
+        !/backfill|standpipe|install|grout|piezo|inclined|extra over/i.test(i.description)
+      );
+      return advance[0] || perMetre[0];
+    };
+
+    // Get the per-metre rate for each method (try project first, then global)
+    const cpPerMetreRate = job.meterage_rate && jobDrillingMethod !== 'rotary'
+      ? { price: Number(job.meterage_rate), description: 'Job metre rate', unit: 'm', source: 'job', id: '' }
+      : (findPerMetreDrillingRate('cp', projectRateItems) || findPerMetreDrillingRate('cp', globalItems));
+    const rotaryPerMetreRate = job.meterage_rate && jobDrillingMethod !== 'cp'
+      ? { price: Number(job.meterage_rate), description: 'Job metre rate', unit: 'm', source: 'job', id: '' }
+      : (findPerMetreDrillingRate('rotary', projectRateItems) || findPerMetreDrillingRate('rotary', globalItems));
+
+    // ── Match each log to a rate card item (for SOR line revenue) ──
     interface MatchedEntry {
-      log_id: string;
-      date: string;
-      log_type: string;
-      borehole_ref: string;
-      description: string;
-      staff_name: string;
-      logged_by_role: string;
-      rate_card_item_id: string;
-      rate_card_description: string;
+      log_id: string; date: string; log_type: string; borehole_ref: string;
+      description: string; staff_name: string; logged_by_role: string;
+      rate_card_item_id: string; rate_card_description: string;
       rate_source: 'staff' | 'project' | 'global' | 'no_match';
-      unit: string;
-      unit_price: number;
-      quantity: number;
-      line_total: number;
+      unit: string; unit_price: number; quantity: number; line_total: number;
     }
 
     const matched: MatchedEntry[] = [];
-    let totalRevenueNet = 0;
+    let totalSorRevenueNet = 0;
     let totalMetres = 0;
     const unmatched: any[] = [];
 
-    // Map log_type to search keywords so generic AGS import descriptions
-    // (e.g. "Imported from KeyLogBook AGS — strata") can still match rate
-    // card items by their activity category.
     const logTypeKeywords: Record<string, string[]> = {
       borehole_progress: ['borehole', 'drilling', 'drill', 'percussive', 'rotary', 'cable percussion', 'borehole advance'],
       core_inspection: ['core', 'coring', 'rotary core', 'core run', 'rock quality'],
@@ -106,12 +158,10 @@ export default async function(req: Request): Promise<Response> {
       window_sampling: ['window sampling', 'window sample', 'dynamic sampling'],
     };
 
+    // Per-borehole meterage tracking
+    const bhMap: Record<string, { borehole_ref: string; metres: number; entries: number; method: string }> = {};
+
     for (const log of logs) {
-      // Calculate quantity from the log data:
-      //  - borehole_progress with depth_from/depth_to → metres (depth_to - depth_from)
-      //  - logs with units_completed → use that
-      //  - core_inspection with depth interval → metres cored
-      //  - everything else → 1 (sum / each)
       let quantity = 1;
       const dFrom = Number(log.depth_from) || 0;
       const dTo = Number(log.depth_to) || 0;
@@ -123,34 +173,39 @@ export default async function(req: Request): Promise<Response> {
         quantity = Number(log.units_completed);
       }
 
-      // Build search descriptions. We try two passes:
-      //   1) the log's own description (if it has meaningful text)
-      //   2) log_type keywords as a fallback so generic AGS imports AND
-      //      manual logs that don't mention the rate-card term still match.
+      // Track per-borehole meterage
+      const ref = log.borehole_ref || 'Unspecified';
+      if (!bhMap[ref]) bhMap[ref] = { borehole_ref: ref, metres: 0, entries: 0, method: boreholeMethodMap[ref] || jobDrillingMethod === 'mixed' ? '' : jobDrillingMethod };
+      if (dTo > dFrom && (log.log_type === 'borehole_progress' || log.log_type === 'core_inspection')) {
+        bhMap[ref].metres = Math.round((bhMap[ref].metres + (dTo - dFrom)) * 100) / 100;
+      }
+      bhMap[ref].entries++;
+      // Set method on the borehole
+      if (boreholeMethodMap[ref]) bhMap[ref].method = boreholeMethodMap[ref];
+
+      // ── SOR line matching (non-drilling-advance activities) ──
+      // Skip borehole_progress and core_inspection — those are priced by per-metre drilling rate,
+      // not as individual SOR lines (they'd double-count the drilling revenue)
+      if (log.log_type === 'borehole_progress' || log.log_type === 'core_inspection') continue;
+
       const rawDesc = log.description || log.strata_description_detail || '';
       const keywords = logTypeKeywords[log.log_type] || [];
       const keywordDesc = keywords.join(' ') || rawDesc || log.log_type;
-      // Skip the raw description if it's just the generic AGS import prefix
       const meaningfulDesc = rawDesc && !rawDesc.startsWith('Imported from') ? rawDesc : '';
 
-      // Try to match the activity against rate cards
       let bestMatch: RateCardItemLike | null = null;
       let rateSource: 'staff' | 'project' | 'global' | 'no_match' = 'no_match';
-
       const tryMatch = (searchDesc: string, pool: RateCardItemLike[]): RateCardItemLike | null => {
         if (!pool || pool.length === 0 || !searchDesc) return null;
         return findBestRateCardMatch(searchDesc, pool);
       };
 
-      // Pass 1: raw description (most precise when it has real content)
       if (meaningfulDesc) {
         if (log.staff_id && staffRates[log.staff_id]) bestMatch = tryMatch(meaningfulDesc, staffRates[log.staff_id]);
         if (bestMatch) rateSource = 'staff';
         if (!bestMatch) { bestMatch = tryMatch(meaningfulDesc, projectRateItems); if (bestMatch) rateSource = 'project'; }
         if (!bestMatch) { bestMatch = tryMatch(meaningfulDesc, globalItems); if (bestMatch) rateSource = 'global'; }
       }
-      // Pass 2: log_type keywords (fallback for generic AGS imports or
-      // manual logs whose description doesn't contain the rate-card term)
       if (!bestMatch && keywordDesc) {
         if (log.staff_id && staffRates[log.staff_id]) bestMatch = tryMatch(keywordDesc, staffRates[log.staff_id]);
         if (bestMatch) rateSource = 'staff';
@@ -161,39 +216,53 @@ export default async function(req: Request): Promise<Response> {
       const displayDesc = meaningfulDesc || keywordDesc || log.log_type;
 
       if (!bestMatch) {
-        unmatched.push({
-          log_id: log.id,
-          date: log.date,
-          description: displayDesc,
-          log_type: log.log_type,
-          borehole_ref: log.borehole_ref,
-        });
+        unmatched.push({ log_id: log.id, date: log.date, description: displayDesc, log_type: log.log_type, borehole_ref: log.borehole_ref });
         continue;
       }
 
       const unitPrice = Number(bestMatch.price) || 0;
       const lineTotal = Math.round(unitPrice * quantity * 100) / 100;
-      totalRevenueNet += lineTotal;
+      totalSorRevenueNet += lineTotal;
 
       matched.push({
-        log_id: log.id,
-        date: log.date,
-        log_type: log.log_type,
-        borehole_ref: log.borehole_ref || '',
-        description: displayDesc,
-        staff_name: log.staff_name || log.completed_by_name || '',
+        log_id: log.id, date: log.date, log_type: log.log_type, borehole_ref: log.borehole_ref || '',
+        description: displayDesc, staff_name: log.staff_name || log.completed_by_name || '',
         logged_by_role: log.logged_by_role || 'unspecified',
-        rate_card_item_id: bestMatch.id,
-        rate_card_description: bestMatch.description,
-        rate_source: rateSource,
-        unit: bestMatch.unit || 'sum',
-        unit_price: unitPrice,
-        quantity,
-        line_total: lineTotal,
+        rate_card_item_id: bestMatch.id, rate_card_description: bestMatch.description,
+        rate_source: rateSource, unit: bestMatch.unit || 'sum', unit_price: unitPrice,
+        quantity, line_total: lineTotal,
       });
     }
 
-    // ── Costs (same sources as useJobFinancials) ──
+    // ── Per-borehole meterage revenue ──
+    // For each borehole: metres × per-metre rate (by drilling method)
+    interface BoreholeRevenue {
+      borehole_ref: string; method: string; metres: number; entries: number;
+      rate_per_metre: number; rate_description: string; rate_source: string;
+      revenue: number;
+    }
+    const boreholeRevenue: BoreholeRevenue[] = [];
+    let totalMeterageRevenue = 0;
+    for (const ref of Object.keys(bhMap)) {
+      const bh = bhMap[ref];
+      if (bh.metres <= 0) continue;
+      const method = bh.method || (jobDrillingMethod === 'mixed' ? 'cp' : jobDrillingMethod);
+      const rateItem = method === 'rotary' ? rotaryPerMetreRate : cpPerMetreRate;
+      const ratePerM = rateItem ? Number(rateItem.price) : 0;
+      const revenue = Math.round(bh.metres * ratePerM * 100) / 100;
+      totalMeterageRevenue += revenue;
+      boreholeRevenue.push({
+        borehole_ref: bh.borehole_ref, method,
+        metres: bh.metres, entries: bh.entries,
+        rate_per_metre: ratePerM,
+        rate_description: rateItem ? rateItem.description : 'No rate found',
+        rate_source: rateItem ? rateItem.source || 'rate_card' : 'no_match',
+        revenue,
+      });
+    }
+    boreholeRevenue.sort((a, b) => a.borehole_ref.localeCompare(b.borehole_ref));
+
+    // ── Costs ──
     const costItems = await base44.asServiceRole.entities.JobCostItem.filter({ job_id: jobId });
     const hotelBookings = await base44.asServiceRole.entities.HotelBooking.filter({ job_id: jobId });
     const deliveries = await base44.asServiceRole.entities.DeliveryLog.filter({ job_id: jobId });
@@ -218,8 +287,6 @@ export default async function(req: Request): Promise<Response> {
     const additionalCharges = deliveryCharges + taskCharges;
 
     // ── Rig crew cost (from rig assignments × matched day rates) ──
-    const rigAssignments = await base44.asServiceRole.entities.JobAssetAssignment.filter({ job_id: jobId });
-    const rigs = (rigAssignments as any[]).filter((a: any) => a.asset_type === 'rig');
     let labourDayRates: RateCardItemLike[] = [];
     try {
       const allLabour = await base44.asServiceRole.entities.RateCardItem.filter({ category: 'labour', is_active: true }, '-sort_order', 500);
@@ -245,69 +312,91 @@ export default async function(req: Request): Promise<Response> {
       while (d <= e) { const day = d.getUTCDay(); if (day !== 0 && day !== 6) count++; d.setUTCDate(d.getUTCDate() + 1); }
       return count;
     })();
+
+    // ── Per-rig profitability ──
+    // Map each rig to the boreholes drilled with that rig's method, and calculate
+    // revenue (meterage) vs cost (day rate × working days)
+    interface RigProfitability {
+      rig_name: string; rig_type: string; status: string;
+      day_rate: number; rate_description: string; working_days: number;
+      total_cost: number; method: string;
+      boreholes: string[]; metres_drilled: number;
+      meterage_revenue: number; profit: number;
+    }
     const rigCostRows = rigs.map((a: any) => {
       const rate = autoMatchRigRate(a.rig_type, a.asset_name);
+      const method = a.rig_type || 'cp';
+      // Find boreholes drilled with this rig's method
+      const rigBoreholes = boreholeRevenue.filter(b => b.method === method);
+      const metres = rigBoreholes.reduce((s, b) => s + b.metres, 0);
+      const revenue = rigBoreholes.reduce((s, b) => s + b.revenue, 0);
+      const cost = rate ? Math.round(Number(rate.price) * workingDays * 100) / 100 : 0;
       return {
-        rig_name: a.asset_name || 'Rig',
-        rig_type: a.rig_type || '',
-        status: a.status || 'assigned',
-        day_rate: rate ? Number(rate.price) : 0,
-        rate_description: rate ? rate.description : 'No rate matched',
-        working_days: workingDays,
-        total_cost: rate ? Math.round(Number(rate.price) * workingDays * 100) / 100 : 0,
-      };
+        rig_name: a.asset_name || 'Rig', rig_type: a.rig_type || '', status: a.status || 'assigned',
+        day_rate: rate ? Number(rate.price) : 0, rate_description: rate ? rate.description : 'No rate matched',
+        working_days: workingDays, total_cost: cost,
+        method, boreholes: rigBoreholes.map(b => b.borehole_ref),
+        metres_drilled: metres, meterage_revenue: revenue,
+        profit: Math.round((revenue - cost) * 100) / 100,
+      } as RigProfitability;
     });
     const totalRigCost = rigCostRows.reduce((s, r) => s + r.total_cost, 0);
 
-    // ── Per-borehole meterage breakdown ──
-    const bhMap: Record<string, { borehole_ref: string; metres: number; entries: number }> = {};
-    for (const log of logs) {
-      const ref = log.borehole_ref || 'Unspecified';
-      if (!bhMap[ref]) bhMap[ref] = { borehole_ref: ref, metres: 0, entries: 0 };
-      const dFrom = Number(log.depth_from) || 0;
-      const dTo = Number(log.depth_to) || 0;
-      if (dTo > dFrom && (log.log_type === 'borehole_progress' || log.log_type === 'core_inspection')) {
-        bhMap[ref].metres = Math.round((bhMap[ref].metres + (dTo - dFrom)) * 100) / 100;
-      }
-      bhMap[ref].entries++;
-    }
-    const boreholeMeterage = Object.values(bhMap).sort((a, b) => a.borehole_ref.localeCompare(b.borehole_ref));
-
-    // ── Meterage revenue & performance metrics ──
+    // ── Revenue summary ──
     const meterageRate = Number(job.meterage_rate) || 0;
-    const meterageRevenue = meterageRate > 0 ? Math.round(totalMetres * meterageRate * 100) / 100 : 0;
+    // If job has a meterage_rate, recalculate meterage revenue as total metres × rate
+    // (this overrides the per-borehole rate card matching)
+    const meterageRevenue = meterageRate > 0 ? Math.round(totalMetres * meterageRate * 100) / 100 : totalMeterageRevenue;
     const targetMetres = Number(job.meterage_target) || 0;
 
+    const totalRevenueNet = meterageRevenue + totalSorRevenueNet + additionalCharges;
     const totalCostNet = equipmentNet + hotelNet + totalRigCost;
+
+    const revenueVat = totalRevenueNet * (vatRate / 100);
+    const revenueGross = totalRevenueNet + revenueVat;
     const totalCostVat = totalCostNet * (vatRate / 100);
     const totalCostGross = totalCostNet + totalCostVat;
 
-    // Add additional charges to revenue
-    const grandRevenueNet = totalRevenueNet + additionalCharges;
-    const revenueVat = grandRevenueNet * (vatRate / 100);
-    const revenueGross = grandRevenueNet + revenueVat;
-
-    // Profit & margin
-    const profit = grandRevenueNet - totalCostNet;
-    const marginPct = grandRevenueNet > 0 ? (profit / grandRevenueNet) * 100 : 0;
+    const profit = totalRevenueNet - totalCostNet;
+    const marginPct = totalRevenueNet > 0 ? (profit / totalRevenueNet) * 100 : 0;
     const costPerMetre = totalMetres > 0 ? Math.round((totalCostNet / totalMetres) * 100) / 100 : 0;
-    const revenuePerMetre = totalMetres > 0 ? Math.round((grandRevenueNet / totalMetres) * 100) / 100 : 0;
+    const revenuePerMetre = totalMetres > 0 ? Math.round((totalRevenueNet / totalMetres) * 100) / 100 : 0;
     const profitPerMetre = totalMetres > 0 ? Math.round((profit / totalMetres) * 100) / 100 : 0;
     const targetPct = targetMetres > 0 ? Math.round(Math.min((totalMetres / targetMetres) * 100, 100) * 10) / 10 : 0;
 
-    // Group matched entries by rate source for the breakdown
+    // Revenue by drilling method
+    const cpRevenue = boreholeRevenue.filter(b => b.method === 'cp').reduce((s, b) => s + b.revenue, 0);
+    const rotaryRevenue = boreholeRevenue.filter(b => b.method === 'rotary').reduce((s, b) => s + b.revenue, 0);
+
     const bySource = {
       staff: matched.filter(m => m.rate_source === 'staff').reduce((s, m) => s + m.line_total, 0),
       project: matched.filter(m => m.rate_source === 'project').reduce((s, m) => s + m.line_total, 0),
       global: matched.filter(m => m.rate_source === 'global').reduce((s, m) => s + m.line_total, 0),
     };
 
+    // ── Billing setup status (for the UI warning banner) ──
+    const billingSetup = {
+      has_project: !!job.project_id,
+      has_meterage_rate: meterageRate > 0,
+      has_drilling_method: jobDrillingMethod !== 'not_applicable',
+      drilling_method: jobDrillingMethod,
+      has_project_rate_card: projectRateItems.length > 0 && !!job.project_id,
+      cp_rate_found: !!cpPerMetreRate,
+      rotary_rate_found: !!rotaryPerMetreRate,
+      rate_card_source: job.project_id ? (projectRateItems.length > 0 ? 'project' : 'global') : 'global',
+      warnings: [] as string[],
+    };
+    if (!job.project_id) billingSetup.warnings.push('No project assigned — billing against the Global Master Price List only.');
+    if (jobDrillingMethod === 'not_applicable' && logs.length > 0) billingSetup.warnings.push('Drilling method not set — per-metre rates may not match correctly.');
+    if (meterageRate === 0 && !cpPerMetreRate && !rotaryPerMetreRate && totalMetres > 0) billingSetup.warnings.push('No per-metre drilling rate found in any rate card for this drilling method.');
+    if (rigs.length === 0 && totalMetres > 0) billingSetup.warnings.push('No rigs assigned — rig crew costs are £0. Assign rigs in the Logistics tab.');
+
     return Response.json({
       status: 'success',
       job_id: jobId,
       job_name: job.name,
       summary: {
-        total_revenue_net: Math.round(grandRevenueNet * 100) / 100,
+        total_revenue_net: Math.round(totalRevenueNet * 100) / 100,
         total_revenue_vat: Math.round(revenueVat * 100) / 100,
         total_revenue_gross: Math.round(revenueGross * 100) / 100,
         total_cost_net: Math.round(totalCostNet * 100) / 100,
@@ -316,9 +405,21 @@ export default async function(req: Request): Promise<Response> {
         profit: Math.round(profit * 100) / 100,
         margin_pct: Math.round(marginPct * 10) / 10,
         total_metres: Math.round(totalMetres * 100) / 100,
+        meterage_revenue: Math.round(meterageRevenue * 100) / 100,
+        sor_revenue: Math.round(totalSorRevenueNet * 100) / 100,
         matched_count: matched.length,
         unmatched_count: unmatched.length,
         additional_charges: Math.round(additionalCharges * 100) / 100,
+      },
+      billing_setup: billingSetup,
+      drilling_method: {
+        job_method: jobDrillingMethod,
+        rig_methods: [...rigMethods],
+        log_methods: [...logMethods],
+        cp_revenue: Math.round(cpRevenue * 100) / 100,
+        rotary_revenue: Math.round(rotaryRevenue * 100) / 100,
+        cp_per_metre_rate: cpPerMetreRate ? { price: Number(cpPerMetreRate.price), description: cpPerMetreRate.description, source: cpPerMetreRate.source || 'rate_card' } : null,
+        rotary_per_metre_rate: rotaryPerMetreRate ? { price: Number(rotaryPerMetreRate.price), description: rotaryPerMetreRate.description, source: rotaryPerMetreRate.source || 'rate_card' } : null,
       },
       revenue_by_source: bySource,
       matched_entries: matched,
@@ -336,15 +437,17 @@ export default async function(req: Request): Promise<Response> {
         target_metres: targetMetres,
         target_pct: targetPct,
         meterage_rate: meterageRate,
-        meterage_revenue: meterageRevenue,
+        meterage_revenue: Math.round(meterageRevenue * 100) / 100,
         rig_cost: Math.round(totalRigCost * 100) / 100,
         cost_per_metre: costPerMetre,
         revenue_per_metre: revenuePerMetre,
         profit_per_metre: profitPerMetre,
         working_days: workingDays,
+        cp_revenue: Math.round(cpRevenue * 100) / 100,
+        rotary_revenue: Math.round(rotaryRevenue * 100) / 100,
       },
-      rig_cost_rows: rigCostRows,
-      borehole_meterage: boreholeMeterage,
+      rig_profitability: rigCostRows,
+      borehole_revenue: boreholeRevenue,
       rate_card_levels: {
         staff_rates_found: Object.keys(staffRates).filter(k => staffRates[k].length > 0).length,
         project_rates_found: projectRateItems.length,
