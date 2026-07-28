@@ -447,7 +447,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
                 className="inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#2E5A1A] hover:bg-[#1c4a12] active:scale-[0.98] transition shadow-md w-full sm:w-auto">
                 <Plus className="w-4 h-4" /> Add Billable Item
               </button>
-              {allRigs.length > 0 && (
+              {isDrillingJob && allRigs.length > 0 && (
                 <button onClick={() => setShowRigPicker(true)} disabled={addingRigGear}
                   className="inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3 sm:px-4 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 transition shadow-sm disabled:opacity-50 w-full sm:w-auto">
                   <Plus className="w-4 h-4" /> Add Rig & Gear
