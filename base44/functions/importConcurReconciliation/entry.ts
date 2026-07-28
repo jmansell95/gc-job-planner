@@ -17,7 +17,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
  * Payload: { action: "reconcile" } (default) — also respects scheduled cadence.
  */
 async function getConfig(base44) {
-  const settings = await base44.entities.AppSetting.filter({ key: 'concur_config' });
+  const settings = await base44.asServiceRole.entities.AppSetting.filter({ key: 'concur_config' });
   const cfg = settings[0]?.value || {};
   const apiUrl = (cfg.api_url || '').replace(/\/$/, '');
   const tokenUrl = (cfg.token_url || '').replace(/\/$/, '');
@@ -74,7 +74,7 @@ async function reconcileRecord(base44, headers, apiUrl, rec, entity, kind) {
     const newNotes = appendReconTag(rec.notes, reportId, reconStatus, concurGl || rec.gl_code || '');
     if (newNotes !== (rec.notes || '')) updates.notes = newNotes;
     if (Object.keys(updates).length > 0) {
-      await base44.entities[entity].update(rec.id, updates);
+      await base44.asServiceRole.entities[entity].update(rec.id, updates);
     }
     return { id: rec.id, kind, report_id: reportId, recon_status: reconStatus, gl: concurGl || rec.gl_code, updated: Object.keys(updates).length > 0 };
   } catch (e) {
@@ -85,9 +85,10 @@ async function reconcileRecord(base44, headers, apiUrl, rec, entity, kind) {
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin') return Response.json({ ok: false, error: 'Forbidden — admin only' }, { status: 403 });
+    // Scheduled runs arrive without a user session and are trusted; manual
+    // invocations require an admin.
+    const user = await base44.auth.me().catch(() => null);
+    if (user && user.role !== 'admin') return Response.json({ ok: false, error: 'Forbidden — admin only' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
     const action = body.action || 'reconcile';
@@ -129,8 +130,8 @@ export default async function(req: Request): Promise<Response> {
       ...(config.companyUuid ? { 'Concur-CorrelationId': config.companyUuid } : {}),
     };
 
-    const syncedCosts = await base44.entities.DailyCost.filter({ status: 'synced_to_concur' }, '-synced_at', 500);
-    const syncedSubcons = await base44.entities.SubcontractorLog.filter({ status: 'synced' }, '-synced_at', 500);
+    const syncedCosts = await base44.asServiceRole.entities.DailyCost.filter({ status: 'synced_to_concur' }, '-synced_at', 500);
+    const syncedSubcons = await base44.asServiceRole.entities.SubcontractorLog.filter({ status: 'synced' }, '-synced_at', 500);
 
     const results = [];
     for (const c of syncedCosts) results.push(await reconcileRecord(base44, headers, config.apiUrl, c, 'DailyCost', 'expense'));

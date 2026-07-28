@@ -140,7 +140,7 @@ export default function BillingContractManager() {
                         )}
                       </div>
                     )}
-                    {releaseMsg && expanded === expandedJob && (
+                    {releaseMsg && expanded && (
                       <div className={`flex items-center gap-1.5 text-xs rounded-lg px-3 py-1.5 ${releaseMsg.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                         <AlertTriangle className="w-3 h-3 flex-shrink-0" /> {releaseMsg.msg}
                       </div>

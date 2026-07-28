@@ -13,15 +13,16 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin') return Response.json({ error: 'Forbidden — admin only' }, { status: 403 });
+    // Scheduled runs arrive without a user session and are trusted; manual
+    // invocations require an admin.
+    const user = await base44.auth.me().catch(() => null);
+    if (user && user.role !== 'admin') return Response.json({ error: 'Forbidden — admin only' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
     const action = ['export', 'test', 'scheduled'].includes(body.action) ? body.action : 'test';
 
     // 1. Load saved Concur config from AppSetting
-    const settings = await base44.entities.AppSetting.filter({ key: 'concur_config' });
+    const settings = await base44.asServiceRole.entities.AppSetting.filter({ key: 'concur_config' });
     const cfg = settings[0]?.value || {};
     const apiUrl = (cfg.api_url || '').replace(/\/$/, '');
     const tokenUrl = (cfg.token_url || '').replace(/\/$/, '');
@@ -96,8 +97,8 @@ export default async function(req: Request): Promise<Response> {
       ...(companyUuid ? { 'Concur-CorrelationId': companyUuid } : {}),
     };
 
-    const approvedCosts = await base44.entities.DailyCost.filter({ status: 'approved' }, '-created_date', 500);
-    const approvedSubcons = await base44.entities.SubcontractorLog.filter({ status: 'approved' }, '-created_date', 500);
+    const approvedCosts = await base44.asServiceRole.entities.DailyCost.filter({ status: 'approved' }, '-created_date', 500);
+    const approvedSubcons = await base44.asServiceRole.entities.SubcontractorLog.filter({ status: 'approved' }, '-created_date', 500);
 
     const exported = [];
     const errors = [];
@@ -128,7 +129,7 @@ export default async function(req: Request): Promise<Response> {
         }
         const data = await res.json().catch(() => ({}));
         const concurId = data.ID || data.id || data.uri || `sent-${c.id}`;
-        await base44.entities.DailyCost.update(c.id, {
+        await base44.asServiceRole.entities.DailyCost.update(c.id, {
           status: 'synced_to_concur',
           concur_export_id: concurId,
           synced_at: now,
@@ -163,7 +164,7 @@ export default async function(req: Request): Promise<Response> {
         }
         const data = await res.json().catch(() => ({}));
         const concurId = data.ID || data.id || data.uri || `sent-${s.id}`;
-        await base44.entities.SubcontractorLog.update(s.id, {
+        await base44.asServiceRole.entities.SubcontractorLog.update(s.id, {
           status: 'synced',
           concur_export_id: concurId,
           synced_at: now,
@@ -176,7 +177,7 @@ export default async function(req: Request): Promise<Response> {
 
     if (action === 'scheduled' && settings[0]?.id) {
       try {
-        await base44.entities.AppSetting.update(settings[0].id, {
+        await base44.asServiceRole.entities.AppSetting.update(settings[0].id, {
           value: { ...cfg, last_auto_sync_at: now },
         });
       } catch (_) { /* non-fatal — audit still captured by export itself */ }
