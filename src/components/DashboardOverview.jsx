@@ -13,6 +13,8 @@ import { FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/Dashboard
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
 import ExecutiveSnapshotWidget from '@/components/dashboard/ExecutiveSnapshotWidget';
 import JobAssetsWidget from '@/components/dashboard/JobAssetsWidget';
+import GeotechnicalHeatmapWidget from '@/components/dashboard/GeotechnicalHeatmapWidget';
+import UnbilledLiabilityWidget from '@/components/dashboard/UnbilledLiabilityWidget';
 import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
 import EfficiencySnapshotWidget from '@/components/dashboard/EfficiencySnapshotWidget';
 import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
@@ -119,6 +121,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'executive-snapshot': return <ExecutiveSnapshotWidget onNavigate={onNavigate} />;
       case 'delivery-stats': return <DeliveryStats onNavigate={onNavigate} onSelectJob={openJobDrawer} jobs={scopedJobs} />;
       case 'compliance-overview': return <ComplianceOverviewWidget onNavigate={onNavigate} />;
+      case 'geo-heatmap': return <GeotechnicalHeatmapWidget />;
+      case 'unbilled-wip': return canViewCosts ? <UnbilledLiabilityWidget /> : null;
       case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={scopedJobs} vehicles={vehicles} onSelectJob={openJobDrawer} onNavigate={onNavigate} />;
       case 'charts': return <ChartsWidget jobs={scopedJobs} staff={staff} rotas={scopedRotas} weekDays={weekDays} />;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;

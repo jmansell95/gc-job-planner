@@ -1,4 +1,4 @@
-import { Truck, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Boxes, Sparkles, TrendingUp, HardHat, Activity, LayoutDashboard } from 'lucide-react';
+import { Truck, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Boxes, Sparkles, TrendingUp, HardHat, Activity, LayoutDashboard, MapPin, FileClock } from 'lucide-react';
 
 export const WIDGET_REGISTRY = {
   'executive-snapshot': { title: 'Executive Snapshot', icon: LayoutDashboard },
@@ -12,6 +12,8 @@ export const WIDGET_REGISTRY = {
   'job-profitability': { title: 'Job Profitability', icon: PoundSterling },
   'efficiency-snapshot': { title: 'Efficiency Snapshot', icon: TrendingUp },
   'rig-profitability': { title: 'Rig Profitability', icon: HardHat },
+  'geo-heatmap': { title: 'Geotechnical Risk', icon: MapPin },
+  'unbilled-wip': { title: 'Unbilled WIP', icon: FileClock },
 };
 
 export const DEFAULT_WIDGET_ORDER = [
@@ -23,6 +25,8 @@ export const DEFAULT_WIDGET_ORDER = [
   'efficiency-snapshot',
   'job-profitability',
   'rig-profitability',
+  'unbilled-wip',
+  'geo-heatmap',
   'ai-insights',
   'compliance-overview',
   'maintenance-quick-view',
@@ -33,8 +37,8 @@ export const DEFAULT_WIDGET_ORDER = [
 // (global-only widgets are hidden when a specific job is focused) and by cost
 // permission, so empty sections automatically collapse out of view.
 export const DASHBOARD_SECTIONS = [
-  { id: 'overview', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'job-assets', 'delivery-stats'] },
-  { id: 'performance', label: 'Performance & Financials', icon: TrendingUp, widgets: ['charts', 'efficiency-snapshot', 'job-profitability', 'rig-profitability', 'ai-insights'] },
+  { id: 'overview', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'job-assets', 'delivery-stats', 'geo-heatmap'] },
+  { id: 'performance', label: 'Performance & Financials', icon: TrendingUp, widgets: ['charts', 'efficiency-snapshot', 'job-profitability', 'rig-profitability', 'unbilled-wip', 'ai-insights'] },
   { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'maintenance-quick-view'] },
 ];
 
@@ -55,21 +59,23 @@ export const DEFAULT_WIDGET_SIZES = {
   'job-profitability': 'lg',
   'efficiency-snapshot': 'md',
   'rig-profitability': 'lg',
+  'geo-heatmap': 'md',
+  'unbilled-wip': 'md',
 };
 
 // Widgets that require costing permission (admin / manager only).
-export const COST_WIDGETS = ['job-profitability', 'efficiency-snapshot', 'rig-profitability'];
+export const COST_WIDGETS = ['job-profitability', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip'];
 
 // Widgets that show company-wide data (not specific to a job). These are hidden
 // when the dashboard is focused on a single job, since they don't reflect that
 // job's data. The remaining widgets already scope themselves via JobFilterContext.
-export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview', 'maintenance-quick-view', 'ai-insights'];
+export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview', 'maintenance-quick-view', 'ai-insights', 'geo-heatmap', 'unbilled-wip'];
 
 // View profiles — quick-toggle scopes that surface only the widgets relevant to
 // one focus area, cutting scroll depth. Applied as an allow-list on top of the
 // user's saved widget order (saved customisation still respected within a profile).
 export const VIEW_PROFILES = [
-  { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'job-assets', 'delivery-stats'] },
-  { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['executive-snapshot', 'efficiency-snapshot', 'job-profitability', 'rig-profitability', 'charts'] },
-  { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['executive-snapshot', 'compliance-overview', 'maintenance-quick-view'] },
+  { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'job-assets', 'delivery-stats', 'geo-heatmap'] },
+  { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['executive-snapshot', 'efficiency-snapshot', 'job-profitability', 'rig-profitability', 'unbilled-wip', 'charts'] },
+  { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['executive-snapshot', 'compliance-overview', 'maintenance-quick-view', 'geo-heatmap'] },
 ];

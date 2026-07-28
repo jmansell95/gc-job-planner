@@ -309,6 +309,17 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
     try {
       const rig = (siteAssets || []).find(a => a.id === rigId);
       if (!rig) return;
+      // Tooling-to-Rig lockdown: validate the rig + all linked gear compliance
+      // before allowing assignment. Hard-stop if any required tooling is expired.
+      try {
+        const check = await base44.functions.invoke('validateRigTooling', { rig_id: rigId });
+        if (check.data && check.data.blocked && check.data.blocked.length > 0) {
+          const blockedList = check.data.blocked.map(b => `• ${b.name}: ${b.reason}`).join('\n');
+          alert(`This rig cannot be assigned — compliance hard-lock:\n\n${blockedList}\n\nResolve the expired/inactive tooling on the Rig Hub before adding this rig to a job.`);
+          setAddingRigGear(false);
+          return;
+        }
+      } catch (valErr) { console.error('Rig tooling validation failed:', valErr); }
       const gear = (rig.linked_equipment_ids || []).map(id => (siteAssets || []).find(a => a.id === id)).filter(Boolean);
       // Pull the day rate from Our Rate Card; gear items are £0 (included in the rig rate)
       const rateCardItem = matchRigRateCard(rig);

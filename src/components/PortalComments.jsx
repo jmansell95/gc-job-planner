@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { MessageSquare, Send } from 'lucide-react';
+import { MessageSquare, Send, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function PortalComments({ token, comments }) {
@@ -41,7 +41,13 @@ export default function PortalComments({ token, comments }) {
           <div className="space-y-3 mb-4">
             {localComments.map((c, i) => (
               <div key={i} className={`flex ${c.is_client ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-lg px-4 py-2.5 ${c.is_client ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-800'}`}>
+                <div className={`max-w-[80%] rounded-lg px-4 py-2.5 ${c.is_system_milestone ? 'bg-emerald-50 border border-emerald-200 text-emerald-900' : c.is_client ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-800'}`}>
+                  {c.is_system_milestone && (
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">Verified Milestone</span>
+                    </div>
+                  )}
                   <p className="text-sm">{c.message}</p>
                   <p className={`text-[10px] mt-1 ${c.is_client ? 'text-emerald-100' : 'text-slate-400'}`}>
                     {c.author_name} · {c.created_date ? format(new Date(c.created_date), 'dd MMM HH:mm') : ''}
