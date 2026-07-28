@@ -18,7 +18,7 @@ export default async function(req: Request): Promise<Response> {
     if (user.role !== 'admin') return Response.json({ error: 'Forbidden — admin only' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
-    const action = body.action === 'export' ? 'export' : 'test';
+    const action = ['export', 'test', 'scheduled'].includes(body.action) ? body.action : 'test';
 
     // 1. Load saved Concur config from AppSetting
     const settings = await base44.entities.AppSetting.filter({ key: 'concur_config' });
@@ -36,6 +36,26 @@ export default async function(req: Request): Promise<Response> {
         ok: false,
         message: 'No API credentials configured — enter your SAP Concur client ID, secret and token URL in Settings to connect.',
       }, { status: 400 });
+    }
+
+    // Scheduled mode — respect the auto-sync toggle and the configured cadence
+    if (action === 'scheduled') {
+      if (cfg.auto_sync_enabled === false) {
+        return Response.json({ ok: true, skipped: true, reason: 'auto-sync disabled' });
+      }
+      const last = cfg.last_auto_sync_at ? new Date(cfg.last_auto_sync_at) : null;
+      const nowDate = new Date();
+      const freq = cfg.sync_frequency || 'weekly';
+      const dayMs = 24 * 3600 * 1000;
+      let due = true;
+      if (last) {
+        if (freq === 'daily') due = (nowDate - last) > 23 * 3600 * 1000;
+        else if (freq === 'weekly') due = (nowDate - last) > 6 * dayMs;
+        else if (freq === 'monthly') due = (nowDate - last) > 27 * dayMs;
+      }
+      if (!due) {
+        return Response.json({ ok: true, skipped: true, reason: `not due (${freq}) — last sync ${cfg.last_auto_sync_at}` });
+      }
     }
 
     // 2. Authenticate (OAuth2 client-credentials grant)
@@ -154,6 +174,13 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
+    if (action === 'scheduled' && settings[0]?.id) {
+      try {
+        await base44.entities.AppSetting.update(settings[0].id, {
+          value: { ...cfg, last_auto_sync_at: now },
+        });
+      } catch (_) { /* non-fatal — audit still captured by export itself */ }
+    }
     return Response.json({
       ok: true,
       batch_id: batchId,
