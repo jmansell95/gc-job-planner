@@ -40,6 +40,29 @@
       ],
       "default": "pending",
       "description": "Approval status"
+    },
+    "bob_request_id": {
+      "type": "string",
+      "description": "Bob HR (Hibob) time-off request ID \u2014 set when this absence is synced to/from Bob HR. Used to prevent duplicate sync and to link reconciliation."
+    },
+    "bob_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "synced",
+        "error"
+      ],
+      "default": "pending",
+      "description": "Bob HR sync status. 'pending' = not yet pushed to Bob, 'synced' = confirmed in Bob HR, 'error' = last push failed."
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "bob_hr"
+      ],
+      "default": "manual",
+      "description": "Where this absence originated. 'manual' = created in this app, 'bob_hr' = pulled from Bob HR via sync."
     }
   },
   "required": [

@@ -15,6 +15,7 @@ export const settingsGroups = [
       { id: 'teams', label: 'Crew Types', icon: Users, desc: 'Manage everything about each crew type — capabilities, qualifications, revenue, assets & roster' },
       { id: 'access-levels', label: 'Access Levels', icon: ShieldCheck, desc: 'Define permission groups (read-only, full access, custom) and assign them to crew types', roles: ['admin'] },
       { id: 'absences', label: 'Absences', icon: CalendarX, desc: 'Approve leave and recurring days off' },
+      { id: 'bob-hr', label: 'Bob HR Sync', icon: Users, desc: 'Bidirectional time-off bridge with Bob HR (Hibob) — pull & push leave, webhook receiver for real-time events', roles: ['admin'] },
     ],
   },
   {
