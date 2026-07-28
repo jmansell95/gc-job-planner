@@ -180,7 +180,7 @@ export default async function(req: Request): Promise<Response> {
         date: log.date,
         log_type: log.log_type,
         borehole_ref: log.borehole_ref || '',
-        description: desc,
+        description: displayDesc,
         staff_name: log.staff_name || log.completed_by_name || '',
         logged_by_role: log.logged_by_role || 'unspecified',
         rate_card_item_id: bestMatch.id,
