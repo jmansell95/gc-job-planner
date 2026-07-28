@@ -144,7 +144,7 @@ export default async function(req: Request): Promise<Response> {
     // Persist last reconcile timestamp in scheduled mode
     if (action === 'scheduled' && config.settingsId) {
       try {
-        await base44.entities.AppSetting.update(config.settingsId, {
+        await base44.asServiceRole.entities.AppSetting.update(config.settingsId, {
           value: { ...config.cfg, last_auto_reconcile_at: new Date().toISOString() },
         });
       } catch (_) { /* non-fatal */ }
