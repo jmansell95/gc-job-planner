@@ -145,7 +145,12 @@ export default function AGSImportSettings() {
                 <span className="font-semibold">{result.counts.remarks}</span> driller activities parsed from remarks — pending review in the Site Logs tab. Approve them to generate the timesheet.
               </p>
             )}
-            {result.job_reference && (
+            {result.created_job && (
+              <p className="text-xs text-amber-700 pt-1 font-semibold">
+                No matching job was found — a new job "{result.job_name}" was created from this AGS file{result.job_reference ? <> (ref: <span className="font-mono">{result.job_reference}</span>)</> : null}.
+              </p>
+            )}
+            {result.job_reference && !result.created_job && (
               <p className="text-xs text-emerald-700 pt-1">Matched job reference: <span className="font-mono font-semibold">{result.job_reference}</span></p>
             )}
             {result.groups && Object.keys(result.groups).length > 0 && (
