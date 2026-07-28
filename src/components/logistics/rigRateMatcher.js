@@ -13,20 +13,25 @@
  * 3. Rotary rigs — matched by model number in name (205, 300, 405), else first Rotary Crew
  * 4. Falls back to null (no price — Asset Panda is for inventory only, not pricing)
  */
-export function findRigRateCardItem(rigAsset, rateCardItems = []) {
+export function findRigRateCardItem(rigAsset, rateCardItems = [], projectId = null) {
   if (!rigAsset) return null;
 
   const rigType = rigAsset.rig_type;
   const desc = String(rigAsset.name || '').toLowerCase();
   const isCutdown = /cut\s*down|cutdown/i.test(desc);
 
-  // Rig crew day rates live under subcategory 'Labour' in Our Rate Card
-  // (rate_card_source !== 'supplier'). Only entries with a numeric price are usable.
-  const labourRates = (rateCardItems || []).filter(
-    (r) => r.rate_card_source !== 'supplier' &&
+  // Project-scoped rates take precedence — when a job belongs to a project with
+  // its own rate card (e.g. EWR), prefer those items, then fall back to the
+  // global Master Price List so unmatched rigs still resolve.
+  const projectItems = projectId
+    ? (rateCardItems || []).filter((r) => r.project_id === projectId && r.price != null && !Number.isNaN(Number(r.price)))
+    : [];
+  const globalLabour = (rateCardItems || []).filter(
+    (r) => !r.project_id && r.rate_card_source !== 'supplier' &&
            String(r.subcategory || '').toLowerCase() === 'labour' &&
            r.price != null && !Number.isNaN(Number(r.price))
   );
+  const labourRates = projectItems.length > 0 ? [...projectItems, ...globalLabour] : globalLabour;
 
   // 1. Window Sampling rigs (Modular / Tracked / Terrier) — checked BEFORE CP,
   //    since "Dando Terrier" contains "dando" which would otherwise match CP.
@@ -101,17 +106,21 @@ export function rigFallbackDayRate(rigAsset) {
  * - Rigs delegate to findRigRateCardItem (keyword / model-number matching).
  * - Other assets match by description against our company rate card entries.
  */
-export function findOwnedAssetRateCardItem(asset, rateCardItems = []) {
+export function findOwnedAssetRateCardItem(asset, rateCardItems = [], projectId = null) {
   if (!asset) return null;
 
   // Rigs use the dedicated matcher (crew day rate logic).
   if (asset.is_rig === true || asset.asset_type === 'rig') {
-    return findRigRateCardItem(asset, rateCardItems);
+    return findRigRateCardItem(asset, rateCardItems, projectId);
   }
 
-  const ourRates = (rateCardItems || []).filter(
-    (r) => r.is_active !== false && r.rate_card_source !== 'supplier'
-  );
+  // Project-scoped rates take precedence over the global Master Price List.
+  const projectItems = projectId
+    ? (rateCardItems || []).filter((r) => r.is_active !== false && r.project_id === projectId)
+    : [];
+  const ourRates = projectItems.length > 0
+    ? [...projectItems, ...(rateCardItems || []).filter((r) => r.is_active !== false && !r.project_id && r.rate_card_source !== 'supplier')]
+    : (rateCardItems || []).filter((r) => r.is_active !== false && r.rate_card_source !== 'supplier');
   if (ourRates.length === 0) return null;
 
   const norm = (s) => String(s || '').toLowerCase().trim();
@@ -146,10 +155,10 @@ export function findOwnedAssetRateCardItem(asset, rateCardItems = []) {
  * Returns { cost, unit, rateCardItem, source } where source is
  * 'rate-card' | 'none'.
  */
-export function resolveAssetPrice(asset, rateCardItems = []) {
+export function resolveAssetPrice(asset, rateCardItems = [], projectId = null) {
   if (!asset) return { cost: 0, unit: 'day', rateCardItem: null, source: 'none' };
 
-  const rc = findOwnedAssetRateCardItem(asset, rateCardItems);
+  const rc = findOwnedAssetRateCardItem(asset, rateCardItems, projectId);
   if (rc && rc.price != null) {
     return { cost: Number(rc.price) || 0, unit: rc.unit || 'day', rateCardItem: rc, source: 'rate-card' };
   }

@@ -8,6 +8,7 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SORRateCardManager from '@/components/SORRateCardManager';
+import ProjectRateCardManager from '@/components/ProjectRateCardManager';
 
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -360,6 +361,26 @@ export default function RateCardManager() {
     setCloning(false);
   };
 
+  if (viewMode === 'project') {
+    return (
+      <div className="space-y-4">
+        <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (day rates, labour, plant) and Drilling SOR (meterage & investigation rates)" />
+        <div className="flex gap-1.5 bg-slate-100 p-1 rounded-lg w-fit">
+          <button onClick={() => setViewMode('master')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
+            Master Price List
+          </button>
+          <button onClick={() => setViewMode('sor')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
+            Drilling SOR 2026
+          </button>
+          <button onClick={() => setViewMode('project')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
+            Project Rate Cards
+          </button>
+        </div>
+        <ProjectRateCardManager />
+      </div>
+    );
+  }
+
   if (viewMode === 'sor') {
     return (
       <div className="space-y-4">
@@ -370,6 +391,9 @@ export default function RateCardManager() {
           </button>
           <button onClick={() => setViewMode('sor')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
             Drilling SOR 2026
+          </button>
+          <button onClick={() => setViewMode('project')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
+            Project Rate Cards
           </button>
         </div>
         <SORRateCardManager />
@@ -386,6 +410,9 @@ export default function RateCardManager() {
         </button>
         <button onClick={() => setViewMode('sor')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
           Drilling SOR 2026
+        </button>
+        <button onClick={() => setViewMode('project')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
+          Project Rate Cards
         </button>
       </div>
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
