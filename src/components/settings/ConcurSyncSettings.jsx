@@ -35,6 +35,29 @@ export default function ConcurSyncSettings() {
   const [testResult, setTestResult] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [exportResult, setExportResult] = useState(null);
+  const [reconciling, setReconciling] = useState(false);
+  const [reconResult, setReconResult] = useState(null);
+
+  const handleReconcile = async () => {
+    setReconciling(true);
+    setReconResult(null);
+    try {
+      const res = await base44.functions.invoke('importConcurReconciliation', { action: 'reconcile' });
+      const d = res.data || {};
+      setReconResult({
+        ok: !!d.ok,
+        msg: d.message || d.error || 'Reconciliation complete',
+        checked: d.checked || 0,
+        reconciled: d.reconciled || 0,
+        missing: d.missing_in_concur || 0,
+        errors: d.errors || 0,
+      });
+      queryClient.invalidateQueries({ queryKey: ['daily-costs-synced-concur'] });
+    } catch (e) {
+      setReconResult({ ok: false, msg: e.message || 'Reconciliation failed' });
+    }
+    setReconciling(false);
+  };
 
   // Load saved config from AppSetting on mount
   const { data: settingsRec, isLoading: loadingSettings } = useQuery({
@@ -247,6 +270,33 @@ export default function ConcurSyncSettings() {
           <div className={`mt-3 flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${exportResult.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
             <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
             <p>{exportResult.msg}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Reverse sync — reconcile exports back from Concur */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <ArrowDownToLine className="w-4 h-4 text-[#2E5A1A]" />
+          <h3 className="text-sm font-bold text-slate-800">Reverse Sync (Reconciliation)</h3>
+          <span className="ml-auto text-xs text-slate-400">Pull report IDs & GL updates back from Concur</span>
+        </div>
+        <p className="text-xs text-slate-500 mb-3">Verifies each exported record landed in Concur, captures the Concur report ID and approval status, and pulls back any GL code Concur reassigned. Traces each expense to its Concur report.</p>
+        <button onClick={handleReconcile} disabled={!config.client_id || reconciling}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-bold hover:bg-[#1c4a12] disabled:opacity-40 transition">
+          {reconciling ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowDownToLine className="w-4 h-4" />} Reconcile from SAP Concur
+        </button>
+        {!config.client_id && <p className="text-[11px] text-amber-600 mt-2 text-center">Connect your API credentials first to enable reconciliation.</p>}
+        {reconResult && (
+          <div className={`mt-3 rounded-lg px-3 py-2 text-xs ${reconResult.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+            <p className="flex items-start gap-2"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> {reconResult.msg}</p>
+            {reconResult.ok && reconResult.checked > 0 && (
+              <div className="grid grid-cols-3 gap-2 mt-2 text-center">
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Checked</p><p className="font-bold text-slate-700 tabular-nums">{reconResult.checked}</p></div>
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Reconciled</p><p className="font-bold text-emerald-700 tabular-nums">{reconResult.reconciled}</p></div>
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Missing</p><p className="font-bold text-amber-700 tabular-nums">{reconResult.missing}</p></div>
+              </div>
+            )}
           </div>
         )}
       </div>
