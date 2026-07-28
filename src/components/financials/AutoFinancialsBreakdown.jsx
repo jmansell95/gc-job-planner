@@ -7,6 +7,7 @@ import {
   CheckCircle2, XCircle, Target, Gauge, Truck, Save, Check, Ruler,
   HardHat
 } from 'lucide-react';
+import BoreholeRevenueTable from '@/components/financials/BoreholeRevenueTable';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-[#2E5A1A] text-sm";
@@ -377,33 +378,14 @@ export default function AutoFinancialsBreakdown({ job }) {
         </div>
       </div>
 
-      {/* === Per-borehole revenue === */}
+      {/* === Per-Borehole Depth-Banded Revenue === */}
       {data.borehole_revenue?.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <button onClick={() => setShowBoreholes(!showBoreholes)} className="w-full px-4 py-3 border-b border-slate-100 flex items-center gap-2 text-left hover:bg-slate-50/50 transition">
-            {showBoreholes ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
-            <Mountain className="w-4 h-4 text-blue-600" />
-            <h3 className="text-sm font-semibold text-slate-800">Per-Borehole Revenue</h3>
-            <span className="ml-auto text-xs text-slate-400">{data.borehole_revenue.length} boreholes · {dp.total_metres?.toFixed(1)}m · {fmt(s.meterage_revenue)}</span>
-          </button>
-          {showBoreholes && (
-            <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
-              {data.borehole_revenue.map(b => (
-                <div key={b.borehole_ref} className="px-4 py-2.5 flex items-center gap-3">
-                  <span className="font-mono text-xs font-bold text-slate-700 flex-shrink-0 w-24 truncate">{b.borehole_ref}</span>
-                  <MethodBadge method={b.method} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-slate-400 truncate">{b.rate_description}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold text-slate-900 tabular-nums">{fmt(b.revenue)}</p>
-                    <p className="text-[10px] text-slate-400">{b.metres.toFixed(1)}m × {fmt(b.rate_per_metre)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <BoreholeRevenueTable
+          boreholeRevenue={data.borehole_revenue}
+          drillingRateCard={data.drilling_rate_card}
+          totalMetres={dp.total_metres}
+          meterageRevenue={s.meterage_revenue}
+        />
       )}
 
       {/* === Budget vs Cost === */}

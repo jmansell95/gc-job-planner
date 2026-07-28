@@ -100,22 +100,51 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
-    // ── Per-metre drilling rate from the rate card ──
-    // Find "Advance borehole" (CP) or "Rotary drill" (Rotary) rate card items
-    // with unit = 'm', filtered by the subcategory prefix for the drilling method.
+    // ── Depth-banded drilling rate parser ──
+    // EWR/Phenna rate cards price per-metre drilling by depth band AND diameter:
+    //   "4 — Advance borehole between existing ground level and 10m depth 150mm"  → 0–10m, 150mm
+    //   "5 — As Item B4 but between 10m and 20m depth 150mm"                        → 10–20m, 150mm
+    // This parses those descriptions into structured bands for exact per-band pricing.
+    interface DepthBandedRate {
+      depth_from: number; depth_to: number; diameter: number;
+      price: number; description: string; id: string; source: string;
+    }
+    const parseDepthBandedRates = (pool: RateCardItemLike[], methodPrefix: string, source: string): DepthBandedRate[] => {
+      if (!pool || pool.length === 0) return [];
+      const banded = pool.filter(i =>
+        i.unit === 'm' &&
+        i.price != null && !isNaN(Number(i.price)) &&
+        String(i.subcategory || '').includes(methodPrefix) &&
+        /advance borehole|as item b\d|rotary drill/i.test(i.description) &&
+        !/backfill|standpipe|install|grout|piezo|inclined|extra over|setting up|standing|break out/i.test(i.description)
+      );
+      const rates: DepthBandedRate[] = [];
+      for (const i of banded) {
+        const d = String(i.description || '');
+        let m = d.match(/between\s+(\d+)m\s+and\s+(\d+)m\s+depth\s+(\d+)mm/i);
+        if (m) { rates.push({ depth_from: +m[1], depth_to: +m[2], diameter: +m[3], price: Number(i.price), description: i.description, id: i.id, source }); continue; }
+        m = d.match(/between existing ground level and\s+(\d+)m\s+depth\s+(\d+)mm/i);
+        if (m) { rates.push({ depth_from: 0, depth_to: +m[1], diameter: +m[2], price: Number(i.price), description: i.description, id: i.id, source }); continue; }
+        m = d.match(/less than\s+(\d+)m.*?(\d+)mm/i);
+        if (m) { rates.push({ depth_from: 0, depth_to: +m[1], diameter: +m[2], price: Number(i.price), description: i.description, id: i.id, source }); continue; }
+      }
+      const seen = new Set<string>();
+      return rates.filter(r => {
+        const key = `${r.depth_from}-${r.depth_to}-${r.diameter}`;
+        if (seen.has(key)) return false;
+        seen.add(key); return true;
+      }).sort((a, b) => a.depth_from - b.depth_from || a.diameter - b.diameter);
+    };
+
+    // Single-rate fallback (for rate cards without depth bands)
     const findPerMetreDrillingRate = (method: string, pool: RateCardItemLike[]): RateCardItemLike | null => {
       if (!pool || pool.length === 0) return null;
       const methodPrefix = method === 'rotary' ? 'Rotary Drilling' : 'CP Drilling';
-      // Filter to per-metre items in the correct drilling section
       const perMetre = pool.filter(i =>
-        i.unit === 'm' &&
-        i.price != null &&
-        !isNaN(Number(i.price)) &&
+        i.unit === 'm' && i.price != null && !isNaN(Number(i.price)) &&
         String(i.subcategory || '').includes(methodPrefix)
       );
       if (perMetre.length === 0) return null;
-      // Prefer the "advance borehole" or "rotary drill" description (the main drilling rate),
-      // specifically the shallowest depth band (first item, since they're sorted by sort_order)
       const advance = perMetre.filter(i =>
         /advance borehole|rotary drill/i.test(i.description) &&
         !/backfill|standpipe|install|grout|piezo|inclined|extra over/i.test(i.description)
@@ -123,7 +152,16 @@ export default async function(req: Request): Promise<Response> {
       return advance[0] || perMetre[0];
     };
 
-    // Get the per-metre rate for each method (try project first, then global)
+    // Build depth-banded rate tables (project first, then global fills gaps)
+    const cpBandedRates: DepthBandedRate[] = [
+      ...parseDepthBandedRates(projectRateItems, 'CP Drilling', 'project'),
+      ...parseDepthBandedRates(globalItems, 'CP Drilling', 'global'),
+    ];
+    const rotaryBandedRates: DepthBandedRate[] = [
+      ...parseDepthBandedRates(projectRateItems, 'Rotary Drilling', 'project'),
+      ...parseDepthBandedRates(globalItems, 'Rotary Drilling', 'global'),
+    ];
+
     const cpPerMetreRate = job.meterage_rate && jobDrillingMethod !== 'rotary'
       ? { price: Number(job.meterage_rate), description: 'Job metre rate', unit: 'm', source: 'job', id: '' }
       : (findPerMetreDrillingRate('cp', projectRateItems) || findPerMetreDrillingRate('cp', globalItems));
@@ -158,8 +196,25 @@ export default async function(req: Request): Promise<Response> {
       window_sampling: ['window sampling', 'window sample', 'dynamic sampling'],
     };
 
-    // Per-borehole meterage tracking
-    const bhMap: Record<string, { borehole_ref: string; metres: number; entries: number; method: string }> = {};
+    // Per-borehole meterage tracking (with depth-band split)
+    // Default drilling diameter: 150mm for CP (standard SI borehole), 100mm for rotary core
+    const DEFAULT_CP_DIAMETER = 150;
+    const DEFAULT_ROTARY_DIAMETER = 100;
+    const splitDepthIntoBands = (dFrom: number, dTo: number, bandSize = 10): Record<string, number> => {
+      const bands: Record<string, number> = {};
+      let bandStart = Math.floor(dFrom / bandSize) * bandSize;
+      while (bandStart < dTo) {
+        const segFrom = Math.max(bandStart, dFrom);
+        const segTo = Math.min(bandStart + bandSize, dTo);
+        if (segTo > segFrom) {
+          const key = `${bandStart}-${bandStart + bandSize}`;
+          bands[key] = Math.round(((bands[key] || 0) + (segTo - segFrom)) * 100) / 100;
+        }
+        bandStart += bandSize;
+      }
+      return bands;
+    };
+    const bhMap: Record<string, { borehole_ref: string; metres: number; entries: number; method: string; band_metres: Record<string, number> }> = {};
 
     for (const log of logs) {
       let quantity = 1;
@@ -173,14 +228,17 @@ export default async function(req: Request): Promise<Response> {
         quantity = Number(log.units_completed);
       }
 
-      // Track per-borehole meterage
+      // Track per-borehole meterage (with depth-band split)
       const ref = log.borehole_ref || 'Unspecified';
-      if (!bhMap[ref]) bhMap[ref] = { borehole_ref: ref, metres: 0, entries: 0, method: boreholeMethodMap[ref] || jobDrillingMethod === 'mixed' ? '' : jobDrillingMethod };
+      if (!bhMap[ref]) bhMap[ref] = { borehole_ref: ref, metres: 0, entries: 0, method: boreholeMethodMap[ref] || (jobDrillingMethod === 'mixed' ? '' : jobDrillingMethod), band_metres: {} };
       if (dTo > dFrom && (log.log_type === 'borehole_progress' || log.log_type === 'core_inspection')) {
         bhMap[ref].metres = Math.round((bhMap[ref].metres + (dTo - dFrom)) * 100) / 100;
+        const bands = splitDepthIntoBands(dFrom, dTo);
+        for (const [k, v] of Object.entries(bands)) {
+          bhMap[ref].band_metres[k] = Math.round(((bhMap[ref].band_metres[k] || 0) + v) * 100) / 100;
+        }
       }
       bhMap[ref].entries++;
-      // Set method on the borehole
       if (boreholeMethodMap[ref]) bhMap[ref].method = boreholeMethodMap[ref];
 
       // ── SOR line matching (non-drilling-advance activities) ──
@@ -234,12 +292,19 @@ export default async function(req: Request): Promise<Response> {
       });
     }
 
-    // ── Per-borehole meterage revenue ──
-    // For each borehole: metres × per-metre rate (by drilling method)
+    // ── Per-borehole meterage revenue (depth-banded) ──
+    // For each borehole: split drilled depth into 10m bands, match each band
+    // to the correct depth/diameter rate card item, sum per-band revenue.
+    const meterageRate = Number(job.meterage_rate) || 0;
+    interface BoreholeBand {
+      depth_from: number; depth_to: number; diameter: number;
+      metres: number; rate_per_metre: number; rate_description: string; rate_source: string;
+      revenue: number;
+    }
     interface BoreholeRevenue {
       borehole_ref: string; method: string; metres: number; entries: number;
       rate_per_metre: number; rate_description: string; rate_source: string;
-      revenue: number;
+      revenue: number; bands: BoreholeBand[];
     }
     const boreholeRevenue: BoreholeRevenue[] = [];
     let totalMeterageRevenue = 0;
@@ -247,17 +312,69 @@ export default async function(req: Request): Promise<Response> {
       const bh = bhMap[ref];
       if (bh.metres <= 0) continue;
       const method = bh.method || (jobDrillingMethod === 'mixed' ? 'cp' : jobDrillingMethod);
-      const rateItem = method === 'rotary' ? rotaryPerMetreRate : cpPerMetreRate;
-      const ratePerM = rateItem ? Number(rateItem.price) : 0;
-      const revenue = Math.round(bh.metres * ratePerM * 100) / 100;
-      totalMeterageRevenue += revenue;
+
+      // If job has a fixed meterage_rate, use the simple single-rate calculation
+      if (meterageRate > 0) {
+        const revenue = Math.round(bh.metres * meterageRate * 100) / 100;
+        totalMeterageRevenue += revenue;
+        boreholeRevenue.push({
+          borehole_ref: bh.borehole_ref, method, metres: bh.metres, entries: bh.entries,
+          rate_per_metre: meterageRate, rate_description: 'Job metre rate', rate_source: 'job',
+          revenue, bands: [{ depth_from: 0, depth_to: Math.ceil(bh.metres / 10) * 10, diameter: 0, metres: bh.metres, rate_per_metre: meterageRate, rate_description: 'Job metre rate', rate_source: 'job', revenue }],
+        });
+        continue;
+      }
+
+      const bandedRates = method === 'rotary' ? rotaryBandedRates : cpBandedRates;
+
+      // If no banded rates found, fall back to single rate
+      if (bandedRates.length === 0) {
+        const rateItem = method === 'rotary' ? rotaryPerMetreRate : cpPerMetreRate;
+        const ratePerM = rateItem ? Number(rateItem.price) : 0;
+        const revenue = Math.round(bh.metres * ratePerM * 100) / 100;
+        totalMeterageRevenue += revenue;
+        boreholeRevenue.push({
+          borehole_ref: bh.borehole_ref, method, metres: bh.metres, entries: bh.entries,
+          rate_per_metre: ratePerM, rate_description: rateItem ? rateItem.description : 'No rate found',
+          rate_source: rateItem ? rateItem.source || 'rate_card' : 'no_match',
+          revenue, bands: [{ depth_from: 0, depth_to: Math.ceil(bh.metres / 10) * 10, diameter: 0, metres: bh.metres, rate_per_metre: ratePerM, rate_description: rateItem ? rateItem.description : 'No rate found', rate_source: rateItem ? (rateItem.source || 'rate_card') : 'no_match', revenue }],
+        });
+        continue;
+      }
+
+      // Depth-banded calculation: split drilled depth into 10m bands and match each
+      const defaultDiameter = method === 'rotary' ? DEFAULT_ROTARY_DIAMETER : DEFAULT_CP_DIAMETER;
+      const bands: BoreholeBand[] = [];
+      let bhRevenue = 0;
+      let bhRatePerM = 0;
+      let bhRateDesc = 'No rate found';
+      let bhRateSource = 'no_match' as string;
+
+      for (const [bandKey, bandMetres] of Object.entries(bh.band_metres)) {
+        const [bf, bt] = bandKey.split('-').map(Number);
+        const exactMatch = bandedRates.find(r => r.depth_from === bf && r.depth_to === bt && r.diameter === defaultDiameter);
+        const anyDiameter = bandedRates.find(r => r.depth_from === bf && r.depth_to === bt);
+        const rate = exactMatch || anyDiameter;
+        const ratePerM = rate ? rate.price : 0;
+        const bandRevenue = Math.round(bandMetres * ratePerM * 100) / 100;
+        bhRevenue += bandRevenue;
+        bands.push({
+          depth_from: bf, depth_to: bt,
+          diameter: rate ? rate.diameter : defaultDiameter,
+          metres: bandMetres, rate_per_metre: ratePerM,
+          rate_description: rate ? rate.description : `No rate for ${bf}-${bt}m ${defaultDiameter}mm`,
+          rate_source: rate ? rate.source : 'no_match',
+          revenue: bandRevenue,
+        });
+        if (rate) { bhRatePerM = ratePerM; bhRateDesc = rate.description; bhRateSource = rate.source; }
+      }
+
+      bhRevenue = Math.round(bhRevenue * 100) / 100;
+      totalMeterageRevenue += bhRevenue;
       boreholeRevenue.push({
-        borehole_ref: bh.borehole_ref, method,
-        metres: bh.metres, entries: bh.entries,
-        rate_per_metre: ratePerM,
-        rate_description: rateItem ? rateItem.description : 'No rate found',
-        rate_source: rateItem ? rateItem.source || 'rate_card' : 'no_match',
-        revenue,
+        borehole_ref: bh.borehole_ref, method, metres: bh.metres, entries: bh.entries,
+        rate_per_metre: bhRatePerM, rate_description: bhRateDesc, rate_source: bhRateSource,
+        revenue: bhRevenue, bands,
       });
     }
     boreholeRevenue.sort((a, b) => a.borehole_ref.localeCompare(b.borehole_ref));
@@ -343,7 +460,7 @@ export default async function(req: Request): Promise<Response> {
     const totalRigCost = rigCostRows.reduce((s, r) => s + r.total_cost, 0);
 
     // ── Revenue summary ──
-    const meterageRate = Number(job.meterage_rate) || 0;
+    // meterageRate is defined above (used for per-borehole depth-banded calculations)
     // If job has a meterage_rate, recalculate meterage revenue as total metres × rate
     // (this overrides the per-borehole rate card matching)
     const meterageRevenue = meterageRate > 0 ? Math.round(totalMetres * meterageRate * 100) / 100 : totalMeterageRevenue;
@@ -448,6 +565,10 @@ export default async function(req: Request): Promise<Response> {
       },
       rig_profitability: rigCostRows,
       borehole_revenue: boreholeRevenue,
+      drilling_rate_card: {
+        cp: cpBandedRates.map(r => ({ depth_from: r.depth_from, depth_to: r.depth_to, diameter: r.diameter, price: r.price, description: r.description, source: r.source })),
+        rotary: rotaryBandedRates.map(r => ({ depth_from: r.depth_from, depth_to: r.depth_to, diameter: r.diameter, price: r.price, description: r.description, source: r.source })),
+      },
       rate_card_levels: {
         staff_rates_found: Object.keys(staffRates).filter(k => staffRates[k].length > 0).length,
         project_rates_found: projectRateItems.length,
