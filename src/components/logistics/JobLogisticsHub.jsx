@@ -343,7 +343,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       const payload = [
         { job_id: jobId, category: 'internal_equipment', supplier_id: '', description: rig.name,
           reference_number: rig.serial_number || '', responsible_person: rig.responsible_person || '', site_asset_id: rig.id,
-          rate_card_item_id: rateCardItem?.id || '', po_number: '', start_date: dates.onSiteStart || '', end_date: dates.onSiteEnd || '', unit_cost: rigDayRate,
+          rate_card_item_id: rateCardItem?.id || '', po_number: '', start_date: dates.onSiteStart || job?.start_date || '', end_date: dates.onSiteEnd || job?.end_date || '', unit_cost: rigDayRate,
           quantity: 1, unit_label: rigUnit, vat_exempt: false,
           hire_status: 'active', current_location: 'yard', notes: rateCardItem ? `Day rate from Our Rate Card — includes ${gear.length} linked gear item(s)` : `Day rate from Asset Panda — includes ${gear.length} linked gear item(s)` },
         ...gear.map(g => ({
@@ -365,11 +365,19 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   const updateLocation = async (itemId, newLocation) => {
     setUpdatingIds(prev => new Set(prev).add(itemId));
     try {
+      const item = items.find(i => i.id === itemId);
+      const today = new Date().toISOString().split('T')[0];
       const payload = { current_location: newLocation, location_updated_at: new Date().toISOString() };
+      // When a rig/equipment arrives on site, lock in the start_date so the
+      // financials engine can calculate rig cost from the actual arrival date
+      // (day rate × working days). Without this, cost is £0 or only counts
+      // the single day the location was last changed.
+      if (newLocation === 'site' && item && !item.start_date) {
+        payload.start_date = today;
+      }
       if (newLocation === 'returned') {
-        const item = items.find(i => i.id === itemId);
         payload.hire_status = 'off_hired';
-        payload.off_hire_date = new Date().toISOString().split('T')[0];
+        payload.off_hire_date = today;
         payload.return_destination = item?.supplier_id || 'depot';
       }
       await base44.entities.JobCostItem.update(itemId, payload);
