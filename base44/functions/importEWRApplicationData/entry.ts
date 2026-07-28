@@ -87,20 +87,24 @@ export default async function(req: Request): Promise<Response> {
     if (crewSheetName) {
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[crewSheetName], { header: 1, raw: true, defval: null, blankrows: false });
       debug.crew_raw_rows = rows.length;
+      let lastStart = null, lastEnd = null;
       for (let r = 1; r < rows.length; r++) {
         const row = rows[r];
         if (!row) continue;
         const resourceNames = String(row[1] || '').trim();
         if (!resourceNames || /resource name/i.test(resourceNames)) continue;
-        const start = parseExcelDate(row[2]);
-        const end = parseExcelDate(row[3]);
         const rate = Number(row[5]) || 0;
         const qty = Number(row[6]) || 0;
         const netTotal = Number(row[7]) || 0;
+        // Dates may be in merged cells — carry forward last valid dates
+        const start = parseExcelDate(row[2]) || lastStart;
+        const end = parseExcelDate(row[3]) || lastEnd;
         if (!start || !end) {
-          if (debug.crew_skipped.length < 5) debug.crew_skipped.push({ r, names: resourceNames, raw_start: row[2], raw_end: row[3] });
+          if (debug.crew_skipped.length < 8) debug.crew_skipped.push({ r, names: resourceNames, row: row.slice(0, 10) });
           continue;
         }
+        lastStart = start;
+        lastEnd = end;
         const names = splitNames(resourceNames);
         names.forEach(n => allNames.add(n));
         crewRows.push({ names, start, end, rate, qty, netTotal });
@@ -112,13 +116,16 @@ export default async function(req: Request): Promise<Response> {
     if (accomSheetName) {
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[accomSheetName], { header: 1, raw: true, defval: null, blankrows: false });
       debug.accom_raw_rows = rows.length;
+      let lastStart = null, lastEnd = null;
       for (let r = 1; r < rows.length; r++) {
         const row = rows[r];
         if (!row) continue;
         const name = String(row[1] || '').trim();
         if (!name || /resource name/i.test(name)) continue;
-        const start = parseExcelDate(row[2]);
-        const end = parseExcelDate(row[3]);
+        const start = parseExcelDate(row[2]) || lastStart;
+        const end = parseExcelDate(row[3]) || lastEnd;
+        if (start) lastStart = start;
+        if (end) lastEnd = end;
         const bookingRef = row[4] != null && String(row[4]).trim() !== '' ? String(row[4]).trim() : null;
         const rate = Number(row[5]) || 0;
         const nights = Number(row[6]) || 0;
