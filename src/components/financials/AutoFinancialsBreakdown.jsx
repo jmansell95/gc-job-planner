@@ -286,13 +286,21 @@ export default function AutoFinancialsBreakdown({ job }) {
               {showRigs && (
                 <div className="space-y-1.5">
                   {data.rig_profitability.map((r, i) => (
-                    <div key={i} className={`rounded-lg border px-3 py-2.5 ${r.profit < 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100'}`}>
+                    <div key={i} className={`rounded-lg border px-3 py-2.5 ${r.status === 'assigned' ? 'bg-amber-50 border-amber-200' : r.profit < 0 ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-100'}`}>
                       <div className="flex items-center gap-2 mb-1.5">
                         <Truck className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                         <p className="text-xs font-semibold text-slate-700 truncate">{r.rig_name}</p>
                         <MethodBadge method={r.method} />
-                        <span className="text-[10px] text-slate-400">{r.status}</span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${r.status === 'on_site' ? 'bg-blue-100 text-blue-700' : r.status === 'returned' ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-700'}`}>
+                          {r.status === 'on_site' ? 'On Site' : r.status === 'returned' ? 'Returned' : 'Not on site'}
+                        </span>
                       </div>
+                      {r.arrived_on_site_date && (
+                        <p className="text-[10px] text-slate-500 mb-1.5">On site from {r.arrived_on_site_date}{r.returned_date ? ` → returned ${r.returned_date}` : ''}</p>
+                      )}
+                      {r.status === 'assigned' && (
+                        <p className="text-[10px] text-amber-600 mb-1.5">No costs yet — rig not delivered to site</p>
+                      )}
                       <div className="grid grid-cols-4 gap-2 text-xs">
                         <div>
                           <p className="text-[9px] text-slate-400 uppercase">Day Rate</p>
@@ -314,7 +322,7 @@ export default function AutoFinancialsBreakdown({ job }) {
                       {r.boreholes.length > 0 && (
                         <p className="text-[10px] text-slate-400 mt-1">Boreholes: {r.boreholes.join(', ')}</p>
                       )}
-                      <p className="text-[10px] text-slate-400 mt-0.5">{r.rate_description} · {fmt(r.day_rate)}/day × {r.working_days}d = {fmt(r.total_cost)} cost</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{r.rate_description} · {fmt(r.day_rate)}/day × {r.working_days}d on site = {fmt(r.total_cost)} cost</p>
                     </div>
                   ))}
                 </div>

@@ -407,19 +407,63 @@ export default async function(req: Request): Promise<Response> {
     let labourDayRates: RateCardItemLike[] = [];
     try {
       const allLabour = await base44.asServiceRole.entities.RateCardItem.filter({ category: 'labour', is_active: true }, '-sort_order', 500);
-      labourDayRates = (allLabour || []).filter((r: RateCardItemLike) => r.unit === 'day' && r.price != null && !isNaN(Number(r.price)));
+      labourDayRates = (allLabour || []).filter((r: RateCardItemLike) => r.unit === 'day' && r.price != null && !isNaN(Number(r.price)) && (r as any).rate_card_source !== 'supplier');
     } catch (_) {}
     const autoMatchRigRate = (rigType: string, rigName: string = ''): RateCardItemLike | null => {
-      const name = String(rigName || '').toLowerCase();
-      const wsEntries = labourDayRates.filter(r => (r.subcategory || '').toLowerCase().includes('window sampling'));
-      if (wsEntries.length > 0) {
-        if (/modular/i.test(name)) { const m = wsEntries.find(r => /modular/i.test(r.description) && !/additional/i.test(r.description)); if (m) return m; }
-        if (/tracked|terrier/i.test(name)) { const t = wsEntries.find(r => /tracked/i.test(r.description)); if (t) return t; }
+      const desc = String(rigName || '').toLowerCase();
+      const isCutdown = /cut\s*down|cutdown/i.test(desc);
+      const projectId = job.project_id;
+      // Project-scoped rates take precedence, then fall back to global Master Price List
+      const projectItems = projectId
+        ? labourDayRates.filter((r: RateCardItemLike) => r.project_id === projectId)
+        : [];
+      const globalLabour = labourDayRates.filter((r: RateCardItemLike) =>
+        !r.project_id && (r as any).rate_card_source !== 'supplier' &&
+        String(r.subcategory || '').toLowerCase() === 'labour'
+      );
+      const pool = projectItems.length > 0 ? [...projectItems, ...globalLabour] : globalLabour;
+
+      // 1. Window Sampling rigs (Modular / Tracked / Terrier) — checked before CP
+      if (/modular/i.test(desc)) {
+        const m = pool.find(r => /modular/i.test(r.description) && /window\s*sampling/i.test(r.description) && !/additional/i.test(r.description));
+        if (m) return m;
       }
-      if (rigType === 'rotary') return labourDayRates.find(r => /rotary crew/i.test(r.description)) || null;
-      if (rigType === 'cp') return labourDayRates.find(r => /^cable percussive crew$/i.test((r.description || '').trim())) || null;
+      if (/tracked|terrier/i.test(desc)) {
+        const t = pool.find(r => /tracked/i.test(r.description) && /window\s*sampling/i.test(r.description));
+        if (t) return t;
+      }
+      if (/window\s*sampling/i.test(desc)) {
+        const g = pool.find(r => /window\s*sampling/i.test(r.description) && !/additional/i.test(r.description));
+        if (g) return g;
+      }
+      // 2. CP rigs — cutdown (electric vs diesel) or standard Cable Percussive Crew
+      const looksCp = rigType === 'cp' || ((!rigType || rigType === 'n/a') && (isCutdown || /dando|percussive|cable/i.test(desc)));
+      if (looksCp) {
+        if (isCutdown) {
+          const isElectric = /electric/i.test(desc);
+          const cutdown = pool.find(r => /cutdown/i.test(r.description) && /cable\s*percussive/i.test(r.description) && !/additional/i.test(r.description) && (isElectric ? /electric/i.test(r.description) : /diesel/i.test(r.description)));
+          if (cutdown) return cutdown;
+          const anyCutdown = pool.find(r => /cutdown/i.test(r.description) && /cable\s*percussive/i.test(r.description) && !/additional/i.test(r.description));
+          if (anyCutdown) return anyCutdown;
+        }
+        const cpCrew = pool.find(r => /^cable percussive crew$/i.test(String(r.description || '').trim()));
+        if (cpCrew) return cpCrew;
+      }
+      // 3. Rotary rigs — match by model number in name, else first Rotary Crew
+      if (rigType === 'rotary' || /rotary/i.test(desc)) {
+        const numMatch = desc.match(/(\d{2,4})/);
+        if (numMatch) {
+          const num = numMatch[1];
+          const m = pool.find(r => /rotary\s*crew/i.test(r.description) && String(r.description || '').includes(num) && !/additional|3rd/i.test(r.description));
+          if (m) return m;
+        }
+        const anyRotary = pool.find(r => /rotary\s*crew/i.test(r.description) && !/additional|3rd/i.test(r.description));
+        if (anyRotary) return anyRotary;
+      }
       return null;
     };
+    // Total job working days (Mon–Fri from start to end) — for the drilling
+    // performance summary. Per-rig cost uses delivery-based days (see below).
     const workingDays = (() => {
       if (!job.start_date || !job.end_date) return 0;
       const s = new Date(job.start_date + 'T00:00:00');
@@ -430,31 +474,63 @@ export default async function(req: Request): Promise<Response> {
       return count;
     })();
 
+    // Per-rig working days — counts only from the day the rig arrived on site
+    // (arrived_on_site_date) until it was returned (returned_date) or today if
+    // still on site. Rigs not yet delivered (status 'assigned') cost £0.
+    const calcRigWorkingDays = (arrivedDate?: string, returnedDate?: string): number => {
+      if (!arrivedDate) return 0;
+      const s = new Date(arrivedDate + 'T00:00:00');
+      const today = new Date().toISOString().slice(0, 10);
+      const endStr = returnedDate || today;
+      const e = new Date(endStr + 'T00:00:00');
+      if (e < s) return 0;
+      let count = 0; const d = new Date(s);
+      while (d <= e) { const day = d.getUTCDay(); if (day !== 0 && day !== 6) count++; d.setUTCDate(d.getUTCDate() + 1); }
+      return count;
+    };
+
     // ── Per-rig profitability ──
-    // Map each rig to the boreholes drilled with that rig's method, and calculate
-    // revenue (meterage) vs cost (day rate × working days)
+    // Only rigs delivered to site (status 'on_site' or 'returned' with an
+    // arrived_on_site_date) accrue crew day-rate costs. Assigned-but-not-delivered
+    // rigs are listed with £0 cost so managers can see what's planned.
     interface RigProfitability {
       rig_name: string; rig_type: string; status: string;
       day_rate: number; rate_description: string; working_days: number;
       total_cost: number; method: string;
+      arrived_on_site_date: string | null; returned_date: string | null;
       boreholes: string[]; metres_drilled: number;
       meterage_revenue: number; profit: number;
+    }
+    // Group boreholes by method so revenue is split evenly across rigs of the
+    // same method (prevents double-counting when multiple rigs share a method)
+    const boreholesByMethod: Record<string, BoreholeRevenue[]> = {};
+    for (const b of boreholeRevenue) {
+      const m = b.method || 'cp';
+      if (!boreholesByMethod[m]) boreholesByMethod[m] = [];
+      boreholesByMethod[m].push(b);
     }
     const rigCostRows = rigs.map((a: any) => {
       const rate = autoMatchRigRate(a.rig_type, a.asset_name);
       const method = a.rig_type || 'cp';
-      // Find boreholes drilled with this rig's method
-      const rigBoreholes = boreholeRevenue.filter(b => b.method === method);
-      const metres = rigBoreholes.reduce((s, b) => s + b.metres, 0);
-      const revenue = rigBoreholes.reduce((s, b) => s + b.revenue, 0);
-      const cost = rate ? Math.round(Number(rate.price) * workingDays * 100) / 100 : 0;
+      const isDelivered = a.status === 'on_site' || a.status === 'returned';
+      const rigDays = isDelivered ? calcRigWorkingDays(a.arrived_on_site_date, a.returned_date) : 0;
+      // Allocate borehole revenue evenly across delivered rigs of the same method
+      const methodBoreholes = boreholesByMethod[method] || [];
+      const deliveredRigsOfMethod = rigs.filter((r: any) => (r.rig_type || 'cp') === method && (r.status === 'on_site' || r.status === 'returned')).length;
+      const revenueShare = deliveredRigsOfMethod > 0 && isDelivered
+        ? methodBoreholes.reduce((s, b) => s + b.revenue, 0) / deliveredRigsOfMethod : 0;
+      const metresShare = deliveredRigsOfMethod > 0 && isDelivered
+        ? methodBoreholes.reduce((s, b) => s + b.metres, 0) / deliveredRigsOfMethod : 0;
+      const cost = rate ? Math.round(Number(rate.price) * rigDays * 100) / 100 : 0;
       return {
         rig_name: a.asset_name || 'Rig', rig_type: a.rig_type || '', status: a.status || 'assigned',
         day_rate: rate ? Number(rate.price) : 0, rate_description: rate ? rate.description : 'No rate matched',
-        working_days: workingDays, total_cost: cost,
-        method, boreholes: rigBoreholes.map(b => b.borehole_ref),
-        metres_drilled: metres, meterage_revenue: revenue,
-        profit: Math.round((revenue - cost) * 100) / 100,
+        working_days: rigDays, total_cost: cost,
+        arrived_on_site_date: a.arrived_on_site_date || null, returned_date: a.returned_date || null,
+        method, boreholes: methodBoreholes.map(b => b.borehole_ref),
+        metres_drilled: Math.round(metresShare * 100) / 100,
+        meterage_revenue: Math.round(revenueShare * 100) / 100,
+        profit: Math.round((revenueShare - cost) * 100) / 100,
       } as RigProfitability;
     });
     const totalRigCost = rigCostRows.reduce((s, r) => s + r.total_cost, 0);
