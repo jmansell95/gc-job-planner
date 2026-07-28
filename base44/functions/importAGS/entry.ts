@@ -187,6 +187,27 @@ function mapSampleType(agsType: string): string {
   return 'none';
 }
 
+// KeyLogBook sometimes stores the driller's shift diary ("Set up rig",
+// "Lunch", "Travelled home", "Left digs and travelled to site") inside the
+// TREM group as rows that carry no real installation attributes (no type,
+// material, diameter or depth). Detect those so they can be routed to the
+// Site Logs (source keylogbook_remarks) instead of becoming fake installation
+// records. Only matched when the row has NO installation attributes, so a
+// real pipe with a material/diameter is never mistaken for a diary entry.
+const DRILLER_ACTIVITY_KEYWORDS = [
+  'set up rig', 'set up', 'rig up', 'rig down', 'breakdown', 'break down',
+  'lunch', 'break', 'standby', 'stand by', 'stand down',
+  'travel', 'travelled', 'traveled', 'mobilise', 'mobilize', 'demobilise', 'demobilize',
+  'briefing', 'offload', 'offloaded', 'back to yard', 'left digs', 'arrived', 'depart',
+  'finished', 'waiting', 'delay', 'abandon', 'complete', 'ended',
+  'start of shift', 'end of shift', 'service rig', 'tripping', 'reinstat',
+];
+function isDrillerActivity(text: string): boolean {
+  if (!text) return false;
+  const t = text.toLowerCase();
+  return DRILLER_ACTIVITY_KEYWORDS.some(k => t.includes(k));
+}
+
 // ============================================================
 // Driller remarks extraction from AGS files
 // ============================================================
@@ -801,7 +822,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ---- TREM — installation / tremie pipes ----
+    // ---- TREM — installation / tremie pipes (or driller daily-activity text) ----
     if (groups.TREM && groups.TREM.rows.length) {
       for (const row of groups.TREM.rows) {
         const r = buildRow(groups.TREM, row);
@@ -811,14 +832,33 @@ Deno.serve(async (req) => {
         const tremDiam = pick(r, 'TREM_DIAM', 'TREM_DIA', 'DIAM', 'DIAMETER', 'DIA');
         const tremDesc = pick(r, 'TREM_DESC', 'TREM_REM', 'TREM_LEGEND', 'TREM_NOTE', 'DESC', 'DESCRIPTION', 'REMARK', 'LEGEND', 'NOTE', 'REM');
         const ref = resolveLocaRef(r);
+        const dFrom = num(pick(r, 'TREM_TOP', 'TOP', 'DEPTH_FROM', 'FROM'));
+        const dTo = num(pick(r, 'TREM_BASE', 'TREM_BOT', 'BASE', 'BOT', 'DEPTH_TO', 'TO'));
+
+        // KeyLogBook sometimes stores the driller's shift diary ("Set up rig",
+        // "Lunch", "Travelled home") in TREM rows that have no real
+        // installation attributes. Route those to the Site Logs instead of
+        // creating fake installation records.
+        const hasInstallAttrs = !!(tremType || tremMat || tremDiam || (dFrom != null && dTo != null && dTo > dFrom));
+        if (!hasInstallAttrs && isDrillerActivity(tremDesc)) {
+          if (addLog({
+            job_id: job.id, staff_id: drillerStaffId || staffId, staff_name: drillerName || importerName,
+            date: resolveDate(ref), log_type: 'other', borehole_ref: ref || null,
+            description: tremDesc.trim(),
+            source: 'keylogbook_remarks',
+            completed_by_type: 'internal_staff', completed_by_name: drillerName || importerName,
+            manager_review_status: 'pending', chargeable: false, billing_status: 'no_charge',
+          })) counts.remarks++;
+          continue;
+        }
+
         const parts = [tremType, tremMat, tremDiam ? `${tremDiam}mm` : ''].filter(Boolean);
         const summary = parts.length > 0 ? parts.join(' · ') : 'Installation pipe';
         const detail = tremDesc ? `${summary} — ${tremDesc}` : summary;
         if (addLog({
           job_id: job.id, staff_id: staffId, date: resolveDate(ref),
           log_type: 'installation', borehole_ref: ref, standpipe_ref: tremId || null,
-          depth_from: num(pick(r, 'TREM_TOP', 'TOP', 'DEPTH_FROM', 'FROM')) || null,
-          depth_to: num(pick(r, 'TREM_BASE', 'TREM_BOT', 'BASE', 'BOT', 'DEPTH_TO', 'TO')) || null,
+          depth_from: dFrom || null, depth_to: dTo || null,
           description: `Imported from KeyLogBook AGS — installation pipe${tremId ? ` ${tremId}` : ''}: ${detail}.`,
           source: 'ags_import', completed_by_type: 'internal_staff',
           completed_by_name: importerName,
