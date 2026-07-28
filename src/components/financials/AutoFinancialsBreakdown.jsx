@@ -5,7 +5,7 @@ import {
   PoundSterling, TrendingUp, Percent, Calculator, AlertTriangle,
   Loader2, RefreshCw, Mountain, ChevronDown, ChevronRight, User,
   CheckCircle2, XCircle, Target, Gauge, Truck, Save, Check, Ruler,
-  HardHat
+  HardHat, Users
 } from 'lucide-react';
 import BoreholeRevenueTable from '@/components/financials/BoreholeRevenueTable';
 
@@ -64,6 +64,7 @@ export default function AutoFinancialsBreakdown({ job }) {
   const [showUnmatched, setShowUnmatched] = useState(false);
   const [showBoreholes, setShowBoreholes] = useState(false);
   const [showRigs, setShowRigs] = useState(false);
+  const [showCrew, setShowCrew] = useState(false);
 
   const [billing, setBilling] = useState({
     meterage_rate: job.meterage_rate ?? '',
@@ -186,7 +187,12 @@ export default function AutoFinancialsBreakdown({ job }) {
       <div className="hero-gradient rounded-xl p-5 text-white">
         <div className="flex items-center gap-2 mb-1">
           <TrendingUp className="w-4 h-4 text-white/70" />
-          <span className="text-xs font-medium text-white/80">Total Revenue (meterage + SOR + charges)</span>
+          <span className="text-xs font-medium text-white/80">Total Revenue</span>
+          {s.revenue_method && (
+            <span className="ml-2 text-[10px] font-bold bg-white/20 text-white px-2 py-0.5 rounded-full">
+              {s.revenue_method_label || s.revenue_method}
+            </span>
+          )}
           <button onClick={() => refetch()} disabled={isFetching} className="ml-auto text-white/60 hover:text-white transition">
             <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
           </button>
@@ -418,14 +424,46 @@ export default function AutoFinancialsBreakdown({ job }) {
           <Calculator className="w-4 h-4 text-[#2E5A1A]" />
           <h3 className="text-sm font-semibold text-slate-800">Cost Breakdown</h3>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <MiniStat label="Equipment (hire)" value={cb.equipment_net} sub="from logistics tab" />
-          <MiniStat label="Rig & Crew" value={cb.rig_cost} sub={dp.working_days ? `${dp.working_days} working days` : undefined} />
+          <MiniStat label="Rigs" value={cb.rig_cost} sub={data.rig_profitability?.length ? `${data.rig_profitability.length} rig(s)` : undefined} />
+          <MiniStat label="Crew Labour" value={cb.crew_cost} sub={cb.crew_rows?.length ? `${cb.crew_rows.length} crew` : 'from rota'} />
           <MiniStat label="Accommodation" value={cb.hotel_net} sub={cb.hotel_rows?.length > 0 ? `${cb.hotel_rows.length} booking(s)` : undefined} />
           <MiniStat label="Delivery Charges" value={cb.delivery_charges} />
           <MiniStat label="Task Charges" value={cb.task_charges} />
         </div>
       </div>
+
+      {/* === Crew labour breakdown === */}
+      {cb.crew_rows?.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <button onClick={() => setShowCrew(!showCrew)} className="w-full px-4 py-3 border-b border-slate-100 flex items-center gap-2 text-left hover:bg-slate-50/50 transition">
+            {showCrew ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
+            <Users className="w-4 h-4 text-[#2E5A1A]" />
+            <h3 className="text-sm font-semibold text-slate-800">Crew Labour ({cb.crew_rows.length})</h3>
+            <span className="ml-auto text-xs text-slate-400">{fmt(cb.crew_cost)}</span>
+          </button>
+          {showCrew && (
+            <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
+              {cb.crew_rows.map((r, i) => (
+                <div key={i} className="px-4 py-2.5 flex items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-slate-700 truncate">{r.staff_name}</p>
+                    <p className="text-[10px] text-slate-400">
+                      {r.day_rate > 0 ? `${fmt(r.day_rate)}/day × ${r.standard_days} day(s)` : 'No day rate found'}
+                      {r.overtime_days > 0 && ` · ${r.overtime_days} OT @ ${r.overtime_multiplier}×`}
+                    </p>
+                    {r.rate_source === 'no_rate_found' && (
+                      <p className="text-[10px] text-amber-600">Add a personal rate card in Settings → Rate Cards</p>
+                    )}
+                  </div>
+                  <p className="text-sm font-bold text-slate-900 tabular-nums flex-shrink-0">{fmt(r.total_cost)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* === Unmatched activities alert === */}
       {s.unmatched_count > 0 && (

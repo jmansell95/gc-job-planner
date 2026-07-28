@@ -81,6 +81,16 @@ export function useJobFinancials(job) {
     },
   });
 
+  const { data: siteAssets = [] } = useQuery({
+    queryKey: ['site-assets-fin', jobId],
+    queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
+  });
+
+  const { data: staffRecords = [] } = useQuery({
+    queryKey: ['staff-fin', jobId],
+    queryFn: () => base44.entities.Staff.list('-created_date', 500),
+  });
+
   const { data: invLogs = [] } = useQuery({
     queryKey: ['job-inv-logs-fin', jobId],
     queryFn: () => base44.entities.InvestigationLog.filter({ job_id: jobId }),
@@ -92,8 +102,61 @@ export function useJobFinancials(job) {
     const rate = c.price_confirmed && c.negotiated_unit_cost != null ? Number(c.negotiated_unit_cost) : (Number(c.unit_cost) || 0);
     return rate * (Number(c.quantity) || 1);
   };
-  const equipmentNet = costItems.reduce((s, c) => s + itemNet(c), 0);
-  const equipmentVat = costItems.reduce((s, c) => s + (c.vat_exempt ? 0 : itemNet(c) * (vatRate / 100)), 0);
+
+  // Identify rig vs non-rig cost items (same logic as calculateJobFinancials)
+  const siteAssetMap = {};
+  (siteAssets || []).forEach((a) => { siteAssetMap[a.id] = a; });
+  const isRigItem = (c) => {
+    if (!c.site_asset_id) return false;
+    const a = siteAssetMap[c.site_asset_id];
+    return a && (a.is_rig === true || a.asset_type === 'rig');
+  };
+
+  // Rigs are costed separately (day rate × working days) — exclude from equipment
+  const nonRigCostItems = costItems.filter((c) => !isRigItem(c));
+  const rigCostItems = costItems.filter((c) => isRigItem(c));
+
+  const equipmentNet = nonRigCostItems.reduce((s, c) => s + itemNet(c), 0);
+  const equipmentVat = nonRigCostItems.reduce((s, c) => s + (c.vat_exempt ? 0 : itemNet(c) * (vatRate / 100)), 0);
+
+  // Rig cost: day rate × working days (from start_date to end_date, Mon–Fri)
+  const rigCostRows = rigCostItems.map((c) => {
+    const dayRate = c.price_confirmed && c.negotiated_unit_cost != null
+      ? Number(c.negotiated_unit_cost)
+      : (Number(c.unit_cost) || 0);
+    const isDelivered = c.current_location === 'site' || c.current_location === 'returned' || c.hire_status === 'off_hired';
+    const locDate = c.location_updated_at ? c.location_updated_at.split('T')[0] : null;
+    const startDate = c.start_date || (isDelivered ? locDate : null);
+    const endDate = c.off_hire_date || c.end_date || null;
+    const rigDays = isDelivered && startDate ? workingDays(startDate, endDate || new Date().toISOString().split('T')[0]) : 0;
+    return { name: c.description, day_rate: dayRate, days: rigDays, total: Math.round(dayRate * rigDays * 100) / 100 };
+  });
+  const rigCost = rigCostRows.reduce((s, r) => s + r.total, 0);
+
+  // Crew cost: staff on rota without a labour JobCostItem × their day rate
+  const labourItemStaffIds = new Set(
+    costItems.filter((c) => c.category === 'labour' && c.staff_id).map((c) => c.staff_id)
+  );
+  const staffMap = {};
+  (staffRecords || []).forEach((s) => { staffMap[s.id] = s; });
+  const staffDayMap = {};
+  (rotas || []).forEach((a) => {
+    if (!a.staff_id || labourItemStaffIds.has(a.staff_id)) return;
+    if (!staffDayMap[a.staff_id]) staffDayMap[a.staff_id] = { dates: new Set(), overtimeDates: new Set(), multiplier: 1.5 };
+    if (a.assigned_date) staffDayMap[a.staff_id].dates.add(a.assigned_date);
+    if (a.is_overtime && a.assigned_date) staffDayMap[a.staff_id].overtimeDates.add(a.assigned_date);
+    if (a.rate_multiplier) staffDayMap[a.staff_id].multiplier = Number(a.rate_multiplier);
+  });
+  const crewRows = Object.entries(staffDayMap).map(([sid, d]) => {
+    const dayRateItem = rateItems.find((r) => r.staff_id === sid) || rateItems.find((r) => !r.staff_id);
+    const dayRate = dayRateItem ? Number(dayRateItem.price) : 0;
+    const totalDays = d.dates.size;
+    const otDays = d.overtimeDates.size;
+    const stdDays = totalDays - otDays;
+    const total = Math.round((stdDays * dayRate + otDays * dayRate * d.multiplier) * 100) / 100;
+    return { staff_id: sid, staff_name: staffMap[sid]?.name || sid, day_rate: dayRate, standard_days: stdDays, overtime_days: otDays, total_cost: total };
+  });
+  const crewCost = crewRows.reduce((s, r) => s + r.total_cost, 0);
 
   const hotelRows = hotelBookings.map((b) => {
     const nights = calcNights(b.check_in_date, b.check_out_date);
@@ -105,7 +168,7 @@ export function useJobFinancials(job) {
   const hotelNet = hotelRows.reduce((s, h) => s + h.total, 0);
   const hotelVat = hotelNet * (vatRate / 100);
 
-  const totalCostNet = equipmentNet + hotelNet;
+  const totalCostNet = equipmentNet + hotelNet + rigCost + crewCost;
   const totalCostVat = equipmentVat + hotelVat;
   const totalCostGross = totalCostNet + totalCostVat;
 
@@ -185,6 +248,10 @@ export function useJobFinancials(job) {
       hotelRows,
       hotelNet,
       hotelVat,
+      rigCost,
+      rigCostRows,
+      crewCost,
+      crewRows,
       totalCostNet,
       totalCostVat,
       totalCostGross,

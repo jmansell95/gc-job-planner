@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { FolderKanban, FileText, Loader2, TrendingUp, Building2, Layers } from 'lucide-react';
+import { FolderKanban, FileText, Loader2, TrendingUp, Building2, Layers, Mountain } from 'lucide-react';
 import WidgetShell from '@/components/dashboard/WidgetShell';
 
 const fmtGbp = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
@@ -58,6 +58,27 @@ export default function ProjectFinancialsWidget() {
     }
   });
 
+  // Earned from meterage / unit rate / flat fee (revenue method based)
+  const earnedMeterageByJob = {};
+  projectJobs.forEach((j) => {
+    const method = j.revenue_method || 'none';
+    const jobLogs = logs.filter((l) => l.job_id === j.id);
+    if (method === 'meterage_rate' || method === 'none') {
+      const totalMetres = jobLogs
+        .filter((l) => l.log_type === 'borehole_progress' || l.log_type === 'core_inspection')
+        .reduce((s, l) => s + Math.max(0, (Number(l.depth_to) || 0) - (Number(l.depth_from) || 0)), 0);
+      const manualMeterage = Number(j.meterage) || 0;
+      const metres = manualMeterage > 0 ? manualMeterage : totalMetres;
+      const rate = Number(j.meterage_rate) || 0;
+      if (rate > 0 && metres > 0) earnedMeterageByJob[j.id] = Math.round(metres * rate);
+    } else if (method === 'unit_rate') {
+      const totalUnits = jobLogs.reduce((s, l) => s + (Number(l.units_completed) || 0), 0);
+      earnedMeterageByJob[j.id] = Math.round(totalUnits * (Number(j.unit_price) || 0));
+    } else if (method === 'flat_fee') {
+      earnedMeterageByJob[j.id] = Number(j.client_charge) || 0;
+    }
+  });
+
   // Invoiced (non-void) per job
   const invoicedByJob = {};
   invoices.forEach((inv) => {
@@ -68,19 +89,22 @@ export default function ProjectFinancialsWidget() {
   const jobRows = projectJobs.map((j) => {
     const earnedCost = earnedCostByJob[j.id] || 0;
     const earnedLog = earnedLogByJob[j.id] || 0;
-    const earned = earnedCost + earnedLog;
+    const earnedMeterage = earnedMeterageByJob[j.id] || 0;
+    // If job has meterage/unit/flat revenue, use that as the primary earned;
+    // otherwise fall back to cost items + chargeable logs (legacy)
+    const earned = earnedMeterage > 0 ? earnedMeterage + earnedLog : earnedCost + earnedLog;
     const invoiced = invoicedByJob[j.id] || 0;
     return {
-      id: j.id, name: j.name, status: j.status, earnedCost, earnedLog, earned, invoiced,
+      id: j.id, name: j.name, status: j.status, earnedCost, earnedLog, earnedMeterage, earned, invoiced,
       unbilled: Math.max(0, earned - invoiced),
     };
   }).sort((a, b) => b.earned - a.earned);
 
   const totals = jobRows.reduce((acc, r) => {
-    acc.earnedCost += r.earnedCost; acc.earnedLog += r.earnedLog;
+    acc.earnedCost += r.earnedCost; acc.earnedLog += r.earnedLog; acc.earnedMeterage += r.earnedMeterage || 0;
     acc.earned += r.earned; acc.invoiced += r.invoiced; acc.unbilled += r.unbilled;
     return acc;
-  }, { earnedCost: 0, earnedLog: 0, earned: 0, invoiced: 0, unbilled: 0 });
+  }, { earnedCost: 0, earnedLog: 0, earnedMeterage: 0, earned: 0, invoiced: 0, unbilled: 0 });
   const realizationPct = totals.earned > 0 ? Math.round((totals.invoiced / totals.earned) * 100) : 0;
 
   const isLoading = projLoading;
@@ -129,8 +153,8 @@ export default function ProjectFinancialsWidget() {
               <p className="text-sm font-bold text-amber-700 tabular-nums mt-0.5">{fmtGbp(totals.unbilled)}</p>
             </div>
             <div className="bg-[#2E5A1A]/5 rounded-lg p-2.5 text-center">
-              <p className="text-[10px] text-[#2E5A1A] font-medium uppercase tracking-wide">Log Charges</p>
-              <p className="text-sm font-bold text-[#2E5A1A] tabular-nums mt-0.5">{fmtGbp(totals.earnedLog)}</p>
+              <p className="text-[10px] text-[#2E5A1A] font-medium uppercase tracking-wide">Meterage</p>
+              <p className="text-sm font-bold text-[#2E5A1A] tabular-nums mt-0.5">{fmtGbp(totals.earnedMeterage)}</p>
             </div>
           </div>
 

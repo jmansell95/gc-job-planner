@@ -384,6 +384,7 @@ export default async function(req: Request): Promise<Response> {
     const hotelBookings = await base44.asServiceRole.entities.HotelBooking.filter({ job_id: jobId });
     const deliveries = await base44.asServiceRole.entities.DeliveryLog.filter({ job_id: jobId });
     const timesheets = await base44.asServiceRole.entities.Timesheet.filter({ job_id: jobId });
+    const rotaAssignments = await base44.asServiceRole.entities.RotaAssignment.filter({ job_id: jobId });
 
     // Load SiteAssets early — needed to identify rig vs non-rig cost items
     // so rigs aren't double-counted (they're costed separately in totalRigCost).
@@ -393,6 +394,14 @@ export default async function(req: Request): Promise<Response> {
     } catch (_) {}
     const siteAssetMap: Record<string, any> = {};
     for (const a of allSiteAssets) siteAssetMap[a.id] = a;
+
+    // Load Staff records for crew names
+    let allStaff: any[] = [];
+    try {
+      allStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 500);
+    } catch (_) {}
+    const staffMap: Record<string, any> = {};
+    for (const s of allStaff) staffMap[s.id] = s;
 
     const itemNet = (c: any) => {
       const rate = c.price_confirmed && c.negotiated_unit_cost != null ? Number(c.negotiated_unit_cost) : (Number(c.unit_cost) || 0);
@@ -531,6 +540,59 @@ export default async function(req: Request): Promise<Response> {
     });
     const totalRigCost = rigCostRows.reduce((s, r) => s + r.total_cost, 0);
 
+    // ── Crew labour cost (from RotaAssignment × staff day rates) ──
+    // Crew assigned via the rota but without a labour JobCostItem need their
+    // cost calculated from their personal day rate (RateCardItem with staff_id).
+    // Staff who already have a labour JobCostItem are costed via equipmentNet.
+    const labourItemStaffIds = new Set(
+      costItems.filter((c: any) => c.category === 'labour' && c.staff_id).map((c: any) => c.staff_id)
+    );
+    const rotaStaffIds = [...new Set(rotaAssignments.map((a: any) => a.staff_id).filter(Boolean))] as string[];
+    const uncostedStaffIds = rotaStaffIds.filter(id => !labourItemStaffIds.has(id));
+
+    // Load day rates for uncosted staff
+    for (const sid of uncostedStaffIds) {
+      if (staffRates[sid]) continue;
+      try {
+        const items = await base44.asServiceRole.entities.RateCardItem.filter({ staff_id: sid, is_active: true }, '-sort_order', 500);
+        staffRates[sid] = (items || []).filter((i: RateCardItemLike) => i.price != null && !isNaN(Number(i.price)));
+      } catch (_) { staffRates[sid] = []; }
+    }
+
+    interface CrewCostRow {
+      staff_id: string; staff_name: string; day_rate: number; standard_days: number;
+      overtime_days: number; overtime_multiplier: number; total_cost: number; rate_source: string;
+    }
+    const staffDayMap: Record<string, { dates: Set<string>; overtimeDates: Set<string>; multiplier: number }> = {};
+    for (const a of rotaAssignments) {
+      if (!a.staff_id || labourItemStaffIds.has(a.staff_id)) continue;
+      if (!staffDayMap[a.staff_id]) staffDayMap[a.staff_id] = { dates: new Set(), overtimeDates: new Set(), multiplier: 1.5 };
+      if (a.assigned_date) staffDayMap[a.staff_id].dates.add(a.assigned_date);
+      if (a.is_overtime && a.assigned_date) staffDayMap[a.staff_id].overtimeDates.add(a.assigned_date);
+      if (a.rate_multiplier) staffDayMap[a.staff_id].multiplier = Number(a.rate_multiplier);
+    }
+
+    const crewCostRows: CrewCostRow[] = [];
+    let totalCrewCost = 0;
+    for (const [sid, days] of Object.entries(staffDayMap)) {
+      const rateItems = staffRates[sid] || [];
+      const dayRateItem = rateItems.find((i: any) => i.unit === 'day' && i.category === 'labour') || rateItems.find((i: any) => i.unit === 'day');
+      const dayRate = dayRateItem ? Number(dayRateItem.price) : 0;
+      const totalDays = days.dates.size;
+      const overtimeDays = days.overtimeDates.size;
+      const standardDays = totalDays - overtimeDays;
+      const overtimeCost = overtimeDays * dayRate * days.multiplier;
+      const standardCost = standardDays * dayRate;
+      const total = Math.round((standardCost + overtimeCost) * 100) / 100;
+      totalCrewCost += total;
+      crewCostRows.push({
+        staff_id: sid, staff_name: staffMap[sid]?.name || sid,
+        day_rate: dayRate, standard_days: standardDays,
+        overtime_days: overtimeDays, overtime_multiplier: days.multiplier,
+        total_cost: total, rate_source: dayRateItem ? 'staff_rate_card' : 'no_rate_found',
+      });
+    }
+
     // ── Revenue summary ──
     // meterageRate is defined above (used for per-borehole depth-banded calculations)
     // If job has a meterage_rate, recalculate meterage revenue as total metres × rate
@@ -538,8 +600,35 @@ export default async function(req: Request): Promise<Response> {
     const meterageRevenue = meterageRate > 0 ? Math.round(totalMetres * meterageRate * 100) / 100 : totalMeterageRevenue;
     const targetMetres = Number(job.meterage_target) || 0;
 
-    const totalRevenueNet = meterageRevenue + totalSorRevenueNet + additionalCharges;
-    const totalCostNet = equipmentNet + hotelNet + totalRigCost;
+    const totalCostNet = equipmentNet + hotelNet + totalRigCost + totalCrewCost;
+
+    // ── Revenue method handling ──
+    // Calculates revenue based on the job's billing method. Drilling jobs default
+    // to meterage_rate/none (meterage + SOR + charges). Non-drilling jobs use
+    // day_rate, unit_rate or flat_fee. 'none' falls back to markup-on-cost.
+    const revenueMethod = job.revenue_method || 'none';
+    let totalRevenueNet: number;
+    let revenueMethodLabel: string;
+    if (revenueMethod === 'flat_fee') {
+      totalRevenueNet = Number(job.client_charge) || 0;
+      revenueMethodLabel = 'Flat fee (client charge)';
+    } else if (revenueMethod === 'unit_rate') {
+      const totalUnits = logs.reduce((s: number, l: any) => s + (Number(l.units_completed) || 0), 0);
+      totalRevenueNet = Math.round(totalUnits * (Number(job.unit_price) || 0) * 100) / 100 + totalSorRevenueNet + additionalCharges;
+      revenueMethodLabel = `Unit rate (${totalUnits} units × £${Number(job.unit_price) || 0})`;
+    } else if (revenueMethod === 'day_rate') {
+      const crewDayRateRevenue = crewCostRows.reduce((s: number, r: CrewCostRow) => s + r.day_rate * (r.standard_days + r.overtime_days * r.overtime_multiplier), 0);
+      const labourDayRateRevenue = costItems.filter((c: any) => c.category === 'labour').reduce((s: number, c: any) => s + itemNet(c), 0);
+      totalRevenueNet = Math.round((crewDayRateRevenue + labourDayRateRevenue) * 100) / 100 + totalSorRevenueNet + additionalCharges;
+      revenueMethodLabel = 'Day rate (crew day rates × working days)';
+    } else {
+      totalRevenueNet = meterageRevenue + totalSorRevenueNet + additionalCharges;
+      revenueMethodLabel = meterageRate > 0 ? 'Meterage rate' : 'Meterage + SOR';
+      if (revenueMethod === 'none' && totalRevenueNet === 0 && totalCostNet > 0 && Number(job.markup_percentage) > 0) {
+        totalRevenueNet = Math.round(totalCostNet * (1 + Number(job.markup_percentage) / 100) * 100) / 100;
+        revenueMethodLabel = `Cost + ${Number(job.markup_percentage)}% markup`;
+      }
+    }
 
     const revenueVat = totalRevenueNet * (vatRate / 100);
     const revenueGross = totalRevenueNet + revenueVat;
@@ -579,6 +668,7 @@ export default async function(req: Request): Promise<Response> {
     if (jobDrillingMethod === 'not_applicable' && logs.length > 0) billingSetup.warnings.push('Drilling method not set — per-metre rates may not match correctly.');
     if (meterageRate === 0 && !cpPerMetreRate && !rotaryPerMetreRate && totalMetres > 0) billingSetup.warnings.push('No per-metre drilling rate found in any rate card for this drilling method.');
     if (rigCostItems.length === 0 && totalMetres > 0) billingSetup.warnings.push('No rigs added — rig crew costs are £0. Add rigs in the Logistics tab.');
+    if (crewCostRows.length > 0 && crewCostRows.every(r => r.rate_source === 'no_rate_found')) billingSetup.warnings.push(`${crewCostRows.length} crew on rota have no day rate — crew labour costs are £0. Add personal rate cards in Settings → Rate Cards.`);
 
     return Response.json({
       status: 'success',
@@ -599,6 +689,9 @@ export default async function(req: Request): Promise<Response> {
         matched_count: matched.length,
         unmatched_count: unmatched.length,
         additional_charges: Math.round(additionalCharges * 100) / 100,
+        crew_cost: Math.round(totalCrewCost * 100) / 100,
+        revenue_method: revenueMethod,
+        revenue_method_label: revenueMethodLabel,
       },
       billing_setup: billingSetup,
       drilling_method: {
@@ -617,6 +710,8 @@ export default async function(req: Request): Promise<Response> {
         equipment_net: Math.round(equipmentNet * 100) / 100,
         hotel_net: Math.round(hotelNet * 100) / 100,
         rig_cost: Math.round(totalRigCost * 100) / 100,
+        crew_cost: Math.round(totalCrewCost * 100) / 100,
+        crew_rows: crewCostRows,
         hotel_rows: hotelRows,
         delivery_charges: Math.round(deliveryCharges * 100) / 100,
         task_charges: Math.round(taskCharges * 100) / 100,
