@@ -386,6 +386,14 @@ export default async function(req: Request): Promise<Response> {
     const timesheets = await base44.asServiceRole.entities.Timesheet.filter({ job_id: jobId });
     const rotaAssignments = await base44.asServiceRole.entities.RotaAssignment.filter({ job_id: jobId });
 
+    // ── Daily costs (crew expenses from End-of-Shift wizard) ──
+    let dailyCosts: any[] = [];
+    try { dailyCosts = await base44.asServiceRole.entities.DailyCost.filter({ job_id: jobId }, '-date', 200); } catch (_) {}
+
+    // ── Sub-contractor logs (buy-side cost, sell-side revenue) ──
+    let subconLogs: any[] = [];
+    try { subconLogs = await base44.asServiceRole.entities.SubcontractorLog.filter({ job_id: jobId }, '-date', 200); } catch (_) {}
+
     // Load SiteAssets early — needed to identify rig vs non-rig cost items
     // so rigs aren't double-counted (they're costed separately in totalRigCost).
     let allSiteAssets: any[] = [];
@@ -428,6 +436,32 @@ export default async function(req: Request): Promise<Response> {
     const deliveryCharges = deliveries.filter((d: any) => d.chargeable !== false).reduce((s: number, d: any) => s + (Number(d.charge_amount) || 0), 0);
     const taskCharges = timesheets.filter((t: any) => t.chargeable && !t.is_break).reduce((s: number, t: any) => s + (Number(t.charge_amount) || 0), 0);
     const additionalCharges = deliveryCharges + taskCharges;
+
+    // ── Daily cost aggregation (crew expenses) ──
+    const dailyCostRows = dailyCosts.map((c: any) => ({
+      id: c.id, date: c.date, category: c.category, description: c.description,
+      amount_net: Number(c.amount_net) || 0, amount_gross: Number(c.amount_gross) || 0,
+      staff_name: c.staff_name, status: c.status, gl_code: c.gl_code,
+      is_subcontractor_cost: c.is_subcontractor_cost,
+    }));
+    const dailyCostsNet = dailyCosts
+      .filter((c: any) => !c.is_subcontractor_cost)
+      .reduce((s: number, c: any) => s + (Number(c.amount_net) || 0), 0);
+
+    // ── Sub-contractor margin aggregation ──
+    const subconRows = subconLogs.map((l: any) => ({
+      id: l.id, date: l.date, subcontractor_name: l.subcontractor_name, work_type: l.work_type,
+      purchase_cost_net: Number(l.purchase_cost_net) || 0,
+      client_charge_net: Number(l.client_charge_net) || 0,
+      margin_net: Number(l.margin_net) || 0,
+      margin_pct: Number(l.margin_pct) || 0,
+      markup_percentage: Number(l.markup_percentage) || 0,
+      status: l.status,
+      billed_to_client: l.billed_to_client,
+    }));
+    const subconPurchaseNet = subconLogs.reduce((s: number, l: any) => s + (Number(l.purchase_cost_net) || 0), 0);
+    const subconClientChargeNet = subconLogs.reduce((s: number, l: any) => s + (Number(l.client_charge_net) || 0), 0);
+    const subconMarginNet = subconLogs.reduce((s: number, l: any) => s + (Number(l.margin_net) || 0), 0);
 
     // ── Rig crew cost (from JobCostItem rig entries × day rates) ──
     // Rigs are added via the Logistics tab → RigGearPickerModal, which creates
@@ -600,7 +634,7 @@ export default async function(req: Request): Promise<Response> {
     const meterageRevenue = meterageRate > 0 ? Math.round(totalMetres * meterageRate * 100) / 100 : totalMeterageRevenue;
     const targetMetres = Number(job.meterage_target) || 0;
 
-    const totalCostNet = equipmentNet + hotelNet + totalRigCost + totalCrewCost;
+    const totalCostNet = equipmentNet + hotelNet + totalRigCost + totalCrewCost + dailyCostsNet + subconPurchaseNet;
 
     // ── Revenue method handling ──
     // Calculates revenue based on the job's billing method. Drilling jobs default
@@ -614,18 +648,18 @@ export default async function(req: Request): Promise<Response> {
       revenueMethodLabel = 'Flat fee (client charge)';
     } else if (revenueMethod === 'unit_rate') {
       const totalUnits = logs.reduce((s: number, l: any) => s + (Number(l.units_completed) || 0), 0);
-      totalRevenueNet = Math.round(totalUnits * (Number(job.unit_price) || 0) * 100) / 100 + totalSorRevenueNet + additionalCharges;
+      totalRevenueNet = Math.round(totalUnits * (Number(job.unit_price) || 0) * 100) / 100 + totalSorRevenueNet + additionalCharges + subconClientChargeNet;
       revenueMethodLabel = `Unit rate (${totalUnits} units × £${Number(job.unit_price) || 0})`;
     } else if (revenueMethod === 'day_rate') {
       const crewDayRateRevenue = crewCostRows.reduce((s: number, r: CrewCostRow) => s + r.day_rate * (r.standard_days + r.overtime_days * r.overtime_multiplier), 0);
       const labourDayRateRevenue = costItems.filter((c: any) => c.category === 'labour').reduce((s: number, c: any) => s + itemNet(c), 0);
-      totalRevenueNet = Math.round((crewDayRateRevenue + labourDayRateRevenue) * 100) / 100 + totalSorRevenueNet + additionalCharges;
+      totalRevenueNet = Math.round((crewDayRateRevenue + labourDayRateRevenue) * 100) / 100 + totalSorRevenueNet + additionalCharges + subconClientChargeNet;
       revenueMethodLabel = 'Day rate (crew day rates × working days)';
     } else {
-      totalRevenueNet = meterageRevenue + totalSorRevenueNet + additionalCharges;
+      totalRevenueNet = meterageRevenue + totalSorRevenueNet + additionalCharges + subconClientChargeNet;
       revenueMethodLabel = meterageRate > 0 ? 'Meterage rate' : 'Meterage + SOR';
       if (revenueMethod === 'none' && totalRevenueNet === 0 && totalCostNet > 0 && Number(job.markup_percentage) > 0) {
-        totalRevenueNet = Math.round(totalCostNet * (1 + Number(job.markup_percentage) / 100) * 100) / 100;
+        totalRevenueNet = Math.round(totalCostNet * (1 + Number(job.markup_percentage) / 100) * 100) / 100 + subconClientChargeNet;
         revenueMethodLabel = `Cost + ${Number(job.markup_percentage)}% markup`;
       }
     }
@@ -715,7 +749,13 @@ export default async function(req: Request): Promise<Response> {
         hotel_rows: hotelRows,
         delivery_charges: Math.round(deliveryCharges * 100) / 100,
         task_charges: Math.round(taskCharges * 100) / 100,
+        daily_costs_net: Math.round(dailyCostsNet * 100) / 100,
+        subcon_purchase_net: Math.round(subconPurchaseNet * 100) / 100,
+        subcon_client_charge_net: Math.round(subconClientChargeNet * 100) / 100,
+        subcon_margin_net: Math.round(subconMarginNet * 100) / 100,
       },
+      daily_costs: dailyCostRows,
+      subcontractor_logs: subconRows,
       drilling_performance: {
         total_metres: Math.round(totalMetres * 100) / 100,
         target_metres: targetMetres,

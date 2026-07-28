@@ -14,6 +14,8 @@ import LogReviewQuickStat from '@/components/investigation/LogReviewQuickStat';
 import BoreholeDrillDown from '@/components/BoreholeDrillDown';
 import JobHotelBookings from '@/components/JobHotelBookings';
 import AutoFinancialsBreakdown from '@/components/financials/AutoFinancialsBreakdown';
+import SubcontractorLogManager from '@/components/financials/SubcontractorLogManager';
+import DailyCostViewer from '@/components/financials/DailyCostViewer';
 import BillingExportButton from '@/components/BillingExportButton';
 import JobPhotoGallery from '@/components/JobPhotoGallery';
 import DocumentManager from '@/components/DocumentManager';
@@ -291,6 +293,10 @@ export default function JobDetailTabs({
       {canSeeCosts && (
         <TabsContent value="financials" className="space-y-4 mt-0">
           <AutoFinancialsBreakdown job={job} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <SubcontractorLogManager job={job} />
+            <DailyCostViewer job={job} />
+          </div>
           <div className="bg-gradient-to-br from-[#2E5A1A]/10 to-[#8DC63F]/10 rounded-xl border border-[#2E5A1A]/20 p-4">
             <div className="flex items-center gap-2 mb-2"><FileText className="w-4 h-4 text-[#2E5A1A]" /><h3 className="font-semibold text-slate-900 text-sm">Billing Export</h3></div>
             <p className="text-xs text-slate-600 mb-3">Pull every billable item — equipment, labour, hotel, deliveries, meterage — into one printable report for invoicing.</p>

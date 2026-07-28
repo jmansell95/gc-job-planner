@@ -5,7 +5,7 @@ import {
   PoundSterling, TrendingUp, Percent, Calculator, AlertTriangle,
   Loader2, RefreshCw, Mountain, ChevronDown, ChevronRight, User,
   CheckCircle2, XCircle, Target, Gauge, Truck, Save, Check, Ruler,
-  HardHat, Users
+  HardHat, Users, ArrowRightLeft
 } from 'lucide-react';
 import BoreholeRevenueTable from '@/components/financials/BoreholeRevenueTable';
 
@@ -424,15 +424,43 @@ export default function AutoFinancialsBreakdown({ job }) {
           <Calculator className="w-4 h-4 text-[#2E5A1A]" />
           <h3 className="text-sm font-semibold text-slate-800">Cost Breakdown</h3>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-3">
           <MiniStat label="Equipment (hire)" value={cb.equipment_net} sub="from logistics tab" />
           <MiniStat label="Rigs" value={cb.rig_cost} sub={data.rig_profitability?.length ? `${data.rig_profitability.length} rig(s)` : undefined} />
           <MiniStat label="Crew Labour" value={cb.crew_cost} sub={cb.crew_rows?.length ? `${cb.crew_rows.length} crew` : 'from rota'} />
           <MiniStat label="Accommodation" value={cb.hotel_net} sub={cb.hotel_rows?.length > 0 ? `${cb.hotel_rows.length} booking(s)` : undefined} />
+          <MiniStat label="Crew Expenses" value={cb.daily_costs_net} sub={data.daily_costs?.length ? `${data.daily_costs.length} item(s)` : undefined} />
+          <MiniStat label="Sub-Con (Buy)" value={cb.subcon_purchase_net} sub={data.subcontractor_logs?.length ? `${data.subcontractor_logs.length} log(s)` : undefined} />
           <MiniStat label="Delivery Charges" value={cb.delivery_charges} />
           <MiniStat label="Task Charges" value={cb.task_charges} />
         </div>
       </div>
+
+      {/* === Sub-Contractor Margin Summary === */}
+      {cb.subcon_client_charge_net > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ArrowRightLeft className="w-4 h-4 text-orange-600" />
+            <h3 className="text-sm font-semibold text-slate-800">Sub-Contractor Margin</h3>
+            <span className="ml-auto text-xs text-slate-400">{data.subcontractor_logs?.length || 0} log(s)</span>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-slate-50 rounded-lg border border-slate-100 p-3 text-center">
+              <p className="text-[10px] text-slate-400 uppercase font-medium">Buy (Cost)</p>
+              <p className="text-base font-bold text-slate-800 tabular-nums">{fmt(cb.subcon_purchase_net)}</p>
+            </div>
+            <div className="bg-emerald-50 rounded-lg border border-emerald-100 p-3 text-center">
+              <p className="text-[10px] text-emerald-600 uppercase font-medium">Sell (Revenue)</p>
+              <p className="text-base font-bold text-emerald-700 tabular-nums">{fmt(cb.subcon_client_charge_net)}</p>
+            </div>
+            <div className="bg-[#2E5A1A]/5 rounded-lg border border-[#2E5A1A]/15 p-3 text-center">
+              <p className="text-[10px] text-[#2E5A1A] uppercase font-medium">Margin</p>
+              <p className="text-base font-bold text-[#2E5A1A] tabular-nums">{fmt(cb.subcon_margin_net)}</p>
+              <p className="text-[10px] text-slate-400">{cb.subcon_client_charge_net > 0 ? `${((cb.subcon_margin_net / cb.subcon_client_charge_net) * 100).toFixed(1)}%` : '—'}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* === Crew labour breakdown === */}
       {cb.crew_rows?.length > 0 && (
