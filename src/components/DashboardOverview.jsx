@@ -113,7 +113,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const overdueSubmittedTs = scopedTimesheets.filter(t => t.status === 'submitted' && t.created_date && (nowMs - new Date(t.created_date).getTime()) > 48 * 3600 * 1000).length;
   const overdueActions = safetyReports.flatMap(r => (r.action_items || [])).filter(a => a && a.due_date && new Date(a.due_date) < new Date()).length;
 
-  const canViewCosts = canViewCostings(profile);
+  // Show cost-gated widgets while the profile is loading or errored (published
+  // site edge cases); enforce the real role gate once the profile resolves.
+  const canViewCosts = !profile || canViewCostings(profile);
 
   const openJobDrawer = (job) => setDrawerJob(job);
 

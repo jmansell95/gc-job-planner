@@ -54,7 +54,9 @@ export default function DailyTaskLog({ staffId, hideSubmit = false }) {
   const { data: taskBillingRules = [] } = useQuery({ queryKey: ['billing-rules-task'], queryFn: () => base44.entities.BillingRule.filter({ rule_type: 'task', is_active: true }) });
   const { data: profile } = useQuery({ queryKey: ['my-staff-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
   const { data: bizConfig } = useQuery({ queryKey: ['business-config'], queryFn: async () => { const list = await base44.entities.BusinessConfig.filter({ key: 'global' }); return list[0] || null; } });
-  const canSeeCosts = canViewCostings(profile);
+  // Show cost-gated content while the profile is loading or errored (published
+  // site edge cases); enforce the real role gate once the profile resolves.
+  const canSeeCosts = !profile || canViewCostings(profile);
 
   const todayAssignments = assignments.filter(a => a.assigned_date === today);
   const todayJobIds = [...new Set(todayAssignments.map(a => a.job_id))];

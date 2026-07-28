@@ -54,7 +54,9 @@ export default function DeliveryManager({ jobId, jobName }) {
   const { data: vehicles = [] } = useQuery({ queryKey: ['delivery-vehicles-mgr'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: billingRules = [] } = useQuery({ queryKey: ['billing-rules-delivery'], queryFn: () => base44.entities.BillingRule.filter({ rule_type: 'delivery', is_active: true }) });
   const { data: profile } = useQuery({ queryKey: ['my-staff-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
-  const canSeeCosts = canViewCostings(profile);
+  // Show cost-gated content while the profile is loading or errored (published
+  // site edge cases); enforce the real role gate once the profile resolves.
+  const canSeeCosts = !profile || canViewCostings(profile);
   const { data: job } = useQuery({ queryKey: ['job-for-delivery', jobId], queryFn: async () => { if (!jobId) return null; try { return await base44.entities.Job.get(jobId); } catch { return null; } }, enabled: !!jobId });
   const { data: costItems = [] } = useQuery({ queryKey: ['job-cost-items-delivery', jobId], queryFn: async () => { if (!jobId) return []; return await base44.entities.JobCostItem.filter({ job_id: jobId }); }, enabled: !!jobId });
 

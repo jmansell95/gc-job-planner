@@ -50,14 +50,17 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const jobProject = projects.find(p => p.id === job.project_id) || null;
   const siblingJobs = jobProject ? allJobs.filter(j => j.project_id === jobProject.id && j.id !== job.id) : [];
 
-  const { data: profile, isLoading: profileLoading } = useQuery({
+  const { data: profile } = useQuery({
     queryKey: ['my-staff-profile'],
     queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; }
   });
-  // Default to true while the profile is loading so cost-gated buttons (Add
-  // Billable Item, Add Rig & Gear) appear immediately — same pattern as
+  // Default to true whenever the profile is unavailable (still loading OR the
+  // query errored on the published site). Without this, a failed profile fetch
+  // permanently hides cost-gated UI (Add Billable Item, Add Rig & Gear, the
+  // Financials tab, budget chip, Add Delivery). Once the profile resolves,
+  // canViewCostings enforces the real role-based gate. Same pattern as
   // canAccessSection which returns true while the profile is unresolved.
-  const canSeeCosts = profileLoading || canViewCostings(profile);
+  const canSeeCosts = !profile || canViewCostings(profile);
 
   const { data: allStaff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
