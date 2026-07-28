@@ -29,6 +29,21 @@ Deno.serve(async (req) => {
     const milestones = await base44.asServiceRole.entities.JobMilestone.filter({ job_id: job.id });
     const timesheets = await base44.asServiceRole.entities.Timesheet.filter({ job_id: job.id });
     const costItems = await base44.asServiceRole.entities.JobCostItem.filter({ job_id: job.id });
+    // Delay logs — for the client-facing "Live Site Status" pulse feed.
+    // Only include approved delay logs so the client sees confirmed impacts,
+    // not pending reports awaiting manager review.
+    const allDelays = await base44.asServiceRole.entities.JobDelayLog.filter({ job_id: job.id });
+    const delays = allDelays
+      .filter(d => d.manager_review_status === 'approved')
+      .sort((a, b) => new Date(b.reported_at || b.created_date) - new Date(a.reported_at || a.created_date))
+      .map(d => ({
+        delay_type: d.delay_type || 'other',
+        description: d.description || '',
+        impacted_days: Number(d.impacted_days) || 0,
+        impacted_hours: Number(d.impacted_hours) || 0,
+        reported_at: d.reported_at || d.created_date || '',
+        staff_name: d.staff_name || ''
+      }));
 
     let client = null;
     if (job.client_id) {
@@ -161,7 +176,8 @@ Deno.serve(async (req) => {
         photo_url: p.photo_url,
         caption: p.caption || '',
         uploaded_by: p.uploaded_by_name || ''
-      }))
+      })),
+      delays
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

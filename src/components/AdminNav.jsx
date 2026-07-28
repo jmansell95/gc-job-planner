@@ -197,6 +197,9 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         onNavigate={setActiveSection}
         onLogout={handleLogout}
         onAssistant={openChat}
+        onDrillingIntelligence={() => { openDrillingIntelligence(); setDrawerOpen(false); }}
+        onAssetLens={() => { setLensOpen(true); setDrawerOpen(false); }}
+        onRigHub={() => { navigate('/rig-hub'); setDrawerOpen(false); }}
         onHelp={() => { navigate('/help'); setDrawerOpen(false); }}
         onProfile={() => { navigate('/staff-profile'); setDrawerOpen(false); }}
       />

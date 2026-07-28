@@ -1,0 +1,34 @@
+{
+  "name": "BankHoliday",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the bank holiday (e.g. 'Christmas Day', 'New Year's Day', 'Summer Bank Holiday')."
+    },
+    "holiday_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the bank holiday."
+    },
+    "region": {
+      "type": "string",
+      "default": "england-and-wales",
+      "description": "UK region this holiday applies to (e.g. 'england-and-wales', 'scotland', 'northern-ireland')."
+    },
+    "year": {
+      "type": "number",
+      "description": "Calendar year of the holiday (for quick filtering by year)."
+    },
+    "source": {
+      "type": "string",
+      "default": "gov.uk",
+      "description": "Where the holiday data was sourced from (e.g. 'gov.uk', 'manual')."
+    }
+  },
+  "required": [
+    "name",
+    "holiday_date",
+    "year"
+  ]
+}

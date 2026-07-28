@@ -12,6 +12,7 @@ import { format, isToday, parseISO } from 'date-fns';
 import PortalComments from '@/components/PortalComments';
 import PortalTimeline from '@/components/PortalTimeline';
 import PortalDocuments from '@/components/PortalDocuments';
+import PortalSiteStatus from '@/components/PortalSiteStatus';
 import { formatJobType } from '@/utils/format';
 
 const jobTypeBadges = {
@@ -241,6 +242,13 @@ export default function ClientPortal() {
                 <p className="text-xs text-slate-400">Completed</p>
               </div>
             </div>
+          </motion.div>
+        )}
+
+        {/* Live Site Status — delay pulse feed */}
+        {data.delays && data.delays.length > 0 && (
+          <motion.div variants={portalItem}>
+            <PortalSiteStatus delays={data.delays} />
           </motion.div>
         )}
 

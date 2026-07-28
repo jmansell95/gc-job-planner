@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, LogOut, HelpCircle, User, CalendarDays } from 'lucide-react';
+import { X, Sparkles, LogOut, HelpCircle, User, CalendarDays, HardHat, ScanLine, Boxes } from 'lucide-react';
 import Logo from '@/components/Logo';
 
-export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onHelp, onProfile }) {
+export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onHelp, onProfile, onDrillingIntelligence, onAssetLens, onRigHub }) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -40,6 +40,34 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
                 <Sparkles className="w-4 h-4" />
                 Ask Assistant
               </button>
+            </div>
+
+            {/* Power Tools — mobile parity with the desktop sidebar action cluster */}
+            <div className="px-3 pb-1">
+              <p className="px-1 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Power Tools</p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {onDrillingIntelligence && (
+                  <button onClick={onDrillingIntelligence} type="button"
+                    className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition touch-manipulation select-none ring-1 ring-white/15">
+                    <HardHat className="w-4 h-4" />
+                    <span className="text-[10px] font-medium leading-tight text-center">Drilling AI</span>
+                  </button>
+                )}
+                {onAssetLens && (
+                  <button onClick={onAssetLens} type="button"
+                    className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition touch-manipulation select-none ring-1 ring-white/15">
+                    <ScanLine className="w-4 h-4" />
+                    <span className="text-[10px] font-medium leading-tight text-center">Asset Lens</span>
+                  </button>
+                )}
+                {onRigHub && (
+                  <button onClick={onRigHub} type="button"
+                    className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white hover:brightness-110 active:scale-[0.98] transition touch-manipulation select-none shadow-sm">
+                    <Boxes className="w-4 h-4" />
+                    <span className="text-[10px] font-medium leading-tight text-center">Rig Hub</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto overscroll-contain">
