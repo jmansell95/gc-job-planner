@@ -13,10 +13,12 @@ const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFracti
  */
 export default function RigGearPickerModal({ rigs = [], assets = [], rateCardItems = [], projectId = null, onAdd, onClose, adding = false }) {
   const [selectedRig, setSelectedRig] = useState(null);
+  const [onSiteStart, setOnSiteStart] = useState('');
+  const [onSiteEnd, setOnSiteEnd] = useState('');
 
   const handleAdd = () => {
-    if (!selectedRig) return;
-    onAdd(selectedRig);
+    if (!selectedRig || !onSiteStart) return;
+    onAdd(selectedRig, { onSiteStart, onSiteEnd });
   };
 
   const gearFor = (rig) => (rig.linked_equipment_ids || [])
@@ -85,9 +87,25 @@ export default function RigGearPickerModal({ rigs = [], assets = [], rateCardIte
               </button>
             );
           })}
+          {selectedRig && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+              <p className="text-xs font-semibold text-blue-800">On-site period</p>
+              <p className="text-[11px] text-blue-600">Choose the days you want this rig on site. Crew costs are calculated automatically: day rate × working days. Revenue comes from meterage × metres drilled.</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-medium text-slate-500 mb-0.5">On site from</label>
+                  <input type="date" value={onSiteStart} onChange={e => setOnSiteStart(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:border-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-medium text-slate-500 mb-0.5">On site to (blank = ongoing)</label>
+                  <input type="date" value={onSiteEnd} onChange={e => setOnSiteEnd(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:border-blue-500" />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <div className="sticky bottom-0 bg-white border-t border-slate-100 px-5 py-3 flex gap-2">
-          <button onClick={handleAdd} disabled={!selectedRig || adding}
+          <button onClick={handleAdd} disabled={!selectedRig || adding || !onSiteStart}
             className="flex-1 py-2.5 bg-blue-700 text-white rounded-xl font-semibold text-sm hover:bg-blue-800 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5">
             {adding ? <><Loader2 className="w-4 h-4 animate-spin" /> Adding…</> : <><Plus className="w-4 h-4" /> Add to Job</>}
           </button>

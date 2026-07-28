@@ -303,7 +303,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   // Uses the shared rigRateMatcher module — supports CP, Rotary, and Window Sampling rigs.
   const matchRigRateCard = (rigAsset) => findRigRateCardItem(rigAsset, rateCardItems, job?.project_id);
 
-  const addRigWithGear = async (rigId) => {
+  const addRigWithGear = async (rigId, dates = {}) => {
     if (!rigId) return;
     setAddingRigGear(true);
     try {
@@ -328,7 +328,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       const payload = [
         { job_id: jobId, category: 'internal_equipment', supplier_id: '', description: rig.name,
           reference_number: rig.serial_number || '', responsible_person: rig.responsible_person || '', site_asset_id: rig.id,
-          rate_card_item_id: rateCardItem?.id || '', po_number: '', start_date: '', end_date: '', unit_cost: rigDayRate,
+          rate_card_item_id: rateCardItem?.id || '', po_number: '', start_date: dates.onSiteStart || '', end_date: dates.onSiteEnd || '', unit_cost: rigDayRate,
           quantity: 1, unit_label: rigUnit, vat_exempt: false,
           hire_status: 'active', current_location: 'yard', notes: rateCardItem ? `Day rate from Our Rate Card — includes ${gear.length} linked gear item(s)` : `Day rate from Asset Panda — includes ${gear.length} linked gear item(s)` },
         ...gear.map(g => ({
@@ -341,7 +341,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       await base44.entities.JobCostItem.bulkCreate(payload);
       queryClient.invalidateQueries({ queryKey: ['job-cost-items', jobId] });
       queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', jobId] });
-      toast({ title: `Added ${rig.name}`, description: `Rig + ${gear.length} gear items · ${fmt(rigDayRate)}/${rigUnit} ${rateCardItem ? 'from Our Rate Card' : 'from Asset Panda'}.` });
+      toast({ title: `Added ${rig.name}`, description: `Rig + ${gear.length} gear items · ${fmt(rigDayRate)}/${rigUnit} · on site ${dates.onSiteStart || 'TBD'} → ${dates.onSiteEnd || 'ongoing'}.` });
       setShowRigPicker(false);
     } catch (err) { console.error(err); toast({ title: 'Error', description: 'Could not add rig and gear.' }); }
     setAddingRigGear(false);
