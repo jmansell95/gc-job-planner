@@ -76,6 +76,6 @@ export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview',
 // user's saved widget order (saved customisation still respected within a profile).
 export const VIEW_PROFILES = [
   { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'job-assets', 'delivery-stats', 'geo-heatmap'] },
-  { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['executive-snapshot', 'efficiency-snapshot', 'job-profitability', 'rig-profitability', 'unbilled-wip', 'charts'] },
-  { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['executive-snapshot', 'compliance-overview', 'maintenance-quick-view', 'geo-heatmap'] },
+  { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['efficiency-snapshot', 'job-profitability', 'rig-profitability', 'unbilled-wip', 'charts'] },
+  { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['compliance-overview', 'maintenance-quick-view'] },
 ];
