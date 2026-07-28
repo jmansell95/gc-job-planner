@@ -197,7 +197,7 @@ export async function buildPresentationPDF(logoUrl) {
 
   const colW = (pageW - margin * 2 - 16) / 2;
   const drawOutcomeBox = (x, y, title, items, accent) => {
-    const itemH = items.reduce((s, it) => s + textHeight(doc, it, colW - 28) * 12 + 8, 0);
+    const itemH = items.reduce((s, it) => s + textHeight(doc, it, colW - 28, 12) + 8, 0);
     const boxH = 24 + itemH + 12;
     if (y + boxH > pageH - 50) { doc.addPage(); y = 130; }
     doc.setFillColor(SLATE_100);
