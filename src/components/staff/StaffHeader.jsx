@@ -21,7 +21,7 @@ export default function StaffHeader({ staff, onShowSchedule }) {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            {staff?.delivery_dashboard_enabled && (
+            {(staff?.delivery_dashboard_enabled || staff?.is_admin) && (
               <button onClick={() => navigate('/deliveries')} type="button" aria-label="Deliveries"
                 className="w-11 h-11 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white flex items-center justify-center active:scale-95 transition touch-manipulation">
                 <Truck className="w-5 h-5" />

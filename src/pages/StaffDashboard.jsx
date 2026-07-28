@@ -57,12 +57,13 @@ export default function StaffDashboard() {
         } else if (isPlatformAdmin) {
           // Super admin with no linked crew profile — preview the schedule
           // instead of hitting the "No crew profile found" dead-end.
-          setStaff({ id: null, name: user?.full_name || user?.email, email: user?.email, is_admin: true, system_role: 'admin', team: null, no_staff_profile: true });
+          // Include delivery_dashboard_enabled so the Truck icon shows.
+          setStaff({ id: null, name: user?.full_name || user?.email, email: user?.email, is_admin: true, system_role: 'admin', team: null, no_staff_profile: true, delivery_dashboard_enabled: true });
         }
       } catch (error) {
         console.error('Error loading staff:', error);
         if (isPlatformAdmin) {
-          setStaff({ id: null, name: user?.full_name || user?.email, email: user?.email, is_admin: true, system_role: 'admin', team: null, no_staff_profile: true });
+          setStaff({ id: null, name: user?.full_name || user?.email, email: user?.email, is_admin: true, system_role: 'admin', team: null, no_staff_profile: true, delivery_dashboard_enabled: true });
         }
       } finally {
         setLoading(false);

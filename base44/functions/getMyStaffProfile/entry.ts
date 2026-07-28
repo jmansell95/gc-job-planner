@@ -43,7 +43,10 @@ Deno.serve(async (req) => {
         is_admin: isAdmin,
         no_staff_profile: true,
         email_notifications_enabled: true,
-        delivery_dashboard_enabled: false,
+        // Platform admins can always access the delivery dashboard — default
+        // to true so the Truck icon shows even when the Staff record is missing.
+        // Non-admins default to false (their Staff record must explicitly enable it).
+        delivery_dashboard_enabled: isAdmin,
         // Platform admins without a Staff record get super_admin so the
         // admin nav stays visible. Non-admin users without a Staff record
         // get 'user' (basic office read access) instead of null (which
