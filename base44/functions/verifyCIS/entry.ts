@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { secrets } from 'base44:runtime';
 
 // ============================================================
 // verifyCIS — HMRC CIS subcontractor verification.
@@ -9,8 +8,8 @@ import { secrets } from 'base44:runtime';
 // or unknown) and stamps the Contractor record.
 //
 // HMRC CIS API uses OAuth2 (client credentials / application-restricted).
-// Credentials are stored as secrets: HMRC_CIS_CLIENT_ID,
-// HMRC_CIS_CLIENT_SECRET, HMRC_CIS_TPP_ID (third-party identifier).
+// Credentials are stored in AppSetting keyed 'cis_config' (same pattern as
+// Concur / Bob HR): { client_id, client_secret, tpp_id }.
 // The HMRC CIS verify endpoint: POST /cis/v1.0/verify
 //
 // Payload: { contractor_id } — verifies a single subcontractor.
@@ -18,9 +17,12 @@ import { secrets } from 'base44:runtime';
 
 const HMRC_BASE = 'https://api-api.service.hmrc.gov.uk';
 
-async function getHmrcToken(): Promise<string | null> {
-  const clientId = secrets.get('HMRC_CIS_CLIENT_ID');
-  const clientSecret = secrets.get('HMRC_CIS_CLIENT_SECRET');
+async function getCisConfig(base44: any) {
+  const settings = await base44.asServiceRole.entities.AppSetting.filter({ key: 'cis_config' });
+  return { cfg: settings[0]?.value || {}, settingsId: settings[0]?.id };
+}
+
+async function getHmrcToken(clientId: string, clientSecret: string): Promise<string | null> {
   if (!clientId || !clientSecret) return null;
   const res = await fetch(`${HMRC_BASE}/oauth/token`, {
     method: 'POST',
@@ -47,9 +49,10 @@ export default async function(req: Request): Promise<Response> {
 
     // Test mode — check HMRC credentials are configured
     if (body.action === 'test') {
-      const token = await getHmrcToken();
+      const { cfg } = await getCisConfig(base44);
+      const token = await getHmrcToken(cfg.client_id, cfg.client_secret);
       if (!token) {
-        return Response.json({ ok: false, message: 'HMRC CIS credentials not configured — set HMRC_CIS_CLIENT_ID and HMRC_CIS_CLIENT_SECRET secrets.' }, { status: 400 });
+        return Response.json({ ok: false, message: 'HMRC CIS credentials not configured — enter your client ID, client secret and company UTR (TPP ID) in Settings → CIS Verification.' }, { status: 400 });
       }
       return Response.json({ ok: true, message: 'HMRC CIS credentials configured — ready to verify subcontractors.' });
     }
@@ -64,12 +67,13 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ ok: false, error: 'Contractor has no UTR — enter the UTR before verifying.' }, { status: 400 });
     }
 
-    const token = await getHmrcToken();
+    const { cfg } = await getCisConfig(base44);
+    const token = await getHmrcToken(cfg.client_id, cfg.client_secret);
     if (!token) {
-      return Response.json({ ok: false, error: 'HMRC CIS credentials not configured — set HMRC_CIS_CLIENT_ID and HMRC_CIS_CLIENT_SECRET secrets in Settings.' }, { status: 400 });
+      return Response.json({ ok: false, error: 'HMRC CIS credentials not configured — enter them in Settings → CIS Verification.' }, { status: 400 });
     }
 
-    const tppId = secrets.get('HMRC_CIS_TPP_ID') || '';
+    const tppId = cfg.tpp_id || '';
 
     // Call HMRC CIS verify endpoint
     const verifyRes = await fetch(`${HMRC_BASE}/cis/v1.0/verify`, {

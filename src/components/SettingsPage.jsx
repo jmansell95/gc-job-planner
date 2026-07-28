@@ -39,6 +39,9 @@ import GLCodeMapping from '@/components/settings/GLCodeMapping';
 import BillingContractManager from '@/components/settings/BillingContractManager';
 import FinancialAuditLogViewer from '@/components/settings/FinancialAuditLogViewer';
 import BobHRSettings from '@/components/settings/BobHRSettings';
+import PayrollExportSettings from '@/components/settings/PayrollExportSettings';
+import CISSettings from '@/components/settings/CISSettings';
+import JobAlertSettings from '@/components/settings/JobAlertSettings';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { resolveRole } from '@/utils/access';
 import { base44 } from '@/api/base44Client';
@@ -111,6 +114,9 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'billing-contracts': return <BillingContractManager />;
       case 'financial-audit': return <FinancialAuditLogViewer />;
       case 'bob-hr': return <BobHRSettings />;
+      case 'payroll-export': return <PayrollExportSettings />;
+      case 'cis-verification': return <CISSettings />;
+      case 'job-alerts': return <JobAlertSettings />;
       default: return null;
     }
   };

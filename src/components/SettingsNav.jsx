@@ -39,6 +39,7 @@ export const settingsGroups = [
       { id: 'log-qc', label: 'Log QC', icon: FlaskConical, desc: 'Review and approve investigation logs', roles: ['admin', 'manager', 'viewer'] },
       { id: 'audit-trail', label: 'Audit Trail', icon: ClipboardCheck, desc: 'ISO-compliant job packs — full start-to-finish audit trail for auditors', roles: ['admin', 'manager', 'viewer'] },
       { id: 'timesheets', label: 'Timesheets', icon: Clock, desc: 'Review and approve crew timesheets', roles: ['admin', 'manager'] },
+      { id: 'cis-verification', label: 'CIS Verification', icon: ShieldCheck, desc: 'Verify subcontractors against HMRC CIS — deduction rates & verification numbers', roles: ['admin'] },
     ],
   },
   {
@@ -68,6 +69,8 @@ export const settingsGroups = [
       { id: 'gl-mapping', label: 'GL Code Mapping', icon: FileSpreadsheet, desc: 'Map internal expense categories to SAP Concur General Ledger codes' },
       { id: 'billing-contracts', label: 'Billing Contracts', icon: ScrollText, desc: 'Locked per-job billing terms — version-controlled contracts with rate snapshots, POA items & retention' },
       { id: 'financial-audit', label: 'Financial Audit Log', icon: History, desc: 'Tamper-evident record of every change to locked rate cards, SORs, billing rules, presets & contracts', roles: ['admin'] },
+      { id: 'payroll-export', label: 'Payroll Export', icon: FileSpreadsheet, desc: 'Export approved weekly timesheets to CSV / Xero / Sage 50 — locks records after export', roles: ['admin'] },
+      { id: 'job-alerts', label: 'Job Budget Alerts', icon: Gauge, desc: 'Automated alerts when active jobs breach budget, margin or profit thresholds', roles: ['admin'] },
     ],
   },
   {
