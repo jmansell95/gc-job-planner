@@ -323,10 +323,14 @@ export default function AutoFinancialsBreakdown({ job }) {
                       {r.status === 'assigned' && (
                         <p className="text-[10px] text-amber-600 mb-1.5">No costs yet — rig not delivered to site</p>
                       )}
-                      <div className="grid grid-cols-4 gap-2 text-xs">
+                      <div className="grid grid-cols-5 gap-2 text-xs">
                         <div>
-                          <p className="text-[9px] text-slate-400 uppercase">Day Rate</p>
+                          <p className="text-[9px] text-slate-400 uppercase">Charge Out</p>
                           <p className="font-semibold text-slate-700">{fmt(r.day_rate)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-amber-500 uppercase">Int. Cost/day</p>
+                          <p className="font-semibold text-amber-700">{fmt(r.day_cost ?? r.day_rate)}</p>
                         </div>
                         <div>
                           <p className="text-[9px] text-slate-400 uppercase">Metres</p>
@@ -344,7 +348,7 @@ export default function AutoFinancialsBreakdown({ job }) {
                       {r.boreholes.length > 0 && (
                         <p className="text-[10px] text-slate-400 mt-1">Boreholes: {r.boreholes.join(', ')}</p>
                       )}
-                      <p className="text-[10px] text-slate-400 mt-0.5">{r.rate_description} · {fmt(r.day_rate)}/day × {r.working_days}d on site = {fmt(r.total_cost)} cost</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{r.rate_description} · {fmt(r.day_cost ?? r.day_rate)}/day cost × {r.working_days}d on site = {fmt(r.total_cost)} cost</p>
                     </div>
                   ))}
                 </div>
@@ -494,7 +498,11 @@ export default function AutoFinancialsBreakdown({ job }) {
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-semibold text-slate-700 truncate">{r.staff_name}</p>
                     <p className="text-[10px] text-slate-400">
-                      {r.day_rate > 0 ? `${fmt(r.day_rate)}/day × ${r.standard_days} day(s)` : 'No day rate found'}
+                      {r.day_cost != null && r.day_cost > 0
+                        ? `${fmt(r.day_cost)}/day cost × ${r.standard_days} day(s)`
+                        : r.day_rate > 0
+                          ? `${fmt(r.day_rate)}/day × ${r.standard_days} day(s)`
+                          : 'No day rate found'}
                       {r.overtime_days > 0 && ` · ${r.overtime_days} OT @ ${r.overtime_multiplier}×`}
                     </p>
                     {r.rate_source === 'no_rate_found' && (

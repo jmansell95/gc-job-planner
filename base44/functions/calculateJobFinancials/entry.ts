@@ -458,8 +458,42 @@ export default async function(req: Request): Promise<Response> {
     const staffMap: Record<string, any> = {};
     for (const s of allStaff) staffMap[s.id] = s;
 
+    // ── Cost vs Charge-out resolution ──
+    // RateCardItem.price = charge-out (revenue). RateCardItem.cost_price = internal cost.
+    // For COST calculations we use cost_price when available, falling back to
+    // the JobCostItem.unit_cost (which was historically filled from price).
+    // Build lookups from already-loaded rate card items so we can resolve both
+    // the true internal cost and the charge-out price for items linked via
+    // rate_card_item_id.
+    const rateCardCostMap: Record<string, number> = {};
+    const rateCardChargeMap: Record<string, number> = {};
+    for (const r of [...(projectRateItems || []), ...(globalItems || [])]) {
+      if (r.id) {
+        rateCardCostMap[r.id] = r.cost_price != null ? Number(r.cost_price) : (r.price != null ? Number(r.price) : 0);
+        rateCardChargeMap[r.id] = r.price != null ? Number(r.price) : 0;
+      }
+    }
+    // Resolve the internal cost for a JobCostItem: linked rate card cost_price
+    // takes precedence, then the stored unit_cost, then 0.
+    const itemInternalCost = (c: any): number => {
+      if (c.price_confirmed && c.negotiated_unit_cost != null) return Number(c.negotiated_unit_cost);
+      if (c.rate_card_item_id && rateCardCostMap[c.rate_card_item_id] != null) return rateCardCostMap[c.rate_card_item_id];
+      return Number(c.unit_cost) || 0;
+    };
+    // Resolve the charge-out (revenue) for a JobCostItem: linked rate card
+    // price takes precedence, then the stored unit_cost (which was
+    // historically filled from the charge-out price), then 0.
+    const itemChargeOut = (c: any): number => {
+      if (c.price_confirmed && c.negotiated_unit_cost != null) return Number(c.negotiated_unit_cost);
+      if (c.rate_card_item_id && rateCardChargeMap[c.rate_card_item_id] != null) return rateCardChargeMap[c.rate_card_item_id];
+      return Number(c.unit_cost) || 0;
+    };
     const itemNet = (c: any) => {
-      const rate = c.price_confirmed && c.negotiated_unit_cost != null ? Number(c.negotiated_unit_cost) : (Number(c.unit_cost) || 0);
+      const rate = itemInternalCost(c);
+      return rate * (Number(c.quantity) || 1);
+    };
+    const itemRevenue = (c: any) => {
+      const rate = itemChargeOut(c);
       return rate * (Number(c.quantity) || 1);
     };
     // Exclude rig cost items from equipmentNet — rigs are costed separately in
@@ -577,6 +611,9 @@ export default async function(req: Request): Promise<Response> {
     const rigCostRows: RigProfitability[] = rigCostItems.map((c: any) => {
       const asset = siteAssetMap[c.site_asset_id] || {};
       const method = asset.rig_type || 'cp';
+      // Internal cost: prefer the rate card's cost_price (looked up via
+      // rate_card_item_id), then the stored unit_cost, then 0.
+      const dayCost = itemInternalCost(c);
       const dayRate = c.price_confirmed && c.negotiated_unit_cost != null
         ? Number(c.negotiated_unit_cost)
         : (Number(c.unit_cost) || 0);
@@ -591,7 +628,7 @@ export default async function(req: Request): Promise<Response> {
       const startDate = c.start_date || (isDelivered ? locDate : null);
       const endDate = c.off_hire_date || c.end_date || null;
       const rigDays = isDelivered && startDate ? calcRigWorkingDays(startDate, endDate) : 0;
-      const cost = Math.round(dayRate * rigDays * 100) / 100;
+      const cost = Math.round(dayCost * rigDays * 100) / 100;
       // Allocate borehole revenue evenly across delivered rigs of the same method
       const methodBoreholes = boreholesByMethod[method] || [];
       const deliveredRigsOfMethod = rigCostItems.filter((rc: any) => {
@@ -607,6 +644,7 @@ export default async function(req: Request): Promise<Response> {
         rig_type: asset.rig_type || '',
         status: isOnSite ? 'on_site' : isReturned ? 'returned' : 'assigned',
         day_rate: dayRate,
+        day_cost: dayCost,
         rate_description: rateDesc,
         working_days: rigDays,
         total_cost: cost,
@@ -641,7 +679,7 @@ export default async function(req: Request): Promise<Response> {
     }
 
     interface CrewCostRow {
-      staff_id: string; staff_name: string; day_rate: number; standard_days: number;
+      staff_id: string; staff_name: string; day_rate: number; day_cost: number; standard_days: number;
       overtime_days: number; overtime_multiplier: number; total_cost: number; rate_source: string;
     }
     const staffDayMap: Record<string, { dates: Set<string>; overtimeDates: Set<string>; multiplier: number }> = {};
@@ -658,17 +696,22 @@ export default async function(req: Request): Promise<Response> {
     for (const [sid, days] of Object.entries(staffDayMap)) {
       const rateItems = staffRates[sid] || [];
       const dayRateItem = rateItems.find((i: any) => i.unit === 'day' && i.category === 'labour') || rateItems.find((i: any) => i.unit === 'day');
+      // day_rate = charge-out (price) — used for day-rate REVENUE.
+      // day_cost = internal cost (cost_price if set, else price as fallback).
       const dayRate = dayRateItem ? Number(dayRateItem.price) : 0;
+      const dayCost = dayRateItem
+        ? (dayRateItem.cost_price != null ? Number(dayRateItem.cost_price) : Number(dayRateItem.price))
+        : 0;
       const totalDays = days.dates.size;
       const overtimeDays = days.overtimeDates.size;
       const standardDays = totalDays - overtimeDays;
-      const overtimeCost = overtimeDays * dayRate * days.multiplier;
-      const standardCost = standardDays * dayRate;
+      const overtimeCost = overtimeDays * dayCost * days.multiplier;
+      const standardCost = standardDays * dayCost;
       const total = Math.round((standardCost + overtimeCost) * 100) / 100;
       totalCrewCost += total;
       crewCostRows.push({
         staff_id: sid, staff_name: staffMap[sid]?.name || sid,
-        day_rate: dayRate, standard_days: standardDays,
+        day_rate: dayRate, day_cost: dayCost, standard_days: standardDays,
         overtime_days: overtimeDays, overtime_multiplier: days.multiplier,
         total_cost: total, rate_source: dayRateItem ? 'staff_rate_card' : 'no_rate_found',
       });
@@ -705,7 +748,7 @@ export default async function(req: Request): Promise<Response> {
       revenueMethodLabel = `Unit rate (${totalUnits} units × £${Number(job.unit_price) || 0})`;
     } else if (revenueMethod === 'day_rate') {
       const crewDayRateRevenue = crewCostRows.reduce((s: number, r: CrewCostRow) => s + r.day_rate * (r.standard_days + r.overtime_days * r.overtime_multiplier), 0);
-      const labourDayRateRevenue = costItems.filter((c: any) => c.category === 'labour').reduce((s: number, c: any) => s + itemNet(c), 0);
+      const labourDayRateRevenue = costItems.filter((c: any) => c.category === 'labour').reduce((s: number, c: any) => s + itemRevenue(c), 0);
       totalRevenueNet = Math.round((crewDayRateRevenue + labourDayRateRevenue) * 100) / 100 + totalSorRevenueNet + additionalCharges + subconClientChargeNet + hireClientChargeNet;
       revenueMethodLabel = 'Day rate (crew day rates × working days)';
     } else {

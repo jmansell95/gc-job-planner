@@ -27,14 +27,19 @@ function RateItemRow({ item, subcategory, onUpdate }) {
     description: item.description,
     price: item.price ?? '',
     price_text: item.price_text ?? '',
+    cost_price: item.cost_price ?? '',
     unit: item.unit ?? '',
     men: item.men ?? '',
     notes: item.notes ?? '',
   });
   const [saving, setSaving] = useState(false);
 
-  // Calculated daily cost: if the item has men (e.g. 2-man crew), the daily rate is price × men.
-  const dailyCost = item.men && item.men > 0 && item.price != null ? item.price * item.men : null;
+  // Calculated daily charge-out: if the item has men (e.g. 2-man crew), the daily rate is price × men.
+  const dailyCharge = item.men && item.men > 0 && item.price != null ? item.price * item.men : null;
+  const hasCost = item.cost_price != null;
+  // Margin indicator: only show when both charge-out and cost are present
+  const marginPct = hasCost && item.cost_price > 0 && item.price != null && item.price > 0
+    ? ((item.price - item.cost_price) / item.price) * 100 : null;
 
   const save = async () => {
     setSaving(true);
@@ -43,6 +48,7 @@ function RateItemRow({ item, subcategory, onUpdate }) {
         description: form.description,
         price: form.price === '' ? null : Number(form.price),
         price_text: form.price_text || null,
+        cost_price: form.cost_price === '' ? null : Number(form.cost_price),
         unit: form.unit || null,
         men: form.men === '' ? null : Number(form.men),
         notes: form.notes || null,
@@ -54,16 +60,21 @@ function RateItemRow({ item, subcategory, onUpdate }) {
   };
 
   const priceDisplay = item.price != null ? fmt(item.price) : item.price_text || '—';
+  const costDisplay = hasCost ? fmt(item.cost_price) : '—';
 
   return (
     <div className="border-b border-slate-100 last:border-0">
       {editing ? (
         <div className="p-3 bg-slate-50 space-y-2">
           <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Description" className={inputCls} />
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             <div>
-              <label className="text-[10px] text-slate-400 font-medium">Price (£)</label>
+              <label className="text-[10px] text-emerald-700 font-medium">Charge Out (£)</label>
               <input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className={inputCls} placeholder="0.00" />
+            </div>
+            <div>
+              <label className="text-[10px] text-amber-700 font-medium">Internal Cost (£)</label>
+              <input type="number" step="0.01" value={form.cost_price} onChange={e => setForm({ ...form, cost_price: e.target.value })} className={inputCls} placeholder="0.00" />
             </div>
             <div>
               <label className="text-[10px] text-slate-400 font-medium">Price text</label>
@@ -101,22 +112,33 @@ function RateItemRow({ item, subcategory, onUpdate }) {
                   <Users className="w-2.5 h-2.5" /> {item.men} man{item.men > 1 ? 's' : ''}
                 </span>
               )}
+              {marginPct != null && (
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${marginPct >= 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                  {marginPct.toFixed(0)}% margin
+                </span>
+              )}
             </div>
             {item.notes && <p className="text-xs text-slate-400 mt-0.5">{item.notes}</p>}
-            {dailyCost != null && (
+            {dailyCharge != null && (
               <p className="text-xs text-[#2E5A1A] font-semibold mt-1 inline-flex items-center gap-1 bg-[#2E5A1A]/10 px-2 py-0.5 rounded-md">
-                <PoundSterling className="w-3 h-3" /> {fmt(dailyCost)}/day total
+                <PoundSterling className="w-3 h-3" /> {fmt(dailyCharge)}/day charge
                 <span className="text-slate-400 font-normal">({fmt(item.price)} × {item.men})</span>
               </p>
             )}
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-4 flex-shrink-0">
             {item.unit && <span className="text-xs text-slate-400">/{item.unit}</span>}
-            <div className="text-right">
-              <span className={`text-sm font-semibold tabular-nums block ${item.price != null ? 'text-slate-900' : 'text-slate-400 italic'}`}>{priceDisplay}</span>
-              {dailyCost != null && <span className="text-[10px] text-slate-400 block">{fmt(dailyCost)}/day</span>}
+            {/* Internal Cost */}
+            <div className="text-right w-20">
+              <p className="text-[9px] text-amber-600 uppercase font-medium">Cost</p>
+              <span className={`text-sm font-semibold tabular-nums block ${hasCost ? 'text-amber-700' : 'text-slate-300'}`}>{costDisplay}</span>
             </div>
-            <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '' }); setEditing(true); }} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-[#2E5A1A] transition">
+            {/* Charge Out */}
+            <div className="text-right w-20">
+              <p className="text-[9px] text-emerald-600 uppercase font-medium">Charge</p>
+              <span className={`text-sm font-semibold tabular-nums block ${item.price != null ? 'text-slate-900' : 'text-slate-400 italic'}`}>{priceDisplay}</span>
+            </div>
+            <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', cost_price: item.cost_price ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '' }); setEditing(true); }} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-[#2E5A1A] transition">
               <Pencil className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -128,7 +150,7 @@ function RateItemRow({ item, subcategory, onUpdate }) {
 
 function AddRateForm({ category, subcategory, source, supplierId, onAdded }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ description: '', price: '', unit: 'day', notes: '' });
+  const [form, setForm] = useState({ description: '', price: '', cost_price: '', unit: 'day', notes: '' });
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
@@ -140,12 +162,13 @@ function AddRateForm({ category, subcategory, source, supplierId, onAdded }) {
         subcategory: subcategory || null,
         description: form.description.trim(),
         price: form.price === '' ? null : Number(form.price),
+        cost_price: form.cost_price === '' ? null : Number(form.cost_price),
         unit: form.unit || null,
         notes: form.notes || null,
         rate_card_source: source,
         supplier_id: supplierId || null,
       });
-      setForm({ description: '', price: '', unit: 'day', notes: '' });
+      setForm({ description: '', price: '', cost_price: '', unit: 'day', notes: '' });
       setOpen(false);
       onAdded();
     } catch (e) { console.error(e); }
@@ -163,8 +186,9 @@ function AddRateForm({ category, subcategory, source, supplierId, onAdded }) {
   return (
     <div className="p-3 bg-slate-50 border-b border-slate-100 space-y-2">
       <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Description" className={inputCls} autoFocus />
-      <div className="grid grid-cols-2 gap-2">
-        <input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="Price £" className={inputCls} />
+      <div className="grid grid-cols-3 gap-2">
+        <input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="Charge Out £" className={inputCls} />
+        <input type="number" step="0.01" value={form.cost_price} onChange={e => setForm({ ...form, cost_price: e.target.value })} placeholder="Internal Cost £" className={inputCls} />
         <input value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} placeholder="Unit (day, hour, m)" className={inputCls} />
       </div>
       <input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Notes" className={inputCls} />
@@ -517,6 +541,13 @@ export default function RateCardManager() {
 
       {/* List */}
       <div className="overflow-y-auto max-h-[55vh]">
+        {/* Column header */}
+        <div className="flex items-center gap-4 px-4 py-1.5 bg-slate-100/80 border-b border-slate-200 sticky top-0 z-20">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide flex-1">Description</span>
+          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide w-20 text-right">Internal Cost</span>
+          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide w-20 text-right">Charge Out</span>
+          <span className="w-6 flex-shrink-0" />
+        </div>
         {isLoading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-300" /></div>
         ) : grouped.length === 0 ? (

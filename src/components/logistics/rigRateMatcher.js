@@ -156,12 +156,15 @@ export function findOwnedAssetRateCardItem(asset, rateCardItems = [], projectId 
  * 'rate-card' | 'none'.
  */
 export function resolveAssetPrice(asset, rateCardItems = [], projectId = null) {
-  if (!asset) return { cost: 0, unit: 'day', rateCardItem: null, source: 'none' };
+  if (!asset) return { cost: 0, chargeOut: 0, unit: 'day', rateCardItem: null, source: 'none' };
 
   const rc = findOwnedAssetRateCardItem(asset, rateCardItems, projectId);
   if (rc && rc.price != null) {
-    return { cost: Number(rc.price) || 0, unit: rc.unit || 'day', rateCardItem: rc, source: 'rate-card' };
+    // cost = internal cost (cost_price if set, else charge-out price as fallback)
+    // chargeOut = what we bill the client (price)
+    const cost = rc.cost_price != null ? Number(rc.cost_price) || 0 : Number(rc.price) || 0;
+    return { cost, chargeOut: Number(rc.price) || 0, unit: rc.unit || 'day', rateCardItem: rc, source: 'rate-card' };
   }
 
-  return { cost: 0, unit: 'day', rateCardItem: null, source: 'none' };
+  return { cost: 0, chargeOut: 0, unit: 'day', rateCardItem: null, source: 'none' };
 }

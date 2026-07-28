@@ -21,11 +21,19 @@
     },
     "price": {
       "type": "number",
-      "description": "Net price in GBP. Null when the price is not a simple number (POA, 'Cost + Fee', 'included in delivery rate')."
+      "description": "Charge-out (sell) price in GBP \u2014 what we bill the client. Null when the price is not a simple number (POA, 'Cost + Fee', 'included in delivery rate'). This is the REVENUE side."
     },
     "price_text": {
       "type": "string",
-      "description": "Raw price text when the price is not a simple number (e.g. 'POA', 'Cost + Fee', 'included in delivery rate', 'x1.5')."
+      "description": "Raw charge-out price text when the price is not a simple number (e.g. 'POA', 'Cost + Fee', 'included in delivery rate', 'x1.5')."
+    },
+    "cost_price": {
+      "type": "number",
+      "description": "Internal cost price in GBP \u2014 what it costs US to provide this item (crew wages, equipment running costs, material purchase price). Null when not set. The financial engine uses this for all COST calculations. If blank, the engine falls back to 'price' so existing rate cards keep working."
+    },
+    "cost_price_text": {
+      "type": "string",
+      "description": "Raw internal cost text when the cost is not a simple number (e.g. 'TBC', 'varies')."
     },
     "unit": {
       "type": "string",

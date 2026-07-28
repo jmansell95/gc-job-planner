@@ -52,6 +52,20 @@ Deno.serve(async (req) => {
 
       let currentSubcategory = cfg.name;
 
+      // Detect an optional "Cost" column from the header row (first row).
+      // Looks for a header cell containing "cost" (case-insensitive) that
+      // isn't the main price column. This lets users include an internal
+      // cost column alongside the charge-out price in their Excel.
+      let costColIdx = -1;
+      if (rows.length > 0) {
+        const headerRow = rows[0];
+        for (let c = 0; c < headerRow.length; c++) {
+          if (c === cfg.desc || c === cfg.price || c === cfg.unit) continue;
+          const h = String(headerRow[c] || '').toLowerCase().trim();
+          if (h.includes('cost') && h !== 'price') { costColIdx = c; break; }
+        }
+      }
+
       for (let r = 0; r < rows.length; r++) {
         const row = rows[r];
         if (!row || row.length === 0) continue;
@@ -66,12 +80,14 @@ Deno.serve(async (req) => {
         const unitVal = cfg.unit >= 0 ? row[cfg.unit] : null;
         const menVal = cfg.men >= 0 ? row[cfg.men] : null;
         const sizeVal = cfg.size >= 0 ? row[cfg.size] : null;
+        const costVal = costColIdx >= 0 ? row[costColIdx] : null;
 
         // Skip header rows where the price column is literally a header token
         if (priceVal != null && isHeaderToken(priceVal)) continue;
 
         const priceEmpty = priceVal == null || priceVal === '' || (typeof priceVal === 'string' && !priceVal.trim());
         const unitEmpty = unitVal == null || unitVal === '' || (typeof unitVal === 'string' && !unitVal.trim());
+        const costEmpty = costVal == null || costVal === '' || (typeof costVal === 'string' && !costVal.trim());
 
         // Subcategory heading row: description present, no price, no unit
         if (priceEmpty && unitEmpty) {
@@ -95,12 +111,24 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Parse internal cost price (optional column)
+        let costPriceNum = null;
+        if (!costEmpty) {
+          if (typeof costVal === 'number') {
+            costPriceNum = costVal;
+          } else {
+            const parsed = parseFloat(String(costVal).replace(/[^0-9.\-]/g, ''));
+            if (!isNaN(parsed) && /\d/.test(String(costVal))) costPriceNum = parsed;
+          }
+        }
+
         const item = {
           category: cfg.category,
           subcategory: currentSubcategory,
           description: descStr,
           price: priceNum,
           price_text: priceText,
+          cost_price: costPriceNum,
           unit: unitVal ? String(unitVal).trim() : null,
           men: menVal != null && menVal !== '' ? Number(menVal) : null,
           size: sizeVal != null && sizeVal !== '' ? String(sizeVal).trim() : null,

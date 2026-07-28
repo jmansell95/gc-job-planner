@@ -50,6 +50,7 @@ export default function RigGearPickerModal({ rigs = [], assets = [], rateCardIte
             const isSelected = selectedRig === rig.id;
             const rateCardItem = findRigRateCardItem(rig, rateCardItems, projectId);
             const dayRate = rateCardItem ? (Number(rateCardItem.price) || 0) : rigFallbackDayRate(rig);
+            const dayCost = rateCardItem && rateCardItem.cost_price != null ? (Number(rateCardItem.cost_price) || 0) : null;
             const unit = rateCardItem?.unit || 'day';
             return (
               <button key={rig.id} onClick={() => setSelectedRig(isSelected ? null : rig.id)}
@@ -78,10 +79,16 @@ export default function RigGearPickerModal({ rigs = [], assets = [], rateCardIte
                     ))
                   )}
                 </div>
-                <div className="ml-6 mt-1.5 flex items-center gap-2 text-xs">
+                <div className="ml-6 mt-1.5 flex items-center gap-2 text-xs flex-wrap">
                   <span className="text-slate-400">{gear.length} gear item{gear.length !== 1 ? 's' : ''} included</span>
                   <span className="text-slate-300">·</span>
-                  <span className="font-semibold text-blue-700">{fmt(dayRate)} / {unit}</span>
+                  <span className="font-semibold text-emerald-700">Charge: {fmt(dayRate)} / {unit}</span>
+                  {dayCost != null && (
+                    <>
+                      <span className="text-slate-300">·</span>
+                      <span className="font-semibold text-amber-600">Cost: {fmt(dayCost)} / {unit}</span>
+                    </>
+                  )}
                   {rateCardItem && <span className="text-slate-400 truncate">({rateCardItem.description})</span>}
                 </div>
               </button>

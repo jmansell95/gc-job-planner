@@ -23,6 +23,8 @@ export interface RateCardItemLike {
   description: string;
   price: number | null;
   price_text?: string | null;
+  cost_price?: number | null;
+  cost_price_text?: string | null;
   unit?: string | null;
   subcategory?: string | null;
   project_id?: string | null;

@@ -209,7 +209,7 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Billing rate (net) *</label>
+          <label className="block text-xs font-medium text-slate-600 mb-1">Charge-out rate (net) *</label>
           <input type="number" min="0" step="0.01" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" className={inputCls} />
         </div>
         <div>
