@@ -18,6 +18,23 @@
       "type": "string",
       "description": "Staff member name (for display)"
     },
+    "logged_by_role": {
+      "type": "string",
+      "enum": [
+        "driller",
+        "engineer",
+        "groundworker",
+        "enabling_crew",
+        "supervisor",
+        "subcontractor",
+        "client",
+        "contractor",
+        "ags_import",
+        "unspecified"
+      ],
+      "default": "unspecified",
+      "description": "The role of the person who logged this entry (driller, engineer, groundworker, etc.). Populated from the AGS file's name fields or from the staff member's team job_type. 'unspecified' is shown with a 'No name entered' alert in the UI so managers know attribution is missing. 'ags_import' = no human name was found in the file at all."
+    },
     "source": {
       "type": "string",
       "enum": [
@@ -26,15 +43,15 @@
         "keylogbook_remarks"
       ],
       "default": "staff",
-      "description": "Where this log originated. 'staff' = manually entered by a crew member in the app; 'ags_import' = ingested from a KeyLogBook AGS file (borehole/strata/SPT/sample data, read-only); 'keylogbook_remarks' = parsed from the driller's time-stamped daily remarks via the KeyLogBook webhook \u2014 each activity (e.g. '7:30_8:45 = Start briefing...') becomes its own log entry with start_time/end_time/duration_minutes. These are the professionalised Site Logs that feed the timesheet on manager approval."
+      "description": "Where this log originated. 'staff' = manually entered by a crew member in the app; 'ags_import' = ingested from a KeyLogBook AGS file (borehole/strata/SPT/sample data, read-only); 'keylogbook_remarks' = parsed from the driller's time-stamped daily remarks via the KeyLogBook webhook. These are the professionalised Site Logs that feed the timesheet on manager approval."
     },
     "start_time": {
       "type": "string",
-      "description": "Start time of this activity in HH:MM format \u2014 parsed from KeyLogBook driller remarks (e.g. '7:30' from '7:30_8:45 = ...'). Used for Site Logs display and timesheet generation."
+      "description": "Start time of this activity in HH:MM format"
     },
     "end_time": {
       "type": "string",
-      "description": "End time of this activity in HH:MM format \u2014 parsed from KeyLogBook driller remarks (e.g. '8:45' from '7:30_8:45 = ...'). Used for Site Logs display and timesheet generation."
+      "description": "End time of this activity in HH:MM format"
     },
     "crew_type": {
       "type": "string",
@@ -44,11 +61,11 @@
         "subcontractor"
       ],
       "default": "internal",
-      "description": "Which type of crew recorded this log. 'internal' = our own employees on the rota; 'enabling' = enabling works crews (site setup, reinstatement); 'subcontractor' = logged by a sub-contractor via their own login. Sub-contractor and enabling logs are flagged in Log QC with a distinct badge so managers apply the appropriate review and billing path."
+      "description": "Which type of crew recorded this log."
     },
     "subcontractor_id": {
       "type": "string",
-      "description": "Linked Contractor record when crew_type is 'subcontractor'. Used to identify which sub-contractor firm logged the work for billing and audit."
+      "description": "Linked Contractor record when crew_type is 'subcontractor'."
     },
     "completed_by_type": {
       "type": "string",
@@ -58,11 +75,11 @@
         "contractor"
       ],
       "default": "internal_staff",
-      "description": "Who performed the logged activity. 'internal_staff' (default) = our own crew; 'client' = work carried out by the client's own personnel; 'contractor' = work carried out by another contractor on site. The log timestamp is captured automatically in created_at."
+      "description": "Who performed the logged activity."
     },
     "completed_by_name": {
       "type": "string",
-      "description": "Name of the client/contractor representative who performed the work. Blank for internal staff (uses staff_name)."
+      "description": "Name of the client/contractor representative who performed the work."
     },
     "date": {
       "type": "string",
@@ -87,23 +104,23 @@
         "core_inspection",
         "other"
       ],
-      "description": "Type of investigation activity. Drilling jobs use borehole_progress/sample_collection/window_sampling/standpipe_reading/geophysical_probing/borehole_decommissioning/core_inspection; groundworks use pit_excavation/inspection_pit/installation/grouting_works; enabling crews use site_setup/reinstatement."
+      "description": "Type of investigation activity."
     },
     "borehole_ref": {
       "type": "string",
-      "description": "Borehole or pit reference (e.g. BH-01, CP-03, TP-02) \u2014 used for both drilling and trial pit logs"
+      "description": "Borehole or pit reference (e.g. BH-01, CP-03, TP-02)"
     },
     "depth_from": {
       "type": "number",
-      "description": "Start depth in metres (for borehole progress or pit excavation)"
+      "description": "Start depth in metres"
     },
     "depth_to": {
       "type": "number",
-      "description": "End depth in metres (for borehole progress or pit excavation)"
+      "description": "End depth in metres"
     },
     "sample_id": {
       "type": "string",
-      "description": "Sample reference number (e.g. S-01, UDS-02)"
+      "description": "Sample reference number"
     },
     "sample_type": {
       "type": "string",
@@ -118,7 +135,7 @@
     },
     "units_completed": {
       "type": "number",
-      "description": "Number of units completed (e.g. 2 EV chargers installed, 3 trial pits dug, metres drilled)"
+      "description": "Number of units completed"
     },
     "units_label": {
       "type": "string",
@@ -126,11 +143,11 @@
     },
     "dimensions": {
       "type": "string",
-      "description": "Dimensions (e.g. '1.2m x 0.8m x 1.5m deep' for trial pits)"
+      "description": "Dimensions"
     },
     "description": {
       "type": "string",
-      "description": "Description of the work carried out or observations (ground conditions, obstructions, etc.)"
+      "description": "Description of the work carried out or observations"
     },
     "duration_minutes": {
       "type": "number",
@@ -150,19 +167,19 @@
         "type": "number"
       },
       "default": [],
-      "description": "SPT blow counts at each 75mm increment (e.g. [3, 4, 5] = N-value 9 for the final two increments). BS 5930 standard."
+      "description": "SPT blow counts at each 75mm increment"
     },
     "spt_n_value": {
       "type": "number",
-      "description": "Calculated SPT N-value (sum of blows for the 2nd and 3rd increments). Auto-calculated from spt_blows if not manually set."
+      "description": "Calculated SPT N-value"
     },
     "groundwater_strike_depth": {
       "type": "number",
-      "description": "Depth in metres at which groundwater was first encountered during drilling or excavation"
+      "description": "Depth in metres at which groundwater was first encountered"
     },
     "groundwater_static_level": {
       "type": "number",
-      "description": "Depth in metres to the stabilised groundwater level, measured after allowing time for equilibrium (usually 24h)"
+      "description": "Depth in metres to the stabilised groundwater level"
     },
     "drilling_fluid_loss": {
       "type": "string",
@@ -172,7 +189,7 @@
         "total"
       ],
       "default": "none",
-      "description": "Drilling fluid (bentonite/water) loss during rotary or cable percussion drilling. 'none' = full return, 'partial' = reduced return, 'total' = complete loss of circulation (indicates open void or highly fractured ground)."
+      "description": "Drilling fluid loss during drilling."
     },
     "fluid_return_quality": {
       "type": "string",
@@ -182,12 +199,12 @@
         "lost"
       ],
       "default": "full",
-      "description": "Quality of drilling fluid return to surface. 'full' = normal return, 'partial' = reduced return, 'lost' = no return. Used alongside drilling_fluid_loss for borehole stability assessment."
+      "description": "Quality of drilling fluid return to surface."
     },
     "refusal_encountered": {
       "type": "boolean",
       "default": false,
-      "description": "Whether drilling or probing refusal was encountered (could not advance further). When true, obstruction_type and description should record the cause (boulder, obstructions, services, etc.)."
+      "description": "Whether drilling or probing refusal was encountered."
     },
     "obstruction_type": {
       "type": "string",
@@ -200,19 +217,19 @@
         "other"
       ],
       "default": "none",
-      "description": "Type of obstruction encountered during drilling or excavation. 'boulder' = large cobble/boulder, 'concrete' = concrete obstruction, 'utilities' = service/utility clash, 'void' = void encountered, 'other' = see description."
+      "description": "Type of obstruction encountered."
     },
     "standpipe_ref": {
       "type": "string",
-      "description": "Standpipe piezometer reference (e.g. SP-01, BH-02/SP1). Used for standpipe_reading log type to track water level monitoring over time."
+      "description": "Standpipe piezometer reference"
     },
     "standpipe_reading_m": {
       "type": "number",
-      "description": "Standpipe water level reading in metres below ground level (mBGL). Recorded during monitoring visits to track groundwater levels over time."
+      "description": "Standpipe water level reading in metres below ground level (mBGL)."
     },
     "standpipe_dip_depth_m": {
       "type": "number",
-      "description": "Depth to water measured from the top of the standpipe casing (m below TOC). Used when borehole casing elevation isn't known, converted to mBGL later."
+      "description": "Depth to water measured from the top of the standpipe casing (m below TOC)."
     },
     "strata_descriptor": {
       "type": "string",
@@ -238,27 +255,27 @@
         "other"
       ],
       "default": "other",
-      "description": "Standardised strata classification per BS 5930 for consistent borehole and pit logging"
+      "description": "Standardised strata classification per BS 5930"
     },
     "strata_description_detail": {
       "type": "string",
-      "description": "Free-text detail supplementing the standardised strata descriptor (e.g. 'firm grey slightly sandy CLAY with gravel pockets')"
+      "description": "Free-text detail supplementing the standardised strata descriptor"
     },
     "coring_rqd": {
       "type": "number",
-      "description": "Rock Quality Designation percentage \u2014 sum of intact core pieces \u2265100mm divided by total core run length. Used for rotary coring only."
+      "description": "Rock Quality Designation percentage"
     },
     "coring_recovery": {
       "type": "number",
-      "description": "Core recovery percentage \u2014 length of recovered core divided by total core run length. Used for rotary coring only."
+      "description": "Core recovery percentage"
     },
     "core_run_number": {
       "type": "string",
-      "description": "Core run reference (e.g. C1, C2) for rotary coring logs"
+      "description": "Core run reference (e.g. C1, C2)"
     },
     "core_box_number": {
       "type": "string",
-      "description": "Core box number for core_inspection logs \u2014 used to track and photograph boxed core from rotary drilling for laboratory dispatch."
+      "description": "Core box number for core_inspection logs"
     },
     "pit_stability_rating": {
       "type": "string",
@@ -269,7 +286,7 @@
         "not_assessed"
       ],
       "default": "not_assessed",
-      "description": "Wall stability assessment for trial pits \u2014 'stable' = no movement, 'minor_slumping' = some material falling, 'collapse' = significant sidewall failure. Mandatory for trial pit and inspection pit logs."
+      "description": "Wall stability assessment for trial pits"
     },
     "service_encounter_type": {
       "type": "string",
@@ -283,11 +300,11 @@
         "unknown"
       ],
       "default": "none",
-      "description": "Type of underground service encountered during excavation. 'none' = no services found; any other value forces a GPS coordinate capture for the hazard map."
+      "description": "Type of underground service encountered during excavation."
     },
     "service_encounter_gps": {
       "type": "string",
-      "description": "GPS coordinates (lat,lng) of any service encountered \u2014 mandatory when service_encounter_type is not 'none'. Used for the live site hazard map."
+      "description": "GPS coordinates (lat,lng) of any service encountered"
     },
     "service_check_by_type": {
       "type": "string",
@@ -297,27 +314,27 @@
         "contractor"
       ],
       "default": "internal_staff",
-      "description": "Who performed the service check / verification when a service was encountered. Lets the crew record that the client or a contractor carried out the service check (e.g. before continuing to dig), rather than assuming our staff always did it."
+      "description": "Who performed the service check / verification."
     },
     "service_check_by_name": {
       "type": "string",
-      "description": "Name of the person who performed the service check. Required when service_check_by_type is 'client' or 'contractor'."
+      "description": "Name of the person who performed the service check."
     },
     "service_check_at": {
       "type": "string",
-      "description": "ISO timestamp of when the service check was carried out. Auto-set to the current time when the log is saved; the time is displayed alongside the checker's name on the audit trail."
+      "description": "ISO timestamp of when the service check was carried out."
     },
     "cbr_value": {
       "type": "number",
-      "description": "California Bearing Ratio test result (%) \u2014 in-situ strength testing performed in trial pits or at formation level"
+      "description": "California Bearing Ratio test result (%)"
     },
     "vane_strength": {
       "type": "number",
-      "description": "Hand vane shear strength test result (kPa) \u2014 in-situ strength testing of cohesive soils"
+      "description": "Hand vane shear strength test result (kPa)"
     },
     "verification_photo_urls": {
       "type": "string",
-      "description": "Comma-separated URLs of pre-dig and post-dig verification photos \u2014 used by enabling crews for reinstatement evidence"
+      "description": "Comma-separated URLs of pre-dig and post-dig verification photos"
     },
     "reinstatement_type": {
       "type": "string",
@@ -331,15 +348,15 @@
         "other"
       ],
       "default": "none",
-      "description": "Type of reinstatement carried out after the investigation \u2014 for enabling/reinstatement logs"
+      "description": "Type of reinstatement carried out after the investigation"
     },
     "backfill_material": {
       "type": "string",
-      "description": "Material used for backfilling (e.g. 'Type 1 granular', 'site-won clay', 'foam concrete', 'bentonite pellets')"
+      "description": "Material used for backfilling"
     },
     "grout_volume": {
       "type": "number",
-      "description": "Volume of grout mixed/placed in litres (grouting_works log type). Used for material consumption tracking and billing."
+      "description": "Volume of grout mixed/placed in litres"
     },
     "mixer_type": {
       "type": "string",
@@ -350,27 +367,27 @@
         "none"
       ],
       "default": "none",
-      "description": "Mixing method used for grouting. 'machine_mixer' = powered colloidal/paddle mixer, 'hand_mix' = manual mixing, 'ready_mixed' = delivered premixed, 'none' = not applicable."
+      "description": "Mixing method used for grouting."
     },
     "grout_mix_ratio": {
       "type": "string",
-      "description": "Grout mix ratio (e.g. '1:1 cement:bentonite', 'Cement 25kg + 12L water'). Recorded for grouting works to ensure consistency with specification."
+      "description": "Grout mix ratio"
     },
     "seal_depth": {
       "type": "number",
-      "description": "Depth in metres to which a borehole was sealed/backfilled during decommissioning. Used with backfill_material to record the environmental seal."
+      "description": "Depth in metres to which a borehole was sealed/backfilled during decommissioning."
     },
     "probe_depth": {
       "type": "number",
-      "description": "Depth reached by geophysical probing (m). Used for geophysical_probing logs."
+      "description": "Depth reached by geophysical probing (m)."
     },
     "sensor_type": {
       "type": "string",
-      "description": "Type of sensor/probe used for geophysical probing (e.g. 'cone penetrometer', 'resistivity', 'MASW'). Used for geophysical_probing logs."
+      "description": "Type of sensor/probe used for geophysical probing."
     },
     "site_passport_id": {
       "type": "string",
-      "description": "Links this log to the Site Passport / Permit to Dig record \u2014 ensures work was permitted before the log could be created. Set automatically when the crew's briefing confirms PTD sign-off."
+      "description": "Links this log to the Site Passport / Permit to Dig record."
     },
     "manager_review_status": {
       "type": "string",
@@ -380,7 +397,7 @@
         "queried"
       ],
       "default": "pending",
-      "description": "Manager review status. 'pending' = awaiting review, 'approved' = verified for reporting, 'queried' = flagged for investigation (anomalous data, missing mandatory fields, etc.)"
+      "description": "Manager review status."
     },
     "manager_review_note": {
       "type": "string",
@@ -419,11 +436,11 @@
         "custom_fee"
       ],
       "default": "auto",
-      "description": "How the charge was determined. 'auto' = calculated from rule, 'no_charge' = explicitly not charged, 'custom_fee' = manual override."
+      "description": "How the charge was determined."
     },
     "custom_fee": {
       "type": "number",
-      "description": "Manual fee override in GBP \u2014 used when billing_status is 'custom_fee'"
+      "description": "Manual fee override in GBP"
     }
   },
   "required": [

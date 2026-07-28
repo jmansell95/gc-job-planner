@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
+import { RoleBadge } from '@/components/financials/AutoFinancialsBreakdown';
 
 function fmtDur(mins) {
   const m = Math.round(Number(mins) || 0);
@@ -279,6 +280,7 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
                                 <span className="text-xs text-slate-500 flex items-center gap-1"><User className="w-3 h-3" /> {log.staff_name || log.completed_by_name}</span>
                               </>
                             )}
+                            <RoleBadge role={log.logged_by_role} />
                             {isPending ? (
                               <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
                                 <AlertTriangle className="w-2.5 h-2.5" /> Pending

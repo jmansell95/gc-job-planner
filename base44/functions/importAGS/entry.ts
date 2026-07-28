@@ -583,8 +583,18 @@ Deno.serve(async (req) => {
     let drillerName = '';
     let drillerStaffId = '';
 
-    // 1) Scan the AGS groups for any driller / engineer / logger name fields
+    // 1) Scan the AGS groups for any driller / engineer / logger name fields.
+    // The matched suffix also tells us the person's role, which we store as
+    // logged_by_role so the Site Logs tab can show "Driller", "Engineer", etc.
+    // instead of an unhelpful generic "AGS Import" label.
     const agsNameSuffixes = ['DRILLER', 'DRILL', 'ENG', 'ENGINEER', 'LOGGER', 'LOG', 'OPER', 'OPERATOR', 'RCV', 'BY', 'REC_BY', 'RECORDED', 'INSPECT', 'RECORDED_BY', 'LOGGED_BY'];
+    const suffixToRole: Record<string, string> = {
+      DRILLER: 'driller', DRILL: 'driller', OPER: 'driller', OPERATOR: 'driller',
+      ENG: 'engineer', ENGINEER: 'engineer', LOGGER: 'engineer', LOG: 'engineer',
+      RECORDED_BY: 'engineer', LOGGED_BY: 'engineer', REC_BY: 'engineer', RECORDED: 'engineer',
+      INSPECT: 'engineer', RCV: 'engineer', BY: 'engineer',
+    };
+    let drillerRole = '';
     for (const [name, g] of Object.entries(groups)) {
       if (drillerName) break;
       if (!g.headings || g.rows.length === 0) continue;
@@ -595,11 +605,12 @@ Deno.serve(async (req) => {
           const suffix = normalizeKey(h, name);
           if (agsNameSuffixes.includes(suffix.toUpperCase())) {
             const val = (r[h.toUpperCase()] || '').trim();
-            if (val) { drillerName = val; break; }
+            if (val) { drillerName = val; drillerRole = suffixToRole[suffix.toUpperCase()] || 'engineer'; break; }
           }
         }
       }
     }
+    if (!drillerRole) drillerRole = 'ags_import';
 
     // 2 & 3) Resolve from the rota — prefer a staff member on a drilling team
     try {
@@ -687,7 +698,7 @@ Deno.serve(async (req) => {
           depth_to: num(pick(r, 'LOCA_FDEP', 'LOCA_FDEPTH', 'LOCA_DEPTH', 'LOCA_FINAL_DEPTH', 'LOCA_TD', 'FDEP', 'FDEPTH', 'DEPTH', 'TD')) || null,
           groundwater_strike_depth: num(pick(r, 'LOCA_GND', 'LOCA_GW_DEPTH', 'LOCA_GWL', 'LOCA_WATER', 'GND', 'GW_DEPTH', 'GWL', 'WATER')) || null,
           description: `Imported from KeyLogBook AGS — ${descParts.join('')}.`,
-          source: 'ags_import', completed_by_type: 'internal_staff',
+          source: 'ags_import', logged_by_role: drillerRole, completed_by_type: 'internal_staff',
           completed_by_name: importerName,
           manager_review_status: 'approved', chargeable: false,
         })) counts.locations++;
@@ -723,7 +734,7 @@ Deno.serve(async (req) => {
               depth_from: dFrom || null, depth_to: dTo || null,
               coring_rqd: rqd, coring_recovery: recovery, strata_description_detail: desc,
               description: `Imported from KeyLogBook AGS — core run${runNo ? ` ${runNo}` : ''}${rqd != null ? ` (RQD ${rqd}%)` : ''}${recovery != null ? ` (recovery ${recovery}%)` : ''}.`,
-              source: 'ags_import', completed_by_type: 'internal_staff',
+              source: 'ags_import', logged_by_role: drillerRole, completed_by_type: 'internal_staff',
               completed_by_name: importerName,
               manager_review_status: 'approved', chargeable: false,
             })) counts.core++;
@@ -734,7 +745,7 @@ Deno.serve(async (req) => {
               depth_from: dFrom || null, depth_to: dTo || null,
               strata_descriptor: mapStrataDescriptor(desc), strata_description_detail: desc,
               description: 'Imported from KeyLogBook AGS — strata.',
-              source: 'ags_import', completed_by_type: 'internal_staff',
+              source: 'ags_import', logged_by_role: drillerRole, completed_by_type: 'internal_staff',
               completed_by_name: importerName,
               manager_review_status: 'approved', chargeable: false,
             })) counts.strata++;
@@ -763,7 +774,7 @@ Deno.serve(async (req) => {
           depth_from: dFrom || null, depth_to: dTo || null,
           coring_rqd: rqd, coring_recovery: recovery, strata_description_detail: coreDesc || null,
           description: `Imported from KeyLogBook AGS — core run${runNo || coreId ? ` ${runNo || coreId}` : ''}${rqd != null ? ` (RQD ${rqd}%)` : ''}${recovery != null ? ` (recovery ${recovery}%)` : ''}.${coreDesc ? ' ' + coreDesc : ''}`,
-          source: 'ags_import', completed_by_type: 'internal_staff',
+          source: 'ags_import', logged_by_role: drillerRole, completed_by_type: 'internal_staff',
           completed_by_name: importerName,
           manager_review_status: 'approved', chargeable: false,
         })) counts.core++;
@@ -784,7 +795,7 @@ Deno.serve(async (req) => {
           sample_id: sampId, depth_from: dFrom || null,
           sample_type: mapSampleType(sampType),
           description: `Imported from KeyLogBook AGS — sample ${sampId} (${sampType}).`,
-          source: 'ags_import', completed_by_type: 'internal_staff',
+          source: 'ags_import', logged_by_role: drillerRole, completed_by_type: 'internal_staff',
           completed_by_name: importerName,
           manager_review_status: 'approved', chargeable: false,
         })) counts.samples++;
@@ -814,7 +825,7 @@ Deno.serve(async (req) => {
             depth_from: dFrom || null, depth_to: dTo || null,
             spt_blows: blows, spt_n_value: nval,
             description: `Imported from KeyLogBook AGS — SPT (N=${nval != null ? nval : 'n/a'}).`,
-            source: 'ags_import', completed_by_type: 'internal_staff',
+            source: 'ags_import', logged_by_role: drillerRole, completed_by_type: 'internal_staff',
             completed_by_name: importerName,
             manager_review_status: 'approved', chargeable: false,
           })) counts.spt++;
@@ -846,6 +857,7 @@ Deno.serve(async (req) => {
             date: resolveDate(ref), log_type: 'other', borehole_ref: ref || null,
             description: tremDesc.trim(),
             source: 'keylogbook_remarks',
+            logged_by_role: 'driller',
             completed_by_type: 'internal_staff', completed_by_name: drillerName || importerName,
             manager_review_status: 'pending', chargeable: false, billing_status: 'no_charge',
           })) counts.remarks++;
@@ -860,7 +872,7 @@ Deno.serve(async (req) => {
           log_type: 'installation', borehole_ref: ref, standpipe_ref: tremId || null,
           depth_from: dFrom || null, depth_to: dTo || null,
           description: `Imported from KeyLogBook AGS — installation pipe${tremId ? ` ${tremId}` : ''}: ${detail}.`,
-          source: 'ags_import', completed_by_type: 'internal_staff',
+          source: 'ags_import', logged_by_role: drillerRole, completed_by_type: 'internal_staff',
           completed_by_name: importerName,
           manager_review_status: 'approved', chargeable: false,
         })) counts.installations++;
@@ -892,7 +904,7 @@ Deno.serve(async (req) => {
             log_type: 'installation', borehole_ref: ref, standpipe_ref: wstgId || null,
             depth_from: dFrom, depth_to: dTo,
             description: `Imported from KeyLogBook AGS — standpipe${wstgId ? ` ${wstgId}` : ''}: ${detail}.`,
-            source: 'ags_import', completed_by_type: 'internal_staff',
+            source: 'ags_import', logged_by_role: drillerRole, completed_by_type: 'internal_staff',
             completed_by_name: importerName,
             manager_review_status: 'approved', chargeable: false,
           })) counts.installations++;
@@ -904,7 +916,7 @@ Deno.serve(async (req) => {
             log_type: 'standpipe_reading', borehole_ref: ref, standpipe_ref: wstgId || null,
             standpipe_reading_m: waterLevel,
             description: `Imported from KeyLogBook AGS — groundwater monitoring reading: ${waterLevel}mBGL${wstgId ? ` on standpipe ${wstgId}` : ''}.`,
-            source: 'ags_import', completed_by_type: 'internal_staff',
+            source: 'ags_import', logged_by_role: drillerRole, completed_by_type: 'internal_staff',
             completed_by_name: importerName,
             manager_review_status: 'approved', chargeable: false,
           })) counts.waterReadings++;
@@ -948,6 +960,7 @@ Deno.serve(async (req) => {
             log_type: 'other',
             borehole_ref: x.borehole_ref || null,
             source: 'keylogbook_remarks',
+            logged_by_role: 'driller',
             start_time: x.activity.start_time,
             end_time: x.activity.end_time,
             duration_minutes: x.activity.duration_minutes,

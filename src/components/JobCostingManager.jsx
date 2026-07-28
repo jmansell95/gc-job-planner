@@ -69,9 +69,6 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
   const [savingConfig, setSavingConfig] = useState(false);
   const [configSaved, setConfigSaved] = useState(false);
   const fin = useJobFinancials(job);
-  const [revenueMethod, setRevenueMethod] = useState(job.revenue_method || 'none');
-  const [unitPrice, setUnitPrice] = useState(job.unit_price ?? '');
-  const [savingRevenue, setSavingRevenue] = useState(false);
 
   const { data: items = [] } = useQuery({
     queryKey: ['job-cost-items', job.id],
@@ -126,26 +123,6 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
     setSavingConfig(false);
   };
 
-  const saveRevenueMethod = async () => {
-    setSavingRevenue(true);
-    try {
-      await base44.entities.Job.update(job.id, {
-        revenue_method: revenueMethod,
-        unit_price: unitPrice === '' ? null : Number(unitPrice) || 0
-      });
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-    } catch (e) { console.error(e); }
-    setSavingRevenue(false);
-  };
-
-  const REVENUE_METHODS = [
-    { value: 'none', label: 'Cost + Markup', hint: 'Legacy model: internal cost + markup %', icon: Calculator },
-    { value: 'day_rate', label: 'Day Rate', hint: 'Crew day rates × working days', icon: TrendingUp },
-    { value: 'meterage_rate', label: 'Meterage', hint: 'Metres drilled × £/m rate', icon: Ruler },
-    { value: 'unit_rate', label: 'Unit Rate', hint: 'Units completed × £/unit', icon: Calculator },
-    { value: 'flat_fee', label: 'Flat Fee', hint: 'Single agreed project fee', icon: PoundSterling },
-  ];
-
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
@@ -171,49 +148,7 @@ export default function JobCostingManager({ job, staffCosts, totalCost, isDrilli
           </div>
         </div>
 
-        {/* Revenue Method Selector */}
-        <div className="border border-slate-200 rounded-xl p-4 bg-white">
-          <div className="flex items-center gap-2 mb-3">
-            <Calculator className="w-4 h-4 text-[#2E5A1A]" />
-            <h3 className="text-sm font-semibold text-slate-800">Revenue Method</h3>
-            <span className="ml-auto text-xs text-slate-400">How this job is billed to the client</span>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
-            {REVENUE_METHODS.map(m => {
-              const Icon = m.icon;
-              const active = revenueMethod === m.value;
-              return (
-                <button key={m.value} type="button" onClick={() => setRevenueMethod(m.value)}
-                  className={`flex flex-col items-start gap-1 px-3 py-2.5 rounded-lg border text-left transition ${active ? 'border-[#2E5A1A] bg-[#2E5A1A]/10 text-[#2E5A1A]' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>
-                  <Icon className={`w-4 h-4 ${active ? 'text-[#2E5A1A]' : 'text-slate-400'}`} />
-                  <span className="text-xs font-semibold">{m.label}</span>
-                  <span className="text-[10px] text-slate-400 leading-tight">{m.hint}</span>
-                </button>
-              );
-            })}
-          </div>
-          {revenueMethod === 'unit_rate' && (
-            <div className="flex items-center gap-2 mb-3">
-              <label className="text-xs font-medium text-slate-600">£ per unit</label>
-              <input type="number" min="0" step="0.01" value={unitPrice} onChange={e => setUnitPrice(e.target.value)}
-                className="w-28 px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]" placeholder="0.00" />
-            </div>
-          )}
-          {revenueMethod !== 'none' && (
-            <div className="bg-[#2E5A1A]/10 rounded-lg px-3 py-2 text-xs text-[#2E5A1A] flex items-center justify-between">
-              <span>Calculated revenue: <strong>{fmt(fin.revenue.net)}</strong> {fin.revenue.breakdown.length > 0 && <span className="text-[#2E5A1A]">({fin.revenue.breakdown[0].label})</span>}</span>
-              <span className="text-[#2E5A1A]/70">{fin.revenue.label}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2 mt-3">
-            <button onClick={saveRevenueMethod} disabled={savingRevenue || ((job.revenue_method || 'none') === revenueMethod && (job.unit_price ?? '') === unitPrice)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-medium hover:bg-[#1c4a12] transition disabled:opacity-50">
-              {savingRevenue ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save method
-            </button>
-          </div>
-        </div>
-
-        {/* Budget & Margin tracker */}
+        {/* Budget & Margin tracker — auto-calculated from logged activities */}
         <BudgetMarginTracker budget={Number(job.budget_amount) || 0} actualNet={internalNet} clientNet={clientNet} markup={Number(markup) || 0} />
 
         {/* Rig & crew cost analysis from schedule of rates */}

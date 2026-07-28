@@ -172,22 +172,25 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
         {/* STEP 3 — Costing & Notes */}
         {(editingId || step === 3) && (
           <>
-            <FormSection title="Costing (Internal)" icon={PoundSterling}>
-              <Field label="Budget (GBP)" hint="Agreed job value">
-                <input type="number" min="0" step="0.01" value={num('budget_amount')} onChange={(e) => setNum('budget_amount', e.target.value)} placeholder="0.00" className={inputCls} />
-              </Field>
-              <Field label="Actual Cost (GBP)" hint="Manual override">
-                <input type="number" min="0" step="0.01" value={num('actual_cost')} onChange={(e) => setNum('actual_cost', e.target.value)} placeholder="Leave blank to auto-calculate" className={inputCls} />
-              </Field>
-              {showMeterage && (
+            {showMeterage && (
+              <FormSection title="Drilling Details" icon={Ruler}>
                 <Field label="Total Meterage (m)" hint="Overrides shift meterage for costing">
                   <div className="relative">
                     <Ruler className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500" />
-                    <input type="number" min="0" step="0.1" value={num('meterage')} onChange={(e) => setNum('meterage', e.target.value)} placeholder="Leave blank to sum from shifts" className={`${inputCls} pl-9`} />
+                    <input type="number" min="0" step="0.1" value={num('meterage')} onChange={(e) => setNum('meterage', e.target.value)} placeholder="Leave blank to auto-sum from logs" className={`${inputCls} pl-9`} />
                   </div>
                 </Field>
-              )}
-            </FormSection>
+                <Field label="Meterage Rate (£/m)" hint="Per-metre charge rate — blank to use rate card">
+                  <div className="relative">
+                    <PoundSterling className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600" />
+                    <input type="number" min="0" step="0.01" value={num('meterage_rate')} onChange={(e) => setNum('meterage_rate', e.target.value)} placeholder="Auto from rate card" className={`${inputCls} pl-9`} />
+                  </div>
+                </Field>
+                <Field label="Meterage Target (m)" hint="Target metres to drill">
+                  <input type="number" min="0" step="0.1" value={num('meterage_target')} onChange={(e) => setNum('meterage_target', e.target.value)} placeholder="0.0" className={inputCls} />
+                </Field>
+              </FormSection>
+            )}
             <FormSection title="Notes" icon={StickyNote}>
               <Field label="Job Notes" full>
                 <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} rows="3" className={inputCls} />
@@ -240,7 +243,7 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
               <ReviewRow label="Schedule" value={formData.start_date && formData.end_date ? `${formData.start_date} → ${formData.end_date}` : ''} />
               <ReviewRow label="Client" value={clients.find(c => c.id === formData.client_id)?.name} />
               <ReviewRow label="Teams" value={selectedTeamIds.map(id => teams.find(t => t.id === id)?.name).filter(Boolean).join(', ')} />
-              <ReviewRow label="Budget" value={num('budget_amount') ? `£${num('budget_amount')}` : ''} />
+              <ReviewRow label="Meterage" value={num('meterage') ? `${num('meterage')}m` : 'Auto from logs'} />
               <ReviewRow label="Equipment items" value={(formData.equipment_items?.length || 0) + ' item(s)'} />
             </div>
             <p className="text-xs text-slate-400">Check the details above, then create the job. You can edit everything later from the job page.</p>
