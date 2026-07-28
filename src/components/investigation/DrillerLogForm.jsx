@@ -161,6 +161,7 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
         staff_name: staffName || '',
         date: todayStr,
         source: 'staff',
+        logged_by_role: 'driller',
         log_type: form.log_type,
         borehole_ref: form.borehole_ref || '',
         depth_from: form.depth_from ? parseFloat(form.depth_from) : null,

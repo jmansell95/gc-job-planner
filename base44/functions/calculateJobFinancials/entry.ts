@@ -90,9 +90,23 @@ export default async function(req: Request): Promise<Response> {
     let totalMetres = 0;
     const unmatched: any[] = [];
 
-    for (const log of logs) {
-      if (log.chargeable === false) continue;
+    // Map log_type to search keywords so generic AGS import descriptions
+    // (e.g. "Imported from KeyLogBook AGS — strata") can still match rate
+    // card items by their activity category.
+    const logTypeKeywords: Record<string, string[]> = {
+      borehole_progress: ['borehole', 'drilling', 'drill', 'percussive', 'rotary', 'cable percussion', 'borehole advance'],
+      core_inspection: ['core', 'coring', 'rotary core', 'core run', 'rock quality'],
+      sample_collection: ['sample', 'sampling', 'undisturbed sample', 'disturbed sample', 'u100', 'uds'],
+      pit_excavation: ['trial pit', 'excavation', 'pit', 'investigation pit'],
+      installation: ['install', 'standpipe', 'piezometer', 'monitoring well', 'gas monitoring'],
+      standpipe_reading: ['monitoring', 'standpipe', 'groundwater monitoring', 'dip'],
+      grouting_works: ['grout', 'grouting', 'backfill', 'bentonite'],
+      borehole_decommissioning: ['decommission', 'backfill', 'seal', 'grout'],
+      geophysical_probing: ['probing', 'geophysical', 'cone', 'cpt'],
+      window_sampling: ['window sampling', 'window sample', 'dynamic sampling'],
+    };
 
+    for (const log of logs) {
       // Calculate quantity from the log data:
       //  - borehole_progress with depth_from/depth_to → metres (depth_to - depth_from)
       //  - logs with units_completed → use that
@@ -109,32 +123,48 @@ export default async function(req: Request): Promise<Response> {
         quantity = Number(log.units_completed);
       }
 
-      // Try to match the activity description against rate cards
-      const desc = log.description || log.strata_description_detail || log.log_type || '';
+      // Build search descriptions. We try two passes:
+      //   1) the log's own description (if it has meaningful text)
+      //   2) log_type keywords as a fallback so generic AGS imports AND
+      //      manual logs that don't mention the rate-card term still match.
+      const rawDesc = log.description || log.strata_description_detail || '';
+      const keywords = logTypeKeywords[log.log_type] || [];
+      const keywordDesc = keywords.join(' ') || rawDesc || log.log_type;
+      // Skip the raw description if it's just the generic AGS import prefix
+      const meaningfulDesc = rawDesc && !rawDesc.startsWith('Imported from') ? rawDesc : '';
+
+      // Try to match the activity against rate cards
       let bestMatch: RateCardItemLike | null = null;
       let rateSource: 'staff' | 'project' | 'global' | 'no_match' = 'no_match';
 
-      // 1) Staff-specific rates
-      if (log.staff_id && staffRates[log.staff_id] && staffRates[log.staff_id].length > 0) {
-        bestMatch = findBestRateCardMatch(desc, staffRates[log.staff_id]);
+      const tryMatch = (searchDesc: string, pool: RateCardItemLike[]): RateCardItemLike | null => {
+        if (!pool || pool.length === 0 || !searchDesc) return null;
+        return findBestRateCardMatch(searchDesc, pool);
+      };
+
+      // Pass 1: raw description (most precise when it has real content)
+      if (meaningfulDesc) {
+        if (log.staff_id && staffRates[log.staff_id]) bestMatch = tryMatch(meaningfulDesc, staffRates[log.staff_id]);
         if (bestMatch) rateSource = 'staff';
+        if (!bestMatch) { bestMatch = tryMatch(meaningfulDesc, projectRateItems); if (bestMatch) rateSource = 'project'; }
+        if (!bestMatch) { bestMatch = tryMatch(meaningfulDesc, globalItems); if (bestMatch) rateSource = 'global'; }
       }
-      // 2) Project rates
-      if (!bestMatch && projectRateItems.length > 0) {
-        bestMatch = findBestRateCardMatch(desc, projectRateItems);
-        if (bestMatch) rateSource = 'project';
+      // Pass 2: log_type keywords (fallback for generic AGS imports or
+      // manual logs whose description doesn't contain the rate-card term)
+      if (!bestMatch && keywordDesc) {
+        if (log.staff_id && staffRates[log.staff_id]) bestMatch = tryMatch(keywordDesc, staffRates[log.staff_id]);
+        if (bestMatch) rateSource = 'staff';
+        if (!bestMatch) { bestMatch = tryMatch(keywordDesc, projectRateItems); if (bestMatch) rateSource = 'project'; }
+        if (!bestMatch) { bestMatch = tryMatch(keywordDesc, globalItems); if (bestMatch) rateSource = 'global'; }
       }
-      // 3) Global rates
-      if (!bestMatch && globalItems.length > 0) {
-        bestMatch = findBestRateCardMatch(desc, globalItems);
-        if (bestMatch) rateSource = 'global';
-      }
+
+      const displayDesc = meaningfulDesc || keywordDesc || log.log_type;
 
       if (!bestMatch) {
         unmatched.push({
           log_id: log.id,
           date: log.date,
-          description: desc,
+          description: displayDesc,
           log_type: log.log_type,
           borehole_ref: log.borehole_ref,
         });

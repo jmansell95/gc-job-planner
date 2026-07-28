@@ -66,6 +66,7 @@ export default function SubcontractorLogForm({ staffId, staffName, jobs }) {
         staff_name: staffName || '',
         date: todayStr,
         source: 'staff',
+        logged_by_role: 'subcontractor',
         crew_type: 'subcontractor',
         log_type: form.log_type,
         borehole_ref: form.borehole_ref || '',
