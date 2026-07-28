@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, BellOff, ShieldCheck, Hotel, Truck, KeyRound } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, BellOff, ShieldCheck, Hotel, Truck, KeyRound, Link2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import StaffComplianceEditor from '@/components/staff/StaffComplianceEditor';
 import HotelBookingsManager from '@/components/staff/HotelBookingsManager';
@@ -67,7 +67,38 @@ export default function StaffManager() {
   const { data: users = [] } = useQuery({ queryKey: ['users-list'], queryFn: () => base44.entities.User.list().catch(() => []) });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs-for-hotel'], queryFn: () => base44.entities.Job.list() });
 
-  const getUserForStaff = (member) => users.find(u => u.email?.toLowerCase() === member.email?.toLowerCase());
+  const getUserForStaff = (member) => {
+    if (member.user_id) return users.find(u => u.id === member.user_id);
+    return users.find(u => u.email?.toLowerCase() === member.email?.toLowerCase());
+  };
+
+  // Explicitly link a Staff record to its User account (by email) and sync the
+  // platform role so permissions resolve correctly. super_admin/admin on the
+  // Staff record → User.role 'admin' (full platform admin); anything else → 'user'.
+  const linkUserAccount = async (member, opts = {}) => {
+    const user = users.find(u => u.email?.toLowerCase() === member.email?.toLowerCase());
+    if (!user) {
+      if (!opts.silent) toast({ title: 'No matching user account', description: 'Send an app invite first to create their login.', variant: 'destructive' });
+      return null;
+    }
+    try {
+      const wantsAdmin = member.system_role === 'admin' || member.system_role === 'super_admin';
+      const targetRole = wantsAdmin ? 'admin' : 'user';
+      if (member.user_id !== user.id) {
+        await base44.entities.Staff.update(member.id, { user_id: user.id });
+      }
+      if (user.role !== targetRole) {
+        try { await base44.entities.User.update(user.id, { role: targetRole }); } catch (_) {}
+      }
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ['users-list'] });
+      if (!opts.silent) toast({ title: 'Account linked', description: `${member.name} is now linked to their login — permissions synced.` });
+      return user;
+    } catch (err) {
+      if (!opts.silent) toast({ title: 'Could not link account', description: err?.message, variant: 'destructive' });
+      return null;
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -81,6 +112,21 @@ export default function StaffManager() {
           payload.invite_sent = false;
         }
         await base44.entities.Staff.update(editingId, payload);
+        // Sync the linked User's platform role to match the new access level
+        // so permissions (e.g. platform admin for super_admin/admin) stay correct.
+        const updatedMember = { ...original, ...payload, id: editingId };
+        const linkedUser = getUserForStaff(updatedMember);
+        if (linkedUser) {
+          const wantsAdmin = (formData.system_role === 'admin' || formData.system_role === 'super_admin');
+          const targetRole = wantsAdmin ? 'admin' : 'user';
+          if (linkedUser.role !== targetRole || !updatedMember.user_id) {
+            try {
+              if (!updatedMember.user_id) await base44.entities.Staff.update(editingId, { user_id: linkedUser.id });
+              if (linkedUser.role !== targetRole) await base44.entities.User.update(linkedUser.id, { role: targetRole });
+              queryClient.invalidateQueries({ queryKey: ['users-list'] });
+            } catch (_) {}
+          }
+        }
         toast({ title: 'Crew member updated' });
       } else {
         const created = await base44.entities.Staff.create(payload);
@@ -94,7 +140,19 @@ export default function StaffManager() {
             try {
               await base44.functions.invoke('manageEmailAlerts', { action: 'send_invitation', email: formData.email, staff_name: formData.name });
             } catch (e) { /* branded invite is non-fatal */ }
-            toast({ title: 'Crew member added', description: `Invite sent to ${formData.email}` });
+            // Link the new Staff record to the User account created by the
+            // invite and sync the platform role so permissions resolve immediately.
+            await queryClient.refetchQueries({ queryKey: ['users-list'] });
+            const freshUsers = queryClient.getQueryData(['users-list']) || [];
+            const matchedUser = freshUsers.find(u => u.email?.toLowerCase() === formData.email.toLowerCase());
+            if (matchedUser) {
+              try { await base44.entities.Staff.update(created.id, { user_id: matchedUser.id }); } catch (_) {}
+              const wantsAdmin = formData.system_role === 'admin' || formData.system_role === 'super_admin';
+              if (matchedUser.role !== (wantsAdmin ? 'admin' : 'user')) {
+                try { await base44.entities.User.update(matchedUser.id, { role: wantsAdmin ? 'admin' : 'user' }); } catch (_) {}
+              }
+            }
+            toast({ title: 'Crew member added', description: `Invite sent to ${formData.email}${matchedUser ? ' · account linked' : ''}` });
           } catch (err) {
             toast({ title: 'Crew member added', description: 'App invite could not be sent — use the "Send app invite" button on the card.', variant: 'destructive' });
           }
@@ -143,9 +201,19 @@ export default function StaffManager() {
       try {
         await base44.functions.invoke('manageEmailAlerts', { action: 'send_invitation', email: member.email, staff_name: member.name });
       } catch (e) { /* branded invite email is non-fatal */ }
-      queryClient.invalidateQueries({ queryKey: ['users-list'] });
+      // Link the Staff record to the newly created User account and sync role
+      await queryClient.refetchQueries({ queryKey: ['users-list'] });
+      const freshUsers = queryClient.getQueryData(['users-list']) || [];
+      const matchedUser = freshUsers.find(u => u.email?.toLowerCase() === member.email.toLowerCase());
+      if (matchedUser) {
+        try { await base44.entities.Staff.update(member.id, { user_id: matchedUser.id }); } catch (_) {}
+        const wantsAdmin = member.system_role === 'admin' || member.system_role === 'super_admin';
+        if (matchedUser.role !== (wantsAdmin ? 'admin' : 'user')) {
+          try { await base44.entities.User.update(matchedUser.id, { role: wantsAdmin ? 'admin' : 'user' }); } catch (_) {}
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ['staff'] });
-      toast({ title: 'Invite sent', description: member.email });
+      toast({ title: 'Invite sent', description: `${member.email}${matchedUser ? ' · account linked' : ''}` });
     } catch (error) {
       toast({ title: 'Could not send invite', description: error?.message || 'User may already have an account', variant: 'destructive' });
     }
@@ -289,8 +357,9 @@ export default function StaffManager() {
                 <option value="user">User (basic office access)</option>
                 <option value="management">Management (operations access)</option>
                 <option value="admin">Admin (full dashboard access)</option>
-                <option value="super_admin">Super Admin (unrestricted)</option>
+                <option value="super_admin">Super Admin (unrestricted + manage users)</option>
               </select>
+              <p className="text-[11px] text-slate-400 mt-1">Admin & Super Admin are also granted platform-admin rights automatically when linked to a login.</p>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Default Vehicle</label>
@@ -403,7 +472,7 @@ export default function StaffManager() {
                     </div>
                   </div>
 
-                  <div className="mb-3 flex items-center gap-2">
+                  <div className="mb-3 flex items-center gap-2 flex-wrap">
                     {!linkedUser && (
                       member.invite_sent ? (
                         <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 font-medium border border-blue-200">
@@ -415,6 +484,17 @@ export default function StaffManager() {
                           <UserPlus className="w-3 h-3" /> {inviteLoading === member.id ? 'Sending...' : 'Send app invite'}
                         </button>
                       )
+                    )}
+                    {linkedUser && !member.user_id && (
+                      <button onClick={() => linkUserAccount(member)}
+                        className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-violet-50 text-violet-700 font-medium border border-violet-200 hover:bg-violet-100 transition">
+                        <Link2 className="w-3 h-3" /> Link account
+                      </button>
+                    )}
+                    {linkedUser && member.user_id && (
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3" /> Linked
+                      </span>
                     )}
                   </div>
 
