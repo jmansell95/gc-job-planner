@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
-  ScrollText, Loader2, FileText, Lock, History, Plus, X, Save,
+  ScrollText, Loader2, FileText, Lock, Unlock, History, Plus, X, Save,
   ChevronDown, ChevronRight, TrendingUp, Percent, Ruler, Target, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
@@ -28,6 +28,28 @@ export default function BillingContractManager() {
   const queryClient = useQueryClient();
   const [expandedJob, setExpandedJob] = useState(null);
   const [showNew, setShowNew] = useState(false);
+  const [releasingId, setReleasingId] = useState(null);
+  const [releaseMsg, setReleaseMsg] = useState(null);
+
+  const handleRelease = async (contract) => {
+    setReleasingId(contract.id);
+    setReleaseMsg(null);
+    try {
+      const res = await base44.functions.invoke('releaseRetention', { contract_id: contract.id });
+      const d = res.data || {};
+      if (d.ok && d.released > 0) {
+        setReleaseMsg({ ok: true, msg: `Retention released — ${d.results[0]?.invoice_number || 'invoice raised'}` });
+        queryClient.invalidateQueries({ queryKey: ['billing-contracts'] });
+      } else {
+        const r = d.results?.[0] || {};
+        setReleaseMsg({ ok: false, msg: r.skipped === 'not_complete' ? 'Job/project not marked complete yet.' : r.skipped === 'no_retention_held' ? 'No retention held to release.' : (d.error || 'Release failed') });
+      }
+    } catch (e) {
+      setReleaseMsg({ ok: false, msg: e.message || 'Release failed' });
+    }
+    setReleasingId(null);
+    setTimeout(() => setReleaseMsg(null), 4000);
+  };
 
   const { data: contracts = [], isLoading } = useQuery({
     queryKey: ['billing-contracts', 'all'],
@@ -103,8 +125,24 @@ export default function BillingContractManager() {
                     {c.retention_percentage > 0 && (
                       <div className="flex items-center gap-2 text-xs bg-amber-50 rounded-lg px-3 py-2">
                         <Lock className="w-3.5 h-3.5 text-amber-600" />
-                        <span className="text-amber-700 font-medium">{c.retention_percentage}% retention held</span>
+                        <span className="text-amber-700 font-medium">{c.retention_percentage}% retention</span>
+                        {c.total_retention_held > 0 ? (
+                          <span className="text-amber-600">{fmt(c.total_retention_held)} held</span>
+                        ) : (
+                          <span className="text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Fully released</span>
+                        )}
                         {c.retention_released > 0 && <span className="text-amber-500">· {fmt(c.retention_released)} released</span>}
+                        {c.total_retention_held > 0 && (
+                          <button onClick={() => handleRelease(c)} disabled={releasingId === c.id}
+                            className="ml-auto flex items-center gap-1 px-2.5 py-1 bg-amber-600 text-white rounded-md text-[11px] font-semibold hover:bg-amber-700 disabled:opacity-50 transition">
+                            {releasingId === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlock className="w-3 h-3" />} Release
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {releaseMsg && expanded === expandedJob && (
+                      <div className={`flex items-center gap-1.5 text-xs rounded-lg px-3 py-1.5 ${releaseMsg.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                        <AlertTriangle className="w-3 h-3 flex-shrink-0" /> {releaseMsg.msg}
                       </div>
                     )}
                     {c.milestone_billing_enabled && c.milestones?.length > 0 && (
