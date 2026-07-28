@@ -110,10 +110,11 @@ function relTime(iso) {
 export default function JobContextView({ job, primaryType, assignedStaff, rotas, client, contractor, suppliers, canSeeCosts, isDrillingJob, colors, statusBadge: sb, statusLabels: sl, startDate, endDate, jobProject, jobTypes }) {
   const [activeActivity, setActiveActivity] = useState('all');
 
-  const { data: fin, isLoading: finLoading, refetch, isFetching } = useQuery({
+  const { data: fin, isLoading: finLoading, error: finError, refetch, isFetching } = useQuery({
     queryKey: ['auto-job-financials', job.id],
     queryFn: async () => { const res = await base44.functions.invoke('calculateJobFinancials', { job_id: job.id }); return res.data; },
     enabled: !!job.id && canSeeCosts,
+    retry: 1,
   });
 
   const { data: recentLogs = [] } = useQuery({
@@ -233,6 +234,13 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
 
             {finLoading ? (
               <div className="flex items-center justify-center py-6"><Loader2 className="w-5 h-5 text-slate-300 animate-spin" /></div>
+            ) : finError ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                <AlertTriangle className="w-4 h-4 text-red-500 mx-auto mb-1" />
+                <p className="text-xs text-red-700 font-medium">Couldn't load financials</p>
+                <p className="text-[10px] text-red-500 mt-0.5">{finError.message}</p>
+                <button onClick={() => refetch()} className="text-[10px] text-red-600 font-medium mt-1 underline">Retry</button>
+              </div>
             ) : (
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">

@@ -106,13 +106,14 @@ export default function AutoFinancialsBreakdown({ job }) {
     setSavingBilling(false);
   };
 
-  const { data, isLoading, refetch, isFetching } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['auto-job-financials', job.id],
     queryFn: async () => {
       const res = await base44.functions.invoke('calculateJobFinancials', { job_id: job.id });
       return res.data;
     },
     enabled: !!job.id,
+    retry: 1,
   });
 
   if (isLoading) {
@@ -120,6 +121,21 @@ export default function AutoFinancialsBreakdown({ job }) {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex items-center justify-center">
         <Loader2 className="w-5 h-5 text-[#2E5A1A] animate-spin" />
         <span className="ml-2 text-sm text-slate-500">Calculating financials from logged activities…</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <AlertTriangle className="w-4 h-4 text-red-600" />
+          <h3 className="text-sm font-bold text-red-800">Couldn't load financials</h3>
+          <button onClick={() => refetch()} disabled={isFetching} className="ml-auto p-1 text-red-500 hover:text-red-700 transition">
+            <RefreshCw className={'w-4 h-4 ' + (isFetching ? 'animate-spin' : '')} />
+          </button>
+        </div>
+        <p className="text-xs text-red-700">{error.message || 'Unknown error'}</p>
       </div>
     );
   }
