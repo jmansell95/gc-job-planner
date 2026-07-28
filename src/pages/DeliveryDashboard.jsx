@@ -41,8 +41,10 @@ export default function DeliveryDashboard() {
     async function loadStaff() {
       try {
         const res = await base44.functions.invoke('getMyStaffProfile');
-        if (res.data && res.data.id && !res.data.no_staff_profile) {
-          if (!res.data.delivery_dashboard_enabled && !res.data.is_admin) {
+        // Platform admins can access the delivery dashboard even without a
+        // linked crew profile — they see ALL deliveries instead of just their own.
+        if (res.data && (res.data.is_admin || (res.data.id && !res.data.no_staff_profile))) {
+          if (!res.data.is_admin && !res.data.delivery_dashboard_enabled) {
             navigate('/staff-schedule', { replace: true });
             return;
           }
@@ -67,13 +69,18 @@ export default function DeliveryDashboard() {
   }, [staff?.id, queryClient]);
 
   const { data: deliveries = [], isLoading } = useQuery({
-    queryKey: ['my-deliveries', staff?.id],
+    queryKey: ['my-deliveries', staff?.id, staff?.is_admin],
     queryFn: async () => {
+      // Platform admin with no crew profile — show all deliveries
+      if (!staff?.id && staff?.is_admin) {
+        const list = await base44.entities.DeliveryLog.list('-scheduled_date', 200);
+        return list.sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
+      }
       if (!staff?.id) return [];
       const list = await base44.entities.DeliveryLog.filter({ driver_staff_id: staff.id });
       return list.sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
     },
-    enabled: !!staff?.id
+    enabled: !!staff?.id || !!staff?.is_admin
   });
 
   const { data: jobs = [] } = useQuery({ queryKey: ['delivery-jobs'], queryFn: () => base44.entities.Job.list() });
@@ -208,6 +215,9 @@ export default function DeliveryDashboard() {
           </div>
           <p className="text-slate-700 font-semibold">No driver profile found</p>
           <p className="text-slate-400 text-sm mt-1">Contact your supervisor to get set up.</p>
+          <button onClick={() => navigate('/staff-schedule')} className="mt-4 px-4 py-2 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition">
+            Back to Schedule
+          </button>
         </div>
       </div>
     );
