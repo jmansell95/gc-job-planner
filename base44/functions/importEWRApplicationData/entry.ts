@@ -80,7 +80,7 @@ export default async function(req: Request): Promise<Response> {
     const allNames = new Set();
     const crewRows = [];
     const hotelRows = [];
-    const debug = { crew_raw_rows: 0, crew_skipped: [], accom_raw_rows: 0 };
+    const debug = { crew_raw_rows: 0, accom_raw_rows: 0 };
 
     // --- Enabling Crew sheet ---
     const crewSheetName = workbook.SheetNames.find(n => /enabling\s*crew/i.test(n));
@@ -99,10 +99,7 @@ export default async function(req: Request): Promise<Response> {
         // Dates may be in merged cells — carry forward last valid dates
         const start = parseExcelDate(row[2]) || lastStart;
         const end = parseExcelDate(row[3]) || lastEnd;
-        if (!start || !end) {
-          if (debug.crew_skipped.length < 8) debug.crew_skipped.push({ r, names: resourceNames, row: row.slice(0, 10) });
-          continue;
-        }
+        if (!start || !end) continue;
         lastStart = start;
         lastEnd = end;
         const names = splitNames(resourceNames);
