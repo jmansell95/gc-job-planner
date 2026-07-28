@@ -50,11 +50,14 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const jobProject = projects.find(p => p.id === job.project_id) || null;
   const siblingJobs = jobProject ? allJobs.filter(j => j.project_id === jobProject.id && j.id !== job.id) : [];
 
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['my-staff-profile'],
     queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; }
   });
-  const canSeeCosts = canViewCostings(profile);
+  // Default to true while the profile is loading so cost-gated buttons (Add
+  // Billable Item, Add Rig & Gear) appear immediately — same pattern as
+  // canAccessSection which returns true while the profile is unresolved.
+  const canSeeCosts = profileLoading || canViewCostings(profile);
 
   const { data: allStaff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
