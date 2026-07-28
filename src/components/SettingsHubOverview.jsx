@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Users, Briefcase, Truck, Building2, Receipt, Package, Wrench, HardHat, Boxes, Mail, Palette, Zap, Timer, Banknote, CalendarX, Database, Tag, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, ArrowRight, Activity } from 'lucide-react';
+import { Users, Briefcase, Truck, Building2, Receipt, Package, Wrench, HardHat, Boxes, Mail, Palette, Zap, Timer, Banknote, CalendarX, Database, Tag, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, ArrowRight, Activity, BookOpen, Sparkles } from 'lucide-react';
 
 /**
  * Settings Command Hub — premium at-a-glance overview of everything configurable.
@@ -67,6 +67,10 @@ export default function SettingsHubOverview({ onNavigate }) {
     { group: 'Communication', icon: Mail, accent: 'from-violet-500 to-purple-600', items: [
       { id: 'global-branding', icon: Palette, label: 'Global Branding', value: '—', sub: 'Email colours & banners', color: 'violet' },
       { id: 'email-alerts', icon: Mail, label: 'Email Alerts', value: '—', sub: 'Templates & timing', color: 'blue' },
+    ]},
+    { group: 'System', icon: Sparkles, accent: 'from-slate-500 to-slate-700', items: [
+      { id: 'demo-data', icon: Sparkles, label: 'Demo Data Manager', value: '—', sub: 'Showcase data or clean slate', color: 'violet' },
+      { id: 'system-guide', icon: BookOpen, label: 'System Logic Guide', value: 'PDF', sub: 'Every stat & rule explained', color: 'emerald' },
     ]},
   ];
 

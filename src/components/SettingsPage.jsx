@@ -30,6 +30,7 @@ import BillingPage from '@/components/BillingPage';
 import AGSImportSettings from '@/components/AGSImportSettings';
 import SafetyCultureSettings from '@/components/SafetyCultureSettings';
 import DemoDataManager from '@/components/DemoDataManager';
+import SystemLogicGuide from '@/components/SystemLogicGuide';
 import PermissionGroupManager from '@/components/PermissionGroupManager';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { resolveRole } from '@/utils/access';
@@ -95,6 +96,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'ags-import': return <AGSImportSettings />;
       case 'safety-culture': return <SafetyCultureSettings />;
       case 'demo-data': return <DemoDataManager />;
+      case 'system-guide': return <SystemLogicGuide />;
       default: return null;
     }
   };

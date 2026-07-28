@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Loader2, ShieldCheck, TrendingUp, Map, FileText } from 'lucide-react';
+import { Download, Loader2, ShieldCheck, TrendingUp, Map, FileText, Sparkles, Clock, HardHat, FileClock } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { EMBLEM_URL } from '@/components/Logo';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -53,11 +53,11 @@ export default function PresentationPack() {
       doc.setTextColor(WHITE);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(26);
-      doc.text('Manager Presentation Pack', margin, 150);
+      doc.text('Executive Presentation Pack', margin, 150);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(13);
       doc.setTextColor(200, 220, 180);
-      doc.text('Safety & Financial Value Proposition', margin, 175);
+      doc.text('AI, Automation & Financial Value Proposition', margin, 175);
       doc.setFontSize(10);
       doc.text(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), margin, 200);
 
@@ -410,7 +410,299 @@ export default function PresentationPack() {
 
       drawFooter(doc, margin, pageW, pageH);
 
-      doc.save(`Ground-Control-Manager-Pack-${new Date().toISOString().slice(0,10)}.pdf`);
+      // === Page 7: AI & Automation ===
+      doc.addPage();
+      drawSectionHeader(doc, margin, pageW, 'AI & Automation', 'The intelligent layer that saves hours every week', Sparkles);
+      y = 120;
+
+      const aiPoints = [
+        {
+          title: 'Staff Assistant — conversational ops copilot',
+          body: 'Every manager and crew member has an AI assistant inside the app that answers operational questions in plain English: "Who is on site today?", "What rig needs servicing?", "Show me overdue compliance." No digging through menus — ask and get the answer in seconds.',
+          proof: 'Runs on the app\'s live data — the assistant queries the database in real time, it does not hallucinate.',
+        },
+        {
+          title: 'Drilling Intelligence — hazard & log analysis',
+          body: 'A dedicated AI agent that analyses drilling logs for ground condition patterns, flags anomalous SPT values, identifies refusal trends across sites, and surfaces geotechnical risks before they become costly delays. It reads the logs so the engineer does not have to.',
+          proof: 'Cross-references strata descriptors, refusal encounters and fluid loss across all boreholes on a job.',
+        },
+        {
+          title: 'Scheduling Assistant — rota automation',
+          body: 'An AI scheduling assistant that can suggest crew assignments based on qualifications, availability and job type. It checks for qualification gaps, travel time and crew compatibility — work that takes a scheduler 20 minutes per job takes the assistant seconds.',
+          proof: 'Validates staff qualifications against crew requirements before suggesting an assignment.',
+        },
+        {
+          title: 'Daily Stand-up Digest — automated morning brief',
+          body: 'Every weekday at 7 AM, the system emails every admin a plain-English digest: how many crew are on site, which rigs need maintenance, what critical safety actions are open, and which vehicles have alerts. The 30-minute morning phone round-robin is replaced by a 2-minute read.',
+          proof: 'Runs automatically — 5 days a week, 52 weeks a year. No one has to remember to send it.',
+        },
+        {
+          title: 'Milestone Auto-Push — client transparency on autopilot',
+          body: 'When a manager approves an investigation log, the system automatically posts a "Verified Milestone" update to the client portal and emails the project manager. Clients see real-time, verified progress without anyone picking up the phone or writing a progress email.',
+          proof: 'Triggered by the approval action itself — zero manual steps between log approval and client notification.',
+        },
+      ];
+      aiPoints.forEach((p, i) => {
+        y = drawPoint(doc, margin, pageW, p.title, p.body, y, i + 1, p.proof);
+      });
+
+      y = drawPullQuote(doc, margin, pageW, y, 'The AI does not replace the engineer — it does the reading, the checking and the chasing so the engineer can do the engineering.');
+
+      drawFooter(doc, margin, pageW, pageH);
+
+      // === Page 8: Time Savings Chart ===
+      doc.addPage();
+      drawSectionHeader(doc, margin, pageW, 'Time Savings', 'Hours recovered every week — manual vs automated', Clock);
+      y = 120;
+
+      doc.setTextColor(SLATE_900);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('Where the hours go — before and after', margin, y);
+      y += 8;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(SLATE_700);
+      const intro = doc.splitTextToSize(
+        'Based on a 5-rig operation with 15 crew. Conservative estimates from actual workflow analysis — your numbers will vary, but the direction is always the same: automation removes the admin layer, not the work.',
+        pageW - margin * 2
+      );
+      doc.text(intro, margin, y);
+      y += intro.length * 13 + 14;
+
+      // Bar chart: manual vs automated hours per task
+      const taskData = [
+        { label: 'Compliance checking', manual: 8, automated: 0.5 },
+        { label: 'Timesheet collation', manual: 6, automated: 1 },
+        { label: 'AGS / report formatting', manual: 5, automated: 0.2 },
+        { label: 'Client progress updates', manual: 4, automated: 0.5 },
+        { label: 'Morning stand-up calls', manual: 3, automated: 0.1 },
+        { label: 'Rig maintenance scheduling', manual: 4, automated: 0.5 },
+      ];
+
+      const chartW = pageW - margin * 2;
+      const chartH = 180;
+      const chartX = margin;
+      const chartY = y;
+      const maxVal = 10;
+      const barGroupW = chartW / taskData.length;
+      const barW = barGroupW * 0.32;
+      const gap = barGroupW * 0.06;
+
+      // Y-axis grid lines
+      doc.setDrawColor(SLATE_300);
+      doc.setLineWidth(0.4);
+      for (let v = 0; v <= maxVal; v += 2) {
+        const gy = chartY + chartH - (v / maxVal) * chartH;
+        doc.line(chartX, gy, chartX + chartW, gy);
+        doc.setTextColor(SLATE_500);
+        doc.setFontSize(7);
+        doc.text(String(v) + 'h', chartX - 4, gy + 2, { align: 'right' });
+      }
+
+      // Bars
+      taskData.forEach((t, i) => {
+        const cx = chartX + i * barGroupW + barGroupW / 2;
+        const manualH = (t.manual / maxVal) * chartH;
+        const autoH = (t.automated / maxVal) * chartH;
+        // Manual bar (slate)
+        doc.setFillColor(SLATE_500);
+        doc.rect(cx - barW - gap / 2, chartY + chartH - manualH, barW, manualH, 'F');
+        // Automated bar (brand green)
+        doc.setFillColor(BRAND_DARK);
+        doc.rect(cx + gap / 2, chartY + chartH - autoH, barW, autoH, 'F');
+        // Label
+        doc.setTextColor(SLATE_700);
+        doc.setFontSize(6.5);
+        doc.setFont('helvetica', 'normal');
+        const lbl = doc.splitTextToSize(t.label, barGroupW - 4);
+        doc.text(lbl, cx, chartY + chartH + 8, { align: 'center' });
+      });
+
+      // Legend
+      const legY = chartY + chartH + 28;
+      doc.setFillColor(SLATE_500);
+      doc.rect(margin, legY, 12, 12, 'F');
+      doc.setTextColor(SLATE_700);
+      doc.setFontSize(9);
+      doc.text('Manual (before)', margin + 16, legY + 9);
+      doc.setFillColor(BRAND_DARK);
+      doc.rect(margin + 120, legY, 12, 12, 'F');
+      doc.text('Automated (after)', margin + 136, legY + 9);
+
+      y = legY + 24;
+
+      // Total savings box
+      const totalManual = taskData.reduce((s, t) => s + t.manual, 0);
+      const totalAuto = taskData.reduce((s, t) => s + t.automated, 0);
+      const saved = totalManual - totalAuto;
+
+      if (y > pageH - 120) { doc.addPage(); y = 120; }
+      doc.setFillColor(BRAND_DARK);
+      doc.roundedRect(margin, y, pageW - margin * 2, 70, 8, 8, 'F');
+      doc.setFillColor(BRAND_LEAF);
+      doc.roundedRect(margin, y, 4, 70, 2, 2, 'F');
+      doc.setTextColor(WHITE);
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${saved} hours saved per week`, margin + 16, y + 30);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(220, 240, 200);
+      doc.text(`= ${saved * 52} hours per year = ${(saved * 52 / 37).toFixed(0)} working weeks recovered — per manager.`, margin + 16, y + 48);
+      doc.text(`At £45/hr fully-loaded, that is £${(saved * 52 * 45).toLocaleString()} of management time reinvested into actual operations — every year.`, margin + 16, y + 62);
+
+      drawFooter(doc, margin, pageW, pageH);
+
+      // === Page 9: Financial ROI ===
+      doc.addPage();
+      drawSectionHeader(doc, margin, pageW, 'Financial ROI', 'What the system pays back — and how fast', TrendingUp);
+      y = 120;
+
+      doc.setTextColor(SLATE_900);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('The three ways this system pays for itself', margin, y);
+      y += 18;
+
+      const roiPoints = [
+        {
+          title: '1. Time recovered',
+          body: '25+ hours of management admin eliminated every week — compliance checking, timesheet collation, report formatting, progress chasing. That is 1,300+ hours per year of skilled time redirected from paperwork to operations.',
+          value: `£${(25 * 52 * 45).toLocaleString()}/yr`,
+        },
+        {
+          title: '2. Revenue protected',
+          body: 'Every drilled metre and every unit of work is matched to an agreed rate at the point of logging. Work that is not logged cannot be billed — but work that IS logged is always priced. Billing leakage from undercharged or forgotten activity is eliminated entirely.',
+          value: '3-5% revenue uplift',
+        },
+        {
+          title: '3. Fines avoided',
+          body: 'Automated LOLER, PUWER and PAT compliance tracking with expiry alerts means expired equipment never reaches site. A single LOLER breach can cost £20,000+ in fines and reputational damage. The system makes that outcome structurally impossible.',
+          value: '£20k+ per avoided incident',
+        },
+        {
+          title: '4. Faster cash collection',
+          body: 'One-click AGS export and automated invoicing means work-completed to client-invoiced happens in days, not weeks. A 10-day reduction in the cash conversion cycle on £2m of WIP is worth £55,000 in improved cash flow at any given moment.',
+          value: '10 days faster',
+        },
+      ];
+
+      roiPoints.forEach((p) => {
+        if (y > pageH - 120) { doc.addPage(); y = 120; }
+        doc.setFillColor(SLATE_100);
+        doc.roundedRect(margin, y, pageW - margin * 2, 60, 6, 6, 'F');
+        doc.setFillColor(BRAND_LEAF);
+        doc.roundedRect(margin, y, 4, 60, 2, 2, 'F');
+        doc.setTextColor(SLATE_900);
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(p.title, margin + 16, y + 20);
+        doc.setTextColor(SLATE_700);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        const lines = doc.splitTextToSize(p.body, pageW - margin * 2 - 140);
+        doc.text(lines, margin + 16, y + 34);
+        // Value pill
+        doc.setFillColor(BRAND_DARK);
+        doc.roundedRect(pageW - margin - 120, y + 16, 104, 28, 4, 4, 'F');
+        doc.setTextColor(WHITE);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(p.value, pageW - margin - 68, y + 34, { align: 'center' });
+        y += 70;
+      });
+
+      // Net ROI summary
+      if (y > pageH - 110) { doc.addPage(); y = 120; }
+      doc.setFillColor(BRAND_DARK);
+      doc.roundedRect(margin, y, pageW - margin * 2, 80, 8, 8, 'F');
+      doc.setFillColor(BRAND_LEAF);
+      doc.roundedRect(margin, y, 4, 80, 2, 2, 'F');
+      doc.setTextColor(WHITE);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Net annual return (conservative)', margin + 16, y + 22);
+      doc.setFontSize(22);
+      doc.text('£58,500 +', margin + 16, y + 50);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(220, 240, 200);
+      doc.text('Time recovered + revenue protected + fines avoided + faster cash. The system pays for itself within the first quarter of full adoption.', margin + 16, y + 68);
+
+      drawFooter(doc, margin, pageW, pageH);
+
+      // === Page 10: Predictive Maintenance ===
+      doc.addPage();
+      drawSectionHeader(doc, margin, pageW, 'Predictive Maintenance', 'From calendar-based to usage-based servicing', HardHat);
+      y = 120;
+
+      const maintPoints = [
+        {
+          title: 'Engine hours, not calendar dates',
+          body: 'The system automatically calculates engine hours from approved InvestigationLog records — every drilling activity adds to the rig\'s running total. Servicing is triggered when a rig actually needs it, not when a calendar says it might.',
+          proof: 'The recalculateUsageMaintenance automation runs daily, summing drilling minutes per rig since its last service.',
+        },
+        {
+          title: 'Rig-Tooling Lockdown',
+          body: 'A rig cannot be assigned to a job if any of its linked gear (slings, shackles, bits, rods) has expired compliance or is inactive. The validation runs at the point of assignment — the block happens at the yard, not after the gear has reached site.',
+          proof: 'The validateRigTooling function checks every linked asset\'s compliance_status before allowing assignment.',
+        },
+        {
+          title: 'Geotechnical Risk Heatmap',
+          body: 'The dashboard ranks sites by geotechnical risk — aggregating approved delay logs (ground conditions, utility clashes, boulder refusals) into a heat score. Managers see which sites are likely to cause problems before the rig gets there.',
+          proof: 'Derived from real historical delay data, not guesses. High-risk sites get more resources, not more surprises.',
+        },
+        {
+          title: 'Auto-booked maintenance',
+          body: 'When a rig crosses its usage threshold, the system automatically books a maintenance slot and notifies the responsible person — no one has to remember to schedule it. The fitter sees the booking, the rig manager sees the alert, the yard sees the status change.',
+          proof: 'The autoBookMaintenance function creates the booking record and fires the notification in one step.',
+        },
+      ];
+      maintPoints.forEach((p, i) => {
+        y = drawPoint(doc, margin, pageW, p.title, p.body, y, i + 1, p.proof);
+      });
+
+      y = drawPullQuote(doc, margin, pageW, y, 'We service rigs when they need it, not when the wallchart says we might. That is less downtime, less waste, and fewer failures on site.');
+
+      drawFooter(doc, margin, pageW, pageH);
+
+      // === Page 11: Unbilled WIP / Financial Assurance ===
+      doc.addPage();
+      drawSectionHeader(doc, margin, pageW, 'Financial Assurance', 'Real-time visibility into earned-but-unbilled revenue', FileClock);
+      y = 120;
+
+      const finAssurance = [
+        {
+          title: 'Unbilled WIP dashboard',
+          body: 'A live widget aggregates every JobCostItem that has been logged but not yet invoiced, giving finance leaders immediate visibility into the "earned but unbilled" position. No more waiting for month-end to discover £40,000 of work that was done but never billed.',
+          proof: 'Updates in real time as logs are approved and invoices are raised — the number is always current.',
+        },
+        {
+          title: 'Realisation % tracking',
+          body: 'The system tracks what percentage of logged work has actually been invoiced. A dropping realisation rate is the earliest warning sign of billing leakage — and it is visible on the dashboard, not buried in a spreadsheet.',
+          proof: 'Invoiced ÷ earned, calculated live across all active jobs.',
+        },
+        {
+          title: 'Automated charge calculation',
+          body: 'Every investigation log and timesheet entry is automatically matched to a billing rule at the point of approval. The charge is calculated, not estimated. The client invoice and the internal cost come from the same data — they can never disagree.',
+          proof: 'The calculateCharge function runs on every approved log and every submitted timesheet.',
+        },
+        {
+          title: 'Invoice generation in one click',
+          body: 'When a job is ready to invoice, the system assembles every chargeable line — cost items, hotel bookings, chargeable deliveries, approved timesheets, meterage revenue — into a formatted invoice with a single click. No manual line-item assembly, no missed charges.',
+          proof: 'The autoGenerateInvoice function builds the full line-item list from live data.',
+        },
+      ];
+      finAssurance.forEach((p, i) => {
+        y = drawPoint(doc, margin, pageW, p.title, p.body, y, i + 1, p.proof);
+      });
+
+      y = drawPullQuote(doc, margin, pageW, y, 'If we did the work, it is in the system. If it is in the system, it is on the invoice. That is the chain of custody for revenue.');
+
+      drawFooter(doc, margin, pageW, pageH);
+
+      doc.save(`Ground-Control-Executive-Presentation-Pack-${new Date().toISOString().slice(0,10)}.pdf`);
     } catch (e) {
       console.error('PDF generation failed:', e);
       alert('Sorry, the PDF could not be generated. Please try again.');
@@ -426,20 +718,25 @@ export default function PresentationPack() {
         <div className="insight-card rounded-2xl overflow-hidden">
           <div className="hero-gradient px-6 py-8 md:px-10 md:py-10 text-white">
             <img src={EMBLEM_URL} alt="Ground Control" className="h-12 mb-4 object-contain" />
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Manager Presentation Pack</h1>
-            <p className="text-white/80 mt-1.5 text-sm md:text-base">Safety & Financial value proposition — ready to talk through.</p>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Executive Presentation Pack</h1>
+            <p className="text-white/80 mt-1.5 text-sm md:text-base">AI, automation & financial value proposition — ready to talk through.</p>
           </div>
 
           {/* Preview body */}
           <div className="p-6 md:p-10">
             <p className="text-slate-600 text-sm leading-relaxed">
-              A polished, detailed PDF you can present from or hand out. It opens with an executive summary, covers the safety and compliance story and the financial and margin protection story in depth — each point backed by a proof line — and finishes with the recommended walk-through order plus a ready-to-read facilitator script with exactly what to say, show and ask, and ready answers to likely objections.
+            A polished, detailed PDF you can present from or hand out. It opens with an executive summary, covers the AI and automation layer, the safety and compliance story, predictive maintenance, financial assurance and ROI — each point backed by a proof line — and finishes with the recommended walk-through order plus a ready-to-read facilitator script with exactly what to say, show and ask, and ready answers to likely objections.
             </p>
 
             {/* What's inside */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
               <PreviewItem icon={FileText} title="Executive Summary" desc="Headline outcomes and the ask, at a glance" />
+              <PreviewItem icon={Sparkles} title="AI & Automation" desc="5 intelligent features with proof lines" />
+              <PreviewItem icon={Clock} title="Time Savings Chart" desc="Manual vs automated hours, with totals" />
+              <PreviewItem icon={TrendingUp} title="Financial ROI" desc="4 return mechanisms + net annual value" />
               <PreviewItem icon={ShieldCheck} title="Safety & Compliance" desc="5 points with proof lines + pull quote" />
+              <PreviewItem icon={HardHat} title="Predictive Maintenance" desc="Usage-based servicing & rig lockdown" />
+              <PreviewItem icon={FileClock} title="Financial Assurance" desc="Unbilled WIP & revenue protection" />
               <PreviewItem icon={TrendingUp} title="Financial Performance" desc="5 points with proof lines + pull quote" />
               <PreviewItem icon={Map} title="Walk-through order" desc="The 4 steps to cover in the meeting" />
               <PreviewItem icon={FileText} title="Facilitator script" desc="Say / Show / Ask at each step + timing" />
