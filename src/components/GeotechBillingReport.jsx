@@ -114,7 +114,10 @@ export default function GeotechBillingReport({ onSelectJob }) {
     URL.revokeObjectURL(url);
   };
 
-  if (profile && !canViewCostings(profile, authUser?.role === 'admin')) {
+  const isPlatformAdmin = authUser?.role === 'admin';
+  const showAccessDenied = profile && !isPlatformAdmin && !canViewCostings(profile, false);
+
+  if (showAccessDenied) {
     return (
       <div className="flex items-center justify-center py-20 text-center">
         <div>

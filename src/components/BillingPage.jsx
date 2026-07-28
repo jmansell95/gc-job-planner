@@ -214,7 +214,14 @@ export default function BillingPage({ onSelectJob }) {
     URL.revokeObjectURL(url);
   };
 
-  if (profile && !canViewCostings(profile, authUser?.role === 'admin')) {
+  // Allow access while profile is still loading or if the query failed —
+  // the platform admin flag (always available from AuthContext) is the
+  // primary gate. canViewCostings only enforces the staff-role gate once
+  // the profile has actually resolved.
+  const isPlatformAdmin = authUser?.role === 'admin';
+  const showAccessDenied = profile && !isPlatformAdmin && !canViewCostings(profile, false);
+
+  if (showAccessDenied) {
     return (
       <div className="flex items-center justify-center py-20 text-center">
         <div>
