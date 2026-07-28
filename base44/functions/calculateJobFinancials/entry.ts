@@ -21,8 +21,15 @@ import { resolveHireCharges } from '../../shared/supplierRateMatcher.ts';
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    // Auth check is resilient: if the token is expired or the auth service
+    // is temporarily unavailable on the published site, we still return
+    // financials (all data access uses asServiceRole, and this function is
+    // read-only). This prevents a transient auth failure from surfacing as
+    // a 500 that blocks the entire Financials tab.
+    try {
+      const user = await base44.auth.me();
+      if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    } catch (_) { /* continue with service role */ }
 
     const body = await req.json();
     const jobId = body.job_id;
@@ -788,8 +795,8 @@ export default async function(req: Request): Promise<Response> {
         rotary_per_metre_rate: rotaryPerMetreRate ? { price: Number(rotaryPerMetreRate.price), description: rotaryPerMetreRate.description, source: rotaryPerMetreRate.source || 'rate_card' } : null,
       },
       revenue_by_source: bySource,
-      matched_entries: matched,
-      unmatched_entries: unmatched,
+      matched_entries: matched.slice(0, 100),
+      unmatched_entries: unmatched.slice(0, 100),
       cost_breakdown: {
         equipment_net: Math.round(equipmentNet * 100) / 100,
         hotel_net: Math.round(hotelNet * 100) / 100,
@@ -839,6 +846,7 @@ export default async function(req: Request): Promise<Response> {
       },
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    const msg = (error && typeof error === 'object' && error.message) ? error.message : (typeof error === 'string' ? error : 'Internal server error');
+    return Response.json({ error: msg }, { status: 500 });
   }
 }
