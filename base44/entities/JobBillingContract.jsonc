@@ -1,0 +1,252 @@
+{
+  "name": "JobBillingContract",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "The job this billing contract governs. One active contract per job at a time."
+    },
+    "project_id": {
+      "type": "string",
+      "description": "Linked Project \u2014 for project-level rate card resolution"
+    },
+    "version": {
+      "type": "number",
+      "default": 1,
+      "description": "Version number. Increments each time the contract is amended. Only the highest version is 'active'; previous versions are 'superseded'."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "superseded",
+        "void"
+      ],
+      "default": "draft",
+      "description": "Contract lifecycle. 'draft' = being edited; 'active' = locked-in rates in use; 'superseded' = replaced by a newer version; 'void' = cancelled."
+    },
+    "contract_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the contract terms were agreed with the client"
+    },
+    "effective_from": {
+      "type": "string",
+      "format": "date",
+      "description": "Date these billing terms take effect"
+    },
+    "effective_to": {
+      "type": "string",
+      "format": "date",
+      "description": "Date these billing terms expire (blank = open-ended)"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "The client being billed under this contract"
+    },
+    "client_reference": {
+      "type": "string",
+      "description": "Client's purchase order number or contract reference"
+    },
+    "revenue_method": {
+      "type": "string",
+      "enum": [
+        "none",
+        "day_rate",
+        "meterage_rate",
+        "unit_rate",
+        "flat_fee",
+        "composite"
+      ],
+      "default": "none",
+      "description": "Primary billing method. 'composite' = multiple billing methods active simultaneously (e.g. day rate + meterage + POA items). 'none' = legacy markup-on-cost."
+    },
+    "drilling_method": {
+      "type": "string",
+      "enum": [
+        "cp",
+        "rotary",
+        "mixed",
+        "not_applicable"
+      ],
+      "default": "not_applicable",
+      "description": "Drilling method \u2014 determines which rate card section is used for per-metre pricing"
+    },
+    "vat_rate": {
+      "type": "number",
+      "default": 20,
+      "description": "VAT rate (%) locked in this contract. Overrides the job-level rate while the contract is active."
+    },
+    "markup_percentage": {
+      "type": "number",
+      "default": 0,
+      "description": "Default markup % for pass-through/POA items. Locked when the contract is activated."
+    },
+    "meterage_rate": {
+      "type": "number",
+      "description": "Per-metre drilling rate locked in this contract (\u00a3/m). Overrides rate card matching when set."
+    },
+    "meterage_target": {
+      "type": "number",
+      "description": "Target total metres for this contract"
+    },
+    "unit_price": {
+      "type": "number",
+      "description": "Price per unit for unit-rate billing, locked in this contract"
+    },
+    "flat_fee": {
+      "type": "number",
+      "description": "Agreed flat fee, locked in this contract"
+    },
+    "day_rate_crew_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Crew IDs whose day rates are billable under this contract (for day-rate billing)"
+    },
+    "rate_snapshot": {
+      "type": "string",
+      "description": "JSON snapshot of all matched rate card items at the time of contract activation \u2014 frozen so future rate card changes don't affect this contract's billing."
+    },
+    "poa_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "estimated_cost": {
+            "type": "number"
+          },
+          "agreed_price": {
+            "type": "number",
+            "description": "Final agreed price \u2014 0 means still POA (not yet priced)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending_pricing",
+              "priced",
+              "approved",
+              "invoiced"
+            ]
+          }
+        }
+      },
+      "default": [],
+      "description": "Price on Application items \u2014 work items that are estimated upfront and priced once actual scope is known. Triggers auto-recalculation when priced."
+    },
+    "retention_percentage": {
+      "type": "number",
+      "default": 0,
+      "description": "% of each invoice held back as retention, released on project completion. E.g. 5 = 5% retention."
+    },
+    "retention_released": {
+      "type": "number",
+      "default": 0,
+      "description": "Total retention released to date (\u00a3)"
+    },
+    "milestone_billing_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when billing is triggered by milestones rather than continuous invoicing"
+    },
+    "milestones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "trigger_type": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "metres_drilled",
+              "units_completed",
+              "date",
+              "percentage_complete"
+            ]
+          },
+          "trigger_value": {
+            "type": "number",
+            "description": "Metres, units, % or days offset for the trigger"
+          },
+          "invoice_percentage": {
+            "type": "number",
+            "description": "% of total contract to invoice when this milestone is reached"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "triggered",
+              "invoiced"
+            ]
+          },
+          "triggered_at": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "Billing milestones \u2014 e.g. 50% drilled = bill 40% of contract value"
+    },
+    "subcontractor_default_markup": {
+      "type": "number",
+      "default": 15,
+      "description": "Default markup % applied to all subcontractor costs on this job. Individual SubcontractorLog entries can override."
+    },
+    "total_contract_value_net": {
+      "type": "number",
+      "description": "Total agreed contract value (net) \u2014 sum of all billing methods + estimated POA items"
+    },
+    "total_invoiced_net": {
+      "type": "number",
+      "default": 0,
+      "description": "Total invoiced to date under this contract (net)"
+    },
+    "total_retention_held": {
+      "type": "number",
+      "default": 0,
+      "description": "Current retention held (not yet released)"
+    },
+    "created_by_id": {
+      "type": "string",
+      "description": "Staff/user who created this contract version"
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Name of the creator (denormalised)"
+    },
+    "activated_at": {
+      "type": "string",
+      "description": "ISO timestamp when this contract version was activated (locked)"
+    },
+    "superseded_at": {
+      "type": "string",
+      "description": "ISO timestamp when this contract was superseded by a new version"
+    },
+    "superseded_by_version": {
+      "type": "number",
+      "description": "Version number that replaced this one"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Contract notes \u2014 special terms, conditions, exclusions"
+    }
+  },
+  "required": [
+    "job_id",
+    "version",
+    "status"
+  ]
+}

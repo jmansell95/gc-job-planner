@@ -4,7 +4,7 @@
   "properties": {
     "key": {
       "type": "string",
-      "description": "Setting key (e.g. 'global')"
+      "description": "Setting key (e.g. 'global', 'gl_code_mapping', 'concur_config')"
     },
     "app_base_url": {
       "type": "string",
@@ -30,6 +30,14 @@
     "default_footer_text": {
       "type": "string",
       "description": "Default footer text for all automated emails"
+    },
+    "label": {
+      "type": "string",
+      "description": "Human-readable label for this setting (used when this record stores a generic config value)"
+    },
+    "value": {
+      "type": "object",
+      "description": "Generic JSON value for this setting key \u2014 used by the Financial Control Hub to store GL code mappings, Concur API config, and sub-con markup rules. Stores any structured config that doesn't warrant its own entity."
     }
   },
   "required": [

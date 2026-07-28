@@ -1,0 +1,166 @@
+{
+  "name": "DailyCost",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this daily cost is associated with"
+    },
+    "assignment_id": {
+      "type": "string",
+      "description": "RotaAssignment this cost was logged from (optional \u2014 links to the end-of-shift wizard)"
+    },
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member who logged the cost"
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Staff member name (for display)"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the cost was incurred"
+    },
+    "week_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Monday of the week this cost belongs to \u2014 for weekly reconciliation"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "fuel",
+        "subsistence",
+        "materials",
+        "equipment_hire",
+        "subcontractor",
+        "misc",
+        "tolls_parking",
+        "travel"
+      ],
+      "description": "Expense category \u2014 drives SAP Concur GL code mapping"
+    },
+    "description": {
+      "type": "string",
+      "description": "What the cost was for (free text or preset label)"
+    },
+    "amount_net": {
+      "type": "number",
+      "description": "Net amount in GBP (excluding VAT)"
+    },
+    "amount_vat": {
+      "type": "number",
+      "default": 0,
+      "description": "VAT amount in GBP (if reclaimable)"
+    },
+    "amount_gross": {
+      "type": "number",
+      "description": "Gross amount in GBP (net + VAT)"
+    },
+    "vat_rate": {
+      "type": "number",
+      "default": 20,
+      "description": "VAT rate applied (%)"
+    },
+    "receipt_url": {
+      "type": "string",
+      "description": "URL of the uploaded receipt photo"
+    },
+    "preset_id": {
+      "type": "string",
+      "description": "Linked CostPreset when this was a quick-add preset (for audit)"
+    },
+    "rig_id": {
+      "type": "string",
+      "description": "Linked SiteAsset (rig) if this cost is rig-specific (e.g. fuel for a specific rig)"
+    },
+    "borehole_ref": {
+      "type": "string",
+      "description": "Borehole reference if this cost is borehole-specific"
+    },
+    "supplier_name": {
+      "type": "string",
+      "description": "Name of the supplier/vendor where the purchase was made"
+    },
+    "po_number": {
+      "type": "string",
+      "description": "Purchase order number (if a PO was raised)"
+    },
+    "is_subcontractor_cost": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this is a subcontractor invoice/cost (tracked separately for margin management)"
+    },
+    "subcontractor_id": {
+      "type": "string",
+      "description": "Linked Contractor when is_subcontractor_cost is true"
+    },
+    "markup_percentage": {
+      "type": "number",
+      "default": 0,
+      "description": "Markup % applied to this cost when billing to the client. 0 = pass-through at cost. Set from the job's sub-contractor markup default."
+    },
+    "client_charge": {
+      "type": "number",
+      "description": "Calculated client charge = amount_net \u00d7 (1 + markup_percentage/100). Set automatically."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "approved",
+        "rejected",
+        "synced_to_concur"
+      ],
+      "default": "submitted",
+      "description": "Approval + SAP Concur sync status. 'draft' = still being edited, 'submitted' = awaiting manager approval, 'approved' = manager-signed, 'rejected' = returned, 'synced_to_concur' = exported and locked."
+    },
+    "approved_by_id": {
+      "type": "string",
+      "description": "Staff ID of the manager who approved this cost"
+    },
+    "approved_by_name": {
+      "type": "string",
+      "description": "Name of the approving manager (denormalised)"
+    },
+    "approved_at": {
+      "type": "string",
+      "description": "ISO timestamp of approval"
+    },
+    "rejected_reason": {
+      "type": "string",
+      "description": "Reason given when a cost is rejected"
+    },
+    "gl_code": {
+      "type": "string",
+      "description": "SAP Concur General Ledger code \u2014 auto-mapped from the category, or manually overridden"
+    },
+    "concur_export_id": {
+      "type": "string",
+      "description": "SAP Concur batch export ID \u2014 set when this cost is synced. Locks the record from further edits."
+    },
+    "synced_at": {
+      "type": "string",
+      "description": "ISO timestamp when this cost was synced to SAP Concur"
+    },
+    "synced_from_offline": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this cost was logged while offline and synced later"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  },
+  "required": [
+    "job_id",
+    "staff_id",
+    "date",
+    "category",
+    "amount_net"
+  ]
+}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText } from 'lucide-react';
 
 export const settingsGroups = [
   {
@@ -56,6 +56,16 @@ export const settingsGroups = [
       { id: 'invoicing', label: 'Billing & Invoicing', icon: Receipt, desc: 'Per-job cost summary & invoice totals — reconcile CDRs and raise invoices', roles: ['admin', 'manager'] },
       { id: 'overtime', label: 'Overtime', icon: Timer, desc: 'Overtime multipliers by day' },
       { id: 'business-rules', label: 'Business Rules', icon: Scale, desc: 'Core working rules — required daily hours & travel deductions — that drive the timesheet engine' },
+    ],
+  },
+  {
+    label: 'Financial Control Hub',
+    items: [
+      { id: 'expense-presets', label: 'Expense Presets', icon: Receipt, desc: 'Quick-add buttons crews see on the End-of-Shift expense step — fuel, subsistence, materials & GL codes' },
+      { id: 'concur-sync', label: 'SAP Concur Sync', icon: Landmark, desc: 'API bridge to SAP Concur — pull GL codes, push approved expenses & timesheets in batch, lock synced records' },
+      { id: 'subcon-markup', label: 'Sub-Con Markup Rules', icon: TrendingUp, desc: 'Default markup percentages for subcontractor costs — guardrails prevent zero-margin billing' },
+      { id: 'gl-mapping', label: 'GL Code Mapping', icon: FileSpreadsheet, desc: 'Map internal expense categories to SAP Concur General Ledger codes' },
+      { id: 'billing-contracts', label: 'Billing Contracts', icon: ScrollText, desc: 'Locked per-job billing terms — version-controlled contracts with rate snapshots, POA items & retention' },
     ],
   },
   {

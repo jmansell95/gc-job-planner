@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { X, CheckCircle2, Car, Ruler, FileText, ClipboardCheck, Send, ChevronRight, AlertTriangle, Coffee, Briefcase, Info, ShieldCheck, Clock } from 'lucide-react';
+import { X, CheckCircle2, Car, Ruler, FileText, ClipboardCheck, Send, ChevronRight, AlertTriangle, Coffee, Briefcase, Info, ShieldCheck, Clock, Receipt } from 'lucide-react';
 import { format } from 'date-fns';
+import DailyExpenseStep from './DailyExpenseStep';
 
 const fmtDur = (mins) => {
   const m = Math.round(Number(mins) || 0);
@@ -33,6 +34,7 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
   const [progressNotes, setProgressNotes] = useState('');
   const [departSite, setDepartSite] = useState('');
   const [arriveHome, setArriveHome] = useState('');
+  const [expenses, setExpenses] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [confirmations, setConfirmations] = useState({ tasks: false, travel: false, hours: false });
 
@@ -46,6 +48,7 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
     if (open) {
       setStep(0); setMeterage(''); setProgressNotes(assignment?.progress_notes || '');
       setDepartSite(''); setArriveHome(''); setSubmitting(false);
+      setExpenses([]);
       setConfirmations({ tasks: false, travel: false, hours: false });
     }
   }, [open]);
@@ -54,6 +57,7 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
     { key: 'review', label: 'Review' },
     ...(isDriller ? [{ key: 'meterage', label: 'Meterage' }] : []),
     { key: 'notes', label: 'Notes' },
+    { key: 'expenses', label: 'Expenses' },
     ...(isLastJob ? [{ key: 'travel', label: 'Travel Home' }] : []),
     { key: 'submit', label: 'Submit' },
   ];
@@ -80,8 +84,38 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
     : 0;
   const invalidTravel = departSite && arriveHome && travelMins === 0;
 
-  const handleFinalSubmit = () => {
+  const handleFinalSubmit = async () => {
     setSubmitting(true);
+    // Save any logged expenses as DailyCost records
+    if (expenses.length > 0 && job?.id && staffId) {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const monday = format(new Date(today), 'yyyy-MM-dd');
+      const wsDate = new Date(monday);
+      const day = wsDate.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      wsDate.setDate(wsDate.getDate() + diff);
+      const weekStart = format(wsDate, 'yyyy-MM-dd');
+      try {
+        await base44.entities.DailyCost.bulkCreate(expenses.map(e => ({
+          job_id: job.id,
+          assignment_id: assignment?.id || '',
+          staff_id: staffId,
+          date: today,
+          week_start: weekStart,
+          category: e.category,
+          description: e.description,
+          amount_net: e.amount_net,
+          amount_vat: e.amount_vat,
+          amount_gross: e.amount_gross,
+          vat_rate: e.vat_rate || 0,
+          receipt_url: e.receipt_url || '',
+          preset_id: e.preset_id || '',
+          supplier_name: e.supplier_name || '',
+          gl_code: e.gl_code || '',
+          status: 'submitted',
+        })));
+      } catch (e) { console.error('Expense save failed:', e); }
+    }
     onSubmit({
       meterage: isDriller ? (parseFloat(meterage) || 0) : undefined,
       progressNotes: progressNotes.trim(),
@@ -279,6 +313,17 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
                 </div>
               )}
 
+              {/* Step 4b: Daily Expenses */}
+              {currentStep.key === 'expenses' && (
+                <DailyExpenseStep
+                  job={job}
+                  staffId={staffId}
+                  assignment={assignment}
+                  expenses={expenses}
+                  setExpenses={setExpenses}
+                />
+              )}
+
               {/* Step 4: Travel Home (last job only) */}
               {currentStep.key === 'travel' && (
                 <div className="space-y-4">
@@ -369,6 +414,12 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-slate-500">Travel home</span>
                         <span className="font-semibold text-slate-900">{fmtDur(travelMins)}</span>
+                      </div>
+                    )}
+                    {expenses.length > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-500 flex items-center gap-1"><Receipt className="w-3.5 h-3.5" /> Expenses</span>
+                        <span className="font-semibold text-slate-900">{expenses.length} item{expenses.length !== 1 ? 's' : ''}</span>
                       </div>
                     )}
                   </div>

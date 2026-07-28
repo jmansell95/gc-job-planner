@@ -32,6 +32,11 @@ import SafetyCultureSettings from '@/components/SafetyCultureSettings';
 import DemoDataManager from '@/components/DemoDataManager';
 import SystemLogicGuide from '@/components/SystemLogicGuide';
 import PermissionGroupManager from '@/components/PermissionGroupManager';
+import ExpensePresetManager from '@/components/settings/ExpensePresetManager';
+import ConcurSyncSettings from '@/components/settings/ConcurSyncSettings';
+import SubconMarkupRules from '@/components/settings/SubconMarkupRules';
+import GLCodeMapping from '@/components/settings/GLCodeMapping';
+import BillingContractManager from '@/components/settings/BillingContractManager';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { resolveRole } from '@/utils/access';
 import { base44 } from '@/api/base44Client';
@@ -97,6 +102,11 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'safety-culture': return <SafetyCultureSettings />;
       case 'demo-data': return <DemoDataManager />;
       case 'system-guide': return <SystemLogicGuide />;
+      case 'expense-presets': return <ExpensePresetManager />;
+      case 'concur-sync': return <ConcurSyncSettings />;
+      case 'subcon-markup': return <SubconMarkupRules />;
+      case 'gl-mapping': return <GLCodeMapping />;
+      case 'billing-contracts': return <BillingContractManager />;
       default: return null;
     }
   };

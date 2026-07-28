@@ -1,0 +1,235 @@
+{
+  "name": "SubcontractorLog",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this subcontractor log belongs to"
+    },
+    "assignment_id": {
+      "type": "string",
+      "description": "RotaAssignment this log was recorded from (optional)"
+    },
+    "subcontractor_id": {
+      "type": "string",
+      "description": "Linked Contractor record \u2014 the subcontractor performing the work"
+    },
+    "subcontractor_name": {
+      "type": "string",
+      "description": "Subcontractor name (denormalised for display)"
+    },
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member who recorded this log (the internal person verifying the sub-con's work)"
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the work was carried out"
+    },
+    "week_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Monday of the week this log belongs to"
+    },
+    "work_type": {
+      "type": "string",
+      "enum": [
+        "drilling",
+        "coring",
+        "groundworks",
+        "trial_pit",
+        "enabling_works",
+        "site_investigation",
+        "equipment_hire",
+        "materials_supply",
+        "transport",
+        "supervision",
+        "other"
+      ],
+      "description": "Type of work the subcontractor performed"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the work carried out by the subcontractor"
+    },
+    "borehole_ref": {
+      "type": "string",
+      "description": "Borehole reference (if the work is borehole-specific)"
+    },
+    "depth_from": {
+      "type": "number",
+      "description": "Start depth in metres (for drilling/coring work)"
+    },
+    "depth_to": {
+      "type": "number",
+      "description": "End depth in metres"
+    },
+    "metres_drilled": {
+      "type": "number",
+      "description": "Total metres drilled by the subcontractor (depth_to \u2212 depth_from)"
+    },
+    "units_completed": {
+      "type": "number",
+      "description": "Number of units completed (e.g. trial pits dug, core runs completed)"
+    },
+    "units_label": {
+      "type": "string",
+      "description": "Unit label (e.g. 'trial pits', 'core runs', 'metres')"
+    },
+    "hours_worked": {
+      "type": "number",
+      "description": "Hours worked by the subcontractor (for time-based billing)"
+    },
+    "purchase_cost_net": {
+      "type": "number",
+      "description": "What we PAY the subcontractor (net, excluding VAT). The 'buy side' cost."
+    },
+    "purchase_cost_vat": {
+      "type": "number",
+      "default": 0,
+      "description": "VAT on the purchase cost"
+    },
+    "purchase_cost_gross": {
+      "type": "number",
+      "description": "Gross purchase cost (net + VAT)"
+    },
+    "purchase_rate_basis": {
+      "type": "string",
+      "enum": [
+        "day_rate",
+        "hourly_rate",
+        "per_metre",
+        "per_unit",
+        "flat_fee",
+        "item_cost"
+      ],
+      "description": "How the subcontractor charges us \u2014 day rate, per metre, per unit, etc."
+    },
+    "purchase_rate": {
+      "type": "number",
+      "description": "The rate the subcontractor charges (e.g. \u00a3350/day, \u00a345/metre)"
+    },
+    "markup_percentage": {
+      "type": "number",
+      "default": 15,
+      "description": "Markup % applied to the purchase cost to derive the client charge. The 'sell side' margin. Default 15% \u2014 editable per log and set from the subcontractor's default markup. Guardrail: the system flags or blocks if this is 0 to prevent zero-margin billing."
+    },
+    "client_charge_net": {
+      "type": "number",
+      "description": "What we BILL the client for this work (net) = purchase_cost_net \u00d7 (1 + markup_percentage/100). Set automatically."
+    },
+    "client_charge_vat": {
+      "type": "number",
+      "default": 0,
+      "description": "VAT on the client charge"
+    },
+    "client_charge_gross": {
+      "type": "number",
+      "description": "Gross client charge (net + VAT)"
+    },
+    "sell_rate": {
+      "type": "number",
+      "description": "The rate we bill the client (e.g. \u00a3500/day, \u00a355/metre). Used when billing is rate-based rather than markup-based."
+    },
+    "sell_rate_basis": {
+      "type": "string",
+      "enum": [
+        "day_rate",
+        "hourly_rate",
+        "per_metre",
+        "per_unit",
+        "flat_fee",
+        "markup_on_cost"
+      ],
+      "default": "markup_on_cost",
+      "description": "How we bill the client for this work. 'markup_on_cost' = purchase cost \u00d7 markup%. Other options use sell_rate directly."
+    },
+    "margin_net": {
+      "type": "number",
+      "description": "Net margin = client_charge_net \u2212 purchase_cost_net. The profit we make on this sub-contract."
+    },
+    "margin_pct": {
+      "type": "number",
+      "description": "Margin as a % of the client charge = (margin_net / client_charge_net) \u00d7 100"
+    },
+    "po_number": {
+      "type": "string",
+      "description": "Purchase order number for this subcontractor work"
+    },
+    "invoice_received": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the subcontractor's invoice has been received and verified"
+    },
+    "invoice_number": {
+      "type": "string",
+      "description": "Subcontractor's invoice number"
+    },
+    "invoice_url": {
+      "type": "string",
+      "description": "URL of the uploaded subcontractor invoice"
+    },
+    "billed_to_client": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this cost has been included in a client invoice"
+    },
+    "client_invoice_id": {
+      "type": "string",
+      "description": "Linked Invoice record when billed to the client"
+    },
+    "verification_photo_urls": {
+      "type": "string",
+      "description": "Comma-separated URLs of verification photos (evidence the work was done)"
+    },
+    "verified_by_id": {
+      "type": "string",
+      "description": "Staff ID of the internal person who verified the subcontractor's work"
+    },
+    "verified_by_name": {
+      "type": "string",
+      "description": "Name of the internal verifier (denormalised)"
+    },
+    "verified_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the work was verified"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "verified",
+        "approved",
+        "rejected",
+        "invoiced",
+        "synced"
+      ],
+      "default": "pending",
+      "description": "Workflow status. 'pending' = logged, awaiting verification; 'verified' = work confirmed; 'approved' = finance-approved; 'rejected' = returned; 'invoiced' = included in a client invoice; 'synced' = exported to SAP Concur."
+    },
+    "gl_code": {
+      "type": "string",
+      "description": "SAP Concur GL code for this cost category"
+    },
+    "concur_export_id": {
+      "type": "string",
+      "description": "SAP Concur batch export ID \u2014 locks the record when set"
+    },
+    "synced_at": {
+      "type": "string",
+      "description": "ISO timestamp when synced to SAP Concur"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    }
+  },
+  "required": [
+    "job_id",
+    "subcontractor_id",
+    "date",
+    "work_type",
+    "purchase_cost_net"
+  ]
+}
