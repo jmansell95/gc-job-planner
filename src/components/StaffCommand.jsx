@@ -318,7 +318,7 @@ function ProfileTab({ staff: m, user, teams, vehicles, staffList, workerTypeOpti
   const [saving, setSaving] = useState(false);
 
   // Re-sync when the selected staff member changes
-  React.useEffect(() => { setForm(m); }, [m.id]);
+  React.useEffect(() => { setForm(m); }, [m]);
 
   const clean = (d) => {
     const c = { ...d };
@@ -355,10 +355,14 @@ function ProfileTab({ staff: m, user, teams, vehicles, staffList, workerTypeOpti
   };
 
   const toggle = async (key) => {
+    const newVal = !m[key];
+    setForm(prev => ({ ...prev, [key]: newVal }));
     try {
-      await base44.entities.Staff.update(m.id, { [key]: !m[key] });
+      await base44.entities.Staff.update(m.id, { [key]: newVal });
       queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ['my-staff-profile'] });
     } catch (err) {
+      setForm(prev => ({ ...prev, [key]: !newVal }));
       toast({ title: 'Could not update', description: err?.message, variant: 'destructive' });
     }
   };

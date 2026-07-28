@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, Briefcase, FileText, ExternalLink, ShieldCheck, Clock, PlayCircle, CheckCircle2, Loader2, ChevronRight, ChevronLeft, HeartPulse, Flame, AlertTriangle, Users, WifiOff, PenLine, Info, Car, Navigation, ClipboardCheck, Wrench } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -59,8 +59,11 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
     enabled: !!job?.id
   });
 
+  const phaseInitRef = useRef(false);
   useEffect(() => {
     if (phase === 'vehicle') return; // wait for the daily vehicle check to be completed
+    if (phaseInitRef.current) return; // already initialized — don't override user navigation
+    phaseInitRef.current = true;
     if (skipTravel) {
       // Auto-record the briefing start time and jump straight to the first content step
       const ts = new Date().toISOString();
