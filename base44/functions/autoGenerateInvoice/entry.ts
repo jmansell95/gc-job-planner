@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { escapeHtml, styledHtml, getAppBaseUrl } from '../../shared/emailStyling.ts';
+import { resolveHireCharge } from '../../shared/supplierRateMatcher.ts';
 
 /**
  * Auto-Invoice Engine (Phase 2 billing automation).
@@ -55,6 +56,23 @@ function buildInvoiceLines(job, d) {
   costItems
     .filter((c) => c.category !== 'client_supplied' && c.category !== 'contractor_supplied' && (Number(c.unit_cost) || 0) > 0)
     .forEach((c) => {
+      // Hired equipment is billed at the resolved client charge (Our Rate Card
+      // match or markup-on-cost), not the supplier's cost price — so hired
+      // plant carries margin on the invoice, matching the financials engine.
+      if (c.category === 'hired_equipment' && c.supplier_id && d.supplierRateItems && d.ourRateItems) {
+        const hire = resolveHireCharge(c, d.supplierRateItems, d.ourRateItems, Number(job.markup_percentage) || 15);
+        if (hire.client_charge > 0) {
+          lines.push({
+            description: `Hire — ${c.description || 'Plant'}`,
+            quantity: Number(c.quantity) || 1,
+            unit_label: c.unit_label || 'day',
+            unit_cost: hire.client_unit_charge,
+            line_total: hire.client_charge,
+            category: 'Plant hire',
+          });
+          return;
+        }
+      }
       lines.push({
         description: c.description || c.reference_number || 'Equipment',
         quantity: Number(c.quantity) || 1,
@@ -163,7 +181,21 @@ async function loadJobData(base44, jobId) {
   // Only approved/submitted daily costs and verified+ sub-con logs
   const billableCosts = dailyCosts.filter((c) => c.status === 'approved' || c.status === 'submitted');
   const billableSubcon = subconLogs.filter((l) => l.status === 'verified' || l.status === 'approved' || l.status === 'invoiced');
-  return { costItems, hotelBookings, deliveries, timesheets: approvedTs, invLogs: billableLogs, rigAssignments, dailyCosts: billableCosts, subconLogs: billableSubcon };
+
+  // Supplier rate-card matching for plant hire — load supplier + our rate
+  // card items so hired equipment is billed at the resolved client charge.
+  let supplierRateItems: any[] = [];
+  let ourRateItems: any[] = [];
+  const hasHired = costItems.some((c) => c.category === 'hired_equipment' && c.supplier_id);
+  if (hasHired) {
+    try { supplierRateItems = await base44.asServiceRole.entities.RateCardItem.filter({ rate_card_source: 'supplier', is_active: true }, '-sort_order', 1000); } catch (_) {}
+    try { ourRateItems = await base44.asServiceRole.entities.RateCardItem.filter({ rate_card_source: 'our_company', is_active: true }, '-sort_order', 1000); } catch (_) {}
+  }
+  return {
+    costItems, hotelBookings, deliveries, timesheets: approvedTs, invLogs: billableLogs,
+    rigAssignments, dailyCosts: billableCosts, subconLogs: billableSubcon,
+    supplierRateItems, ourRateItems,
+  };
 }
 
 async function generateForJob(base44, job) {

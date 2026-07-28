@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { loadProjectRateCardItems, findBestRateCardMatch, type RateCardItemLike } from '../../shared/projectRateMatcher.ts';
+import { resolveHireCharges } from '../../shared/supplierRateMatcher.ts';
 
 // ============================================================
 // calculateJobFinancials — the zero-touch auto-financials engine
@@ -381,6 +382,22 @@ export default async function(req: Request): Promise<Response> {
 
     // ── Costs ──
     const costItems = await base44.asServiceRole.entities.JobCostItem.filter({ job_id: jobId });
+
+    // ── Supplier rate-card matching for plant hire ──
+    // Hired plant has a buy side (supplier rate card) and a sell side (Our Rate
+    // Card or markup-on-cost). Resolve both so hired equipment carries margin
+    // instead of being billed through at the supplier's cost price.
+    let supplierRateItems: RateCardItemLike[] = [];
+    const hireSupplierIds = [...new Set(costItems.filter((c: any) => c.category === 'hired_equipment' && c.supplier_id).map((c: any) => c.supplier_id))] as string[];
+    if (hireSupplierIds.length > 0) {
+      try {
+        supplierRateItems = await base44.asServiceRole.entities.RateCardItem.filter({ rate_card_source: 'supplier', is_active: true }, '-sort_order', 1000) as RateCardItemLike[];
+      } catch (_) { supplierRateItems = []; }
+    }
+    const ourRateItemsForHire: RateCardItemLike[] = [...(projectRateItems || []), ...(globalItems || [])];
+    const hireMarkupPct = Number(job.markup_percentage) || 15;
+    const hireBreakdown = resolveHireCharges(costItems, supplierRateItems, ourRateItemsForHire, hireMarkupPct);
+
     const hotelBookings = await base44.asServiceRole.entities.HotelBooking.filter({ job_id: jobId });
     const deliveries = await base44.asServiceRole.entities.DeliveryLog.filter({ job_id: jobId });
     const timesheets = await base44.asServiceRole.entities.Timesheet.filter({ job_id: jobId });
@@ -634,29 +651,35 @@ export default async function(req: Request): Promise<Response> {
     const meterageRevenue = meterageRate > 0 ? Math.round(totalMetres * meterageRate * 100) / 100 : totalMeterageRevenue;
     const targetMetres = Number(job.meterage_target) || 0;
 
+    // Hired plant is billed at the resolved client charge (Our Rate Card match
+    // or markup-on-cost), regardless of the job's primary revenue method —
+    // plant hire is always a pass-through charge on top of crew/meterage fees.
+    const hireClientChargeNet = hireBreakdown.client_charge_net;
+
     const totalCostNet = equipmentNet + hotelNet + totalRigCost + totalCrewCost + dailyCostsNet + subconPurchaseNet;
 
     // ── Revenue method handling ──
     // Calculates revenue based on the job's billing method. Drilling jobs default
     // to meterage_rate/none (meterage + SOR + charges). Non-drilling jobs use
     // day_rate, unit_rate or flat_fee. 'none' falls back to markup-on-cost.
+    // Hired plant client charges are added on top in every method (pass-through).
     const revenueMethod = job.revenue_method || 'none';
     let totalRevenueNet: number;
     let revenueMethodLabel: string;
     if (revenueMethod === 'flat_fee') {
-      totalRevenueNet = Number(job.client_charge) || 0;
+      totalRevenueNet = (Number(job.client_charge) || 0) + hireClientChargeNet;
       revenueMethodLabel = 'Flat fee (client charge)';
     } else if (revenueMethod === 'unit_rate') {
       const totalUnits = logs.reduce((s: number, l: any) => s + (Number(l.units_completed) || 0), 0);
-      totalRevenueNet = Math.round(totalUnits * (Number(job.unit_price) || 0) * 100) / 100 + totalSorRevenueNet + additionalCharges + subconClientChargeNet;
+      totalRevenueNet = Math.round(totalUnits * (Number(job.unit_price) || 0) * 100) / 100 + totalSorRevenueNet + additionalCharges + subconClientChargeNet + hireClientChargeNet;
       revenueMethodLabel = `Unit rate (${totalUnits} units × £${Number(job.unit_price) || 0})`;
     } else if (revenueMethod === 'day_rate') {
       const crewDayRateRevenue = crewCostRows.reduce((s: number, r: CrewCostRow) => s + r.day_rate * (r.standard_days + r.overtime_days * r.overtime_multiplier), 0);
       const labourDayRateRevenue = costItems.filter((c: any) => c.category === 'labour').reduce((s: number, c: any) => s + itemNet(c), 0);
-      totalRevenueNet = Math.round((crewDayRateRevenue + labourDayRateRevenue) * 100) / 100 + totalSorRevenueNet + additionalCharges + subconClientChargeNet;
+      totalRevenueNet = Math.round((crewDayRateRevenue + labourDayRateRevenue) * 100) / 100 + totalSorRevenueNet + additionalCharges + subconClientChargeNet + hireClientChargeNet;
       revenueMethodLabel = 'Day rate (crew day rates × working days)';
     } else {
-      totalRevenueNet = meterageRevenue + totalSorRevenueNet + additionalCharges + subconClientChargeNet;
+      totalRevenueNet = meterageRevenue + totalSorRevenueNet + additionalCharges + subconClientChargeNet + hireClientChargeNet;
       revenueMethodLabel = meterageRate > 0 ? 'Meterage rate' : 'Meterage + SOR';
       if (revenueMethod === 'none' && totalRevenueNet === 0 && totalCostNet > 0 && Number(job.markup_percentage) > 0) {
         totalRevenueNet = Math.round(totalCostNet * (1 + Number(job.markup_percentage) / 100) * 100) / 100 + subconClientChargeNet;
@@ -703,6 +726,10 @@ export default async function(req: Request): Promise<Response> {
     if (meterageRate === 0 && !cpPerMetreRate && !rotaryPerMetreRate && totalMetres > 0) billingSetup.warnings.push('No per-metre drilling rate found in any rate card for this drilling method.');
     if (rigCostItems.length === 0 && totalMetres > 0) billingSetup.warnings.push('No rigs added — rig crew costs are £0. Add rigs in the Logistics tab.');
     if (crewCostRows.length > 0 && crewCostRows.every(r => r.rate_source === 'no_rate_found')) billingSetup.warnings.push(`${crewCostRows.length} crew on rota have no day rate — crew labour costs are £0. Add personal rate cards in Settings → Rate Cards.`);
+    if (hireBreakdown.rows.length > 0 && hireBreakdown.rows.some(r => r.source === 'no_margin')) {
+      const zeroMarginCount = hireBreakdown.rows.filter(r => r.source === 'no_margin').length;
+      billingSetup.warnings.push(`${zeroMarginCount} hired plant item${zeroMarginCount === 1 ? '' : 's'} ha${zeroMarginCount === 1 ? 's' : 've'} no sell-side rate card match or markup — billed to client at cost (zero margin). Add a matching item to Our Rate Card or set a job markup %.`);
+    }
 
     return Response.json({
       status: 'success',
@@ -756,6 +783,12 @@ export default async function(req: Request): Promise<Response> {
       },
       daily_costs: dailyCostRows,
       subcontractor_logs: subconRows,
+      hire_breakdown: {
+        rows: hireBreakdown.rows,
+        purchase_net: hireBreakdown.purchase_net,
+        client_charge_net: hireBreakdown.client_charge_net,
+        margin_net: hireBreakdown.margin_net,
+      },
       drilling_performance: {
         total_metres: Math.round(totalMetres * 100) / 100,
         target_metres: targetMetres,
