@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, MessageSquare, Check, Loader2, ChevronDown, ChevronUp, Wrench } from 'lucide-react';
+import { X, Send, Check, Loader2, ChevronDown, ChevronUp, Wrench } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 /**
