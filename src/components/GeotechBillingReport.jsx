@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
@@ -14,9 +14,6 @@ import { Skeleton } from '@/components/StateViews';
 import {
   aggregateGeotech, calculateGeotechCost, getSorDepthBands, getTotalMetres,
 } from '@/utils/geotechBilling';
-import { canViewCostings } from '@/utils/access';
-import { useAuth } from '@/lib/AuthContext';
-
 const fmt = (n) => (n != null ? '£' + Number(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—');
 const mfmt = (n) => (n != null ? Number(n).toFixed(1) + 'm' : '—');
 
@@ -25,14 +22,6 @@ const DEPTH_COLORS = ['#10b981', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ef4444', '#1
 export default function GeotechBillingReport({ onSelectJob }) {
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const { user: authUser } = useAuth();
-
-  React.useEffect(() => {
-    (async () => {
-      try { const res = await base44.functions.invoke('getMyStaffProfile'); setProfile(res.data); } catch (e) {}
-    })();
-  }, []);
 
   const { data: jobs = [], isLoading } = useQuery({ queryKey: ['geotech-jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: clients = [] } = useQuery({ queryKey: ['geotech-clients'], queryFn: () => base44.entities.Client.list() });
@@ -113,20 +102,6 @@ export default function GeotechBillingReport({ onSelectJob }) {
     a.click();
     URL.revokeObjectURL(url);
   };
-
-  const isPlatformAdmin = authUser?.role === 'admin';
-  const showAccessDenied = profile && !isPlatformAdmin && !canViewCostings(profile, false);
-
-  if (showAccessDenied) {
-    return (
-      <div className="flex items-center justify-center py-20 text-center">
-        <div>
-          <PoundSterling className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-slate-700">Billing access required</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div>

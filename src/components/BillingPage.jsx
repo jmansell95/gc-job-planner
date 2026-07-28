@@ -11,8 +11,6 @@ import StatCard from '@/components/dashboard/StatCard';
 import { Skeleton } from '@/components/StateViews';
 import { computeBillingRow, groupByJob, READY_STATUSES } from '@/utils/billingSummary';
 import { getTotalMetres } from '@/utils/geotechBilling';
-import { canViewCostings } from '@/utils/access';
-import { useAuth } from '@/lib/AuthContext';
 import GeotechBillingReport from '@/components/GeotechBillingReport';
 import GenerateInvoiceModal from '@/components/billing/GenerateInvoiceModal';
 import InvoiceHistoryPanel from '@/components/billing/InvoiceHistoryPanel';
@@ -55,7 +53,6 @@ export default function BillingPage({ onSelectJob }) {
   const [invoiceJob, setInvoiceJob] = useState(null);
   const [companyName, setCompanyName] = useState('Ground Control');
   const [autoRunning, setAutoRunning] = useState(false);
-  const { user: authUser } = useAuth();
 
   const runAutoInvoice = async () => {
     setAutoRunning(true);
@@ -213,25 +210,6 @@ export default function BillingPage({ onSelectJob }) {
     a.click();
     URL.revokeObjectURL(url);
   };
-
-  // Allow access while profile is still loading or if the query failed —
-  // the platform admin flag (always available from AuthContext) is the
-  // primary gate. canViewCostings only enforces the staff-role gate once
-  // the profile has actually resolved.
-  const isPlatformAdmin = authUser?.role === 'admin';
-  const showAccessDenied = profile && !isPlatformAdmin && !canViewCostings(profile, false);
-
-  if (showAccessDenied) {
-    return (
-      <div className="flex items-center justify-center py-20 text-center">
-        <div>
-          <Receipt className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-slate-700">Billing access required</p>
-          <p className="text-xs text-slate-400 mt-1">Only admins and managers can view billing summaries.</p>
-        </div>
-      </div>
-    );
-  }
 
   if (view === 'geotech') {
     return (
