@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, Plus, Send, Trash2, Ruler, CheckCircle2, FileText, Timer, Coffee, AlertTriangle, TrendingUp, X, Car, Briefcase, PoundSterling, ShieldAlert, ExternalLink, Hourglass } from 'lucide-react';
 import { format } from 'date-fns';
 import { canViewCostings } from '@/utils/access';
+import { useAuth } from '@/lib/AuthContext';
 import DelayLogForm from '@/components/DelayLogForm';
 
 const SAFETY_REPORT_URL = 'https://app.safetyculture.com/inspection/audit_3f1be1e08438431a9bacaab5137107f7?page=1&isNew=true&holisticOnboarding=false';
@@ -56,7 +57,9 @@ export default function DailyTaskLog({ staffId, hideSubmit = false }) {
   const { data: bizConfig } = useQuery({ queryKey: ['business-config'], queryFn: async () => { const list = await base44.entities.BusinessConfig.filter({ key: 'global' }); return list[0] || null; } });
   // Show cost-gated content while the profile is loading or errored (published
   // site edge cases); enforce the real role gate once the profile resolves.
-  const canSeeCosts = !profile || canViewCostings(profile);
+  const { user: authUser } = useAuth();
+  const isPlatformAdmin = authUser?.role === 'admin';
+  const canSeeCosts = !profile || canViewCostings(profile, isPlatformAdmin);
 
   const todayAssignments = assignments.filter(a => a.assigned_date === today);
   const todayJobIds = [...new Set(todayAssignments.map(a => a.job_id))];

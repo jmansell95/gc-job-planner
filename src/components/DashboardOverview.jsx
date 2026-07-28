@@ -24,6 +24,7 @@ import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
 import { canViewCostings } from '@/utils/access';
+import { useAuth } from '@/lib/AuthContext';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import PulseRibbon from '@/components/dashboard/PulseRibbon';
@@ -115,7 +116,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   // Show cost-gated widgets while the profile is loading or errored (published
   // site edge cases); enforce the real role gate once the profile resolves.
-  const canViewCosts = !profile || canViewCostings(profile);
+  const { user: authUser } = useAuth();
+  const isPlatformAdmin = authUser?.role === 'admin';
+  const canViewCosts = !profile || canViewCostings(profile, isPlatformAdmin);
 
   const openJobDrawer = (job) => setDrawerJob(job);
 

@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/StateViews';
 import { computeBillingRow, groupByJob, READY_STATUSES } from '@/utils/billingSummary';
 import { getTotalMetres } from '@/utils/geotechBilling';
 import { canViewCostings } from '@/utils/access';
+import { useAuth } from '@/lib/AuthContext';
 import GeotechBillingReport from '@/components/GeotechBillingReport';
 import GenerateInvoiceModal from '@/components/billing/GenerateInvoiceModal';
 import InvoiceHistoryPanel from '@/components/billing/InvoiceHistoryPanel';
@@ -54,6 +55,7 @@ export default function BillingPage({ onSelectJob }) {
   const [invoiceJob, setInvoiceJob] = useState(null);
   const [companyName, setCompanyName] = useState('Ground Control');
   const [autoRunning, setAutoRunning] = useState(false);
+  const { user: authUser } = useAuth();
 
   const runAutoInvoice = async () => {
     setAutoRunning(true);
@@ -212,7 +214,7 @@ export default function BillingPage({ onSelectJob }) {
     URL.revokeObjectURL(url);
   };
 
-  if (profile && !canViewCostings(profile)) {
+  if (profile && !canViewCostings(profile, authUser?.role === 'admin')) {
     return (
       <div className="flex items-center justify-center py-20 text-center">
         <div>

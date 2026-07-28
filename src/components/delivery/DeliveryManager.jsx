@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { canViewCostings } from '@/utils/access';
+import { useAuth } from '@/lib/AuthContext';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -56,7 +57,9 @@ export default function DeliveryManager({ jobId, jobName }) {
   const { data: profile } = useQuery({ queryKey: ['my-staff-profile'], queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; } });
   // Show cost-gated content while the profile is loading or errored (published
   // site edge cases); enforce the real role gate once the profile resolves.
-  const canSeeCosts = !profile || canViewCostings(profile);
+  const { user: authUser } = useAuth();
+  const isPlatformAdmin = authUser?.role === 'admin';
+  const canSeeCosts = !profile || canViewCostings(profile, isPlatformAdmin);
   const { data: job } = useQuery({ queryKey: ['job-for-delivery', jobId], queryFn: async () => { if (!jobId) return null; try { return await base44.entities.Job.get(jobId); } catch { return null; } }, enabled: !!jobId });
   const { data: costItems = [] } = useQuery({ queryKey: ['job-cost-items-delivery', jobId], queryFn: async () => { if (!jobId) return []; return await base44.entities.JobCostItem.filter({ job_id: jobId }); }, enabled: !!jobId });
 

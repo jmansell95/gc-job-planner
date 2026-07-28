@@ -11,6 +11,7 @@ import JobWizardModal from '@/components/JobWizardModal';
 import { getJobPrimaryType, isDrillingJob as isDrillingJobByTeams, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import { getCrewLabel } from '@/utils/terminology';
 import { canViewCostings } from '@/utils/access';
+import { useAuth } from '@/lib/AuthContext';
 import JobStatusModal from '@/components/JobStatusModal';
 import JobDetailTabs from '@/components/JobDetailTabs';
 import JobWarningsBanner from '@/components/JobWarningsBanner';
@@ -50,6 +51,8 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const jobProject = projects.find(p => p.id === job.project_id) || null;
   const siblingJobs = jobProject ? allJobs.filter(j => j.project_id === jobProject.id && j.id !== job.id) : [];
 
+  const { user: authUser } = useAuth();
+  const isPlatformAdmin = authUser?.role === 'admin';
   const { data: profile } = useQuery({
     queryKey: ['my-staff-profile'],
     queryFn: async () => { const res = await base44.functions.invoke('getMyStaffProfile'); return res.data; }
@@ -60,7 +63,9 @@ export default function JobDetail({ job: initialJob, onBack }) {
   // Financials tab, budget chip, Add Delivery). Once the profile resolves,
   // canViewCostings enforces the real role-based gate. Same pattern as
   // canAccessSection which returns true while the profile is unresolved.
-  const canSeeCosts = !profile || canViewCostings(profile);
+  // isPlatformAdmin (from AuthContext, always available) is passed so a
+  // platform admin always sees costs even if the staff profile fails to load.
+  const canSeeCosts = !profile || canViewCostings(profile, isPlatformAdmin);
 
   const { data: allStaff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });

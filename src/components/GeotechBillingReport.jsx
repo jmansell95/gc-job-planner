@@ -15,6 +15,7 @@ import {
   aggregateGeotech, calculateGeotechCost, getSorDepthBands, getTotalMetres,
 } from '@/utils/geotechBilling';
 import { canViewCostings } from '@/utils/access';
+import { useAuth } from '@/lib/AuthContext';
 
 const fmt = (n) => (n != null ? '£' + Number(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—');
 const mfmt = (n) => (n != null ? Number(n).toFixed(1) + 'm' : '—');
@@ -25,6 +26,7 @@ export default function GeotechBillingReport({ onSelectJob }) {
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(null);
   const [profile, setProfile] = useState(null);
+  const { user: authUser } = useAuth();
 
   React.useEffect(() => {
     (async () => {
@@ -112,7 +114,7 @@ export default function GeotechBillingReport({ onSelectJob }) {
     URL.revokeObjectURL(url);
   };
 
-  if (profile && !canViewCostings(profile)) {
+  if (profile && !canViewCostings(profile, authUser?.role === 'admin')) {
     return (
       <div className="flex items-center justify-center py-20 text-center">
         <div>
