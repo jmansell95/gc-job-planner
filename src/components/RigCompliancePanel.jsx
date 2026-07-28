@@ -42,6 +42,13 @@ export default function RigCompliancePanel({ job }) {
     queryKey: ['compliance-items-equipment'],
     queryFn: () => base44.entities.ComplianceItem.filter({ category: 'equipment' }),
   });
+  // ServiceRecord holds the actual LOLER/PUWER/PAT inspection certificates
+  // (certificate_url). These are the real certificate files on the system —
+  // ComplianceItem tracks expiry metadata but the uploaded reports live here.
+  const { data: serviceRecords = [] } = useQuery({
+    queryKey: ['service-records-equipment'],
+    queryFn: () => base44.entities.ServiceRecord.list('-date', 500),
+  });
 
   // Merge assets from both sources, deduped by asset_id.
   // JobAssetAssignment = dedicated assignment records; JobCostItem = equipment
@@ -70,7 +77,36 @@ export default function RigCompliancePanel({ job }) {
   });
 
   const withCerts = ordered.map(r => {
-    const certs = complianceItems.filter(c => c.reference_id === r.asset.id && c.document_url);
+    // Certificates come from ServiceRecord (LOLER/PUWER/PAT inspection reports
+    // with actual uploaded files) plus any ComplianceItem with a document_url.
+    const serviceCerts = serviceRecords
+      .filter(s => s.site_asset_id === r.asset.id && s.certificate_url)
+      .map(s => ({
+        id: s.id,
+        title: s.record_type === 'loler_inspection' ? 'LOLER Inspection' :
+              s.record_type === 'puwer_inspection' ? 'PUWER Inspection' :
+              s.record_type === 'pat_inspection' ? 'PAT Test' :
+              s.record_type === 'calibration' ? 'Calibration' :
+              s.record_type === 'service' ? 'Service Record' : 'Inspection',
+        document_url: s.certificate_url,
+        document_name: s.certificate_name,
+        expiry_date: s.resulting_expiry_date || null,
+        status_override: 'auto',
+        tested_by: s.tested_by,
+        result: s.result,
+        date: s.date,
+        source: 'service_record',
+      }));
+    const complianceCerts = complianceItems
+      .filter(c => c.reference_id === r.asset.id && c.document_url)
+      .map(c => ({ ...c, source: 'compliance_item' }));
+    // Dedupe by document_url (a cert may exist in both)
+    const seen = new Set();
+    const certs = [...serviceCerts, ...complianceCerts].filter(c => {
+      if (seen.has(c.document_url)) return false;
+      seen.add(c.document_url);
+      return true;
+    }).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     return { ...r, certs };
   });
 
@@ -179,6 +215,9 @@ export default function RigCompliancePanel({ job }) {
                           <p className="text-xs font-medium text-slate-800 truncate">{cert.title}</p>
                           <p className="text-[10px] text-slate-400">
                             {cert.expiry_date ? `Expires ${cert.expiry_date}` : 'No expiry'}
+                            {cert.date ? ` · Inspected ${cert.date}` : ''}
+                            {cert.tested_by ? ` · ${cert.tested_by}` : ''}
+                            {cert.result ? ` · ${cert.result}` : ''}
                             {cert.document_name ? ` · ${cert.document_name}` : ''}
                           </p>
                         </div>

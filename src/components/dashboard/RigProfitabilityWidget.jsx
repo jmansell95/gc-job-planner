@@ -67,12 +67,24 @@ export default function RigProfitabilityWidget({ onSelectJob }) {
   const rigs = useMemo(() => assets.filter((a) => a.is_rig || a.asset_type === 'rig'), [assets]);
 
   const rigRows = useMemo(() => {
-    // Cost per rig from JobCostItem
+    // Cost per rig from JobCostItem — day rate × working days on site (matches
+    // the calculateJobFinancials engine). Using unit_cost × quantity would only
+    // count one day; rigs accrue cost per working day from delivery to return.
     const costByAsset = {};
     scopedCostItems.forEach((c) => {
       if (!c.site_asset_id) return;
       if (c.category === 'contractor_supplied' || c.category === 'client_supplied') return;
-      costByAsset[c.site_asset_id] = (costByAsset[c.site_asset_id] || 0) + (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
+      const asset = assets.find((a) => a.id === c.site_asset_id);
+      if (!asset || !(asset.is_rig || asset.asset_type === 'rig')) return;
+      const dayRate = c.price_confirmed && c.negotiated_unit_cost != null
+        ? Number(c.negotiated_unit_cost)
+        : (Number(c.unit_cost) || 0);
+      const isDelivered = c.current_location === 'site' || c.current_location === 'returned' || c.hire_status === 'off_hired';
+      const locDate = c.location_updated_at ? c.location_updated_at.split('T')[0] : null;
+      const startDate = c.start_date || (isDelivered ? locDate : null);
+      const endDate = c.off_hire_date || c.end_date || null;
+      const days = isDelivered && startDate ? workingDays(startDate, endDate || todayStr) : 0;
+      costByAsset[c.site_asset_id] = (costByAsset[c.site_asset_id] || 0) + Math.round(dayRate * days * 100) / 100;
     });
 
     // Revenue & days per rig from assignments (daily_billing_rate × working days)

@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { FolderKanban, FileText, Loader2, TrendingUp, Building2, Layers, Mountain } from 'lucide-react';
 import WidgetShell from '@/components/dashboard/WidgetShell';
+import { useAllJobsFinancials } from '@/hooks/useAllJobsFinancials';
 
 const fmtGbp = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
 
@@ -15,10 +16,12 @@ export default function ProjectFinancialsWidget() {
   const [selectedProjectId, setSelectedProjectId] = useState(null);
 
   const { data: projects = [], isLoading: projLoading } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list() });
-  const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
-  const { data: costItems = [] } = useQuery({ queryKey: ['project-fin-cost-items'], queryFn: () => base44.entities.JobCostItem.list('-created_date', 500) });
   const { data: invoices = [] } = useQuery({ queryKey: ['project-fin-invoices'], queryFn: () => base44.entities.Invoice.list() });
-  const { data: logs = [] } = useQuery({ queryKey: ['project-fin-logs'], queryFn: () => base44.entities.InvestigationLog.list('-created_date', 500) });
+  // Authoritative financials — shared with every other dashboard widget so
+  // all figures match the job detail Financials tab exactly.
+  const { data: allFin, isLoading: finLoading } = useAllJobsFinancials();
+  const jobs = allFin?.jobs || [];
+  const finMap = allFin?.finMap || {};
 
   // Projects that have at least one job — these are the ones worth rolling up.
   const jobsByProject = useMemo(() => {
@@ -32,7 +35,7 @@ export default function ProjectFinancialsWidget() {
     [projects, jobsByProject]
   );
 
-  // Auto-select EWR (or the first project with jobs) on first render
+  // Auto-select the first project with jobs on first render
   const effectiveProjectId = selectedProjectId || projectOptions[0]?.id || null;
   const project = projects.find((p) => p.id === effectiveProjectId);
 
@@ -40,46 +43,18 @@ export default function ProjectFinancialsWidget() {
     () => (jobsByProject[effectiveProjectId] || []),
     [jobsByProject, effectiveProjectId]
   );
-  const projectJobIds = useMemo(() => new Set(projectJobs.map((j) => j.id)), [projectJobs]);
 
-  // Earned from billable cost items (rig/plant/labour day rates)
-  const earnedCostByJob = {};
-  costItems.forEach((c) => {
-    if (!projectJobIds.has(c.job_id)) return;
-    earnedCostByJob[c.job_id] = (earnedCostByJob[c.job_id] || 0) + (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
-  });
-
-  // Earned from chargeable investigation logs (auto-priced driller remarks / SOR)
-  const earnedLogByJob = {};
-  logs.forEach((l) => {
-    if (!projectJobIds.has(l.job_id)) return;
-    if (l.chargeable && l.charge_amount != null) {
-      earnedLogByJob[l.job_id] = (earnedLogByJob[l.job_id] || 0) + Number(l.charge_amount);
-    }
-  });
-
-  // Earned from meterage / unit rate / flat fee (revenue method based)
-  const earnedMeterageByJob = {};
+  // Earned revenue per job — straight from the calculateJobFinancials engine.
+  // This is the sell-side total (meterage + SOR + day rates + hire charges +
+  // sub-con sell + additional charges), NOT the buy-side cost.
+  const earnedByJob = {};
   projectJobs.forEach((j) => {
-    const method = j.revenue_method || 'none';
-    const jobLogs = logs.filter((l) => l.job_id === j.id);
-    if (method === 'meterage_rate' || method === 'none') {
-      const totalMetres = jobLogs
-        .filter((l) => l.log_type === 'borehole_progress' || l.log_type === 'core_inspection')
-        .reduce((s, l) => s + Math.max(0, (Number(l.depth_to) || 0) - (Number(l.depth_from) || 0)), 0);
-      const manualMeterage = Number(j.meterage) || 0;
-      const metres = manualMeterage > 0 ? manualMeterage : totalMetres;
-      const rate = Number(j.meterage_rate) || 0;
-      if (rate > 0 && metres > 0) earnedMeterageByJob[j.id] = Math.round(metres * rate);
-    } else if (method === 'unit_rate') {
-      const totalUnits = jobLogs.reduce((s, l) => s + (Number(l.units_completed) || 0), 0);
-      earnedMeterageByJob[j.id] = Math.round(totalUnits * (Number(j.unit_price) || 0));
-    } else if (method === 'flat_fee') {
-      earnedMeterageByJob[j.id] = Number(j.client_charge) || 0;
-    }
+    const fin = finMap[j.id];
+    earnedByJob[j.id] = fin?.summary?.total_revenue_net || 0;
   });
 
   // Invoiced (non-void) per job
+  const projectJobIds = useMemo(() => new Set(projectJobs.map((j) => j.id)), [projectJobs]);
   const invoicedByJob = {};
   invoices.forEach((inv) => {
     if (inv.status === 'void' || !projectJobIds.has(inv.job_id)) return;
@@ -87,27 +62,24 @@ export default function ProjectFinancialsWidget() {
   });
 
   const jobRows = projectJobs.map((j) => {
-    const earnedCost = earnedCostByJob[j.id] || 0;
-    const earnedLog = earnedLogByJob[j.id] || 0;
-    const earnedMeterage = earnedMeterageByJob[j.id] || 0;
-    // If job has meterage/unit/flat revenue, use that as the primary earned;
-    // otherwise fall back to cost items + chargeable logs (legacy)
-    const earned = earnedMeterage > 0 ? earnedMeterage + earnedLog : earnedCost + earnedLog;
+    const earned = earnedByJob[j.id] || 0;
     const invoiced = invoicedByJob[j.id] || 0;
     return {
-      id: j.id, name: j.name, status: j.status, earnedCost, earnedLog, earnedMeterage, earned, invoiced,
+      id: j.id, name: j.name, status: j.status, earned, invoiced,
       unbilled: Math.max(0, earned - invoiced),
+      hasMeterage: (finMap[j.id]?.summary?.meterage_revenue || 0) > 0,
+      hasSor: (finMap[j.id]?.summary?.sor_revenue || 0) > 0,
     };
   }).sort((a, b) => b.earned - a.earned);
 
   const totals = jobRows.reduce((acc, r) => {
-    acc.earnedCost += r.earnedCost; acc.earnedLog += r.earnedLog; acc.earnedMeterage += r.earnedMeterage || 0;
     acc.earned += r.earned; acc.invoiced += r.invoiced; acc.unbilled += r.unbilled;
+    acc.earnedMeterage += r.hasMeterage ? r.earned : 0;
     return acc;
-  }, { earnedCost: 0, earnedLog: 0, earnedMeterage: 0, earned: 0, invoiced: 0, unbilled: 0 });
+  }, { earned: 0, invoiced: 0, unbilled: 0, earnedMeterage: 0 });
   const realizationPct = totals.earned > 0 ? Math.round((totals.invoiced / totals.earned) * 100) : 0;
 
-  const isLoading = projLoading;
+  const isLoading = projLoading || finLoading;
 
   return (
     <WidgetShell icon={FolderKanban} title="Project Financials" subtitle="Live roll-up of earned, invoiced & unbilled across all jobs in a project">
@@ -179,12 +151,12 @@ export default function ProjectFinancialsWidget() {
                   <div className="flex items-center gap-1.5 min-w-0">
                     <FileText className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
                     <span className="text-xs font-medium text-slate-700 truncate">{r.name}</span>
-                    {r.earnedMeterage > 0 && (
+                    {r.hasMeterage && (
                       <span className="text-[9px] bg-blue-50 text-blue-600 px-1 py-0.5 rounded-full font-semibold flex-shrink-0 inline-flex items-center gap-0.5">
                         <Mountain className="w-2.5 h-2.5" /> Meterage
                       </span>
                     )}
-                    {r.earnedLog > 0 && (
+                    {r.hasSor && (
                       <span className="text-[9px] bg-[#2E5A1A]/10 text-[#2E5A1A] px-1 py-0.5 rounded-full font-semibold flex-shrink-0 inline-flex items-center gap-0.5">
                         <Layers className="w-2.5 h-2.5" /> SOR
                       </span>

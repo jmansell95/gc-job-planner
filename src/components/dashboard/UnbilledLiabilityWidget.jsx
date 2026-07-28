@@ -3,45 +3,44 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { PoundSterling, FileText, Clock, Loader2, TrendingUp } from 'lucide-react';
 import WidgetShell from '@/components/dashboard/WidgetShell';
+import { useAllJobsFinancials } from '@/hooks/useAllJobsFinancials';
 
 const fmtGbp = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
 
-// Unbilled Liability (Work-in-Progress) — aggregates all cost items on active
-// jobs that haven't yet been invoiced. Shows Finance the "earned but unbilled"
-// value so cash-flow bottlenecks are visible before they bite.
+// Unbilled Liability (Work-in-Progress) — aggregates earned revenue on active
+// jobs that hasn't yet been invoiced. Uses the shared calculateJobFinancials
+// engine so figures match the job detail Financials tab exactly.
 export default function UnbilledLiabilityWidget() {
-  const { data: jobs = [], isLoading: jobsLoading } = useQuery({
-    queryKey: ['wip-jobs'],
-    queryFn: () => base44.entities.Job.list()
-  });
-  const { data: costItems = [], isLoading: costsLoading } = useQuery({
-    queryKey: ['wip-cost-items'],
-    queryFn: () => base44.entities.JobCostItem.list('-created_date', 500)
-  });
+  const { data: allFin, isLoading: finLoading } = useAllJobsFinancials();
+  const jobs = allFin?.jobs || [];
+  const finMap = allFin?.finMap || {};
+
   const { data: invoices = [], isLoading: invLoading } = useQuery({
     queryKey: ['wip-invoices'],
     queryFn: () => base44.entities.Invoice.list()
   });
 
-  const isLoading = jobsLoading || costsLoading || invLoading;
+  const isLoading = finLoading || invLoading;
 
   // Only active / in-progress jobs carry unbilled WIP
   const activeJobIds = new Set(jobs.filter(j => (j.status || 'planning') === 'in_progress').map(j => j.id));
   const jobMap = {}; jobs.forEach(j => { jobMap[j.id] = j; });
 
-  // Sum invoiced (non-void) gross per job
+  // Sum invoiced (non-void) net per job
   const invoicedByJob = {};
   invoices.forEach(inv => {
     if (inv.status === 'void') return;
     invoicedByJob[inv.job_id] = (invoicedByJob[inv.job_id] || 0) + (Number(inv.net_total) || 0);
   });
 
-  // Sum cost items (chargeable value = unit_cost * quantity) per active job
+  // Earned revenue per active job — from the calculateJobFinancials engine
+  // (sell-side total: meterage + SOR + day rates + hire + sub-con sell), NOT
+  // the buy-side cost.
   const earnedByJob = {};
-  costItems.forEach(c => {
-    if (!activeJobIds.has(c.job_id)) return;
-    const val = (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1);
-    earnedByJob[c.job_id] = (earnedByJob[c.job_id] || 0) + val;
+  jobs.forEach(j => {
+    if (!activeJobIds.has(j.id)) return;
+    const fin = finMap[j.id];
+    earnedByJob[j.id] = fin?.summary?.total_revenue_net || 0;
   });
 
   const jobRows = Object.keys(earnedByJob).map(jobId => {
