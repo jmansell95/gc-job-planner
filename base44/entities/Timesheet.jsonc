@@ -197,6 +197,14 @@
     "charge_breakdown": {
       "type": "string",
       "description": "JSON breakdown of how the charge was calculated"
+    },
+    "payroll_export_id": {
+      "type": "string",
+      "description": "Payroll batch export ID \u2014 set when this timesheet is exported to the payroll provider. Locks the record from re-export."
+    },
+    "payroll_exported_at": {
+      "type": "string",
+      "description": "ISO timestamp when this timesheet was exported to payroll."
     }
   },
   "required": [

@@ -134,6 +134,42 @@
     "default_daily_rate": {
       "type": "number",
       "description": "Default daily charge rate for this sub-contractor's crew (used as a fallback when billing a job they worked on)"
+    },
+    "utr": {
+      "type": "string",
+      "description": "Unique Taxpayer Reference (UTR) \u2014 10-digit HMRC reference required for CIS verification."
+    },
+    "nino": {
+      "type": "string",
+      "description": "National Insurance Number (required for individual CIS verification, not partnerships/companies)."
+    },
+    "cis_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "verified_net",
+        "verified_gross",
+        "unknown",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "HMRC CIS verification result. 'verified_net' = 30% deduction applies, 'verified_gross' = paid gross (0% deduction), 'unknown' = subcontractor not found in HMRC records, 'failed' = verification error, 'pending' = not yet verified."
+    },
+    "cis_tax_rate": {
+      "type": "number",
+      "description": "CIS deduction tax rate (%) determined by HMRC verification. 30 = net payer (30% deducted), 20 = gross payer at higher rate, 0 = gross payer (no deduction)."
+    },
+    "cis_verification_number": {
+      "type": "string",
+      "description": "HMRC CIS verification reference number returned when verification succeeds."
+    },
+    "cis_verified_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last HMRC CIS verification."
+    },
+    "cis_verified_by": {
+      "type": "string",
+      "description": "Name of the user who last ran CIS verification for this sub-contractor."
     }
   },
   "required": [

@@ -16,7 +16,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 //
 // Payload: { action: "test" | "sync" | "scheduled" }
 
-import { mapReason, isApprovedStatus } from '../../shared/bobHrHelpers.ts';
+import { mapReason, isApprovedStatus, bobAuthHeaders, pushSingleAbsenceToBob } from '../../shared/bobHrHelpers.ts';
 
 async function getConfig(base44: any) {
   const settings = await base44.asServiceRole.entities.AppSetting.filter({ key: 'bob_hr_config' });
@@ -32,13 +32,7 @@ async function getConfig(base44: any) {
   };
 }
 
-function authHeaders(username: string, apiToken: string) {
-  const creds = btoa(`${username}:${apiToken}`);
-  return {
-    Authorization: `Basic ${creds}`,
-    'Content-Type': 'application/json',
-  };
-}
+
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -78,7 +72,7 @@ export default async function(req: Request): Promise<Response> {
       if (!due) return Response.json({ ok: true, skipped: true, reason: `not due (${freq}) — last sync ${cfg.last_sync_at}` });
     }
 
-    const headers = authHeaders(username, apiToken);
+    const headers = bobAuthHeaders(username, apiToken);
 
     // Test mode — verify auth by listing time-off types
     if (action === 'test') {
@@ -178,38 +172,15 @@ export default async function(req: Request): Promise<Response> {
 
       for (const a of pendingAbsences) {
         const staffMember = allStaff.find((s: any) => s.id === a.staff_id);
-        if (!staffMember || !staffMember.email) {
-          pushErrors++;
-          continue;
-        }
-        try {
-          const payload: any = {
-            employeeId: staffMember.email,
-            startDate: a.start_date,
-            endDate: a.end_date,
-            type: a.reason,
-            reason: a.notes || '',
-          };
-          const pushRes = await fetch(`${apiUrl}/timeoff/requests`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify(payload),
-          });
-          if (!pushRes.ok) {
-            const detail = await pushRes.text().catch(() => '');
-            errors.push({ id: a.id, kind: 'push', error: `${pushRes.status}: ${detail.slice(0, 150)}` });
-            pushErrors++;
-            continue;
-          }
-          const pushData = await pushRes.json().catch(() => ({}));
-          const bobId = String(pushData.id || pushData.requestId || pushData.request_id || '');
+        const result = await pushSingleAbsenceToBob(apiUrl, headers, a, staffMember);
+        if (result.ok) {
           await base44.asServiceRole.entities.Absence.update(a.id, {
-            bob_request_id: bobId,
+            bob_request_id: result.bobId,
             bob_status: 'synced',
           });
           pushed++;
-        } catch (e) {
-          errors.push({ id: a.id, kind: 'push', error: e.message });
+        } else {
+          errors.push({ id: a.id, kind: 'push', error: result.error });
           pushErrors++;
         }
       }
