@@ -85,9 +85,19 @@ export function canEditModule(profile, isPlatformAdmin, sectionId) {
 }
 
 // Check if user is authorized to view financial/costing data.
+// Fail-open design: costs are visible to ALL office roles (super_admin,
+// admin, management, user, read_only) and whenever the profile is
+// unresolved (still loading or fetch failed on the published site).
+// Costs are only hidden from explicitly field-level users: field staff,
+// drivers, and subcontractors — who can't access the admin dashboard
+// anyway. This prevents a null system_role or a missing Staff record
+// from permanently hiding the Financials tab for legitimate admins.
 export function canViewCosts(profile, isPlatformAdmin) {
+  if (!profile) return true;
   const role = resolveRole(profile, isPlatformAdmin);
-  return role === 'super_admin' || role === 'admin' || role === 'management';
+  if (role === 'field') return false;
+  if (profile.worker_type === 'subcontractor') return false;
+  return true;
 }
 // Alias for legacy imports
 export { canViewCosts as canViewCostings };
