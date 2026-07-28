@@ -1,0 +1,176 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
+import { ShieldCheck, Activity, TrendingUp, FileDown, Loader2, CircleDot, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { format } from 'date-fns';
+import WidgetShell from '@/components/dashboard/WidgetShell';
+import { jsPDF } from 'jspdf';
+
+const fmtGbp = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { maximumFractionDigits: 0 });
+
+export default function ExecutiveSnapshotWidget({ onNavigate }) {
+  const [generating, setGenerating] = useState(false);
+
+  const { data: siteAssets = [] } = useQuery({
+    queryKey: ['exec-assets'],
+    queryFn: () => base44.entities.SiteAsset.list('-created_date', 500)
+  });
+  const { data: jobs = [] } = useQuery({
+    queryKey: ['exec-jobs'],
+    queryFn: () => base44.entities.Job.list()
+  });
+  const { data: delays = [] } = useQuery({
+    queryKey: ['exec-delays'],
+    queryFn: () => base44.entities.JobDelayLog.filter({ manager_review_status: 'approved' })
+  });
+  const { data: invoices = [] } = useQuery({
+    queryKey: ['exec-invoices'],
+    queryFn: () => base44.entities.Invoice.filter({ status: 'paid' })
+  });
+
+  // Fleet compliance % — assets with compliance_status 'compliant' vs total
+  const activeAssets = siteAssets.filter(a => a.is_active !== false);
+  const compliantAssets = activeAssets.filter(a => a.compliance_status === 'compliant').length;
+  const fleetCompliancePct = activeAssets.length > 0 ? Math.round((compliantAssets / activeAssets.length) * 100) : 0;
+
+  // Project health — traffic light based on active jobs with approved delays
+  const activeJobs = jobs.filter(j => (j.status || 'planning') === 'in_progress');
+  const activeJobIds = new Set(activeJobs.map(j => j.id));
+  const jobsWithDelays = new Set(delays.filter(d => activeJobIds.has(d.job_id)).map(d => d.job_id)).size;
+  const delayedPct = activeJobs.length > 0 ? Math.round((jobsWithDelays / activeJobs.length) * 100) : 0;
+  const projectHealth = delayedPct === 0 ? 'green' : delayedPct < 30 ? 'amber' : 'red';
+  const healthMeta = {
+    green: { label: 'On Track', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', ring: 'ring-emerald-200' },
+    amber: { label: 'Monitor', icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50', ring: 'ring-amber-200' },
+    red: { label: 'At Risk', icon: AlertTriangle, color: 'text-rose-600', bg: 'bg-rose-50', ring: 'ring-rose-200' },
+  };
+  const HealthIcon = healthMeta[projectHealth].icon;
+
+  // Revenue — sum of paid invoices + estimated revenue from active jobs
+  const paidRevenue = invoices.reduce((sum, inv) => sum + (Number(inv.gross_total) || 0), 0);
+
+  const handleGenerateReport = () => {
+    setGenerating(true);
+    try {
+      const doc = new jsPDF();
+      const now = format(new Date(), 'dd MMMM yyyy');
+      const time = format(new Date(), 'HH:mm');
+
+      // Header
+      doc.setFillColor(46, 90, 26);
+      doc.rect(0, 0, 210, 32, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text('State of the Business', 14, 16);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Executive Report · ${now} at ${time}`, 14, 24);
+
+      // KPI section
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Key Performance Indicators', 14, 44);
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      const kpis = [
+        `Active Projects:           ${activeJobs.length} in progress (of ${jobs.length} total)`,
+        `Fleet Compliance:          ${fleetCompliancePct}% (${compliantAssets} of ${activeAssets.length} assets compliant)`,
+        `Project Health:            ${healthMeta[projectHealth].label} (${jobsWithDelays} of ${activeJobs.length} active jobs with approved delays)`,
+        `Revenue (Paid Invoices):   ${fmtGbp(paidRevenue)}`,
+        `Approved Delay Logs:       ${delays.length} total`,
+      ];
+      kpis.forEach((line, i) => doc.text(line, 14, 56 + (i * 8)));
+
+      // Active projects detail
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Active Projects', 14, 110);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      if (activeJobs.length === 0) {
+        doc.text('No active projects.', 14, 118);
+      } else {
+        activeJobs.slice(0, 18).forEach((job, i) => {
+          const jobDelays = delays.filter(d => d.job_id === job.id).length;
+          const status = jobDelays > 0 ? ' [DELAYED]' : '';
+          const line = `${job.name} — ${job.location || 'N/A'}${status}`;
+          doc.text(line.substring(0, 85), 14, 118 + (i * 6));
+        });
+      }
+
+      // Footer
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Generated by Ground Control Job Planner · Confidential', 14, 285);
+
+      doc.save(`executive-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    } catch (err) {
+      console.error('PDF generation error:', err);
+    }
+    setGenerating(false);
+  };
+
+  return (
+    <WidgetShell icon={Activity} title="Executive Snapshot" subtitle="Fleet compliance, project health & revenue at a glance"
+      action={
+        <button onClick={handleGenerateReport} disabled={generating} type="button"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-[#2E5A1A] hover:bg-[#1c4a12] rounded-lg transition disabled:opacity-50">
+          {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
+          {generating ? 'Generating…' : 'Executive PDF'}
+        </button>
+      }>
+
+      {/* Three KPI tiles */}
+      <div className="grid grid-cols-3 gap-3 mb-3">
+        {/* Fleet Compliance */}
+        <div className="bg-white rounded-xl border border-slate-200 p-3.5 flex flex-col items-center text-center">
+          <div className="w-10 h-10 rounded-lg stat-gradient-brand flex items-center justify-center mb-2 shadow-sm">
+            <ShieldCheck className="w-5 h-5 text-white" />
+          </div>
+          <p className="text-2xl font-bold text-slate-900 leading-none tabular-nums">{fleetCompliancePct}%</p>
+          <p className="text-[11px] text-slate-400 mt-1 font-medium">Fleet Compliance</p>
+        </div>
+
+        {/* Project Health — traffic light */}
+        <div className={`bg-white rounded-xl border border-slate-200 p-3.5 flex flex-col items-center text-center ring-1 ${healthMeta[projectHealth].ring}`}>
+          <div className={`w-10 h-10 rounded-lg ${healthMeta[projectHealth].bg} flex items-center justify-center mb-2`}>
+            <HealthIcon className={`w-5 h-5 ${healthMeta[projectHealth].color}`} />
+          </div>
+          <p className={`text-lg font-bold leading-none ${healthMeta[projectHealth].color}`}>{healthMeta[projectHealth].label}</p>
+          <p className="text-[11px] text-slate-400 mt-1 font-medium">Project Health</p>
+        </div>
+
+        {/* Revenue */}
+        <div className="bg-white rounded-xl border border-slate-200 p-3.5 flex flex-col items-center text-center">
+          <div className="w-10 h-10 rounded-lg stat-gradient-emerald flex items-center justify-center mb-2 shadow-sm">
+            <TrendingUp className="w-5 h-5 text-white" />
+          </div>
+          <p className="text-lg font-bold text-slate-900 leading-none tabular-nums">{fmtGbp(paidRevenue)}</p>
+          <p className="text-[11px] text-slate-400 mt-1 font-medium">Revenue (Paid)</p>
+        </div>
+      </div>
+
+      {/* Status summary row */}
+      <div className="flex items-center gap-2 flex-wrap text-xs">
+        <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1.5 rounded-lg font-medium">
+          <CircleDot className="w-3 h-3" />
+          {activeJobs.length} active jobs
+        </span>
+        <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 px-2.5 py-1.5 rounded-lg font-medium">
+          <ShieldCheck className="w-3 h-3" />
+          {compliantAssets}/{activeAssets.length} assets compliant
+        </span>
+        {jobsWithDelays > 0 && (
+          <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 px-2.5 py-1.5 rounded-lg font-medium">
+            <AlertTriangle className="w-3 h-3" />
+            {jobsWithDelays} jobs with delays
+          </span>
+        )}
+      </div>
+    </WidgetShell>
+  );
+}

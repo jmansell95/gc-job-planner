@@ -11,6 +11,7 @@ import WidgetCard from '@/components/dashboard/WidgetCard';
 import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES, DASHBOARD_SECTIONS, WIDGET_TO_SECTION, COST_WIDGETS, GLOBAL_ONLY_WIDGETS, VIEW_PROFILES } from '@/components/dashboard/registry';
 import { FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
+import ExecutiveSnapshotWidget from '@/components/dashboard/ExecutiveSnapshotWidget';
 import JobAssetsWidget from '@/components/dashboard/JobAssetsWidget';
 import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
 import EfficiencySnapshotWidget from '@/components/dashboard/EfficiencySnapshotWidget';
@@ -115,6 +116,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   const renderWidget = (widgetId) => {
     switch (widgetId) {
+      case 'executive-snapshot': return <ExecutiveSnapshotWidget onNavigate={onNavigate} />;
       case 'delivery-stats': return <DeliveryStats onNavigate={onNavigate} onSelectJob={openJobDrawer} jobs={scopedJobs} />;
       case 'compliance-overview': return <ComplianceOverviewWidget onNavigate={onNavigate} />;
       case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={scopedJobs} vehicles={vehicles} onSelectJob={openJobDrawer} onNavigate={onNavigate} />;
