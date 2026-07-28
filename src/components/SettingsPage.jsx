@@ -37,6 +37,7 @@ import ConcurSyncSettings from '@/components/settings/ConcurSyncSettings';
 import SubconMarkupRules from '@/components/settings/SubconMarkupRules';
 import GLCodeMapping from '@/components/settings/GLCodeMapping';
 import BillingContractManager from '@/components/settings/BillingContractManager';
+import FinancialAuditLogViewer from '@/components/settings/FinancialAuditLogViewer';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { resolveRole } from '@/utils/access';
 import { base44 } from '@/api/base44Client';
@@ -107,6 +108,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'subcon-markup': return <SubconMarkupRules />;
       case 'gl-mapping': return <GLCodeMapping />;
       case 'billing-contracts': return <BillingContractManager />;
+      case 'financial-audit': return <FinancialAuditLogViewer />;
       default: return null;
     }
   };

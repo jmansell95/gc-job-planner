@@ -1,0 +1,80 @@
+{
+  "name": "FinancialAuditLog",
+  "type": "object",
+  "properties": {
+    "entity_name": {
+      "type": "string",
+      "description": "Name of the locked financial entity that was mutated (e.g. RateCardItem, InvestigationSOR, BillingRule, AppSetting, ExpensePreset, JobBillingContract)"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID of the record that was mutated"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "description": "Type of mutation"
+    },
+    "changed_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Top-level field names that changed (for updates). Empty for create/delete."
+    },
+    "field_changes": {
+      "type": "string",
+      "description": "JSON-encoded object of {field: {before, after}} for each changed field on update events. Null for create/delete."
+    },
+    "record_summary": {
+      "type": "string",
+      "description": "Human-readable summary of the record after the mutation (e.g. 'RateCardItem: CP Drilling 200mm \u2014 \u00a345.00/m'). Used for quick scanning in the audit trail."
+    },
+    "actor_user_id": {
+      "type": "string",
+      "description": "User ID of the person who made the change, when identifiable. Null when triggered by system/automation without a user context."
+    },
+    "actor_name": {
+      "type": "string",
+      "description": "Name/email of the actor (denormalised for display)"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "entity_automation",
+        "manual",
+        "system"
+      ],
+      "default": "entity_automation",
+      "description": "How this audit record was captured"
+    }
+  },
+  "required": [
+    "entity_name",
+    "entity_id",
+    "action"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
