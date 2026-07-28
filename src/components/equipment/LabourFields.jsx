@@ -103,7 +103,7 @@ export default function LabourFields({ form, setForm, rateCardItems = [], staff 
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Billing rate (net) *</label>
+          <label className="block text-xs font-medium text-slate-600 mb-1">Charge-out rate (net) *</label>
           <input type="number" min="0" step="0.01" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" className={inputCls} />
         </div>
         <div>
@@ -125,6 +125,20 @@ export default function LabourFields({ form, setForm, rateCardItems = [], staff 
           <AlertCircle className="w-3.5 h-3.5" /> Price on Application — this rate card item has no fixed day rate. Confirm the agreed rate later from the Pending Pricing panel.
         </div>
       )}
+
+      {/* Internal cost hint — shown when a rate card item with cost_price is linked */}
+      {form.rate_card_item_id && (() => {
+        const rc = (rateCardItems || []).find((r) => r.id === form.rate_card_item_id);
+        if (!rc || rc.cost_price == null) return null;
+        const chargeOut = Number(form.unit_cost) || 0;
+        const internalCost = Number(rc.cost_price) || 0;
+        const margin = chargeOut > 0 ? ((chargeOut - internalCost) / chargeOut) * 100 : null;
+        return (
+          <div className="text-xs text-amber-800 bg-amber-50 rounded-md px-3 py-2 border border-amber-200 flex items-center gap-1.5">
+            <AlertCircle className="w-3.5 h-3.5" /> Internal cost: {fmt(internalCost)}/{rc.unit || 'day'}{margin != null ? ` · ${margin.toFixed(0)}% margin` : ''}
+          </div>
+        );
+      })()}
 
       {Number(form.unit_cost) > 0 && (
         <div className="text-xs text-slate-600 bg-white rounded-md px-3 py-2 border border-slate-200 flex items-center justify-between">
