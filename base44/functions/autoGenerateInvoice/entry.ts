@@ -110,22 +110,60 @@ function buildInvoiceLines(job, d) {
     const fee = Number(job.client_charge) || 0;
     lines.push({ description: 'Project fee (agreed flat fee)', quantity: 1, unit_label: 'sum', unit_cost: fee, line_total: fee, category: 'Flat fee' });
   }
+
+  // Sub-contractor sell charges (client_charge_net per log)
+  const subconLogs = d.subconLogs || [];
+  subconLogs.forEach((sl) => {
+    const charge = Number(sl.client_charge_net) || 0;
+    if (charge <= 0) return;
+    lines.push({
+      description: 'Sub-contract — ' + (sl.subcontractor_name || 'Sub-con') + ' · ' + (sl.work_type || sl.description || 'work'),
+      quantity: 1, unit_label: 'sum',
+      unit_cost: charge, line_total: charge, category: 'Sub-contract',
+    });
+  });
+
+  // Crew daily expenses (pass-through with markup)
+  const dailyCosts = d.dailyCosts || [];
+  const expenseByCat = {};
+  dailyCosts.forEach((c) => {
+    const charge = Number(c.client_charge) || Number(c.amount_net) || 0;
+    if (charge <= 0) return;
+    const cat = c.category || 'misc';
+    if (!expenseByCat[cat]) expenseByCat[cat] = { total: 0, count: 0 };
+    expenseByCat[cat].total += charge;
+    expenseByCat[cat].count++;
+  });
+  Object.entries(expenseByCat).forEach(([cat, v]) => {
+    const label = cat.charAt(0).toUpperCase() + cat.slice(1).replace(/_/g, ' ');
+    lines.push({
+      description: 'Crew expenses — ' + label + ' (' + v.count + ' item' + (v.count === 1 ? '' : 's') + ')',
+      quantity: 1, unit_label: 'sum',
+      unit_cost: Math.round(v.total * 100) / 100, line_total: Math.round(v.total * 100) / 100, category: 'Expenses',
+    });
+  });
+
   return lines;
 }
 
 async function loadJobData(base44, jobId) {
-  const [costItems, hotelBookings, deliveries, timesheets, invLogs, rigAssignments] = await Promise.all([
+  const [costItems, hotelBookings, deliveries, timesheets, invLogs, rigAssignments, dailyCosts, subconLogs] = await Promise.all([
     base44.asServiceRole.entities.JobCostItem.filter({ job_id: jobId }),
     base44.asServiceRole.entities.HotelBooking.filter({ job_id: jobId }),
     base44.asServiceRole.entities.DeliveryLog.filter({ job_id: jobId }),
     base44.asServiceRole.entities.Timesheet.filter({ job_id: jobId }),
     base44.asServiceRole.entities.InvestigationLog.filter({ job_id: jobId }),
     base44.asServiceRole.entities.JobAssetAssignment.filter({ job_id: jobId }),
+    base44.asServiceRole.entities.DailyCost.filter({ job_id: jobId }),
+    base44.asServiceRole.entities.SubcontractorLog.filter({ job_id: jobId }),
   ]);
   // Only approved staff logs; AGS imports always billable.
   const billableLogs = invLogs.filter((l) => l.source === 'ags_import' || l.manager_review_status === 'approved');
   const approvedTs = timesheets.filter((t) => t.status === 'approved');
-  return { costItems, hotelBookings, deliveries, timesheets: approvedTs, invLogs: billableLogs, rigAssignments };
+  // Only approved/submitted daily costs and verified+ sub-con logs
+  const billableCosts = dailyCosts.filter((c) => c.status === 'approved' || c.status === 'submitted');
+  const billableSubcon = subconLogs.filter((l) => l.status === 'verified' || l.status === 'approved' || l.status === 'invoiced');
+  return { costItems, hotelBookings, deliveries, timesheets: approvedTs, invLogs: billableLogs, rigAssignments, dailyCosts: billableCosts, subconLogs: billableSubcon };
 }
 
 async function generateForJob(base44, job) {
