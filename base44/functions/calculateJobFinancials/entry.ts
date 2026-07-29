@@ -496,15 +496,24 @@ export default async function(req: Request): Promise<Response> {
       const rate = itemChargeOut(c);
       return rate * (Number(c.quantity) || 1);
     };
-    // Exclude rig cost items from equipmentNet — rigs are costed separately in
-    // totalRigCost (day rate × working days). Including them here would
-    // double-count the rig day rate.
-    const nonRigCostItems = costItems.filter((c: any) => {
+    // Exclude rig AND labour cost items from equipmentNet — rigs are costed
+    // separately in totalRigCost, and labour items are crew labour (costed in
+    // labourItemsNet). Mixing labour into equipment overstated "Equipment" and
+    // hid billable crew costs from the Crew Labour total, so the breakdown
+    // didn't reconcile.
+    const nonRigNonLabourCostItems = costItems.filter((c: any) => {
+      if (c.category === 'labour') return false;
       if (!c.site_asset_id) return true;
       const asset = siteAssetMap[c.site_asset_id];
       return !(asset && (asset.is_rig === true || asset.asset_type === 'rig'));
     });
-    const equipmentNet = nonRigCostItems.reduce((s: number, c: any) => s + itemNet(c), 0);
+    const equipmentNet = nonRigNonLabourCostItems.reduce((s: number, c: any) => s + itemNet(c), 0);
+    // Labour cost items (billable crew from the Master Price List) — internal
+    // cost (cost_price) × quantity. Separate from equipment so the cost
+    // breakdown reconciles: equipment is plant, labour is crew.
+    const labourItemsNet = costItems
+      .filter((c: any) => c.category === 'labour')
+      .reduce((s: number, c: any) => s + itemNet(c), 0);
 
     const hotelRows = hotelBookings.map((b: any) => {
       const nights = b.check_in_date && b.check_out_date
@@ -729,7 +738,7 @@ export default async function(req: Request): Promise<Response> {
     // plant hire is always a pass-through charge on top of crew/meterage fees.
     const hireClientChargeNet = hireBreakdown.client_charge_net;
 
-    const totalCostNet = equipmentNet + hotelNet + totalRigCost + totalCrewCost + dailyCostsNet + subconPurchaseNet;
+    const totalCostNet = equipmentNet + labourItemsNet + hotelNet + totalRigCost + totalCrewCost + dailyCostsNet + subconPurchaseNet;
 
     // ── Revenue method handling ──
     // Calculates revenue based on the job's billing method. Drilling jobs default
@@ -823,6 +832,9 @@ export default async function(req: Request): Promise<Response> {
         matched_count: matched.length,
         unmatched_count: unmatched.length,
         additional_charges: Math.round(additionalCharges * 100) / 100,
+        hire_client_charge_net: Math.round(hireClientChargeNet * 100) / 100,
+        subcon_client_charge_net: Math.round(subconClientChargeNet * 100) / 100,
+        labour_items_cost: Math.round(labourItemsNet * 100) / 100,
         crew_cost: Math.round(totalCrewCost * 100) / 100,
         revenue_method: revenueMethod,
         revenue_method_label: revenueMethodLabel,
@@ -842,6 +854,7 @@ export default async function(req: Request): Promise<Response> {
       unmatched_entries: unmatched.slice(0, 100),
       cost_breakdown: {
         equipment_net: Math.round(equipmentNet * 100) / 100,
+        labour_items_net: Math.round(labourItemsNet * 100) / 100,
         hotel_net: Math.round(hotelNet * 100) / 100,
         rig_cost: Math.round(totalRigCost * 100) / 100,
         crew_cost: Math.round(totalCrewCost * 100) / 100,

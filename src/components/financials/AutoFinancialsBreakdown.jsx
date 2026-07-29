@@ -218,8 +218,15 @@ export default function AutoFinancialsBreakdown({ job }) {
           <span>Net: {fmt(s.total_revenue_net)}</span>
           <span>VAT: {fmt(s.total_revenue_vat)}</span>
           {dp.total_metres > 0 && <span className="flex items-center gap-1"><Mountain className="w-3 h-3" /> {dp.total_metres.toFixed(1)}m drilled</span>}
-          {s.meterage_revenue > 0 && <span>Meterage: {fmt(s.meterage_revenue)}</span>}
-          {s.sor_revenue > 0 && <span>SOR lines: {fmt(s.sor_revenue)}</span>}
+        </div>
+        {/* Revenue component reconciliation — components sum to total_revenue_net */}
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {s.meterage_revenue > 0 && <RevComponent label="Meterage" value={s.meterage_revenue} />}
+          {s.sor_revenue > 0 && <RevComponent label="SOR lines" value={s.sor_revenue} />}
+          {s.additional_charges > 0 && <RevComponent label="Delivery/Task" value={s.additional_charges} />}
+          {s.subcon_client_charge_net > 0 && <RevComponent label="Sub-con sell" value={s.subcon_client_charge_net} />}
+          {s.hire_client_charge_net > 0 && <RevComponent label="Plant hire" value={s.hire_client_charge_net} />}
+          {s.revenue_method === 'flat_fee' && <RevComponent label="Flat fee" value={Number(job.client_charge) || 0} />}
         </div>
       </div>
 
@@ -443,17 +450,28 @@ export default function AutoFinancialsBreakdown({ job }) {
         <div className="flex items-center gap-2 mb-3">
           <Calculator className="w-4 h-4 text-[#2E5A1A]" />
           <h3 className="text-sm font-semibold text-slate-800">Cost Breakdown</h3>
+          <span className="ml-auto text-xs text-slate-400">Net</span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-8 gap-3">
-          <MiniStat label="Equipment (hire)" value={cb.equipment_net} sub="from logistics tab" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <MiniStat label="Equipment" value={cb.equipment_net} sub="hire & purchased" />
           <MiniStat label="Rigs" value={cb.rig_cost} sub={data.rig_profitability?.length ? `${data.rig_profitability.length} rig(s)` : undefined} />
-          <MiniStat label="Crew Labour" value={cb.crew_cost} sub={cb.crew_rows?.length ? `${cb.crew_rows.length} crew` : 'from rota'} />
+          <MiniStat label="Crew (rota)" value={cb.crew_cost} sub={cb.crew_rows?.length ? `${cb.crew_rows.length} crew` : 'from rota'} />
+          {cb.labour_items_net > 0 && <MiniStat label="Crew (billable)" value={cb.labour_items_net} sub="rate card items" />}
           <MiniStat label="Accommodation" value={cb.hotel_net} sub={cb.hotel_rows?.length > 0 ? `${cb.hotel_rows.length} booking(s)` : undefined} />
           <MiniStat label="Crew Expenses" value={cb.daily_costs_net} sub={data.daily_costs?.length ? `${data.daily_costs.length} item(s)` : undefined} />
           <MiniStat label="Sub-Con (Buy)" value={cb.subcon_purchase_net} sub={data.subcontractor_logs?.length ? `${data.subcontractor_logs.length} log(s)` : undefined} />
-          <MiniStat label="Delivery Charges" value={cb.delivery_charges} />
-          <MiniStat label="Task Charges" value={cb.task_charges} />
         </div>
+        {/* Reconciliation total — sum of the components above equals total_cost_net */}
+        <div className="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between text-sm">
+          <span className="font-semibold text-slate-600">Total Cost (net)</span>
+          <span className="font-bold text-slate-900 tabular-nums">{fmt(s.total_cost_net)}</span>
+        </div>
+        {/* Delivery & task charges are revenue (billed to client), not internal cost — shown for reference */}
+        {(cb.delivery_charges > 0 || cb.task_charges > 0) && (
+          <p className="mt-1.5 text-[10px] text-slate-400">
+            Delivery ({fmt(cb.delivery_charges)}) and task ({fmt(cb.task_charges)}) charges are client revenue, included in the total revenue above — not internal cost.
+          </p>
+        )}
       </div>
 
       {/* === Sub-Contractor Margin Summary === */}
@@ -635,6 +653,15 @@ function MiniStat({ label, value, sub }) {
       <p className="text-[10px] text-slate-400 uppercase font-medium">{label}</p>
       <p className="text-sm font-bold text-slate-800 tabular-nums">{fmt(value)}</p>
       {sub && <p className="text-[10px] text-slate-400">{sub}</p>}
+    </div>
+  );
+}
+
+function RevComponent({ label, value }) {
+  return (
+    <div className="bg-white/10 rounded-lg px-2.5 py-1.5 border border-white/15">
+      <p className="text-[9px] text-white/60 uppercase font-medium truncate">{label}</p>
+      <p className="text-xs font-bold text-white tabular-nums truncate">{fmt(value)}</p>
     </div>
   );
 }
