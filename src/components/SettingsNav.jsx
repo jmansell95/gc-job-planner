@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Lock } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Lock, Radio } from 'lucide-react';
 import { normalizePermissions } from '@/utils/permissions';
 
 export const settingsGroups = [
@@ -25,6 +25,7 @@ export const settingsGroups = [
       { id: 'asset-panda', label: 'Asset Panda Sync', icon: Database, desc: 'Connect Asset Panda & sync live inventory, stock levels and billing rates' },
       { id: 'equipment-library', label: 'Equipment Sets', icon: Package, desc: 'Pre-built equipment sets (presets) — individual items now sync from Asset Panda' },
       { id: 'vehicles', label: 'Vehicles', icon: Truck, desc: 'Track vehicles, MOTs and service dates' },
+      { id: 'holman-sync', label: 'Holman Fleet Sync', icon: Radio, desc: 'Connect Holman fleet management — auto-sync MOT, service dates & mileage via API and webhooks', roles: ['admin'] },
       { id: 'job-types', label: 'Job Types', icon: Tag, desc: 'Manage job types and colours' },
       { id: 'dropdowns', label: 'Dropdown Manager', icon: ListChecks, desc: 'Add, rename, reorder or remove options in every dropdown — qualifications, asset types, revenue streams & more' },
       { id: 'automations', label: 'Automations', icon: Zap, desc: 'View and toggle background automations' },

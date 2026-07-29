@@ -40,6 +40,33 @@
     "max_volume_m3": {
       "type": "number",
       "description": "Maximum cargo volume in cubic metres this vehicle can hold"
+    },
+    "vin": {
+      "type": "string",
+      "description": "Vehicle Identification Number (chassis number). Used to match vehicles when syncing from Holman."
+    },
+    "holman_vehicle_id": {
+      "type": "string",
+      "description": "Holman fleet management system's internal vehicle ID. Set automatically when a vehicle is matched during Holman sync."
+    },
+    "current_mileage": {
+      "type": "number",
+      "description": "Latest odometer reading in miles, pulled from Holman fleet data."
+    },
+    "holman_sync_status": {
+      "type": "string",
+      "enum": [
+        "synced",
+        "pending",
+        "failed",
+        "never"
+      ],
+      "default": "never",
+      "description": "Last Holman sync outcome. 'synced' = latest data pulled, 'pending' = queued, 'failed' = last sync errored, 'never' = not yet synced."
+    },
+    "last_holman_sync": {
+      "type": "string",
+      "description": "ISO timestamp of the last successful Holman sync for this vehicle."
     }
   },
   "required": [
