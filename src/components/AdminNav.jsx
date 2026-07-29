@@ -82,11 +82,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       {/* Compact action cluster — single row of quick actions */}
       <div className="px-3 pt-2 pb-2 border-t border-white/10 space-y-1.5">
         <GlobalSearch />
-        <div className="grid grid-cols-5 gap-1.5">
-          <button onClick={openChat} type="button" title="Ask Assistant"
-            className="flex items-center justify-center py-2 rounded-lg command-gradient text-white hover:brightness-110 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-sm">
-            <Sparkles className="w-4 h-4" />
-          </button>
+        <div className="grid grid-cols-4 gap-1.5">
           <button onClick={openDrillingIntelligence} type="button" title="Drilling Intelligence"
             className="flex items-center justify-center py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <HardHat className="w-4 h-4" />
@@ -104,9 +100,9 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             className="flex items-center justify-center py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <ScanLine className="w-4 h-4" />
           </button>
-          <button onClick={() => navigate('/deliveries')} type="button" title="Deliveries"
+          <button onClick={openChat} type="button" title="Ask Assistant"
             className="flex items-center justify-center py-2 rounded-lg bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white hover:brightness-110 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-sm">
-            <Truck className="w-4 h-4" />
+            <Sparkles className="w-4 h-4" />
           </button>
         </div>
       </div>
