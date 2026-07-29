@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Lock } from 'lucide-react';
 
 export const settingsGroups = [
   {
     label: 'Overview',
     items: [
       { id: 'hub', label: 'Command Hub', icon: LayoutGrid, desc: 'At-a-glance overview of every settings area with live counts' },
+      { id: 'lockdown', label: 'Settings Lockdown', icon: Lock, desc: 'Restrict access to individual settings pages — lock sensitive areas to specific roles', roles: ['admin'] },
     ],
   },
   {
@@ -102,12 +103,14 @@ export function accessibleSettingsItems(role) {
   return allSettingsItems.filter(i => !i.roles || i.roles.includes(effective));
 }
 
-export default function SettingsNav({ activeId, onChange, role = 'admin' }) {
+export default function SettingsNav({ activeId, onChange, role = 'admin', lockdownMap = {} }) {
   const [query, setQuery] = useState('');
   const effectiveRole = role === 'super_admin' ? 'admin' : role;
 
   const roleFiltered = settingsGroups
     .map(g => ({ ...g, items: g.items.filter(i => !i.roles || i.roles.includes(effectiveRole)) }))
+    .filter(g => g.items.length > 0)
+    .map(g => ({ ...g, items: g.items.filter(i => !lockdownMap[i.id]?.locked || (lockdownMap[i.id]?.allowedRoles || []).includes(effectiveRole) || effectiveRole === 'admin') }))
     .filter(g => g.items.length > 0);
 
   const q = query.toLowerCase().trim();
@@ -133,13 +136,15 @@ export default function SettingsNav({ activeId, onChange, role = 'admin' }) {
           {group.items.map(item => {
             const Icon = item.icon;
             const isActive = activeId === item.id;
+            const isLocked = lockdownMap[item.id]?.locked;
             return (
               <button key={item.id} onClick={() => onChange(item.id)}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition text-left ${
                   isActive ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
                 }`}>
                 <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span className="truncate">{item.label}</span>
+                <span className="truncate flex-1 text-left">{item.label}</span>
+                {isLocked && <Lock className={`w-3 h-3 flex-shrink-0 ${isActive ? 'text-white/70' : 'text-amber-500'}`} />}
               </button>
             );
           })}

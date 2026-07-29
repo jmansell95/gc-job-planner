@@ -42,6 +42,9 @@ import BobHRSettings from '@/components/settings/BobHRSettings';
 import PayrollExportSettings from '@/components/settings/PayrollExportSettings';
 import CISSettings from '@/components/settings/CISSettings';
 import JobAlertSettings from '@/components/settings/JobAlertSettings';
+import SettingsLockdownManager from '@/components/settings/SettingsLockdownManager';
+import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
+import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { resolveRole } from '@/utils/access';
 import { base44 } from '@/api/base44Client';
@@ -59,16 +62,21 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
   }, []);
 
   const role = resolveRole(profile) || 'admin';
-  const items = accessibleSettingsItems(role);
+  const { lockdownMap, isPageAccessible, isLoading: lockdownLoading } = useSettingsAccess();
+
+  // Filter nav items by both the existing role-based access AND the lockdown config.
+  const items = accessibleSettingsItems(role).filter(i => isPageAccessible(i.id, role));
 
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
 
   useEffect(() => {
-    if (!profile || items.length === 0) return;
+    if (!profile || items.length === 0 || lockdownLoading) return;
     if (!items.find(i => i.id === activeTab)) setActiveTab(items[0].id);
-  }, [profile, role, activeTab, items]);
+  }, [profile, role, activeTab, items, lockdownLoading]);
 
   const active = items.find(t => t.id === activeTab);
+  const activeLockdown = active ? lockdownMap[active.id] : null;
+  const isLockedOut = active && activeLockdown?.locked && !isPageAccessible(active.id, role);
 
   const handleSelect = (id) => {
     setActiveTab(id);
@@ -76,8 +84,14 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
   };
 
   const renderContent = () => {
+    // If this page is locked down and the user doesn't have access, show the guard.
+    if (isLockedOut) {
+      return <SettingsAccessGuard pageLabel={active.label} lockedBy={activeLockdown.lockedBy} lockedAt={activeLockdown.lockedAt} />;
+    }
+   
     switch (activeTab) {
       case 'hub': return <SettingsHubOverview onNavigate={setActiveTab} />;
+      case 'lockdown': return <SettingsLockdownManager profile={profile} />;
       case 'staff': return <StaffCommand />;
       case 'teams': return <CrewTypeCommand />;
       case 'access-levels': return <PermissionGroupManager />;
@@ -139,7 +153,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
         {/* Persistent sidebar — desktop only */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
           <div className="sticky top-4 bg-white rounded-xl border border-slate-200 shadow-sm p-3 max-h-[calc(100vh-2rem)] overflow-y-auto">
-            <SettingsNav activeId={activeTab} onChange={handleSelect} role={role} />
+            <SettingsNav activeId={activeTab} onChange={handleSelect} role={role} lockdownMap={lockdownMap} />
           </div>
         </aside>
 
@@ -157,7 +171,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
           <SheetHeader className="mb-3">
             <SheetTitle className="text-left">Settings Menu</SheetTitle>
           </SheetHeader>
-          <SettingsNav activeId={activeTab} onChange={handleSelect} role={role} />
+          <SettingsNav activeId={activeTab} onChange={handleSelect} role={role} lockdownMap={lockdownMap} />
         </SheetContent>
       </Sheet>
     </div>
