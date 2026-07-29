@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { loadProjectRateCardItems, resolveProjectCharge } from '../../shared/projectRateMatcher.ts';
+import { resolveRate, loadActiveContract } from '../../shared/rateResolver.ts';
 
 // ============================================================
 // stampBillingCharge — auto-stamps charge_amount + billing_rule_id
@@ -88,26 +88,42 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ ok: true, entity_id: entityId, stamped: true, client_charge: clientCharge });
     }
 
-    // ── InvestigationLog: try project rate card first ──
+    // ── InvestigationLog: unified rate resolver (contract → project → global) ──
     if (entityName === 'InvestigationLog' && record.job_id) {
       try {
         const job = await base44.asServiceRole.entities.Job.get(record.job_id);
-        if (job?.project_id && record.description) {
-          const rateCardItems = await loadProjectRateCardItems(base44.asServiceRole, job.project_id);
+        if (job && record.description) {
+          const activeContract = await loadActiveContract(base44.asServiceRole, record.job_id);
           const qty = Number(record.units_completed) ||
             ((Number(record.depth_to) || 0) - (Number(record.depth_from) || 0)) || 1;
-          const match = resolveProjectCharge(String(record.description), rateCardItems, qty);
-          if (match) {
-            const breakdown = { source: 'project_rate_card', rate_card_item_id: match.rateCardItem.id, total: match.total };
+          const resolved = await resolveRate(base44.asServiceRole, {
+            job_id: record.job_id,
+            project_id: job.project_id,
+            description: String(record.description),
+            quantity: qty,
+            activeContract,
+          });
+          if (resolved) {
+            const breakdown = {
+              source: resolved.rate_source,
+              rate_card_item_id: resolved.rate_card_item_id,
+              unit_price: resolved.unit_price,
+              quantity: resolved.quantity,
+              total: resolved.total,
+            };
             try {
               await base44.asServiceRole.entities.InvestigationLog.update(entityId, {
                 chargeable: true,
-                charge_amount: match.total,
+                charge_amount: resolved.total,
                 charge_breakdown: JSON.stringify(breakdown),
                 billing_status: 'auto',
               });
             } catch (e) { /* non-fatal */ }
-            return Response.json({ ok: true, entity_id: entityId, stamped: true, source: 'project_rate_card', charge_amount: match.total });
+            // Trigger BOQ variation check after pricing a new investigation log
+            try {
+              await base44.asServiceRole.functions.invoke('checkBOQVariations', { job_id: record.job_id });
+            } catch (_) { /* non-fatal — BOQ check runs independently */ }
+            return Response.json({ ok: true, entity_id: entityId, stamped: true, source: resolved.rate_source, charge_amount: resolved.total });
           }
         }
       } catch (_) { /* job lookup failed — fall through to BillingRule */ }

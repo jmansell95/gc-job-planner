@@ -26,7 +26,7 @@ export default async function(req) {
     if (!jobId) return Response.json({ error: 'job_id required' }, { status: 400 });
 
     const [
-      costItems, deliveries, timesheets, subconLogs, rotas, rateItems
+      costItems, deliveries, timesheets, subconLogs, rotas, rateItems, boqLines
     ] = await Promise.all([
       base44.asServiceRole.entities.JobCostItem.filter({ job_id: jobId }),
       base44.asServiceRole.entities.DeliveryLog.filter({ job_id: jobId }),
@@ -34,6 +34,7 @@ export default async function(req) {
       base44.asServiceRole.entities.SubcontractorLog.filter({ job_id: jobId }),
       base44.asServiceRole.entities.RotaAssignment.filter({ job_id: jobId }),
       base44.asServiceRole.entities.RateCardItem.filter({ category: 'labour', is_active: true }),
+      base44.asServiceRole.entities.JobBillOfQuantities.filter({ job_id: jobId }),
     ]);
 
     const blockers = [];
@@ -122,6 +123,23 @@ export default async function(req) {
         count: rotaStaffWithoutRate.length,
         label: `${rotaStaffWithoutRate.length} crew member${rotaStaffWithoutRate.length === 1 ? '' : 's'} without a day rate`,
         detail: [],
+      });
+    }
+
+    // 7. BOQ overruns — actual logged work exceeds contracted scope without
+    //    an approved variation. Blocks invoicing until a manager reviews.
+    const overrunLines = (boqLines || []).filter(
+      (b) => b.status === 'overrun' && b.is_variation !== true
+    );
+    if (overrunLines.length > 0) {
+      blockers.push({
+        type: 'boq_overrun',
+        severity: 'blocking',
+        count: overrunLines.length,
+        label: `${overrunLines.length} BOQ line${overrunLines.length === 1 ? '' : 's'} over scope — unapproved variation`,
+        detail: overrunLines.map((b) =>
+          `${b.description || 'Unnamed'}: ${Number(b.actual_quantity).toFixed(1)} of ${Number(b.agreed_quantity).toFixed(1)} ${b.unit || ''} (+${Number(b.variation_quantity).toFixed(1)})`
+        ).slice(0, 5),
       });
     }
 

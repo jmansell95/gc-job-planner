@@ -1,0 +1,139 @@
+{
+  "name": "JobBillOfQuantities",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this BOQ line belongs to"
+    },
+    "project_id": {
+      "type": "string",
+      "description": "Linked Project \u2014 for project-level rate card resolution (denormalised from the job)"
+    },
+    "rate_card_item_id": {
+      "type": "string",
+      "description": "Linked RateCardItem (SOR line) \u2014 the schedule-of-rates item this BOQ line is scoped against. Keeps description, unit and price in sync with the source rate."
+    },
+    "billing_contract_id": {
+      "type": "string",
+      "description": "JobBillingContract version this BOQ line was agreed under. Set when the contract is activated; blank for draft BOQ lines."
+    },
+    "sor_ref": {
+      "type": "string",
+      "description": "Schedule of Rates item reference number (e.g. 'C34', 'B1', '2.1'). Denormalised from the RateCardItem for quick display without a join."
+    },
+    "description": {
+      "type": "string",
+      "description": "BOQ line description (denormalised from the RateCardItem, editable for contract-specific wording)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "labour",
+        "plant",
+        "materials"
+      ],
+      "description": "Rate card category (denormalised from the RateCardItem)"
+    },
+    "subcategory": {
+      "type": "string",
+      "description": "Rate card subcategory / section heading (denormalised from the RateCardItem)"
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unit of measure (e.g. 'm', 'nr', 'day', 'sum'). Denormalised from the RateCardItem."
+    },
+    "agreed_quantity": {
+      "type": "number",
+      "description": "The contracted scope quantity for this SOR line (e.g. 150 metres of drilling, 3 standpipe installations). This is the baseline against which actual logged work is compared to detect variations."
+    },
+    "agreed_unit_price": {
+      "type": "number",
+      "description": "The locked unit price in GBP for this BOQ line. Snapshotted from the RateCardItem at contract activation, or manually entered for negotiated rates. Used for all revenue calculations regardless of future rate card changes."
+    },
+    "agreed_line_total": {
+      "type": "number",
+      "description": "agreed_quantity \u00d7 agreed_unit_price. The contracted value of this BOQ line (net)."
+    },
+    "actual_quantity": {
+      "type": "number",
+      "default": 0,
+      "description": "Running total of actual logged work against this BOQ line. Computed by the variation checker from InvestigationLogs, Timesheets, and DeliveryLogs that reference this rate_card_item_id. Refreshed on each new log creation."
+    },
+    "remaining_quantity": {
+      "type": "number",
+      "description": "agreed_quantity \u2212 actual_quantity. Negative when work has exceeded the contracted scope (an over-run variation)."
+    },
+    "variation_quantity": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantity exceeding the agreed scope (actual_quantity \u2212 agreed_quantity). Zero or positive only."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "in_progress",
+        "complete",
+        "variation",
+        "overrun"
+      ],
+      "default": "not_started",
+      "description": "Scope status. 'not_started' = no logged work yet; 'in_progress' = partially used; 'complete' = actual \u2265 agreed (within scope); 'variation' = a manager-approved over-run exists; 'overrun' = actual exceeds agreed but the surplus has NOT been approved as a variation yet (blocks billing readiness)."
+    },
+    "is_variation": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this BOQ line represents an approved variation (additional scope beyond the original contract). Variation lines carry their own agreed_quantity and are linked to the original BOQ line via variation_of_id."
+    },
+    "variation_of_id": {
+      "type": "string",
+      "description": "ID of the original BOQ line this variation extends. Set only on variation lines; blank on original scope lines."
+    },
+    "variation_reason": {
+      "type": "string",
+      "description": "Reason / justification for the variation (e.g. 'Client requested additional 2 boreholes', 'Ground conditions required deeper drilling'). Required when is_variation is true."
+    },
+    "approved_by_name": {
+      "type": "string",
+      "description": "Name of the manager who approved this variation (if applicable)"
+    },
+    "approved_at": {
+      "type": "string",
+      "description": "ISO timestamp of variation approval"
+    },
+    "sort_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order (lower = first). Typically mirrors the RateCardItem sort_order."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes (e.g. 'Includes bend test', 'Client-supplied materials excluded')"
+    }
+  },
+  "required": [
+    "job_id",
+    "description",
+    "agreed_quantity",
+    "agreed_unit_price"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
