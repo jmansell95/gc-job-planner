@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, Loader2 } from 'lucide-react';
+import { X, AlertTriangle, Loader2, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import BillingReadinessGate from '@/components/BillingReadinessGate';
 
 const REASON_REQUIRED = ['on_hold', 'cancelled'];
+const GATE_STATUSES = ['decommissioning', 'completed'];
 
 const STATUS_OPTIONS = [
   { value: 'planning', label: 'Planning', desc: 'Back to planning stage', tone: 'slate' },
@@ -25,13 +28,36 @@ export default function JobStatusModal({ job, onClose, onSave }) {
   const [selectedStatus, setSelectedStatus] = useState(job?.status || 'planning');
   const [reason, setReason] = useState(job?.status_reason || '');
   const [saving, setSaving] = useState(false);
+  const [readiness, setReadiness] = useState(null);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     setSelectedStatus(job?.status || 'planning');
     setReason(job?.status_reason || '');
+    setReadiness(null);
   }, [job]);
 
   const needsReason = REASON_REQUIRED.includes(selectedStatus);
+  const isGateStatus = GATE_STATUSES.includes(selectedStatus);
+
+  useEffect(() => {
+    if (!isGateStatus || !job?.id) { setReadiness(null); return; }
+    let cancelled = false;
+    (async () => {
+      setChecking(true);
+      try {
+        const res = await base44.functions.invoke('checkBillingReadiness', { job_id: job.id });
+        if (!cancelled) setReadiness(res.data);
+      } catch (e) {
+        if (!cancelled) setReadiness({ ready: true, blockers: [], error: true });
+      } finally {
+        if (!cancelled) setChecking(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedStatus, job?.id, isGateStatus]);
+
+  const hasBlockingGate = readiness?.has_blocking === true;
 
   const handleSave = async () => {
     if (needsReason && !reason.trim()) return;
@@ -101,10 +127,18 @@ export default function JobStatusModal({ job, onClose, onSave }) {
             </div>
           )}
 
+          {isGateStatus && (
+            <BillingReadinessGate
+              checking={checking}
+              readiness={readiness}
+              statusLabel={STATUS_OPTIONS.find(o => o.value === selectedStatus)?.label || selectedStatus}
+            />
+          )}
+
           <div className="flex gap-2 pt-2">
             <button
               onClick={handleSave}
-              disabled={saving || (needsReason && !reason.trim())}
+              disabled={saving || (needsReason && !reason.trim()) || hasBlockingGate}
               className="flex-1 px-4 py-2.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium flex items-center justify-center gap-2"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
