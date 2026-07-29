@@ -34,16 +34,8 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
               </button>
             </div>
 
-            <div className="px-4 pt-4 pb-2 space-y-2">
-              <button onClick={onAssistant} type="button"
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl command-gradient text-white text-sm font-medium hover:brightness-110 active:scale-[0.98] transition shadow-sm touch-manipulation select-none">
-                <Sparkles className="w-4 h-4" />
-                Ask Assistant
-              </button>
-            </div>
-
             {/* Power Tools — mobile parity with the desktop sidebar action cluster */}
-            <div className="px-3 pb-1">
+            <div className="px-3 pt-4 pb-1">
               <p className="px-1 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Power Tools</p>
               <div className="grid grid-cols-3 gap-1.5">
                 {onDrillingIntelligence && (
@@ -60,11 +52,11 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
                     <span className="text-[10px] font-medium leading-tight text-center">Asset Lens</span>
                   </button>
                 )}
-                {onDeliveries && (
-                  <button onClick={onDeliveries} type="button"
+                {onAssistant && (
+                  <button onClick={onAssistant} type="button"
                     className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white hover:brightness-110 active:scale-[0.98] transition touch-manipulation select-none shadow-sm">
-                    <Truck className="w-4 h-4" />
-                    <span className="text-[10px] font-medium leading-tight text-center">Deliveries</span>
+                    <Sparkles className="w-4 h-4" />
+                    <span className="text-[10px] font-medium leading-tight text-center">Assistant</span>
                   </button>
                 )}
               </div>
