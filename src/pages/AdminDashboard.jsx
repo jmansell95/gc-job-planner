@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { canAccessSection } from '@/utils/access';
 import AdminNav from '@/components/AdminNav';
@@ -17,10 +17,20 @@ import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeSection, setActiveSection] = useState('overview');
   const [selectedJob, setSelectedJob] = useState(null);
   const [settingsTab, setSettingsTab] = useState('hub');
   const [profile, setProfile] = useState(null);
+
+  // Read navigation state passed from other pages (e.g. Vehicles → Manage Records)
+  useEffect(() => {
+    const navState = location.state;
+    if (navState?.section) setActiveSection(navState.section);
+    if (navState?.settingsTab) setSettingsTab(navState.settingsTab);
+    // Clear state so a refresh doesn't re-trigger the section switch
+    if (navState) window.history.replaceState({}, document.title);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The dashboard "Deliveries" stat monitor routes to the dedicated driver
   // delivery page rather than an embedded admin section. Intercept the

@@ -13,6 +13,7 @@ const ROUTE_MAP = {
   '/help': [{ label: 'Help Guide' }],
   '/presentation-pack': [{ label: 'Presentation Pack' }],
   '/rig-hub': [{ label: 'Admin', to: '/admin' }, { label: 'Fleet Hub' }],
+  '/vehicles': [{ label: 'Admin', to: '/admin' }, { label: 'Rig Fleet' }],
   '/pat-testing': [{ label: 'Fleet Hub', to: '/rig-hub' }, { label: 'PAT Testing' }],
 };
 

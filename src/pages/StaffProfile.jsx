@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { HardHat, ArrowLeft, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, Bell } from 'lucide-react';
+import { HardHat, ArrowLeft, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, Bell, UserCog } from 'lucide-react';
 import { format } from 'date-fns';
 import TimesheetHistory from '@/components/staff/TimesheetHistory';
 import StaffBookings from '@/components/staff/StaffBookings';
@@ -18,6 +18,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { EmptyState } from '@/components/StateViews';
 import { resolveRole, isOfficeStaff } from '@/utils/access';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import StaffProfileEditDrawer from '@/components/staff/StaffProfileEditDrawer';
 
 const ABSENCE_REASONS = [
   { value: 'holiday', label: 'Holiday' },
@@ -38,6 +39,7 @@ export default function StaffProfile() {
   const [loading, setLoading] = useState(true);
   const [showApprovals, setShowApprovals] = useState(false);
   const [showAbsenceForm, setShowAbsenceForm] = useState(false);
+  const [showEditDrawer, setShowEditDrawer] = useState(false);
   const [absenceForm, setAbsenceForm] = useState({ start_date: format(new Date(), 'yyyy-MM-dd'), end_date: format(new Date(), 'yyyy-MM-dd'), reason: 'holiday', notes: '' });
   const [savingAbsence, setSavingAbsence] = useState(false);
 
@@ -141,6 +143,11 @@ export default function StaffProfile() {
           </div>
           {/* Quick Actions bar */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            <button onClick={() => setShowEditDrawer(true)} type="button"
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white text-[#2E5A1A] ring-1 ring-white/30 text-sm font-semibold active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0 shadow-sm">
+              <UserCog className="w-4 h-4" />
+              <span>Edit Profile</span>
+            </button>
             <button onClick={() => setShowAbsenceForm(true)} type="button"
               className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
               <CalendarPlus className="w-4 h-4" />
@@ -246,6 +253,9 @@ export default function StaffProfile() {
           <ManagerTimesheetApprovals staffId={staff.id} />
         </SheetContent>
       </Sheet>
+
+      {/* Edit Profile Drawer */}
+      <StaffProfileEditDrawer open={showEditDrawer} onOpenChange={setShowEditDrawer} staff={staff} />
 
       {/* Absence Request Modal */}
       {showAbsenceForm && (

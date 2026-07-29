@@ -35,6 +35,13 @@ const LEVEL_BADGE = {
   unknown: 'bg-slate-50 text-slate-500 border-slate-200',
 };
 
+const LEVEL_BORDER = {
+  compliant: 'border-l-emerald-500',
+  warning: 'border-l-amber-500',
+  expired: 'border-l-red-500',
+  unknown: 'border-l-slate-300',
+};
+
 export default function Vehicles() {
   const navigate = useNavigate();
   const [view, setView] = useState('fleet'); // 'fleet' | 'maintenance'
@@ -89,7 +96,7 @@ export default function Vehicles() {
                 className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-lg font-semibold text-sm transition">
                 {view === 'fleet' ? <><Wrench className="w-4 h-4" /> Maintenance</> : <><Truck className="w-4 h-4" /> Fleet Status</>}
               </button>
-              <button onClick={() => navigate('/admin?tab=settings&sub=vehicles')}
+              <button onClick={() => navigate('/admin', { state: { section: 'settings', settingsTab: 'vehicles' } })}
                 className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white text-[#2E5A1A] rounded-lg font-semibold text-sm hover:bg-white/90 transition shadow-sm">
                 <ExternalLink className="w-4 h-4" /> Manage Records
               </button>
@@ -165,7 +172,7 @@ export default function Vehicles() {
                 {filtered.map(v => {
                   const { issues, level } = getVehicleStatus(v);
                   return (
-                    <div key={v.id} className="insight-card rounded-xl p-4 border-l-4 border-slate-200">
+                    <div key={v.id} className={`insight-card rounded-xl p-4 border-l-4 ${LEVEL_BORDER[level]} hover:scale-[1.01]`}>
                       <div className="flex items-start justify-between gap-2 mb-3">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className="w-11 h-11 rounded-xl stat-gradient-brand flex items-center justify-center flex-shrink-0 shadow-sm">
