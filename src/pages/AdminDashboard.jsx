@@ -11,7 +11,6 @@ import JobDetail from '@/components/JobDetail';
 import SchedulingHub from '@/components/SchedulingHub';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
 import AdminDeliveryHub from '@/pages/AdminDeliveryHub';
-import ProjectFinancialsDetail from '@/components/financials/ProjectFinancialsDetail';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
@@ -109,9 +108,6 @@ export default function AdminDashboard() {
               <SchedulingHub initialTab={activeSection === 'calendar' ? 'calendar' : 'rota'} />
             )}
             {activeSection === 'logistics' && <AdminDeliveryHub />}
-            {activeSection === 'project-financials' && (
-              <ProjectFinancialsDetail onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />
-            )}
             {activeSection === 'timesheets' && <SettingsPage initialTab="timesheets" />}
             {activeSection === 'teams' && <SettingsPage initialTab="teams" />}
             {activeSection === 'compliance' && <SettingsPage initialTab="compliance" />}

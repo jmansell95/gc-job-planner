@@ -5,6 +5,7 @@ import {
   PoundSterling, Receipt, Download, FileBarChart, Search, Loader2,
   Wallet, TrendingUp, Briefcase, ArrowRight, Mountain, FileSpreadsheet, Sparkles,
   ArrowRightLeft,
+  FolderKanban,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
@@ -19,6 +20,7 @@ import InvoiceHistoryPanel from '@/components/billing/InvoiceHistoryPanel';
 import MonthlyStatementsPanel from '@/components/billing/MonthlyStatementsPanel';
 import VendorInvoiceReconciliation from '@/components/financials/VendorInvoiceReconciliation';
 import BillingLifecycleHub from '@/components/billing/BillingLifecycleHub';
+import ProjectFinancialsDetail from '@/components/financials/ProjectFinancialsDetail';
 
 const fmt = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -53,7 +55,7 @@ export default function BillingPage({ onSelectJob }) {
   const [statusFilter, setStatusFilter] = useState('ready');
   const [reportingJobId, setReportingJobId] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [view, setView] = useState('lifecycle'); // 'lifecycle' | 'summary' | 'geotech' | 'invoices'
+  const [view, setView] = useState('lifecycle'); // 'lifecycle' | 'summary' | 'geotech' | 'invoices' | 'projects'
   const [invoiceJob, setInvoiceJob] = useState(null);
   const [companyName, setCompanyName] = useState('Ground Control');
   const [autoRunning, setAutoRunning] = useState(false);
@@ -326,8 +328,26 @@ export default function BillingPage({ onSelectJob }) {
           <button onClick={() => setView('invoices')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><PoundSterling className="w-4 h-4" /> Invoices</button>
           <button onClick={() => setView('statements')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><FileSpreadsheet className="w-4 h-4" /> Statements</button>
           <button onClick={() => setView('reconciliation')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><ArrowRightLeft className="w-4 h-4" /> Reconciliation</button>
+          <button onClick={() => setView('projects')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><FolderKanban className="w-4 h-4" /> Projects</button>
         </div>
         <BillingLifecycleHub onSelectJob={onSelectJob} />
+      </div>
+    );
+  }
+
+  if (view === 'projects') {
+    return (
+      <div>
+        <div className="flex gap-1.5 mb-5 bg-white rounded-xl border border-slate-200 p-1.5 shadow-sm w-fit flex-wrap">
+          <button onClick={() => setView('lifecycle')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><Sparkles className="w-4 h-4" /> Lifecycle</button>
+          <button onClick={() => setView('summary')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><Receipt className="w-4 h-4" /> Invoice Summary</button>
+          <button onClick={() => setView('geotech')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><Mountain className="w-4 h-4" /> Geotechnical Report</button>
+          <button onClick={() => setView('invoices')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><PoundSterling className="w-4 h-4" /> Invoices</button>
+          <button onClick={() => setView('statements')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><FileSpreadsheet className="w-4 h-4" /> Statements</button>
+          <button onClick={() => setView('reconciliation')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><ArrowRightLeft className="w-4 h-4" /> Reconciliation</button>
+          <button onClick={() => setView('projects')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition bg-[#2E5A1A] text-white shadow-sm"><FolderKanban className="w-4 h-4" /> Projects</button>
+        </div>
+        <ProjectFinancialsDetail onSelectJob={onSelectJob} />
       </div>
     );
   }
@@ -377,6 +397,10 @@ export default function BillingPage({ onSelectJob }) {
         <button onClick={() => setView('reconciliation')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'reconciliation' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
           <ArrowRightLeft className="w-4 h-4" /> Reconciliation
+        </button>
+        <button onClick={() => setView('projects')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'projects' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+          <FolderKanban className="w-4 h-4" /> Projects
         </button>
       </div>
 
