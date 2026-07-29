@@ -417,15 +417,15 @@ function ProfileTab({ staff: m, user, teams, permissionGroups, vehicles, staffLi
         <ToggleChip active={!!form.delivery_dashboard_enabled} onClick={() => toggle('delivery_dashboard_enabled')} icon={Truck} label="Delivery dashboard" />
       </div>
 
-      {/* App access — role synced from permission group */}
+      {/* App access — synced from permission group */}
       {user && (
         <div className="bg-slate-50 rounded-lg p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             <span className="text-sm text-slate-700">App account active</span>
           </div>
-          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${user.role === 'admin' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
-            {user.role === 'admin' ? 'Admin' : 'User'}
+          <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-slate-200 text-slate-600">
+            {permissionGroups.find(g => g.id === form.permission_group_id)?.name || 'Field Staff'}
           </span>
         </div>
       )}

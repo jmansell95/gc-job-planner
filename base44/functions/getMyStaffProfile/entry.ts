@@ -95,6 +95,7 @@ Deno.serve(async (req) => {
       'Admin': 'admin',
       'Management': 'management',
       'User': 'user',
+      'Field Staff': 'field',
       'Field': 'field',
       'Read Only': 'read_only',
     };
@@ -117,12 +118,12 @@ Deno.serve(async (req) => {
         default_landing_page: team.default_landing_page || null,
         allowed_tool_access: team.allowed_tool_access || [],
         permission_group_id: team.permission_group_id || null,
-        permission_group: permissionGroup ? {
-          id: permissionGroup.id,
-          name: permissionGroup.name,
-          is_read_only: permissionGroup.is_read_only === true,
-          is_system: permissionGroup.is_system === true,
-          permissions: permissionGroup.permissions || {}
+        permission_group: teamPermissionGroup ? {
+          id: teamPermissionGroup.id,
+          name: teamPermissionGroup.name,
+          is_read_only: teamPermissionGroup.is_read_only === true,
+          is_system: teamPermissionGroup.is_system === true,
+          permissions: teamPermissionGroup.permissions || {}
         } : null
       } : null,
       is_admin: isAdmin,

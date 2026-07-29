@@ -16,7 +16,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useToast } from '@/components/ui/use-toast';
 import { EmptyState } from '@/components/StateViews';
-import { resolveRole, isOfficeStaff, SYSTEM_ROLES } from '@/utils/access';
+import { resolveRole, isOfficeStaff } from '@/utils/access';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
 const ABSENCE_REASONS = [
@@ -110,7 +110,7 @@ export default function StaffProfile() {
   }
 
   const role = resolveRole(staff, staff.is_admin);
-  const roleLabel = SYSTEM_ROLES.find(r => r.value === role)?.label;
+  const roleLabel = staff.permission_group?.name || (role ? role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : null);
   const canAccessAdmin = isOfficeStaff(staff, staff.is_admin);
 
   return (

@@ -64,7 +64,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
   const { lockdownMap, isPageAccessible, isLoading: lockdownLoading } = useSettingsAccess();
 
   // Filter nav items by both the existing role-based access AND the lockdown config.
-  const items = accessibleSettingsItems(role).filter(i => isPageAccessible(i.id, role));
+  const items = accessibleSettingsItems(role, profile).filter(i => isPageAccessible(i.id, role));
 
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
 
@@ -151,7 +151,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
         {/* Persistent sidebar — desktop only */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
           <div className="sticky top-4 bg-white rounded-xl border border-slate-200 shadow-sm p-3 max-h-[calc(100vh-2rem)] overflow-y-auto">
-            <SettingsNav activeId={activeTab} onChange={handleSelect} role={role} lockdownMap={lockdownMap} />
+            <SettingsNav activeId={activeTab} onChange={handleSelect} role={role} lockdownMap={lockdownMap} profile={profile} />
           </div>
         </aside>
 
@@ -169,7 +169,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
           <SheetHeader className="mb-3">
             <SheetTitle className="text-left">Settings Menu</SheetTitle>
           </SheetHeader>
-          <SettingsNav activeId={activeTab} onChange={handleSelect} role={role} lockdownMap={lockdownMap} />
+          <SettingsNav activeId={activeTab} onChange={handleSelect} role={role} lockdownMap={lockdownMap} profile={profile} />
         </SheetContent>
       </Sheet>
     </div>

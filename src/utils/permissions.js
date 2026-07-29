@@ -67,8 +67,8 @@ export function normalizePermissions(p) {
 }
 
 // Built-in system groups, seeded on first load and protected from deletion.
-// These serve as templates in the PermissionGroup Manager; per-person access
-// for office roles is driven by Staff.system_role (see resolveModuleLevel).
+// Each staff member is assigned to a group via Staff.permission_group_id;
+// the group's per-module permissions are the single source of truth for access.
 export const SYSTEM_GROUPS = [
   {
     name: 'Super Admin',
@@ -103,8 +103,8 @@ export const SYSTEM_GROUPS = [
     ),
   },
   {
-    name: 'Field',
-    description: 'Field crew — schedule and personal profile only. No admin dashboard access.',
+    name: 'Field Staff',
+    description: 'Field crew — schedule and personal profile only. No admin dashboard access. Assign to all on-site workers.',
     is_system: true,
     is_read_only: false,
     permissions: Object.fromEntries(PERMISSION_MODULES.map(m => [m.key, 'none'])),
@@ -122,14 +122,12 @@ export const SYSTEM_GROUPS = [
 
 // Resolve the effective access level for a module given a profile + platform flag.
 // Returns 'none' | 'read' | 'write'.
+// The staff member's assigned permission group is the primary source of truth.
 export function resolveModuleLevel(profile, isPlatformAdmin, moduleKey) {
   if (isPlatformAdmin) return 'write';
   if (!profile) return 'none';
-  const role = (isPlatformAdmin || profile.is_admin) ? 'super_admin' : (profile.system_role || 'field');
 
-  // If the staff member has a direct permission group assigned, use it to
-  // resolve module access. This takes precedence over the hardcoded role
-  // checks below, giving admins granular per-module control.
+  // Primary: the staff member's directly-assigned permission group
   if (profile.permission_group) {
     const group = profile.permission_group;
     if (group.is_read_only) {
@@ -139,33 +137,26 @@ export function resolveModuleLevel(profile, isPlatformAdmin, moduleKey) {
     return normalizePermissions(group.permissions)[moduleKey] || 'none';
   }
 
-  // Super Admin and Admin — full write on everything
+  // Fallback: the team's permission group (for staff not yet assigned directly)
+  const teamGroup = profile?.team?.permission_group;
+  if (teamGroup) {
+    if (teamGroup.is_read_only) {
+      const level = normalizePermissions(teamGroup.permissions)[moduleKey];
+      return level === 'none' ? 'none' : 'read';
+    }
+    return normalizePermissions(teamGroup.permissions)[moduleKey] || 'none';
+  }
+
+  // Last resort: role-based defaults (derived from group name by getMyStaffProfile)
+  const role = (isPlatformAdmin || profile.is_admin) ? 'super_admin' : (profile.system_role || 'field');
   if (role === 'super_admin' || role === 'admin') return 'write';
-
-  // Management — write on everything except settings & crew types
-  if (role === 'management') {
-    return ['settings', 'teams'].includes(moduleKey) ? 'none' : 'write';
-  }
-
-  // User — read on basic modules, none on sensitive ones
-  if (role === 'user') {
-    return ['overview', 'jobs', 'calendar', 'audit-trail'].includes(moduleKey) ? 'read' : 'none';
-  }
-
-  // Read Only — read on non-sensitive, none on sensitive
+  if (role === 'management') return ['settings', 'teams'].includes(moduleKey) ? 'none' : 'write';
+  if (role === 'user') return ['overview', 'jobs', 'calendar', 'audit-trail'].includes(moduleKey) ? 'read' : 'none';
   if (role === 'read_only') {
     const sensitive = PERMISSION_MODULES.find(m => m.key === moduleKey)?.sensitive;
     return sensitive ? 'none' : 'read';
   }
-
-  // Field staff — resolve from their team's permission group
-  const group = profile?.team?.permission_group;
-  if (!group) return 'none';
-  if (group.is_read_only) {
-    const level = normalizePermissions(group.permissions)[moduleKey];
-    return level === 'none' ? 'none' : 'read';
-  }
-  return normalizePermissions(group.permissions)[moduleKey] || 'none';
+  return 'none';
 }
 
 // Can the user write (create/update/delete) in this module?

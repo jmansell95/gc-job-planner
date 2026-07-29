@@ -1,21 +1,14 @@
 // Central access control utility.
-// Six roles: Super Admin, Admin, Management, User, Field, Read Only.
-// Super Admin = platform admin (User.role === 'admin'), bypasses everything.
-// The other five roles are set on Staff.system_role and control app-level access.
+// Access is driven by each staff member's assigned Permission Group
+// (Staff.permission_group_id). The platform admin flag (User.role === 'admin')
+// bypasses everything. All other access decisions flow through the group's
+// per-module permissions via resolveModuleLevel.
 
-import { SECTION_TO_MODULE, normalizePermissions, resolveModuleLevel, canWriteModule } from '@/utils/permissions';
+import { SECTION_TO_MODULE, normalizePermissions, resolveModuleLevel, canWriteModule, canReadModule } from '@/utils/permissions';
 
-export const SYSTEM_ROLES = [
-  { value: 'super_admin', label: 'Super Admin', description: 'Unrestricted access to everything including settings, users and platform controls' },
-  { value: 'admin', label: 'Admin', description: 'Full access to the admin dashboard including settings and crew types' },
-  { value: 'management', label: 'Management', description: 'Manage jobs, rotas, timesheets and compliance — no settings or crew types' },
-  { value: 'user', label: 'User', description: 'Basic office access — read-only view of dashboards and jobs' },
-  { value: 'field', label: 'Field', description: 'Field crew — schedule and personal profile only' },
-  { value: 'read_only', label: 'Read Only', description: 'Strict read-only access to dashboards' },
-];
-
-// Admin sections visible to each role. Field staff use their team's
-// PermissionGroup (they can't access the admin dashboard anyway).
+// Admin sections visible to each role (fallback for staff without a directly
+// assigned permission group). When a permission group IS assigned, these are
+// bypassed in favour of the group's per-module permissions.
 export const ROLE_SECTIONS = {
   super_admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety-hub', 'fleet'],
   admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety-hub', 'fleet'],
@@ -36,29 +29,21 @@ export function canAccessSection(profile, sectionId, isPlatformAdmin) {
   // While the profile is still loading, show all standard nav items so the
   // sidebar isn't blank. Items are re-filtered once the profile resolves.
   if (!profile) return true;
-  const role = resolveRole(profile, isPlatformAdmin);
-
-  // Super Admin and Admin see everything regardless of team
-  if (role === 'super_admin' || role === 'admin') return true;
+  if (isPlatformAdmin || profile.is_admin) return true;
 
   // The "My Schedule" link is available to all staff
   if (sectionId === 'staff_schedule') return true;
 
-  // Management, User, Read Only — check against ROLE_SECTIONS
-  if (role === 'management' || role === 'user' || role === 'read_only') {
-    return (ROLE_SECTIONS[role] || []).includes(sectionId);
+  // Primary: check the staff member's assigned permission group
+  const moduleKey = SECTION_TO_MODULE[sectionId];
+  if (moduleKey && (profile.permission_group || profile?.team?.permission_group)) {
+    return canReadModule(profile, isPlatformAdmin, moduleKey);
   }
 
-  // Field staff — fall back to team permission group if present
-  const group = profile?.team?.permission_group;
-  if (group) {
-    const moduleKey = SECTION_TO_MODULE[sectionId];
-    if (moduleKey) {
-      const level = group.is_read_only
-        ? (normalizePermissions(group.permissions)[moduleKey] === 'none' ? 'none' : 'read')
-        : (normalizePermissions(group.permissions)[moduleKey] || 'none');
-      return level !== 'none';
-    }
+  // Fallback: role-based section lists for staff without a permission group
+  const role = resolveRole(profile, isPlatformAdmin);
+  if (role === 'management' || role === 'user' || role === 'read_only') {
+    return (ROLE_SECTIONS[role] || []).includes(sectionId);
   }
 
   return false;
@@ -66,20 +51,31 @@ export function canAccessSection(profile, sectionId, isPlatformAdmin) {
 
 // Check if user has edit permissions (create/update/delete) globally.
 export function canEdit(profile, isPlatformAdmin) {
+  if (isPlatformAdmin || profile?.is_admin) return true;
+  if (profile?.permission_group) {
+    // If any module has write access, the user can edit
+    return Object.values(normalizePermissions(profile.permission_group.permissions)).some(v => v === 'write');
+  }
   const role = resolveRole(profile, isPlatformAdmin);
-  return role === 'super_admin' || role === 'admin' || role === 'management';
+  return role === 'management';
 }
 
 // Check if user can edit (create/update/delete) within a specific admin module.
 export function canEditModule(profile, isPlatformAdmin, sectionId) {
+  if (isPlatformAdmin || profile?.is_admin) return true;
+
+  // Primary: check the staff member's assigned permission group
+  const moduleKey = SECTION_TO_MODULE[sectionId];
+  if (moduleKey && (profile?.permission_group || profile?.team?.permission_group)) {
+    return canWriteModule(profile, isPlatformAdmin, moduleKey);
+  }
+
+  // Fallback: role-based defaults
   const role = resolveRole(profile, isPlatformAdmin);
-  if (role === 'super_admin' || role === 'admin') return true;
   if (role === 'management') {
-    const moduleKey = SECTION_TO_MODULE[sectionId];
     if (moduleKey === 'settings' || moduleKey === 'teams') return false;
     return true;
   }
-  const moduleKey = SECTION_TO_MODULE[sectionId];
   if (!moduleKey) return canEdit(profile, isPlatformAdmin);
   return canWriteModule(profile, isPlatformAdmin, moduleKey);
 }

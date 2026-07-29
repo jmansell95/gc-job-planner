@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Lock } from 'lucide-react';
+import { normalizePermissions } from '@/utils/permissions';
 
 export const settingsGroups = [
   {
@@ -13,7 +14,7 @@ export const settingsGroups = [
     items: [
       { id: 'staff', label: 'Staff Command', icon: Users, desc: 'Manage everything about each crew member — profile, access, compliance, training, schedule & bookings' },
       { id: 'teams', label: 'Crew Types', icon: Users, desc: 'Manage everything about each crew type — capabilities, qualifications, revenue, assets & roster' },
-      { id: 'access-levels', label: 'Access Levels', icon: ShieldCheck, desc: 'Define permission groups (read-only, full access, custom) and assign them to crew types', roles: ['admin'] },
+      { id: 'access-levels', label: 'Permission Groups', icon: ShieldCheck, desc: 'Create permission groups and assign them to each crew member from Staff Command', roles: ['admin'] },
       { id: 'absences', label: 'Absences', icon: CalendarX, desc: 'Approve leave and recurring days off' },
       { id: 'bob-hr', label: 'Bob HR Sync', icon: Users, desc: 'Bidirectional time-off bridge with Bob HR (Hibob) — pull & push leave, webhook receiver for real-time events', roles: ['admin'] },
     ],
@@ -94,19 +95,33 @@ export const allSettingsItems = settingsGroups.flatMap(g => g.items);
 // Items visible to a given resolved role. Items without a `roles` array are
 // admin-only (the default for all existing configuration tabs). Items that
 // managers/viewers need (compliance, log-qc, timesheets) declare `roles`.
-export function accessibleSettingsItems(role) {
+// If the profile has a permission group, the 'settings' module level is
+// checked first — 'none' hides the entire settings area.
+export function accessibleSettingsItems(role, profile) {
   if (!role) return [];
-  // Platform admins resolve to 'super_admin', but settings item roles use
-  // 'admin'. Treat super_admin as admin so they see the same gated tabs.
   const effective = role === 'super_admin' ? 'admin' : role;
+
+  // Permission group gate: if the group grants no access to the settings
+  // module, hide every settings item.
+  if (profile?.permission_group) {
+    const settingsLevel = normalizePermissions(profile.permission_group.permissions).settings;
+    if (settingsLevel === 'none') return [];
+  }
+
   return allSettingsItems.filter(i => !i.roles || i.roles.includes(effective));
 }
 
-export default function SettingsNav({ activeId, onChange, role = 'admin', lockdownMap = {} }) {
+export default function SettingsNav({ activeId, onChange, role = 'admin', lockdownMap = {}, profile }) {
   const [query, setQuery] = useState('');
   const effectiveRole = role === 'super_admin' ? 'admin' : role;
 
-  const roleFiltered = settingsGroups
+  // If the staff member's permission group grants no access to the settings
+  // module, hide every settings item.
+  const settingsHidden = profile?.permission_group
+    ? normalizePermissions(profile.permission_group.permissions).settings === 'none'
+    : false;
+
+  const roleFiltered = settingsHidden ? [] : settingsGroups
     .map(g => ({ ...g, items: g.items.filter(i => !i.roles || i.roles.includes(effectiveRole)) }))
     .filter(g => g.items.length > 0)
     .map(g => ({ ...g, items: g.items.filter(i => !lockdownMap[i.id]?.locked || (lockdownMap[i.id]?.allowedRoles || []).includes(effectiveRole) || effectiveRole === 'admin') }))

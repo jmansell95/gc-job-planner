@@ -19,7 +19,7 @@ export default function PermissionGroupManager({ profile }) {
             tab === 'groups' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
-          <KeyRound className="w-4 h-4" /> Access Levels
+          <KeyRound className="w-4 h-4" /> Permission Groups
         </button>
         <button
           onClick={() => setTab('lockdowns')}
@@ -104,15 +104,15 @@ function GroupsTab() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-emerald-600" />
-          <h2 className="text-lg font-semibold text-slate-800">Access Levels</h2>
+          <h2 className="text-lg font-semibold text-slate-800">Permission Groups</h2>
         </div>
         <button onClick={startNew} className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
-          <Plus className="w-4 h-4" /> New Access Level
+          <Plus className="w-4 h-4" /> New Group
         </button>
       </div>
 
       <p className="text-sm text-slate-500 -mt-2">
-        Define access levels here, then assign them to each crew type. Super Admins always bypass these controls. Use the <strong>Page Lockdowns</strong> tab above to lock individual settings pages.
+        Create access levels here, then assign each crew member to one from Staff Command → Profile. The group controls what they can see and do across the entire app. Use the <strong>Page Lockdowns</strong> tab to lock individual settings pages.
       </p>
 
       {isLoading && <p className="text-sm text-slate-400">Loading…</p>}
@@ -179,7 +179,7 @@ function GroupEditor({ group, onCancel, onSave, saving }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-emerald-600" />
-          <h2 className="text-lg font-semibold text-slate-800">{group.id ? 'Edit Access Level' : 'New Access Level'}</h2>
+          <h2 className="text-lg font-semibold text-slate-800">{group.id ? 'Edit Group' : 'New Group'}</h2>
         </div>
         <button onClick={onCancel} className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
           <X className="w-4 h-4" />
@@ -249,7 +249,7 @@ function GroupEditor({ group, onCancel, onSave, saving }) {
       <div className="flex items-center gap-2">
         <button onClick={() => onSave(form)} disabled={saving || !form.name.trim()}
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition">
-          <Save className="w-4 h-4" /> {saving ? 'Saving…' : 'Save Access Level'}
+          <Save className="w-4 h-4" /> {saving ? 'Saving…' : 'Save Group'}
         </button>
         <button onClick={onCancel} className="px-4 py-2 text-slate-600 bg-slate-100 rounded-lg text-sm font-medium hover:bg-slate-200 transition">
           Cancel
