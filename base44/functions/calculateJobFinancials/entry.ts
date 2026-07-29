@@ -469,7 +469,7 @@ export default async function(req: Request): Promise<Response> {
     const rateCardChargeMap: Record<string, number> = {};
     for (const r of [...(projectRateItems || []), ...(globalItems || [])]) {
       if (r.id) {
-        rateCardCostMap[r.id] = r.cost_price != null ? Number(r.cost_price) : (r.price != null ? Number(r.price) : 0);
+        rateCardCostMap[r.id] = r.cost_price != null ? Number(r.cost_price) : 0;
         rateCardChargeMap[r.id] = r.price != null ? Number(r.price) : 0;
       }
     }
@@ -477,8 +477,13 @@ export default async function(req: Request): Promise<Response> {
     // takes precedence, then the stored unit_cost, then 0.
     const itemInternalCost = (c: any): number => {
       if (c.price_confirmed && c.negotiated_unit_cost != null) return Number(c.negotiated_unit_cost);
+      // Linked rate card: use cost_price (explicit internal cost). If cost_price
+      // is not set, owned items have £0 internal cost (we own them — no hire charge).
       if (c.rate_card_item_id && rateCardCostMap[c.rate_card_item_id] != null) return rateCardCostMap[c.rate_card_item_id];
-      return Number(c.unit_cost) || 0;
+      // No rate card link: hired/purchased unit_cost IS the supplier cost;
+      // owned/labour unit_cost is the charge-out rate, so internal cost = 0.
+      if (c.category === 'hired_equipment' || c.category === 'purchased_equipment') return Number(c.unit_cost) || 0;
+      return 0;
     };
     // Resolve the charge-out (revenue) for a JobCostItem: linked rate card
     // price takes precedence, then the stored unit_cost (which was
@@ -654,6 +659,7 @@ export default async function(req: Request): Promise<Response> {
         status: isOnSite ? 'on_site' : isReturned ? 'returned' : 'assigned',
         day_rate: dayRate,
         day_cost: dayCost,
+        day_rate_revenue: Math.round(dayRate * rigDays * 100) / 100,
         rate_description: rateDesc,
         working_days: rigDays,
         total_cost: cost,
@@ -667,6 +673,18 @@ export default async function(req: Request): Promise<Response> {
       };
     });
     const totalRigCost = rigCostRows.reduce((s, r) => s + r.total_cost, 0);
+
+    // ── Owned items revenue (charge-out) ──
+    // Rigs, owned equipment, and labour items are billed at the charge-out rate
+    // (RateCardItem.price). This is REVENUE, not cost. The internal cost is
+    // cost_price (or 0 if we own it). Only added to revenue for day_rate and
+    // 'none' methods — meterage_rate covers the rig via the per-metre rate.
+    const totalRigRevenue = rigCostRows.reduce((s: number, r: RigProfitability) => s + Math.round(r.day_rate * r.working_days * 100) / 100, 0);
+    const ownedNonRigItems = costItems.filter((c: any) =>
+      (c.category === 'internal_equipment' || c.category === 'labour') && !rigCostItems.includes(c)
+    );
+    const ownedNonRigRevenue = ownedNonRigItems.reduce((s: number, c: any) => s + itemRevenue(c), 0);
+    const ownedItemsRevenue = Math.round((totalRigRevenue + ownedNonRigRevenue) * 100) / 100;
 
     // ── Crew labour cost (from RotaAssignment × staff day rates) ──
     // Crew assigned via the rota but without a labour JobCostItem need their
@@ -757,16 +775,21 @@ export default async function(req: Request): Promise<Response> {
       revenueMethodLabel = `Unit rate (${totalUnits} units × £${Number(job.unit_price) || 0})`;
     } else if (revenueMethod === 'day_rate') {
       const crewDayRateRevenue = crewCostRows.reduce((s: number, r: CrewCostRow) => s + r.day_rate * (r.standard_days + r.overtime_days * r.overtime_multiplier), 0);
-      const labourDayRateRevenue = costItems.filter((c: any) => c.category === 'labour').reduce((s: number, c: any) => s + itemRevenue(c), 0);
-      totalRevenueNet = Math.round((crewDayRateRevenue + labourDayRateRevenue) * 100) / 100 + totalSorRevenueNet + additionalCharges + subconClientChargeNet + hireClientChargeNet;
-      revenueMethodLabel = 'Day rate (crew day rates × working days)';
-    } else {
-      totalRevenueNet = meterageRevenue + totalSorRevenueNet + additionalCharges + subconClientChargeNet + hireClientChargeNet;
-      revenueMethodLabel = meterageRate > 0 ? 'Meterage rate' : 'Meterage + SOR';
-      if (revenueMethod === 'none' && totalRevenueNet === 0 && totalCostNet > 0 && Number(job.markup_percentage) > 0) {
+      totalRevenueNet = Math.round((crewDayRateRevenue + ownedItemsRevenue) * 100) / 100 + totalSorRevenueNet + additionalCharges + subconClientChargeNet + hireClientChargeNet;
+      revenueMethodLabel = 'Day rate (crew + rig/equipment day rates × working days)';
+    } else if (revenueMethod === 'none') {
+      // 'none' — owned items billed at charge-out (revenue) + SOR + charges.
+      // Falls back to cost + markup only when there are no billable owned items.
+      totalRevenueNet = ownedItemsRevenue + totalSorRevenueNet + additionalCharges + subconClientChargeNet + hireClientChargeNet;
+      revenueMethodLabel = ownedItemsRevenue > 0 ? 'Billable items + SOR' : 'Meterage + SOR';
+      if (totalRevenueNet === 0 && totalCostNet > 0 && Number(job.markup_percentage) > 0) {
         totalRevenueNet = Math.round(totalCostNet * (1 + Number(job.markup_percentage) / 100) * 100) / 100 + subconClientChargeNet;
         revenueMethodLabel = `Cost + ${Number(job.markup_percentage)}% markup`;
       }
+    } else {
+      // meterage_rate — meterage covers the rig; owned items are not extra revenue.
+      totalRevenueNet = meterageRevenue + totalSorRevenueNet + additionalCharges + subconClientChargeNet + hireClientChargeNet;
+      revenueMethodLabel = meterageRate > 0 ? 'Meterage rate' : 'Meterage + SOR';
     }
 
     const revenueVat = totalRevenueNet * (vatRate / 100);
@@ -834,6 +857,7 @@ export default async function(req: Request): Promise<Response> {
         additional_charges: Math.round(additionalCharges * 100) / 100,
         hire_client_charge_net: Math.round(hireClientChargeNet * 100) / 100,
         subcon_client_charge_net: Math.round(subconClientChargeNet * 100) / 100,
+        owned_items_revenue: Math.round(ownedItemsRevenue * 100) / 100,
         labour_items_cost: Math.round(labourItemsNet * 100) / 100,
         crew_cost: Math.round(totalCrewCost * 100) / 100,
         revenue_method: revenueMethod,

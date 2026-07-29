@@ -226,6 +226,7 @@ export default function AutoFinancialsBreakdown({ job }) {
           {s.additional_charges > 0 && <RevComponent label="Delivery/Task" value={s.additional_charges} />}
           {s.subcon_client_charge_net > 0 && <RevComponent label="Sub-con sell" value={s.subcon_client_charge_net} />}
           {s.hire_client_charge_net > 0 && <RevComponent label="Plant hire" value={s.hire_client_charge_net} />}
+          {s.owned_items_revenue > 0 && (s.revenue_method === 'day_rate' || s.revenue_method === 'none') && <RevComponent label="Rig & equipment" value={s.owned_items_revenue} />}
           {s.revenue_method === 'flat_fee' && <RevComponent label="Flat fee" value={Number(job.client_charge) || 0} />}
         </div>
       </div>
@@ -330,21 +331,25 @@ export default function AutoFinancialsBreakdown({ job }) {
                       {r.status === 'assigned' && (
                         <p className="text-[10px] text-amber-600 mb-1.5">No costs yet — rig not delivered to site</p>
                       )}
-                      <div className="grid grid-cols-5 gap-2 text-xs">
+                      <div className="grid grid-cols-6 gap-2 text-xs">
                         <div>
                           <p className="text-[9px] text-slate-400 uppercase">Charge Out</p>
                           <p className="font-semibold text-slate-700">{fmt(r.day_rate)}</p>
                         </div>
                         <div>
                           <p className="text-[9px] text-amber-500 uppercase">Int. Cost/day</p>
-                          <p className="font-semibold text-amber-700">{fmt(r.day_cost ?? r.day_rate)}</p>
+                          <p className="font-semibold text-amber-700">{fmt(r.day_cost)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-emerald-500 uppercase">Day Rate Rev</p>
+                          <p className="font-semibold text-emerald-700">{fmt(r.day_rate_revenue)}</p>
                         </div>
                         <div>
                           <p className="text-[9px] text-slate-400 uppercase">Metres</p>
                           <p className="font-semibold text-slate-700">{r.metres_drilled.toFixed(1)}m</p>
                         </div>
                         <div>
-                          <p className="text-[9px] text-slate-400 uppercase">Revenue</p>
+                          <p className="text-[9px] text-slate-400 uppercase">Metre Rev</p>
                           <p className="font-semibold text-emerald-700">{fmt(r.meterage_revenue)}</p>
                         </div>
                         <div>
@@ -355,7 +360,7 @@ export default function AutoFinancialsBreakdown({ job }) {
                       {r.boreholes.length > 0 && (
                         <p className="text-[10px] text-slate-400 mt-1">Boreholes: {r.boreholes.join(', ')}</p>
                       )}
-                      <p className="text-[10px] text-slate-400 mt-0.5">{r.rate_description} · {fmt(r.day_cost ?? r.day_rate)}/day cost × {r.working_days}d on site = {fmt(r.total_cost)} cost</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{r.rate_description} · {fmt(r.day_cost)}/day cost × {r.working_days}d on site = {fmt(r.total_cost)} cost · {fmt(r.day_rate)}/day charge-out × {r.working_days}d = {fmt(r.day_rate_revenue)} revenue</p>
                     </div>
                   ))}
                 </div>
