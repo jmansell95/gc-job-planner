@@ -79,33 +79,17 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           );
         })}
       </div>
-      {/* Compact action cluster — tightened to fit without scrolling */}
+      {/* Compact action cluster — single row of quick actions */}
       <div className="px-3 pt-2 pb-2 border-t border-white/10 space-y-1.5">
         <GlobalSearch />
-        <button onClick={openDrillingIntelligence} type="button"
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
-          <span className="w-6 h-6 rounded-md bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0">
-            <HardHat className="w-3.5 h-3.5 text-white" />
-          </span>
-          <span className="text-left">
-            <span className="block text-xs font-semibold leading-tight">Drilling Intelligence</span>
-            <span className="block text-[10px] text-white/55 leading-tight">Hazard &amp; log analysis</span>
-          </span>
-        </button>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-5 gap-1.5">
           <button onClick={openChat} type="button" title="Ask Assistant"
             className="flex items-center justify-center py-2 rounded-lg command-gradient text-white hover:brightness-110 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-sm">
             <Sparkles className="w-4 h-4" />
           </button>
-          {canViewSchedule && (
-            <button onClick={() => navigate('/staff-schedule')} type="button" title="My Schedule"
-              className="flex items-center justify-center py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
-              <CalendarDays className="w-4 h-4" />
-            </button>
-          )}
-          <button onClick={() => navigate('/staff-profile')} type="button" title="My Profile"
+          <button onClick={openDrillingIntelligence} type="button" title="Drilling Intelligence"
             className="flex items-center justify-center py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
-            <User className="w-4 h-4" />
+            <HardHat className="w-4 h-4" />
           </button>
           <button onClick={() => setNotifOpen(true)} type="button" title="Notifications"
             className="relative flex items-center justify-center py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
@@ -126,7 +110,20 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           </button>
         </div>
       </div>
+      {/* Personal links + system actions */}
       <div className="px-3 py-2 border-t border-white/10 space-y-0.5">
+        {canViewSchedule && (
+          <button type="button" onClick={() => navigate('/staff-schedule')}
+            className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
+            <CalendarDays className="w-[18px] h-[18px] flex-shrink-0" />
+            <span>My Schedule</span>
+          </button>
+        )}
+        <button type="button" onClick={() => navigate('/staff-profile')}
+          className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
+          <User className="w-[18px] h-[18px] flex-shrink-0" />
+          <span>My Profile</span>
+        </button>
         <button type="button" onClick={() => navigate('/help')}
           className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
           <HelpCircle className="w-[18px] h-[18px] flex-shrink-0" />
