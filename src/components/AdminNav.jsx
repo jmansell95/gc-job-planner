@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine, User, Boxes } from 'lucide-react';
+import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine, User, Truck, Boxes } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -117,9 +117,9 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             className="flex items-center justify-center py-2.5 rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <ScanLine className="w-4 h-4" />
           </button>
-          <button onClick={() => navigate('/rig-hub')} type="button" title="Rig Hub"
+          <button onClick={() => navigate('/deliveries')} type="button" title="Deliveries"
             className="flex items-center justify-center py-2.5 rounded-lg bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white hover:brightness-110 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-sm">
-            <Boxes className="w-4 h-4" />
+            <Truck className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -199,7 +199,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         onAssistant={openChat}
         onDrillingIntelligence={() => { openDrillingIntelligence(); setDrawerOpen(false); }}
         onAssetLens={() => { setLensOpen(true); setDrawerOpen(false); }}
-        onRigHub={() => { navigate('/rig-hub'); setDrawerOpen(false); }}
+        onDeliveries={() => { navigate('/deliveries'); setDrawerOpen(false); }}
         onHelp={() => { navigate('/help'); setDrawerOpen(false); }}
         onProfile={() => { navigate('/staff-profile'); setDrawerOpen(false); }}
       />

@@ -169,7 +169,7 @@ export default function JobManager({ onNavigateRota }) {
             <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Jobs List" />
             <button
               onClick={() => { setEditingJob(null); setShowWizard(true); }}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-[#2E5A1A] rounded-lg hover:bg-[#2E5A1A]/10 transition text-sm font-semibold shadow-sm"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-white text-[#2E5A1A] rounded-lg hover:bg-[#2E5A1A] hover:text-white transition text-sm font-semibold shadow-sm"
             >
               <Plus className="w-4 h-4" /> Add Job
             </button>
@@ -203,7 +203,7 @@ export default function JobManager({ onNavigateRota }) {
         <>
           {/* Summary stats — reflect active filters */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-            <StatCard icon={Briefcase} value={stats.total} label="Showing" gradient="stat-gradient-slate" />
+            <StatCard icon={Briefcase} value={jobs.length} label="Total Jobs" gradient="stat-gradient-slate" />
             <StatCard icon={Briefcase} value={stats.in_progress} label="In Progress" gradient="stat-gradient-emerald" />
             <StatCard icon={Briefcase} value={stats.planning} label="Planning" gradient="stat-gradient-blue" />
             <StatCard icon={Briefcase} value={stats.completed} label="Completed" gradient="stat-gradient-cyan" />

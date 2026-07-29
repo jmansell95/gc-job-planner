@@ -303,7 +303,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                   </button>
                 </>
               ) : (
-                <button onClick={handleExitCustomize} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-[#2E5A1A] rounded-lg hover:bg-[#2E5A1A]/10 transition text-sm font-semibold shadow-sm w-full sm:w-auto">
+                <button onClick={handleExitCustomize} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-[#2E5A1A] rounded-lg hover:bg-[#2E5A1A] hover:text-white transition text-sm font-semibold shadow-sm w-full sm:w-auto">
                   <Check className="w-4 h-4" /> Done
                 </button>
               )}

@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, LogOut, HelpCircle, User, CalendarDays, HardHat, ScanLine, Boxes } from 'lucide-react';
+import { X, Sparkles, LogOut, HelpCircle, User, CalendarDays, HardHat, ScanLine, Truck } from 'lucide-react';
 import Logo from '@/components/Logo';
 
-export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onHelp, onProfile, onDrillingIntelligence, onAssetLens, onRigHub }) {
+export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onHelp, onProfile, onDrillingIntelligence, onAssetLens, onDeliveries }) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -60,11 +60,11 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
                     <span className="text-[10px] font-medium leading-tight text-center">Asset Lens</span>
                   </button>
                 )}
-                {onRigHub && (
-                  <button onClick={onRigHub} type="button"
+                {onDeliveries && (
+                  <button onClick={onDeliveries} type="button"
                     className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white hover:brightness-110 active:scale-[0.98] transition touch-manipulation select-none shadow-sm">
-                    <Boxes className="w-4 h-4" />
-                    <span className="text-[10px] font-medium leading-tight text-center">Rig Hub</span>
+                    <Truck className="w-4 h-4" />
+                    <span className="text-[10px] font-medium leading-tight text-center">Deliveries</span>
                   </button>
                 )}
               </div>

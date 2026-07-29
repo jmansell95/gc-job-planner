@@ -163,24 +163,8 @@ export default function JobDetailTabs({
           </div>
         )}
 
-        {/* Quick info grid — compact cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <InfoCard icon={Briefcase} iconBg="bg-[#2E5A1A]/10" title="Job Info">
-            <div className="space-y-2 text-sm">
-              <Field label="Type">
-                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`}></span>
-                  {getJobTypeLabel(primaryType, jobTypes)}
-                </span>
-              </Field>
-              <Field label="Status">
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']}`}>{statusLabels[job.status || 'planning']}</span>
-              </Field>
-              {job.job_reference && <Field label="Reference"><p className="text-sm">{job.job_reference}</p></Field>}
-              {startDate && <Field label="Duration"><p className="text-sm">{format(startDate, 'dd MMM yyyy')} → {endDate ? format(endDate, 'dd MMM yyyy') : 'TBC'}</p></Field>}
-            </div>
-          </InfoCard>
-
+        {/* Quick info grid — compact cards (header already shows job type, status, reference, dates) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <InfoCard icon={User} iconBg="bg-blue-50" title="Contacts">
             <div className="space-y-2 text-sm">
               <Field label="Project Manager">{job.project_manager ? <p className="text-slate-700">{job.project_manager}</p> : <EmptyField />}</Field>
