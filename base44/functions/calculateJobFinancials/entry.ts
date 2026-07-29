@@ -771,7 +771,7 @@ export default async function(req: Request): Promise<Response> {
       revenueMethodLabel = 'Flat fee (client charge)';
     } else if (revenueMethod === 'unit_rate') {
       const totalUnits = logs.reduce((s: number, l: any) => s + (Number(l.units_completed) || 0), 0);
-      totalRevenueNet = Math.round(totalUnits * (Number(job.unit_price) || 0) * 100) / 100 + totalSorRevenueNet + additionalCharges + subconClientChargeNet + hireClientChargeNet;
+      totalRevenueNet = Math.round(totalUnits * (Number(job.unit_price) || 0) * 100) / 100 + ownedItemsRevenue + totalSorRevenueNet + additionalCharges + subconClientChargeNet + hireClientChargeNet;
       revenueMethodLabel = `Unit rate (${totalUnits} units × £${Number(job.unit_price) || 0})`;
     } else if (revenueMethod === 'day_rate') {
       const crewDayRateRevenue = crewCostRows.reduce((s: number, r: CrewCostRow) => s + r.day_rate * (r.standard_days + r.overtime_days * r.overtime_multiplier), 0);
@@ -787,9 +787,10 @@ export default async function(req: Request): Promise<Response> {
         revenueMethodLabel = `Cost + ${Number(job.markup_percentage)}% markup`;
       }
     } else {
-      // meterage_rate — meterage covers the rig; owned items are not extra revenue.
-      totalRevenueNet = meterageRevenue + totalSorRevenueNet + additionalCharges + subconClientChargeNet + hireClientChargeNet;
-      revenueMethodLabel = meterageRate > 0 ? 'Meterage rate' : 'Meterage + SOR';
+      // meterage_rate — meterage covers drilling (per metre); rig/equipment day
+      // rates are separate revenue on top (charge-out × days on site).
+      totalRevenueNet = meterageRevenue + ownedItemsRevenue + totalSorRevenueNet + additionalCharges + subconClientChargeNet + hireClientChargeNet;
+      revenueMethodLabel = meterageRate > 0 ? 'Meterage + day rates' : 'Day rates + SOR';
     }
 
     const revenueVat = totalRevenueNet * (vatRate / 100);

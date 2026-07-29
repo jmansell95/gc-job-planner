@@ -226,7 +226,7 @@ export default function AutoFinancialsBreakdown({ job }) {
           {s.additional_charges > 0 && <RevComponent label="Delivery/Task" value={s.additional_charges} />}
           {s.subcon_client_charge_net > 0 && <RevComponent label="Sub-con sell" value={s.subcon_client_charge_net} />}
           {s.hire_client_charge_net > 0 && <RevComponent label="Plant hire" value={s.hire_client_charge_net} />}
-          {s.owned_items_revenue > 0 && (s.revenue_method === 'day_rate' || s.revenue_method === 'none') && <RevComponent label="Rig & equipment" value={s.owned_items_revenue} />}
+          {s.owned_items_revenue > 0 && s.revenue_method !== 'flat_fee' && <RevComponent label="Rig & equipment" value={s.owned_items_revenue} />}
           {s.revenue_method === 'flat_fee' && <RevComponent label="Flat fee" value={Number(job.client_charge) || 0} />}
         </div>
       </div>
