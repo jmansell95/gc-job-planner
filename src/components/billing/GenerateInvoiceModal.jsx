@@ -15,18 +15,39 @@ const gbp = (n) => '£' + (Math.round((Number(n) || 0) * 100) / 100).toLocaleStr
  * Each line: { description, quantity, unit_label, unit_cost, line_total, category }
  */
 export function buildInvoiceLines(job, data) {
-  const { costItems = [], hotelBookings = [], deliveries = [], timesheets = [], invLogs = [], rigAssignments = [], rateItems = [] } = data;
+  const { costItems = [], hotelBookings = [], deliveries = [], timesheets = [], invLogs = [], rigAssignments = [], rateItems = [], siteAssets = [] } = data;
   const lines = [];
 
-  // Equipment & labour cost items (exclude client/contractor supplied — no charge)
-  const chargeableCost = costItems.filter((c) => c.category !== 'client_supplied' && c.category !== 'contractor_supplied' && (Number(c.unit_cost) || 0) > 0);
+  // Identify rig cost items so they can be excluded from the equipment lines
+  // (rigs are costed separately via day rate × working days on the job detail page)
+  const siteAssetMap = {};
+  (siteAssets || []).forEach((a) => { siteAssetMap[a.id] = a; });
+  const isRigItem = (c) => {
+    if (!c.site_asset_id) return false;
+    const a = siteAssetMap[c.site_asset_id];
+    return a && (a.is_rig === true || a.asset_type === 'rig');
+  };
+
+  // Equipment & labour cost items — use negotiated price when confirmed (POA items)
+  const chargeableCost = costItems.filter((c) =>
+    c.category !== 'client_supplied' &&
+    c.category !== 'contractor_supplied' &&
+    !isRigItem(c) &&
+    (
+      (c.price_confirmed && c.negotiated_unit_cost != null ? Number(c.negotiated_unit_cost) : (Number(c.unit_cost) || 0)) > 0
+    )
+  );
   chargeableCost.forEach((c) => {
+    const unitCost = c.price_confirmed && c.negotiated_unit_cost != null
+      ? Number(c.negotiated_unit_cost)
+      : (Number(c.unit_cost) || 0);
+    const qty = Number(c.quantity) || 1;
     lines.push({
       description: c.description || c.reference_number || 'Equipment',
-      quantity: Number(c.quantity) || 1,
+      quantity: qty,
       unit_label: c.unit_label || 'each',
-      unit_cost: Number(c.unit_cost) || 0,
-      line_total: (Number(c.unit_cost) || 0) * (Number(c.quantity) || 1),
+      unit_cost: unitCost,
+      line_total: unitCost * qty,
       category: c.category === 'labour' ? 'Labour' : 'Equipment',
     });
   });
@@ -85,7 +106,9 @@ export function buildInvoiceLines(job, data) {
     const price = Number(job.unit_price) || 0;
     lines.push({ description: `Units completed — ${units} ${job.meterage ? '' : ''}`, quantity: units, unit_label: 'unit', unit_cost: price, line_total: units * price, category: 'Unit rate' });
   } else if (method === 'day_rate') {
-    lines.push({ description: 'Crew day rates (per rig assignment)', quantity: rigAssignments.length, unit_label: 'rig', unit_cost: 0, line_total: 0, category: 'Day rate — see report' });
+    // Only rig assignments are billable under day-rate billing
+    const rigs = (rigAssignments || []).filter((a) => a.asset_type === 'rig');
+    lines.push({ description: 'Crew day rates (per rig assignment)', quantity: rigs.length, unit_label: 'rig', unit_cost: 0, line_total: 0, category: 'Day rate — see report' });
   } else if (method === 'flat_fee') {
     lines.push({ description: 'Project fee (agreed flat fee)', quantity: 1, unit_label: 'sum', unit_cost: Number(job.client_charge) || 0, line_total: Number(job.client_charge) || 0, category: 'Flat fee' });
   }

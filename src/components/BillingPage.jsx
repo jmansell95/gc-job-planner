@@ -92,6 +92,9 @@ export default function BillingPage({ onSelectJob }) {
       return all.filter((r) => r.unit === 'day' && r.price != null);
     },
   });
+  const { data: rotas = [] } = useQuery({ queryKey: ['billing-rotas'], queryFn: () => base44.entities.RotaAssignment.list() });
+  const { data: siteAssets = [] } = useQuery({ queryKey: ['billing-site-assets'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
+  const { data: staffRecords = [] } = useQuery({ queryKey: ['billing-staff'], queryFn: () => base44.entities.Staff.list('-created_date', 500) });
 
   const clientById = useMemo(() => Object.fromEntries(clients.map((c) => [c.id, c])), [clients]);
 
@@ -102,6 +105,7 @@ export default function BillingPage({ onSelectJob }) {
     const byTimesheet = groupByJob(timesheets);
     const byInv = groupByJob(invLogs);
     const byRig = groupByJob(rigAssignments);
+    const byRota = groupByJob(rotas);
     return jobs.map((job) => computeBillingRow(job, {
       costItems: byCost[job.id] || [],
       hotelBookings: byHotel[job.id] || [],
@@ -110,8 +114,11 @@ export default function BillingPage({ onSelectJob }) {
       invLogs: byInv[job.id] || [],
       rigAssignments: byRig[job.id] || [],
       rateItems,
+      rotas: byRota[job.id] || [],
+      siteAssets,
+      staffRecords,
     }));
-  }, [jobs, costItems, hotelBookings, deliveries, timesheets, invLogs, rigAssignments, rateItems]);
+  }, [jobs, costItems, hotelBookings, deliveries, timesheets, invLogs, rigAssignments, rateItems, rotas, siteAssets, staffRecords]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -173,6 +180,9 @@ export default function BillingPage({ onSelectJob }) {
     invLogs: (groupByJob(invLogs)[job.id]) || [],
     rigAssignments: (groupByJob(rigAssignments)[job.id]) || [],
     rateItems,
+    rotas: (groupByJob(rotas)[job.id]) || [],
+    siteAssets,
+    staffRecords,
   });
 
   const openInvoice = (job) => {
@@ -183,7 +193,8 @@ export default function BillingPage({ onSelectJob }) {
   const exportCsv = () => {
     const headers = [
       'Job Reference', 'Job Name', 'Client', 'Status', 'Billing Method',
-      'Net Cost', 'Cost VAT', 'Cost Gross', 'Delivery & Task Charges',
+      'Equipment & Hotel', 'Rig Cost', 'Crew Cost', 'Net Cost', 'Cost VAT', 'Cost Gross',
+      'Delivery & Task Charges',
       'Revenue Net', 'Revenue VAT', 'Invoice Total',
     ];
     const lines = filtered.map((r) => {
@@ -194,6 +205,9 @@ export default function BillingPage({ onSelectJob }) {
         client,
         statusLabel(r.job.status),
         r.revenueLabel,
+        (r.equipmentNet + r.hotelNet).toFixed(2),
+        r.rigCost.toFixed(2),
+        r.crewCost.toFixed(2),
         r.totalCostNet.toFixed(2),
         r.totalCostVat.toFixed(2),
         r.totalCostGross.toFixed(2),
@@ -379,6 +393,9 @@ export default function BillingPage({ onSelectJob }) {
                     <th className="text-left px-4 py-2.5 font-medium">Client</th>
                     <th className="text-left px-4 py-2.5 font-medium">Status</th>
                     <th className="text-left px-4 py-2.5 font-medium">Method</th>
+                    <th className="text-right px-4 py-2.5 font-medium">Equipment</th>
+                    <th className="text-right px-4 py-2.5 font-medium">Rig</th>
+                    <th className="text-right px-4 py-2.5 font-medium">Crew</th>
                     <th className="text-right px-4 py-2.5 font-medium">Net Cost</th>
                     <th className="text-right px-4 py-2.5 font-medium">VAT</th>
                     <th className="text-right px-4 py-2.5 font-medium">Invoice Total</th>
@@ -404,8 +421,16 @@ export default function BillingPage({ onSelectJob }) {
                       <td className="px-4 py-3">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyle(r.job.status)}`}>{statusLabel(r.job.status)}</span>
                       </td>
-                      <td className="px-4 py-3 text-slate-500">{r.revenueLabel}</td>
-                      <td className="px-4 py-3 text-right text-slate-600">{fmt(r.totalCostNet)}</td>
+                      <td className="px-4 py-3 text-slate-500">
+                        {r.revenueLabel}
+                        {r.revenueNet === 0 && r.method === 'meterage_rate' && (
+                          <span className="block text-[9px] text-amber-600 font-semibold mt-0.5">⚠ No rate set</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right text-slate-500">{fmt(r.equipmentNet + r.hotelNet)}</td>
+                      <td className="px-4 py-3 text-right text-slate-500">{fmt(r.rigCost)}</td>
+                      <td className="px-4 py-3 text-right text-slate-500">{fmt(r.crewCost)}</td>
+                      <td className="px-4 py-3 text-right text-slate-600 font-medium">{fmt(r.totalCostNet)}</td>
                       <td className="px-4 py-3 text-right text-slate-500">{fmt(r.revenueVat)}</td>
                       <td className="px-4 py-3 text-right font-bold text-[#2E5A1A]">{fmt(r.revenueGross)}</td>
                       <td className="px-4 py-3 text-right">
