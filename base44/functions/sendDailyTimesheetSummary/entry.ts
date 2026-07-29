@@ -70,21 +70,38 @@ Deno.serve(async (req) => {
     }
 
     const baseUrl = await getAppBaseUrl(base44);
-    const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'staff_schedule' });
+    const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'timesheet_summary' });
     const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+    if (cfg.enabled === false) return Response.json({ skipped: true, reason: 'Email alert disabled' });
 
     const fmtRows = (rows) => rows.length > 0
       ? rows.map(r => '   • ' + r.name + ' — ' + r.jobName + (r.submittedAt ? ' (submitted ' + r.submittedAt + ')' : r.arrivedAt ? ' (arrived ' + r.arrivedAt + ')' : '') + (r.earlyLeave ? ' [left early: ' + (r.earlyLeaveReason || '—') + ']' : '')).join('\n')
       : '   None';
 
-    const bodyText =
-      'Daily timesheet summary for ' + todayStr + ':\n\n' +
-      'SUBMITTED (' + submitted.length + '):\n' + fmtRows(submitted) + '\n\n' +
-      'IN PROGRESS (' + inProgress.length + '):\n' + fmtRows(inProgress) + '\n\n' +
-      'NOT STARTED (' + notStarted.length + '):\n' + fmtRows(notStarted) + '\n\n' +
-      'Review and approve pending timesheets in the Timesheets page.\n\nGC Job Planner';
+    let text;
+    if (cfg.template) {
+      text = cfg.template
+        .replace(/\{date\}/g, todayStr)
+        .replace(/\{submitted_count\}/g, String(submitted.length))
+        .replace(/\{in_progress_count\}/g, String(inProgress.length))
+        .replace(/\{not_started_count\}/g, String(notStarted.length))
+        .replace(/\{submitted_list\}/g, fmtRows(submitted))
+        .replace(/\{in_progress_list\}/g, fmtRows(inProgress))
+        .replace(/\{not_started_list\}/g, fmtRows(notStarted));
+    } else {
+      const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+      text = intro +
+        'Daily timesheet summary for ' + todayStr + ':\n\n' +
+        'SUBMITTED (' + submitted.length + '):\n' + fmtRows(submitted) + '\n\n' +
+        'IN PROGRESS (' + inProgress.length + '):\n' + fmtRows(inProgress) + '\n\n' +
+        'NOT STARTED (' + notStarted.length + '):\n' + fmtRows(notStarted) + '\n\n' +
+        'Review and approve pending timesheets in the Timesheets page.\n\nGC Job Planner';
+    }
+    const subject = cfg.subject
+      ? cfg.subject.replace(/\{date\}/g, todayStr)
+      : 'Daily timesheet summary — ' + todayStr;
 
-    const bodyHtml = escapeHtml(bodyText).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open Timesheets');
+    const bodyHtml = escapeHtml(text).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open Timesheets');
 
     let sent = 0;
     const errors = [];
@@ -92,7 +109,7 @@ Deno.serve(async (req) => {
       try {
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: email,
-          subject: 'Daily timesheet summary — ' + todayStr,
+          subject,
           body: styledHtml(bodyHtml, cfg)
         });
         sent++;

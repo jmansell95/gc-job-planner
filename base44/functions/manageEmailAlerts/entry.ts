@@ -12,7 +12,10 @@ const DEFAULTS = [
   { alert_key: 'maintenance_booking', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
   { alert_key: 'training_booking', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
   { alert_key: 'daily_reminder', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'compliance_expiry', enabled: true, recipient_emails: '', days_before_warning: 30, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
+  { alert_key: 'compliance_expiry', enabled: true, recipient_emails: '', days_before_warning: 30, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'daily_standup', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'timesheet_summary', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'milestone_push', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
 ];
 
 function escapeHtml(s) {
@@ -147,6 +150,40 @@ function renderTestTemplate(alert_key, template) {
       .replace(/\{today_date\}/g, '2026-07-10')
       .replace(/\{assignment_list\}/g, '   - Sample Job - Sample Site, London - 07:00-17:00 - AB12 CDE\n   - Second Job - Another Site, Bath - 07:00-17:00');
   }
+  if (alert_key === 'daily_standup') {
+    const rigLines = '   • Rig 1 — overdue (next: 2026-07-25)\n   • Rig 2 — due_soon (next: 2026-08-10)';
+    const safetyLines = '   • [CRITICAL] Secure loose heras fencing (due 2026-07-30)';
+    const vehicleLines = '   • Van 01 — MOT 2026-07-20, service 2026-08-15';
+    return template
+      .replace(/\{date\}/g, 'Wednesday 10 July 2026')
+      .replace(/\{crew_on_site\}/g, '8')
+      .replace(/\{active_jobs\}/g, '3')
+      .replace(/\{rig_alert_count\}/g, '2')
+      .replace(/\{rig_alerts\}/g, rigLines)
+      .replace(/\{safety_action_count\}/g, '1')
+      .replace(/\{safety_actions\}/g, safetyLines)
+      .replace(/\{vehicle_alert_count\}/g, '1')
+      .replace(/\{vehicle_alerts\}/g, vehicleLines);
+  }
+  if (alert_key === 'timesheet_summary') {
+    return template
+      .replace(/\{date\}/g, '2026-07-10')
+      .replace(/\{submitted_count\}/g, '1')
+      .replace(/\{in_progress_count\}/g, '1')
+      .replace(/\{not_started_count\}/g, '1')
+      .replace(/\{submitted_list\}/g, '   • John Smith — Sample Job (submitted 16:30)')
+      .replace(/\{in_progress_list\}/g, '   • Jane Doe — Second Job (arrived 08:15)')
+      .replace(/\{not_started_list\}/g, '   • Bob Lee — Third Job');
+  }
+  if (alert_key === 'milestone_push') {
+    return template
+      .replace(/\{milestone\}/g, '✅ BH01 completed (5.0m–12.5m) on 2026-07-10. Sample borehole completed to target depth.')
+      .replace(/\{job_name\}/g, 'Sample Job')
+      .replace(/\{job_reference\}/g, 'JOB-001')
+      .replace(/\{location\}/g, 'Sample Site, London')
+      .replace(/\{reviewed_by\}/g, 'John Smith')
+      .replace(/\{borehole_ref\}/g, 'BH01');
+  }
   return template
     .replace(/\{staff_name\}/g, 'John Smith')
     .replace(/\{job_name\}/g, 'Sample Job')
@@ -246,7 +283,7 @@ Deno.serve(async (req) => {
       if (recipients.length === 0) {
         return Response.json({ error: 'No recipients configured' }, { status: 400 });
       }
-      const defaultSubjects = { vehicle_maintenance: 'Vehicle Maintenance Alert (Test)', assignment_notification: 'New Job Assignment (Test)', staff_schedule: 'Weekly Schedule (Test)', staff_invitation: 'App Invitation (Test)', absence_request: 'Absence Request (Test)', job_status_change: 'Job Status Updated (Test)', new_job: 'New Job Created (Test)', timesheet_submitted: 'Timesheet Submitted (Test)', maintenance_booking: 'Maintenance Booking (Test)', training_booking: 'Training Booking (Test)', daily_reminder: 'Daily Schedule Reminder (Test)', compliance_expiry: 'Compliance Expiry Alert (Test)' };
+      const defaultSubjects = { vehicle_maintenance: 'Vehicle Maintenance Alert (Test)', assignment_notification: 'New Job Assignment (Test)', staff_schedule: 'Weekly Schedule (Test)', staff_invitation: 'App Invitation (Test)', absence_request: 'Absence Request (Test)', job_status_change: 'Job Status Updated (Test)', new_job: 'New Job Created (Test)', timesheet_submitted: 'Timesheet Submitted (Test)', maintenance_booking: 'Maintenance Booking (Test)', training_booking: 'Training Booking (Test)', daily_reminder: 'Daily Schedule Reminder (Test)', compliance_expiry: 'Compliance Expiry Alert (Test)', daily_standup: 'Daily Stand-up (Test)', timesheet_summary: 'Timesheet Summary (Test)', milestone_push: 'Milestone Completed (Test)' };
       const subject = cfg.subject || defaultSubjects[alert_key] || 'Alert (Test)';
       const text = renderTestTemplate(alert_key, cfg.template);
       const baseUrl = await getAppBaseUrl(base44);

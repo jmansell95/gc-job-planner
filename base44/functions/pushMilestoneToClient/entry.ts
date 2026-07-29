@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { escapeHtml, linkBlock, styledHtml, getAppBaseUrl } from '../../shared/emailStyling.ts';
 
 // Milestone Auto-Push — when an investigation log (borehole/pit completion) is
 // approved by a manager, this function publishes a client-facing milestone
@@ -46,12 +47,42 @@ export default async function(req) {
     let emailed = false;
     if (job.project_manager) {
       try {
-        await base44.integrations.Core.SendEmail({
-          to: job.project_manager,
-          subject: `Milestone completed: ${ref} on ${job.name}`,
-          body: `${summary}\n\nJob: ${job.name} (${job.job_reference || 'no ref'})\nLocation: ${job.location || 'N/A'}\nReviewed by: ${log.manager_reviewed_by || 'Manager'}\n\nThis milestone has been published to the client portal automatically.`,
-        });
-        emailed = true;
+        const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'milestone_push' });
+        const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+        if (cfg.enabled !== false) {
+          const tok = {
+            milestone: summary,
+            job_name: job.name || '—',
+            job_reference: job.job_reference || 'no ref',
+            location: job.location || 'N/A',
+            reviewed_by: log.manager_reviewed_by || 'Manager',
+            borehole_ref: ref
+          };
+          let text;
+          if (cfg.template) {
+            text = cfg.template
+              .replace(/\{milestone\}/g, tok.milestone)
+              .replace(/\{job_name\}/g, tok.job_name)
+              .replace(/\{job_reference\}/g, tok.job_reference)
+              .replace(/\{location\}/g, tok.location)
+              .replace(/\{reviewed_by\}/g, tok.reviewed_by)
+              .replace(/\{borehole_ref\}/g, tok.borehole_ref);
+          } else {
+            const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+            text = intro + `${tok.milestone}\n\nJob: ${tok.job_name} (${tok.job_reference})\nLocation: ${tok.location}\nReviewed by: ${tok.reviewed_by}\n\nThis milestone has been published to the client portal automatically.`;
+          }
+          const subject = cfg.subject
+            ? cfg.subject.replace(/\{borehole_ref\}/g, tok.borehole_ref).replace(/\{job_name\}/g, tok.job_name)
+            : `Milestone completed: ${tok.borehole_ref} on ${tok.job_name}`;
+          const baseUrl = await getAppBaseUrl(base44);
+          const bodyHtml = escapeHtml(text).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open planner');
+          await base44.asServiceRole.integrations.Core.SendEmail({
+            to: job.project_manager,
+            subject,
+            body: styledHtml(bodyHtml, cfg),
+          });
+          emailed = true;
+        }
       } catch (emailErr) {
         // PM may not be a registered user — skip silently
       }
