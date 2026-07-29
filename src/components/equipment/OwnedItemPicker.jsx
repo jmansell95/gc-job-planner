@@ -76,7 +76,7 @@ export default function OwnedItemPicker({ value, onChange, rateCardGroups = [], 
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="p-0 max-w-[calc(100vw-2rem)]"
+        className="p-0 max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 shadow-lg"
         style={{ width: 'var(--radix-popover-trigger-width)', maxHeight: panelMax }}
       >
         <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100 sticky top-0 bg-white z-10 rounded-t-md">
@@ -84,7 +84,7 @@ export default function OwnedItemPicker({ value, onChange, rateCardGroups = [], 
           <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search name, serial, price…"
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400" />
         </div>
-        <div className="overflow-y-auto" style={{ maxHeight: `calc(${panelMax} - 49px)` }}>
+        <div className="overflow-y-auto overscroll-contain" style={{ maxHeight: `calc(${panelMax} - 49px)` }}>
           {!hasAny && <p className="text-xs text-slate-400 italic px-4 py-6 text-center">No items match your search.</p>}
           {filteredRC.map((g) => (
             <div key={`rc-${g.label}`}>

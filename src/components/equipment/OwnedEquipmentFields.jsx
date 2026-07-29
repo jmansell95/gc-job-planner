@@ -215,7 +215,10 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Charge-out rate (net) *</label>
-          <input type="number" min="0" step="0.01" value={rateDisplay} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} onFocus={() => setRateFocused(true)} onBlur={() => setRateFocused(false)} placeholder="0.00" className={inputCls} />
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm pointer-events-none">£</span>
+            <input type="number" min="0" step="0.01" value={rateDisplay} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} onFocus={() => setRateFocused(true)} onBlur={() => setRateFocused(false)} placeholder="0.00" className={`${inputCls} pl-7`} />
+          </div>
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Unit</label>
