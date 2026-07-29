@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   PoundSterling, Search, Plus, Pencil, Check, X, Users, Wrench, Package,
-  Loader2, Receipt, Building2, TrendingUp, Percent, Copy, Upload
+  Loader2, Receipt, Building2, TrendingUp, Percent, Copy, Upload, AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
@@ -137,6 +137,16 @@ function RateItemRow({ item, subcategory, onUpdate }) {
             <div className="text-right w-20">
               <p className="text-[9px] text-emerald-600 uppercase font-medium">Charge</p>
               <span className={`text-sm font-semibold tabular-nums block ${item.price != null ? 'text-slate-900' : 'text-slate-400 italic'}`}>{priceDisplay}</span>
+            </div>
+            {/* Margin */}
+            <div className="text-right w-16">
+              {marginPct != null ? (
+                <span className={`text-xs font-bold tabular-nums ${marginPct >= 20 ? 'text-emerald-600' : marginPct >= 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                  {marginPct.toFixed(0)}%
+                </span>
+              ) : (
+                <span className="text-xs text-slate-300">—</span>
+              )}
             </div>
             <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', cost_price: item.cost_price ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '' }); setEditing(true); }} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-[#2E5A1A] transition">
               <Pencil className="w-3.5 h-3.5" />
@@ -299,6 +309,27 @@ export default function RateCardManager() {
 
   const totalForCard = counts.labour + counts.plant + counts.materials;
 
+  // ── Rate card health metrics ──
+  const health = useMemo(() => {
+    const scoped = isOurCard
+      ? items.filter(i => i.rate_card_source !== 'supplier')
+      : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeRateCard);
+    const withPrice = scoped.filter(i => i.price != null && i.price > 0);
+    const missingCost = scoped.filter(i => (i.cost_price == null || i.cost_price === '') && i.price != null);
+    const zeroMargin = withPrice.filter(i => i.cost_price != null && i.cost_price >= i.price);
+    const margins = withPrice
+      .filter(i => i.cost_price != null && i.cost_price > 0)
+      .map(i => ((i.price - i.cost_price) / i.price) * 100);
+    const avgMargin = margins.length > 0 ? margins.reduce((s, m) => s + m, 0) / margins.length : null;
+    return {
+      total: scoped.length,
+      missingCost: missingCost.length,
+      zeroMargin: zeroMargin.length,
+      avgMargin,
+      withMargin: margins.length,
+    };
+  }, [items, isOurCard, activeRateCard]);
+
   const applyBulkAdjustment = async () => {
     const pct = parseFloat(bulkPct);
     if (isNaN(pct)) {
@@ -444,6 +475,24 @@ export default function RateCardManager() {
         {isOurCard ? <Receipt className="w-5 h-5 text-[#2E5A1A]" /> : <Building2 className="w-5 h-5 text-[#2E5A1A]" />}
         <h2 className="font-semibold text-slate-900">{isOurCard ? 'Master Price List — Our Rate Card' : `Rate Card — ${activeSupplier?.name || 'Supplier'}`}</h2>
         <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{totalForCard} rates</span>
+        {/* Health pills */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {health.avgMargin != null && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <TrendingUp className="w-3 h-3" /> Avg {health.avgMargin.toFixed(0)}% margin
+            </span>
+          )}
+          {health.missingCost > 0 && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200" title="Items with a charge-out price but no internal cost — margin can't be calculated">
+              <AlertTriangle className="w-3 h-3" /> {health.missingCost} missing cost
+            </span>
+          )}
+          {health.zeroMargin > 0 && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-red-50 text-red-600 border border-red-200" title="Items where internal cost is ≥ charge-out price — zero or negative margin">
+              <AlertTriangle className="w-3 h-3" /> {health.zeroMargin} at-risk
+            </span>
+          )}
+        </div>
         {isOurCard && (
           <>
             <input ref={masterFileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleMasterUpload} className="hidden" />
@@ -546,6 +595,7 @@ export default function RateCardManager() {
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide flex-1">Description</span>
           <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide w-20 text-right">Internal Cost</span>
           <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide w-20 text-right">Charge Out</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide w-16 text-right">Margin</span>
           <span className="w-6 flex-shrink-0" />
         </div>
         {isLoading ? (
