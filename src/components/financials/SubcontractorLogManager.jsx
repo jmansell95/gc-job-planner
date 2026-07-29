@@ -5,8 +5,10 @@ import {
   TrendingUp, Plus, X, Loader2, Trash2, CheckCircle2, ShieldCheck,
   ArrowRightLeft, Percent, PoundSterling, Calendar, HardHat, FileText,
   ChevronDown, ChevronRight, AlertTriangle, Building2,
-  Mountain, Layers, Shovel, Truck, Boxes, Package, User, Clock,
+  Mountain, Layers, Shovel, Truck, Boxes, Package, User, Clock, Lock,
 } from 'lucide-react';
+import { useBillingLock } from '@/hooks/useBillingLock';
+import BillingLockBanner from '@/components/billing/BillingLockBanner';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-[#2E5A1A] text-sm";
@@ -56,6 +58,7 @@ export default function SubcontractorLogManager({ job }) {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState(null);
+  const { isLocked, lockedInvoices } = useBillingLock(job.id);
 
   const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list() });
   const { data: logs = [], isLoading } = useQuery({
@@ -171,11 +174,13 @@ export default function SubcontractorLogManager({ job }) {
           <h3 className="text-sm font-bold text-slate-900">Sub-Contractor Logs</h3>
           <p className="text-[11px] text-slate-400">Buy-side cost · sell-side margin · verification workflow</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] transition">
+        <button onClick={() => setShowForm(!showForm)} disabled={isLocked} className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] transition disabled:opacity-40 disabled:cursor-not-allowed">
           {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
           {showForm ? 'Cancel' : 'Log Work'}
         </button>
       </div>
+
+      {isLocked && <div className="px-4 pt-3"><BillingLockBanner lockedInvoices={lockedInvoices} /></div>}
 
       {/* Summary stats */}
       {logs.length > 0 && (
@@ -364,6 +369,10 @@ export default function SubcontractorLogManager({ job }) {
                     {l.po_number && <p className="text-[10px] text-slate-400">PO: {l.po_number}</p>}
                     {/* Status actions */}
                     <div className="flex items-center gap-1.5 flex-wrap">
+                      {isLocked ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-medium ml-auto"><Lock className="w-3 h-3" /> Locked</span>
+                      ) : (
+                      <>
                       {l.status === 'pending' && (
                         <button onClick={() => handleStatusChange(l.id, 'verified')} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-medium hover:bg-blue-100 transition"><CheckCircle2 className="w-3 h-3" /> Verify</button>
                       )}
@@ -372,6 +381,8 @@ export default function SubcontractorLogManager({ job }) {
                       )}
                       {(l.status === 'pending' || l.status === 'verified') && (
                         <button onClick={() => handleDelete(l.id)} className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] font-medium hover:bg-red-100 transition ml-auto"><Trash2 className="w-3 h-3" /> Delete</button>
+                      )}
+                      </>
                       )}
                     </div>
                   </div>

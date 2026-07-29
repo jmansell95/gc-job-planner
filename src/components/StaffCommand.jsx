@@ -8,6 +8,7 @@ import {
   UserPlus, X, Save, Phone, Briefcase
 } from 'lucide-react';
 import { format } from 'date-fns';
+import BulkInviteModal from '@/components/staff/BulkInviteModal';
 import StaffComplianceEditor from '@/components/staff/StaffComplianceEditor';
 import HotelBookingsManager from '@/components/staff/HotelBookingsManager';
 import StaffShiftEditor from '@/components/StaffShiftEditor';
@@ -53,6 +54,7 @@ export default function StaffCommand() {
   const [adding, setAdding] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(null);
   const [resetLoading, setResetLoading] = useState(null);
+  const [showBulkInvite, setShowBulkInvite] = useState(false);
 
   const { data: staff = [], isLoading } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
@@ -168,10 +170,17 @@ export default function StaffCommand() {
             <p className="text-sm text-slate-400">{staff.length} crew members · manage everything in one place</p>
           </div>
         </div>
-        <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg hover:bg-[#1c4a12] transition text-sm font-semibold shadow-sm">
-          <Plus className="w-4 h-4" /> Add Crew Member
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowBulkInvite(true)} className="inline-flex items-center gap-2 px-3 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-semibold">
+            <UserPlus className="w-4 h-4" /> Bulk Invite
+          </button>
+          <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg hover:bg-[#1c4a12] transition text-sm font-semibold shadow-sm">
+            <Plus className="w-4 h-4" /> Add Crew Member
+          </button>
+        </div>
       </div>
+
+      {showBulkInvite && <BulkInviteModal onClose={() => setShowBulkInvite(false)} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5">
         {/* Staff list */}

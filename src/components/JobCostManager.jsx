@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { PoundSterling, TrendingUp, TrendingDown, Edit2, Check, X, Calculator, RefreshCw, ChevronDown, ChevronUp, Ruler } from 'lucide-react';
+import { useBillingLock } from '@/hooks/useBillingLock';
+import BillingLockBanner from '@/components/billing/BillingLockBanner';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -15,6 +17,7 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [editingMeterage, setEditingMeterage] = useState(false);
   const [meterageVal, setMeterageVal] = useState(job.meterage || '');
+  const { isLocked, lockedInvoices } = useBillingLock(job.id);
 
   const usingManual = job.actual_cost != null && job.actual_cost !== '';
   const usingJobMeterage = isDrillingJob && job.meterage != null && job.meterage !== '' && Number(job.meterage) > 0;
@@ -87,6 +90,7 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
       </div>
 
       <div className="px-5 py-4 space-y-4">
+        {isLocked && <BillingLockBanner lockedInvoices={lockedInvoices} />}
         {/* Tiles */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-slate-50 rounded-lg p-3">
@@ -121,7 +125,7 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
           <div className="flex items-center justify-between gap-2 mb-2">
             <span className="text-sm font-medium text-slate-700">Budget</span>
             {!editingBudget ? (
-              <button onClick={() => { setBudgetVal(job.budget_amount || ''); setEditingBudget(true); }} className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium"><Edit2 className="w-3.5 h-3.5" /> Edit</button>
+              <button onClick={() => { setBudgetVal(job.budget_amount || ''); setEditingBudget(true); }} disabled={isLocked} className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium disabled:opacity-40 disabled:cursor-not-allowed"><Edit2 className="w-3.5 h-3.5" /> Edit</button>
             ) : (
               <div className="flex items-center gap-1.5">
                 <input type="number" min="0" step="0.01" value={budgetVal} onChange={(e) => setBudgetVal(e.target.value)} placeholder="0.00" className="w-28 px-2 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
@@ -138,7 +142,7 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
           <div className="flex items-center justify-between gap-2 mb-2">
             <span className="text-sm font-medium text-slate-700">Actual Cost</span>
             {!editingActual ? (
-              <button onClick={() => { setActualVal(job.actual_cost ?? ''); setEditingActual(true); }} className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium"><Edit2 className="w-3.5 h-3.5" /> Edit</button>
+              <button onClick={() => { setActualVal(job.actual_cost ?? ''); setEditingActual(true); }} disabled={isLocked} className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium disabled:opacity-40 disabled:cursor-not-allowed"><Edit2 className="w-3.5 h-3.5" /> Edit</button>
             ) : (
               <div className="flex items-center gap-1.5 flex-wrap justify-end">
                 <input type="number" min="0" step="0.01" value={actualVal} onChange={(e) => setActualVal(e.target.value)} placeholder="Auto" className="w-28 px-2 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
@@ -161,7 +165,7 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
                 <Ruler className="w-4 h-4 text-amber-600" /> Total Meterage
               </span>
               {!editingMeterage ? (
-                <button onClick={() => { setMeterageVal(job.meterage || ''); setEditingMeterage(true); }} className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium"><Edit2 className="w-3.5 h-3.5" /> Edit</button>
+                <button onClick={() => { setMeterageVal(job.meterage || ''); setEditingMeterage(true); }} disabled={isLocked} className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium disabled:opacity-40 disabled:cursor-not-allowed"><Edit2 className="w-3.5 h-3.5" /> Edit</button>
               ) : (
                 <div className="flex items-center gap-1.5 flex-wrap justify-end">
                   <input type="number" min="0" step="0.1" value={meterageVal} onChange={(e) => setMeterageVal(e.target.value)} placeholder="0" className="w-28 px-2 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
