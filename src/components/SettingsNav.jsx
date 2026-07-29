@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Lock, Radio } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Lock, Radio, ArrowUpDown } from 'lucide-react';
 import { normalizePermissions } from '@/utils/permissions';
 
 export const settingsGroups = [
@@ -57,6 +57,7 @@ export const settingsGroups = [
     items: [
       { id: 'rate-card', label: 'Master Price List', icon: Receipt, desc: 'Your chargeable rate card plus each supplier\'s ingested rate card — auto-populates job costing' },
       { id: 'billing', label: 'Billing Rules', icon: Banknote, desc: 'Delivery, task & consumable pricing rules' },
+      { id: 'data-exchange', label: 'Data Exchange', icon: ArrowUpDown, desc: 'Bulk import/export rate cards, billing rules & BOQ data via CSV' },
       { id: 'invoicing', label: 'Billing & Invoicing', icon: Receipt, desc: 'Per-job cost summary & invoice totals — reconcile CDRs and raise invoices', roles: ['admin', 'manager'] },
       { id: 'overtime', label: 'Overtime', icon: Timer, desc: 'Overtime multipliers by day' },
       { id: 'business-rules', label: 'Business Rules', icon: Scale, desc: 'Core working rules — required daily hours & travel deductions — that drive the timesheet engine' },

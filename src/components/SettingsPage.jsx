@@ -27,6 +27,7 @@ import LogQualityControl from '@/components/investigation/LogQualityControl';
 import AuditTrailHub from '@/components/audit/AuditTrailHub';
 import TimesheetManager from '@/components/TimesheetManager';
 import BillingPage from '@/components/BillingPage';
+import FinancialDataExchange from '@/components/billing/FinancialDataExchange';
 import AGSImportSettings from '@/components/AGSImportSettings';
 import SafetyCultureSettings from '@/components/SafetyCultureSettings';
 import DemoDataManager from '@/components/DemoDataManager';
@@ -116,6 +117,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'audit-trail': return <AuditTrailHub />;
       case 'timesheets': return <TimesheetManager />;
       case 'invoicing': return <BillingPage onSelectJob={onSelectJob} />;
+      case 'data-exchange': return <FinancialDataExchange />;
       case 'ags-import': return <AGSImportSettings />;
       case 'safety-culture': return <SafetyCultureSettings />;
       case 'demo-data': return <DemoDataManager />;
