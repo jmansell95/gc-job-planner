@@ -76,8 +76,8 @@ export default function OwnedItemPicker({ value, onChange, rateCardGroups = [], 
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="p-0 w-[22rem] max-w-[calc(100vw-2rem)]"
-        style={{ maxHeight: panelMax }}
+        className="p-0 max-w-[calc(100vw-2rem)]"
+        style={{ width: 'var(--radix-popover-trigger-width)', maxHeight: panelMax }}
       >
         <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-100 sticky top-0 bg-white z-10 rounded-t-md">
           <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
