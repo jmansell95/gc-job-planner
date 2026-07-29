@@ -18,6 +18,16 @@ import { CardGridSkeleton } from '@/components/StateViews';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10 text-sm transition";
 
+// Maps a permission group to the platform user role needed for RLS.
+// Only "Super Admin" / "Admin" groups need platform-level admin; everything
+// else gets "user" and relies on the permission group for granular UI access.
+const groupToPlatformRole = (groupId, groups) => {
+  if (!groupId || !groups) return 'user';
+  const g = groups.find(g => g.id === groupId);
+  if (!g) return 'user';
+  return (g.name === 'Super Admin' || g.name === 'Admin') ? 'admin' : 'user';
+};
+
 const TABS = [
   { id: 'profile', label: 'Profile & Access', icon: User },
   { id: 'compliance', label: 'Compliance', icon: ShieldCheck },
@@ -85,7 +95,8 @@ export default function StaffCommand() {
       const created = await base44.entities.Staff.create(payload);
       if (addForm.email) {
         try {
-          await base44.users.inviteUser(addForm.email, 'user');
+          const inviteRole = groupToPlatformRole(addForm.permission_group_id, permissionGroups);
+          await base44.users.inviteUser(addForm.email, inviteRole);
           await base44.entities.Staff.update(created.id, { invite_sent: true });
         } catch (err) { /* non-fatal */ }
       }
@@ -334,23 +345,20 @@ function ProfileTab({ staff: m, user, teams, permissionGroups, vehicles, staffLi
         form.invite_sent = false;
       }
       await base44.entities.Staff.update(m.id, clean(form));
+      // Sync platform user role from the assigned permission group
+      if (user && form.permission_group_id !== m.permission_group_id) {
+        const newRole = groupToPlatformRole(form.permission_group_id, permissionGroups);
+        if (newRole !== user.role) {
+          await base44.entities.User.update(user.id, { role: newRole });
+          queryClient.invalidateQueries({ queryKey: ['users-list'] });
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       toast({ title: 'Profile updated' });
     } catch (err) {
       toast({ title: 'Could not save', description: err?.message, variant: 'destructive' });
     }
     setSaving(false);
-  };
-
-  const handleRoleChange = async (newRole) => {
-    if (!user) return;
-    try {
-      await base44.entities.User.update(user.id, { role: newRole });
-      queryClient.invalidateQueries({ queryKey: ['users-list'] });
-      toast({ title: 'Role updated' });
-    } catch (err) {
-      toast({ title: 'Could not update role', description: err?.message, variant: 'destructive' });
-    }
   };
 
   const toggle = async (key) => {
@@ -409,18 +417,16 @@ function ProfileTab({ staff: m, user, teams, permissionGroups, vehicles, staffLi
         <ToggleChip active={!!form.delivery_dashboard_enabled} onClick={() => toggle('delivery_dashboard_enabled')} icon={Truck} label="Delivery dashboard" />
       </div>
 
-      {/* App access & role */}
+      {/* App access — role synced from permission group */}
       {user && (
         <div className="bg-slate-50 rounded-lg p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             <span className="text-sm text-slate-700">App account active</span>
           </div>
-          <select value={user.role || 'user'} onChange={e => handleRoleChange(e.target.value)} className="text-xs px-2 py-1.5 border border-slate-300 rounded-lg focus:outline-none focus:border-[#2E5A1A]">
-            <option value="viewer">Viewer</option>
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-          </select>
+          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${user.role === 'admin' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
+            {user.role === 'admin' ? 'Admin' : 'User'}
+          </span>
         </div>
       )}
 
