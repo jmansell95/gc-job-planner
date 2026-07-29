@@ -127,6 +127,18 @@ export function resolveModuleLevel(profile, isPlatformAdmin, moduleKey) {
   if (!profile) return 'none';
   const role = (isPlatformAdmin || profile.is_admin) ? 'super_admin' : (profile.system_role || 'field');
 
+  // If the staff member has a direct permission group assigned, use it to
+  // resolve module access. This takes precedence over the hardcoded role
+  // checks below, giving admins granular per-module control.
+  if (profile.permission_group) {
+    const group = profile.permission_group;
+    if (group.is_read_only) {
+      const level = normalizePermissions(group.permissions)[moduleKey];
+      return level === 'none' ? 'none' : 'read';
+    }
+    return normalizePermissions(group.permissions)[moduleKey] || 'none';
+  }
+
   // Super Admin and Admin — full write on everything
   if (role === 'super_admin' || role === 'admin') return 'write';
 

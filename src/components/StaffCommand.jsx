@@ -26,7 +26,7 @@ const TABS = [
   { id: 'bookings', label: 'Hotel Bookings', icon: Hotel },
 ];
 
-const emptyStaff = { name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: '' };
+const emptyStaff = { name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, permission_group_id: '' };
 
 export default function StaffCommand() {
   const { toast } = useToast();
@@ -46,6 +46,7 @@ export default function StaffCommand() {
 
   const { data: staff = [], isLoading } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
+  const { data: permissionGroups = [] } = useQuery({ queryKey: ['permission-groups'], queryFn: () => base44.entities.PermissionGroup.list('-created_date', 100) });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: users = [] } = useQuery({ queryKey: ['users-list'], queryFn: () => base44.entities.User.list().catch(() => []) });
   const { data: compliance = [] } = useQuery({ queryKey: ['compliance-items'], queryFn: () => base44.entities.ComplianceItem.filter({ category: 'staff' }) });
@@ -80,7 +81,7 @@ export default function StaffCommand() {
     setAdding(true);
     try {
       const payload = { ...addForm };
-      ['default_vehicle_id', 'manager_id', 'team_id', 'system_role'].forEach(k => { if (payload[k] === '') delete payload[k]; });
+      ['default_vehicle_id', 'manager_id', 'team_id', 'permission_group_id'].forEach(k => { if (payload[k] === '') delete payload[k]; });
       const created = await base44.entities.Staff.create(payload);
       if (addForm.email) {
         try {
@@ -250,7 +251,7 @@ export default function StaffCommand() {
             {/* Tab content */}
             <div className="p-5 max-h-[calc(100vh-340px)] overflow-y-auto">
               {tab === 'profile' && (
-                <ProfileTab staff={selected} user={selectedUser} teams={teams} vehicles={vehicles} staffList={staff} workerTypeOptions={workerTypeOptions}
+                <ProfileTab staff={selected} user={selectedUser} teams={teams} permissionGroups={permissionGroups} vehicles={vehicles} staffList={staff} workerTypeOptions={workerTypeOptions}
                   onResetPassword={() => handlePasswordReset(selected)} resetLoading={resetLoading === selected.id}
                   onDelete={() => handleDelete(selected)} />
               )}
@@ -294,11 +295,9 @@ export default function StaffCommand() {
                 <option value="">Select crew *</option>
                 {teams.map(t => <option key={t.id} value={t.id}>{teamName(t.id)}</option>)}
               </select>
-              <select value={addForm.system_role || ''} onChange={e => setAddForm({ ...addForm, system_role: e.target.value })} className={inputCls}>
-                <option value="">Field Staff</option>
-                <option value="viewer">Viewer</option>
-                <option value="manager">Manager</option>
-                <option value="admin">Admin</option>
+              <select value={addForm.permission_group_id || ''} onChange={e => setAddForm({ ...addForm, permission_group_id: e.target.value })} className={inputCls}>
+                <option value="">Field Staff (default)</option>
+                {permissionGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
               </select>
               <button type="submit" disabled={adding} className="w-full px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-50 flex items-center justify-center gap-2">
                 {adding ? <><Loader2 className="w-4 h-4 animate-spin" /> Adding…</> : <><Save className="w-4 h-4" /> Add & Send Invite</>}
@@ -311,7 +310,7 @@ export default function StaffCommand() {
   );
 }
 
-function ProfileTab({ staff: m, user, teams, vehicles, staffList, workerTypeOptions, onResetPassword, resetLoading, onDelete }) {
+function ProfileTab({ staff: m, user, teams, permissionGroups, vehicles, staffList, workerTypeOptions, onResetPassword, resetLoading, onDelete }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [form, setForm] = useState(m);
@@ -322,7 +321,7 @@ function ProfileTab({ staff: m, user, teams, vehicles, staffList, workerTypeOpti
 
   const clean = (d) => {
     const c = { ...d };
-    ['default_vehicle_id', 'manager_id', 'team_id', 'system_role'].forEach(k => { if (c[k] === '') delete c[k]; });
+    ['default_vehicle_id', 'manager_id', 'team_id', 'permission_group_id'].forEach(k => { if (c[k] === '') delete c[k]; });
     return c;
   };
 
@@ -384,12 +383,10 @@ function ProfileTab({ staff: m, user, teams, vehicles, staffList, workerTypeOpti
             {teams.map(t => { const p = teams.find(p => p.id === t.parent_team_id); return <option key={t.id} value={t.id}>{p ? `${p.name} — ${t.name}` : t.name}</option>; })}
           </select>
         </Field>
-        <Field label="Access Level">
-          <select value={form.system_role || ''} onChange={e => setForm({ ...form, system_role: e.target.value })} className={inputCls}>
-            <option value="">Field Staff (schedule only)</option>
-            <option value="viewer">Viewer (read-only)</option>
-            <option value="manager">Manager (operations)</option>
-            <option value="admin">Admin (full access)</option>
+        <Field label="Permission Group">
+          <select value={form.permission_group_id || ''} onChange={e => setForm({ ...form, permission_group_id: e.target.value })} className={inputCls}>
+            <option value="">Field Staff (default)</option>
+            {permissionGroups.map(g => <option key={g.id} value={g.id}>{g.name}{g.is_read_only ? ' (Read-Only)' : ''}</option>)}
           </select>
         </Field>
         <Field label="Default Vehicle">

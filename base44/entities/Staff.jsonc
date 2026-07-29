@@ -27,6 +27,10 @@
       "type": "string",
       "description": "Team/group assignment \u2014 determines which jobs this staff member can be assigned to"
     },
+    "permission_group_id": {
+      "type": "string",
+      "description": "Direct permission group assignment \u2014 controls this staff member's access to every admin module and settings page. When set, this overrides the crew type's permission group. Manage groups in Settings \u2192 Access Levels."
+    },
     "default_vehicle_id": {
       "type": "string",
       "description": "Default vehicle assignment"
@@ -74,7 +78,7 @@
         "read_only"
       ],
       "default": "field",
-      "description": "App-level access role. 'super_admin' = unrestricted (set automatically when the linked User has platform admin), 'admin' = full dashboard access including settings, 'management' = operations access without settings/crew types, 'user' = basic office dashboard (overview/jobs/calendar read-only), 'field' = field crew (schedule & profile only), 'read_only' = strict read-only dashboard."
+      "description": "Legacy app-level access role. Now derived from the assigned permission group. Kept for backward compatibility \u2014 use permission_group_id instead."
     },
     "last_acknowledged_week": {
       "type": "string",

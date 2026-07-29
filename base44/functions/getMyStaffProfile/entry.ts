@@ -67,15 +67,40 @@ Deno.serve(async (req) => {
       } catch (_) {}
     }
 
-    // Fetch the team's linked permission group so the frontend can enforce
-    // granular read/write/none access per admin module.
-    let permissionGroup = null;
+    // Fetch the staff member's direct permission group (takes precedence
+    // over the crew type's permission group). Falls back to the team's group.
+    let directPermissionGroup = null;
+    if (s.permission_group_id) {
+      try {
+        const pgList = await base44.asServiceRole.entities.PermissionGroup.filter({ id: s.permission_group_id });
+        directPermissionGroup = pgList[0] || null;
+      } catch (_) {}
+    }
+
+    // Fetch the team's linked permission group as a fallback.
+    let teamPermissionGroup = null;
     if (team?.permission_group_id) {
       try {
         const pgList = await base44.asServiceRole.entities.PermissionGroup.filter({ id: team.permission_group_id });
-        permissionGroup = pgList[0] || null;
+        teamPermissionGroup = pgList[0] || null;
       } catch (_) {}
     }
+
+    const effectivePermissionGroup = directPermissionGroup || teamPermissionGroup;
+
+    // Derive system_role from the permission group name for system groups,
+    // so the existing role-based access logic keeps working seamlessly.
+    const GROUP_NAME_TO_ROLE: Record<string, string> = {
+      'Super Admin': 'super_admin',
+      'Admin': 'admin',
+      'Management': 'management',
+      'User': 'user',
+      'Field': 'field',
+      'Read Only': 'read_only',
+    };
+    const derivedRole = effectivePermissionGroup
+      ? (GROUP_NAME_TO_ROLE[effectivePermissionGroup.name] || s.system_role || 'field')
+      : (s.system_role || 'field');
 
     return Response.json({
       id: s.id,
@@ -103,7 +128,14 @@ Deno.serve(async (req) => {
       is_admin: isAdmin,
       email_notifications_enabled: s.email_notifications_enabled !== false,
       delivery_dashboard_enabled: s.delivery_dashboard_enabled === true,
-      system_role: s.system_role || null,
+      system_role: derivedRole,
+      permission_group: effectivePermissionGroup ? {
+        id: effectivePermissionGroup.id,
+        name: effectivePermissionGroup.name,
+        is_read_only: effectivePermissionGroup.is_read_only === true,
+        is_system: effectivePermissionGroup.is_system === true,
+        permissions: effectivePermissionGroup.permissions || {}
+      } : null,
       last_acknowledged_week: s.last_acknowledged_week || null
     });
   } catch (error) {
