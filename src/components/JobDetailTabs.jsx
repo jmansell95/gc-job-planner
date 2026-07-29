@@ -301,8 +301,8 @@ export default function JobDetailTabs({
       {/* ── Financials Tab ── */}
       {canSeeCosts && (
         <TabsContent value="financials" className="space-y-4 mt-0">
-          <BOQManager job={job} />
           <AutoFinancialsBreakdown job={job} />
+          <BOQManager job={job} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <SubcontractorLogManager job={job} />
             <DailyCostViewer job={job} />

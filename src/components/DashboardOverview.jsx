@@ -132,7 +132,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'compliance-overview': return <ComplianceOverviewWidget onNavigate={onNavigate} />;
       case 'geo-heatmap': return <GeotechnicalHeatmapWidget />;
       case 'unbilled-wip': return canViewCosts ? <UnbilledLiabilityWidget /> : null;
-      case 'project-financials': return canViewCosts ? <ProjectFinancialsWidget /> : null;
+      case 'project-financials': return canViewCosts ? <ProjectFinancialsWidget onNavigate={onNavigate} /> : null;
       case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={scopedJobs} vehicles={vehicles} onSelectJob={openJobDrawer} onNavigate={onNavigate} />;
       case 'charts': return <ChartsWidget jobs={scopedJobs} staff={staff} rotas={scopedRotas} weekDays={weekDays} />;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;

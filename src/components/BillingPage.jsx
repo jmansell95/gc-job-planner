@@ -10,8 +10,9 @@ import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
 import StatCard from '@/components/dashboard/StatCard';
 import { Skeleton } from '@/components/StateViews';
-import { computeBillingRow, groupByJob, READY_STATUSES } from '@/utils/billingSummary';
+import { groupByJob, READY_STATUSES } from '@/utils/billingSummary';
 import { getTotalMetres } from '@/utils/geotechBilling';
+import { useAllJobsFinancials } from '@/hooks/useAllJobsFinancials';
 import GeotechBillingReport from '@/components/GeotechBillingReport';
 import GenerateInvoiceModal from '@/components/billing/GenerateInvoiceModal';
 import InvoiceHistoryPanel from '@/components/billing/InvoiceHistoryPanel';
@@ -78,8 +79,13 @@ export default function BillingPage({ onSelectJob }) {
     })();
   }, []);
 
-  const { data: jobs = [], isLoading } = useQuery({ queryKey: ['billing-jobs'], queryFn: () => base44.entities.Job.list() });
+  // Shared financials engine — identical figures to job detail Financials tab
+  const { data: allFin, isLoading: finLoading } = useAllJobsFinancials();
+  const jobs = allFin?.jobs || [];
+  const finMap = allFin?.finMap || {};
+
   const { data: clients = [] } = useQuery({ queryKey: ['billing-clients'], queryFn: () => base44.entities.Client.list() });
+  // Kept for the GenerateInvoiceModal which needs the raw entity arrays
   const { data: costItems = [] } = useQuery({ queryKey: ['billing-cost-items'], queryFn: () => base44.entities.JobCostItem.list() });
   const { data: hotelBookings = [] } = useQuery({ queryKey: ['billing-hotels'], queryFn: () => base44.entities.HotelBooking.list() });
   const { data: deliveries = [] } = useQuery({ queryKey: ['billing-deliveries'], queryFn: () => base44.entities.DeliveryLog.list() });
@@ -97,29 +103,45 @@ export default function BillingPage({ onSelectJob }) {
   const { data: siteAssets = [] } = useQuery({ queryKey: ['billing-site-assets'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
   const { data: staffRecords = [] } = useQuery({ queryKey: ['billing-staff'], queryFn: () => base44.entities.Staff.list('-created_date', 500) });
 
+  const isLoading = finLoading;
   const clientById = useMemo(() => Object.fromEntries(clients.map((c) => [c.id, c])), [clients]);
 
+  // Map the calculateJobFinancials output into the same shape the billing
+  // table expects — this guarantees the billing summary matches the job
+  // detail Financials tab exactly.
   const rows = useMemo(() => {
-    const byCost = groupByJob(costItems);
-    const byHotel = groupByJob(hotelBookings);
-    const byDelivery = groupByJob(deliveries);
-    const byTimesheet = groupByJob(timesheets);
-    const byInv = groupByJob(invLogs);
-    const byRig = groupByJob(rigAssignments);
-    const byRota = groupByJob(rotas);
-    return jobs.map((job) => computeBillingRow(job, {
-      costItems: byCost[job.id] || [],
-      hotelBookings: byHotel[job.id] || [],
-      deliveries: byDelivery[job.id] || [],
-      timesheets: byTimesheet[job.id] || [],
-      invLogs: byInv[job.id] || [],
-      rigAssignments: byRig[job.id] || [],
-      rateItems,
-      rotas: byRota[job.id] || [],
-      siteAssets,
-      staffRecords,
-    }));
-  }, [jobs, costItems, hotelBookings, deliveries, timesheets, invLogs, rigAssignments, rateItems, rotas, siteAssets, staffRecords]);
+    return jobs.map((job) => {
+      const fin = finMap[job.id] || {};
+      const s = fin.summary || {};
+      const cb = fin.cost_breakdown || {};
+      const vatRate = Number(job.vat_rate) || 20;
+      const revenueNet = s.total_revenue_net || 0;
+      const revenueVat = s.total_revenue_vat || 0;
+      const revenueGross = s.total_revenue_gross || (revenueNet + revenueVat);
+      const totalCostNet = s.total_cost_net || 0;
+      const totalCostVat = cb.equipment_vat || 0;
+      const totalCostGross = totalCostNet + totalCostVat;
+      return {
+        job,
+        equipmentNet: cb.equipment_net || 0,
+        hotelNet: cb.hotel_net || 0,
+        rigCost: cb.rig_cost || 0,
+        crewCost: cb.crew_cost || 0,
+        totalCostNet,
+        totalCostVat,
+        totalCostGross,
+        deliveryCharges: cb.delivery_charges || 0,
+        taskCharges: cb.task_charges || 0,
+        additionalCharges: s.additional_charges || 0,
+        revenueNet,
+        revenueVat,
+        revenueGross,
+        revenueLabel: s.revenue_method_label || s.revenue_method || '—',
+        method: s.revenue_method || 'none',
+        vatRate,
+      };
+    });
+  }, [jobs, finMap]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

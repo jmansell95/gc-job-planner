@@ -45,6 +45,7 @@ export const SECTION_TO_MODULE = {
   billing: 'billing',
   settings: 'settings',
   'ags-import': 'ags_import',
+  'project-financials': 'billing',
 };
 
 // Build a default permissions object (all modules = 'none').
