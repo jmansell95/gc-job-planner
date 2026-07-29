@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Users, Calendar, Receipt, User, AlertCircle } from 'lucide-react';
 import { differenceInCalendarDays, eachDayOfInterval, isWeekend } from 'date-fns';
 import { inputCls, fmt } from './shared';
+import LabourItemPicker from './LabourItemPicker';
 
 export default function LabourFields({ form, setForm, rateCardItems = [], staff = [], defaultDates }) {
   // Labour rate card items from our company Master Price List
@@ -9,20 +10,44 @@ export default function LabourFields({ form, setForm, rateCardItems = [], staff 
     (i) => i.is_active !== false && i.category === 'labour' && (i.rate_card_source || 'our_company') === 'our_company'
   );
 
-  const pickFromRateCard = (id) => {
-    if (!id) return;
-    const item = (rateCardItems || []).find((r) => r.id === id);
-    if (!item) return;
-    setForm({
-      ...form,
-      description: item.description || form.description,
-      unit_cost: String(item.price ?? ''),
-      unit_label: item.unit || 'day',
-      men: item.men != null ? String(item.men) : '',
-      rate_card_item_id: item.id,
-      is_poa: item.price == null,
-      notes: item.notes || form.notes,
+  // Group labour rate card items by subcategory (same pattern as OwnedEquipmentFields)
+  const rateCardGroups = useMemo(() => {
+    const groups = {};
+    labourRateItems.forEach((item) => {
+      const key = item.subcategory || 'Labour';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(item);
     });
+    return Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([label, items]) => ({ label, items: items.sort((a, b) => (a.description || '').localeCompare(b.description || '')) }));
+  }, [labourRateItems]);
+
+  const handlePick = (value) => {
+    if (!value) return;
+    if (value.startsWith('rc-')) {
+      const id = value.slice(3);
+      const item = (rateCardItems || []).find((r) => r.id === id);
+      if (!item) return;
+      setForm({
+        ...form,
+        description: item.description || form.description,
+        unit_cost: String(item.price ?? ''),
+        unit_label: item.unit || 'day',
+        men: item.men != null ? String(item.men) : '',
+        rate_card_item_id: item.id,
+        is_poa: item.price == null,
+        notes: item.notes || form.notes,
+      });
+    } else if (value.startsWith('st-')) {
+      const id = value.slice(3);
+      const member = (staff || []).find((s) => s.id === id);
+      setForm({
+        ...form,
+        staff_id: id,
+        responsible_person: member?.name || form.responsible_person,
+      });
+    }
   };
 
   const pickStaff = (id) => {
@@ -50,26 +75,29 @@ export default function LabourFields({ form, setForm, rateCardItems = [], staff 
     ? eachDayOfInterval({ start: new Date(form.start_date + 'T00:00:00'), end: new Date(form.end_date + 'T00:00:00') }).filter((d) => !isWeekend(d)).length
     : 0;
 
+  const pickerValue = form.staff_id ? `st-${form.staff_id}` : form.rate_card_item_id ? `rc-${form.rate_card_item_id}` : '';
+
   return (
     <div className="space-y-3">
       <div>
         <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
-          <Receipt className="w-3 h-3 text-emerald-700" /> Pick from Master Price List (Labour)
+          <Receipt className="w-3 h-3 text-emerald-700" /> Pick from Master Price List (Labour) or a staff member
         </label>
-        <select value="" onChange={(e) => { pickFromRateCard(e.target.value); e.target.value = ''; }} className={inputCls}>
-          <option value="">Select a labour rate…</option>
-          {labourRateItems.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.description} · {r.price != null ? fmt(r.price) : r.price_text || 'POA'}{r.unit ? `/${r.unit}` : ''}{r.men ? ` · ${r.men} men` : ''}
-            </option>
-          ))}
-        </select>
-        {labourRateItems.length === 0 && <p className="text-xs text-slate-400 italic mt-1">No labour rates found in the Master Price List. Add labour items in Settings → Rate Card.</p>}
+        <LabourItemPicker
+          value={pickerValue}
+          onChange={handlePick}
+          rateCardGroups={rateCardGroups}
+          staff={staff}
+        />
+        {labourRateItems.length === 0 && staff.length === 0 && <p className="text-xs text-slate-400 italic mt-1">No labour rates or staff found. Add labour items in Settings → Rate Card and staff in Staff Manager.</p>}
       </div>
 
+      {/* Staff assignment — kept as a separate, always-visible control so the
+          person can be changed independently of the rate. Pre-filled by the
+          picker when a staff member is selected there. */}
       <div>
         <label className="flex items-center gap-1 text-xs font-medium text-slate-600 mb-1">
-          <User className="w-3 h-3 text-emerald-700" /> Assign staff member *
+          <User className="w-3 h-3 text-emerald-700" /> Assign staff member
         </label>
         <select value={form.staff_id || ''} onChange={(e) => pickStaff(e.target.value)} className={inputCls}>
           <option value="">Select staff member…</option>
