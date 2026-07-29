@@ -6,7 +6,6 @@ export const settingsGroups = [
     label: 'Overview',
     items: [
       { id: 'hub', label: 'Command Hub', icon: LayoutGrid, desc: 'At-a-glance overview of every settings area with live counts' },
-      { id: 'lockdown', label: 'Settings Lockdown', icon: Lock, desc: 'Restrict access to individual settings pages — lock sensitive areas to specific roles', roles: ['admin'] },
     ],
   },
   {

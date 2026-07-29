@@ -42,7 +42,6 @@ import BobHRSettings from '@/components/settings/BobHRSettings';
 import PayrollExportSettings from '@/components/settings/PayrollExportSettings';
 import CISSettings from '@/components/settings/CISSettings';
 import JobAlertSettings from '@/components/settings/JobAlertSettings';
-import SettingsLockdownManager from '@/components/settings/SettingsLockdownManager';
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -91,10 +90,9 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
    
     switch (activeTab) {
       case 'hub': return <SettingsHubOverview onNavigate={setActiveTab} />;
-      case 'lockdown': return <SettingsLockdownManager profile={profile} />;
       case 'staff': return <StaffCommand />;
       case 'teams': return <CrewTypeCommand />;
-      case 'access-levels': return <PermissionGroupManager />;
+      case 'access-levels': return <PermissionGroupManager profile={profile} />;
       case 'asset-panda': return <AssetPandaSettings />;
       case 'vehicles': return <VehicleManager />;
       case 'clients': return <ClientManager />;

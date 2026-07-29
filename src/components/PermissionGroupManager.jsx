@@ -1,14 +1,45 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Shield, Plus, Trash2, Save, Lock, Eye, Pencil, X } from 'lucide-react';
+import { Shield, Plus, Trash2, Save, Lock, Eye, Pencil, X, KeyRound, Lock as LockIcon } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import { PERMISSION_MODULES, ACCESS_LEVELS, SYSTEM_GROUPS, defaultPermissions, normalizePermissions } from '@/utils/permissions';
+import SettingsLockdownManager from '@/components/settings/SettingsLockdownManager';
 
-export default function PermissionGroupManager() {
+export default function PermissionGroupManager({ profile }) {
+  const [tab, setTab] = useState('groups'); // 'groups' | 'lockdowns'
+
+  return (
+    <div className="space-y-4">
+      {/* Tab switcher */}
+      <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 w-full sm:w-auto sm:inline-flex">
+        <button
+          onClick={() => setTab('groups')}
+          className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${
+            tab === 'groups' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <KeyRound className="w-4 h-4" /> Access Levels
+        </button>
+        <button
+          onClick={() => setTab('lockdowns')}
+          className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${
+            tab === 'lockdowns' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <LockIcon className="w-4 h-4" /> Page Lockdowns
+        </button>
+      </div>
+
+      {tab === 'groups' ? <GroupsTab /> : <SettingsLockdownManager profile={profile} />}
+    </div>
+  );
+}
+
+function GroupsTab() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const [editing, setEditing] = useState(null); // group being edited
+  const [editing, setEditing] = useState(null);
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ['permission-groups'],
@@ -81,7 +112,7 @@ export default function PermissionGroupManager() {
       </div>
 
       <p className="text-sm text-slate-500 -mt-2">
-        Define access levels once here, then assign them to each crew type. Super Admins always bypass these controls.
+        Define access levels here, then assign them to each crew type. Super Admins always bypass these controls. Use the <strong>Page Lockdowns</strong> tab above to lock individual settings pages.
       </p>
 
       {isLoading && <p className="text-sm text-slate-400">Loading…</p>}
