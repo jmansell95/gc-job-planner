@@ -18,6 +18,23 @@
       "type": "string",
       "description": "Staff member name (denormalised for display)"
     },
+    "subcontractor_id": {
+      "type": "string",
+      "description": "Sub-contractor (Contractor entity) who reported this delay. Set when a sub-con logs the delay via their portal."
+    },
+    "subcontractor_name": {
+      "type": "string",
+      "description": "Sub-contractor name (denormalised for display)"
+    },
+    "reported_by_role": {
+      "type": "string",
+      "enum": [
+        "staff",
+        "subcontractor"
+      ],
+      "default": "staff",
+      "description": "Who reported the delay. 'staff' = internal employee, 'subcontractor' = sub-con reported it themselves via their portal."
+    },
     "reported_at": {
       "type": "string",
       "description": "ISO timestamp when the delay was reported"
@@ -81,7 +98,6 @@
   },
   "required": [
     "job_id",
-    "staff_id",
     "delay_type"
   ],
   "rls": {

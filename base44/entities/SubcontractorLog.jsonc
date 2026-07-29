@@ -170,6 +170,41 @@
       "type": "string",
       "description": "URL of the uploaded subcontractor invoice"
     },
+    "reconciliation_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "matched",
+        "mismatched",
+        "reconciled"
+      ],
+      "default": "pending",
+      "description": "Vendor invoice reconciliation state. 'pending' = invoice received but not yet matched; 'matched' = invoice amount matches our logged purchase cost within tolerance; 'mismatched' = invoice amount differs from our log \u2014 requires review; 'reconciled' = finance-approved and locked."
+    },
+    "invoice_net_amount": {
+      "type": "number",
+      "description": "The actual net amount shown on the supplier's invoice PDF. Compared against purchase_cost_net for reconciliation."
+    },
+    "invoice_vat_amount": {
+      "type": "number",
+      "description": "VAT amount shown on the supplier's invoice."
+    },
+    "invoice_gross_amount": {
+      "type": "number",
+      "description": "Gross amount shown on the supplier's invoice (net + VAT)."
+    },
+    "reconciled_at": {
+      "type": "string",
+      "description": "ISO timestamp when this log was reconciled against the supplier invoice."
+    },
+    "reconciled_by_name": {
+      "type": "string",
+      "description": "Name of the user who reconciled this log."
+    },
+    "reconciliation_note": {
+      "type": "string",
+      "description": "Note explaining a mismatch or adjustment made during reconciliation."
+    },
     "billed_to_client": {
       "type": "boolean",
       "default": false,

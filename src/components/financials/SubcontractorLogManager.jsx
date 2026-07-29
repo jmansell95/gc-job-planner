@@ -153,6 +153,17 @@ export default function SubcontractorLogManager({ job }) {
     } catch (e) { console.error(e); }
   };
 
+  const handleMarkInvoiceReceived = async (logId) => {
+    try {
+      await base44.entities.SubcontractorLog.update(logId, {
+        invoice_received: true,
+        reconciliation_status: 'pending',
+      });
+      queryClient.invalidateQueries({ queryKey: ['subcon-logs', job.id] });
+      queryClient.invalidateQueries({ queryKey: ['subcon-recon-logs'] });
+    } catch (e) { console.error(e); }
+  };
+
   const totals = useMemo(() => {
     return logs.reduce((acc, l) => {
       acc.purchase += Number(l.purchase_cost_net) || 0;
@@ -367,6 +378,22 @@ export default function SubcontractorLogManager({ job }) {
                     </div>
                     {l.description && <p className="text-xs text-slate-600">{l.description}</p>}
                     {l.po_number && <p className="text-[10px] text-slate-400">PO: {l.po_number}</p>}
+                    {/* Reconciliation badge */}
+                    {l.invoice_received && (
+                      <div className="flex items-center gap-1.5">
+                        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
+                          l.reconciliation_status === 'reconciled' ? 'bg-emerald-50 text-emerald-700' :
+                          l.reconciliation_status === 'mismatched' ? 'bg-red-50 text-red-700' :
+                          'bg-amber-50 text-amber-700'
+                        }`}>
+                          {l.reconciliation_status === 'reconciled' ? <Lock className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
+                          {(l.reconciliation_status || 'pending').charAt(0).toUpperCase() + (l.reconciliation_status || 'pending').slice(1)}
+                        </span>
+                        {l.invoice_net_amount != null && (
+                          <span className="text-[10px] text-slate-500">Invoice: {fmt(l.invoice_net_amount)}</span>
+                        )}
+                      </div>
+                    )}
                     {/* Status actions */}
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {isLocked ? (
@@ -378,6 +405,9 @@ export default function SubcontractorLogManager({ job }) {
                       )}
                       {l.status === 'verified' && (
                         <button onClick={() => handleStatusChange(l.id, 'approved')} className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[10px] font-medium hover:bg-emerald-100 transition"><ShieldCheck className="w-3 h-3" /> Approve</button>
+                      )}
+                      {(l.status === 'pending' || l.status === 'verified') && !l.invoice_received && (
+                        <button onClick={() => handleMarkInvoiceReceived(l.id)} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-medium hover:bg-indigo-100 transition"><FileText className="w-3 h-3" /> Invoice Received</button>
                       )}
                       {(l.status === 'pending' || l.status === 'verified') && (
                         <button onClick={() => handleDelete(l.id)} className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] font-medium hover:bg-red-100 transition ml-auto"><Trash2 className="w-3 h-3" /> Delete</button>

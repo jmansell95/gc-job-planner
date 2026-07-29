@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { HardHat, Send, CheckCircle2, Clock, LogOut, HelpCircle, Loader2 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import SubcontractorLogForm from '@/components/staff/SubcontractorLogForm';
+import SubconDelayReport from '@/components/subcontractors/SubconDelayReport';
 import SyncHUD from '@/components/staff/SyncHUD';
 import WeeklyProgress from '@/components/staff/WeeklyProgress';
 import { useToast } from '@/components/ui/use-toast';
@@ -122,6 +123,9 @@ export default function SubcontractorDashboard() {
             </div>
           </div>
         )}
+
+        {/* Sub-contractor delay reporting */}
+        <SubconDelayReport staff={staff} jobs={jobs} />
 
         {/* Log My Day form */}
         <SubcontractorLogForm staffId={staff.id} staffName={staff.name} jobs={jobs} />

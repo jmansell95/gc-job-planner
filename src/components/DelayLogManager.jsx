@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, AlertTriangle, CheckCircle2, XCircle, Loader2, Plus, CalendarClock, Sparkles } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle2, XCircle, Loader2, Plus, CalendarClock, Sparkles, HardHat } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import DelayLogForm from '@/components/DelayLogForm';
@@ -165,6 +165,11 @@ function DelayRow({ log, onApprove, onReject, busy }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${st.bg} ${st.text}`}>{st.label}</span>
+            {log.reported_by_role === 'subcontractor' && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-50 text-orange-700 font-semibold inline-flex items-center gap-0.5">
+                <HardHat className="w-2.5 h-2.5" /> Sub-con
+              </span>
+            )}
             <span className="text-xs font-semibold text-slate-800">{DELAY_LABELS[log.delay_type] || log.delay_type}</span>
             {log.rota_adjusted && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium inline-flex items-center gap-0.5">
@@ -175,7 +180,7 @@ function DelayRow({ log, onApprove, onReject, busy }) {
           <p className="text-xs text-slate-600 mt-1">{log.description}</p>
           <p className="text-[10px] text-slate-400 mt-1">
             {log.reported_at ? format(new Date(log.reported_at), 'dd MMM yyyy HH:mm') : ''}
-            {' · '}by {log.staff_name || 'Staff'}
+            {' · '}by {log.reported_by_role === 'subcontractor' ? (log.subcontractor_name || 'Sub-contractor') : (log.staff_name || 'Staff')}
             {' · '}Impact: <b className="text-amber-700">+{impactStr}</b>
           </p>
         </div>
