@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Truck, Wrench, CalendarClock, Weight } from 'lucide-react';
-import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
+import { Plus, Trash2, Edit2, Truck, Wrench, Weight, Link2 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SearchFilterBar from '@/components/SearchFilterBar';
 import { TableSkeleton } from '@/components/StateViews';
 
 const emptyForm = {
-  name: '', registration_number: '', assigned_staff_id: '', team_id: '',
+  name: '', registration_number: '', vin: '', assigned_staff_id: '', team_id: '',
   mot_expiry: '', service_due_date: '', last_service_date: '',
   max_weight_kg: '', max_volume_m3: ''
 };
@@ -34,7 +33,6 @@ export default function VehicleManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
-  const [view, setView] = useState('vehicles'); // 'vehicles' | 'maintenance'
   const [searchQuery, setSearchQuery] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
 
@@ -69,19 +67,6 @@ export default function VehicleManager() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-5">
-        <button onClick={() => setView('vehicles')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${view === 'vehicles' ? 'bg-emerald-700 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-          <Truck className="w-4 h-4" /> Vehicles
-        </button>
-        <button onClick={() => setView('maintenance')} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition ${view === 'maintenance' ? 'bg-emerald-700 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-          <CalendarClock className="w-4 h-4" /> Maintenance Bookings
-        </button>
-      </div>
-
-      {view === 'maintenance' ? (
-        <VehicleMaintenanceManager />
-      ) : (
-      <>
       <SettingsSectionHeader
         icon={Truck}
         title="Manage Vehicles"
@@ -93,6 +78,10 @@ export default function VehicleManager() {
           </button>
         }
       />
+      <p className="text-xs text-slate-500 mb-4 flex items-center gap-1.5">
+        <Link2 className="w-3.5 h-3.5 text-blue-500" />
+        Tip: Enter the VIN to auto-match this vehicle when syncing from Holman. Book maintenance and view live Holman telemetry on the dedicated <strong className="text-slate-700">Vehicles</strong> page.
+      </p>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white rounded-xl p-5 border border-emerald-200 mb-6 shadow-sm">
@@ -107,6 +96,11 @@ export default function VehicleManager() {
               <label className="block text-xs font-medium text-slate-600 mb-1">Registration Number *</label>
               <input type="text" value={formData.registration_number} onChange={e => setFormData({ ...formData, registration_number: e.target.value.toUpperCase() })} required
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm font-mono uppercase" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">VIN (for Holman matching)</label>
+              <input type="text" value={formData.vin || ''} onChange={e => setFormData({ ...formData, vin: e.target.value })}
+                placeholder="Vehicle Identification No." className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm font-mono" />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Team</label>
@@ -284,8 +278,6 @@ export default function VehicleManager() {
             })}
           </div>
         </>
-      )}
-      </>
       )}
     </div>
   );
