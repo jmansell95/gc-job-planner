@@ -1,10 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Users, Calendar, Receipt, User, AlertCircle } from 'lucide-react';
 import { differenceInCalendarDays, eachDayOfInterval, isWeekend } from 'date-fns';
 import { inputCls, fmt } from './shared';
 import LabourItemPicker from './LabourItemPicker';
 
 export default function LabourFields({ form, setForm, rateCardItems = [], staff = [], defaultDates }) {
+  const [rateFocused, setRateFocused] = useState(false);
+  // Display the charge-out rate with 2 decimals when the field isn't being edited
+  const rateDisplay = rateFocused
+    ? form.unit_cost
+    : (form.unit_cost && !isNaN(Number(form.unit_cost)) ? Number(form.unit_cost).toFixed(2) : form.unit_cost);
   // Labour rate card items from our company Master Price List
   const labourRateItems = (rateCardItems || []).filter(
     (i) => i.is_active !== false && i.category === 'labour' && (i.rate_card_source || 'our_company') === 'our_company'
@@ -132,7 +137,7 @@ export default function LabourFields({ form, setForm, rateCardItems = [], staff 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Charge-out rate (net) *</label>
-          <input type="number" min="0" step="0.01" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" className={inputCls} />
+          <input type="number" min="0" step="0.01" value={rateDisplay} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} onFocus={() => setRateFocused(true)} onBlur={() => setRateFocused(false)} placeholder="0.00" className={inputCls} />
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Unit</label>

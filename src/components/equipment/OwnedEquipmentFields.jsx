@@ -30,6 +30,11 @@ const complianceOptionText = {
 
 export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], defaultDates, rateCardItems = [] }) {
   const [priceSource, setPriceSource] = useState(form.site_asset_id ? 'asset-panda' : form.rate_card_item_id ? 'rate-card' : '');
+  const [rateFocused, setRateFocused] = useState(false);
+  // Display the charge-out rate with 2 decimals when the field isn't being edited
+  const rateDisplay = rateFocused
+    ? form.unit_cost
+    : (form.unit_cost && !isNaN(Number(form.unit_cost)) ? Number(form.unit_cost).toFixed(2) : form.unit_cost);
 
   // Master Price List items for owned equipment — Plant & Materials from our company rate card
   const ourRateItems = (rateCardItems || []).filter(
@@ -210,7 +215,7 @@ export default function OwnedEquipmentFields({ form, setForm, ownedAssets = [], 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Charge-out rate (net) *</label>
-          <input type="number" min="0" step="0.01" value={form.unit_cost} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" className={inputCls} />
+          <input type="number" min="0" step="0.01" value={rateDisplay} onChange={(e) => setForm({ ...form, unit_cost: e.target.value })} onFocus={() => setRateFocused(true)} onBlur={() => setRateFocused(false)} placeholder="0.00" className={inputCls} />
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Unit</label>
