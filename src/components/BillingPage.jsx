@@ -17,6 +17,7 @@ import GenerateInvoiceModal from '@/components/billing/GenerateInvoiceModal';
 import InvoiceHistoryPanel from '@/components/billing/InvoiceHistoryPanel';
 import MonthlyStatementsPanel from '@/components/billing/MonthlyStatementsPanel';
 import VendorInvoiceReconciliation from '@/components/financials/VendorInvoiceReconciliation';
+import BillingLifecycleHub from '@/components/billing/BillingLifecycleHub';
 
 const fmt = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -51,7 +52,7 @@ export default function BillingPage({ onSelectJob }) {
   const [statusFilter, setStatusFilter] = useState('ready');
   const [reportingJobId, setReportingJobId] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [view, setView] = useState('summary'); // 'summary' | 'geotech' | 'invoices'
+  const [view, setView] = useState('lifecycle'); // 'lifecycle' | 'summary' | 'geotech' | 'invoices'
   const [invoiceJob, setInvoiceJob] = useState(null);
   const [companyName, setCompanyName] = useState('Ground Control');
   const [autoRunning, setAutoRunning] = useState(false);
@@ -293,6 +294,22 @@ export default function BillingPage({ onSelectJob }) {
     );
   }
 
+  if (view === 'lifecycle') {
+    return (
+      <div>
+        <div className="flex gap-1.5 mb-5 bg-white rounded-xl border border-slate-200 p-1.5 shadow-sm w-fit flex-wrap">
+          <button onClick={() => setView('lifecycle')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition bg-[#2E5A1A] text-white shadow-sm"><Sparkles className="w-4 h-4" /> Lifecycle</button>
+          <button onClick={() => setView('summary')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><Receipt className="w-4 h-4" /> Invoice Summary</button>
+          <button onClick={() => setView('geotech')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><Mountain className="w-4 h-4" /> Geotechnical Report</button>
+          <button onClick={() => setView('invoices')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><PoundSterling className="w-4 h-4" /> Invoices</button>
+          <button onClick={() => setView('statements')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><FileSpreadsheet className="w-4 h-4" /> Statements</button>
+          <button onClick={() => setView('reconciliation')} className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100"><ArrowRightLeft className="w-4 h-4" /> Reconciliation</button>
+        </div>
+        <BillingLifecycleHub onSelectJob={onSelectJob} />
+      </div>
+    );
+  }
+
   return (
     <div>
       <SettingsSectionHeader
@@ -315,6 +332,10 @@ export default function BillingPage({ onSelectJob }) {
 
       {/* View toggle */}
       <div className="flex gap-1.5 mb-5 bg-white rounded-xl border border-slate-200 p-1.5 shadow-sm w-fit flex-wrap">
+        <button onClick={() => setView('lifecycle')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'lifecycle' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+          <Sparkles className="w-4 h-4" /> Lifecycle
+        </button>
         <button onClick={() => setView('summary')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'summary' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
           <Receipt className="w-4 h-4" /> Invoice Summary
