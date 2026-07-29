@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { PoundSterling, TrendingUp, TrendingDown, Edit2, Check, X, Calculator, RefreshCw, ChevronDown, ChevronUp, Ruler } from 'lucide-react';
 
-const fmt = (n) => '£' + Math.round(n || 0).toLocaleString();
+const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJob, totalMeterage }) {
   const queryClient = useQueryClient();
@@ -195,10 +195,10 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
                     <div className="min-w-0">
                       <span className="font-medium text-slate-900">{sc.name}</span>
                       {sc.costType === 'meterage'
-                        ? <span className="text-xs text-slate-400 ml-2">{sc.meterage}m × £{sc.meterageRate}/m</span>
+                        ? <span className="text-xs text-slate-400 ml-2">{Number(sc.meterage || 0).toFixed(1)}m × £{Number(sc.meterageRate || 0).toFixed(2)}/m</span>
                         : sc.costType === 'timesheet'
-                        ? <span className="text-xs text-slate-400 ml-2">{(sc.timesheetMinutes / 60).toFixed(1)}h logged × £{sc.hourlyRate.toFixed(0)}/h</span>
-                        : <span className="text-xs text-slate-400 ml-2">{sc.shifts} shifts × £{sc.dayRate}</span>}
+                        ? <span className="text-xs text-slate-400 ml-2">{(sc.timesheetMinutes / 60).toFixed(1)}h logged × £{Number(sc.hourlyRate || 0).toFixed(2)}/h</span>
+                        : <span className="text-xs text-slate-400 ml-2">{sc.shifts} shifts × £{Number(sc.dayRate || 0).toFixed(2)}</span>}
                     </div>
                     <span className="font-semibold text-slate-700 flex-shrink-0">{fmt(sc.cost)}</span>
                   </div>

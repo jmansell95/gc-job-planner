@@ -18,7 +18,7 @@ const tooltipStyle = {
   padding: '8px 12px'
 };
 
-const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB');
+const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function JobCostAnalytics() {
   const [exporting, setExporting] = useState(false);

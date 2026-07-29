@@ -16,7 +16,7 @@ import {
 import { eachDayOfInterval, isWeekend } from 'date-fns';
 import { findRigRateCardItem } from '@/components/logistics/rigRateMatcher';
 
-const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB');
+const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function workingDays(start, end) {
   if (!start || !end) return 0;

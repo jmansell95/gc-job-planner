@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import StatCard from '@/components/dashboard/StatCard';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB');
+const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const titleCase = (s) => s ? s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : s;
 
 const statusColors = {

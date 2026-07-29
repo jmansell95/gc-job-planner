@@ -8,7 +8,7 @@ import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import StatCard from '@/components/dashboard/StatCard';
 import { findRigRateCardItem } from '@/components/logistics/rigRateMatcher';
 
-const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB');
+const fmtGBP = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function workingDays(start, end) {
   if (!start || !end) return 0;
