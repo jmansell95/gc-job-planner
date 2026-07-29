@@ -17,6 +17,7 @@ import GeotechnicalHeatmapWidget from '@/components/dashboard/GeotechnicalHeatma
 import UnbilledLiabilityWidget from '@/components/dashboard/UnbilledLiabilityWidget';
 import ProjectFinancialsWidget from '@/components/dashboard/ProjectFinancialsWidget';
 import SubconMarginGuardWidget from '@/components/dashboard/SubconMarginGuardWidget';
+import FinancialReconciliationWidget from '@/components/dashboard/FinancialReconciliationWidget';
 import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
 import EfficiencySnapshotWidget from '@/components/dashboard/EfficiencySnapshotWidget';
 import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
@@ -140,6 +141,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'rig-profitability': return canViewCosts ? <RigProfitabilityWidget onSelectJob={openJobDrawer} /> : null;
       case 'efficiency-snapshot': return canViewCosts ? <EfficiencySnapshotWidget onSelectJob={openJobDrawer} /> : null;
       case 'subcon-margin-guard': return canViewCosts ? <SubconMarginGuardWidget /> : null;
+      case 'financial-reconciliation': return canViewCosts ? <FinancialReconciliationWidget /> : null;
       default: return null;
     }
   };
