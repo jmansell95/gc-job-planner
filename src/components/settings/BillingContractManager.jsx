@@ -30,6 +30,8 @@ export default function BillingContractManager() {
   const [showNew, setShowNew] = useState(false);
   const [releasingId, setReleasingId] = useState(null);
   const [releaseMsg, setReleaseMsg] = useState(null);
+  const [activatingId, setActivatingId] = useState(null);
+  const [activateMsg, setActivateMsg] = useState(null);
 
   const handleRelease = async (contract) => {
     setReleasingId(contract.id);
@@ -49,6 +51,25 @@ export default function BillingContractManager() {
     }
     setReleasingId(null);
     setTimeout(() => setReleaseMsg(null), 4000);
+  };
+
+  const handleActivate = async (contract) => {
+    setActivatingId(contract.id);
+    setActivateMsg(null);
+    try {
+      const res = await base44.functions.invoke('activateBillingContract', { contract_id: contract.id });
+      const d = res.data || {};
+      if (d.ok) {
+        setActivateMsg({ ok: true, msg: `Contract activated — ${d.snapshot_items} rates snapshotted${d.superseded_version ? `, v${d.superseded_version} superseded` : ''}.` });
+        queryClient.invalidateQueries({ queryKey: ['billing-contracts'] });
+      } else {
+        setActivateMsg({ ok: false, msg: d.error || 'Activation failed' });
+      }
+    } catch (e) {
+      setActivateMsg({ ok: false, msg: e.message || 'Activation failed' });
+    }
+    setActivatingId(null);
+    setTimeout(() => setActivateMsg(null), 5000);
   };
 
   const { data: contracts = [], isLoading } = useQuery({
@@ -114,6 +135,33 @@ export default function BillingContractManager() {
                 </button>
                 {expanded && (
                   <div className="px-4 pb-4 border-t border-slate-100 pt-3 space-y-3">
+                    {/* Activate button for drafts */}
+                    {c.status === 'draft' && (
+                      <div className="flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-2">
+                        <Lock className="w-3.5 h-3.5 text-blue-600" />
+                        <span className="text-xs text-blue-700 font-medium">Draft — not yet locked</span>
+                        <button onClick={() => handleActivate(c)} disabled={activatingId === c.id}
+                          className="ml-auto flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 transition">
+                          {activatingId === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />} Activate & Lock
+                        </button>
+                      </div>
+                    )}
+                    {activateMsg && expanded && (
+                      <div className={`flex items-center gap-1.5 text-xs rounded-lg px-3 py-1.5 ${activateMsg.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                        <AlertTriangle className="w-3 h-3 flex-shrink-0" /> {activateMsg.msg}
+                      </div>
+                    )}
+                    {/* Active badge with snapshot info */}
+                    {c.status === 'active' && c.rate_snapshot && (
+                      <div className="flex items-center gap-2 text-xs bg-emerald-50 rounded-lg px-3 py-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-700 font-medium">Locked</span>
+                        {(() => {
+                          try { const s = JSON.parse(c.rate_snapshot); return <span className="text-emerald-600">{s.total_items || 0} rates snapshotted · {new Date(s.snapshot_date).toLocaleDateString('en-GB')}</span>; }
+                          catch { return null; }
+                        })()}
+                      </div>
+                    )}
                     {/* Key terms */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       <TermChip icon={Percent} label="Markup" value={c.markup_percentage ? `${c.markup_percentage}%` : '—'} />
