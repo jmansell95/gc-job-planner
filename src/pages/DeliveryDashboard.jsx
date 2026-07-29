@@ -95,6 +95,7 @@ export default function DeliveryDashboard() {
 
   const { data: jobs = [] } = useQuery({ queryKey: ['delivery-jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['delivery-vehicles'], queryFn: () => base44.entities.Vehicle.list() });
+  const { data: allStaff = [] } = useQuery({ queryKey: ['delivery-all-staff'], queryFn: () => base44.entities.Staff.filter({ is_active: true }) });
 
   const canPerformActions = isWithinSiteHours() || isBeforeSiteOpen() || staff?.is_admin;
 
@@ -146,6 +147,7 @@ export default function DeliveryDashboard() {
         photoUrls = uploaded.join(',');
       }
 
+      const handoverColleague = data.handover_mode ? allStaff.find(s => s.id === data.handover_to_staff_id) : null;
       const updated = await base44.entities.DeliveryLog.update(deliveryId, {
         status: 'completed',
         completed_at: data.completed_at,
@@ -155,12 +157,17 @@ export default function DeliveryDashboard() {
         gps_coordinates: data.gps_coordinates || '',
         notes: data.notes,
         condition_report: data.condition_report,
-        synced_from_offline: false
+        synced_from_offline: false,
+        ...(data.handover_mode && handoverColleague ? {
+          handover_to_staff_id: handoverColleague.id,
+          handover_to_staff_name: handoverColleague.name,
+        } : {})
       });
 
       // Auto-update linked cost item locations based on delivery type
       const linkedIds = (updated.linked_cost_item_ids || '').split(',').map(s => s.trim()).filter(Boolean);
-      if (linkedIds.length > 0) {
+      const isHandover = data.handover_mode && data.handover_to_staff_id;
+      if (linkedIds.length > 0 && !isHandover) {
         const newLocation = updated.delivery_type === 'supplier_collection' ? 'returned' : 'site';
         const updates = linkedIds.map(id => ({
           id,
@@ -172,6 +179,40 @@ export default function DeliveryDashboard() {
           } : {})
         }));
         try { await base44.entities.JobCostItem.bulkUpdate(updates); } catch (e) { console.error('Item location sync error:', e); }
+      }
+
+      // Handover-to-colleague: create a chained delivery task for the receiving
+      // colleague so it appears on their delivery dashboard for them to deliver
+      // to the final recipient and capture the recipient's signature.
+      if (isHandover) {
+        const colleague = allStaff.find(s => s.id === data.handover_to_staff_id);
+        try {
+          await base44.entities.DeliveryLog.create({
+            job_id: updated.job_id,
+            job_name: updated.job_name || '',
+            driver_staff_id: data.handover_to_staff_id,
+            driver_staff_name: colleague?.name || '',
+            delivery_type: updated.delivery_type === 'supplier_collection' ? 'site_delivery' : updated.delivery_type,
+            status: 'pending',
+            items: updated.items || '',
+            linked_cost_item_ids: updated.linked_cost_item_ids || '',
+            pickup_address: updated.pickup_address || '',
+            delivery_address: updated.delivery_address || '',
+            contact_name: updated.contact_name || '',
+            contact_phone: updated.contact_phone || '',
+            po_number: updated.po_number || '',
+            scheduled_date: format(new Date(), 'yyyy-MM-dd'),
+            vehicle_id: '',
+            notes: `Handed over by ${data.signed_by_name || staff?.name || 'previous driver'}${updated.notes ? ' — ' + updated.notes : ''}`,
+            chargeable: updated.chargeable !== false,
+            parent_delivery_id: deliveryId,
+            handover_from_staff_name: data.signed_by_name || staff?.name || '',
+          });
+          toast({ title: 'Handover created', description: `${colleague?.name || 'Colleague'} now has a delivery task to complete.` });
+        } catch (e) {
+          console.error('Chained handover creation error:', e);
+          toast({ title: 'Handover task could not be created', description: 'The delivery was signed off but the colleague task failed — create it manually.', variant: 'destructive' });
+        }
       }
 
       queryClient.invalidateQueries({ queryKey: ['my-deliveries'] });
@@ -378,6 +419,8 @@ export default function DeliveryDashboard() {
         open={!!completeDelivery}
         onClose={() => setCompleteDelivery(null)}
         onComplete={handleComplete}
+        staffList={allStaff}
+        currentDriverName={staff?.name || ''}
       />
     </div>
   );

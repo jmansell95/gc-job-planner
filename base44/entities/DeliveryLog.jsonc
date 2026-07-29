@@ -166,6 +166,26 @@
     "custom_fee": {
       "type": "number",
       "description": "Manual fee override in GBP \u2014 used when billing_status is 'custom_fee'"
+    },
+    "handover_to_staff_id": {
+      "type": "string",
+      "description": "Staff member the driver handed the items over to (instead of delivering to the site recipient). Set when a driver uses the handover-to-colleague flow. The chained delivery created for this colleague carries parent_delivery_id pointing back here."
+    },
+    "handover_to_staff_name": {
+      "type": "string",
+      "description": "Name of the colleague the items were handed over to (denormalised for display)."
+    },
+    "handover_from_staff_name": {
+      "type": "string",
+      "description": "Name of the driver who handed the items over. Set on the chained (child) delivery so the receiving colleague can see who handed it to them."
+    },
+    "parent_delivery_id": {
+      "type": "string",
+      "description": "ID of the original delivery this was handed over from. Set on chained (child) deliveries created by the handover flow \u2014 links the chain so the admin hub can show the full movement history of an item."
+    },
+    "handover_completed_at": {
+      "type": "string",
+      "description": "ISO timestamp when the handover was confirmed by the receiving colleague (their sign-off)."
     }
   },
   "required": [

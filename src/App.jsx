@@ -15,6 +15,7 @@ import StaffProfile from './pages/StaffProfile';
 import SubcontractorDashboard from './pages/SubcontractorDashboard';
 import ClientPortal from './pages/ClientPortal';
 import DeliveryDashboard from './pages/DeliveryDashboard';
+import AdminDeliveryHub from './pages/AdminDeliveryHub';
 import HelpGuide from './pages/HelpGuide';
 import PresentationPack from './pages/PresentationPack';
 import RigHub from './pages/RigHub';
@@ -67,6 +68,7 @@ const AuthenticatedApp = () => {
           <Route path="/staff-profile" element={<RouteGuard><StaffProfile /></RouteGuard>} />
           <Route path="/subcontractor" element={<RouteGuard><SubcontractorDashboard /></RouteGuard>} />
           <Route path="/deliveries" element={<RouteGuard><DeliveryDashboard /></RouteGuard>} />
+          <Route path="/admin/logistics" element={<RouteGuard><AdminDeliveryHub /></RouteGuard>} />
           <Route path="/help" element={<HelpGuide />} />
           <Route path="/presentation-pack" element={<PresentationPack />} />
           <Route path="/rig-hub" element={<RouteGuard><RigHub /></RouteGuard>} />

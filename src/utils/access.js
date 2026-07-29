@@ -17,11 +17,11 @@ export const SYSTEM_ROLES = [
 // Admin sections visible to each role. Field staff use their team's
 // PermissionGroup (they can't access the admin dashboard anyway).
 export const ROLE_SECTIONS = {
-  super_admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety-hub', 'fleet'],
-  admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety-hub', 'fleet'],
-  management: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'billing', 'safety-hub', 'fleet'],
-  user: ['overview', 'jobs', 'calendar', 'audit-trail'],
-  read_only: ['overview', 'jobs', 'calendar', 'audit-trail'],
+  super_admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety-hub', 'fleet'],
+  admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety-hub', 'fleet'],
+  management: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'billing', 'safety-hub', 'fleet'],
+  user: ['overview', 'jobs', 'calendar', 'logistics', 'audit-trail'],
+  read_only: ['overview', 'jobs', 'calendar', 'logistics', 'audit-trail'],
 };
 
 // Resolve the effective role from profile + platform admin flag.

@@ -10,6 +10,7 @@ import SettingsPage from '@/components/SettingsPage';
 import JobDetail from '@/components/JobDetail';
 import SchedulingHub from '@/components/SchedulingHub';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
+import AdminDeliveryHub from '@/pages/AdminDeliveryHub';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
@@ -92,6 +93,7 @@ export default function AdminDashboard() {
             {(activeSection === 'scheduling' || activeSection === 'rota' || activeSection === 'calendar') && (
               <SchedulingHub initialTab={activeSection === 'calendar' ? 'calendar' : 'rota'} />
             )}
+            {activeSection === 'logistics' && <AdminDeliveryHub />}
             {activeSection === 'timesheets' && <SettingsPage initialTab="timesheets" />}
             {activeSection === 'teams' && <SettingsPage initialTab="teams" />}
             {activeSection === 'compliance' && <SettingsPage initialTab="compliance" />}

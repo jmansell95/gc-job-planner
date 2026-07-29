@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle2, Camera, MapPin, FileText, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { X, CheckCircle2, Camera, MapPin, FileText, ShieldCheck, AlertTriangle, ArrowRightLeft, User } from 'lucide-react';
 import SignaturePad from '@/components/staff/SignaturePad';
 import { format } from 'date-fns';
 
-export default function DeliveryCompleteModal({ delivery, open, onClose, onComplete }) {
+export default function DeliveryCompleteModal({ delivery, open, onClose, onComplete, staffList = [], currentDriverName = '' }) {
   const [signature, setSignature] = useState(null);
   const [signedByName, setSignedByName] = useState('');
   const [condition, setCondition] = useState('');
@@ -13,6 +13,8 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
   const [gps, setGps] = useState(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [handoverMode, setHandoverMode] = useState(false);
+  const [handoverToStaffId, setHandoverToStaffId] = useState('');
   const fileInputRef = useRef(null);
 
   // Reset state when modal opens for a new delivery
@@ -25,6 +27,8 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
       setPhotos([]);
       setGps(null);
       setSubmitting(false);
+      setHandoverMode(false);
+      setHandoverToStaffId('');
       // Try to capture GPS on open
       if (navigator.geolocation) {
         setGpsLoading(true);
@@ -56,6 +60,7 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
 
   const handleSubmit = async () => {
     if (!signature) return;
+    if (handoverMode && !handoverToStaffId) return;
     setSubmitting(true);
 
     const completedAt = new Date().toISOString();
@@ -67,13 +72,15 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
       delivery_id: delivery.id,
       completed_at: completedAt,
       signature_data_url: signature,
-      signed_by_name: signedByName || delivery.contact_name || '',
+      signed_by_name: signedByName || (handoverMode ? currentDriverName : delivery.contact_name) || '',
       photo_data_urls: photoDataUrls,
       gps_coordinates: gps || '',
       notes: notes.trim(),
       condition_report: condition.trim(),
       delivery_type: delivery.delivery_type || '',
-      linked_cost_item_ids: delivery.linked_cost_item_ids || ''
+      linked_cost_item_ids: delivery.linked_cost_item_ids || '',
+      handover_mode: handoverMode,
+      handover_to_staff_id: handoverMode ? handoverToStaffId : '',
     });
 
     // Only stop the spinner if the sign-off failed — on success the modal closes.
@@ -83,7 +90,7 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
     }
   };
 
-  const canSubmit = signature && !submitting;
+  const canSubmit = signature && !submitting && (!handoverMode || !!handoverToStaffId);
 
   return (
     <AnimatePresence>
@@ -131,17 +138,59 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
               )}
             </div>
 
+            {/* Handover-to-colleague toggle */}
+            {staffList.length > 0 && (
+              <div className="rounded-xl border border-slate-200 overflow-hidden">
+                <button type="button" onClick={() => setHandoverMode(m => !m)}
+                  className={`w-full flex items-center gap-2.5 px-3.5 py-3 text-left transition ${handoverMode ? 'bg-purple-50 text-purple-800' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
+                  <span className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${handoverMode ? 'bg-purple-500 text-white' : 'bg-white border border-slate-200 text-slate-400'}`}>
+                    <ArrowRightLeft className="w-4 h-4" />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-semibold">{handoverMode ? 'Handing over to a colleague' : 'Hand over to a colleague instead?'}</span>
+                    <span className="block text-xs text-slate-500 mt-0.5">{handoverMode ? 'They\'ll get a new delivery task to take it to the recipient.' : 'Tap to pass items to another crew member for them to deliver.'}</span>
+                  </span>
+                </button>
+                {handoverMode && (
+                  <div className="px-3.5 py-3 bg-white border-t border-slate-100 space-y-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 flex items-center gap-1">
+                      <User className="w-3.5 h-3.5" /> Hand items to
+                    </label>
+                    <select value={handoverToStaffId} onChange={e => setHandoverToStaffId(e.target.value)}
+                      className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-base focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100">
+                      <option value="">Select colleague…</option>
+                      {staffList.filter(s => s.id !== delivery.driver_staff_id).map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                    {!handoverToStaffId && (
+                      <p className="text-xs text-amber-600 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" /> Select who you're handing the items to.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Recipient name — essential, first */}
             <div>
-              <label className="block text-sm font-semibold text-slate-800 mb-1.5">Recipient name</label>
+              <label className="block text-sm font-semibold text-slate-800 mb-1.5">
+                {handoverMode ? 'Your name (handing over)' : 'Recipient name'}
+              </label>
               <input
                 type="text"
                 value={signedByName}
                 onChange={e => setSignedByName(e.target.value)}
-                placeholder={delivery.contact_name || 'Who is receiving the items?'}
+                placeholder={handoverMode ? (currentDriverName || 'Your name') : (delivery.contact_name || 'Who is receiving the items?')}
                 autoComplete="name"
                 className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-base focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
               />
+              {handoverMode && (
+                <p className="text-xs text-purple-600 mt-1.5 flex items-center gap-1">
+                  <ArrowRightLeft className="w-3 h-3" /> You're signing to confirm you've handed the items to your colleague.
+                </p>
+              )}
             </div>
 
             {/* Signature — essential, second */}
