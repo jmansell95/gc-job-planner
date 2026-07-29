@@ -19,6 +19,7 @@ import AdminDeliveryHub from './pages/AdminDeliveryHub';
 import HelpGuide from './pages/HelpGuide';
 import PresentationPack from './pages/PresentationPack';
 import RigHub from './pages/RigHub';
+import Vehicles from './pages/Vehicles';
 import PATTestingConsole from './pages/PATTestingConsole';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -72,6 +73,7 @@ const AuthenticatedApp = () => {
           <Route path="/help" element={<HelpGuide />} />
           <Route path="/presentation-pack" element={<PresentationPack />} />
           <Route path="/rig-hub" element={<RouteGuard><RigHub /></RouteGuard>} />
+          <Route path="/vehicles" element={<RouteGuard><Vehicles /></RouteGuard>} />
           <Route path="/pat-testing" element={<RouteGuard><PATTestingConsole /></RouteGuard>} />
         </Route>
         <Route path="/client-portal/:token" element={<ClientPortal />} />

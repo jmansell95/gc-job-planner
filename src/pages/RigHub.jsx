@@ -135,7 +135,7 @@ export default function RigHub() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div className="min-w-0">
-                <h1 className="text-2xl font-bold tracking-tight truncate">Fleet Hub</h1>
+                <h1 className="text-2xl font-bold tracking-tight truncate">Rig Fleet</h1>
                 <p className="text-sm text-white/70">Master record for every rig, equipment, certificate & maintenance booking</p>
               </div>
             </div>

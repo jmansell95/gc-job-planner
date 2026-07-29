@@ -35,6 +35,10 @@ export default function AdminDashboard() {
       navigate('/rig-hub');
       setActiveSection('overview');
     }
+    if (activeSection === 'vehicles') {
+      navigate('/vehicles');
+      setActiveSection('overview');
+    }
   }, [activeSection, navigate]);
 
   useEffect(() => {
