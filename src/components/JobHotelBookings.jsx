@@ -3,96 +3,44 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
 import {
-  Hotel, Plus, MapPin, Calendar, Phone, FileText, Trash2, Edit2,
-  X, Users, Home, BedDouble, Wand2, Check, Loader2, Navigation, Hash
+  Hotel, Plus, MapPin, Phone, FileText, Trash2, Edit2,
+  X, Users, Home, BedDouble, Wand2, Check, Loader2, Navigation, Hash,
+  ChevronRight, Calendar, PoundSterling, Bed, UserCheck, AlertCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
-const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
+const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-blue-600 text-sm";
 
-const STAFF_AVATAR_COLORS = ['bg-emerald-100 text-emerald-700', 'bg-blue-100 text-blue-700', 'bg-amber-100 text-amber-700', 'bg-purple-100 text-purple-700', 'bg-rose-100 text-rose-700', 'bg-cyan-100 text-cyan-700'];
+const STAFF_COLORS = [
+  'bg-emerald-100 text-emerald-700',
+  'bg-blue-100 text-blue-700',
+  'bg-amber-100 text-amber-700',
+  'bg-purple-100 text-purple-700',
+  'bg-rose-100 text-rose-700',
+  'bg-cyan-100 text-cyan-700',
+];
 
-function StaffChip({ name, color, onClick }) {
-  const colorClass = STAFF_AVATAR_COLORS[color % STAFF_AVATAR_COLORS.length];
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${colorClass}`}>
-      {name.split(' ')[0]}
-      {onClick && <button onClick={onClick} className="hover:bg-black/10 rounded-full p-0.5"><X className="w-2.5 h-2.5" /></button>}
-    </span>
-  );
+function initials(name) {
+  return name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
 }
 
-function HotelCard({ booking, staffCount, onEdit, onDelete, onUnassign, staffMap }) {
-  const assignedNames = booking.assigned_staff_names || [];
-  const assignedIds = booking.assigned_staff_ids || [];
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition">
-      <div className="bg-gradient-to-r from-blue-500 to-blue-700 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <Hotel className="w-5 h-5 text-white flex-shrink-0" />
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-white truncate">{booking.hotel_name}</p>
-            {booking.check_in_date && (
-              <p className="text-xs text-blue-100">{format(new Date(booking.check_in_date + 'T00:00:00'), 'dd MMM')}{booking.check_out_date ? ` – ${format(new Date(booking.check_out_date + 'T00:00:00'), 'dd MMM')}` : ''}</p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-blue-50 bg-white/15 rounded-full px-2 py-0.5 font-semibold flex items-center gap-1"><Users className="w-3 h-3" /> {staffCount}</span>
-          <button onClick={() => onEdit(booking)} className="p-1.5 rounded-lg hover:bg-white/20 text-white transition"><Edit2 className="w-3.5 h-3.5" /></button>
-        </div>
-      </div>
-      <div className="p-4 space-y-2">
-        {booking.address && (
-          <a href={`https://maps.google.com/?q=${encodeURIComponent(booking.address + ' ' + booking.hotel_name)}`} target="_blank" rel="noopener noreferrer"
-            className="flex items-start gap-1.5 text-xs text-slate-600 hover:text-blue-700 transition">
-            <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" /> {booking.address} <Navigation className="w-3 h-3 inline text-blue-500" />
-          </a>
-        )}
-        <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
-          {booking.room_type && <span className="flex items-center gap-1"><BedDouble className="w-3 h-3" /> {booking.room_type}</span>}
-          {booking.booking_reference && <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {booking.booking_reference}</span>}
-          {booking.po_number && <span className="flex items-center gap-1 font-medium text-slate-700"><Hash className="w-3 h-3 text-blue-500" /> PO: {booking.po_number}</span>}
-          {booking.contact_phone && (
-            <a href={`tel:${booking.contact_phone}`} className="flex items-center gap-1 text-blue-700 font-medium hover:underline"><Phone className="w-3 h-3" /> {booking.contact_phone}</a>
-          )}
-        </div>
-        {(() => {
-          const nights = (booking.check_in_date && booking.check_out_date) ? Math.max(0, Math.round((new Date(booking.check_out_date + 'T00:00:00') - new Date(booking.check_in_date + 'T00:00:00')) / 86400000)) : 0;
-          const total = (Number(booking.cost_per_night) || 0) * (Number(booking.room_count) || 1) * nights;
-          if (!total) return null;
-          return (
-            <div className="flex items-center justify-between bg-blue-50 rounded-lg px-2.5 py-1.5 text-xs">
-              <span className="text-blue-600">£{(Number(booking.cost_per_night) || 0).toFixed(2)}/night × {nights}n × {Number(booking.room_count) || 1}r</span>
-              <span className="font-bold text-blue-800">£{total.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-          );
-        })()}
-        <div className="flex flex-wrap gap-1 pt-1">
-          {assignedNames.map((name, i) => (
-            <StaffChip key={assignedIds[i] || i} name={name} color={i} onClick={() => onUnassign(booking, assignedIds[i])} />
-          ))}
-        </div>
-        <button onClick={() => onDelete(booking)} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 pt-1"><Trash2 className="w-3 h-3" /> Remove booking</button>
-      </div>
-    </div>
-  );
+function nightsBetween(ci, co) {
+  if (!ci || !co) return 0;
+  return Math.max(0, Math.round((new Date(co + 'T00:00:00') - new Date(ci + 'T00:00:00')) / 86400000));
 }
 
-function HotelEditor({ open, onClose, booking, job, assignedStaff, onSave, allStaff }) {
+function HotelEditor({ open, onClose, booking, job, assignedStaff, onSave, allStaff, preselectStaffId }) {
   const [form, setForm] = useState(booking || {});
   const [selectedStaffIds, setSelectedStaffIds] = useState([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setForm(booking || { hotel_name: '', address: '', check_in_date: job?.start_date || '', check_out_date: job?.end_date || '', room_type: '', booking_reference: '', po_number: '', contact_phone: '', notes: '' });
-    setSelectedStaffIds(booking?.assigned_staff_ids || []);
-  }, [booking, job, open]);
+    setSelectedStaffIds(booking?.assigned_staff_ids || (preselectStaffId ? [preselectStaffId] : []));
+  }, [booking, job, open, preselectStaffId]);
 
-  const toggleStaff = (id) => {
-    setSelectedStaffIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
+  const toggleStaff = (id) => setSelectedStaffIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -100,13 +48,7 @@ function HotelEditor({ open, onClose, booking, job, assignedStaff, onSave, allSt
     if (!form.hotel_name?.trim()) return;
     setSaving(true);
     const staffNames = selectedStaffIds.map(id => allStaff.find(s => s.id === id)?.name).filter(Boolean);
-    const payload = {
-      ...form,
-      job_id: job.id,
-      job_name: job.name,
-      assigned_staff_ids: selectedStaffIds,
-      assigned_staff_names: staffNames
-    };
+    const payload = { ...form, job_id: job.id, job_name: job.name, assigned_staff_ids: selectedStaffIds, assigned_staff_names: staffNames };
     try {
       if (booking?.id) {
         await base44.entities.HotelBooking.update(booking.id, payload);
@@ -175,7 +117,7 @@ function HotelEditor({ open, onClose, booking, job, assignedStaff, onSave, allSt
             </div>
           </div>
           {(() => {
-            const nights = (form.check_in_date && form.check_out_date) ? Math.max(0, Math.round((new Date(form.check_out_date + 'T00:00:00') - new Date(form.check_in_date + 'T00:00:00')) / 86400000)) : 0;
+            const nights = nightsBetween(form.check_in_date, form.check_out_date);
             const total = (Number(form.cost_per_night) || 0) * (Number(form.room_count) || 1) * nights;
             return (
               <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 flex items-center justify-between">
@@ -194,8 +136,6 @@ function HotelEditor({ open, onClose, booking, job, assignedStaff, onSave, allSt
             <label className="block text-xs font-medium text-slate-600 mb-1">Notes</label>
             <textarea value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} className={inputCls + " resize-none"} placeholder="Parking, breakfast, etc." />
           </div>
-
-          {/* Staff assignment grid */}
           <div className="pt-2 border-t border-slate-100">
             <label className="block text-xs font-medium text-slate-600 mb-2">Assigned Crew ({selectedStaffIds.length})</label>
             {allStaff.length === 0 ? (
@@ -219,7 +159,6 @@ function HotelEditor({ open, onClose, booking, job, assignedStaff, onSave, allSt
               </div>
             )}
           </div>
-
           <div className="flex gap-2 pt-2">
             <button type="submit" disabled={saving} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition text-sm font-semibold">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} {booking?.id ? 'Update' : 'Create'}
@@ -232,19 +171,138 @@ function HotelEditor({ open, onClose, booking, job, assignedStaff, onSave, allSt
   );
 }
 
+function StaffHotelRow({ staff, booking, colorIdx, onEdit, onUnassign, onAssign }) {
+  const [expanded, setExpanded] = useState(false);
+  const colorClass = STAFF_COLORS[colorIdx % STAFF_COLORS.length];
+
+  if (!booking) {
+    return (
+      <div className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition">
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${colorClass}`}>
+          {initials(staff.name)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-slate-800 truncate">{staff.name}</p>
+          <p className="text-xs text-slate-400">No hotel assigned</p>
+        </div>
+        <button onClick={() => onAssign(staff)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold transition">
+          <Plus className="w-3.5 h-3.5" /> Assign
+        </button>
+      </div>
+    );
+  }
+
+  const nights = nightsBetween(booking.check_in_date, booking.check_out_date);
+  const cost = (Number(booking.cost_per_night) || 0) * (Number(booking.room_count) || 1) * nights;
+
+  return (
+    <div className="border-b border-slate-100 last:border-0">
+      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition text-left">
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${colorClass}`}>
+          {initials(staff.name)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-slate-800 truncate">{staff.name}</p>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <Hotel className="w-3 h-3 text-blue-500" />
+            <span className="truncate font-medium text-slate-600">{booking.hotel_name}</span>
+            {booking.room_type && <span className="text-slate-400">· {booking.room_type}</span>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {cost > 0 && <span className="text-xs font-bold text-slate-700 hidden sm:block">£{cost.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>}
+          {booking.check_in_date && (
+            <span className="text-[11px] text-slate-400 hidden md:block">
+              {format(new Date(booking.check_in_date + 'T00:00:00'), 'dd MMM')}{booking.check_out_date ? `–${format(new Date(booking.check_out_date + 'T00:00:00'), 'dd MMM')}` : ''}
+            </span>
+          )}
+          <ChevronRight className={`w-4 h-4 text-slate-300 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-4 pl-16 space-y-3 bg-slate-50/50">
+          <div className="flex items-center gap-3 text-xs">
+            <span className="flex items-center gap-1 text-slate-500"><Calendar className="w-3 h-3" /> {nights} night{nights === 1 ? '' : 's'}</span>
+            <span className="flex items-center gap-1 text-slate-500"><Bed className="w-3 h-3" /> {booking.room_type || 'Standard'} · {booking.room_count || 1} room{(booking.room_count || 1) > 1 ? 's' : ''}</span>
+            {cost > 0 && <span className="flex items-center gap-1 text-slate-700 font-semibold"><PoundSterling className="w-3 h-3" /> {cost.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
+          </div>
+
+          {booking.address && (
+            <a href={`https://maps.google.com/?q=${encodeURIComponent(booking.address + ' ' + booking.hotel_name)}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-start gap-1.5 text-xs text-slate-600 hover:text-blue-700 transition">
+              <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" /> {booking.address} <Navigation className="w-3 h-3 text-blue-500 mt-0.5" />
+            </a>
+          )}
+
+          <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+            {booking.booking_reference && <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {booking.booking_reference}</span>}
+            {booking.po_number && <span className="flex items-center gap-1 font-medium text-slate-700"><Hash className="w-3 h-3 text-blue-500" /> PO: {booking.po_number}</span>}
+            {booking.contact_phone && (
+              <a href={`tel:${booking.contact_phone}`} className="flex items-center gap-1 text-blue-700 font-medium hover:underline"><Phone className="w-3 h-3" /> {booking.contact_phone}</a>
+            )}
+          </div>
+
+          {booking.notes && (
+            <div className="text-xs text-slate-500 bg-white rounded-lg px-3 py-2 border border-slate-200">
+              {booking.notes}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 pt-1">
+            <button onClick={() => onEdit(booking)} className="flex items-center gap-1 px-3 py-1.5 bg-white text-slate-600 hover:bg-slate-100 rounded-lg text-xs font-medium transition border border-slate-200">
+              <Edit2 className="w-3 h-3" /> Edit
+            </button>
+            <button onClick={() => onUnassign(booking, staff.id)} className="flex items-center gap-1 px-3 py-1.5 bg-white text-amber-600 hover:bg-amber-50 rounded-lg text-xs font-medium transition border border-slate-200">
+              <X className="w-3 h-3" /> Unassign
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatTile({ icon: Icon, label, value, sub, gradient }) {
+  return (
+    <div className={`rounded-xl p-3 text-white ${gradient}`}>
+      <div className="flex items-center justify-between mb-1">
+        <Icon className="w-4 h-4 opacity-80" />
+      </div>
+      <p className="text-xl font-bold leading-tight">{value}</p>
+      <p className="text-[11px] opacity-80">{label}</p>
+      {sub && <p className="text-[10px] opacity-60 mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
 export default function JobHotelBookings({ job, assignedStaff, allStaff }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
+  const [assignTargetStaff, setAssignTargetStaff] = useState(null);
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['job-hotel-bookings', job.id],
     queryFn: () => base44.entities.HotelBooking.filter({ job_id: job.id })
   });
 
+  // Build a map of staff_id -> booking
+  const staffBookingMap = {};
+  bookings.forEach(b => {
+    (b.assigned_staff_ids || []).forEach(sid => {
+      staffBookingMap[sid] = b;
+    });
+  });
+
   const assignedToAnyBooking = new Set(bookings.flatMap(b => b.assigned_staff_ids || []));
   const unassignedStaff = assignedStaff.filter(s => !assignedToAnyBooking.has(s.id));
+  const totalNights = bookings.reduce((sum, b) => sum + nightsBetween(b.check_in_date, b.check_out_date), 0);
+  const totalCost = bookings.reduce((sum, b) => {
+    const n = nightsBetween(b.check_in_date, b.check_out_date);
+    return sum + (Number(b.cost_per_night) || 0) * (Number(b.room_count) || 1) * n;
+  }, 0);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['job-hotel-bookings', job.id] });
@@ -253,11 +311,20 @@ export default function JobHotelBookings({ job, assignedStaff, allStaff }) {
 
   const handleAdd = () => {
     setEditingBooking(null);
+    setAssignTargetStaff(null);
     setEditorOpen(true);
   };
 
   const handleEdit = (booking) => {
     setEditingBooking(booking);
+    setAssignTargetStaff(null);
+    setEditorOpen(true);
+  };
+
+  const handleAssignStaff = (staff) => {
+    // Open the editor with this staff pre-selected (new booking)
+    setEditingBooking(null);
+    setAssignTargetStaff(staff);
     setEditorOpen(true);
   };
 
@@ -278,16 +345,16 @@ export default function JobHotelBookings({ job, assignedStaff, allStaff }) {
     try {
       await base44.entities.HotelBooking.update(booking.id, { assigned_staff_ids: newIds, assigned_staff_names: newNames });
       invalidate();
+      toast({ title: 'Crew member unassigned' });
     } catch (err) {
       console.error('Unassign error:', err);
     }
   };
 
-  const handleFillRemaining = async (booking) => {
-    if (unassignedStaff.length === 0) {
-      toast({ title: 'All staff are already assigned', description: 'No unassigned crew to fill.' });
-      return;
-    }
+  const handleFillRemaining = async () => {
+    if (unassignedStaff.length === 0 || bookings.length === 0) return;
+    // Add all unassigned to the first booking
+    const booking = bookings[0];
     const newIds = [...(booking.assigned_staff_ids || []), ...unassignedStaff.map(s => s.id)];
     const newNames = [...(booking.assigned_staff_names || []), ...unassignedStaff.map(s => s.name)];
     try {
@@ -300,62 +367,123 @@ export default function JobHotelBookings({ job, assignedStaff, allStaff }) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-        <Hotel className="w-5 h-5 text-blue-600" />
-        <h2 className="font-semibold text-slate-900">Accommodations</h2>
-        <span className="ml-auto text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">{bookings.length}</span>
-        <button onClick={handleAdd} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs font-semibold ml-2">
-          <Plus className="w-3.5 h-3.5" /> Add Hotel
-        </button>
+    <div className="space-y-4">
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatTile icon={Hotel} label="Hotels Booked" value={bookings.length} gradient="bg-gradient-to-br from-blue-500 to-blue-700" />
+        <StatTile icon={UserCheck} label="Crew Covered" value={`${assignedToAnyBooking.size}/${assignedStaff.length}`} sub={`${unassignedStaff.length} unassigned`} gradient="bg-gradient-to-br from-emerald-500 to-emerald-700" />
+        <StatTile icon={BedDouble} label="Total Nights" value={totalNights} gradient="bg-gradient-to-br from-violet-500 to-violet-700" />
+        <StatTile icon={PoundSterling} label="Total Cost" value={`£${totalCost.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} gradient="bg-gradient-to-br from-amber-500 to-amber-700" />
       </div>
 
-      <div className="p-4">
+      {/* Main person-centric list */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+          <Hotel className="w-5 h-5 text-blue-600" />
+          <h2 className="font-semibold text-slate-900">Crew Accommodation</h2>
+          <span className="ml-auto text-xs text-slate-400">Tap a row to expand details</span>
+          <button onClick={handleAdd} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs font-semibold ml-2">
+            <Plus className="w-3.5 h-3.5" /> Add Hotel
+          </button>
+        </div>
+
         {isLoading ? (
           <div className="flex items-center justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-slate-300" /></div>
-        ) : bookings.length === 0 ? (
+        ) : assignedStaff.length === 0 ? (
           <div className="text-center py-8">
             <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3">
-              <Hotel className="w-6 h-6 text-slate-300" />
+              <Users className="w-6 h-6 text-slate-300" />
             </div>
-            <p className="text-sm font-semibold text-slate-600">No hotels booked yet</p>
-            <p className="text-xs text-slate-400 mt-1">Add a hotel and assign crew members who need accommodation.</p>
+            <p className="text-sm font-semibold text-slate-600">No crew assigned to this job</p>
+            <p className="text-xs text-slate-400 mt-1">Assign crew from the Schedule tab first.</p>
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-              {bookings.map(b => (
-                <div key={b.id}>
-                  <HotelCard booking={b} staffCount={(b.assigned_staff_ids || []).length} onEdit={handleEdit} onDelete={handleDelete} onUnassign={handleUnassign} />
-                  {unassignedStaff.length > 0 && (
-                    <button onClick={() => handleFillRemaining(b)} className="w-full mt-1.5 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-semibold transition">
-                      <Wand2 className="w-3.5 h-3.5" /> Fill {unassignedStaff.length} remaining
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Unassigned / Local bucket */}
-            <div className="bg-slate-50 rounded-xl border border-dashed border-slate-300 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Home className="w-4 h-4 text-slate-400" />
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Local / No Hotel Required</p>
-                <span className="ml-auto text-xs text-slate-400">{unassignedStaff.length}</span>
-              </div>
-              {unassignedStaff.length === 0 ? (
-                <p className="text-xs text-slate-400">All crew are assigned to a hotel.</p>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {unassignedStaff.map((s, i) => <StaffChip key={s.id} name={s.name} color={i} />)}
-                </div>
-              )}
-            </div>
-          </>
+          <div className="divide-y divide-slate-100">
+            {assignedStaff.map((staff, i) => (
+              <StaffHotelRow
+                key={staff.id}
+                staff={staff}
+                booking={staffBookingMap[staff.id]}
+                colorIdx={i}
+                onEdit={handleEdit}
+                onUnassign={handleUnassign}
+                onAssign={handleAssignStaff}
+              />
+            ))}
+          </div>
         )}
       </div>
 
-      <HotelEditor open={editorOpen} onClose={() => setEditorOpen(false)} booking={editingBooking} job={job} assignedStaff={assignedStaff} allStaff={allStaff} onSave={invalidate} />
+      {/* Quick fill + unassigned summary */}
+      {unassignedStaff.length > 0 && bookings.length > 0 && (
+        <button onClick={handleFillRemaining} className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-sm font-semibold transition border border-blue-200">
+          <Wand2 className="w-4 h-4" /> Fill {unassignedStaff.length} unassigned crew into first hotel
+        </button>
+      )}
+
+      {/* Unassigned alert */}
+      {unassignedStaff.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-800">{unassignedStaff.length} crew member{unassignedStaff.length === 1 ? '' : 's'} without accommodation</p>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {unassignedStaff.map((s, i) => (
+                <span key={s.id} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${STAFF_COLORS[i % STAFF_COLORS.length]}`}>
+                  {s.name.split(' ')[0]}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hotel summary cards (compact) */}
+      {bookings.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-slate-400" />
+            <h3 className="font-semibold text-slate-700 text-sm">All Bookings</h3>
+            <span className="ml-auto text-xs text-slate-400">{bookings.length} hotel{bookings.length === 1 ? '' : 's'}</span>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {bookings.map(b => {
+              const crewCount = (b.assigned_staff_ids || []).length;
+              const nights = nightsBetween(b.check_in_date, b.check_out_date);
+              const cost = (Number(b.cost_per_night) || 0) * (Number(b.room_count) || 1) * nights;
+              return (
+                <div key={b.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <Hotel className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-800 truncate">{b.hotel_name}</p>
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                      <span className="flex items-center gap-0.5"><Users className="w-3 h-3" /> {crewCount}</span>
+                      <span>·</span>
+                      <span>{nights} night{nights === 1 ? '' : 's'}</span>
+                      {cost > 0 && <><span>·</span><span className="font-medium text-slate-600">£{cost.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span></>}
+                    </div>
+                  </div>
+                  <button onClick={() => handleEdit(b)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition"><Edit2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => handleDelete(b)} className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <HotelEditor
+        open={editorOpen}
+        onClose={() => { setEditorOpen(false); setAssignTargetStaff(null); }}
+        booking={editingBooking}
+        job={job}
+        assignedStaff={assignedStaff}
+        allStaff={allStaff}
+        onSave={invalidate}
+        preselectStaffId={assignTargetStaff?.id}
+      />
     </div>
   );
 }
