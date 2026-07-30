@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Boxes, PoundSterling, FolderOpen, FileText, Eye, Download, Activity, Mountain,
   LayoutGrid, CalendarDays, ShieldCheck, Users, Briefcase, Truck, User, HardHat,
-  Phone, MapPin, Send, CheckCircle2, UsersRound, CalendarClock, Ruler, StickyNote, Hotel
+  Phone, MapPin, Send, CheckCircle2, UsersRound, CalendarClock, Ruler, StickyNote, Hotel, ArrowRightLeft
 } from 'lucide-react';
 import { format } from 'date-fns';
 import JobLogisticsHub from '@/components/logistics/JobLogisticsHub';
@@ -92,6 +92,7 @@ export default function JobDetailTabs({
           <TabsTrigger value="schedule" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><CalendarDays className="w-3.5 h-3.5 shrink-0" />Schedule</TabsTrigger>
           <TabsTrigger value="activity" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Activity className="w-3.5 h-3.5 shrink-0" />Site Logs</TabsTrigger>
           <TabsTrigger value="logistics" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Boxes className="w-3.5 h-3.5 shrink-0" />Logistics</TabsTrigger>
+          {canSeeCosts && <TabsTrigger value="subcontractors" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><ArrowRightLeft className="w-3.5 h-3.5 shrink-0" />Sub-Contractors</TabsTrigger>}
           <TabsTrigger value="boreholes" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Mountain className="w-3.5 h-3.5 shrink-0" />Boreholes</TabsTrigger>
           <TabsTrigger value="accommodation" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Hotel className="w-3.5 h-3.5 shrink-0" />Accommodation</TabsTrigger>
           <TabsTrigger value="compliance" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><ShieldCheck className="w-3.5 h-3.5 shrink-0" />Compliance</TabsTrigger>
@@ -108,7 +109,6 @@ export default function JobDetailTabs({
           assignedStaff={assignedStaff}
           rotas={rotas}
           client={client}
-          contractor={contractor}
           suppliers={suppliers}
           canSeeCosts={canSeeCosts}
           isDrillingJob={isDrillingJob}
@@ -180,16 +180,13 @@ export default function JobDetailTabs({
             </div>
           </InfoCard>
 
-          <InfoCard icon={HardHat} iconBg="bg-amber-50" title="Client / Contractor">
+          <InfoCard icon={HardHat} iconBg="bg-amber-50" title="Client">
             <div className="space-y-2 text-sm">
               {client ? (
                 <Field label="Client"><div><p className="font-semibold text-slate-900">{client.name}</p>{client.contact_phone && <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5"><Phone className="w-3 h-3" />{client.contact_phone}</div>}</div></Field>
-              ) : contractor ? (
-                <Field label="Contractor"><p className="font-semibold text-slate-900">{contractor.name}</p></Field>
               ) : (
                 <Field label="Notes">{job.notes ? <p className="text-sm text-slate-600 line-clamp-3">{job.notes}</p> : <EmptyField />}</Field>
               )}
-              {contractor && client && <Field label="Contractor"><p className="font-semibold text-slate-900">{contractor.name}</p></Field>}
             </div>
           </InfoCard>
 
@@ -282,6 +279,13 @@ export default function JobDetailTabs({
         <JobLogisticsHub jobId={job.id} job={job} suppliers={suppliers} contractors={contractors} canSeeCosts={canSeeCosts} isDrillingJob={isDrillingJob} />
       </TabsContent>
 
+      {/* ── Sub-Contractors Tab ── */}
+      {canSeeCosts && (
+        <TabsContent value="subcontractors" className="space-y-4 mt-0">
+          <SubcontractorLogManager job={job} />
+        </TabsContent>
+      )}
+
       {/* ── Boreholes Tab ── */}
       <TabsContent value="boreholes" className="space-y-4 mt-0">
         <BoreholeDrillDown job={job} jobType={primaryType} />
@@ -303,10 +307,7 @@ export default function JobDetailTabs({
         <TabsContent value="financials" className="space-y-4 mt-0">
           <AutoFinancialsBreakdown job={job} />
           <BOQManager job={job} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <SubcontractorLogManager job={job} />
-            <DailyCostViewer job={job} />
-          </div>
+          <DailyCostViewer job={job} />
           <div className="bg-gradient-to-br from-[#2E5A1A]/10 to-[#8DC63F]/10 rounded-xl border border-[#2E5A1A]/20 p-4">
             <div className="flex items-center gap-2 mb-2"><FileText className="w-4 h-4 text-[#2E5A1A]" /><h3 className="font-semibold text-slate-900 text-sm">Billing Export</h3></div>
             <p className="text-xs text-slate-600 mb-3">Pull every billable item — equipment, labour, hotel, deliveries, meterage — into one printable report for invoicing.</p>

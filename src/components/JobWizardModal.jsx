@@ -285,21 +285,12 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                       <input type="text" value={form.job_reference || ''} onChange={e => set('job_reference', e.target.value)} placeholder="PO / quote no." className={inputCls} />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Client</label>
-                      <select value={form.client_id || ''} onChange={e => set('client_id', e.target.value)} className={inputCls}>
-                        <option value="">No client</option>
-                        {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Contractor</label>
-                      <select value={form.contractor_id || ''} onChange={e => set('contractor_id', e.target.value)} className={inputCls}>
-                        <option value="">No contractor</option>
-                        {contractors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Client</label>
+                    <select value={form.client_id || ''} onChange={e => set('client_id', e.target.value)} className={inputCls}>
+                      <option value="">No client</option>
+                      {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Project <span className="text-xs text-slate-400 font-normal">· group jobs together</span></label>
@@ -567,7 +558,6 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     <ReviewRow label="Location" value={form.location} />
                     <ReviewRow label="Type" value={getJobTypeLabel(form.job_type, jobTypes) || form.job_type} />
                     <ReviewRow label="Client" value={clients.find(c => c.id === form.client_id)?.name} />
-                    <ReviewRow label="Contractor" value={contractors.find(c => c.id === form.contractor_id)?.name} />
                     <ReviewRow label="Project" value={projects.find(p => p.id === form.project_id)?.name} />
                     <ReviewRow label="Schedule" value={form.start_date && form.end_date ? `${fmtDate(form.start_date)} → ${fmtDate(form.end_date)}` : ''} />
                     <ReviewRow label="Teams" value={selectedTeamIds.map(id => teams.find(t => t.id === id)?.name).filter(Boolean).join(', ')} />

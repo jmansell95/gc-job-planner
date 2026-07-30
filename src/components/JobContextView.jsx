@@ -190,7 +190,6 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
               {dayCount > 0 && <span className="ml-1.5 text-[11px] text-slate-400">({dayCount}d)</span>}
             </VitalsField>
             {client && <VitalsField label="Client" icon={Building2}>{client.name}</VitalsField>}
-            {contractor && <VitalsField label="Contractor" icon={HardHat}>{contractor.name}</VitalsField>}
             {jobProject && <VitalsField label="Project" icon={FolderOpen}>{jobProject.name}</VitalsField>}
             {job.project_manager && <VitalsField label="Project Manager" icon={User}>{job.project_manager}</VitalsField>}
             {job.site_contact_name && <VitalsField label="Site Contact" icon={Phone}>{job.site_contact_name}{job.site_contact_phone ? ' · ' + job.site_contact_phone : ''}</VitalsField>}
