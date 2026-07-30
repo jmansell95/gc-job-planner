@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { strataColors, strataConfig } from '@/components/investigation/shared';
+import { getTotalMetres } from '@/utils/geotechBilling';
 import BoreholeDetailModal from '@/components/borehole/BoreholeDetailModal';
 
 export default function BoreholeDrillDown({ job, jobType }) {
@@ -46,9 +47,12 @@ export default function BoreholeDrillDown({ job, jobType }) {
     return boreholes.filter(([ref]) => ref.toLowerCase().includes(q));
   }, [boreholes, search]);
 
-  // Aggregate totals across all boreholes
+  // Aggregate totals across all boreholes.
+  // totalMeters uses the centralized getTotalMetres() from geotechBilling.js
+  // — the SAME function used by the Billing Summary page — so the figure
+  // shown here always matches every other view in the app.
   const totals = useMemo(() => {
-    let totalMeters = 0;
+    const totalMeters = getTotalMetres(logs);
     let totalSamples = 0;
     let totalSPTs = 0;
     let totalCores = 0;
@@ -57,7 +61,6 @@ export default function BoreholeDrillDown({ job, jobType }) {
     const allRecoveries = [];
     boreholes.forEach(([, refLogs]) => {
       const s = getBoreholeSummary(refLogs);
-      if (s.maxDepth != null) totalMeters += s.maxDepth;
       totalSamples += s.sampleCount;
       totalSPTs += s.sptCount;
       totalCores += s.coreCount;
@@ -66,7 +69,7 @@ export default function BoreholeDrillDown({ job, jobType }) {
     });
     if (allRecoveries.length) avgRecovery = Math.round(allRecoveries.reduce((a, b) => a + b, 0) / allRecoveries.length);
     return { totalMeters, totalSamples, totalSPTs, totalCores, totalInstallations, avgRecovery };
-  }, [boreholes]);
+  }, [boreholes, logs]);
 
   const activeLogs = selectedRef ? boreholes.find(([ref]) => ref === selectedRef)?.[1] || [] : [];
 

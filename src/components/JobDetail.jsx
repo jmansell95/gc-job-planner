@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, MapPin, Calendar, Users, Clock, Edit2,
-  CalendarClock, AlertCircle, FileBarChart, PoundSterling, Ruler,
+  ArrowLeft, Edit2, AlertCircle, FileBarChart, Sparkles,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
 import JobWizardModal from '@/components/JobWizardModal';
+import JobDetailHero from '@/components/JobDetailHero';
 import { getJobPrimaryType, isDrillingJob as isDrillingJobByTeams, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import { getCrewLabel } from '@/utils/terminology';
 import { canViewCostings } from '@/utils/access';
+import { getTotalMetres } from '@/utils/geotechBilling';
 import { useAuth } from '@/lib/AuthContext';
 import JobStatusModal from '@/components/JobStatusModal';
 import JobDetailTabs from '@/components/JobDetailTabs';
@@ -85,6 +86,14 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const sortedDates = Object.keys(rotasByDate).sort();
 
   const isDrillingJob = isDrillingJobByTeams(job, teams, jobTypes);
+  const { data: invLogs = [] } = useQuery({
+    queryKey: ['investigation-logs', job.id],
+    queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job.id }),
+  });
+  // Use the centralized getTotalMetres() — same function used by the
+  // Boreholes tab and Billing Summary — so the metreage shown in the hero
+  // always matches every other view.
+  const reconciledMetres = getTotalMetres(invLogs);
   const jobMeterage = isDrillingJob && job.meterage != null && job.meterage !== '' ? Number(job.meterage) : 0;
   const useJobMeterage = jobMeterage > 0;
   const staffCosts = assignedStaff.map(member => {
@@ -93,7 +102,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
     return { name: member.name, role: roleLabels[member.job_role] || member.job_role, shifts: memberRotas.length, overtimeShifts: memberRotas.filter(r => r.is_overtime).length, meterage: useJobMeterage ? jobMeterage : memberMeterage, cost: 0 };
   });
   const totalCost = 0;
-  const totalMeterage = useJobMeterage ? jobMeterage : staffCosts.reduce((sum, s) => sum + s.meterage, 0);
+  const totalMeterage = useJobMeterage ? jobMeterage : reconciledMetres;
 
   const startDate = job.start_date ? new Date(job.start_date + 'T00:00:00') : null;
   const endDate = job.end_date ? new Date(job.end_date + 'T00:00:00') : null;
@@ -152,95 +161,49 @@ export default function JobDetail({ job: initialJob, onBack }) {
 
   return (
     <div>
-      {/* Top bar — compact */}
-      <div className="mb-3 sm:mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3">
-        <button onClick={onBack} className="flex items-center gap-2 text-sm text-[#2E5A1A] hover:text-[#1c4a12] font-medium transition">
-          <ArrowLeft className="w-4 h-4" /> Back to Jobs
+      {/* Top bar — compact floating action bar */}
+      <div className="mb-3 sm:mb-4 flex items-center justify-between gap-2">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm text-slate-600 hover:text-[#2E5A1A] font-medium transition group">
+          <span className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:border-[#2E5A1A]/30 group-hover:bg-[#2E5A1A]/5 transition">
+            <ArrowLeft className="w-4 h-4" />
+          </span>
+          Back to Jobs
         </button>
-        <div className="flex flex-wrap items-center gap-2">
-          <button onClick={() => setShowStatusModal(true)} className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium">
-            <AlertCircle className="w-4 h-4" /> <span className="hidden sm:inline">Change</span> Status
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => setShowStatusModal(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition text-sm font-medium shadow-sm">
+            <AlertCircle className="w-4 h-4" /> <span className="hidden sm:inline">Status</span>
           </button>
-          <button onClick={handleEdit} className="flex items-center gap-2 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg hover:bg-[#1c4a12] transition text-sm font-medium">
+          <button onClick={handleEdit}
+            className="flex items-center gap-2 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg hover:bg-[#1c4a12] transition text-sm font-medium shadow-sm hover:shadow-md">
             <Edit2 className="w-4 h-4" /> Edit
           </button>
           <PrintReportButton buildHtml={buildJobPrintHtml} label="Print" className="px-3 py-2" />
-          <button onClick={handleFullReport} disabled={generatingReport} className="flex items-center gap-2 px-3 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition text-sm font-medium disabled:opacity-50">
-            <FileBarChart className="w-4 h-4" /> {generatingReport ? '...' : 'Report'}
+          <button onClick={handleFullReport} disabled={generatingReport}
+            className="flex items-center gap-2 px-3 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50">
+            <Sparkles className="w-4 h-4" /> {generatingReport ? '...' : 'Report'}
           </button>
         </div>
       </div>
 
-      {/* Compact header — all key info in one band */}
-      <div className="rounded-2xl overflow-hidden mb-3 sm:mb-4 shadow-sm border border-slate-200">
-        <div className={`px-4 py-3 sm:px-5 sm:py-4 ${colors.bg} ${colors.border} border-b`}>
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/80 ${colors.text}`}>
-                  <span className={`w-2 h-2 rounded-full ${colors.dot}`}></span>
-                  {getJobTypeLabel(primaryType, jobTypes)}
-                </span>
-                <button onClick={() => setShowStatusModal(true)} className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${statusBadge[job.status || 'planning']} hover:opacity-80 transition cursor-pointer`}>
-                  {statusLabels[job.status || 'planning']}
-                </button>
-              </div>
-              <h1 className="text-xl md:text-2xl font-bold text-slate-900 leading-tight">{job.name}</h1>
-              <div className="flex items-center gap-2 mt-1.5 text-slate-700 text-sm">
-                <MapPin className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">{job.location}</span>
-                {job.job_reference && <><span className="text-slate-400">·</span><span className="text-slate-600">Ref: {job.job_reference}</span></>}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-700 md:justify-end items-center">
-              {startDate && (
-                <div className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /><span className="text-xs">{format(startDate, 'dd MMM')} → {endDate ? format(endDate, 'dd MMM') : 'TBC'}</span></div>
-              )}
-              {startDate && endDate && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/70 rounded-lg border border-slate-200/60">
-                  <CalendarClock className="w-4 h-4 text-[#2E5A1A]" />
-                  <span className="font-bold text-slate-900 text-xs">{Math.max(1, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1)}</span>
-                  <span className="text-slate-500 text-xs">days</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        {/* Metric chips strip — compact */}
-        <div className="px-4 py-2 sm:px-5 sm:py-2.5 bg-white border-t border-slate-100 flex items-center gap-3 md:gap-5 flex-wrap">
-          <div className="flex items-center gap-1.5 text-sm">
-            <Users className="w-4 h-4 text-[#2E5A1A]" />
-            <span className="font-bold text-slate-900">{assignedStaff.length}</span>
-            <span className="text-slate-500 text-xs">{assignedStaff.length === 1 ? getCrewLabel(primaryType, 1).toLowerCase() : 'crew'}</span>
-          </div>
-          <div className="h-5 w-px bg-slate-200" />
-          <div className="flex items-center gap-1.5 text-sm">
-            <Clock className="w-4 h-4 text-blue-600" />
-            <span className="font-bold text-slate-900">{rotas.length}</span>
-            <span className="text-slate-500 text-xs">{rotas.length === 1 ? 'shift' : 'shifts'}</span>
-          </div>
-          {isDrillingJob && totalMeterage > 0 && (
-            <>
-              <div className="h-5 w-px bg-slate-200" />
-              <div className="flex items-center gap-1.5 text-sm">
-                <Ruler className="w-4 h-4 text-amber-600" />
-                <span className="font-bold text-slate-900">{totalMeterage}m</span>
-                <span className="text-slate-500 text-xs">drilled</span>
-              </div>
-            </>
-          )}
-          {canSeeCosts && job.budget_amount != null && (
-            <>
-              <div className="h-5 w-px bg-slate-200" />
-              <div className="flex items-center gap-1.5 text-sm">
-                <PoundSterling className="w-4 h-4 text-violet-600" />
-                <span className="font-bold text-slate-900">£{Number(job.budget_amount).toLocaleString()}</span>
-                <span className="text-slate-500 text-xs">budget</span>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+      {/* Modern gradient hero header */}
+      <JobDetailHero
+        job={job}
+        colors={colors}
+        statusBadge={statusBadge}
+        statusLabels={statusLabels}
+        getJobTypeLabel={getJobTypeLabel}
+        primaryType={primaryType}
+        jobTypes={jobTypes}
+        startDate={startDate}
+        endDate={endDate}
+        assignedStaff={assignedStaff}
+        rotas={rotas}
+        isDrillingJob={isDrillingJob}
+        totalMeterage={totalMeterage}
+        canSeeCosts={canSeeCosts}
+        onStatusClick={() => setShowStatusModal(true)}
+      />
 
       {/* Intelligent warnings — only shows when there are issues */}
       <div className="mb-4">

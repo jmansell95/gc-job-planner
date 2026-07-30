@@ -10,6 +10,7 @@ import {
 import { format } from 'date-fns';
 import { getJobTypeLabel } from '@/utils/jobTeams';
 import { canViewCostings } from '@/utils/access';
+import { getTotalMetres } from '@/utils/geotechBilling';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const fmt2 = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -121,6 +122,16 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
     queryKey: ['ctx-recent-logs', job.id],
     queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job.id }, '-created_date', 12),
   });
+
+  // Fetch ALL investigation logs for this job so we can compute the total
+  // drilled metres using the SAME centralized function (getTotalMetres) that
+  // the Boreholes tab and Billing Summary page use — guaranteeing the figure
+  // matches across every view.
+  const { data: allInvLogs = [] } = useQuery({
+    queryKey: ['investigation-logs', job.id],
+    queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job.id }),
+  });
+  const reconciledTotalMetres = getTotalMetres(allInvLogs);
   const { data: recentComments = [] } = useQuery({
     queryKey: ['ctx-recent-comments', job.id],
     queryFn: () => base44.entities.JobComment.filter({ job_id: job.id }, '-created_date', 8),
@@ -319,7 +330,7 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div className="text-center bg-blue-50 rounded-lg border border-blue-100 p-2">
                 <Gauge className="w-3.5 h-3.5 text-blue-500 mx-auto mb-0.5" />
-                <p className="text-sm font-bold text-slate-800 tabular-nums">{(dp.total_metres || 0).toFixed(1)}m</p>
+                <p className="text-sm font-bold text-slate-800 tabular-nums">{reconciledTotalMetres.toFixed(1)}m</p>
                 <p className="text-[9px] text-slate-400 uppercase">Drilled</p>
               </div>
               <div className="text-center bg-emerald-50 rounded-lg border border-emerald-100 p-2">
@@ -370,7 +381,7 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
         <div className="flex flex-wrap gap-2">
           <MetricChip icon={Users} value={assignedStaff.length} label={assignedStaff.length === 1 ? 'crew' : 'crew'} color="text-[#2E5A1A]" />
           <MetricChip icon={Clock} value={rotas.length} label={rotas.length === 1 ? 'shift' : 'shifts'} color="text-blue-600" />
-          {isDrillingJob && dp.total_metres > 0 && <MetricChip icon={Mountain} value={dp.total_metres.toFixed(1) + 'm'} label="drilled" color="text-amber-600" />}
+          {isDrillingJob && reconciledTotalMetres > 0 && <MetricChip icon={Mountain} value={reconciledTotalMetres.toFixed(1) + 'm'} label="drilled" color="text-amber-600" />}
           {canSeeCosts && s.profit != null && <MetricChip icon={TrendingUp} value={fmt(s.profit)} label="profit" color={s.profit >= 0 ? 'text-emerald-600' : 'text-red-500'} />}
           {recentSubcon.length > 0 && <MetricChip icon={ArrowRightLeft} value={recentSubcon.length} label="sub-con logs" color="text-orange-600" />}
           {recentCosts.length > 0 && <MetricChip icon={Receipt} value={recentCosts.length} label="expenses" color="text-violet-600" />}

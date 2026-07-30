@@ -852,15 +852,42 @@ Deno.serve(async (req) => {
         // creating fake installation records.
         const hasInstallAttrs = !!(tremType || tremMat || tremDiam || (dFrom != null && dTo != null && dTo > dFrom));
         if (!hasInstallAttrs && isDrillerActivity(tremDesc)) {
-          if (addLog({
-            job_id: job.id, staff_id: drillerStaffId || staffId, staff_name: drillerName || importerName,
-            date: resolveDate(ref), log_type: 'other', borehole_ref: ref || null,
-            description: tremDesc.trim(),
-            source: 'keylogbook_remarks',
-            logged_by_role: 'driller',
-            completed_by_type: 'internal_staff', completed_by_name: drillerName || importerName,
-            manager_review_status: 'pending', chargeable: false, billing_status: 'no_charge',
-          })) counts.remarks++;
+          // If the TREM description contains a time-stamped pattern
+          // ("7:30_8:45 = Start briefing..."), parse it into individual
+          // activities with proper start_time / end_time / duration so the
+          // Site Logs tab shows the driller's shift chronologically —
+          // matching the format the webhook produces.
+          const tremActs = parseRemarks(tremDesc);
+          if (tremActs.length > 0) {
+            const cleaned = await professionaliseActivities(base44, tremActs);
+            tremActs.forEach((act, i) => {
+              if (addLog({
+                job_id: job.id,
+                staff_id: drillerStaffId || staffId,
+                staff_name: drillerName || importerName,
+                date: resolveDate(ref), log_type: 'other', borehole_ref: ref || null,
+                description: cleaned[i] || act.raw_description,
+                source: 'keylogbook_remarks',
+                logged_by_role: 'driller',
+                start_time: act.start_time,
+                end_time: act.end_time,
+                duration_minutes: act.duration_minutes,
+                completed_by_type: 'internal_staff', completed_by_name: drillerName || importerName,
+                manager_review_status: 'pending', chargeable: false, billing_status: 'no_charge',
+              })) counts.remarks++;
+            });
+          } else {
+            // No time pattern — save as a timeless activity (no start/end)
+            if (addLog({
+              job_id: job.id, staff_id: drillerStaffId || staffId, staff_name: drillerName || importerName,
+              date: resolveDate(ref), log_type: 'other', borehole_ref: ref || null,
+              description: tremDesc.trim(),
+              source: 'keylogbook_remarks',
+              logged_by_role: 'driller',
+              completed_by_type: 'internal_staff', completed_by_name: drillerName || importerName,
+              manager_review_status: 'pending', chargeable: false, billing_status: 'no_charge',
+            })) counts.remarks++;
+          }
           continue;
         }
 
