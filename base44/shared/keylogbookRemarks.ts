@@ -55,14 +55,12 @@ export function parseRemarks(rawText: string): ParsedActivity[] {
   if (!rawText || !rawText.trim()) return [];
 
   // Normalise dots to colons in time-like patterns (7.30 → 7:30) so the
-  // main regex only needs to handle colons. Also convert 4-digit military
-  // time (0730) into HH:MM.
+  // main regex only needs to handle colons.
   let text = rawText.replace(/(\d{1,2})\.(\d{2})/g, '$1:$2');
-  // Insert colons into bare 4-digit times: "0730_0845" → "07:30_08:45"
-  text = text.replace(/(^|[^\d:])(\d{2})(\d{2})\s*[_\-]|\s+to\s+/g, (full, pre, h, m) => {
-    if (full.includes(' to ')) return full; // handled by main regex
-    return `${pre}${h}:${m}_`;
-  });
+  // Insert colons into bare 4-digit military times: "0730" → "07:30"
+  // Only when adjacent to a time-range separator (_ - or "to") so we don't
+  // corrupt real data like borehole depths or coordinates.
+  text = text.replace(/(\d{2})(\d{2})(\s*[_\-])\s*(\d{2})(\d{2})/g, '$1:$2$3$4:$5');
 
   // Regex: capture (start_time) <sep> (end_time) <delim?> (description)
   // Sep:  _ - "to" (with optional spaces)
