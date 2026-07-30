@@ -87,7 +87,7 @@ export default function NeedsAttentionPanel({ onNavigate }) {
           </div>
         </motion.div>
       ) : (
-        <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-x-auto sm:overflow-visible snap-x snap-mandatory pb-2 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-x-auto sm:overflow-visible snap-x snap-mandatory pb-2 sm:pb-0">
           {items.map(it => {
             const Icon = it.icon;
             const t = toneStyles[it.tone];
