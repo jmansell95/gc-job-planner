@@ -6,6 +6,7 @@ import { format, isToday, isFuture, isPast } from 'date-fns';
 import DeliveryBoard from '@/components/admin/DeliveryBoard';
 import DeliveryTable from '@/components/admin/DeliveryTable';
 import { Skeleton, EmptyState } from '@/components/StateViews';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const typeFilters = [
   { value: 'all', label: 'All Types', icon: Filter },
@@ -87,6 +88,7 @@ export default function AdminDeliveryHub() {
 
   return (
     <div className="space-y-5">
+      <Breadcrumbs />
       {/* Header */}
       <div className="hero-gradient relative overflow-hidden rounded-2xl">
         <div className="relative px-5 md:px-6 py-5">
