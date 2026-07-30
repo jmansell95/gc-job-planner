@@ -39,9 +39,26 @@ function autoGenerateTrail(pathname) {
   });
 }
 
-export default function Breadcrumbs() {
+export default function Breadcrumbs({ sectionLabel }) {
   const { pathname } = useLocation();
-  const trail = ROUTE_MAP[pathname] || autoGenerateTrail(pathname);
+  let trail = ROUTE_MAP[pathname] || autoGenerateTrail(pathname);
+
+  // Allow pages with internal section navigation (e.g. AdminDashboard) to
+  // append the current sub-section to the trail so users always see where
+  // they are, even when the URL doesn't change.
+  if (sectionLabel) {
+    const last = trail[trail.length - 1];
+    if (last) {
+      // If the last item already matches the section label, don't duplicate.
+      if (last.label !== sectionLabel) {
+        // Make the previous last item clickable if it isn't already.
+        if (!last.to) last.to = pathname;
+        trail = [...trail, { label: sectionLabel }];
+      }
+    } else {
+      trail = [{ label: sectionLabel }];
+    }
+  }
 
   return (
     <nav aria-label="Breadcrumb" className="bg-white border-b border-slate-200">

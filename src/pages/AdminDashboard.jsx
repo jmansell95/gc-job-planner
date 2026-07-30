@@ -15,6 +15,23 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 
+const SECTION_LABELS = {
+  overview: 'Dashboard',
+  'job-detail': 'Job Detail',
+  jobs: 'Jobs',
+  scheduling: 'Scheduling',
+  rota: 'Scheduling',
+  calendar: 'Calendar',
+  logistics: 'Logistics',
+  timesheets: 'Timesheets',
+  teams: 'Teams',
+  compliance: 'Compliance',
+  'safety-hub': 'Safety Hub',
+  'log-qc': 'Log Quality Control',
+  billing: 'Billing',
+  settings: 'Settings',
+};
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -84,7 +101,7 @@ export default function AdminDashboard() {
       <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} />
       <main className="flex-1 overflow-auto pt-[calc(1.6875rem_+_env(safe-area-inset-top))] lg:pt-0 lg:pb-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="px-4 pb-4 md:px-6 md:pb-6 lg:pt-6 w-full">
-          <Breadcrumbs />
+          <Breadcrumbs sectionLabel={SECTION_LABELS[activeSection]} />
           <motion.div
             key={activeSection}
             initial={{ opacity: 0, y: 8 }}
