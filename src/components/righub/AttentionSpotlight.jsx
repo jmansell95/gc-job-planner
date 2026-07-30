@@ -59,7 +59,7 @@ export default function AttentionSpotlight({ assets, onOpenAsset }) {
         <h3 className="text-sm font-bold text-slate-800">Needs Attention</h3>
         <span className="text-xs text-slate-400">{urgent.length} item{urgent.length !== 1 ? 's' : ''}</span>
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 no-scrollbar">
+      <div className="flex gap-3 overflow-x-auto pb-2 px-1 scroll-smooth">
         {urgent.map(({ asset, reason, tone }) => {
           const Icon = TYPE_ICON[asset.asset_type] || Wrench;
           return (
