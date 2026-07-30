@@ -5,12 +5,14 @@ import { format } from 'date-fns';
 import Logo from '@/components/Logo';
 import { base44 } from '@/api/base44Client';
 import UsefulNumbersModal from '@/components/UsefulNumbersModal';
+import StaffMaintenanceReportModal from '@/components/staff/StaffMaintenanceReportModal';
 
 // Compact single-row header — reclaims vertical space for job content.
 // Logo + name/date on the left, icon-only nav buttons on the right.
 export default function StaffHeader({ staff, onShowSchedule }) {
   const navigate = useNavigate();
   const [showNumbers, setShowNumbers] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   return (
     <div className="hero-gradient">
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-4">
@@ -52,7 +54,9 @@ export default function StaffHeader({ staff, onShowSchedule }) {
           </div>
         </div>
       </div>
-      <UsefulNumbersModal open={showNumbers} onClose={() => setShowNumbers(false)} />
+      <UsefulNumbersModal open={showNumbers} onClose={() => setShowNumbers(false)}
+        onLogBooking={() => { setShowNumbers(false); setShowReport(true); }} />
+      <StaffMaintenanceReportModal open={showReport} onClose={() => setShowReport(false)} staff={staff} />
     </div>
   );
 }

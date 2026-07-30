@@ -134,6 +134,42 @@ export default async function(req: Request): Promise<Response> {
 
     await base44.asServiceRole.entities.Vehicle.update(vehicle.id, update);
 
+    // If the event looks like a maintenance booking (MOT, service, breakdown,
+    // windscreen, repair, inspection, appointment), auto-create a
+    // VehicleMaintenanceBooking so it shows on the admin Vehicles page under
+    // this registration — same as a staff phone booking.
+    const bookingKeywords = ['mot', 'service', 'breakdown', 'windscreen', 'repair', 'inspection', 'appointment', 'booking', 'maintenance_due'];
+    const looksLikeBooking = bookingKeywords.some(k => eventType.includes(k)) ||
+      !!deepGet(body, 'booking_date', 'appointment_date', 'next_service_date', 'next_mot_date', 'service.next_due', 'mot.due_date');
+
+    if (looksLikeBooking) {
+      try {
+        const d = new Date();
+        const todayStr = d.toISOString().slice(0, 10);
+        const bookingDateStr = toDateStr(deepGet(body, 'booking_date', 'appointment_date', 'next_mot_date', 'next_service_date', 'mot.due_date', 'service.next_due')) || todayStr;
+        let bookingType = 'other';
+        if (eventType.includes('mot')) bookingType = 'mot';
+        else if (eventType.includes('windscreen') || eventType.includes('glass')) bookingType = 'windscreen';
+        else if (eventType.includes('breakdown') || eventType.includes('recovery')) bookingType = 'breakdown';
+        else if (eventType.includes('service')) bookingType = 'service';
+        else if (eventType.includes('repair')) bookingType = 'repair';
+        else if (eventType.includes('inspection')) bookingType = 'inspection';
+
+        await base44.asServiceRole.entities.VehicleMaintenanceBooking.create({
+          vehicle_id: vehicle.id,
+          vehicle_name: `${vehicle.name} (${vehicle.registration_number})`,
+          booking_type: bookingType,
+          status: 'booked',
+          booking_date: bookingDateStr,
+          supplier_name: 'Holman',
+          supplier_phone: '0344 800 5626',
+          notes: `Auto-created from Holman webhook event: ${eventType || 'maintenance'}`,
+          reported_at: new Date().toISOString(),
+          report_source: 'holman_sync',
+        });
+      } catch (e) { /* non-fatal — vehicle was still updated */ }
+    }
+
     // Update config status
     const summary = `${eventType || 'Event'} for ${vehicle.name} (${vehicle.registration_number})${motExpiry ? ` · MOT: ${motExpiry}` : ''}${serviceDue ? ` · Service: ${serviceDue}` : ''}${mileage != null ? ` · ${mileage} mi` : ''}`;
     try {

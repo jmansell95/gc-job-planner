@@ -55,6 +55,31 @@ export default function Vehicles() {
     queryFn: () => base44.entities.Vehicle.list('-created_date', 500),
   });
 
+  const { data: bookings = [] } = useQuery({
+    queryKey: ['vehicles-maintenance-bookings'],
+    queryFn: () => base44.entities.VehicleMaintenanceBooking.list('-booking_date', 500),
+  });
+
+  // Next upcoming booking per vehicle — shows on each fleet card
+  const nextBookingByVehicle = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const map = {};
+    bookings.forEach(b => {
+      if (!['requested', 'booked', 'in_progress'].includes(b.status)) return;
+      if (!b.vehicle_id) return;
+      if (b.booking_date && b.booking_date < today) return; // past
+      if (!map[b.vehicle_id] || (b.booking_date || '9999') < (map[b.vehicle_id].booking_date || '9999')) {
+        map[b.vehicle_id] = b;
+      }
+    });
+    return map;
+  }, [bookings]);
+
+  const activeBookingCount = useMemo(
+    () => bookings.filter(b => ['requested', 'booked', 'in_progress'].includes(b.status)).length,
+    [bookings]
+  );
+
   const stats = useMemo(() => {
     let compliant = 0, warning = 0, expired = 0, synced = 0;
     vehicles.forEach(v => {
@@ -117,7 +142,8 @@ export default function Vehicles() {
               { label: 'Need Attention', value: stats.warning, icon: ShieldAlert, grad: 'stat-gradient-amber' },
               { label: 'Critical', value: stats.expired, icon: ShieldX, grad: 'stat-gradient-rose' },
               { label: 'Holman Synced', value: stats.synced, icon: Link2, grad: 'stat-gradient-blue' },
-            ].map(s => {
+              { label: 'Active Bookings', value: activeBookingCount, icon: Wrench, grad: 'stat-gradient-amber' },
+              ].map(s => {
               const SIcon = s.icon;
               return (
                 <div key={s.label} className={`${s.grad} rounded-xl p-3.5 text-white shadow-lg ring-1 ring-white/20`}>
@@ -213,6 +239,20 @@ export default function Vehicles() {
                         </div>
                       )}
 
+                      {(() => {
+                        const nb = nextBookingByVehicle[v.id];
+                        if (!nb) return null;
+                        const typeLabel = nb.booking_type ? nb.booking_type.charAt(0).toUpperCase() + nb.booking_type.slice(1) : 'Booking';
+                        const dateLabel = nb.booking_date ? new Date(nb.booking_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'TBC';
+                        return (
+                          <button onClick={() => setView('maintenance')}
+                            className="w-full flex items-center gap-2 px-2.5 py-2 mb-2 rounded-lg bg-blue-50 border border-blue-100 text-left hover:bg-blue-100 transition">
+                            <Wrench className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                            <span className="text-[11px] font-semibold text-blue-700 truncate flex-1">{typeLabel} booked</span>
+                            <span className="text-[11px] text-blue-600 font-medium flex-shrink-0">{dateLabel}</span>
+                          </button>
+                        );
+                      })()}
                       <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400">
                         <button onClick={() => setView('maintenance')} className="flex items-center gap-1 text-blue-600 font-medium hover:underline">
                           <CalendarClock className="w-3 h-3" /> Book Maintenance
