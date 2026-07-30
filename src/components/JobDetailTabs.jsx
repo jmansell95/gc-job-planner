@@ -86,18 +86,18 @@ export default function JobDetailTabs({
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-sm px-1 py-2 mb-4">
-        <TabsList className="flex w-full flex-nowrap overflow-x-auto no-scrollbar h-auto p-1 gap-1 justify-start sm:justify-center">
-          <TabsTrigger value="context" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><LayoutGrid className="w-3.5 h-3.5 shrink-0" />Summary</TabsTrigger>
-          <TabsTrigger value="overview" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><LayoutGrid className="w-3.5 h-3.5 shrink-0" />Overview</TabsTrigger>
-          <TabsTrigger value="schedule" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><CalendarDays className="w-3.5 h-3.5 shrink-0" />Schedule</TabsTrigger>
-          <TabsTrigger value="activity" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Activity className="w-3.5 h-3.5 shrink-0" />Site Logs</TabsTrigger>
-          <TabsTrigger value="logistics" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Boxes className="w-3.5 h-3.5 shrink-0" />Logistics</TabsTrigger>
-          {canSeeCosts && <TabsTrigger value="subcontractors" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><ArrowRightLeft className="w-3.5 h-3.5 shrink-0" />Sub-Contractors</TabsTrigger>}
-          <TabsTrigger value="boreholes" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Mountain className="w-3.5 h-3.5 shrink-0" />Boreholes</TabsTrigger>
-          <TabsTrigger value="accommodation" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><Hotel className="w-3.5 h-3.5 shrink-0" />Accommodation</TabsTrigger>
-          <TabsTrigger value="compliance" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><ShieldCheck className="w-3.5 h-3.5 shrink-0" />Compliance</TabsTrigger>
-          {canSeeCosts && <TabsTrigger value="financials" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><PoundSterling className="w-3.5 h-3.5 shrink-0" />Financials</TabsTrigger>}
-          <TabsTrigger value="documents" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 shrink-0 rounded-md"><FolderOpen className="w-3.5 h-3.5 shrink-0" />Documents</TabsTrigger>
+        <TabsList className="flex w-full flex-wrap h-auto p-1 gap-1 justify-center">
+          <TabsTrigger value="context" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-1 sm:flex-none min-w-0"><LayoutGrid className="w-3.5 h-3.5 shrink-0" />Summary</TabsTrigger>
+          <TabsTrigger value="overview" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-1 sm:flex-none min-w-0"><LayoutGrid className="w-3.5 h-3.5 shrink-0" />Overview</TabsTrigger>
+          <TabsTrigger value="schedule" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-1 sm:flex-none min-w-0"><CalendarDays className="w-3.5 h-3.5 shrink-0" />Schedule</TabsTrigger>
+          <TabsTrigger value="activity" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-1 sm:flex-none min-w-0"><Activity className="w-3.5 h-3.5 shrink-0" />Site Logs</TabsTrigger>
+          <TabsTrigger value="logistics" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-1 sm:flex-none min-w-0"><Boxes className="w-3.5 h-3.5 shrink-0" />Logistics</TabsTrigger>
+          {canSeeCosts && <TabsTrigger value="subcontractors" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-1 sm:flex-none min-w-0"><ArrowRightLeft className="w-3.5 h-3.5 shrink-0" />Sub-Cons</TabsTrigger>}
+          <TabsTrigger value="boreholes" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-1 sm:flex-none min-w-0"><Mountain className="w-3.5 h-3.5 shrink-0" />Boreholes</TabsTrigger>
+          <TabsTrigger value="accommodation" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-1 sm:flex-none min-w-0"><Hotel className="w-3.5 h-3.5 shrink-0" />Hotels</TabsTrigger>
+          <TabsTrigger value="compliance" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-1 sm:flex-none min-w-0"><ShieldCheck className="w-3.5 h-3.5 shrink-0" />Compliance</TabsTrigger>
+          {canSeeCosts && <TabsTrigger value="financials" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-1 sm:flex-none min-w-0"><PoundSterling className="w-3.5 h-3.5 shrink-0" />Financials</TabsTrigger>}
+          <TabsTrigger value="documents" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-1 sm:flex-none min-w-0"><FolderOpen className="w-3.5 h-3.5 shrink-0" />Documents</TabsTrigger>
         </TabsList>
       </div>
 
