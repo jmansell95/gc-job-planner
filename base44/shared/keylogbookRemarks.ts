@@ -43,18 +43,37 @@ export function minsToTime(mins: number): string {
 }
 
 // Parse raw driller remarks into individual time-stamped activities.
-// Format: "7:30_8:45 = Start briefing... 8:45_9:00 = Mobilised rig... 9:00_9:45 = Offload..."
-// Each activity: HH:MM_HH:MM = description (until next HH:MM_HH:MM= or end)
+// Handles multiple KeyLogBook time formats:
+//   "7:30_8:45 = Start briefing..."     (underscore, equals)
+//   "7:30-8:45: Start briefing..."      (dash, colon)
+//   "7:30_8:45 Start briefing..."       (no delimiter after time range)
+//   "7.30_8.45 = Start briefing..."     (dots instead of colons)
+//   "0730_0845 = Start briefing..."      (military time, no colons)
+//   "7:30 to 8:45 = Start briefing..."   ("to" as separator)
+// Activities are separated by the next time pattern or end of text.
 export function parseRemarks(rawText: string): ParsedActivity[] {
   if (!rawText || !rawText.trim()) return [];
-  // Regex: capture (start_time)_(end_time) = (description until next pattern or end)
-  const pattern = /(\d{1,2}:\d{2})\s*[_-]\s*(\d{1,2}:\d{2})\s*=\s*([^]*?)(?=\s*\d{1,2}:\d{2}\s*[_-]\s*\d{1,2}:\d{2}\s*=|$)/g;
+
+  // Normalise dots to colons in time-like patterns (7.30 → 7:30) so the
+  // main regex only needs to handle colons. Also convert 4-digit military
+  // time (0730) into HH:MM.
+  let text = rawText.replace(/(\d{1,2})\.(\d{2})/g, '$1:$2');
+  // Insert colons into bare 4-digit times: "0730_0845" → "07:30_08:45"
+  text = text.replace(/(^|[^\d:])(\d{2})(\d{2})\s*[_\-]|\s+to\s+/g, (full, pre, h, m) => {
+    if (full.includes(' to ')) return full; // handled by main regex
+    return `${pre}${h}:${m}_`;
+  });
+
+  // Regex: capture (start_time) <sep> (end_time) <delim?> (description)
+  // Sep:  _ - "to" (with optional spaces)
+  // Delim: = : or just whitespace before the description
+  const pattern = /(\d{1,2}:\d{2})\s*(?:[_\-]|to)\s*(\d{1,2}:\d{2})\s*(?:=|:)?\s*([^]*?)(?=\s*\d{1,2}:\d{2}\s*(?:[_\-]|to)\s*\d{1,2}:\d{2}\s*(?:=|:)?|$)/g;
   const activities: ParsedActivity[] = [];
   let match;
-  while ((match = pattern.exec(rawText)) !== null) {
+  while ((match = pattern.exec(text)) !== null) {
     const startTime = normaliseTime(match[1].trim());
     const endTime = normaliseTime(match[2].trim());
-    let description = match[3].trim().replace(/\.+$/, '').trim();
+    let description = match[3].trim().replace(/^[=:\s]+/, '').replace(/\.+$/, '').trim();
     if (!description) continue;
     const startMins = timeToMins(startTime);
     const endMins = timeToMins(endTime);
@@ -98,6 +117,12 @@ export async function professionaliseActivities(base44: any, activities: ParsedA
 // Does a text block look like time-stamped driller remarks? Used to decide
 // whether a free-text REM/NOTE field should be parsed as daily activities
 // (rather than treated as a one-off strata/sample description).
+// Broadened to match all formats parseRemarks handles: dots, military time,
+// "to" separator, and optional = / : delimiter.
 export function hasTimePattern(text: string): boolean {
-  return /\d{1,2}:\d{2}\s*[_-]\s*\d{1,2}:\d{2}\s*=/.test(text || '');
+  if (!text) return false;
+  // Normalise dots and military time first, then check
+  const normalised = text.replace(/(\d{1,2})\.(\d{2})/g, '$1:$2');
+  return /\d{1,2}:\d{2}\s*(?:[_\-]|to)\s*\d{1,2}:\d{2}/.test(normalised) ||
+         /(^|[^\d:])(\d{2})(\d{2})\s*[_\-]\s*(\d{2})(\d{2})/.test(text);
 }
