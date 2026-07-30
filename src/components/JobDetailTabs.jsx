@@ -5,7 +5,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Boxes, PoundSterling, FolderOpen, FileText, Eye, Download, Activity, Mountain,
   LayoutGrid, CalendarDays, ShieldCheck, Users, Briefcase, Truck, User, HardHat,
-  Phone, MapPin, Send, CheckCircle2, UsersRound, CalendarClock, Ruler, StickyNote, Hotel, ArrowRightLeft
+  Phone, MapPin, Send, CheckCircle2, UsersRound, CalendarClock, Ruler, StickyNote, Hotel, ArrowRightLeft,
+  Camera, Clock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import JobLogisticsHub from '@/components/logistics/JobLogisticsHub';
@@ -30,6 +31,7 @@ import DelayLogManager from '@/components/DelayLogManager';
 import RigCompliancePanel from '@/components/RigCompliancePanel';
 import JobHazardMap from '@/components/JobHazardMap';
 import JobContextView from '@/components/JobContextView';
+import TabStatRibbon from '@/components/TabStatRibbon';
 import { getJobTypeLabel } from '@/utils/jobTeams';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -264,6 +266,16 @@ export default function JobDetailTabs({
 
       {/* ── Schedule Tab ── */}
       <TabsContent value="schedule" className="space-y-4 mt-0">
+        <TabStatRibbon
+          icon={CalendarDays}
+          title="Schedule Summary"
+          stats={[
+            { icon: Users, value: assignedStaff.length, label: assignedStaff.length === 1 ? 'Crew Member' : 'Crew Members', iconColor: 'text-emerald-600' },
+            { icon: CalendarDays, value: sortedDates.length, label: sortedDates.length === 1 ? 'Work Day' : 'Work Days', iconColor: 'text-blue-600' },
+            { icon: Truck, value: assignedVehicles.length, label: 'Vehicles', iconColor: 'text-violet-600' },
+            { icon: Clock, value: rotas.length, label: rotas.length === 1 ? 'Shift' : 'Total Shifts', iconColor: 'text-amber-600' },
+          ]}
+        />
         <DelayLogManager job={job} />
         <JobScheduleOverview primaryType={primaryType} assignedStaff={assignedStaff} rotas={rotas} allStaff={allStaff} vehicles={vehicles} rotasByDate={rotasByDate} sortedDates={sortedDates} />
         <StaffActivityBreakdown job={job} assignedStaff={assignedStaff} primaryType={primaryType} />
@@ -271,11 +283,29 @@ export default function JobDetailTabs({
 
       {/* ── Site Logs Tab ── */}
       <TabsContent value="activity" className="space-y-4 mt-0">
+        <TabStatRibbon
+          icon={Activity}
+          title="Site Activity"
+          stats={[
+            { icon: Users, value: assignedStaff.length, label: 'Crew On Job', iconColor: 'text-emerald-600' },
+            { icon: CalendarDays, value: rotas.filter(r => r.status === 'started' || r.status === 'completed').length, label: 'Active Shifts', iconColor: 'text-blue-600' },
+            { icon: ShieldCheck, value: rotas.filter(r => r.briefing_signed).length, label: 'Briefings Signed', iconColor: 'text-amber-600' },
+          ]}
+        />
         <InvestigationLogManager job={job} isDrillingJob={isDrillingJob} assignedStaff={assignedStaff} allStaff={allStaff} canSeeCosts={canSeeCosts} onViewBoreholes={() => setActiveTab('boreholes')} />
       </TabsContent>
 
       {/* ── Logistics Tab ── */}
       <TabsContent value="logistics" className="space-y-4 mt-0">
+        <TabStatRibbon
+          icon={Boxes}
+          title="Logistics Overview"
+          stats={[
+            { icon: Truck, value: assignedVehicles.length, label: 'Vehicles', iconColor: 'text-violet-600' },
+            { icon: Users, value: assignedStaff.length, label: 'Crew', iconColor: 'text-emerald-600' },
+            { icon: Boxes, value: suppliers?.length || 0, label: 'Suppliers', iconColor: 'text-blue-600' },
+          ]}
+        />
         <JobLogisticsHub jobId={job.id} job={job} suppliers={suppliers} contractors={contractors} canSeeCosts={canSeeCosts} isDrillingJob={isDrillingJob} />
       </TabsContent>
 
@@ -288,6 +318,15 @@ export default function JobDetailTabs({
 
       {/* ── Boreholes Tab ── */}
       <TabsContent value="boreholes" className="space-y-4 mt-0">
+        <TabStatRibbon
+          icon={Mountain}
+          title={isDrillingJob ? "Drilling Progress" : "Investigation Data"}
+          stats={[
+            { icon: Users, value: assignedStaff.length, label: 'Crew', iconColor: 'text-emerald-600' },
+            { icon: Mountain, value: isDrillingJob ? `${(totalMeterage || 0).toFixed(1)}m` : '—', label: 'Total Drilled', iconColor: 'text-blue-600' },
+            { icon: CalendarDays, value: rotas.length, label: 'Shifts Logged', iconColor: 'text-amber-600' },
+          ]}
+        />
         <BoreholeDrillDown job={job} jobType={primaryType} />
       </TabsContent>
 
@@ -298,6 +337,15 @@ export default function JobDetailTabs({
 
       {/* ── Compliance Tab ── */}
       <TabsContent value="compliance" className="space-y-4 mt-0">
+        <TabStatRibbon
+          icon={ShieldCheck}
+          title="Compliance & Safety"
+          stats={[
+            { icon: ShieldCheck, value: assignedVehicles.length, label: 'Vehicles to Check', iconColor: 'text-emerald-600' },
+            { icon: Users, value: assignedStaff.length, label: 'Crew On Site', iconColor: 'text-blue-600' },
+            { icon: CalendarDays, value: sortedDates?.length || 0, label: 'Active Days', iconColor: 'text-amber-600' },
+          ]}
+        />
         <JobHazardMap job={job} />
         <RigCompliancePanel job={job} />
       </TabsContent>
@@ -318,6 +366,15 @@ export default function JobDetailTabs({
 
       {/* ── Documents Tab ── */}
       <TabsContent value="documents" className="space-y-4 mt-0">
+        <TabStatRibbon
+          icon={FolderOpen}
+          title="Documents & Records"
+          stats={[
+            { icon: Camera, value: '—', label: 'Photos', iconColor: 'text-emerald-600' },
+            { icon: FileText, value: job.requisition_list_url ? '1' : '0', label: 'Requisitions', iconColor: 'text-blue-600' },
+            { icon: FolderOpen, value: '—', label: 'Documents', iconColor: 'text-amber-600' },
+          ]}
+        />
         <JobPhotoGallery job={job} />
         <DocumentManager job={job} />
         {job.requisition_list_url && (
