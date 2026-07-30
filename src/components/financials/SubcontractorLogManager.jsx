@@ -1,16 +1,26 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import {
   TrendingUp, Plus, X, Loader2, Trash2, CheckCircle2, ShieldCheck,
   ArrowRightLeft, Percent, PoundSterling, Calendar, HardHat, FileText,
-  ChevronDown, ChevronRight, AlertTriangle, Building2,
-  Mountain, Layers, Shovel, Truck, Boxes, Package, User, Clock, Lock,
+  ChevronDown, ChevronRight, AlertTriangle, Building2, User, Clock, Lock,
+  Mountain, Layers, Shovel, Truck, Boxes, Package, MapPin, Ruler,
 } from 'lucide-react';
 import { useBillingLock } from '@/hooks/useBillingLock';
 import BillingLockBanner from '@/components/billing/BillingLockBanner';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtDur = (hours) => {
+  const h = Number(hours) || 0;
+  if (h <= 0) return '—';
+  const wholeH = Math.floor(h);
+  const mins = Math.round((h - wholeH) * 60);
+  if (wholeH && mins) return `${wholeH}h ${mins}m`;
+  if (wholeH) return `${wholeH}h`;
+  return `${mins}m`;
+};
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-[#2E5A1A] text-sm";
 
 const WORK_TYPES = [
@@ -72,7 +82,6 @@ export default function SubcontractorLogManager({ job }) {
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
-  // Auto-calculate preview
   const purchaseCost = useMemo(() => {
     const rate = parseFloat(form.purchase_rate) || 0;
     const basis = form.purchase_rate_basis;
@@ -169,51 +178,57 @@ export default function SubcontractorLogManager({ job }) {
       acc.purchase += Number(l.purchase_cost_net) || 0;
       acc.client += Number(l.client_charge_net) || 0;
       acc.margin += Number(l.margin_net) || 0;
+      acc.hours += Number(l.hours_worked) || 0;
       return acc;
-    }, { purchase: 0, client: 0, margin: 0 });
+    }, { purchase: 0, client: 0, margin: 0, hours: 0 });
   }, [logs]);
   const avgMarginPct = totals.client > 0 ? (totals.margin / totals.client) * 100 : 0;
 
+  // Group logs by date for the timeline
+  const byDate = useMemo(() => {
+    const groups = {};
+    logs.forEach(l => {
+      const d = l.date || 'No date';
+      if (!groups[d]) groups[d] = [];
+      groups[d].push(l);
+    });
+    return groups;
+  }, [logs]);
+  const sortedDates = Object.keys(byDate).sort().reverse();
+  const loggedDays = sortedDates.filter(d => d !== 'No date').length;
+
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
-          <ArrowRightLeft className="w-4 h-4 text-orange-600" />
+    <div className="space-y-4">
+      {/* Header + Add button */}
+      <div className="hero-gradient rounded-2xl p-5 text-white shadow-lg">
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center">
+            <ArrowRightLeft className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold">Sub-Contractor Activity Logs</h3>
+            <p className="text-[11px] text-white/60">Buy-side cost · sell-side margin · verification workflow</p>
+          </div>
+          <button onClick={() => setShowForm(!showForm)} disabled={isLocked} className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 bg-white text-[#2E5A1A] rounded-lg text-xs font-bold hover:bg-white/90 transition disabled:opacity-40 disabled:cursor-not-allowed">
+            {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+            {showForm ? 'Cancel' : 'Log Work'}
+          </button>
         </div>
-        <div>
-          <h3 className="text-sm font-bold text-slate-900">Sub-Contractor Logs</h3>
-          <p className="text-[11px] text-slate-400">Buy-side cost · sell-side margin · verification workflow</p>
-        </div>
-        <button onClick={() => setShowForm(!showForm)} disabled={isLocked} className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] transition disabled:opacity-40 disabled:cursor-not-allowed">
-          {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-          {showForm ? 'Cancel' : 'Log Work'}
-        </button>
+        {logs.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <HeroStat icon={Calendar} label="Days Logged" value={loggedDays} sub={`${logs.length} entries`} />
+            <HeroStat icon={Clock} label="Total Hours" value={fmtDur(totals.hours)} sub="time on site" />
+            <HeroStat icon={PoundSterling} label="Buy (Cost)" value={fmt(totals.purchase)} sub="net" />
+            <HeroStat icon={TrendingUp} label="Margin" value={fmt(totals.margin)} sub={`${avgMarginPct.toFixed(1)}% on sell`} />
+          </div>
+        )}
       </div>
 
-      {isLocked && <div className="px-4 pt-3"><BillingLockBanner lockedInvoices={lockedInvoices} /></div>}
-
-      {/* Summary stats */}
-      {logs.length > 0 && (
-        <div className="grid grid-cols-3 gap-px bg-slate-100 border-b border-slate-100">
-          <div className="bg-white px-3 py-2 text-center">
-            <p className="text-[10px] text-slate-400 uppercase font-medium">Buy (Cost)</p>
-            <p className="text-sm font-bold text-slate-800 tabular-nums">{fmt(totals.purchase)}</p>
-          </div>
-          <div className="bg-white px-3 py-2 text-center">
-            <p className="text-[10px] text-slate-400 uppercase font-medium">Sell (Revenue)</p>
-            <p className="text-sm font-bold text-emerald-700 tabular-nums">{fmt(totals.client)}</p>
-          </div>
-          <div className="bg-white px-3 py-2 text-center">
-            <p className="text-[10px] text-slate-400 uppercase font-medium">Margin ({avgMarginPct.toFixed(1)}%)</p>
-            <p className="text-sm font-bold text-[#2E5A1A] tabular-nums">{fmt(totals.margin)}</p>
-          </div>
-        </div>
-      )}
+      {isLocked && <BillingLockBanner lockedInvoices={lockedInvoices} />}
 
       {/* Inline form */}
       {showForm && (
-        <div className="p-4 bg-slate-50 border-b border-slate-100 space-y-3">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Sub-Contractor <span className="text-red-500">*</span></label>
@@ -261,7 +276,6 @@ export default function SubcontractorLogManager({ job }) {
               <input type="text" value={form.po_number} onChange={e => set('po_number', e.target.value)} className={inputCls} />
             </div>
           </div>
-          {/* Quantity fields based on rate basis */}
           {(form.purchase_rate_basis === 'hourly_rate' || form.purchase_rate_basis === 'per_metre' || form.purchase_rate_basis === 'per_unit') && (
             <div className="grid grid-cols-3 gap-3">
               {form.purchase_rate_basis === 'hourly_rate' && (
@@ -297,8 +311,7 @@ export default function SubcontractorLogManager({ job }) {
               <input type="text" value={form.description} onChange={e => set('description', e.target.value)} placeholder="Work description…" className={`${inputCls} col-span-2`} />
             </div>
           </div>
-          {/* Live margin preview */}
-          <div className="flex items-center gap-3 bg-white rounded-lg border border-slate-200 px-3 py-2">
+          <div className="flex items-center gap-3 bg-slate-50 rounded-lg border border-slate-200 px-3 py-2">
             <div className="flex-1 grid grid-cols-3 gap-2 text-center">
               <div>
                 <p className="text-[10px] text-slate-400 uppercase">Buy</p>
@@ -331,97 +344,196 @@ export default function SubcontractorLogManager({ job }) {
       {isLoading ? (
         <div className="flex items-center justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
       ) : logs.length === 0 ? (
-        <div className="text-center py-8 px-4">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm text-center py-8 px-4">
           <Building2 className="w-7 h-7 text-slate-200 mx-auto mb-2" />
           <p className="text-sm text-slate-500 font-medium">No sub-contractor logs yet</p>
           <p className="text-xs text-slate-400 mt-1">Log sub-con work to track buy/sell margins.</p>
         </div>
       ) : (
-        <div className="divide-y divide-slate-100 max-h-[28rem] overflow-y-auto">
-          {logs.map((l) => {
-            const sub = contractors.find(c => c.id === l.subcontractor_id);
-            const wt = WORK_TYPES.find(w => w.val === l.work_type) || WORK_TYPES[0];
-            const st = STATUS_META[l.status] || STATUS_META.pending;
-            const StIcon = st.icon;
-            const isExpanded = expanded === l.id;
+        /* Vertical timeline grouped by date */
+        <div className="relative pl-7">
+          <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gradient-to-b from-orange-400 via-slate-200 to-slate-100" />
+
+          {sortedDates.map(date => {
+            const dayLogs = byDate[date];
+            const dayBuy = dayLogs.reduce((s, l) => s + (Number(l.purchase_cost_net) || 0), 0);
+            const daySell = dayLogs.reduce((s, l) => s + (Number(l.client_charge_net) || 0), 0);
+            const dayMargin = dayLogs.reduce((s, l) => s + (Number(l.margin_net) || 0), 0);
+            const dayHours = dayLogs.reduce((s, l) => s + (Number(l.hours_worked) || 0), 0);
+            const d = date !== 'No date' ? new Date(date + 'T00:00:00') : null;
+            const hasPending = dayLogs.some(l => l.status === 'pending');
+
             return (
-              <div key={l.id} className="px-3 py-2.5">
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setExpanded(isExpanded ? null : l.id)} className="flex-shrink-0">
-                    {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-slate-400" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400" />}
-                  </button>
-                  <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${wt.color}`}>{l.work_type}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-slate-800 truncate">{l.subcontractor_name || sub?.name || 'Unknown'}</p>
-                    <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                      <Calendar className="w-2.5 h-2.5" />{l.date}
-                      {l.borehole_ref && <span>· {l.borehole_ref}</span>}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="text-right">
-                      <p className="text-[10px] text-slate-400">Margin</p>
-                      <p className={`text-xs font-bold tabular-nums ${l.margin_pct >= 0 ? 'text-[#2E5A1A]' : 'text-red-600'}`}>{fmt(l.margin_net)}</p>
+              <div key={date} className="relative mb-4">
+                {/* Date node */}
+                <div className={`absolute -left-[22px] top-3 w-4 h-4 rounded-full border-2 border-white shadow z-10 ${hasPending ? 'bg-amber-500' : 'bg-orange-500'}`} />
+
+                {/* Day card */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  {/* Day header */}
+                  <div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 flex items-center gap-3 flex-wrap">
+                    <Calendar className="w-4 h-4 text-slate-400" />
+                    <span className="text-sm font-bold text-slate-800">{d ? format(d, 'EEEE, dd MMM yyyy') : 'No date'}</span>
+                    <span className="text-xs text-slate-400">{dayLogs.length} {dayLogs.length === 1 ? 'entry' : 'entries'}</span>
+                    {dayHours > 0 && (
+                      <span className="text-xs text-slate-500 flex items-center gap-1"><Clock className="w-3 h-3" /> {fmtDur(dayHours)}</span>
+                    )}
+                    <div className="ml-auto flex items-center gap-3 text-xs">
+                      <span className="text-slate-500">Buy: <strong className="text-slate-700 tabular-nums">{fmt(dayBuy)}</strong></span>
+                      <span className="text-slate-500">Sell: <strong className="text-emerald-700 tabular-nums">{fmt(daySell)}</strong></span>
+                      <span className="text-slate-500">Margin: <strong className="text-[#2E5A1A] tabular-nums">{fmt(dayMargin)}</strong></span>
                     </div>
-                    <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium ${st.color}`}>
-                      <StIcon className="w-2.5 h-2.5" />{st.label}
-                    </span>
+                  </div>
+
+                  {/* Day's logs */}
+                  <div className="relative px-4 py-3">
+                    <div className="absolute left-[22px] top-3 bottom-3 w-0.5 bg-slate-100" />
+                    <div className="space-y-2.5">
+                      {dayLogs.map(l => {
+                        const sub = contractors.find(c => c.id === l.subcontractor_id);
+                        const wt = WORK_TYPES.find(w => w.val === l.work_type) || WORK_TYPES[0];
+                        const WtIcon = wt.icon;
+                        const st = STATUS_META[l.status] || STATUS_META.pending;
+                        const StIcon = st.icon;
+                        const isExpanded = expanded === l.id;
+
+                        return (
+                          <div key={l.id} className="relative pl-6">
+                            {/* Log node */}
+                            <div className={`absolute left-[2px] top-3.5 w-3 h-3 rounded-full border-2 border-white shadow z-10 ${st.label === 'Pending' ? 'bg-slate-400' : st.label === 'Approved' ? 'bg-emerald-500' : 'bg-blue-400'}`} />
+
+                            {/* Log card */}
+                            <div className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
+                              {/* Top row */}
+                              <div className="px-3 py-2.5 flex items-center gap-2">
+                                <button onClick={() => setExpanded(isExpanded ? null : l.id)} className="flex-shrink-0">
+                                  {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-slate-400" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400" />}
+                                </button>
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${wt.color}`}>
+                                  <WtIcon className="w-3 h-3" /> {wt.label}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-semibold text-slate-800 truncate">{l.subcontractor_name || sub?.name || 'Unknown'}</p>
+                                  <p className="text-[10px] text-slate-400 flex items-center gap-1">
+                                    <User className="w-2.5 h-2.5" />
+                                    {l.verified_by_name || 'Not verified yet'}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <div className="text-right">
+                                    <p className="text-[9px] text-slate-400 uppercase">Margin</p>
+                                    <p className={`text-xs font-bold tabular-nums ${l.margin_pct >= 0 ? 'text-[#2E5A1A]' : 'text-red-600'}`}>{fmt(l.margin_net)}</p>
+                                  </div>
+                                  <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium ${st.color}`}>
+                                    <StIcon className="w-2.5 h-2.5" />{st.label}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Expanded details */}
+                              {isExpanded && (
+                                <div className="px-3 pb-3 space-y-2 border-t border-slate-200">
+                                  {/* Financial grid */}
+                                  <div className="grid grid-cols-4 gap-2 text-xs bg-white rounded-lg p-2 mt-2 border border-slate-100">
+                                    <div><p className="text-[9px] text-slate-400 uppercase">Buy</p><p className="font-semibold text-slate-700 tabular-nums">{fmt(l.purchase_cost_net)}</p></div>
+                                    <div><p className="text-[9px] text-slate-400 uppercase">Sell</p><p className="font-semibold text-emerald-700 tabular-nums">{fmt(l.client_charge_net)}</p></div>
+                                    <div><p className="text-[9px] text-slate-400 uppercase">Markup</p><p className="font-semibold text-slate-700">{l.markup_percentage}%</p></div>
+                                    <div><p className="text-[9px] text-slate-400 uppercase">Margin %</p><p className="font-semibold text-slate-700">{l.margin_pct?.toFixed(1)}%</p></div>
+                                  </div>
+
+                                  {/* Description */}
+                                  {l.description && (
+                                    <div className="bg-white rounded-lg p-2 border border-slate-100">
+                                      <p className="text-[9px] text-slate-400 uppercase mb-0.5">Description</p>
+                                      <p className="text-xs text-slate-600 leading-relaxed">{l.description}</p>
+                                    </div>
+                                  )}
+
+                                  {/* Work details grid */}
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs bg-white rounded-lg p-2 border border-slate-100">
+                                    {l.borehole_ref && (
+                                      <div className="flex items-center gap-1"><MapPin className="w-3 h-3 text-slate-400" /><span className="text-slate-500">BH:</span> <span className="font-medium text-slate-700">{l.borehole_ref}</span></div>
+                                    )}
+                                    {l.metres_drilled != null && l.metres_drilled > 0 && (
+                                      <div className="flex items-center gap-1"><Ruler className="w-3 h-3 text-slate-400" /><span className="text-slate-500">Metres:</span> <span className="font-medium text-slate-700">{l.metres_drilled}m</span></div>
+                                    )}
+                                    {l.hours_worked != null && l.hours_worked > 0 && (
+                                      <div className="flex items-center gap-1"><Clock className="w-3 h-3 text-slate-400" /><span className="text-slate-500">Hours:</span> <span className="font-medium text-slate-700">{fmtDur(l.hours_worked)}</span></div>
+                                    )}
+                                    {l.units_completed != null && l.units_completed > 0 && (
+                                      <div className="flex items-center gap-1"><Package className="w-3 h-3 text-slate-400" /><span className="text-slate-500">Units:</span> <span className="font-medium text-slate-700">{l.units_completed} {l.units_label || ''}</span></div>
+                                    )}
+                                    {l.po_number && (
+                                      <div className="flex items-center gap-1"><FileText className="w-3 h-3 text-slate-400" /><span className="text-slate-500">PO:</span> <span className="font-medium text-slate-700">{l.po_number}</span></div>
+                                    )}
+                                    <div className="flex items-center gap-1"><TrendingUp className="w-3 h-3 text-slate-400" /><span className="text-slate-500">Rate:</span> <span className="font-medium text-slate-700">{fmt(l.purchase_rate)} / {l.purchase_rate_basis?.replace(/_/g, ' ')}</span></div>
+                                  </div>
+
+                                  {/* Reconciliation badge */}
+                                  {l.invoice_received && (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                        l.reconciliation_status === 'reconciled' ? 'bg-emerald-50 text-emerald-700' :
+                                        l.reconciliation_status === 'mismatched' ? 'bg-red-50 text-red-700' :
+                                        'bg-amber-50 text-amber-700'
+                                      }`}>
+                                        {l.reconciliation_status === 'reconciled' ? <Lock className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
+                                        Invoice {(l.reconciliation_status || 'pending').charAt(0).toUpperCase() + (l.reconciliation_status || 'pending').slice(1)}
+                                      </span>
+                                      {l.invoice_net_amount != null && (
+                                        <span className="text-[10px] text-slate-500">Invoice amount: {fmt(l.invoice_net_amount)}</span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Status actions */}
+                                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                                    {isLocked ? (
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-medium ml-auto"><Lock className="w-3 h-3" /> Locked</span>
+                                    ) : (
+                                      <>
+                                        {l.status === 'pending' && (
+                                          <button onClick={() => handleStatusChange(l.id, 'verified')} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-medium hover:bg-blue-100 transition"><CheckCircle2 className="w-3 h-3" /> Verify</button>
+                                        )}
+                                        {l.status === 'verified' && (
+                                          <button onClick={() => handleStatusChange(l.id, 'approved')} className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[10px] font-medium hover:bg-emerald-100 transition"><ShieldCheck className="w-3 h-3" /> Approve</button>
+                                        )}
+                                        {(l.status === 'pending' || l.status === 'verified') && !l.invoice_received && (
+                                          <button onClick={() => handleMarkInvoiceReceived(l.id)} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-medium hover:bg-indigo-100 transition"><FileText className="w-3 h-3" /> Invoice Received</button>
+                                        )}
+                                        {(l.status === 'pending' || l.status === 'verified') && (
+                                          <button onClick={() => handleDelete(l.id)} className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] font-medium hover:bg-red-100 transition ml-auto"><Trash2 className="w-3 h-3" /> Delete</button>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-                {isExpanded && (
-                  <div className="mt-2 ml-6 space-y-2">
-                    <div className="grid grid-cols-4 gap-2 text-xs bg-slate-50 rounded-lg p-2">
-                      <div><p className="text-[9px] text-slate-400 uppercase">Buy</p><p className="font-semibold text-slate-700 tabular-nums">{fmt(l.purchase_cost_net)}</p></div>
-                      <div><p className="text-[9px] text-slate-400 uppercase">Sell</p><p className="font-semibold text-emerald-700 tabular-nums">{fmt(l.client_charge_net)}</p></div>
-                      <div><p className="text-[9px] text-slate-400 uppercase">Markup</p><p className="font-semibold text-slate-700">{l.markup_percentage}%</p></div>
-                      <div><p className="text-[9px] text-slate-400 uppercase">Margin %</p><p className="font-semibold text-slate-700">{l.margin_pct?.toFixed(1)}%</p></div>
-                    </div>
-                    {l.description && <p className="text-xs text-slate-600">{l.description}</p>}
-                    {l.po_number && <p className="text-[10px] text-slate-400">PO: {l.po_number}</p>}
-                    {/* Reconciliation badge */}
-                    {l.invoice_received && (
-                      <div className="flex items-center gap-1.5">
-                        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-medium ${
-                          l.reconciliation_status === 'reconciled' ? 'bg-emerald-50 text-emerald-700' :
-                          l.reconciliation_status === 'mismatched' ? 'bg-red-50 text-red-700' :
-                          'bg-amber-50 text-amber-700'
-                        }`}>
-                          {l.reconciliation_status === 'reconciled' ? <Lock className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
-                          {(l.reconciliation_status || 'pending').charAt(0).toUpperCase() + (l.reconciliation_status || 'pending').slice(1)}
-                        </span>
-                        {l.invoice_net_amount != null && (
-                          <span className="text-[10px] text-slate-500">Invoice: {fmt(l.invoice_net_amount)}</span>
-                        )}
-                      </div>
-                    )}
-                    {/* Status actions */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {isLocked ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-400 rounded-lg text-[10px] font-medium ml-auto"><Lock className="w-3 h-3" /> Locked</span>
-                      ) : (
-                      <>
-                      {l.status === 'pending' && (
-                        <button onClick={() => handleStatusChange(l.id, 'verified')} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-medium hover:bg-blue-100 transition"><CheckCircle2 className="w-3 h-3" /> Verify</button>
-                      )}
-                      {l.status === 'verified' && (
-                        <button onClick={() => handleStatusChange(l.id, 'approved')} className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[10px] font-medium hover:bg-emerald-100 transition"><ShieldCheck className="w-3 h-3" /> Approve</button>
-                      )}
-                      {(l.status === 'pending' || l.status === 'verified') && !l.invoice_received && (
-                        <button onClick={() => handleMarkInvoiceReceived(l.id)} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[10px] font-medium hover:bg-indigo-100 transition"><FileText className="w-3 h-3" /> Invoice Received</button>
-                      )}
-                      {(l.status === 'pending' || l.status === 'verified') && (
-                        <button onClick={() => handleDelete(l.id)} className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 rounded-lg text-[10px] font-medium hover:bg-red-100 transition ml-auto"><Trash2 className="w-3 h-3" /> Delete</button>
-                      )}
-                      </>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function HeroStat({ icon: Icon, label, value, sub }) {
+  return (
+    <div className="bg-white/10 backdrop-blur-sm rounded-xl px-3 py-3 border border-white/10">
+      <div className="flex items-center gap-1.5 mb-1">
+        <Icon className="w-3.5 h-3.5 text-white/70" />
+        <p className="text-[10px] uppercase font-medium text-white/70 tracking-wide">{label}</p>
+      </div>
+      <p className="text-xl font-bold text-white tabular-nums">{value}</p>
+      <p className="text-[10px] text-white/50">{sub}</p>
     </div>
   );
 }

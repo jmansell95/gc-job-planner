@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   Activity, Clock, CheckCircle2, AlertTriangle, Tablet, Edit2, X, Save,
-  Send, Loader2, Calendar, User, FileText, RefreshCw, ChevronDown, ChevronRight
+  Send, Loader2, Calendar, User, FileText, ChevronDown, ChevronRight, MapPin
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
@@ -18,8 +18,6 @@ function fmtDur(mins) {
   return m > 0 ? `${r}m` : '0m';
 }
 
-// Compare activities by clock order (not lexicographic — "7:30" must come
-// after "08:45" but before "12:30"). Activities without a time sort last.
 function timeToMins(t) {
   if (!t) return null;
   const m = String(t).match(/^(\d{1,2}):(\d{2})/);
@@ -34,10 +32,6 @@ function byClockOrder(a, b) {
   return av - bv;
 }
 
-// SiteLogReviewManager — for drilling jobs, shows the AI-professionalised
-// driller activities parsed from KeyLogBook remarks. Admins can edit each
-// activity (description, times) before approving. Approving generates the
-// timesheet automatically via the approveKeyLogBookLogs backend function.
 export default function SiteLogReviewManager({ job, assignedStaff }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -45,7 +39,7 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
   const [editForm, setEditForm] = useState({});
   const [approving, setApproving] = useState(false);
   const [savingId, setSavingId] = useState(null);
-  const [expandedDays, setExpandedDays] = useState(new Set()); // collapsed by default
+  const [expandedDays, setExpandedDays] = useState(new Set());
 
   const toggleDay = (date) => {
     setExpandedDays(prev => {
@@ -61,9 +55,7 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
     queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job.id }),
   });
 
-  // Driller remarks logs (the professionalised site activities)
   const remarksLogs = logs.filter(l => l.source === 'keylogbook_remarks');
-  // Group by date
   const byDate = {};
   remarksLogs.forEach(l => {
     if (!byDate[l.date]) byDate[l.date] = [];
@@ -73,6 +65,7 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
 
   const pendingCount = remarksLogs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
   const approvedCount = remarksLogs.filter(l => l.manager_review_status === 'approved').length;
+  const totalMinutes = remarksLogs.reduce((s, l) => s + (l.duration_minutes || 0), 0);
 
   const handleEdit = (log) => {
     setEditingId(log.id);
@@ -85,7 +78,6 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
 
   const handleSave = async (logId) => {
     setSavingId(logId);
-    // Recalculate duration from start/end times
     let durationMins = 0;
     if (editForm.start_time && editForm.end_time) {
       const [sh, sm] = editForm.start_time.split(':').map(Number);
@@ -160,169 +152,210 @@ export default function SiteLogReviewManager({ job, assignedStaff }) {
         </div>
       ) : (
         <>
-          {/* Summary stats */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white rounded-xl border border-slate-200 p-3 text-center">
-              <p className="text-xs text-slate-400 uppercase font-medium">Activities</p>
-              <p className="text-xl font-bold text-slate-800">{remarksLogs.length}</p>
-            </div>
-            <div className="bg-white rounded-xl border border-slate-200 p-3 text-center">
-              <p className="text-xs text-slate-400 uppercase font-medium">Pending</p>
-              <p className="text-xl font-bold text-amber-600">{pendingCount}</p>
-            </div>
-            <div className="bg-white rounded-xl border border-slate-200 p-3 text-center">
-              <p className="text-xs text-slate-400 uppercase font-medium">Approved</p>
-              <p className="text-xl font-bold text-emerald-600">{approvedCount}</p>
-            </div>
+          {/* Summary mini-stats */}
+          <div className="grid grid-cols-4 gap-2">
+            <MiniStat label="Activities" value={remarksLogs.length} tone="slate" />
+            <MiniStat label="Pending" value={pendingCount} tone="amber" />
+            <MiniStat label="Approved" value={approvedCount} tone="emerald" />
+            <MiniStat label="Total Time" value={fmtDur(totalMinutes)} tone="indigo" />
           </div>
 
-          {/* Day groups */}
-          {sortedDates.map(date => {
-            const dayLogs = byDate[date].sort(byClockOrder);
-            const dayPending = dayLogs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
-            const dayTotalMins = dayLogs.reduce((s, l) => s + (l.duration_minutes || 0), 0);
-            const d = new Date(date + 'T00:00:00');
-            const namedLog = dayLogs.find(l => l.staff_name || l.completed_by_name);
-            const drillerName = namedLog?.staff_name || namedLog?.completed_by_name || '';
+          {/* Vertical timeline */}
+          <div className="relative pl-7">
+            {/* Main timeline line */}
+            <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gradient-to-b from-emerald-400 via-slate-200 to-slate-100" />
 
-            return (
-              <div key={date} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                {/* Day header — clickable to expand/collapse */}
-                <button
-                  onClick={() => toggleDay(date)}
-                  className="w-full px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-3 flex-wrap text-left hover:bg-slate-100/70 transition"
-                >
-                  <div className="flex items-center gap-2">
-                    {expandedDays.has(date)
-                      ? <ChevronDown className="w-4 h-4 text-slate-500" />
-                      : <ChevronRight className="w-4 h-4 text-slate-500" />}
-                    <Calendar className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm font-bold text-slate-700">{format(d, 'EEEE, dd MMM yyyy')}</span>
-                  </div>
-                  <span className="text-xs text-slate-400">{dayLogs.length} activities</span>
-                  <span className="text-xs text-slate-400">·</span>
-                  <span className="text-xs text-slate-500 flex items-center gap-1"><Clock className="w-3 h-3" /> {fmtDur(dayTotalMins)}</span>
-                  {drillerName && (
-                    <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
-                      <User className="w-3 h-3" /> {drillerName}
-                    </span>
-                  )}
-                  {dayPending > 0 ? (
-                    <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" /> {dayPending} pending review
-                    </span>
-                  ) : (
-                    <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Approved
-                    </span>
-                  )}
-                </button>
+            {sortedDates.map(date => {
+              const dayLogs = byDate[date].sort(byClockOrder);
+              const dayPending = dayLogs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
+              const dayTotalMins = dayLogs.reduce((s, l) => s + (l.duration_minutes || 0), 0);
+              const d = new Date(date + 'T00:00:00');
+              const namedLog = dayLogs.find(l => l.staff_name || l.completed_by_name);
+              const drillerName = namedLog?.staff_name || namedLog?.completed_by_name || '';
+              const isExpanded = expandedDays.has(date);
 
-                {/* Activity list — collapsed by default */}
-                {expandedDays.has(date) && (
-                <div className="divide-y divide-slate-100">
-                  {dayLogs.map(log => {
-                    const isPending = (log.manager_review_status || 'pending') === 'pending';
-                    const isEditing = editingId === log.id;
+              return (
+                <div key={date} className="relative mb-4">
+                  {/* Date node */}
+                  <div className={`absolute -left-[22px] top-3 w-4 h-4 rounded-full border-2 border-white shadow z-10 ${dayPending > 0 ? 'bg-amber-500' : 'bg-emerald-600'}`} />
 
-                    if (isEditing) {
-                      return (
-                        <div key={log.id} className="p-3.5 bg-amber-50/40">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Edit2 className="w-3.5 h-3.5 text-amber-600" />
-                            <p className="text-xs font-bold text-amber-800">Editing activity</p>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 mb-2">
-                            <div>
-                              <label className="block text-[11px] font-medium text-slate-500 mb-1">Start time</label>
-                              <input type="time" value={editForm.start_time} onChange={e => setEditForm({ ...editForm, start_time: e.target.value })}
-                                className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white" />
-                            </div>
-                            <div>
-                              <label className="block text-[11px] font-medium text-slate-500 mb-1">End time</label>
-                              <input type="time" value={editForm.end_time} onChange={e => setEditForm({ ...editForm, end_time: e.target.value })}
-                                className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white" />
-                            </div>
-                          </div>
-                          <div className="mb-2">
-                            <label className="block text-[11px] font-medium text-slate-500 mb-1">Description</label>
-                            <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} rows={2}
-                              className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white resize-none" />
-                          </div>
-                          <div className="flex gap-2">
-                            <button onClick={() => handleSave(log.id)} disabled={savingId === log.id}
-                              className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-xs font-semibold disabled:opacity-50">
-                              {savingId === log.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save
-                            </button>
-                            <button onClick={() => setEditingId(null)} disabled={savingId === log.id}
-                              className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 text-xs font-semibold">
-                              <X className="w-3.5 h-3.5" /> Cancel
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    }
+                  {/* Day card */}
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    {/* Day header */}
+                    <button
+                      onClick={() => toggleDay(date)}
+                      className="w-full px-4 py-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 flex items-center gap-3 flex-wrap text-left hover:from-slate-100 transition"
+                    >
+                      <div className="flex items-center gap-2">
+                        {isExpanded
+                          ? <ChevronDown className="w-4 h-4 text-slate-500" />
+                          : <ChevronRight className="w-4 h-4 text-slate-500" />}
+                        <Calendar className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm font-bold text-slate-800">{format(d, 'EEEE, dd MMM yyyy')}</span>
+                      </div>
+                      <span className="text-xs text-slate-400">{dayLogs.length} {dayLogs.length === 1 ? 'activity' : 'activities'}</span>
+                      <span className="text-xs text-slate-300">·</span>
+                      <span className="text-xs text-slate-500 flex items-center gap-1"><Clock className="w-3 h-3" /> {fmtDur(dayTotalMins)}</span>
+                      {drillerName && (
+                        <span className="inline-flex items-center gap-1 text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+                          <User className="w-3 h-3" /> {drillerName}
+                        </span>
+                      )}
+                      {dayPending > 0 ? (
+                        <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> {dayPending} pending
+                        </span>
+                      ) : (
+                        <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Approved
+                        </span>
+                      )}
+                    </button>
 
-                    return (
-                      <div key={log.id} className="p-3.5 flex items-start gap-3">
-                        <div className={`w-1.5 h-full min-h-[2.5rem] rounded-full flex-shrink-0 ${isPending ? 'bg-amber-400' : 'bg-emerald-500'}`} />
-                        <div className="min-w-0 flex-1">
-                          {/* Time + status row */}
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
-                              {log.start_time || '—'}–{log.end_time || '—'}
-                            </span>
-                            <span className="text-xs text-slate-400">·</span>
-                            <span className="text-xs font-medium text-slate-500">{fmtDur(log.duration_minutes)}</span>
-                            {(log.staff_name || log.completed_by_name) && (
-                              <>
-                                <span className="text-xs text-slate-400">·</span>
-                                <span className="text-xs text-slate-500 flex items-center gap-1"><User className="w-3 h-3" /> {log.staff_name || log.completed_by_name}</span>
-                              </>
-                            )}
-                            <RoleBadge role={log.logged_by_role} />
-                            {isPending ? (
-                              <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
-                                <AlertTriangle className="w-2.5 h-2.5" /> Pending
-                              </span>
-                            ) : (
-                              <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
-                                <CheckCircle2 className="w-2.5 h-2.5" /> Approved
-                              </span>
-                            )}
-                            {isPending && (
-                              <button onClick={() => handleEdit(log)}
-                                className="ml-auto text-xs text-slate-500 hover:text-emerald-700 flex items-center gap-1 font-medium">
-                                <Edit2 className="w-3 h-3" /> Edit
-                              </button>
-                            )}
-                          </div>
-                          {/* Description */}
-                          <p className="text-sm text-slate-700 leading-relaxed">{log.description}</p>
+                    {/* Activity timeline — inside the day */}
+                    {isExpanded && (
+                      <div className="relative px-4 py-3">
+                        {/* Inner vertical line */}
+                        <div className="absolute left-[22px] top-3 bottom-3 w-0.5 bg-slate-100" />
+
+                        <div className="space-y-2.5">
+                          {dayLogs.map(log => {
+                            const isPending = (log.manager_review_status || 'pending') === 'pending';
+                            const isEditing = editingId === log.id;
+
+                            if (isEditing) {
+                              return (
+                                <div key={log.id} className="relative pl-6">
+                                  <div className="absolute left-[2px] top-3 w-3 h-3 rounded-full bg-amber-500 border-2 border-white shadow z-10" />
+                                  <div className="bg-amber-50/60 rounded-lg border border-amber-200 p-3">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Edit2 className="w-3.5 h-3.5 text-amber-600" />
+                                      <p className="text-xs font-bold text-amber-800">Editing activity</p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 mb-2">
+                                      <div>
+                                        <label className="block text-[11px] font-medium text-slate-500 mb-1">Start time</label>
+                                        <input type="time" value={editForm.start_time} onChange={e => setEditForm({ ...editForm, start_time: e.target.value })}
+                                          className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white" />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[11px] font-medium text-slate-500 mb-1">End time</label>
+                                        <input type="time" value={editForm.end_time} onChange={e => setEditForm({ ...editForm, end_time: e.target.value })}
+                                          className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white" />
+                                      </div>
+                                    </div>
+                                    <div className="mb-2">
+                                      <label className="block text-[11px] font-medium text-slate-500 mb-1">Description</label>
+                                      <textarea value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} rows={2}
+                                        className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white resize-none" />
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button onClick={() => handleSave(log.id)} disabled={savingId === log.id}
+                                        className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-xs font-semibold disabled:opacity-50">
+                                        {savingId === log.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} Save
+                                      </button>
+                                      <button onClick={() => setEditingId(null)} disabled={savingId === log.id}
+                                        className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 text-xs font-semibold">
+                                        <X className="w-3.5 h-3.5" /> Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div key={log.id} className="relative pl-6">
+                                {/* Activity node */}
+                                <div className={`absolute left-[2px] top-3.5 w-3 h-3 rounded-full border-2 border-white shadow z-10 ${isPending ? 'bg-amber-400' : 'bg-emerald-500'}`} />
+
+                                {/* Activity card */}
+                                <div className="bg-slate-50 rounded-lg border border-slate-200 p-3 hover:shadow-sm transition">
+                                  {/* Time + status row */}
+                                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                                    <span className="text-xs font-mono font-bold text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded-md shadow-sm">
+                                      {log.start_time || '—'} – {log.end_time || '—'}
+                                    </span>
+                                    <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                                      <Clock className="w-3 h-3" /> {fmtDur(log.duration_minutes)}
+                                    </span>
+                                    {(log.staff_name || log.completed_by_name) && (
+                                      <span className="text-xs text-slate-500 flex items-center gap-1">
+                                        <User className="w-3 h-3" /> {log.staff_name || log.completed_by_name}
+                                      </span>
+                                    )}
+                                    <RoleBadge role={log.logged_by_role} />
+                                    {isPending ? (
+                                      <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
+                                        <AlertTriangle className="w-2.5 h-2.5" /> Pending
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
+                                        <CheckCircle2 className="w-2.5 h-2.5" /> Approved
+                                      </span>
+                                    )}
+                                    {isPending && (
+                                      <button onClick={() => handleEdit(log)}
+                                        className="ml-auto text-xs text-slate-500 hover:text-emerald-700 flex items-center gap-1 font-medium">
+                                        <Edit2 className="w-3 h-3" /> Edit
+                                      </button>
+                                    )}
+                                  </div>
+                                  {/* Description */}
+                                  <p className="text-sm text-slate-700 leading-relaxed">{log.description}</p>
+                                  {/* Extra metadata */}
+                                  {(log.borehole_ref || log.manager_reviewed_by) && (
+                                    <div className="mt-1.5 flex items-center gap-3 flex-wrap text-[10px] text-slate-400">
+                                      {log.borehole_ref && (
+                                        <span className="flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> {log.borehole_ref}</span>
+                                      )}
+                                      {log.manager_reviewed_by && (
+                                        <span className="flex items-center gap-1"><CheckCircle2 className="w-2.5 h-2.5" /> Reviewed by {log.manager_reviewed_by}</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-                )}
+                    )}
 
-                {/* Approve button — only when expanded */}
-                {dayPending > 0 && expandedDays.has(date) && (
-                  <div className="px-4 py-3 bg-amber-50/40 border-t border-amber-100">
-                    <button onClick={() => handleApproveDate(date)} disabled={approving}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition text-sm font-bold disabled:opacity-50 touch-manipulation">
-                      {approving ? <><Loader2 className="w-4 h-4 animate-spin" /> Approving…</> : <><Send className="w-4 h-4" /> Approve & Generate Timesheet</>}
-                    </button>
-                    <p className="text-[11px] text-slate-500 text-center mt-1.5">
-                      This will create draft timesheet entries for each approved activity.
-                    </p>
+                    {/* Approve button */}
+                    {dayPending > 0 && isExpanded && (
+                      <div className="px-4 py-3 bg-amber-50/40 border-t border-amber-100">
+                        <button onClick={() => handleApproveDate(date)} disabled={approving}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition text-sm font-bold disabled:opacity-50 touch-manipulation">
+                          {approving ? <><Loader2 className="w-4 h-4 animate-spin" /> Approving…</> : <><Send className="w-4 h-4" /> Approve & Generate Timesheet</>}
+                        </button>
+                        <p className="text-[11px] text-slate-500 text-center mt-1.5">
+                          This will create draft timesheet entries for each approved activity.
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                </div>
+              );
+            })}
+          </div>
         </>
       )}
+    </div>
+  );
+}
+
+function MiniStat({ label, value, tone }) {
+  const tones = {
+    slate: 'text-slate-700',
+    amber: 'text-amber-600',
+    emerald: 'text-emerald-700',
+    indigo: 'text-indigo-700',
+  };
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 px-2 py-2.5 text-center shadow-sm">
+      <p className="text-[9px] text-slate-400 uppercase font-medium tracking-wide">{label}</p>
+      <p className={`text-base font-bold tabular-nums ${tones[tone] || 'text-slate-800'}`}>{value}</p>
     </div>
   );
 }

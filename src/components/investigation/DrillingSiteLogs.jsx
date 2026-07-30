@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Activity, AlertTriangle, UserX } from 'lucide-react';
+import { Activity, AlertTriangle, UserX, Clock, CalendarDays, CheckCircle2, Hourglass } from 'lucide-react';
 import SiteLogReviewManager from '@/components/investigation/SiteLogReviewManager';
 
 /**
@@ -19,9 +19,20 @@ export default function DrillingSiteLogs({ job, assignedStaff }) {
 
   const remarksLogs = logs.filter(l => l.source === 'keylogbook_remarks');
   const otherLogs = logs.filter(l => l.source !== 'keylogbook_remarks' && l.source !== 'ags_import');
-  const loggedDays = new Set(logs.map(l => l.date).filter(Boolean)).size;
+  const loggedDays = new Set(remarksLogs.map(l => l.date).filter(Boolean)).size;
+  const totalMinutes = remarksLogs.reduce((s, l) => s + (l.duration_minutes || 0), 0);
+  const pendingCount = remarksLogs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
+  const approvedCount = remarksLogs.filter(l => l.manager_review_status === 'approved').length;
   const noNameCount = logs.filter(l => !l.logged_by_role || l.logged_by_role === 'unspecified' || l.logged_by_role === 'ags_import').length;
   const hasNoName = noNameCount > 0 && logs.length > 0;
+
+  const fmtDur = (mins) => {
+    const m = Math.round(mins || 0);
+    const h = Math.floor(m / 60), r = m % 60;
+    if (h && r) return `${h}h ${r}m`;
+    if (h) return `${h}h`;
+    return m > 0 ? `${r}m` : '0m';
+  };
 
   if (isLoading) {
     return (
@@ -49,37 +60,36 @@ export default function DrillingSiteLogs({ job, assignedStaff }) {
         </div>
       )}
 
-      {/* Unified summary */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
-          <Activity className="w-5 h-5 text-emerald-700" />
-          <h2 className="font-semibold text-slate-900">Site Logs</h2>
-          <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{logs.length} total</span>
+      {/* Modern dashboard ribbon */}
+      <div className="hero-gradient rounded-2xl p-5 text-white shadow-lg">
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <Activity className="w-5 h-5" />
+          <h2 className="text-lg font-bold">Site Activity Logs</h2>
+          <span className="ml-auto text-xs bg-white/20 px-2.5 py-1 rounded-full font-medium">{logs.length} total entries</span>
         </div>
-        <div className="grid grid-cols-3 gap-3 px-5 py-4 bg-slate-50/50 border-b border-slate-100">
-          <SummaryStat label="Days Logged" value={loggedDays} hint="unique dates" tone="emerald" />
-          <SummaryStat label="Driller Activities" value={remarksLogs.length} hint="KeyLogBook remarks" tone="indigo" />
-          <SummaryStat label="Other Entries" value={otherLogs.length} hint="field logs" tone="slate" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <HeroStat icon={CalendarDays} label="Days Logged" value={loggedDays} sub="unique dates" />
+          <HeroStat icon={Clock} label="Total Time" value={fmtDur(totalMinutes)} sub="from remarks" />
+          <HeroStat icon={Activity} label="Activities" value={remarksLogs.length} sub={`${otherLogs.length} other`} />
+          <HeroStat icon={pendingCount > 0 ? Hourglass : CheckCircle2} label="Approved" value={approvedCount} sub={pendingCount > 0 ? `${pendingCount} pending` : 'all done'} />
         </div>
       </div>
 
-      {/* Driller activity review */}
+      {/* Driller activity review timeline */}
       <SiteLogReviewManager job={job} assignedStaff={assignedStaff} />
     </div>
   );
 }
 
-function SummaryStat({ label, value, hint, tone }) {
-  const tones = {
-    indigo: 'text-indigo-700',
-    emerald: 'text-emerald-700',
-    slate: 'text-slate-700',
-  };
+function HeroStat({ icon: Icon, label, value, sub }) {
   return (
-    <div className="text-center">
-      <p className="text-xs text-slate-400 uppercase font-medium">{label}</p>
-      <p className={`text-lg font-bold ${tones[tone] || 'text-slate-800'}`}>{value}</p>
-      <p className="text-[10px] text-slate-400">{hint}</p>
+    <div className="bg-white/10 backdrop-blur-sm rounded-xl px-3 py-3 border border-white/10">
+      <div className="flex items-center gap-1.5 mb-1">
+        <Icon className="w-3.5 h-3.5 text-white/70" />
+        <p className="text-[10px] uppercase font-medium text-white/70 tracking-wide">{label}</p>
+      </div>
+      <p className="text-xl font-bold text-white tabular-nums">{value}</p>
+      <p className="text-[10px] text-white/50">{sub}</p>
     </div>
   );
 }
