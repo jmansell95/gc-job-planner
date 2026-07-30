@@ -4,9 +4,10 @@ import { base44 } from '@/api/base44Client';
 import {
   X, ChevronLeft, ChevronRight, Check, Briefcase, CalendarDays, Users, MapPin,
   FileText, Sparkles, Loader2, FolderOpen, PoundSterling, Target, AlertTriangle,
-  HardHat, Receipt, Percent, Building2, Phone, Ruler, FileCheck2,
+  HardHat, Receipt, Percent, Building2, Phone, Ruler, FileCheck2, ArrowRightLeft,
 } from 'lucide-react';
 import ProjectSelect from '@/components/ProjectSelect';
+import SubcontractorAssignments from '@/components/SubcontractorAssignments';
 import { getJobTypeColor, getJobTypeLabel, isDrillingJobType } from '@/utils/jobTeams';
 
 const inputCls = "w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10 text-sm transition";
@@ -15,7 +16,8 @@ const STEPS = [
   { id: 1, label: 'Identity', icon: Briefcase },
   { id: 2, label: 'Schedule & Contacts', icon: CalendarDays },
   { id: 3, label: 'Billing', icon: Receipt },
-  { id: 4, label: 'Review', icon: Check },
+  { id: 4, label: 'Sub-Contractors', icon: Building2 },
+  { id: 5, label: 'Review', icon: Check },
 ];
 
 const REVENUE_METHODS = [
@@ -50,6 +52,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [subAssignments, setSubAssignments] = useState([]);
+  const [originalSubIds, setOriginalSubIds] = useState([]);
   const queryClient = useQueryClient();
 
   const { data: clients = [] } = useQuery({ queryKey: ['clients'], queryFn: () => base44.entities.Client.list(), enabled: open });
@@ -62,7 +66,31 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
     if (open) {
       setStep(1);
       setError('');
+      setSubAssignments([]);
+      setOriginalSubIds([]);
       setForm(editingJob ? { ...emptyForm, ...editingJob } : emptyForm);
+      if (editingJob?.id) {
+        base44.entities.SubcontractorLog.filter({ job_id: editingJob.id }, '-date', 200).then(logs => {
+          const mapped = logs.map(l => ({
+            id: l.id,
+            subcontractor_id: l.subcontractor_id || '',
+            work_type: l.work_type || 'drilling',
+            description: l.description || '',
+            borehole_ref: l.borehole_ref || '',
+            purchase_rate_basis: l.purchase_rate_basis || 'day_rate',
+            purchase_rate: l.purchase_rate != null ? String(l.purchase_rate) : '',
+            hours_worked: l.hours_worked != null ? String(l.hours_worked) : '',
+            metres_drilled: l.metres_drilled != null ? String(l.metres_drilled) : '',
+            units_completed: l.units_completed != null ? String(l.units_completed) : '',
+            units_label: l.units_label || '',
+            markup_percentage: l.markup_percentage != null ? l.markup_percentage : 15,
+            po_number: l.po_number || '',
+            _date: l.date || new Date().toISOString().slice(0, 10),
+          }));
+          setSubAssignments(mapped);
+          setOriginalSubIds(logs.map(l => l.id));
+        }).catch(() => {});
+      }
     }
   }, [open, editingJob]);
 
@@ -83,6 +111,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
       if (form.revenue_method === 'unit_rate' && !form.unit_price) return false;
       return true;
     }
+    // Step 4 (Sub-Contractors) is always valid — optional
     return true;
   };
 
@@ -104,9 +133,74 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
       } else {
         saved = await base44.entities.Job.create(clean);
       }
+      const jobId = saved.id || editingJob?.id;
+
+      // Save sub-contractor assignments
+      const keptIds = new Set();
+      for (const a of subAssignments) {
+        if (!a.subcontractor_id) continue;
+        const sub = contractors.find(c => c.id === a.subcontractor_id);
+        const vatRate = 20;
+        const rate = parseFloat(a.purchase_rate) || 0;
+        let purchaseCost = 0;
+        if (a.purchase_rate_basis === 'flat_fee' || a.purchase_rate_basis === 'item_cost') purchaseCost = rate;
+        else if (a.purchase_rate_basis === 'day_rate') purchaseCost = rate * 1;
+        else if (a.purchase_rate_basis === 'hourly_rate') purchaseCost = rate * (parseFloat(a.hours_worked) || 0);
+        else if (a.purchase_rate_basis === 'per_metre') purchaseCost = rate * (parseFloat(a.metres_drilled) || 0);
+        else if (a.purchase_rate_basis === 'per_unit') purchaseCost = rate * (parseFloat(a.units_completed) || 0);
+        const markup = parseFloat(a.markup_percentage) || 0;
+        const clientCharge = purchaseCost * (1 + markup / 100);
+        const marginNet = clientCharge - purchaseCost;
+        const marginPct = clientCharge > 0 ? (marginNet / clientCharge) * 100 : 0;
+        const weekStart = new Date(a._date);
+        weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+        const payload = {
+          job_id: jobId,
+          subcontractor_id: a.subcontractor_id,
+          subcontractor_name: sub?.name || '',
+          date: a._date,
+          week_start: weekStart.toISOString().slice(0, 10),
+          work_type: a.work_type,
+          description: a.description,
+          borehole_ref: a.borehole_ref || undefined,
+          metres_drilled: parseFloat(a.metres_drilled) || undefined,
+          units_completed: parseFloat(a.units_completed) || undefined,
+          units_label: a.units_label || undefined,
+          hours_worked: parseFloat(a.hours_worked) || undefined,
+          purchase_cost_net: Math.round(purchaseCost * 100) / 100,
+          purchase_cost_vat: Math.round(purchaseCost * vatRate / 100 * 100) / 100,
+          purchase_cost_gross: Math.round((purchaseCost + purchaseCost * vatRate / 100) * 100) / 100,
+          purchase_rate_basis: a.purchase_rate_basis,
+          purchase_rate: rate,
+          markup_percentage: markup,
+          client_charge_net: Math.round(clientCharge * 100) / 100,
+          client_charge_vat: Math.round(clientCharge * vatRate / 100 * 100) / 100,
+          client_charge_gross: Math.round((clientCharge + clientCharge * vatRate / 100) * 100) / 100,
+          sell_rate_basis: 'markup_on_cost',
+          margin_net: Math.round(marginNet * 100) / 100,
+          margin_pct: Math.round(marginPct * 10) / 10,
+          po_number: a.po_number || undefined,
+          status: 'pending',
+        };
+        if (a.id) {
+          await base44.entities.SubcontractorLog.update(a.id, payload);
+          keptIds.add(a.id);
+        } else {
+          const created = await base44.entities.SubcontractorLog.create(payload);
+          keptIds.add(created.id);
+        }
+      }
+      // Delete removed assignments
+      for (const oldId of originalSubIds) {
+        if (!keptIds.has(oldId)) {
+          await base44.entities.SubcontractorLog.delete(oldId);
+        }
+      }
+
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['auto-job-financials', editingJob?.id] });
+      queryClient.invalidateQueries({ queryKey: ['auto-job-financials', jobId] });
+      queryClient.invalidateQueries({ queryKey: ['subcon-logs', jobId] });
       onCreated?.(saved);
     } catch (e) {
       setError(e?.message || 'Could not save the job. Check all required fields.');
@@ -150,7 +244,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                 <React.Fragment key={s.id}>
                   <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition ${active ? 'bg-[#2E5A1A] text-white' : done ? 'bg-[#2E5A1A]/10 text-[#2E5A1A]' : 'bg-white text-slate-400 border border-slate-200'}`}>
                     {done ? <Check className="w-3.5 h-3.5" /> : <Icon className="w-3.5 h-3.5" />}
-                    {s.label}
+                    <span className="hidden sm:inline">{s.label}</span>
                   </div>
                   {i < STEPS.length - 1 && <div className={`flex-1 h-0.5 rounded ${done ? 'bg-[#2E5A1A]/40' : 'bg-slate-200'}`} />}
                 </React.Fragment>
@@ -452,8 +546,17 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                 </div>
               )}
 
-              {/* STEP 4 — Review */}
+              {/* STEP 4 — Sub-Contractors */}
               {step === 4 && (
+                <SubcontractorAssignments
+                  assignments={subAssignments}
+                  onChange={setSubAssignments}
+                  contractors={contractors}
+                />
+              )}
+
+              {/* STEP 5 — Review */}
+              {step === 5 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-[#2E5A1A]">
                     <Sparkles className="w-4 h-4" />
@@ -478,6 +581,35 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     <ReviewRow label="VAT Rate" value={`${form.vat_rate || 20}%`} />
                     <ReviewRow label="Budget" value={form.budget_amount ? `£${form.budget_amount}` : '—'} />
                   </div>
+                  {/* Sub-contractor summary */}
+                  {subAssignments.filter(a => a.subcontractor_id).length > 0 && (
+                    <div className="bg-slate-50 rounded-xl border border-slate-200 p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <ArrowRightLeft className="w-4 h-4 text-[#2E5A1A]" />
+                        <p className="text-sm font-semibold text-slate-800">Sub-Contractors ({subAssignments.filter(a => a.subcontractor_id).length})</p>
+                      </div>
+                      {subAssignments.filter(a => a.subcontractor_id).map((a, i) => {
+                        const sub = contractors.find(c => c.id === a.subcontractor_id);
+                        const rate = parseFloat(a.purchase_rate) || 0;
+                        let buy = 0;
+                        if (a.purchase_rate_basis === 'flat_fee' || a.purchase_rate_basis === 'item_cost') buy = rate;
+                        else if (a.purchase_rate_basis === 'day_rate') buy = rate;
+                        else if (a.purchase_rate_basis === 'hourly_rate') buy = rate * (parseFloat(a.hours_worked) || 0);
+                        else if (a.purchase_rate_basis === 'per_metre') buy = rate * (parseFloat(a.metres_drilled) || 0);
+                        else if (a.purchase_rate_basis === 'per_unit') buy = rate * (parseFloat(a.units_completed) || 0);
+                        const sell = buy * (1 + (parseFloat(a.markup_percentage) || 0) / 100);
+                        return (
+                          <div key={i} className="flex items-center gap-2 text-xs bg-white rounded-lg px-2.5 py-1.5 border border-slate-100">
+                            <span className="font-semibold text-slate-700">{sub?.name || 'Unknown'}</span>
+                            <span className="text-slate-400">·</span>
+                            <span className="text-slate-500 capitalize">{a.work_type.replace(/_/g, ' ')}</span>
+                            {a.borehole_ref && <span className="text-slate-400">· {a.borehole_ref}</span>}
+                            <span className="ml-auto text-slate-500">Buy: <strong className="text-slate-700">£{buy.toFixed(2)}</strong> · Sell: <strong className="text-emerald-700">£{sell.toFixed(2)}</strong></span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   <p className="text-xs text-slate-400">Equipment, documents and the full rota can be added from the job page after creation.</p>
                 </div>
               )}
@@ -500,7 +632,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
               <ChevronLeft className="w-4 h-4" /> Back
             </button>
           )}
-          {step < 4 ? (
+          {step < 5 ? (
             <button type="button" onClick={() => stepValid() && setStep(step + 1)} disabled={!stepValid()} className="flex-1 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-40 flex items-center justify-center gap-1.5">
               Continue <ChevronRight className="w-4 h-4" />
             </button>
