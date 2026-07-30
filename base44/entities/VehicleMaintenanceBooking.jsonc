@@ -16,11 +16,12 @@
         "mot",
         "service",
         "windscreen",
+        "breakdown",
         "repair",
         "inspection",
         "other"
       ],
-      "description": "Type of maintenance booking"
+      "description": "Type of maintenance booking. 'breakdown' = vehicle broken down / roadside assistance needed."
     },
     "status": {
       "type": "string",
@@ -32,7 +33,7 @@
         "cancelled"
       ],
       "default": "requested",
-      "description": "Booking status. 'requested' = needs to be called in to Holeman, 'booked' = confirmed with date/time, 'completed' = work done."
+      "description": "Booking status. 'requested' = needs to be called in to Holman, 'booked' = confirmed with date/time, 'completed' = work done."
     },
     "booking_date": {
       "type": "string",
@@ -45,7 +46,7 @@
     },
     "supplier_name": {
       "type": "string",
-      "description": "Supplier/garage name (e.g. Holeman)"
+      "description": "Supplier/garage name (e.g. Holman)"
     },
     "supplier_phone": {
       "type": "string",
@@ -62,6 +63,33 @@
     "assigned_staff_name": {
       "type": "string",
       "description": "Assigned staff name (for display)"
+    },
+    "reported_by_staff_id": {
+      "type": "string",
+      "description": "Staff member who reported the breakdown / repair need / called it in. Tracks accountability \u2014 shows who first flagged the issue on the vehicle history."
+    },
+    "reported_by_staff_name": {
+      "type": "string",
+      "description": "Name of the staff member who reported this (denormalised for display)"
+    },
+    "reported_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the issue was reported / the call was made to Holman."
+    },
+    "report_source": {
+      "type": "string",
+      "enum": [
+        "phone_call",
+        "staff_portal",
+        "holman_sync",
+        "admin"
+      ],
+      "default": "admin",
+      "description": "How this booking was logged. 'phone_call' = admin logged a call made to Holman over the phone, 'staff_portal' = crew member reported it from their schedule, 'holman_sync' = pulled from Holman automatically, 'admin' = created directly in the dashboard."
+    },
+    "logged_by_name": {
+      "type": "string",
+      "description": "Name of the admin user who logged this booking (denormalised from created_by for quick display)."
     },
     "cost": {
       "type": "number",

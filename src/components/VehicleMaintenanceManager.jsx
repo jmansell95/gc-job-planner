@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Wrench, Phone, MapPin, Calendar, Clock, Trash2, Edit2, CheckCircle2, X, Truck, User, ArrowLeft } from 'lucide-react';
+import { Plus, Wrench, Phone, MapPin, Calendar, Clock, Trash2, Edit2, CheckCircle2, X, Truck, User, ArrowLeft, PhoneCall } from 'lucide-react';
+import UsefulNumbersModal from '@/components/UsefulNumbersModal';
 import { format, differenceInDays } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 
 const BOOKING_TYPES = [
+  { value: 'breakdown', label: 'Breakdown' },
   { value: 'mot', label: 'MOT' },
   { value: 'service', label: 'Service' },
   { value: 'windscreen', label: 'Windscreen Repair' },
@@ -26,8 +28,9 @@ const STATUS_CONFIG = {
 const emptyForm = {
   vehicle_id: '', booking_type: 'mot', status: 'requested',
   booking_date: format(new Date(), 'yyyy-MM-dd'), booking_time: '08:00',
-  supplier_name: 'Holman', supplier_phone: '', location: '',
-  assigned_staff_id: '', cost: '', notes: ''
+  supplier_name: 'Holman', supplier_phone: '0344 800 5626', location: '',
+  assigned_staff_id: '', cost: '', notes: '',
+  reported_by_staff_id: '', phone_booking: false
 };
 
 export default function VehicleMaintenanceManager() {
@@ -36,6 +39,8 @@ export default function VehicleMaintenanceManager() {
   const [formData, setFormData] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
+  const [showNumbers, setShowNumbers] = useState(false);
+  const [adminName, setAdminName] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -43,18 +48,31 @@ export default function VehicleMaintenanceManager() {
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
 
+  React.useEffect(() => {
+    (async () => {
+      try { const res = await base44.functions.invoke('getMyStaffProfile'); setAdminName(res.data?.name || ''); } catch (_) {}
+    })();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
       const vehicle = vehicles.find(v => v.id === formData.vehicle_id);
       const assignedStaff = staff.find(s => s.id === formData.assigned_staff_id);
+      const reportedByStaff = staff.find(s => s.id === formData.reported_by_staff_id);
       const payload = {
         ...formData,
         cost: formData.cost ? parseFloat(formData.cost) : null,
         vehicle_name: vehicle ? `${vehicle.name} (${vehicle.registration_number})` : '',
-        assigned_staff_name: assignedStaff?.name || ''
+        assigned_staff_name: assignedStaff?.name || '',
+        reported_by_staff_id: formData.reported_by_staff_id || null,
+        reported_by_staff_name: reportedByStaff?.name || '',
+        reported_at: formData.phone_booking && !editingId ? new Date().toISOString() : (formData.reported_at || undefined),
+        report_source: formData.phone_booking ? 'phone_call' : 'admin',
+        logged_by_name: adminName || undefined,
       };
+      delete payload.phone_booking;
       let result;
       if (editingId) {
         await base44.entities.VehicleMaintenanceBooking.update(editingId, payload);
@@ -76,7 +94,7 @@ export default function VehicleMaintenanceManager() {
   };
 
   const handleEdit = (b) => {
-    setFormData({ ...emptyForm, ...b, cost: b.cost || '' });
+    setFormData({ ...emptyForm, ...b, cost: b.cost || '', phone_booking: b.report_source === 'phone_call' });
     setEditingId(b.id); setShowForm(true);
   };
 
@@ -131,8 +149,30 @@ export default function VehicleMaintenanceManager() {
                 {b.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{b.location}</span>}
                 {assignedStaff && <span className="flex items-center gap-1"><User className="w-3 h-3" />{assignedStaff.name}</span>}
               </div>
+              {(b.reported_by_staff_name || b.reported_at) && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-[11px]">
+                  {b.reported_by_staff_name && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">
+                      <PhoneCall className="w-3 h-3" /> Reported by {b.reported_by_staff_name}
+                    </span>
+                  )}
+                  {b.reported_at && (
+                    <span className="text-slate-400">
+                      {format(new Date(b.reported_at), 'dd MMM yyyy HH:mm')}
+                    </span>
+                  )}
+                  {b.report_source === 'phone_call' && (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium text-[10px]">
+                      Phone call
+                    </span>
+                  )}
+                  {b.logged_by_name && (
+                    <span className="text-slate-400">· logged by {b.logged_by_name}</span>
+                  )}
+                </div>
+              )}
               {b.supplier_phone && (
-                <a href={`tel:${b.supplier_phone}`} className="inline-flex items-center gap-1 text-xs text-emerald-700 font-medium mt-1.5 hover:underline">
+                <a href={`tel:${b.supplier_phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-1 text-xs text-emerald-700 font-medium mt-1.5 hover:underline">
                   <Phone className="w-3 h-3" />{b.supplier_phone}
                 </a>
               )}
@@ -169,10 +209,16 @@ export default function VehicleMaintenanceManager() {
           <h2 className="text-xl font-bold text-slate-900">Maintenance Bookings</h2>
           <p className="text-sm text-slate-500">Book MOTs, services and repairs with Holman or other suppliers</p>
         </div>
-        <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ ...emptyForm, vehicle_id: selectedVehicleId || '' }); }}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
-          <Plus className="w-4 h-4" /> Book Maintenance
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowNumbers(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#2E5A1A] text-white rounded-lg hover:brightness-110 transition text-sm font-medium shadow-sm">
+            <PhoneCall className="w-4 h-4" /> Call Holman
+          </button>
+          <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ ...emptyForm, vehicle_id: selectedVehicleId || '', phone_booking: true, reported_by_staff_id: selectedVehicleId ? (vehicles.find(v => v.id === selectedVehicleId)?.assigned_staff_id || '') : '' }); }}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
+            <Plus className="w-4 h-4" /> Book Maintenance
+          </button>
+        </div>
       </div>
 
       {showForm && (
@@ -235,6 +281,24 @@ export default function VehicleMaintenanceManager() {
               <input type="number" step="0.01" value={formData.cost} onChange={e => setFormData({ ...formData, cost: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
             </div>
+            <div className="sm:col-span-2">
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-600 mb-1 cursor-pointer">
+                <input type="checkbox" checked={formData.phone_booking} onChange={e => setFormData({ ...formData, phone_booking: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                Logged over the phone (Holman call)
+              </label>
+              <p className="text-[11px] text-slate-400 mb-2">Tick this when you booked the work in by calling Holman — records who reported it and when.</p>
+            </div>
+            {formData.phone_booking && (
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-slate-600 mb-1">Reported by (who called / reported the fault)</label>
+                <select value={formData.reported_by_staff_id} onChange={e => setFormData({ ...formData, reported_by_staff_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white">
+                  <option value="">Select staff member</option>
+                  {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-slate-600 mb-1">Notes</label>
               <textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} rows={2}
@@ -310,8 +374,10 @@ export default function VehicleMaintenanceManager() {
               <div className="space-y-3 opacity-70">{past.map(renderBookingCard)}</div>
             </div>
           )}
-        </div>
-      )}
-    </div>
-  );
-}
+          </div>
+          )}
+          <UsefulNumbersModal open={showNumbers} onClose={() => setShowNumbers(false)}
+          onLogBooking={() => { setShowForm(true); setEditingId(null); setFormData({ ...emptyForm, vehicle_id: selectedVehicleId || '', phone_booking: true }); }} />
+          </div>
+          );
+          }

@@ -2,10 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Truck, ShieldCheck, ShieldAlert, ShieldX, Link2, Wrench, Search, ExternalLink, CalendarClock } from 'lucide-react';
+import { ArrowLeft, Truck, ShieldCheck, ShieldAlert, ShieldX, Link2, Wrench, Search, ExternalLink, CalendarClock, PhoneCall } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import HolmanSyncBar from '@/components/vehicles/HolmanSyncBar';
 import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
+import UsefulNumbersModal from '@/components/UsefulNumbersModal';
 import { Skeleton } from '@/components/StateViews';
 import { differenceInDays } from 'date-fns';
 
@@ -47,6 +48,7 @@ export default function Vehicles() {
   const [view, setView] = useState('fleet'); // 'fleet' | 'maintenance'
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [showNumbers, setShowNumbers] = useState(false);
 
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ['vehicles'],
@@ -92,10 +94,14 @@ export default function Vehicles() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => setView(view === 'fleet' ? 'maintenance' : 'fleet')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-lg font-semibold text-sm transition">
-                {view === 'fleet' ? <><Wrench className="w-4 h-4" /> Maintenance</> : <><Truck className="w-4 h-4" /> Fleet Status</>}
-              </button>
+               <button onClick={() => setShowNumbers(true)}
+                 className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-lg font-semibold text-sm transition">
+                 <PhoneCall className="w-4 h-4" /> Useful Numbers
+               </button>
+               <button onClick={() => setView(view === 'fleet' ? 'maintenance' : 'fleet')}
+                 className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white/15 hover:bg-white/25 text-white rounded-lg font-semibold text-sm transition">
+                 {view === 'fleet' ? <><Wrench className="w-4 h-4" /> Maintenance</> : <><Truck className="w-4 h-4" /> Fleet Status</>}
+               </button>
               <button onClick={() => navigate('/admin', { state: { section: 'settings', settingsTab: 'vehicles' } })}
                 className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white text-[#2E5A1A] rounded-lg font-semibold text-sm hover:bg-white/90 transition shadow-sm">
                 <ExternalLink className="w-4 h-4" /> Manage Records
@@ -226,8 +232,10 @@ export default function Vehicles() {
               </div>
             )}
           </>
-        )}
-      </div>
-    </div>
-  );
-}
+          )}
+          </div>
+          <UsefulNumbersModal open={showNumbers} onClose={() => setShowNumbers(false)}
+          onLogBooking={() => { setView('maintenance'); }} />
+          </div>
+          );
+          }

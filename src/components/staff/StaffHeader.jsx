@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Truck, HelpCircle, CalendarDays, UserCircle, LogOut } from 'lucide-react';
+import { Truck, HelpCircle, CalendarDays, UserCircle, LogOut, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import Logo from '@/components/Logo';
 import { base44 } from '@/api/base44Client';
+import UsefulNumbersModal from '@/components/UsefulNumbersModal';
 
 // Compact single-row header — reclaims vertical space for job content.
 // Logo + name/date on the left, icon-only nav buttons on the right.
 export default function StaffHeader({ staff, onShowSchedule }) {
   const navigate = useNavigate();
+  const [showNumbers, setShowNumbers] = useState(false);
   return (
     <div className="hero-gradient">
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-4">
@@ -27,6 +29,10 @@ export default function StaffHeader({ staff, onShowSchedule }) {
                 <Truck className="w-5 h-5" />
               </button>
             )}
+            <button onClick={() => setShowNumbers(true)} type="button" aria-label="Useful Numbers"
+              className="w-11 h-11 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white flex items-center justify-center active:scale-95 transition touch-manipulation">
+              <Phone className="w-5 h-5" />
+            </button>
             <button onClick={onShowSchedule} type="button" aria-label="Schedule"
               className="w-11 h-11 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white flex items-center justify-center active:scale-95 transition touch-manipulation">
               <CalendarDays className="w-5 h-5" />
@@ -46,6 +52,7 @@ export default function StaffHeader({ staff, onShowSchedule }) {
           </div>
         </div>
       </div>
+      <UsefulNumbersModal open={showNumbers} onClose={() => setShowNumbers(false)} />
     </div>
   );
 }
