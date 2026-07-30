@@ -3,9 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
+  Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
   HelpCircle, Plus, Search, Pencil, Link2, ChevronRight, Boxes, Layers, ScanLine, X,
 } from 'lucide-react';
+import AdminNav from '@/components/AdminNav';
 import { rollupCompliance, COMPLIANCE_META, ASSET_TYPE_META, findParentRig, daysUntil } from '@/utils/rigRollup';
 import RigDetailDrawer from '@/components/righub/RigDetailDrawer';
 import EquipmentDetailDrawer from '@/components/righub/EquipmentDetailDrawer';
@@ -124,19 +125,22 @@ export default function RigHub() {
   const openEdit = (asset) => { setEditorAsset(asset); setEditorOpen(true); };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-100/80">
+      <AdminNav activeSection="rig-hub" setActiveSection={(s) => { if (s === 'rig-hub') return; navigate('/admin', { state: { section: s } }); }} />
+      <main className="flex-1 overflow-auto pt-[calc(1.6875rem_+_env(safe-area-inset-top))] lg:pt-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="px-4 pb-4 md:px-6 md:pb-6 lg:pt-6 w-full">
       <Breadcrumbs />
       {/* Hero header */}
-      <div className="hero-gradient text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="hero-gradient rounded-2xl text-white shadow-lg overflow-hidden mb-4">
+        <div className="px-5 py-4">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3 min-w-0">
-              <button onClick={() => navigate('/admin')} className="p-2 bg-white/15 hover:bg-white/25 rounded-lg transition flex-shrink-0">
-                <ArrowLeft className="w-5 h-5" />
-              </button>
+              <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                <Cog className="w-6 h-6" />
+              </div>
               <div className="min-w-0">
-                <h1 className="text-2xl font-bold tracking-tight truncate">Rig Fleet</h1>
-                <p className="text-sm text-white/70">Master record for every rig, equipment, certificate & maintenance booking</p>
+                <h1 className="text-xl font-bold tracking-tight truncate">Rig Fleet</h1>
+                <p className="text-xs text-white/70">Master record for every rig, equipment, certificate & maintenance booking</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
@@ -180,7 +184,6 @@ export default function RigHub() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
         {/* View toggle + filters */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-5 space-y-3">
           <div className="flex gap-2 flex-wrap items-center">
@@ -384,7 +387,6 @@ export default function RigHub() {
           </div>
           </>
         )}
-      </div>
 
       {/* Drawers */}
       {openRig && (
@@ -481,6 +483,8 @@ export default function RigHub() {
           </div>
         </div>
       )}
+        </div>
+      </main>
     </div>
   );
 }
