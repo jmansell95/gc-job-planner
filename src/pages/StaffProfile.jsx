@@ -19,6 +19,7 @@ import { EmptyState } from '@/components/StateViews';
 import { resolveRole, isOfficeStaff } from '@/utils/access';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import StaffProfileEditDrawer from '@/components/staff/StaffProfileEditDrawer';
+import StaffPerformanceCard from '@/components/staff/StaffPerformanceCard';
 
 const ABSENCE_REASONS = [
   { value: 'holiday', label: 'Holiday' },
@@ -187,6 +188,9 @@ export default function StaffProfile() {
       <div className="max-w-4xl mx-auto px-4 md:px-6 pt-5 md:pt-8 space-y-5 md:space-y-6" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
         {/* Quick Stats */}
         <ProfileStats staffId={staff.id} jobType={staff.team?.job_type} />
+
+        {/* Performance — weekly metres, revenue & hours */}
+        {staff.id && <StaffPerformanceCard staffId={staff.id} />}
 
         {/* Timesheet History (Daily Diaries) — read-only record of submitted timesheets */}
         <TimesheetHistory staffId={staff.id} />

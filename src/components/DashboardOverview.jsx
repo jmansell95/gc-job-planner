@@ -19,6 +19,7 @@ import ProjectFinancialsWidget from '@/components/dashboard/ProjectFinancialsWid
 import SubconMarginGuardWidget from '@/components/dashboard/SubconMarginGuardWidget';
 import FinancialReconciliationWidget from '@/components/dashboard/FinancialReconciliationWidget';
 import BillingReadinessGate from '@/components/dashboard/BillingReadinessGate';
+import OutstandingReceivablesWidget from '@/components/dashboard/OutstandingReceivablesWidget';
 import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
 import EfficiencySnapshotWidget from '@/components/dashboard/EfficiencySnapshotWidget';
 import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
@@ -144,6 +145,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'subcon-margin-guard': return canViewCosts ? <SubconMarginGuardWidget /> : null;
       case 'financial-reconciliation': return canViewCosts ? <FinancialReconciliationWidget /> : null;
       case 'billing-readiness': return canViewCosts ? <BillingReadinessGate onNavigateToJob={(jid) => { const j = jobs.find(x => x.id === jid); if (j) openJobDrawer(j); }} /> : null;
+      case 'outstanding-receivables': return canViewCosts ? <OutstandingReceivablesWidget /> : null;
       default: return null;
     }
   };

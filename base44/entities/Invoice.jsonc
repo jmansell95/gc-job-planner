@@ -31,11 +31,12 @@
       "enum": [
         "draft",
         "sent",
+        "overdue",
         "paid",
         "void"
       ],
       "default": "draft",
-      "description": "Invoice lifecycle status. 'draft' = raised but not yet sent; 'sent' = issued to the client; 'paid' = settled; 'void' = cancelled/credited."
+      "description": "Invoice lifecycle status. 'draft' = raised but not yet sent; 'sent' = issued to the client; 'overdue' = past the due date and unpaid; 'paid' = settled; 'void' = cancelled/credited. The nightly check flips 'sent' invoices to 'overdue' when due_date has passed."
     },
     "issue_date": {
       "type": "string",
