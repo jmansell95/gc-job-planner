@@ -9,6 +9,7 @@ import HolmanSyncBar from '@/components/vehicles/HolmanSyncBar';
 import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
 import UsefulNumbersModal from '@/components/UsefulNumbersModal';
 import GeotabLiveMap from '@/components/vehicles/GeotabLiveMap';
+import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
 import { Skeleton } from '@/components/StateViews';
 import { differenceInDays } from 'date-fns';
 
@@ -71,6 +72,28 @@ export default function Vehicles() {
     queryKey: ['vehicles-maintenance-bookings'],
     queryFn: () => base44.entities.VehicleMaintenanceBooking.list('-booking_date', 500),
   });
+
+  // Live GPS locations from Geotab (one query for the whole fleet, refreshed every 60s)
+  const { data: liveLocations = [] } = useQuery({
+    queryKey: ['geotab-live-locations-fleet'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getVehicleLocationHistory', { mode: 'live', limit: 500 });
+      return res.data || res || [];
+    },
+    refetchInterval: 60000,
+  });
+
+  // Latest reading per vehicle_id
+  const latestByVehicle = useMemo(() => {
+    const map = {};
+    liveLocations.forEach(loc => {
+      if (!loc.vehicle_id) return;
+      if (!map[loc.vehicle_id] || new Date(loc.timestamp) > new Date(map[loc.vehicle_id].timestamp)) {
+        map[loc.vehicle_id] = loc;
+      }
+    });
+    return map;
+  }, [liveLocations]);
 
   const nextBookingByVehicle = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -140,7 +163,7 @@ export default function Vehicles() {
                 <div className="flex p-1 bg-white/10 rounded-lg gap-0.5">
                   <button onClick={() => setView('fleet')}
                     className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'fleet' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}>
-                    Fleet
+                    <Truck className="w-3.5 h-3.5 inline mr-1" /> Fleet
                   </button>
                   <button onClick={() => setView('livemap')}
                     className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'livemap' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}>
@@ -254,6 +277,11 @@ export default function Vehicles() {
                               {v.service_due_date && <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium">Service: {new Date(v.service_due_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}</span>}
                             </div>
                           )}
+                        </div>
+
+                        {/* Live location snapshot */}
+                        <div className="px-4 pb-3 pl-5">
+                          <VehicleLocationMiniMap {...(latestByVehicle[v.id] || {})} />
                         </div>
 
                         {/* Next booking banner */}
