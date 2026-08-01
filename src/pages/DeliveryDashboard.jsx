@@ -12,7 +12,6 @@ import { useAuth } from '@/lib/AuthContext';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { saveOfflineDelivery, hasOfflineDelivery } from '@/utils/offlineSync';
 import { isDriver } from '@/utils/access';
-import Breadcrumbs from '@/components/Breadcrumbs';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -301,10 +300,9 @@ export default function DeliveryDashboard() {
   });
 
   return (
-    <div className="bg-slate-50">
-      <Breadcrumbs />
+    <div className="bg-slate-50 min-h-screen">
       {/* Header */}
-      <div className="hero-gradient relative overflow-hidden">
+      <div className="hero-gradient relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-7">
           <div className="flex items-center justify-between gap-3 mb-5">
             <div className="flex items-center gap-3 min-w-0">

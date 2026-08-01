@@ -69,11 +69,11 @@ const AuthenticatedApp = () => {
           {/* Staff pages — full-screen, no admin header bar; they render their own mobile-first headers */}
           <Route path="/staff-schedule" element={<RouteGuard><StaffDashboard /></RouteGuard>} />
           <Route path="/staff-profile" element={<RouteGuard><StaffProfile /></RouteGuard>} />
+          <Route path="/deliveries" element={<RouteGuard><DeliveryDashboard /></RouteGuard>} />
+          <Route path="/help" element={<HelpGuide />} />
           <Route element={<AppLayout />}>
             <Route path="/subcontractor" element={<RouteGuard><SubcontractorDashboard /></RouteGuard>} />
-            <Route path="/deliveries" element={<RouteGuard><DeliveryDashboard /></RouteGuard>} />
             <Route path="/admin/logistics" element={<RouteGuard><AdminDeliveryHub /></RouteGuard>} />
-            <Route path="/help" element={<HelpGuide />} />
             <Route path="/presentation-pack" element={<PresentationPack />} />
             <Route path="/pat-testing" element={<RouteGuard><PATTestingConsole /></RouteGuard>} />
           </Route>
