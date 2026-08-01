@@ -17,7 +17,7 @@ export default function StateMonitorBar({ monitors, onNavigate, className = '' }
   };
 
   return (
-    <div className={`flex flex-wrap gap-3 ${className}`}>
+    <div className={`grid grid-cols-2 lg:flex lg:flex-wrap gap-2.5 sm:gap-3 ${className}`}>
       {monitors.map((m) => {
         const Icon = m.icon;
         const t = tone[m.tone] || tone.emerald;
@@ -26,19 +26,19 @@ export default function StateMonitorBar({ monitors, onNavigate, className = '' }
             key={m.key}
             type="button"
             onClick={() => onNavigate(m.nav)}
-            className="group relative flex-1 min-w-[220px] text-left insight-card rounded-2xl p-4 overflow-hidden hover:-translate-y-0.5 transition-all"
+            className="group relative lg:flex-1 min-w-0 lg:min-w-[220px] text-left insight-card rounded-2xl p-3 sm:p-4 overflow-hidden hover:-translate-y-0.5 transition-all"
           >
             <span className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${t.bar}`} />
-            <div className="flex items-center gap-3">
-              <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${t.soft} ring-1 ${t.ring}`}>
-                <Icon className={`w-5 h-5 ${t.text}`} />
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${t.soft} ring-1 ${t.ring}`}>
+                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${t.text}`} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className={`text-2xl font-bold tabular-nums leading-none ${t.text}`}>{m.value}{m.unit || ''}</p>
-                <p className="text-xs font-bold text-slate-600 mt-1.5 truncate">{m.label}</p>
+                <p className={`text-xl sm:text-2xl font-bold tabular-nums leading-none ${t.text}`}>{m.value}{m.unit || ''}</p>
+                <p className="text-xs font-bold text-slate-600 mt-1 sm:mt-1.5 truncate">{m.label}</p>
                 {m.sublabel && <p className="text-[11px] text-slate-400 mt-0.5 truncate">{m.sublabel}</p>}
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition flex-shrink-0" />
+              <ArrowRight className="hidden lg:block w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition flex-shrink-0" />
             </div>
           </button>
         );

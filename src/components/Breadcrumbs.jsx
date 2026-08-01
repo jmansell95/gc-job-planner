@@ -62,7 +62,7 @@ export default function Breadcrumbs({ sectionLabel }) {
 
   return (
     <nav aria-label="Breadcrumb" className="bg-white border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1.5 py-2 text-sm overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1.5 py-[3px] text-sm overflow-hidden">
         <Link to="/" className="flex items-center gap-1 text-slate-500 hover:text-[#2E5A1A] transition font-medium flex-shrink-0">
           <Home className="w-3.5 h-3.5" /><span className="hidden sm:inline">Home</span>
         </Link>
