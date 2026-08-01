@@ -128,7 +128,7 @@ export default function RigHub() {
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-100/80">
       <AdminNav activeSection="fleet" setActiveSection={(s) => { if (s === 'fleet') return; navigate('/admin', { state: { section: s } }); }} />
-      <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top))] lg:pt-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-10px)] lg:pt-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="px-4 pb-4 md:px-6 md:pb-6 lg:pt-6 w-full">
       <Breadcrumbs />
       {/* Hero header */}
