@@ -18,6 +18,14 @@
       "type": "string",
       "description": "Site location/address"
     },
+    "site_lat": {
+      "type": "number",
+      "description": "Job site latitude (for Geotab GPS geofencing \u2014 auto-detects arrival/departure times for timesheets). Set manually or via the geocode button on the job form."
+    },
+    "site_lng": {
+      "type": "number",
+      "description": "Job site longitude (for Geotab GPS geofencing \u2014 auto-detects arrival/departure times for timesheets). Set manually or via the geocode button on the job form."
+    },
     "job_type": {
       "type": "string",
       "description": "Job type key \u2014 matches the key field of a JobType record (e.g. groundworks, cp_drilling). Managed via Settings \u2192 Job Types. Falls back to the first required team's job_type when not set."

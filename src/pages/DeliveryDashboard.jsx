@@ -305,15 +305,15 @@ export default function DeliveryDashboard() {
       <Breadcrumbs />
       {/* Header */}
       <div className="hero-gradient relative overflow-hidden">
-        <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-7">
-          <div className="flex items-center justify-between gap-4 mb-5">
+        <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-7">
+          <div className="flex items-center justify-between gap-3 mb-5">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg ring-1 ring-white/25 flex-shrink-0">
-                <Truck className="w-6 h-6 md:w-7 md:h-7 text-white" />
+              <div className="w-10 h-10 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg ring-1 ring-white/25 flex-shrink-0">
+                <Truck className="w-5 h-5 md:w-7 md:h-7 text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-2xl md:text-3xl font-bold text-white truncate tracking-tight">Deliveries</h1>
-                <p className="text-emerald-100 text-sm md:text-base mt-0.5 truncate">{staff.name.split(' ')[0]} · {format(new Date(), 'EEEE, do MMMM')}</p>
+                <h1 className="text-xl md:text-3xl font-bold text-white truncate tracking-tight">Deliveries</h1>
+                <p className="text-emerald-100 text-xs md:text-base mt-0.5 truncate">{staff.name.split(' ')[0]} · {format(new Date(), 'EEEE, do MMMM')}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">

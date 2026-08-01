@@ -1,16 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import WeeklyRotaBuilder from '@/components/WeeklyRotaBuilder';
 import CalendarView from '@/components/CalendarView';
-import { Calendar, CalendarDays, CalendarClock } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2 } from 'lucide-react';
 import { useSchedulingAssistant } from '@/components/SchedulingAssistantChat';
+import { base44 } from '@/api/base44Client';
+import { useToast } from '@/components/ui/use-toast';
 
 // Unified scheduling hub — combines the weekly rota builder and the calendar
 // view behind a single sidebar entry. `initialTab` lets legacy "rota" /
 // "calendar" deep links land on the right tab.
 export default function SchedulingHub({ initialTab = 'rota' }) {
   const [tab, setTab] = useState(initialTab);
+  const [syncing, setSyncing] = useState(false);
   const { openChat } = useSchedulingAssistant();
+  const { toast } = useToast();
   useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
+
+  const handleGeotabSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await base44.functions.invoke('syncGeotabTimesheets', { date: new Date().toISOString().slice(0, 10) });
+      if (res.data?.ok) {
+        toast({ title: 'GPS Timesheet Sync', description: res.data.message || 'Synced.' });
+      } else {
+        toast({ title: 'Sync failed', description: res.data?.error || 'Could not sync GPS timesheets.', variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Sync failed', description: e.message || 'Could not sync GPS timesheets.', variant: 'destructive' });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const tabs = [
     { id: 'rota', label: 'Rota Builder', icon: Calendar },
@@ -31,11 +51,20 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
             );
           })}
         </div>
-        <button onClick={openChat} type="button"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2E5A1A] text-white text-sm font-medium hover:bg-[#1c4a12] active:scale-[0.98] transition shadow-sm touch-manipulation select-none">
-          <CalendarClock className="w-4 h-4" />
-          Schedule Assistant
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={handleGeotabSync} disabled={syncing} type="button"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 active:scale-[0.98] transition shadow-sm touch-manipulation select-none disabled:opacity-60">
+            {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation2 className="w-4 h-4" />}
+            <span className="hidden sm:inline">Sync GPS Timesheets</span>
+            <span className="sm:hidden">GPS</span>
+          </button>
+          <button onClick={openChat} type="button"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2E5A1A] text-white text-sm font-medium hover:bg-[#1c4a12] active:scale-[0.98] transition shadow-sm touch-manipulation select-none">
+            <CalendarClock className="w-4 h-4" />
+            <span className="hidden sm:inline">Schedule Assistant</span>
+            <span className="sm:hidden">Assistant</span>
+          </button>
+        </div>
       </div>
       {tab === 'rota' && <WeeklyRotaBuilder />}
       {tab === 'calendar' && <CalendarView />}

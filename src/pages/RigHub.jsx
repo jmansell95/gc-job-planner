@@ -133,15 +133,15 @@ export default function RigHub() {
       <Breadcrumbs />
       {/* Hero header */}
       <div className="hero-gradient rounded-2xl text-white shadow-lg overflow-hidden mb-4">
-        <div className="px-5 py-4">
+        <div className="px-4 md:px-5 py-4">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
-                <Cog className="w-6 h-6" />
+              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                <Cog className="w-5 h-5 md:w-6 md:h-6" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-xl font-bold tracking-tight truncate">Rig Fleet</h1>
-                <p className="text-xs text-white/70">Master record for every rig, equipment, certificate & maintenance booking</p>
+                <h1 className="text-lg md:text-xl font-bold tracking-tight truncate">Rig Fleet</h1>
+                <p className="text-xs text-white/70 truncate">Master record for every rig, equipment, certificate & maintenance booking</p>
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">

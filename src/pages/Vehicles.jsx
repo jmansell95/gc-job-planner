@@ -122,20 +122,20 @@ export default function Vehicles() {
 
           {/* Page header */}
           <div className="hero-gradient rounded-2xl text-white shadow-lg overflow-hidden mb-4">
-            <div className="px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
+            <div className="px-4 md:px-5 py-4 flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
-                  <Truck className="w-6 h-6" />
+                <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
+                  <Truck className="w-5 h-5 md:w-6 md:h-6" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-xl font-bold tracking-tight truncate">Vehicles</h1>
-                  <p className="text-xs text-white/70">Fleet status, Holman sync & maintenance bookings</p>
+                  <h1 className="text-lg md:text-xl font-bold tracking-tight truncate">Vehicles</h1>
+                  <p className="text-xs text-white/70 truncate">Fleet status, Holman sync & maintenance bookings</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button onClick={() => setShowNumbers(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 text-white rounded-lg font-semibold text-xs transition">
-                  <PhoneCall className="w-3.5 h-3.5" /> Useful Numbers
+                  className="inline-flex items-center gap-1.5 px-2.5 md:px-3 py-2 bg-white/15 hover:bg-white/25 text-white rounded-lg font-semibold text-xs transition">
+                  <PhoneCall className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Useful Numbers</span>
                 </button>
                 <div className="flex p-1 bg-white/10 rounded-lg gap-0.5">
                   <button onClick={() => setView('fleet')}

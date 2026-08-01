@@ -6,7 +6,6 @@ import { format, isToday, isFuture, isPast } from 'date-fns';
 import DeliveryBoard from '@/components/admin/DeliveryBoard';
 import DeliveryTable from '@/components/admin/DeliveryTable';
 import { Skeleton, EmptyState } from '@/components/StateViews';
-import Breadcrumbs from '@/components/Breadcrumbs';
 
 const typeFilters = [
   { value: 'all', label: 'All Types', icon: Filter },
@@ -88,17 +87,16 @@ export default function AdminDeliveryHub() {
 
   return (
     <div className="space-y-5">
-      <Breadcrumbs />
       {/* Header */}
       <div className="hero-gradient relative overflow-hidden rounded-2xl">
-        <div className="relative px-5 md:px-6 py-5">
+        <div className="relative px-4 md:px-6 py-4 md:py-5">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center flex-shrink-0">
-              <Truck className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center flex-shrink-0">
+              <Truck className="w-5 h-5 md:w-6 md:h-6 text-white" />
             </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">Logistics & Delivery Hub</h1>
-              <p className="text-emerald-100 text-sm">Track every delivery, collection and handover movement</p>
+            <div className="min-w-0">
+              <h1 className="text-lg md:text-2xl font-bold text-white tracking-tight truncate">Logistics & Delivery Hub</h1>
+              <p className="text-emerald-100 text-xs md:text-sm truncate">Track every delivery, collection and handover movement</p>
             </div>
           </div>
 

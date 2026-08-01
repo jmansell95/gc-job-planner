@@ -4,6 +4,7 @@ import { Calendar, MapPin, Truck, Clock, Briefcase, CheckCircle2, Sunrise, Navig
 import { format, addDays } from 'date-fns';
 import { formatJobType } from '@/utils/format';
 import { getJobPrimaryType } from '@/utils/jobTeams';
+import GeotabTimesheetSync from '@/components/staff/GeotabTimesheetSync';
 
 const jobTypeDot = {
   groundworks: 'bg-green-500',
@@ -65,6 +66,9 @@ export default function ScheduleSplash({ assignments, jobs, vehicles, clients, t
 
       {/* Schedule list */}
       <div className="max-w-2xl mx-auto px-4 md:px-6 py-5 pb-28">
+        {/* Geotab auto-detected timesheets */}
+        <GeotabTimesheetSync staff={staff} jobs={jobs} date={todayStr} />
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16">
             <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mb-3" />

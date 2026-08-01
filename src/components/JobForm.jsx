@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Briefcase, CalendarDays, Users, PoundSterling, StickyNote, FileText, Upload, Eye, Download, RefreshCw, X, Ruler, UsersRound, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { Briefcase, CalendarDays, Users, PoundSterling, StickyNote, FileText, Upload, Eye, Download, RefreshCw, X, Ruler, UsersRound, ChevronRight, ChevronLeft, Check, MapPin, Loader2 } from 'lucide-react';
 import { isDrillingJobType } from '@/utils/jobTeams';
 import EquipmentManager from '@/components/EquipmentManager';
 import FormSection from '@/components/forms/FormSection';
@@ -104,6 +104,14 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
             </Field>
             <Field label="Location" full required>
               <input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} required className={inputCls} />
+            </Field>
+            <Field label="Site GPS Coordinates" hint="For Geotab auto-timesheet geofencing" full>
+              <div className="flex items-center gap-2 flex-wrap">
+                <input type="number" step="any" value={num('site_lat')} onChange={(e) => setNum('site_lat', e.target.value)} placeholder="Latitude (e.g. 51.5074)" className={inputCls + ' flex-1 min-w-[120px]'} />
+                <input type="number" step="any" value={num('site_lng')} onChange={(e) => setNum('site_lng', e.target.value)} placeholder="Longitude (e.g. -0.1278)" className={inputCls + ' flex-1 min-w-[120px]'} />
+                <GeocodeButton address={formData.location} onResult={(lat, lng) => setFormData(prev => ({ ...prev, site_lat: lat, site_lng: lng }))} />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">Set the site's GPS coordinates to enable automatic arrival/departure detection from Geotab vehicle tracking.</p>
             </Field>
             <Field label="Required Teams" hint="Staff from these teams can be assigned" full>
               {teams.length === 0 ? (
@@ -276,6 +284,51 @@ function ReviewRow({ label, value }) {
     <div className="flex items-start gap-2 px-3 py-2 bg-slate-50 rounded-lg">
       <span className="text-xs text-slate-400 font-medium min-w-[80px]">{label}</span>
       <span className="text-sm text-slate-800 font-medium flex-1 break-words">{value || '—'}</span>
+    </div>
+  );
+}
+
+function GeocodeButton({ address, onResult }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleGeocode = async () => {
+    if (!address?.trim()) { setError('Enter a location first'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Return the GPS latitude and longitude of this UK site address as a JSON object: "${address}". Use only valid numeric coordinates. If the address is ambiguous, return the most likely match for the UK.`,
+        add_context_from_internet: true,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            lat: { type: 'number' },
+            lng: { type: 'number' }
+          },
+          required: ['lat', 'lng']
+        }
+      });
+      if (res && typeof res.lat === 'number' && typeof res.lng === 'number') {
+        onResult(res.lat, res.lng);
+      } else {
+        setError('Could not geocode this address');
+      }
+    } catch (e) {
+      setError(e.message || 'Geocode failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <button type="button" onClick={handleGeocode} disabled={loading}
+        className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-medium hover:bg-blue-100 transition disabled:opacity-60 flex-shrink-0">
+        {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
+        Auto-fill
+      </button>
+      {error && <p className="text-[10px] text-red-500">{error}</p>}
     </div>
   );
 }

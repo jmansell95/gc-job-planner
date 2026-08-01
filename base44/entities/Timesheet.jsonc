@@ -77,6 +77,16 @@
       "default": "on_site",
       "description": "Type of work entry. 'on_site' = normal task, 'travel_to' = travelling to site, 'travel_from' = travelling home from site."
     },
+    "source": {
+      "type": "string",
+      "enum": [
+        "staff",
+        "geotab_auto",
+        "keylogbook"
+      ],
+      "default": "staff",
+      "description": "How this timesheet entry was created. 'staff' = manually entered by the crew member; 'geotab_auto' = auto-generated from Geotab GPS vehicle location data (arrival/departure detection via geofencing); 'keylogbook' = parsed from the driller's KeyLogBook daily remarks."
+    },
     "is_summary": {
       "type": "boolean",
       "default": false,
