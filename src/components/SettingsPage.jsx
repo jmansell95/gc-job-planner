@@ -43,6 +43,7 @@ import BobHRSettings from '@/components/settings/BobHRSettings';
 import PayrollExportSettings from '@/components/settings/PayrollExportSettings';
 import CISSettings from '@/components/settings/CISSettings';
 import HolmanSettings from '@/components/settings/HolmanSettings';
+import GeotabSettings from '@/components/settings/GeotabSettings';
 import JobAlertSettings from '@/components/settings/JobAlertSettings';
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
@@ -133,6 +134,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'cis-verification': return <CISSettings />;
       case 'job-alerts': return <JobAlertSettings />;
       case 'holman-sync': return <HolmanSettings />;
+      case 'geotab-sync': return <GeotabSettings />;
       default: return null;
     }
   };

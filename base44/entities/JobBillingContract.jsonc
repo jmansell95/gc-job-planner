@@ -153,6 +153,26 @@
       "default": 0,
       "description": "Total retention released to date (\u00a3)"
     },
+    "retention_status": {
+      "type": "string",
+      "enum": [
+        "holding",
+        "release_eligible",
+        "released",
+        "not_applicable"
+      ],
+      "default": "holding",
+      "description": "Retention release workflow status. 'holding' = retention being held; 'release_eligible' = job completed and retention ready to release (flagged by nightly check); 'released' = retention has been released to the client; 'not_applicable' = no retention on this contract."
+    },
+    "retention_release_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the retention was released to the client (or flagged as eligible for release)."
+    },
+    "retention_released_by_name": {
+      "type": "string",
+      "description": "Name of the admin who released the retention."
+    },
     "milestone_billing_enabled": {
       "type": "boolean",
       "default": false,

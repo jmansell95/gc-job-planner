@@ -2,12 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Truck, ShieldCheck, ShieldAlert, ShieldX, Link2, Wrench, Search, ExternalLink, CalendarClock, PhoneCall, Gauge, Cog } from 'lucide-react';
+import { Truck, ShieldCheck, ShieldAlert, ShieldX, Link2, Wrench, Search, ExternalLink, CalendarClock, PhoneCall, Gauge, Cog, MapPin } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import AdminNav from '@/components/AdminNav';
 import HolmanSyncBar from '@/components/vehicles/HolmanSyncBar';
 import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
 import UsefulNumbersModal from '@/components/UsefulNumbersModal';
+import GeotabLiveMap from '@/components/vehicles/GeotabLiveMap';
 import { Skeleton } from '@/components/StateViews';
 import { differenceInDays } from 'date-fns';
 
@@ -56,7 +57,7 @@ function StatTile({ icon: Icon, value, label, gradient }) {
 
 export default function Vehicles() {
   const navigate = useNavigate();
-  const [view, setView] = useState('fleet'); // 'fleet' | 'maintenance'
+  const [view, setView] = useState('fleet'); // 'fleet' | 'maintenance' | 'livemap'
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showNumbers, setShowNumbers] = useState(false);
@@ -141,6 +142,10 @@ export default function Vehicles() {
                     className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'fleet' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}>
                     Fleet
                   </button>
+                  <button onClick={() => setView('livemap')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'livemap' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}>
+                    <MapPin className="w-3.5 h-3.5 inline mr-1" /> Live Map
+                  </button>
                   <button onClick={() => setView('maintenance')}
                     className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'maintenance' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}>
                     <Wrench className="w-3.5 h-3.5 inline mr-1" /> Maintenance
@@ -166,6 +171,8 @@ export default function Vehicles() {
 
           {view === 'maintenance' ? (
             <VehicleMaintenanceManager />
+          ) : view === 'livemap' ? (
+            <GeotabLiveMap />
           ) : (
             <>
               {/* Holman sync bar */}

@@ -1,0 +1,88 @@
+{
+  "name": "VehicleLocationLog",
+  "type": "object",
+  "properties": {
+    "vehicle_id": {
+      "type": "string",
+      "description": "Linked Vehicle record (matched by registration_number)"
+    },
+    "registration_number": {
+      "type": "string",
+      "description": "Vehicle registration plate (denormalised for matching and display)"
+    },
+    "vehicle_name": {
+      "type": "string",
+      "description": "Vehicle name (denormalised for display)"
+    },
+    "lat": {
+      "type": "number",
+      "description": "Latitude at the time of the reading"
+    },
+    "lng": {
+      "type": "number",
+      "description": "Longitude at the time of the reading"
+    },
+    "speed_kph": {
+      "type": "number",
+      "description": "Vehicle speed in km/h at the time of the reading"
+    },
+    "heading": {
+      "type": "number",
+      "description": "Direction of travel in degrees (0\u2013360)"
+    },
+    "ignition_on": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the vehicle ignition/engine was on at the time of the reading"
+    },
+    "odometer_km": {
+      "type": "number",
+      "description": "Odometer reading in km at the time of the reading"
+    },
+    "driver_name": {
+      "type": "string",
+      "description": "Name of the driver identified by Geotab for this reading (if available)"
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO timestamp of the GPS reading from Geotab"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "geotab_webhook",
+        "geotab_sync"
+      ],
+      "default": "geotab_sync",
+      "description": "How this location reading was received \u2014 'geotab_webhook' = pushed from Geotab, 'geotab_sync' = pulled by the scheduled sync function."
+    },
+    "geotab_device_id": {
+      "type": "string",
+      "description": "Geotab's internal device/vehicle ID for cross-referencing"
+    }
+  },
+  "required": [
+    "registration_number",
+    "lat",
+    "lng",
+    "timestamp"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Users, Briefcase, Truck, Building2, Receipt, Package, Wrench, HardHat, Boxes, Mail, Palette, Zap, Timer, Banknote, CalendarX, Database, Tag, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, ArrowRight, Activity, BookOpen, Sparkles } from 'lucide-react';
+import { Users, Briefcase, Truck, Building2, Receipt, Package, Wrench, HardHat, Boxes, Mail, Palette, Zap, Timer, Banknote, CalendarX, Database, Tag, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, ArrowRight, Activity, BookOpen, Sparkles, Radio, Satellite } from 'lucide-react';
 
 /**
  * Settings Command Hub — premium at-a-glance overview of everything configurable.
@@ -45,6 +45,7 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'automations', icon: Zap, label: 'Automations', value: '—', sub: 'Background tasks', color: 'violet' },
       { id: 'ags-import', icon: FileUp, label: 'KeyLogBook Settings', value: '—', sub: 'Webhook sync & imports', color: 'cyan' },
       { id: 'safety-culture', icon: ShieldAlert, label: 'Safety Culture Sync', value: '—', sub: 'Audit & form sync', color: 'rose' },
+      { id: 'geotab-sync', icon: Satellite, label: 'Geotab GPS Sync', value: '—', sub: 'Live vehicle tracking', color: 'blue' },
     ]},
     { group: 'Compliance & Review', icon: ShieldCheck, accent: 'from-rose-500 to-pink-600', items: [
       { id: 'compliance', icon: ShieldCheck, label: 'Compliance', value: complianceItems.length, sub: 'Training & qualifications', color: 'rose' },

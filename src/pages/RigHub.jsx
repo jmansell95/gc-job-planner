@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
-  HelpCircle, Plus, Search, Pencil, Link2, ChevronRight, Boxes, Layers, ScanLine, X,
+  HelpCircle, Plus, Search, Pencil, Link2, ChevronRight, Boxes, Layers, ScanLine, X, TrendingUp,
 } from 'lucide-react';
 import AdminNav from '@/components/AdminNav';
 import { rollupCompliance, COMPLIANCE_META, ASSET_TYPE_META, findParentRig, daysUntil } from '@/utils/rigRollup';
@@ -22,6 +22,7 @@ import AttentionSpotlight from '@/components/righub/AttentionSpotlight';
 import FleetComplianceDonut from '@/components/righub/FleetComplianceDonut';
 import BulkActionBar from '@/components/righub/BulkActionBar';
 import FleetSyncPanel from '@/components/righub/FleetSyncPanel';
+import DrillingEfficiencyPanel from '@/components/righub/DrillingEfficiencyPanel';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { Skeleton } from '@/components/StateViews';
 import { RefreshCw, Lock, Check, CheckSquare } from 'lucide-react';
@@ -201,6 +202,9 @@ export default function RigHub() {
               <button onClick={() => setView('certificates')} className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-semibold transition ${view === 'certificates' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
                 <Lock className="w-4 h-4" /> Certificate Vault
               </button>
+              <button onClick={() => setView('efficiency')} className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-semibold transition ${view === 'efficiency' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
+                <TrendingUp className="w-4 h-4" /> Efficiency
+              </button>
               <button onClick={() => setView('maintenance')} className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-semibold transition ${view === 'maintenance' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
                 <Wrench className="w-4 h-4" /> Maintenance
               </button>
@@ -243,6 +247,8 @@ export default function RigHub() {
           </div>
         ) : view === 'maintenance' ? (
           <FleetMaintenancePanel />
+        ) : view === 'efficiency' ? (
+          <DrillingEfficiencyPanel assets={assets} />
         ) : view === 'recert' ? (
           <RecertPipeline assets={assets} onRecert={(a) => setRecertAsset(a)} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} />
         ) : view === 'certificates' ? (
