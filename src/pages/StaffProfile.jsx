@@ -17,7 +17,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { useToast } from '@/components/ui/use-toast';
 import { EmptyState } from '@/components/StateViews';
 import { resolveRole, isOfficeStaff } from '@/utils/access';
-import Breadcrumbs from '@/components/Breadcrumbs';
 import StaffProfileEditDrawer from '@/components/staff/StaffProfileEditDrawer';
 import StaffPerformanceCard from '@/components/staff/StaffPerformanceCard';
 
@@ -117,10 +116,9 @@ export default function StaffProfile() {
   const canAccessAdmin = isOfficeStaff(staff, staff.is_admin);
 
   return (
-    <div className="bg-slate-50">
-      <Breadcrumbs />
+    <div className="bg-slate-50 min-h-screen">
       {/* Header with Quick Actions bar */}
-      <div className="hero-gradient relative overflow-hidden">
+      <div className="hero-gradient relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-7">
           <div className="flex items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-3 min-w-0">

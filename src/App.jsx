@@ -66,9 +66,10 @@ const AuthenticatedApp = () => {
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/" element={<Home />} />
           <Route path="/admin" element={<RouteGuard><AdminDashboard /></RouteGuard>} />
+          {/* Staff pages — full-screen, no admin header bar; they render their own mobile-first headers */}
+          <Route path="/staff-schedule" element={<RouteGuard><StaffDashboard /></RouteGuard>} />
+          <Route path="/staff-profile" element={<RouteGuard><StaffProfile /></RouteGuard>} />
           <Route element={<AppLayout />}>
-            <Route path="/staff-schedule" element={<RouteGuard><StaffDashboard /></RouteGuard>} />
-            <Route path="/staff-profile" element={<RouteGuard><StaffProfile /></RouteGuard>} />
             <Route path="/subcontractor" element={<RouteGuard><SubcontractorDashboard /></RouteGuard>} />
             <Route path="/deliveries" element={<RouteGuard><DeliveryDashboard /></RouteGuard>} />
             <Route path="/admin/logistics" element={<RouteGuard><AdminDeliveryHub /></RouteGuard>} />
