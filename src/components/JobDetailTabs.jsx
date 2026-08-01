@@ -79,8 +79,7 @@ export default function JobDetailTabs({
   startDate, endDate, jobProject, siblingJobs, onProjectClick, jobTypes = []
 }) {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [showProjectJobs, setShowProjectJobs] = useState(false);
+  const [activeTab, setActiveTab] = useState('context');
 
   const assignedVehicleIds = [...new Set(rotas.map(r => r.vehicle_id).filter(Boolean))];
   const assignedVehicles = assignedVehicleIds.map(id => vehicles.find(v => v.id === id)).filter(Boolean);
@@ -90,7 +89,6 @@ export default function JobDetailTabs({
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-sm px-1 py-2 mb-4">
         <TabsList className="flex w-full flex-nowrap overflow-x-auto no-scrollbar h-auto p-1 gap-1 justify-start sm:justify-center">
           <TabsTrigger value="context" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><LayoutGrid className="w-3.5 h-3.5 shrink-0" />Summary</TabsTrigger>
-          <TabsTrigger value="overview" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><LayoutGrid className="w-3.5 h-3.5 shrink-0" />Overview</TabsTrigger>
           <TabsTrigger value="schedule" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><CalendarDays className="w-3.5 h-3.5 shrink-0" />Schedule</TabsTrigger>
           <TabsTrigger value="activity" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Activity className="w-3.5 h-3.5 shrink-0" />Site Logs</TabsTrigger>
           <TabsTrigger value="logistics" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Boxes className="w-3.5 h-3.5 shrink-0" />Logistics</TabsTrigger>
@@ -106,162 +104,28 @@ export default function JobDetailTabs({
       {/* ── Context Tab (multi-pane high-density view) ── */}
       <TabsContent value="context" className="mt-0">
         <JobContextView
-          job={job}
-          primaryType={primaryType}
-          assignedStaff={assignedStaff}
-          rotas={rotas}
-          client={client}
-          suppliers={suppliers}
-          canSeeCosts={canSeeCosts}
-          isDrillingJob={isDrillingJob}
-          colors={colors}
-          statusBadge={statusBadge}
-          statusLabels={statusLabels}
-          startDate={startDate}
-          endDate={endDate}
-          jobProject={jobProject}
-          jobTypes={jobTypes}
+        job={job}
+        primaryType={primaryType}
+        assignedStaff={assignedStaff}
+        rotas={rotas}
+        allStaff={allStaff}
+        client={client}
+        contractor={contractor}
+        suppliers={suppliers}
+        vehicles={vehicles}
+        hotelBookings={hotelBookings}
+        canSeeCosts={canSeeCosts}
+        isDrillingJob={isDrillingJob}
+        colors={colors}
+        statusBadge={statusBadge}
+        statusLabels={statusLabels}
+        startDate={startDate}
+        endDate={endDate}
+        jobProject={jobProject}
+        siblingJobs={siblingJobs}
+        onProjectClick={onProjectClick}
+        jobTypes={jobTypes}
         />
-      </TabsContent>
-
-      {/* ── Overview Tab ── */}
-      <TabsContent value="overview" className="space-y-4 mt-0">
-        {/* Workflow checklist for planning jobs */}
-        {job.status === 'planning' && (
-          <div className="rounded-xl p-4 bg-gradient-to-br from-slate-50 to-[#2E5A1A]/5 border border-emerald-200">
-            <div className="flex items-center gap-2 mb-3">
-              <CalendarClock className="w-4 h-4 text-[#2E5A1A]" />
-              <h3 className="font-bold text-slate-900 text-sm">Setup Checklist</h3>
-            </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-              <div className={`rounded-lg p-2.5 border ${job.required_team_ids?.length > 0 ? 'border-[#2E5A1A]/20 bg-[#2E5A1A]/5' : 'border-slate-200 bg-white'}`}>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  {job.required_team_ids?.length > 0 ? <CheckCircle2 className="w-3.5 h-3.5 text-[#2E5A1A]" /> : <UsersRound className="w-3.5 h-3.5 text-slate-400" />}
-                  <p className="text-xs font-bold text-slate-800">1. Teams</p>
-                </div>
-                <p className="text-[11px] text-slate-500">{job.required_team_ids?.length > 0 ? `${job.required_team_ids.length} assigned` : 'Pick required teams'}</p>
-              </div>
-              <div className={`rounded-lg p-2.5 border ${hotelBookings.length > 0 ? 'border-[#2E5A1A]/20 bg-[#2E5A1A]/5' : 'border-slate-200 bg-white'}`}>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  {hotelBookings.length > 0 ? <CheckCircle2 className="w-3.5 h-3.5 text-[#2E5A1A]" /> : <CalendarClock className="w-3.5 h-3.5 text-slate-400" />}
-                  <p className="text-xs font-bold text-slate-800">2. Hotels <span className="font-normal text-slate-400">(opt)</span></p>
-                </div>
-                <p className="text-[11px] text-slate-500">{hotelBookings.length > 0 ? `${hotelBookings.length} booking(s)` : 'Add if needed'}</p>
-              </div>
-              <div className={`rounded-lg p-2.5 border ${rotas.length > 0 ? 'border-[#2E5A1A]/20 bg-[#2E5A1A]/5' : 'border-slate-200 bg-white'}`}>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  {rotas.length > 0 ? <CheckCircle2 className="w-3.5 h-3.5 text-[#2E5A1A]" /> : <CalendarClock className="w-3.5 h-3.5 text-slate-400" />}
-                  <p className="text-xs font-bold text-slate-800">3. Rota</p>
-                </div>
-                <p className="text-[11px] text-slate-500">{rotas.length > 0 ? `${rotas.length} shifts` : 'Build the rota'}</p>
-              </div>
-              <div className={`rounded-lg p-2.5 border ${job.status === 'in_progress' || job.status === 'completed' ? 'border-[#2E5A1A]/20 bg-[#2E5A1A]/5' : 'border-slate-200 bg-white'}`}>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  {job.status === 'in_progress' || job.status === 'completed' ? <CheckCircle2 className="w-3.5 h-3.5 text-[#2E5A1A]" /> : <Send className="w-3.5 h-3.5 text-slate-400" />}
-                  <p className="text-xs font-bold text-slate-800">4. Publish</p>
-                </div>
-                <p className="text-[11px] text-slate-500">{job.status === 'in_progress' || job.status === 'completed' ? 'Activated' : 'Submit to email staff'}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Quick info grid — compact cards (header already shows job type, status, reference, dates) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <InfoCard icon={User} iconBg="bg-blue-50" title="Contacts">
-            <div className="space-y-2 text-sm">
-              <Field label="Project Manager">{job.project_manager ? <p className="text-slate-700">{job.project_manager}</p> : <EmptyField />}</Field>
-              <Field label="Site Contact">
-                {job.site_contact_name || job.site_contact_phone ? (
-                  <div>
-                    {job.site_contact_name && <p className="text-slate-700">{job.site_contact_name}</p>}
-                    {job.site_contact_phone && <div className="flex items-center gap-1.5 text-xs text-slate-500"><Phone className="w-3 h-3" />{job.site_contact_phone}</div>}
-                  </div>
-                ) : <EmptyField />}
-              </Field>
-            </div>
-          </InfoCard>
-
-          <InfoCard icon={HardHat} iconBg="bg-amber-50" title="Client">
-            <div className="space-y-2 text-sm">
-              {client ? (
-                <Field label="Client"><div><p className="font-semibold text-slate-900">{client.name}</p>{client.contact_phone && <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5"><Phone className="w-3 h-3" />{client.contact_phone}</div>}</div></Field>
-              ) : (
-                <Field label="Notes">{job.notes ? <p className="text-sm text-slate-600 line-clamp-3">{job.notes}</p> : <EmptyField />}</Field>
-              )}
-            </div>
-          </InfoCard>
-
-          <InfoCard icon={Truck} iconBg="bg-violet-50" title="Vehicles" count={assignedVehicles.length || undefined}>
-            {assignedVehicles.length > 0 ? (
-              <div className="space-y-1.5">
-                {assignedVehicles.map(v => (
-                  <div key={v.id} className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center flex-shrink-0"><Truck className="w-3 h-3 text-slate-500" /></div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-mono font-bold text-slate-900">{v.registration_number}</p>
-                      <p className="text-[11px] text-slate-500 truncate">{v.name}</p>
-                    </div>
-                  </div>
-                ))}
-                {job.requisition_list_url && (
-                  <a href={job.requisition_list_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 mt-1.5 px-2.5 py-1.5 bg-[#2E5A1A]/10 text-[#2E5A1A] hover:bg-[#2E5A1A]/20 rounded-lg text-xs font-medium transition">
-                    <FileText className="w-3 h-3" /> Requisition
-                  </a>
-                )}
-              </div>
-            ) : <p className="text-xs text-slate-400">No vehicles assigned</p>}
-          </InfoCard>
-
-        </div>
-
-        {/* Project link */}
-        {jobProject && (
-          <button onClick={() => setShowProjectJobs(true)} className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 hover:shadow-md transition text-left">
-            <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0"><FolderOpen className="w-4 h-4 text-indigo-600" /></div>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-slate-900 text-sm truncate">{jobProject.name}</p>
-              <p className="text-xs text-slate-400">{siblingJobs.length} other job{siblingJobs.length !== 1 ? 's' : ''} in this project</p>
-            </div>
-            <FolderOpen className="w-4 h-4 text-slate-300 flex-shrink-0" />
-          </button>
-        )}
-
-        {/* Log review + Client portal — in line */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <LogReviewQuickStat job={job} />
-          <PortalLinkManager job={job} />
-        </div>
-
-        {/* Full notes */}
-        {job.notes && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <StickyNote className="w-4 h-4 text-slate-500" />
-              <h3 className="font-semibold text-slate-900 text-sm">Notes</h3>
-            </div>
-            <p className="text-sm text-slate-600 whitespace-pre-wrap">{job.notes}</p>
-          </div>
-        )}
-
-        {/* Dialogs */}
-
-        <Dialog open={showProjectJobs} onOpenChange={setShowProjectJobs}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle className="flex items-center gap-2"><FolderOpen className="w-5 h-5 text-indigo-600" /> {jobProject?.name}</DialogTitle></DialogHeader>
-            <div className="space-y-2">
-              <p className="text-sm text-slate-500">This job is one of {siblingJobs.length + 1} jobs linked to this project.</p>
-              {siblingJobs.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-4">No other jobs in this project yet.</p>
-              ) : siblingJobs.map(sib => (
-                <button key={sib.id} onClick={() => { setShowProjectJobs(false); onProjectClick?.(sib); }} className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50/30 transition text-left">
-                  <Briefcase className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-slate-900 truncate">{sib.name}</p><p className="text-xs text-slate-500 truncate">{sib.location} · {statusLabels[sib.status || 'planning']}</p></div>
-                </button>
-              ))}
-            </div>
-          </DialogContent>
-        </Dialog>
       </TabsContent>
 
       {/* ── Schedule Tab ── */}
