@@ -301,7 +301,7 @@ export default function DeliveryDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-slate-50">
       <Breadcrumbs />
       {/* Header */}
       <div className="hero-gradient relative overflow-hidden">

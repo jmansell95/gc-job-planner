@@ -86,7 +86,7 @@ export default function PATTestingConsole() {
   const sessionFailed = sessionLog.filter(s => s.result === 'fail').length;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-slate-50">
       <Breadcrumbs />
       {/* Hero */}
       <div className="hero-gradient text-white">

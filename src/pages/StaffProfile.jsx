@@ -117,7 +117,7 @@ export default function StaffProfile() {
   const canAccessAdmin = isOfficeStaff(staff, staff.is_admin);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-slate-50">
       <Breadcrumbs />
       {/* Header with Quick Actions bar */}
       <div className="hero-gradient relative overflow-hidden">

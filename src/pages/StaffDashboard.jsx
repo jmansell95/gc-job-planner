@@ -527,7 +527,7 @@ export default function StaffDashboard() {
     };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="bg-slate-50 pb-20">
       <Breadcrumbs />
       <StaffHeader staff={staff} onShowSchedule={() => setShowScheduleSummary(true)} />
 

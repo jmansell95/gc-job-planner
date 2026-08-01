@@ -79,7 +79,7 @@ export default function SubcontractorDashboard() {
     .reduce((sum, l) => sum + (l.units_completed || 0), 0);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="bg-slate-50">
       <Breadcrumbs />
       {/* Header */}
       <div className="mesh-bg relative overflow-hidden">

@@ -19,7 +19,7 @@ export default function PresentationPack() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-100/80 flex items-center justify-center p-4 md:p-8">
+    <div className="flex items-center justify-center min-h-[60vh]">
       <div className="max-w-2xl w-full">
         <Breadcrumbs />
         <div className="insight-card rounded-2xl overflow-hidden">

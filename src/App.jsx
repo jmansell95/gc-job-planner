@@ -8,6 +8,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import RouteGuard from '@/components/RouteGuard';
+import AppLayout from '@/components/AppLayout';
 import Home from './pages/Home';
 import AdminDashboard from './pages/AdminDashboard';
 import StaffDashboard from './pages/StaffDashboard';
@@ -65,16 +66,18 @@ const AuthenticatedApp = () => {
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
           <Route path="/" element={<Home />} />
           <Route path="/admin" element={<RouteGuard><AdminDashboard /></RouteGuard>} />
-          <Route path="/staff-schedule" element={<RouteGuard><StaffDashboard /></RouteGuard>} />
-          <Route path="/staff-profile" element={<RouteGuard><StaffProfile /></RouteGuard>} />
-          <Route path="/subcontractor" element={<RouteGuard><SubcontractorDashboard /></RouteGuard>} />
-          <Route path="/deliveries" element={<RouteGuard><DeliveryDashboard /></RouteGuard>} />
-          <Route path="/admin/logistics" element={<RouteGuard><AdminDeliveryHub /></RouteGuard>} />
-          <Route path="/help" element={<HelpGuide />} />
-          <Route path="/presentation-pack" element={<PresentationPack />} />
+          <Route element={<AppLayout />}>
+            <Route path="/staff-schedule" element={<RouteGuard><StaffDashboard /></RouteGuard>} />
+            <Route path="/staff-profile" element={<RouteGuard><StaffProfile /></RouteGuard>} />
+            <Route path="/subcontractor" element={<RouteGuard><SubcontractorDashboard /></RouteGuard>} />
+            <Route path="/deliveries" element={<RouteGuard><DeliveryDashboard /></RouteGuard>} />
+            <Route path="/admin/logistics" element={<RouteGuard><AdminDeliveryHub /></RouteGuard>} />
+            <Route path="/help" element={<HelpGuide />} />
+            <Route path="/presentation-pack" element={<PresentationPack />} />
+            <Route path="/pat-testing" element={<RouteGuard><PATTestingConsole /></RouteGuard>} />
+          </Route>
           <Route path="/rig-hub" element={<RouteGuard><RigHub /></RouteGuard>} />
           <Route path="/vehicles" element={<RouteGuard><Vehicles /></RouteGuard>} />
-          <Route path="/pat-testing" element={<RouteGuard><PATTestingConsole /></RouteGuard>} />
         </Route>
         <Route path="/client-portal/:token" element={<ClientPortal />} />
         <Route path="*" element={<PageNotFound />} />
