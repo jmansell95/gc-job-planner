@@ -25,10 +25,10 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
             className="lg:hidden fixed top-0 left-0 bottom-0 z-50 w-[82%] max-w-xs bg-gradient-to-b from-[#2E5A1A] via-[#3a6a1e] to-[#456a1e] border-r border-black/20 flex flex-col shadow-2xl"
             style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
-            <div className="p-5 border-b border-white/10 flex items-center justify-between gap-3">
-              <div className="flex flex-col min-w-0 flex-1 justify-start">
-                <Logo variant="full" height={44} tone="light" />
-                <p className="text-left text-[11px] text-white/70 mt-2 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
+            <div className="p-5 border-b border-white/10 flex items-start justify-between gap-3">
+              <div className="flex flex-col items-center min-w-0 flex-1">
+                <Logo variant="full" height={48} tone="light" />
+                <p className="text-center text-[11px] text-white/70 mt-2.5 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
               </div>
               <button onClick={onClose} aria-label="Close menu" type="button"
                 className="h-9 w-9 flex items-center justify-center text-white/80 hover:bg-white/15 hover:text-white rounded-lg transition flex-shrink-0 touch-manipulation">
