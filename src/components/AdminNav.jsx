@@ -159,10 +159,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
                 <CalendarDays className="w-5 h-5" />
               </button>
             )}
-            <button onClick={() => navigate('/staff-profile')} aria-label="My Profile" type="button"
-              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
-              <User className="w-5 h-5" />
-            </button>
             <button onClick={openChat} aria-label="Ask Assistant" type="button"
               className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <Sparkles className="w-5 h-5" />
