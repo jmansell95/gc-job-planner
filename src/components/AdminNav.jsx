@@ -11,6 +11,7 @@ import GlobalSearch from '@/components/GlobalSearch';
 import AssetLens from '@/components/logistics/AssetLens';
 import { canAccessSection } from '@/utils/access';
 import Logo from '@/components/Logo';
+import ProfileAvatar from '@/components/ui/ProfileAvatar';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
   const navigate = useNavigate();
@@ -59,11 +60,11 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
   const desktopNav = (
     <>
-      <div className="px-5 pt-4 pb-3 border-b border-white/10">
-        <div className="flex items-center justify-center">
-          <img src="https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/993ce8312_GC_Logo-removebg-preview.png" alt="Ground Control" className="w-36 h-auto object-contain" />
+      <div className="px-4 pt-4 pb-3 border-b border-white/10">
+        <div className="flex items-center justify-start">
+          <img src="https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/993ce8312_GC_Logo-removebg-preview.png" alt="Ground Control" className="w-44 h-auto object-contain" />
         </div>
-        <p className="text-center text-[10px] text-white/60 mt-1.5 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
+        <p className="text-left text-[10px] text-white/60 mt-1.5 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
       </div>
       <div className="flex-1 px-3 py-2.5 space-y-0.5 overflow-y-auto">
         {navItems.map(item => {
@@ -100,6 +101,20 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           </button>
         </div>
       </div>
+      {/* Profile card */}
+      {profile && (
+        <div className="px-3 py-2.5 border-t border-white/10">
+          <button type="button" onClick={() => navigate('/staff-profile')}
+            className="w-full flex items-center gap-2.5 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer touch-manipulation select-none">
+            <ProfileAvatar name={profile.name} avatarUrl={profile.avatar_url} size={36} />
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-sm font-semibold text-white truncate">{profile.name}</p>
+              <p className="text-[11px] text-white/50 truncate">{profile.email}</p>
+            </div>
+            <Settings className="w-4 h-4 text-white/40 flex-shrink-0" />
+          </button>
+        </div>
+      )}
       {/* Personal links + system actions */}
       <div className="px-3 py-2 border-t border-white/10 space-y-0.5">
         {canViewSchedule && (

@@ -14,6 +14,10 @@
       "type": "string",
       "description": "Staff member phone number"
     },
+    "avatar_url": {
+      "type": "string",
+      "description": "Profile picture URL \u2014 uploaded by the staff member via the profile editor. Displayed in the admin sidebar and profile header."
+    },
     "worker_type": {
       "type": "string",
       "enum": [

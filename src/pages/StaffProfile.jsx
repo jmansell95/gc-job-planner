@@ -19,6 +19,7 @@ import { EmptyState } from '@/components/StateViews';
 import { resolveRole, isOfficeStaff } from '@/utils/access';
 import StaffProfileEditDrawer from '@/components/staff/StaffProfileEditDrawer';
 import StaffPerformanceCard from '@/components/staff/StaffPerformanceCard';
+import ProfileAvatar from '@/components/ui/ProfileAvatar';
 
 const ABSENCE_REASONS = [
   { value: 'holiday', label: 'Holiday' },
@@ -128,7 +129,10 @@ export default function StaffProfile() {
                 <span className="hidden sm:inline">{canAccessAdmin ? 'Dashboard' : 'Schedule'}</span>
               </button>
               <div className="min-w-0">
-                <h1 className="text-xl md:text-2xl font-bold text-white truncate tracking-tight">My Profile</h1>
+                <div className="flex items-center gap-3">
+                  <ProfileAvatar name={staff.name} avatarUrl={staff.avatar_url} size={48} />
+                  <h1 className="text-xl md:text-2xl font-bold text-white truncate tracking-tight">My Profile</h1>
+                </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-emerald-100 text-sm truncate">{staff.name}{staff.team?.name ? ` · ${staff.team.name}` : ''}</p>
                   {roleLabel && (

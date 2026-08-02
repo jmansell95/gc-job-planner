@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Phone, Mail, Bell, Truck, Save, Loader2, ShieldCheck, UserCog } from 'lucide-react';
+import { Phone, Mail, Bell, Truck, Save, Loader2, ShieldCheck, UserCog, Camera, Trash2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useToast } from '@/components/ui/use-toast';
 import { Switch } from '@/components/ui/switch';
+import ImageCropper from '@/components/ImageCropper';
+import ProfileAvatar from '@/components/ui/ProfileAvatar';
 
 /**
  * Slide-out drawer for editing your own staff profile fields.
@@ -13,8 +15,10 @@ import { Switch } from '@/components/ui/switch';
 export default function StaffProfileEditDrawer({ open, onOpenChange, staff }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [form, setForm] = useState({ phone: '', email_notifications_enabled: true, delivery_dashboard_enabled: false });
+  const [form, setForm] = useState({ phone: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, avatar_url: '' });
   const [saving, setSaving] = useState(false);
+  const [avatarSrc, setAvatarSrc] = useState(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
     if (staff) {
@@ -22,6 +26,7 @@ export default function StaffProfileEditDrawer({ open, onOpenChange, staff }) {
         phone: staff.phone || '',
         email_notifications_enabled: staff.email_notifications_enabled ?? true,
         delivery_dashboard_enabled: staff.delivery_dashboard_enabled ?? false,
+        avatar_url: staff.avatar_url || '',
       });
     }
   }, [staff, open]);
@@ -37,6 +42,7 @@ export default function StaffProfileEditDrawer({ open, onOpenChange, staff }) {
         phone: form.phone,
         email_notifications_enabled: form.email_notifications_enabled,
         delivery_dashboard_enabled: form.delivery_dashboard_enabled,
+        avatar_url: form.avatar_url,
       });
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       toast({ title: 'Profile updated', description: 'Your changes have been saved.' });
@@ -45,6 +51,32 @@ export default function StaffProfileEditDrawer({ open, onOpenChange, staff }) {
       toast({ title: 'Update failed', description: e?.message, variant: 'destructive' });
     }
     setSaving(false);
+  };
+
+  const handleAvatarSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setAvatarSrc(reader.result);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleAvatarCropConfirm = async (croppedFile) => {
+    setAvatarSrc(null);
+    setUploadingAvatar(true);
+    try {
+      const res = await base44.integrations.Core.UploadFile({ file: croppedFile });
+      setForm(f => ({ ...f, avatar_url: res.file_url }));
+      toast({ title: 'Photo updated', description: 'Save changes to confirm.' });
+    } catch (e) {
+      toast({ title: 'Upload failed', description: e?.message, variant: 'destructive' });
+    }
+    setUploadingAvatar(false);
+  };
+
+  const handleAvatarRemove = () => {
+    setForm(f => ({ ...f, avatar_url: '' }));
   };
 
   return (
@@ -61,6 +93,31 @@ export default function StaffProfileEditDrawer({ open, onOpenChange, staff }) {
         </SheetHeader>
 
         <div className="space-y-6">
+          {/* Profile Photo */}
+          <div className="insight-card rounded-xl p-4">
+            <div className="flex items-center gap-4">
+              <ProfileAvatar name={staff?.name} avatarUrl={form.avatar_url} size={64} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-slate-800">Profile Photo</p>
+                <p className="text-xs text-slate-500 mt-0.5">Shown in the sidebar and on your profile.</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold cursor-pointer hover:brightness-110 transition">
+                    <Camera className="w-3.5 h-3.5" />
+                    {form.avatar_url ? 'Change' : 'Upload'}
+                    <input type="file" accept="image/*" onChange={handleAvatarSelect} className="hidden" />
+                  </label>
+                  {form.avatar_url && (
+                    <button type="button" onClick={handleAvatarRemove}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-200 transition">
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Read-only identity fields */}
           <div className="insight-card rounded-xl p-4 space-y-3">
             <div className="flex items-center gap-2.5 mb-1">
@@ -135,6 +192,15 @@ export default function StaffProfileEditDrawer({ open, onOpenChange, staff }) {
             {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
+        {avatarSrc && (
+          <ImageCropper
+            imageSrc={avatarSrc}
+            aspect={1}
+            onConfirm={handleAvatarCropConfirm}
+            onCancel={() => setAvatarSrc(null)}
+            title="Crop Profile Photo"
+          />
+        )}
       </SheetContent>
     </Sheet>
   );
