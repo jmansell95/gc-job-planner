@@ -90,6 +90,33 @@ export default async function(req: Request): Promise<Response> {
           });
         }
 
+        // Predictive margin drop — projects final margin from daily burn rate
+        // Only alerts when current margin looks OK but is projected to fall below threshold
+        if (revenueNet > 0 && costNet > 0 && job.start_date && job.end_date) {
+          const today = new Date();
+          const start = new Date(job.start_date + 'T00:00:00');
+          const end = new Date(job.end_date + 'T00:00:00');
+          const totalDays = Math.max(1, Math.round((end - start) / 86400000));
+          const elapsedDays = Math.max(1, Math.round((today - start) / 86400000));
+          const remainingDays = Math.max(0, Math.round((end - today) / 86400000));
+
+          if (remainingDays > 0 && elapsedDays > 0) {
+            const dailyBurn = costNet / elapsedDays;
+            const projectedCost = costNet + (dailyBurn * remainingDays);
+            const projectedMargin = Math.round(((revenueNet - projectedCost) / revenueNet) * 1000) / 10;
+            const currentMargin = marginPct;
+
+            // Alert if projected margin drops below threshold but current is still above
+            if (projectedMargin < minMarginPct && currentMargin >= minMarginPct) {
+              jobAlerts.push({
+                type: 'predictive_margin_drop',
+                severity: projectedMargin < 0 ? 'high' : 'medium',
+                message: `Margin projected to drop from ${currentMargin}% to ${projectedMargin}% — burning ${formatGBP(dailyBurn)}/day, ${remainingDays} days remaining (projected cost ${formatGBP(projectedCost)} vs revenue ${formatGBP(revenueNet)})`,
+              });
+            }
+          }
+        }
+
         if (jobAlerts.length > 0) {
           alerts.push({
             job_id: job.id,

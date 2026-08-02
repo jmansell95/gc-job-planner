@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, CheckCircle2, XCircle, TrendingUp, ClipboardCheck, ShieldCheck, Car, AlertTriangle } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, TrendingUp, ClipboardCheck, ShieldCheck, Car, AlertTriangle, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { computeStaffOvertime, buildRateMap, entryMinutes } from '@/utils/overtime';
 
@@ -54,13 +54,16 @@ export default function ManagerTimesheetApprovals({ staffId }) {
 
   return (
     <div className="space-y-3">
-      {pending.length > 0 && (
-        <div className="flex items-center gap-2 text-xs text-slate-500">
+      <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">
+          <Zap className="w-3 h-3" /> Green-Path Active
+        </span>
+        {pending.length > 0 && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold">
-            <ClipboardCheck className="w-3 h-3" /> {pending.length} pending
+            <ClipboardCheck className="w-3 h-3" /> {pending.length} need review
           </span>
-        </div>
-      )}
+        )}
+      </div>
 
       {pending.length === 0 ? (
         <p className="text-sm text-slate-400 text-center py-4">No timesheets pending your approval right now.</p>

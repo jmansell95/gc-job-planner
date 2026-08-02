@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   FileText, Loader2, CheckCircle2, AlertTriangle, X, Search,
-  ArrowRightLeft, Building2, ChevronDown, ChevronRight, Lock,
+  ArrowRightLeft, Building2, ChevronDown, ChevronRight, Lock, Upload, Wand2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
@@ -29,6 +29,8 @@ export default function VendorInvoiceReconciliation() {
   const [filter, setFilter] = useState('pending'); // pending | mismatched | all
   const [expanded, setExpanded] = useState(null);
   const [reconForm, setReconForm] = useState({}); // { [logId]: { net, vat, gross, note } }
+  const [autoMatching, setAutoMatching] = useState(false);
+  const fileInputRef = React.useRef(null);
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['subcon-recon-logs'],
@@ -127,6 +129,40 @@ export default function VendorInvoiceReconciliation() {
     }
   };
 
+  const handleAutoMatch = async (file) => {
+    if (!file) return;
+    setAutoMatching(true);
+    try {
+      // Upload the file first
+      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      const fileUrl = uploadRes?.file_url || uploadRes?.data?.file_url;
+      if (!fileUrl) throw new Error('Upload failed');
+
+      // Call the auto-match function
+      const res = await base44.functions.invoke('autoMatchVendorInvoice', { file_url: fileUrl });
+      const result = res.data || res;
+      if (result.success) {
+        toast({
+          title: result.is_match ? 'Auto-matched & reconciled' : 'Mismatch flagged',
+          description: result.message,
+          variant: result.is_match ? 'default' : 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Auto-match incomplete',
+          description: result.error || result.message || 'Could not auto-match this invoice.',
+          variant: 'destructive',
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ['subcon-recon-logs'] });
+    } catch (e) {
+      toast({ title: 'Auto-match failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setAutoMatching(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleForceReconcile = async (log) => {
     try {
       await base44.entities.SubcontractorLog.update(log.id, {
@@ -153,6 +189,21 @@ export default function VendorInvoiceReconciliation() {
           <h3 className="text-sm font-bold text-slate-900">Vendor Invoice Reconciliation</h3>
           <p className="text-[11px] text-slate-400">Match supplier invoices against logged sub-con costs</p>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg"
+          className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleAutoMatch(f); }}
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={autoMatching}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 disabled:opacity-50 transition flex-shrink-0"
+        >
+          {autoMatching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+          {autoMatching ? 'Matching…' : 'Auto-Match Invoice'}
+        </button>
       </div>
 
       {/* Stats */}

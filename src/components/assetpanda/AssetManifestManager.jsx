@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Plus, Trash2, QrCode, Package, Search, X, FileStack, AlertTriangle, CheckCircle2, History, Clock, ArrowDownToLine } from 'lucide-react';
+import { Plus, Trash2, QrCode, Package, Search, X, FileStack, AlertTriangle, CheckCircle2, History, Clock, ArrowDownToLine, Printer } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 // Admin manager for Van Manifest QR codes — maps a single QR code to a list
@@ -56,6 +56,34 @@ export default function AssetManifestManager() {
     } catch (e) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     }
+  };
+
+  const printManifestQR = (manifest) => {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(manifest.manifest_code)}`;
+    const assetNames = (manifest.asset_names || []).map(n => `<li>${n}</li>`).join('');
+    const w = window.open('', '_blank', 'width=600,height=800');
+    w.document.write(`
+      <html><head><title>Manifest QR — ${manifest.name}</title>
+      <style>
+        body { font-family: Inter, system-ui, sans-serif; padding: 40px; text-align: center; color: #1e293b; }
+        h1 { font-size: 22px; margin-bottom: 4px; }
+        .code { font-family: monospace; font-size: 14px; color: #64748b; margin-bottom: 20px; }
+        img { width: 300px; height: 300px; }
+        .label { margin-top: 24px; font-size: 13px; font-weight: 600; color: #475569; text-align: left; }
+        ul { text-align: left; font-size: 13px; color: #64748b; padding-left: 20px; margin-top: 8px; }
+        .footer { margin-top: 40px; font-size: 11px; color: #94a3b8; }
+        @media print { body { padding: 20px; } }
+      </style></head>
+      <body>
+        <h1>${manifest.name}</h1>
+        <div class="code">${manifest.manifest_code}</div>
+        <img src="${qrUrl}" alt="QR Code" />
+        ${assetNames ? `<div class="label">Assets in this bundle (${(manifest.asset_names || []).length}):</div><ul>${assetNames}</ul>` : ''}
+        <div class="footer">Ground Control — Van Manifest QR · Scan during decommissioning to log all items as returned.</div>
+      </body></html>
+    `);
+    w.document.close();
+    setTimeout(() => w.print(), 500);
   };
 
   return (
@@ -122,6 +150,12 @@ export default function AssetManifestManager() {
                   )}
                 </div>
                 <div className="flex flex-col gap-1.5 flex-shrink-0">
+                  <button
+                    onClick={() => printManifestQR(m)}
+                    className="text-xs text-slate-500 hover:text-violet-600 font-medium px-2 py-1 flex items-center gap-1"
+                  >
+                    <Printer className="w-3 h-3" /> Print QR
+                  </button>
                   <button
                     onClick={() => { setEditingManifest(m); setShowForm(true); }}
                     className="text-xs text-slate-500 hover:text-emerald-600 font-medium px-2 py-1"
