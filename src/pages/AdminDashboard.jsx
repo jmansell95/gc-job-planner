@@ -9,7 +9,6 @@ import JobManager from '@/components/JobManager';
 import SettingsPage from '@/components/SettingsPage';
 import JobDetail from '@/components/JobDetail';
 import SchedulingHub from '@/components/SchedulingHub';
-import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
 import AdminDeliveryHub from '@/pages/AdminDeliveryHub';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -64,6 +63,22 @@ export default function AdminDashboard() {
     }
     if (activeSection === 'vehicles') {
       navigate('/vehicles');
+      setActiveSection('overview');
+    }
+    if (activeSection === 'timesheets') {
+      navigate('/timesheets');
+      setActiveSection('overview');
+    }
+    if (activeSection === 'compliance') {
+      navigate('/compliance');
+      setActiveSection('overview');
+    }
+    if (activeSection === 'billing') {
+      navigate('/billing');
+      setActiveSection('overview');
+    }
+    if (activeSection === 'safety') {
+      navigate('/safety');
       setActiveSection('overview');
     }
   }, [activeSection, navigate]);
@@ -125,12 +140,8 @@ export default function AdminDashboard() {
               <SchedulingHub initialTab={activeSection === 'calendar' ? 'calendar' : 'rota'} />
             )}
             {activeSection === 'logistics' && <AdminDeliveryHub />}
-            {activeSection === 'timesheets' && <SettingsPage initialTab="timesheets" />}
             {activeSection === 'teams' && <SettingsPage initialTab="teams" />}
-            {activeSection === 'compliance' && <SettingsPage initialTab="compliance" />}
-            {activeSection === 'safety-hub' && <SafetyCultureCheckHub onNavigate={setActiveSection} />}
             {activeSection === 'log-qc' && <SettingsPage initialTab="log-qc" />}
-            {activeSection === 'billing' && <SettingsPage initialTab="invoicing" onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}
             {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}
             </ErrorBoundary>
           </motion.div>

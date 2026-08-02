@@ -11,6 +11,10 @@ const ROUTE_SECTION_MAP = {
   '/deliveries': 'logistics',
   '/admin/logistics': 'logistics',
   '/pat-testing': 'fleet',
+  '/timesheets': 'timesheets',
+  '/compliance': 'compliance',
+  '/billing': 'billing',
+  '/safety': 'safety',
   '/help': 'overview',
   '/presentation-pack': 'overview',
 };

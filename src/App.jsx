@@ -22,6 +22,10 @@ import PresentationPack from './pages/PresentationPack';
 import RigHub from './pages/RigHub';
 import Vehicles from './pages/Vehicles';
 import PATTestingConsole from './pages/PATTestingConsole';
+import TimesheetsPage from './pages/TimesheetsPage';
+import CompliancePage from './pages/CompliancePage';
+import BillingPage from './pages/BillingPage';
+import SafetyPage from './pages/SafetyPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -76,6 +80,10 @@ const AuthenticatedApp = () => {
             <Route path="/admin/logistics" element={<RouteGuard><AdminDeliveryHub /></RouteGuard>} />
             <Route path="/presentation-pack" element={<PresentationPack />} />
             <Route path="/pat-testing" element={<RouteGuard><PATTestingConsole /></RouteGuard>} />
+            <Route path="/timesheets" element={<RouteGuard><TimesheetsPage /></RouteGuard>} />
+            <Route path="/compliance" element={<RouteGuard><CompliancePage /></RouteGuard>} />
+            <Route path="/billing" element={<RouteGuard><BillingPage /></RouteGuard>} />
+            <Route path="/safety" element={<RouteGuard><SafetyPage /></RouteGuard>} />
           </Route>
           <Route path="/rig-hub" element={<RouteGuard><RigHub /></RouteGuard>} />
           <Route path="/vehicles" element={<RouteGuard><Vehicles /></RouteGuard>} />
