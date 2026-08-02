@@ -166,8 +166,8 @@ export default function AdminNav({ activeSection, setActiveSection }) {
               </button>
             )}
             <button onClick={() => navigate('/staff-profile')} aria-label="My Profile" type="button"
-              className="relative h-10 w-10 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
-              <User className="w-[18px] h-[18px]" />
+              className="relative flex items-center justify-center active:scale-95 rounded-full transition flex-shrink-0 touch-manipulation select-none">
+              <ProfileAvatar name={profile?.name} avatarUrl={profile?.avatar_url} size={32} />
             </button>
             <button onClick={() => navigate('/help')} aria-label="Help & Guide" type="button"
               className="relative h-10 w-10 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
@@ -213,6 +213,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         onDeliveries={() => { navigate('/deliveries'); setDrawerOpen(false); }}
         onHelp={() => { navigate('/help'); setDrawerOpen(false); }}
         onProfile={() => { navigate('/staff-profile'); setDrawerOpen(false); }}
+        profile={profile}
       />
 
       <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} onNavigate={setActiveSection} notifications={notifications} />

@@ -2,8 +2,9 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, LogOut, HelpCircle, User, CalendarDays, HardHat, ScanLine, Truck, Bell } from 'lucide-react';
 import Logo from '@/components/Logo';
+import ProfileAvatar from '@/components/ui/ProfileAvatar';
 
-export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onHelp, onProfile, onDrillingIntelligence, onAssetLens, onDeliveries, onNotifications, notifCount = 0 }) {
+export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onHelp, onProfile, onDrillingIntelligence, onAssetLens, onDeliveries, onNotifications, notifCount = 0, profile }) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -81,6 +82,19 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
               })}
             </nav>
 
+            {/* Profile card */}
+            {profile && (
+              <div className="px-3 py-3 border-t border-white/10">
+                <button type="button" onClick={() => { onProfile?.(); onClose(); }}
+                  className="w-full flex items-center gap-2.5 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer touch-manipulation select-none">
+                  <ProfileAvatar name={profile.name} avatarUrl={profile.avatar_url} size={36} />
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="text-sm font-semibold text-white truncate">{profile.name}</p>
+                    <p className="text-[11px] text-white/50 truncate">{profile.email}</p>
+                  </div>
+                </button>
+              </div>
+            )}
 
           </motion.aside>
         </>
