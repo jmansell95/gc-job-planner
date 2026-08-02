@@ -33,10 +33,8 @@ export const DEFAULT_WIDGET_ORDER = [
   'field-priorities',
   'job-assets',
   'delivery-stats',
-  'charts',
   'efficiency-snapshot',
   'drilling-performance',
-  'job-profitability',
   'rig-profitability',
   'unbilled-wip',
   'subcon-margin-guard',
@@ -45,7 +43,6 @@ export const DEFAULT_WIDGET_ORDER = [
   'outstanding-receivables',
   'cash-flow-forecast',
   'geo-heatmap',
-  'ai-insights',
   'predictive-insights',
   'compliance-overview',
   'maintenance-quick-view',
@@ -59,7 +56,7 @@ export const DEFAULT_WIDGET_ORDER = [
 // permission, so empty sections automatically collapse out of view.
 export const DASHBOARD_SECTIONS = [
   { id: 'overview', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'geo-heatmap'] },
-  { id: 'performance', label: 'Performance & Financials', icon: TrendingUp, widgets: ['billing-readiness', 'outstanding-receivables', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'charts', 'efficiency-snapshot', 'drilling-performance', 'job-profitability', 'rig-profitability', 'unbilled-wip', 'ai-insights', 'predictive-insights'] },
+  { id: 'performance', label: 'Performance & Financials', icon: TrendingUp, widgets: ['billing-readiness', 'outstanding-receivables', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'drilling-performance', 'rig-profitability', 'unbilled-wip', 'predictive-insights'] },
   { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'maintenance-quick-view', 'safety-dashboard'] },
 ];
 
@@ -106,7 +103,7 @@ export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview',
 // one focus area, cutting scroll depth. Applied as an allow-list on top of the
 // user's saved widget order (saved customisation still respected within a profile).
 export const VIEW_PROFILES = [
-  { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'geo-heatmap', 'drilling-performance', 'safety-dashboard'] },
-  { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['outstanding-receivables', 'billing-readiness', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'job-profitability', 'rig-profitability', 'unbilled-wip', 'charts', 'predictive-insights'] },
+  { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'drilling-performance'] },
+  { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['outstanding-receivables', 'billing-readiness', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip', 'predictive-insights'] },
   { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['compliance-overview', 'maintenance-quick-view', 'safety-dashboard'] },
 ];

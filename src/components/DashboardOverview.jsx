@@ -222,9 +222,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const getWidgetSize = (widgetId) => widgetSizes[widgetId] || DEFAULT_WIDGET_SIZES[widgetId] || 'md';
 
   const sizeColSpan = (size) => {
-    if (size === 'sm') return 'col-span-1';
-    if (size === 'lg') return 'col-span-1 lg:col-span-4';
-    return 'col-span-1 lg:col-span-2';
+    if (size === 'sm') return 'col-span-1 sm:col-span-1 lg:col-span-1';
+    if (size === 'lg') return 'col-span-1 sm:col-span-2 lg:col-span-4';
+    return 'col-span-1 sm:col-span-1 lg:col-span-2';
   };
 
   const handleExitCustomize = () => {
@@ -249,17 +249,17 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   return (
     <div>
       {/* Hero header — context-aware */}
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-5 mt-0">
-        <div className="mesh-bg relative overflow-hidden rounded-t-none rounded-b-2xl md:rounded-2xl shadow-lg px-4 py-3 sm:px-6 sm:py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 relative z-10">
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-4 mt-0">
+        <div className="mesh-bg relative overflow-hidden rounded-t-none rounded-b-2xl md:rounded-2xl shadow-lg px-4 py-2.5 sm:px-5 sm:py-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 relative z-10">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="p-2.5 bg-white/15 ring-1 ring-white/25 rounded-xl flex-shrink-0 backdrop-blur-sm">
+              <div className="p-2 sm:p-2.5 bg-white/15 ring-1 ring-white/25 rounded-xl flex-shrink-0 backdrop-blur-sm">
                 {isAllJobs ? <Grid3x3 className="w-6 h-6 text-white" /> : <Briefcase className="w-6 h-6 text-white" />}
               </div>
               <div className="min-w-0">
                 {isAllJobs ? (
                   <>
-                    <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight truncate">
+                    <h1 className="text-base sm:text-xl md:text-2xl font-bold text-white tracking-tight truncate">
                       {greeting}{firstName ? `, ${firstName}` : ''}
                     </h1>
                     <p className="text-white/90 text-xs mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
@@ -333,7 +333,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       {/* State Monitor Bar — upgraded real-time status cards (replaces the old pills) */}
       {!customizeMode && isAllJobs && (
         <StateMonitorBar
-          className="mb-5"
+          className="mb-4"
           monitors={[
             { key: 'active', icon: Briefcase, label: 'Active Jobs', value: activeJobs.length, sublabel: `${scopedJobs.length} total in system`, tone: 'emerald', nav: 'jobs' },
             { key: 'util', icon: Percent, label: 'Crew Utilisation', value: utilizationPct, unit: '%', sublabel: `${staffToday} of ${activeStaff} active crew on site`, tone: 'blue', nav: 'rota' },
@@ -384,7 +384,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                 </div>
                 <Droppable droppableId={section.id}>
                   {(provided) => (
-                    <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+                    <div ref={provided.innerRef} {...provided.droppableProps} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 items-start">
                       {sectionWidgets.map((widgetId, index) => (
                         <Draggable key={widgetId} draggableId={widgetId} index={index} isDragDisabled={!customizeMode}>
                           {(provided) => (
@@ -416,7 +416,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           })}
         </DragDropContext>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 items-start">
           {visibleOrder.map((widgetId) => (
             <div key={widgetId} className={sizeColSpan(getWidgetSize(widgetId))}>
               <WidgetCard widgetId={widgetId} customizeMode={false} size={getWidgetSize(widgetId)}>
