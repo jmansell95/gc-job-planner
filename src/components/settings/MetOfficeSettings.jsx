@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Cloud, Loader2, Save, Check, AlertTriangle, RefreshCw, Link2, Link2Off,
-  Settings2, MapPin,
+  Settings2, MapPin, Download,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
@@ -28,6 +28,8 @@ export default function MetOfficeSettings() {
   const [saved, setSaved] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
 
   const { data: settingsRec } = useQuery({
     queryKey: ['met-office-config'],
@@ -56,6 +58,20 @@ export default function MetOfficeSettings() {
       toast({ title: 'Save failed', description: e.message, variant: 'destructive' });
     }
     setSaving(false);
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await base44.functions.invoke('syncMetOfficeWeather', {});
+      const d = res.data || res;
+      setSyncResult({ ok: !!d.ok, msg: d.message || d.error || 'Sync complete', synced: d.synced || 0, errors: d.errors || 0 });
+      queryClient.invalidateQueries({ queryKey: ['met-office-config'] });
+    } catch (e) {
+      setSyncResult({ ok: false, msg: e.message || 'Sync failed' });
+    }
+    setSyncing(false);
   };
 
   const handleTest = async () => {
@@ -147,13 +163,30 @@ export default function MetOfficeSettings() {
         </div>
       </div>
 
-      {config.last_sync_at && (
-        <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-          <p className="text-xs font-semibold text-slate-600 mb-1">Last sync</p>
-          <p className="text-xs text-slate-500">{config.last_sync_summary || 'No summary'}</p>
-          <p className="text-[11px] text-slate-400 mt-1">{new Date(config.last_sync_at).toLocaleString('en-GB')}</p>
+      {/* Manual sync */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Download className="w-4 h-4 text-[#2E5A1A]" />
+          <h3 className="text-sm font-bold text-slate-800">Sync Now</h3>
         </div>
-      )}
+        <button onClick={handleSync} disabled={!connected || syncing}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-bold hover:bg-[#1c4a12] disabled:opacity-40 transition">
+          {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Pull Weather Forecasts Now
+        </button>
+        {!connected && <p className="text-[11px] text-amber-600 mt-2 text-center">Save your API key first to enable sync.</p>}
+        {syncResult && (
+          <div className={`mt-3 rounded-lg px-3 py-2 text-xs ${syncResult.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+            <p className="flex items-start gap-2"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> {syncResult.msg}</p>
+          </div>
+        )}
+        {config.last_sync_at && (
+          <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 mt-3">
+            <p className="text-xs font-semibold text-slate-600 mb-1">Last sync</p>
+            <p className="text-xs text-slate-500">{config.last_sync_summary || 'No summary'}</p>
+            <p className="text-[11px] text-slate-400 mt-1">{new Date(config.last_sync_at).toLocaleString('en-GB')}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

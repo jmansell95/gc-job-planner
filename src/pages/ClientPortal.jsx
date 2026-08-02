@@ -13,6 +13,7 @@ import PortalComments from '@/components/PortalComments';
 import PortalTimeline from '@/components/PortalTimeline';
 import PortalDocuments from '@/components/PortalDocuments';
 import PortalSiteStatus from '@/components/PortalSiteStatus';
+import PortalPaymentButton from '@/components/dashboard/PortalPaymentButton';
 import { formatJobType } from '@/utils/format';
 
 const jobTypeBadges = {
@@ -451,6 +452,37 @@ export default function ClientPortal() {
                 </div>
               </div>
               <p className="text-xs text-slate-400 mt-3">For any billing queries, please contact your project manager.</p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Outstanding invoices with online payment */}
+        {visible('client_charge') && data.invoices && data.invoices.length > 0 && (
+          <motion.div variants={portalItem} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${sectionAccent.client_charge}`}><PoundSterling className="w-4 h-4" /></div>
+              <h2 className="font-semibold text-slate-900">Invoices</h2>
+              <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{data.invoices.length} outstanding</span>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {data.invoices.map((inv, i) => (
+                <div key={i} className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-900">{inv.invoice_number}</p>
+                    <p className="text-xs text-slate-400">
+                      Issued {inv.issue_date ? format(parseISO(inv.issue_date), 'dd MMM yyyy') : '—'}
+                      {inv.due_date ? ` · Due ${format(parseISO(inv.due_date), 'dd MMM yyyy')}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="text-lg font-bold text-slate-900 tabular-nums">{fmtMoney(inv.gross_total)}</span>
+                    {inv.status === 'overdue' && (
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">Overdue</span>
+                    )}
+                    <PortalPaymentButton invoice={inv} jobName={job.name} portalToken={token} />
+                  </div>
+                </div>
+              ))}
             </div>
           </motion.div>
         )}

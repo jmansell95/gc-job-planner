@@ -29,6 +29,7 @@ Deno.serve(async (req) => {
     const milestones = await base44.asServiceRole.entities.JobMilestone.filter({ job_id: job.id });
     const timesheets = await base44.asServiceRole.entities.Timesheet.filter({ job_id: job.id });
     const costItems = await base44.asServiceRole.entities.JobCostItem.filter({ job_id: job.id });
+    const allInvoices = await base44.asServiceRole.entities.Invoice.filter({ job_id: job.id });
     // Delay logs — for the client-facing "Live Site Status" pulse feed.
     // Only include approved delay logs so the client sees confirmed impacts,
     // not pending reports awaiting manager review.
@@ -177,7 +178,20 @@ Deno.serve(async (req) => {
         caption: p.caption || '',
         uploaded_by: p.uploaded_by_name || ''
       })),
-      delays
+      delays,
+      invoices: allInvoices
+        .filter(inv => inv.status === 'sent' || inv.status === 'overdue')
+        .sort((a, b) => new Date(b.issue_date) - new Date(a.issue_date))
+        .map(inv => ({
+          id: inv.id,
+          invoice_number: inv.invoice_number,
+          issue_date: inv.issue_date || '',
+          due_date: inv.due_date || '',
+          net_total: inv.net_total,
+          vat_total: inv.vat_total,
+          gross_total: inv.gross_total,
+          status: inv.status
+        }))
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

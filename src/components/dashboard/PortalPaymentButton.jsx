@@ -35,18 +35,18 @@ export default function PortalPaymentButton({ invoice, jobName, portalToken }) {
     if (!enabled) return;
     setPaying(true);
     try {
-      // In a full implementation, this would call a backend function that
-      // creates a Stripe Checkout Session and returns the URL.
-      // For now, we show a toast indicating the payment flow is ready.
-      toast({
-        title: 'Payment flow ready',
-        description: `Stripe checkout for ${invoice.invoice_number} (£${invoice.gross_total?.toLocaleString()}) is configured. The full checkout flow will be activated once Stripe credentials are verified.`,
+      const res = await base44.functions.invoke('createStripeCheckout', {
+        portal_token: portalToken,
+        invoice_id: invoice.id,
       });
-      // Simulate payment success for demo purposes
-      // In production: redirect to Stripe Checkout URL
-      setPaid(true);
+      const data = res.data || res;
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast({ title: 'Payment setup failed', description: data.error || 'No checkout URL returned', variant: 'destructive' });
+      }
     } catch (e) {
-      toast({ title: 'Payment failed', description: e?.message, variant: 'destructive' });
+      toast({ title: 'Payment failed', description: e?.response?.data?.error || e?.message, variant: 'destructive' });
     }
     setPaying(false);
   };
