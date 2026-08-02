@@ -50,7 +50,7 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
 
   return (
     <motion.div variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } } }}
-      className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      className="insight-card rounded-2xl overflow-hidden">
       <div className={`h-1.5 ${accent}`} />
 
       {job.status === 'on_hold' && (
@@ -64,10 +64,10 @@ export default function AssignmentCard({ assignment, job, vehicle, client, staff
       )}
 
       {/* Compact header — always visible */}
-      <button onClick={() => setExpanded(e => !e)} className="w-full text-left p-4 md:p-5 flex items-start gap-3 hover:bg-slate-50/60 transition">
-        <div className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ${assignment.status === 'completed' ? 'bg-[#2E5A1A]' : assignment.status === 'started' ? 'bg-blue-500' : 'bg-slate-300'}`} />
+      <button onClick={() => setExpanded(e => !e)} className="w-full text-left p-4 md:p-5 flex items-start gap-3 hover:bg-slate-50/40 transition">
+        <div className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ring-2 ring-offset-2 ring-offset-white ${assignment.status === 'completed' ? 'bg-[#2E5A1A] ring-[#2E5A1A]/20' : assignment.status === 'started' ? 'bg-blue-500 ring-blue-500/20' : 'bg-slate-300 ring-slate-300/20'}`} />
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-bold text-slate-900 leading-tight truncate">{job.name}</h3>
+          <h3 className="text-lg font-bold text-slate-900 leading-tight truncate tracking-tight">{job.name}</h3>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${jobTypeBadgeColors[job.job_type]}`}>{formatJobType(job.job_type)}</span>
             {assignment.is_overtime && (

@@ -7,8 +7,10 @@ import { isBeforeSiteOpen, SITE_OPEN_TIME } from '@/utils/siteHours';
 export default function StaffAlerts({ isOnline, staff }) {
   if (!isOnline) {
     return (
-      <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-sm text-amber-800">
-        <WifiOff className="w-4 h-4 flex-shrink-0" />
+      <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 text-sm text-amber-800">
+        <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+          <WifiOff className="w-4 h-4 text-amber-600" />
+        </div>
         <span className="font-medium">Offline — changes sync when reconnected.</span>
       </div>
     );
@@ -16,16 +18,20 @@ export default function StaffAlerts({ isOnline, staff }) {
 
   if (isBeforeSiteOpen() && !staff?.is_admin) {
     return (
-      <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 text-sm text-blue-900">
-        <Clock className="w-4 h-4 text-blue-600 flex-shrink-0" />
+      <div className="flex items-center gap-2.5 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 text-sm text-blue-900">
+        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+          <Clock className="w-4 h-4 text-blue-600" />
+        </div>
         <span className="font-medium">Early access — work actions unlock at {SITE_OPEN_TIME}.</span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm text-slate-600">
-      <MessageCircle className="w-4 h-4 text-slate-400 flex-shrink-0" />
+    <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm text-slate-600">
+      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+        <MessageCircle className="w-4 h-4 text-slate-400" />
+      </div>
       <span className="font-medium">Check WhatsApp for daily updates.</span>
     </div>
   );

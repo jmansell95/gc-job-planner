@@ -79,12 +79,12 @@ export default function SyncHUD() {
   return (
     <button
       onClick={hasError ? handleRetry : undefined}
-      className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border ${bg} ${text} ${hasError ? 'hover:bg-red-100 cursor-pointer' : 'cursor-default'} transition w-full text-left`}
+      className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl border ${bg} ${text} ${hasError ? 'hover:bg-red-100 cursor-pointer' : 'cursor-default'} transition w-full text-left`}
     >
-      <div className="relative flex-shrink-0">
+      <div className="relative flex-shrink-0 w-7 h-7 rounded-lg bg-white/60 flex items-center justify-center">
         {icon}
         {state === 'syncing' && (
-          <span className="absolute inset-0 rounded-full bg-blue-400 opacity-30 animate-ping" />
+          <span className="absolute inset-0 rounded-lg bg-blue-400 opacity-30 animate-ping" />
         )}
       </div>
       <div className="min-w-0 flex-1">

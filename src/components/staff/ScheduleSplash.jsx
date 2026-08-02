@@ -39,6 +39,7 @@ export default function ScheduleSplash({ assignments, jobs, vehicles, clients, t
     <div className="fixed inset-0 z-50 bg-slate-50 overflow-y-auto">
       {/* Header */}
       <div className="hero-gradient relative overflow-hidden">
+        <div className="absolute -top-12 -right-8 w-40 h-40 rounded-full bg-[#8DC63F]/10 blur-2xl pointer-events-none" />
         <div className="relative max-w-2xl mx-auto px-4 md:px-6 py-6 md:py-8">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 rounded-2xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center flex-shrink-0">
@@ -75,11 +76,11 @@ export default function ScheduleSplash({ assignments, jobs, vehicles, clients, t
             <p className="text-sm text-slate-400">Loading your schedule…</p>
           </div>
         ) : dates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
-              <Calendar className="w-7 h-7 text-slate-300" />
+          <div className="flex flex-col items-center justify-center py-16 text-center insight-card rounded-2xl">
+            <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+              <Calendar className="w-8 h-8 text-slate-300" />
             </div>
-            <p className="text-slate-700 font-semibold">No assignments this week</p>
+            <p className="text-slate-700 font-bold">No assignments this week</p>
             <p className="text-slate-400 text-sm mt-1">Check with your supervisor if you expected to be working.</p>
           </div>
         ) : (
@@ -90,15 +91,17 @@ export default function ScheduleSplash({ assignments, jobs, vehicles, clients, t
               const dayAssignments = byDate[dateStr];
 
               return (
-                <div key={dateStr} className={`rounded-2xl border overflow-hidden ${isToday ? 'border-emerald-400 shadow-md' : 'border-slate-200 shadow-sm'}`}>
+                <div key={dateStr} className={`rounded-2xl border overflow-hidden ${isToday ? 'border-[#2E5A1A] shadow-md shadow-[#2E5A1A]/10' : 'border-slate-200 shadow-sm'}`}>
                   {/* Day header */}
-                  <div className={`flex items-center justify-between px-4 py-3 ${isToday ? 'bg-emerald-700 text-white' : isFuture ? 'bg-slate-50 text-slate-700' : 'bg-slate-100 text-slate-500'}`}>
+                  <div className={`flex items-center justify-between px-4 py-3 ${isToday ? 'bg-[#2E5A1A] text-white' : isFuture ? 'bg-slate-50 text-slate-700' : 'bg-slate-100 text-slate-500'}`}>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-sm">{format(new Date(dateStr + 'T00:00:00'), 'EEEE')}</span>
                       <span className="text-xs opacity-80">{format(new Date(dateStr + 'T00:00:00'), 'dd MMM')}</span>
                     </div>
                     {isToday && (
-                      <span className="text-[10px] font-bold uppercase tracking-wide bg-white/20 px-2 py-0.5 rounded-full">Today</span>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide bg-white/20 px-2.5 py-1 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> Today
+                      </span>
                     )}
                   </div>
 
@@ -168,11 +171,13 @@ export default function ScheduleSplash({ assignments, jobs, vehicles, clients, t
             })}
 
             {/* Reminder card */}
-            <div className="rounded-2xl bg-blue-50 border border-blue-100 px-4 py-3.5 flex items-start gap-3">
-              <Sunrise className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="rounded-2xl bg-blue-50 border border-blue-200 px-4 py-4 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <Sunrise className="w-5 h-5 text-blue-600" />
+              </div>
               <div>
-                <p className="text-sm font-semibold text-blue-900">Daily workflow</p>
-                <p className="text-xs text-blue-700 mt-0.5 leading-relaxed">
+                <p className="text-sm font-bold text-blue-900">Daily workflow</p>
+                <p className="text-xs text-blue-700 mt-1 leading-relaxed">
                   Each day: log your travel to site → complete the site briefing → add your daily tasks → submit your timesheet → log your travel from site to home.
                 </p>
               </div>
@@ -193,7 +198,7 @@ export default function ScheduleSplash({ assignments, jobs, vehicles, clients, t
           {reviewMode ? (
             <button
               onClick={onClose}
-              className="flex items-center justify-center gap-2 w-full px-5 py-4 bg-slate-800 text-white rounded-xl hover:bg-slate-900 active:scale-[0.98] transition text-sm font-bold touch-manipulation shadow-lg"
+              className="flex items-center justify-center gap-2 w-full px-5 py-4 bg-slate-800 text-white rounded-2xl hover:bg-slate-900 active:scale-[0.98] transition text-sm font-bold touch-manipulation shadow-lg"
             >
               <X className="w-5 h-5" />
               Close
@@ -202,7 +207,7 @@ export default function ScheduleSplash({ assignments, jobs, vehicles, clients, t
             <button
               onClick={onAcknowledge}
               disabled={loading}
-              className="flex items-center justify-center gap-2 w-full px-5 py-4 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-[0.98] transition text-sm font-bold disabled:opacity-50 touch-manipulation shadow-lg shadow-emerald-700/20"
+              className="flex items-center justify-center gap-2 w-full px-5 py-4 command-gradient text-white rounded-2xl hover:opacity-90 active:scale-[0.98] transition text-sm font-bold disabled:opacity-50 touch-manipulation shadow-lg shadow-[#2E5A1A]/20"
             >
               <CheckCircle2 className="w-5 h-5" />
               I've read my schedule — ready to start

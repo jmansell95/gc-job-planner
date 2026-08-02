@@ -100,7 +100,7 @@ export default function ActiveJobCard({
   return (
     <motion.div
       variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } } }}
-      className="bg-white rounded-2xl border border-slate-200 shadow-md overflow-hidden"
+      className="insight-card rounded-2xl overflow-hidden"
     >
       {/* Status strip */}
       <div className={`px-4 py-2.5 flex items-center justify-between ${status.bg}`}>
@@ -121,7 +121,7 @@ export default function ActiveJobCard({
 
       {/* Main content */}
       <div className="p-4 md:p-5">
-        <h2 className="text-xl font-bold text-slate-900 leading-tight">{job.name}</h2>
+        <h2 className="text-xl font-bold text-slate-900 leading-tight tracking-tight">{job.name}</h2>
         <div className="mt-3 space-y-2">
           <div className="flex items-start gap-2 text-sm text-slate-600">
             <MapPin className="w-5 h-5 text-[#2E5A1A] flex-shrink-0 mt-0.5" />

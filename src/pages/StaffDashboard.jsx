@@ -548,7 +548,7 @@ export default function StaffDashboard() {
     };
 
   return (
-    <div className="bg-slate-50 min-h-screen pb-20">
+    <div className="bg-gradient-to-b from-slate-50 to-slate-100/50 min-h-screen pb-20">
       <StaffHeader staff={staff} onShowSchedule={() => setShowScheduleSummary(true)} />
 
       {/* Today Tab — zero-scroll, action-first */}
@@ -577,7 +577,7 @@ export default function StaffDashboard() {
             const isUrgent = expired.length > 0 || !hasCSCS;
             return (
               <button onClick={() => navigate('/staff-profile')} type="button"
-                className={`w-full flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-left transition ${isUrgent ? 'bg-red-50 border border-red-100 text-red-900' : 'bg-amber-50 border border-amber-100 text-amber-900'}`}>
+                className={`w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm text-left transition ${isUrgent ? 'bg-red-50 border border-red-200 text-red-900' : 'bg-amber-50 border border-amber-200 text-amber-900'}`}>
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isUrgent ? 'bg-red-100' : 'bg-amber-100'}`}>
                   <AlertTriangle className={`w-5 h-5 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
                 </div>
@@ -594,7 +594,7 @@ export default function StaffDashboard() {
           {assignmentsLoading ? (
             <div className="space-y-4">
               {Array.from({ length: 2 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5">
+                <div key={i} className="insight-card rounded-2xl p-5">
                   <Skeleton className="h-1.5 w-full mb-4 rounded-full" />
                   <Skeleton className="h-4 w-1/3 mb-3" />
                   <SkeletonText lines={3} />
@@ -602,15 +602,15 @@ export default function StaffDashboard() {
               ))}
             </div>
           ) : scheduleLocked ? (
-            <div className="bg-white rounded-2xl border border-slate-200">
+            <div className="insight-card rounded-2xl">
               <EmptyState icon={CalendarClock} title="New schedule on the way" message="Your manager is preparing your new rota. You'll get it by email once it's ready." />
             </div>
           ) : visibleAssignments.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200">
+            <div className="insight-card rounded-2xl">
               <EmptyState icon={CalendarDays} title="No shifts scheduled" message="Check back later — your manager will assign you to upcoming jobs." />
             </div>
           ) : todaysSorted.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200">
+            <div className="insight-card rounded-2xl">
               <EmptyState icon={CalendarDays} title="No jobs today" message="Check the Upcoming tab for your next shifts." />
             </div>
           ) : todaysAllDone ? (
@@ -630,14 +630,16 @@ export default function StaffDashboard() {
                 <div>
                   {activeStarted && (
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-1 h-5 bg-[#2E5A1A] rounded-full" />
-                      <p className="text-sm font-bold text-slate-700 uppercase tracking-wide">In Progress</p>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#2E5A1A]/10 text-[#2E5A1A] text-xs font-bold uppercase tracking-wide">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#2E5A1A] animate-pulse" /> In Progress
+                      </span>
                     </div>
                   )}
                   {!activeStarted && todaysSorted.length > 1 && (
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-1 h-5 bg-amber-500 rounded-full" />
-                      <p className="text-sm font-bold text-slate-600 uppercase tracking-wide">Up Next</p>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold uppercase tracking-wide">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Up Next
+                      </span>
                     </div>
                   )}
                   <ActiveJobCard {...cardProps(nextTodayAssignment)} />
@@ -658,7 +660,7 @@ export default function StaffDashboard() {
           {assignmentsLoading ? (
             <div className="space-y-4">
               {Array.from({ length: 2 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-200 p-5">
+                <div key={i} className="insight-card rounded-2xl p-5">
                   <Skeleton className="h-1.5 w-full mb-4 rounded-full" />
                   <Skeleton className="h-4 w-1/3 mb-3" />
                   <SkeletonText lines={3} />
@@ -672,11 +674,13 @@ export default function StaffDashboard() {
                 const d = new Date(date + 'T00:00:00');
                 return (
                   <div key={date}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">{format(d, 'EEEE')}</span>
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wide shadow-sm">
+                        {format(d, 'EEEE')}
+                      </span>
                       <span className="text-xs text-slate-400">{format(d, 'dd MMM yyyy')}</span>
                       <span className="text-xs text-slate-300">·</span>
-                      <span className="text-xs text-slate-400">{dayAssignments.length} {dayAssignments.length === 1 ? 'job' : 'jobs'}</span>
+                      <span className="text-xs text-slate-400 font-medium">{dayAssignments.length} {dayAssignments.length === 1 ? 'job' : 'jobs'}</span>
                     </div>
                     <div className="space-y-3">
                       {dayAssignments.map(a => (
@@ -688,7 +692,7 @@ export default function StaffDashboard() {
               })}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200">
+            <div className="insight-card rounded-2xl">
               <EmptyState icon={CalendarDays} title="No upcoming jobs" message="Check back later — your manager will assign you to upcoming jobs." />
             </div>
           )}
@@ -698,33 +702,33 @@ export default function StaffDashboard() {
       {/* More Tab — bookings + quick links */}
       {activeTab === 'more' && (
         <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-5 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3.5">
             {staff.delivery_dashboard_enabled && (
               <button onClick={() => navigate('/deliveries')} type="button"
-                className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
-                <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
+                className="insight-card flex flex-col items-center gap-3 p-5 rounded-2xl hover:shadow-md transition touch-manipulation">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
                   <Truck className="w-7 h-7 text-blue-600" />
                 </div>
                 <span className="text-base font-semibold text-slate-700">Deliveries</span>
               </button>
             )}
             <button onClick={() => navigate('/staff-profile')} type="button"
-              className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
-              <div className="w-14 h-14 rounded-2xl bg-purple-50 flex items-center justify-center">
+              className="insight-card flex flex-col items-center gap-3 p-5 rounded-2xl hover:shadow-md transition touch-manipulation">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
                 <UserCircle className="w-7 h-7 text-purple-600" />
               </div>
               <span className="text-base font-semibold text-slate-700">Profile</span>
             </button>
             <button onClick={() => setShowScheduleSummary(true)} type="button"
-              className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center">
+              className="insight-card flex flex-col items-center gap-3 p-5 rounded-2xl hover:shadow-md transition touch-manipulation">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center">
                 <CalendarDays className="w-7 h-7 text-emerald-600" />
               </div>
               <span className="text-base font-semibold text-slate-700">Schedule</span>
             </button>
             <button onClick={() => navigate('/help')} type="button"
-              className="flex flex-col items-center gap-3 p-6 bg-white rounded-2xl border border-slate-200 hover:shadow-sm transition touch-manipulation">
-              <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
+              className="insight-card flex flex-col items-center gap-3 p-5 rounded-2xl hover:shadow-md transition touch-manipulation">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100 flex items-center justify-center">
                 <HelpCircle className="w-7 h-7 text-amber-600" />
               </div>
               <span className="text-base font-semibold text-slate-700">Help</span>
@@ -738,10 +742,10 @@ export default function StaffDashboard() {
           {staff?.id && (
             <div>
               <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 flex items-center justify-center shadow-sm">
                   <CalendarClock className="w-4 h-4 text-amber-600" />
                 </div>
-                <h2 className="text-lg md:text-xl font-bold text-slate-900">My Bookings</h2>
+                <h2 className="text-lg md:text-xl font-bold text-slate-900 tracking-tight">My Bookings</h2>
               </div>
               <StaffBookings staffId={staff.id} compact />
             </div>
