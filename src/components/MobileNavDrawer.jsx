@@ -26,9 +26,19 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
             style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             <div className="p-5 border-b border-white/10 flex items-start justify-between gap-3">
-              <div className="flex flex-col items-center min-w-0 flex-1">
-                <Logo variant="full" height={48} tone="light" />
-                <p className="text-center text-[11px] text-white/70 mt-2.5 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
+              <div className="flex flex-col items-start min-w-0 flex-1">
+                <Logo variant="full" height={44} tone="light" />
+                <p className="text-left text-[11px] text-white/70 mt-2 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
+                {profile && (
+                  <button type="button" onClick={() => { onProfile?.(); onClose(); }}
+                    className="w-full mt-3 flex items-center gap-2.5 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer touch-manipulation select-none">
+                    <ProfileAvatar name={profile.name} avatarUrl={profile.avatar_url} size={36} />
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="text-sm font-semibold text-white truncate">{profile.name}</p>
+                      <p className="text-[11px] text-white/50 truncate">{profile.email}</p>
+                    </div>
+                  </button>
+                )}
               </div>
               <button onClick={onClose} aria-label="Close menu" type="button"
                 className="h-9 w-9 flex items-center justify-center text-white/80 hover:bg-white/15 hover:text-white rounded-lg transition flex-shrink-0 touch-manipulation">
@@ -82,20 +92,6 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
                 );
               })}
             </nav>
-
-            {/* Profile card */}
-            {profile && (
-              <div className="px-3 py-3 border-t border-white/10">
-                <button type="button" onClick={() => { onProfile?.(); onClose(); }}
-                  className="w-full flex items-center gap-2.5 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer touch-manipulation select-none">
-                  <ProfileAvatar name={profile.name} avatarUrl={profile.avatar_url} size={36} />
-                  <div className="min-w-0 flex-1 text-left">
-                    <p className="text-sm font-semibold text-white truncate">{profile.name}</p>
-                    <p className="text-[11px] text-white/50 truncate">{profile.email}</p>
-                  </div>
-                </button>
-              </div>
-            )}
 
           </motion.aside>
         </>
