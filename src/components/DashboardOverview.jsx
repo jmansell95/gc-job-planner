@@ -24,6 +24,11 @@ import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
 import EfficiencySnapshotWidget from '@/components/dashboard/EfficiencySnapshotWidget';
 import ProfitabilityDashboard from '@/components/ProfitabilityDashboard';
 import RigProfitabilityWidget from '@/components/dashboard/RigProfitabilityWidget';
+import FieldPrioritiesWidget from '@/components/dashboard/FieldPrioritiesWidget';
+import CashFlowForecastWidget from '@/components/dashboard/CashFlowForecastWidget';
+import DrillingPerformanceWidget from '@/components/dashboard/DrillingPerformanceWidget';
+import SafetyDashboardWidget from '@/components/dashboard/SafetyDashboardWidget';
+import PredictiveInsightsWidget from '@/components/dashboard/PredictiveInsightsWidget';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
@@ -146,6 +151,11 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'financial-reconciliation': return canViewCosts ? <FinancialReconciliationWidget /> : null;
       case 'billing-readiness': return canViewCosts ? <BillingReadinessGate onNavigateToJob={(jid) => { const j = jobs.find(x => x.id === jid); if (j) openJobDrawer(j); }} /> : null;
       case 'outstanding-receivables': return canViewCosts ? <OutstandingReceivablesWidget /> : null;
+      case 'field-priorities': return <FieldPrioritiesWidget />;
+      case 'cash-flow-forecast': return canViewCosts ? <CashFlowForecastWidget /> : null;
+      case 'drilling-performance': return <DrillingPerformanceWidget />;
+      case 'safety-dashboard': return <SafetyDashboardWidget />;
+      case 'predictive-insights': return <PredictiveInsightsWidget />;
       default: return null;
     }
   };
