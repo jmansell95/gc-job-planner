@@ -135,7 +135,30 @@
         "unknown"
       ],
       "default": "unknown",
-      "description": "Derived maintenance status from next_service_date. 'ok' = next service >30 days away, 'due_soon' = within 30 days, 'overdue' = past due, 'unknown' = no service date recorded."
+      "description": "Derived maintenance status. 'ok' = within service threshold, 'due_soon' = usage hours approaching service interval or date within 30 days, 'overdue' = past due, 'unknown' = no service data recorded. For rigs and plant, this is driven by operating hours (hours_since_last_service vs service_interval_hours); for vehicles and trailers, it's driven by next_service_date."
+    },
+    "operating_hours": {
+      "type": "number",
+      "default": 0,
+      "description": "Total accumulated engine operating hours for this asset (rigs and plant). Calculated by the recalculateUsageMaintenance function from drilling-duration minutes logged against jobs this asset is assigned to. Reset to 0 when a service is logged."
+    },
+    "hours_since_last_service": {
+      "type": "number",
+      "default": 0,
+      "description": "Engine hours accumulated since the last service. Calculated as operating_hours minus the hours recorded at the last service. When this exceeds service_interval_hours, the asset is flagged 'due_soon' for a usage-based service."
+    },
+    "service_interval_hours": {
+      "type": "number",
+      "description": "Usage-based service interval in engine hours. When hours_since_last_service exceeds this value, the asset is flagged for service. Default 250h for rigs, 500h for heavy machinery. Blank for assets that use date-based maintenance (vehicles, trailers, lifting gear, PAT)."
+    },
+    "hours_at_last_service": {
+      "type": "number",
+      "default": 0,
+      "description": "Operating hours reading at the time of the last service. Used to calculate hours_since_last_service = operating_hours - hours_at_last_service. Set when a service record is logged."
+    },
+    "last_usage_calc_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last usage-hours recalculation run. Set by the recalculateUsageMaintenance function."
     },
     "responsible_person": {
       "type": "string",

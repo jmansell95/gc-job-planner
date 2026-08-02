@@ -32,6 +32,7 @@ const EMPTY = {
   responsible_person: '', tooling_notes: '', compliance_status: 'unknown',
   compliance_expiry_date: '', last_service_date: '', next_service_date: '',
   service_notes: '', repair_notes: '', is_active: true, notes: '',
+  service_interval_hours: '', operating_hours: 0, hours_since_last_service: 0, hours_at_last_service: 0,
 };
 
 export default function AssetComplianceEditor({ asset, onClose }) {
@@ -86,6 +87,9 @@ export default function AssetComplianceEditor({ asset, onClose }) {
         repair_notes: form.repair_notes || '',
         is_active: form.is_active !== false,
         notes: form.notes || '',
+        service_interval_hours: (form.asset_type === 'rig' || form.asset_type === 'machinery') ? (Number(form.service_interval_hours) || (form.asset_type === 'rig' ? 250 : 500)) : null,
+        operating_hours: Number(form.operating_hours) || 0,
+        hours_at_last_service: Number(form.hours_at_last_service) || 0,
       };
       if (isEdit) {
         await base44.entities.SiteAsset.update(asset.id, payload);
@@ -224,6 +228,33 @@ export default function AssetComplianceEditor({ asset, onClose }) {
                   className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
               </div>
             </div>
+            {/* Usage-based maintenance (rigs & machinery only) */}
+            {(form.asset_type === 'rig' || form.asset_type === 'machinery') && (
+              <div className="mt-3 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+                <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <Cog className="w-3.5 h-3.5" /> Usage-Based Maintenance
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-600 mb-1">Service Interval (hrs)</label>
+                    <input type="number" value={form.service_interval_hours || ''} onChange={e => set('service_interval_hours', e.target.value)}
+                      placeholder={form.asset_type === 'rig' ? '250' : '500'}
+                      className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-600 mb-1">Operating Hours</label>
+                    <input type="number" value={form.operating_hours || 0} onChange={e => set('operating_hours', e.target.value)}
+                      className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-slate-50" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-600 mb-1">Hours at Last Service</label>
+                    <input type="number" value={form.hours_at_last_service || 0} onChange={e => set('hours_at_last_service', e.target.value)}
+                      className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-slate-50" />
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5">Engine hours are auto-calculated from drilling logs. Set the interval per asset — 250h for CP rigs, 500h for heavy machinery.</p>
+              </div>
+            )}
           </div>
 
           {/* Notes */}

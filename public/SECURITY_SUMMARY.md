@@ -1,195 +1,187 @@
-# GC Job Planner — Security & Compliance Summary
+# GC Job Planner — Security & System Summary
 
-**Document Date:** July 2026
-**Platform:** Base44 (Backend-as-a-Service)
-**Compliance Frameworks:** ISO 27001 · GDPR · Cyber Essentials
-
----
-
-## 1. Access Control (RBAC & Row-Level Security)
-
-All data access is enforced at the database layer via Row-Level Security (RLS) policies defined per entity. No client-side code can bypass these rules.
-
-### 1.1 Entity-Level Permissions
-
-| Entity | Read | Create | Update | Delete |
-|---|---|---|---|---|
-| **Job** | All authenticated | Admin only | Admin only | Admin only |
-| **SubcontractorLog** | All authenticated | All authenticated | Owner or Admin | Owner or Admin |
-| **FinancialAuditLog** | Admin only | System (open create) | Admin only | Admin only |
-| **AppSetting** | All authenticated | Admin only | Admin only | Admin only |
-| **RateCardItem** | All authenticated | Admin only | Admin only | Admin only |
-| **BillingRule** | All authenticated | Admin only | Admin only | Admin only |
-| **JobBillOfQuantities** | All authenticated | Admin only | Admin only | Admin only |
-| **ExpensePreset** | All authenticated | Admin only | Admin only | Admin only |
-
-### 1.2 Permission Groups
-
-Staff records carry a `permission_group_id` that controls granular access to every admin module and settings page. This is synced to the platform user role to maintain permission parity between the Staff Manager and system-level access.
-
-### 1.3 Client Portal
-
-Client portal access is token-based (`portal_token` per Job) and section-level visibility is controlled via the `portal_sections` JSON field — clients only see what is explicitly enabled.
+**Last updated:** August 2026  
+**Document owner:** Ground Control IT  
+**Classification:** Internal
 
 ---
 
-## 2. Audit Trail & Data Integrity
+## 1. Platform Overview
 
-### 2.1 Financial Audit Log
+The GC Job Planner is a full-stack operations platform built on Base44 (backend-as-a-service) with a React + Tailwind CSS frontend. It manages the complete job lifecycle for Ground Control's geotechnical and groundworks operations: weekly staff allocation, job provisioning, timesheet approval, financial lifecycle management, asset tracking, compliance, and client portal access.
 
-The `FinancialAuditLog` entity is an **immutable** (append-only from the system's perspective) audit trail that records:
-
-- **Entity name & ID** — which record was changed
-- **Action** — create / update / delete
-- **Changed fields** — top-level field names that changed
-- **Field changes** — JSON-encoded `{before, after}` for every changed value
-- **Actor** — user ID and name of the person who made the change
-- **Source** — `entity_automation`, `manual`, or `system`
-- **Record summary** — human-readable description for quick scanning
-
-**RLS Protection:** Only `admin` roles can read, update, or delete audit records, preventing tampering by standard users.
-
-### 2.2 Audit Capture Mechanism
-
-The `recordFinancialAudit` backend function is called by every financial mutation function (e.g., `calculateCharge`, `stampBillingCharge`, `activateBillingContract`) to ensure a complete paper trail for:
-
-- `RateCardItem` changes
-- `BillingRule` changes
-- `JobBillingContract` activations
-- `AppSetting` configuration changes
-- `ExpensePreset` changes
-- `InvestigationSOR` changes
-
-### 2.3 Financial Record Locking
-
-- `SubcontractorLog` records carry a `concur_export_id` that **locks the record** once exported to SAP Concur, preventing post-export modification.
-- `JobBillingContract` BOQ lines are snapshotted at activation time — `agreed_unit_price` is locked and immune to future rate card changes.
+**Tech stack:**
+- Frontend: React 18 + Vite + Tailwind CSS + shadcn/ui
+- Backend: Base44 BaaS (entities, functions, automations, auth)
+- Database: MongoDB (via Base44 entity SDK)
+- Hosting: Base44 cloud (publishes to web + iOS/Android from same code)
+- Integrations: Geotab, Holman, Asset Panda, Bob HR, SAP Concur, SafetyCulture, KeyLogBook, HMRC CIS, Met Office, Google Maps, WhatsApp, Xero/Sage, Stripe
 
 ---
 
-## 3. Margin Guardrails & Financial Controls
+## 2. Authentication & Access Control
 
-### 3.1 Subcontractor Margin Protection
+### Authentication
+- Platform-owned auth backend (tokens, sessions, email verification)
+- Email/password login with OTP verification on registration
+- Google OAuth single-sign-on
+- Password reset flow via email token
+- Hard redirects (window.location.href) after auth state changes — the auth provider must re-initialize
 
-- `SubcontractorLog.markup_percentage` defaults to 15% and the `checkSubconMargin` function flags or blocks zero-margin billing.
-- The `margin_net` and `margin_pct` fields are calculated automatically, ensuring transparency on the sell-side profit.
+### Role-Based Access
+- **Roles:** `super_admin`, `admin`, `management`, `user`, `field`, `read_only`
+- **Permission Groups:** Granular per-module access configured via the PermissionGroup entity. Each staff member can be assigned a permission group that overrides their crew type's default access.
+- **Settings Lockdown:** Admins can lock individual settings pages to specific roles via the SettingsLockdownManager.
+- **Route Guards:** ProtectedRoute wraps all authenticated routes; RouteGuard checks module-level access.
 
-### 3.2 Billing Lifecycle
-
-The billing workflow follows a strict state machine:
-
-```
-Draft → Ready (checkBillingReadiness) → Activated (activateBillingContract)
-     → Charged (stampBillingCharge) → Invoiced (autoGenerateInvoice)
-```
-
-Each transition is gated by a backend function that validates data completeness before allowing progression.
-
----
-
-## 4. Configuration & Secret Management
-
-### 4.1 AppSetting Pattern
-
-All third-party API configurations are stored in the `AppSetting` entity (not hardcoded in source code):
-
-- SAP Concur credentials & GL code mappings
-- Bob HR API configuration
-- HMRC CIS configuration
-- Sub-contractor default markup rules
-- Email alert routing rules
-
-**RLS:** Admin-only write access; all authenticated users can read (for non-sensitive keys like email branding).
-
-### 4.2 No Hardcoded Secrets
-
-No API keys, passwords, or connection strings exist in the application source code. All runtime secrets are managed by the Base44 platform's secret management system and injected at function execution time.
+### Row-Level Security (RLS)
+- **Job:** Admin-only create/update/delete; all authenticated users can read
+- **Timesheet:** Users can create and update their own; admins can delete any; managers approve
+- **SubcontractorLog:** Creator or admin can update/delete
+- **Invoice, VehicleLocationLog:** Admin-only read/create/update/delete
+- **RateCardItem, BillingRule, JobBillingContract, JobBillOfQuantities:** Admin-only write operations
+- **AssetReturnLog:** All users can create; admin-only update/delete
+- **JobDelayLog:** All users can create; admin-only delete
 
 ---
 
-## 5. Data Protection (GDPR)
+## 3. Data Model
 
-### 5.1 Data Minimisation
+### Core Entities (40+)
+| Entity | Purpose | Sensitive Data |
+|--------|---------|---------------|
+| User | Platform user accounts | Email, role |
+| Staff | Crew member profiles | Email, phone, worker type |
+| Job | Job/site records | Location, client, budget |
+| Project | Parent project grouping | — |
+| Timesheet | Daily/weekly time entries | Hours, pay rates |
+| RotaAssignment | Weekly rota slots | — |
+| SiteAsset | Rigs, plant, equipment | Compliance data |
+| Vehicle | Fleet vehicles | Reg, VIN |
+| Invoice | Client billing | Financial totals |
+| SubcontractorLog | Sub-con work logs | Purchase costs, margins |
+| JobBillingContract | Locked billing terms | Rate snapshots |
+| RateCardItem | Master price list | Pricing |
+| BillingRule | Charge calculation rules | Pricing |
 
-- Staff PII is limited to `name`, `email`, `phone`, and role/assignment data.
-- Client portal tokens are opaque UUIDs — no PII embedded.
-- Compliance documents (`ComplianceItem`) store file URLs only; the platform's private storage controls access.
-
-### 5.2 File Storage
-
-All uploaded files (signatures, compliance certificates, invoices) are stored in the platform's managed storage. Private files (`UploadPrivateFile`) require signed URLs (`CreateFileSignedUrl`) with time-limited access (default 300 seconds).
-
-### 5.3 User Account Management
-
-- User accounts are created via invitation only (`base44.users.inviteUser`) — no open registration for staff.
-- Admins control role assignment (`admin` or `user`).
-- Staff can self-serve only their own profile and schedule.
-
----
-
-## 6. Automated Compliance Monitoring
-
-### 6.1 Scheduled Automations
-
-| Function | Schedule | Purpose |
-|---|---|---|
-| `checkComplianceExpiry` | Daily | Flags assets with expiring LOLER/PUWER/PAT certificates |
-| `checkVehicleMaintenance` | Daily | Flags vehicles with upcoming MOT/service dates |
-| `checkAllJobsAssetCompliance` | Daily | Validates all assets assigned to active jobs are compliant |
-| `checkJobBudgetAlerts` | Daily | Flags jobs approaching or exceeding budget thresholds |
-| `checkSubconMargin` | On-demand | Validates subcontractor markup guardrails |
-| `syncBankHolidays` | Weekly | Keeps holiday calendar current for payroll accuracy |
-
-### 6.2 Service Role Execution
-
-All scheduled automations run using `base44.asServiceRole`, which:
-
-- Executes with elevated privileges independent of any user session
-- Eliminates session-dependency bugs
-- Ensures automations continue running even if the triggering user is deactivated
+### Data Storage Limits
+- **Never** store large content (base64, PDFs, blobs) in entity fields — use UploadFile and store the file_url
+- Entity fields have size limits; oversized fields break record operations
+- File uploads go to Base44 storage; private files use UploadPrivateFile + CreateFileSignedUrl
 
 ---
 
-## 7. Webhook & Integration Security
+## 4. Integration Security
 
-### 7.1 Inbound Webhooks
+### API Key Management
+All third-party API credentials are stored in the **AppSetting** entity (not platform-level secrets), keyed by integration:
+- `geotab_config` — Geotab GPS credentials
+- `holman_config` — Holman fleet management
+- `asset_panda_config` — Asset Panda inventory
+- `bob_hr_config` — Bob HR (Hibob) time-off bridge
+- `concur_config` — SAP Concur expense sync
+- `safety_culture_config` — SafetyCulture (iAuditor)
+- `keylogbook_config` — KeyLogBook AGS webhook
+- `cis_config` — HMRC CIS verification
+- `met_office_config` — Met Office weather API
+- `google_maps_config` — Google Maps geocoding
+- `whatsapp_config` — WhatsApp Business API
+- `accounting_config` — Xero/Sage accounting
+- `stripe_config` — Stripe payment gateway
 
-All third-party webhooks (`holmanWebhook`, `bobWebhook`, `receiveKeyLogBookData`, `receiveSafetyCultureData`) are processed as backend functions with:
+### Webhook Security
+Each integration that receives webhooks uses a shared secret for authentication:
+- Secrets are auto-generated (32-char alphanumeric) or manually set
+- Secrets are sent as query params or custom headers depending on the provider
+- Webhook endpoints validate the secret before processing
 
-- Payload validation before any database write
-- Structured error responses for malformed data
-- No direct entity creation from raw payloads — all data passes through processing logic
-
-### 7.2 Outbound Integrations
-
-- **SAP Concur:** Expense export via `syncConcurExpenses` with reconciliation via `importConcurReconciliation`
-- **Bob HR:** Absence sync via `syncBobAbsences` and `bobWebhook`
-- **Holman Fleet:** Vehicle data sync via `syncHolmanFleet` and `holmanWebhook`
-- **HMRC CIS:** Verification via `verifyCIS` using AppSetting-stored configuration
-
----
-
-## 8. Cyber Essentials Checklist
-
-| Control | Status |
-|---|---|
-| Firewalls (platform-managed) | ✅ Base44 infrastructure |
-| Secure configuration | ✅ RLS on all sensitive entities |
-| User access control | ✅ Invite-only, role-based, permission groups |
-| Malware protection | ✅ Platform-managed (no user-uploaded executables) |
-| Patch management | ✅ Platform-managed (Base44 handles infrastructure patching) |
-
----
-
-## 9. Summary of Controls for IT Sign-off
-
-1. **Data is isolated by role** — non-admin users cannot create, modify, or delete financial configuration entities.
-2. **Every financial change is audited** — the `FinancialAuditLog` captures who/what/when for all sensitive mutations, and is itself protected from tampering.
-3. **No secrets in code** — all third-party credentials live in `AppSetting` (admin-only) or platform secrets management.
-4. **Compliance is automated** — daily checks ensure no non-compliant equipment is used on active jobs.
-5. **Records lock after financial export** — preventing post-reconciliation modification of subcontractor costs.
-6. **Access is invite-only** — no open registration; admins control who joins and with what role.
+### OAuth Connectors
+- No OAuth app connectors are currently authorized
+- Supported connectors available via the Base44 platform (Google Calendar, Slack, Notion, Salesforce, etc.)
+- BYO shared connectors can be registered by workspace admins for services without platform OAuth apps
 
 ---
 
-*This document reflects the security architecture as implemented in the GC Job Planner application. For questions, contact the system administrator.*
+## 5. Financial Controls
+
+### Audit Trail
+- **FinancialAuditLog** entity records every change to locked rate cards, SORs, billing rules, presets, and contracts
+- Tamper-evident: records are append-only with timestamps and user attribution
+- Accessible via Settings → Financial Audit Log (admin-only)
+
+### Billing Lock
+- BillingContract activation locks rate snapshots — future rate card changes don't affect active contracts
+- Invoices are locked once exported to payroll or accounting
+- Subcontractor logs are locked once synced to SAP Concur
+
+### Margin Guardrails
+- Subcontractor markup defaults to 15%; system flags or blocks zero-margin billing
+- Job budget alerts trigger when active jobs breach budget, margin, or profit thresholds
+- Predictive margin analysis based on daily burn rates
+
+---
+
+## 6. Compliance & Safety
+
+### Asset Compliance
+- LOLER (lifting equipment): 6-month default inspection interval
+- PUWER (work equipment): 12-month default inspection interval
+- PAT (portable appliances): 12-month default (3 months for 110V construction tools)
+- Compliance status auto-calculated: compliant → expiring (30 days) → expired
+- Non-compliant assets are auto-deactivated and cannot be added to jobs
+
+### Usage-Based Maintenance (Phase 1)
+- Rigs and plant equipment use **engine operating hours** instead of calendar dates
+- `recalculateUsageMaintenance` function sums drilling-duration minutes from InvestigationLogs
+- Each asset has a configurable `service_interval_hours` (default 250h for rigs, 500h for machinery)
+- When `hours_since_last_service` exceeds the interval, the asset is flagged and a maintenance booking is auto-created
+
+### Safety
+- SafetyCulture (iAuditor) integration syncs site safety audits
+- Job hazard maps show known site risks
+- Briefing sign-off required before starting work on site
+- Safety reports can be submitted from the field
+
+---
+
+## 7. Data Privacy
+
+### Personal Data
+- Staff names, emails, and phone numbers are stored in the Staff entity
+- User emails are stored in the built-in User entity (platform-managed)
+- No special category data (health, biometrics, etc.) is processed
+
+### Data Retention
+- Timesheets are retained indefinitely (payroll compliance)
+- VehicleLocationLog (GPS data) is admin-only read access
+- Demo data is flagged and skipped by all sync functions
+
+### Client Portal
+- Portal access is token-based (portal_token on Job entity)
+- Portal sections are configurable per job (portal_sections object)
+- No authentication required — token in URL provides access
+- Portal can be disabled per job (portal_enabled flag)
+
+---
+
+## 8. Known Issues & Limitations
+
+1. **Asset linking via JobAssetAssignment/JobCostItem migration** — pending
+2. **Five crew members** on the rota are missing personal day rates, causing crew labour costs to show as £0
+3. **Rate card description matching** is fragile — discrepancies in calculated financial figures may occur
+4. **HMRC CIS credentials** cannot be hardcoded as platform secrets — managed via AppSetting entity instead
+
+---
+
+## 9. Backup & Recovery
+
+- Database is managed by Base44 platform (automated backups)
+- Demo Data Manager can reset the database to a clean slate
+- No manual backup/restore is required — platform handles this
+
+---
+
+## 10. Incident Response
+
+For platform-level issues (auth, database, hosting), contact Base44 support.  
+For application-level issues (business logic, integrations), check the Audit Trail and Automation Center logs in the admin dashboard.

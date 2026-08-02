@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Wrench, Sparkles, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
+import UsageHoursWidget from '@/components/righub/UsageHoursWidget';
 
 /**
  * Fleet Hub → Maintenance tab.
@@ -55,6 +56,9 @@ export default function FleetMaintenancePanel() {
       </div>
 
       <VehicleMaintenanceManager />
+
+      {/* Usage-based maintenance (rigs & plant) */}
+      <UsageHoursWidget />
     </div>
   );
 }
