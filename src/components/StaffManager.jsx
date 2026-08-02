@@ -14,6 +14,7 @@ import StaffShiftEditor from '@/components/StaffShiftEditor';
 import { formatWorkerType } from '@/utils/format';
 import { format } from 'date-fns';
 import { useConfigLists } from '@/hooks/useConfigLists';
+import { useAuth } from '@/lib/AuthContext';
 
 const workerBadge = {
   direct_employee: 'bg-emerald-100 text-emerald-700',

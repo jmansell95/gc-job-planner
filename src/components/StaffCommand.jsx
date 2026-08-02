@@ -14,6 +14,7 @@ import HotelBookingsManager from '@/components/staff/HotelBookingsManager';
 import StaffShiftEditor from '@/components/StaffShiftEditor';
 import { useConfigLists } from '@/hooks/useConfigLists';
 import { formatWorkerType } from '@/utils/format';
+import { useAuth } from '@/lib/AuthContext';
 import { complianceDaysUntil } from '@/utils/complianceDate';
 import { CardGridSkeleton } from '@/components/StateViews';
 
