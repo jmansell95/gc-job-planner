@@ -37,7 +37,7 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
             {/* Power Tools — mobile parity with the desktop sidebar action cluster */}
             <div className="px-3 pt-4 pb-1">
               <p className="px-1 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Power Tools</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {onDrillingIntelligence && (
                   <button onClick={onDrillingIntelligence} type="button"
                     className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition touch-manipulation select-none ring-1 ring-white/15">
@@ -50,18 +50,6 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
                     className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition touch-manipulation select-none ring-1 ring-white/15">
                     <ScanLine className="w-4 h-4" />
                     <span className="text-[10px] font-medium leading-tight text-center">Asset Lens</span>
-                  </button>
-                )}
-                {onNotifications && (
-                  <button onClick={onNotifications} type="button"
-                    className="relative flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition touch-manipulation select-none ring-1 ring-white/15">
-                    <Bell className="w-4 h-4" />
-                    <span className="text-[10px] font-medium leading-tight text-center">Alerts</span>
-                    {notifCount > 0 && (
-                      <span className="absolute top-1 right-2 min-w-[15px] h-4 px-1 bg-[#8DC63F] text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-1 ring-white/30">
-                        {notifCount > 9 ? '9+' : notifCount}
-                      </span>
-                    )}
                   </button>
                 )}
                 {onAssistant && (
