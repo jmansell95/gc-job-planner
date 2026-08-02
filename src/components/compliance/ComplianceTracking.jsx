@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ShieldCheck, Plus, Trash2, Edit2, Upload, FileText, AlertTriangle, X, CheckCircle2, Clock, FileWarning, Search } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { formatComplianceDate, complianceDaysUntil, parseComplianceDate } from '@/utils/complianceDate';
+import ComplianceExpiryForecast from '@/components/compliance/ComplianceExpiryForecast';
 
 const CATEGORIES = [
   { key: 'staff', label: 'Staff', color: 'bg-blue-100 text-blue-700' },
@@ -146,6 +147,11 @@ export default function ComplianceTracking() {
 
   return (
     <div>
+      {/* Expiry velocity forecast */}
+      <div className="mb-5">
+        <ComplianceExpiryForecast items={items} />
+      </div>
+
       {/* Summary stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {stats.map(s => {

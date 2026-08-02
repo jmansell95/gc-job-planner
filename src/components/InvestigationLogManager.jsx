@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
   FlaskConical, Layers, Ruler, TestTube, Wrench, MapPin, Package, ClipboardList, ArrowDownToLine,
-  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban, Beaker, Radar, Boxes,   ShieldCheck, Tablet, Mountain, Eye, EyeOff, ChevronDown, User
+  Droplets, Calculator, Gauge, Waves, Undo2, ShieldAlert, Camera, CheckCircle2, AlertTriangle, XCircle, Ban, Beaker, Radar, Boxes,   ShieldCheck, Tablet, Mountain, Eye, EyeOff, ChevronDown, User, PoundSterling
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { titleCase } from '@/utils/format';
@@ -253,6 +253,23 @@ function LogEntryCard({ log }) {
           {logTypeConfig[log.log_type] && (
             <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${logTypeConfig[log.log_type].badge}`}>{logTypeConfig[log.log_type].label}</span>
           )}
+          {log.billing_status === 'no_charge' ? (
+            <span className="text-xs bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+              <PoundSterling className="w-2.5 h-2.5" /> No Charge
+            </span>
+          ) : log.billing_status === 'custom_fee' && log.custom_fee > 0 ? (
+            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+              <PoundSterling className="w-2.5 h-2.5" /> £{Number(log.custom_fee).toLocaleString('en-GB', { maximumFractionDigits: 0 })}
+            </span>
+          ) : log.chargeable && log.charge_amount > 0 ? (
+            <span className="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+              <PoundSterling className="w-2.5 h-2.5" /> £{Number(log.charge_amount).toLocaleString('en-GB', { maximumFractionDigits: 0 })}
+            </span>
+          ) : log.chargeable ? (
+            <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium inline-flex items-center gap-0.5">
+              <PoundSterling className="w-2.5 h-2.5" /> Chargeable
+            </span>
+          ) : null}
           {log.borehole_ref && <span className="text-xs font-mono font-bold text-blue-700">{log.borehole_ref}</span>}
           {log.sample_id && <span className="text-xs font-mono font-bold text-purple-700">{log.sample_id}</span>}
           <span className="text-xs text-slate-400 ml-auto inline-flex items-center gap-1">

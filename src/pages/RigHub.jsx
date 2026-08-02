@@ -23,6 +23,7 @@ import FleetComplianceDonut from '@/components/righub/FleetComplianceDonut';
 import BulkActionBar from '@/components/righub/BulkActionBar';
 import FleetSyncPanel from '@/components/righub/FleetSyncPanel';
 import DrillingEfficiencyPanel from '@/components/righub/DrillingEfficiencyPanel';
+import RigUtilizationSparkline from '@/components/righub/RigUtilizationSparkline';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { Skeleton } from '@/components/StateViews';
 import { RefreshCw, Lock, Check, CheckSquare } from 'lucide-react';
@@ -310,6 +311,7 @@ export default function RigHub() {
                         </div>
                       );
                     })()}
+                    <RigUtilizationSparkline rigId={rig.id} />
                     {rig.next_service_date && (
                       <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
                         <ScanLine className="w-3 h-3" /> Next service {safeFmt(rig.next_service_date)}

@@ -21,6 +21,7 @@ import MonthlyStatementsPanel from '@/components/billing/MonthlyStatementsPanel'
 import VendorInvoiceReconciliation from '@/components/financials/VendorInvoiceReconciliation';
 import BillingLifecycleHub from '@/components/billing/BillingLifecycleHub';
 import ProjectFinancialsDetail from '@/components/financials/ProjectFinancialsDetail';
+import BillingInsightPanel from '@/components/billing/BillingInsightPanel';
 
 const fmt = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -417,6 +418,9 @@ export default function BillingPage({ onSelectJob }) {
           </>
         )}
       </div>
+
+      {/* Predictive billing insights */}
+      {!isLoading && <BillingInsightPanel rows={filtered} onSelectJob={onSelectJob} />}
 
       {/* Toolbar */}
       <div className="card-modern rounded-2xl p-4 mb-4">

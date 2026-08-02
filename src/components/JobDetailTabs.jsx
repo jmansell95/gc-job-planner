@@ -6,7 +6,7 @@ import {
   Boxes, PoundSterling, FolderOpen, FileText, Eye, Download, Activity, Mountain,
   LayoutGrid, CalendarDays, ShieldCheck, Users, Briefcase, Truck, User, HardHat,
   Phone, MapPin, Send, CheckCircle2, UsersRound, CalendarClock, Ruler, StickyNote, Hotel, ArrowRightLeft,
-  Camera, Clock
+  Camera, Clock, Scale
 } from 'lucide-react';
 import { format } from 'date-fns';
 import JobLogisticsHub from '@/components/logistics/JobLogisticsHub';
@@ -17,6 +17,7 @@ import JobHotelBookings from '@/components/JobHotelBookings';
 import AutoFinancialsBreakdown from '@/components/financials/AutoFinancialsBreakdown';
 import SubcontractorLogManager from '@/components/financials/SubcontractorLogManager';
 import DailyCostViewer from '@/components/financials/DailyCostViewer';
+import JobFinancialFootprint from '@/components/financials/JobFinancialFootprint';
 import BillingExportButton from '@/components/BillingExportButton';
 import BOQManager from '@/components/billing/BOQManager';
 import JobPhotoGallery from '@/components/JobPhotoGallery';
@@ -97,6 +98,7 @@ export default function JobDetailTabs({
           <TabsTrigger value="accommodation" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Hotel className="w-3.5 h-3.5 shrink-0" />Hotels</TabsTrigger>
           <TabsTrigger value="compliance" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><ShieldCheck className="w-3.5 h-3.5 shrink-0" />Compliance</TabsTrigger>
           {canSeeCosts && <TabsTrigger value="financials" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><PoundSterling className="w-3.5 h-3.5 shrink-0" />Financials</TabsTrigger>}
+          {canSeeCosts && <TabsTrigger value="footprint" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Scale className="w-3.5 h-3.5 shrink-0" />Footprint</TabsTrigger>}
           <TabsTrigger value="documents" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><FolderOpen className="w-3.5 h-3.5 shrink-0" />Documents</TabsTrigger>
         </TabsList>
       </div>
@@ -225,6 +227,13 @@ export default function JobDetailTabs({
             <p className="text-xs text-slate-600 mb-3">Pull every billable item — equipment, labour, hotel, deliveries, meterage — into one printable report for invoicing.</p>
             <BillingExportButton jobId={job.id} jobName={job.name} />
           </div>
+        </TabsContent>
+      )}
+
+      {/* ── Financial Footprint Tab ── */}
+      {canSeeCosts && (
+        <TabsContent value="footprint" className="space-y-4 mt-0">
+          <JobFinancialFootprint job={job} />
         </TabsContent>
       )}
 
