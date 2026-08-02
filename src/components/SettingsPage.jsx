@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Menu } from 'lucide-react';
+import { Settings, ArrowLeft } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import StaffCommand from '@/components/StaffCommand';
 import VehicleManager from '@/components/VehicleManager';
@@ -21,7 +21,7 @@ import AssetManifestManager from '@/components/assetpanda/AssetManifestManager';
 import RateCardManager from '@/components/RateCardManager';
 import DropdownConfigManager from '@/components/DropdownConfigManager';
 import SettingsHubOverview from '@/components/SettingsHubOverview';
-import SettingsNav, { accessibleSettingsItems } from '@/components/SettingsNav';
+import { accessibleSettingsItems } from '@/components/SettingsNav';
 import ComplianceManager from '@/components/ComplianceManager';
 import ComplianceRulesSettings from '@/components/ComplianceRulesSettings';
 import LogQualityControl from '@/components/investigation/LogQualityControl';
@@ -57,11 +57,16 @@ import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { resolveRole } from '@/utils/access';
 import { base44 } from '@/api/base44Client';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+
+// IDs managed by the Integrations Hub — back button returns to 'integrations' from these
+const INTEGRATION_IDS = new Set([
+  'geotab-sync', 'holman-sync', 'asset-panda', 'bob-hr', 'concur-sync',
+  'safety-culture', 'ags-import', 'cis-verification', 'payroll-export',
+  'met-office', 'google-maps', 'whatsapp', 'accounting-sync', 'payment-gateway',
+]);
 
 export default function SettingsPage({ initialTab, onSelectJob }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'hub');
-  const [navOpen, setNavOpen] = useState(false);
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
@@ -87,10 +92,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
   const activeLockdown = active ? lockdownMap[active.id] : null;
   const isLockedOut = active && activeLockdown?.locked && !isPageAccessible(active.id, role);
 
-  const handleSelect = (id) => {
-    setActiveTab(id);
-    setNavOpen(false);
-  };
+  const isIntegration = INTEGRATION_IDS.has(activeTab);
 
   const renderContent = () => {
     // If this page is locked down and the user doesn't have access, show the guard.
@@ -159,39 +161,22 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
         title="Settings"
         icon={Settings}
         subtitle={active?.label ? `${active.label}${active.desc ? ' · ' + active.desc : ''}` : 'Configure crews, assets, billing & automation'}
-        actions={
-          <button onClick={() => setNavOpen(true)} className="lg:hidden inline-flex items-center gap-2.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm">
-            <Menu className="w-4 h-4" />
-            <span>{active?.label || 'All Settings'}</span>
-          </button>
-        }
       />
 
-      <div className="flex gap-5">
-        {/* Persistent sidebar — desktop only */}
-        <aside className="hidden lg:block w-64 flex-shrink-0">
-          <div className="sticky top-4 bg-white rounded-xl border border-slate-200 shadow-sm p-3 max-h-[calc(100vh-2rem)] overflow-y-auto">
-            <SettingsNav activeId={activeTab} onChange={handleSelect} role={role} lockdownMap={lockdownMap} profile={profile} />
-          </div>
-        </aside>
+      {/* Back button — shown on all sub-pages, returns to overview or integrations hub */}
+      {activeTab !== 'hub' && (
+        <button
+          onClick={() => setActiveTab(isIntegration ? 'integrations' : 'hub')}
+          className="mb-4 inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition shadow-sm"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          {isIntegration ? 'Back to Integrations' : 'Back to Overview'}
+        </button>
+      )}
 
-        {/* Main content */}
-        <div className="flex-1 min-w-0">
-          <ErrorBoundary key={activeTab}>
-            {renderContent()}
-          </ErrorBoundary>
-        </div>
-      </div>
-
-      {/* Mobile navigation drawer */}
-      <Sheet open={navOpen} onOpenChange={setNavOpen}>
-        <SheetContent side="left" className="w-80 max-w-[85vw] p-4 overflow-y-auto">
-          <SheetHeader className="mb-3">
-            <SheetTitle className="text-left">Settings Menu</SheetTitle>
-          </SheetHeader>
-          <SettingsNav activeId={activeTab} onChange={handleSelect} role={role} lockdownMap={lockdownMap} profile={profile} />
-        </SheetContent>
-      </Sheet>
+      <ErrorBoundary key={activeTab}>
+        {renderContent()}
+      </ErrorBoundary>
     </div>
   );
 }

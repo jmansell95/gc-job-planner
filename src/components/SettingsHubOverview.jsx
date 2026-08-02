@@ -1,13 +1,36 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Users, Briefcase, Truck, Building2, Receipt, Package, Wrench, HardHat, Boxes, Mail, Palette, Zap, Timer, Banknote, CalendarX, Database, Tag, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, ArrowRight, Activity, BookOpen, Sparkles, Radio, Satellite } from 'lucide-react';
+import {
+  Users, Briefcase, Truck, Building2, Receipt, Package, HardHat, Boxes, Mail,
+  Palette, Zap, Timer, Banknote, CalendarX, Tag, ListChecks, ShieldCheck,
+  FlaskConical, Clock, ClipboardCheck, Scale, ArrowRight, Activity, BookOpen,
+  Sparkles, QrCode, ArrowUpDown, TrendingUp, FileSpreadsheet, ScrollText,
+  History, Gauge, Link2, Search, ChevronRight,
+} from 'lucide-react';
+
+const INTEGRATION_SETTING_KEYS = [
+  'geotab_config', 'holman_config', 'asset_panda_config', 'bob_hr_config',
+  'concur_config', 'safety_culture_config', 'keylogbook_config', 'cis_config',
+  'payroll_config', 'met_office_config', 'google_maps_config', 'whatsapp_config',
+  'accounting_config', 'stripe_config',
+];
+const INTEGRATION_CONNECTED_FIELDS = {
+  geotab_config: 'username', holman_config: 'api_key', asset_panda_config: 'token',
+  bob_hr_config: 'username', concur_config: 'client_id', safety_culture_config: 'api_token',
+  keylogbook_config: 'webhook_secret', cis_config: 'api_key', payroll_config: 'provider',
+  met_office_config: 'api_key', google_maps_config: 'api_key', whatsapp_config: 'api_token',
+  accounting_config: 'provider', stripe_config: 'secret_key',
+};
 
 /**
  * Settings Command Hub — premium at-a-glance overview of everything configurable.
- * Shows live counts, needs-attention alerts, and quick-jump cards grouped by domain.
+ * Shows live counts, needs-attention alerts, search, and quick-jump cards grouped by domain.
+ * Integrations are consolidated in the Integrations Hub (single banner card here).
  */
 export default function SettingsHubOverview({ onNavigate }) {
+  const [search, setSearch] = useState('');
+
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
@@ -16,12 +39,15 @@ export default function SettingsHubOverview({ onNavigate }) {
   const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: () => base44.entities.Supplier.list() });
   const { data: rateItems = [] } = useQuery({ queryKey: ['rate-card-items'], queryFn: () => base44.entities.RateCardItem.list('-created_date', 500) });
   const { data: costPresets = [] } = useQuery({ queryKey: ['cost-presets-hub'], queryFn: () => base44.entities.CostPreset.list('-created_date', 500) });
-  const { data: assets = [] } = useQuery({ queryKey: ['site-assets-catalogue'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: billingRules = [] } = useQuery({ queryKey: ['billing-rules'], queryFn: () => base44.entities.BillingRule.list() });
   const { data: complianceItems = [] } = useQuery({ queryKey: ['compliance-items-hub'], queryFn: () => base44.entities.ComplianceItem.list('-created_date', 500) });
   const { data: invLogs = [] } = useQuery({ queryKey: ['inv-logs-hub'], queryFn: () => base44.entities.InvestigationLog.list('-created_date', 200) });
   const { data: timesheets = [] } = useQuery({ queryKey: ['timesheets-hub'], queryFn: () => base44.entities.Timesheet.list('-created_date', 200) });
+  const { data: allSettings = [] } = useQuery({
+    queryKey: ['all-integration-configs'],
+    queryFn: () => base44.entities.AppSetting.filter({ key: { $in: INTEGRATION_SETTING_KEYS } }, '-created_date', 50),
+  });
 
   const ourRateItems = rateItems.filter(r => r.rate_card_source !== 'supplier').length;
   const pendingReviewLogs = invLogs.filter(l => l.manager_review_status === 'pending').length;
@@ -29,41 +55,57 @@ export default function SettingsHubOverview({ onNavigate }) {
   const activeStaff = staff.filter(s => s.is_active !== false).length;
   const activeJobs = jobs.filter(j => (j.status || 'planning') === 'in_progress').length;
 
+  const integrationConnectedCount = useMemo(() => {
+    const cfgMap = {};
+    for (const s of allSettings) cfgMap[s.key] = s.value || {};
+    return INTEGRATION_SETTING_KEYS.filter(k => {
+      const field = INTEGRATION_CONNECTED_FIELDS[k];
+      return cfgMap[k] && cfgMap[k][field];
+    }).length;
+  }, [allSettings]);
+
   const groups = [
     { group: 'People & Teams', icon: Users, accent: 'from-emerald-500 to-teal-600', items: [
       { id: 'staff', icon: Users, label: 'Crew Members', value: staff.length, sub: `${activeStaff} active`, color: 'emerald' },
-      { id: 'teams', icon: Users, label: 'Crews', value: teams.length, sub: 'Teams & sub-teams', color: 'blue' },
-      { id: 'access-levels', icon: ShieldCheck, label: 'Access Levels', value: '—', sub: 'Permission groups', color: 'slate' },
+      { id: 'teams', icon: Users, label: 'Crew Types', value: teams.length, sub: 'Teams & capabilities', color: 'blue' },
+      { id: 'access-levels', icon: ShieldCheck, label: 'Permission Groups', value: '—', sub: 'Access control roles', color: 'slate' },
       { id: 'absences', icon: CalendarX, label: 'Absences', value: '—', sub: 'Leave & time off', color: 'amber' },
     ]},
     { group: 'Operations', icon: Activity, accent: 'from-blue-500 to-cyan-600', items: [
-      { id: 'asset-panda', icon: Database, label: 'Asset Panda Sync', value: '—', sub: 'Inventory sync', color: 'cyan' },
+      { id: 'asset-manifests', icon: QrCode, label: 'Van Manifest QRs', value: '—', sub: 'QR print-outs for bulky items', color: 'violet' },
       { id: 'equipment-library', icon: Boxes, label: 'Equipment Sets', value: costPresets.length, sub: 'Pre-built sets', color: 'emerald' },
       { id: 'vehicles', icon: Truck, label: 'Vehicles', value: vehicles.length, sub: 'Fleet & MOTs', color: 'amber' },
       { id: 'job-types', icon: Tag, label: 'Job Types', value: '—', sub: 'Types & colours', color: 'slate' },
       { id: 'dropdowns', icon: ListChecks, label: 'Dropdown Manager', value: '—', sub: 'Edit every dropdown', color: 'violet' },
       { id: 'automations', icon: Zap, label: 'Automations', value: '—', sub: 'Background tasks', color: 'violet' },
-      { id: 'ags-import', icon: FileUp, label: 'KeyLogBook Settings', value: '—', sub: 'Webhook sync & imports', color: 'cyan' },
-      { id: 'safety-culture', icon: ShieldAlert, label: 'Safety Culture Sync', value: '—', sub: 'Audit & form sync', color: 'rose' },
-      { id: 'geotab-sync', icon: Satellite, label: 'Geotab GPS Sync', value: '—', sub: 'Live vehicle tracking', color: 'blue' },
     ]},
     { group: 'Compliance & Review', icon: ShieldCheck, accent: 'from-rose-500 to-pink-600', items: [
       { id: 'compliance', icon: ShieldCheck, label: 'Compliance', value: complianceItems.length, sub: 'Training & qualifications', color: 'rose' },
+      { id: 'compliance-rules', icon: Gauge, label: 'Compliance Rules', value: '—', sub: 'LOLER, PUWER & PAT intervals', color: 'slate' },
       { id: 'log-qc', icon: FlaskConical, label: 'Log QC', value: pendingReviewLogs, sub: 'Pending review', color: 'violet' },
       { id: 'audit-trail', icon: ClipboardCheck, label: 'Audit Trail', value: jobs.length, sub: 'Job packs for auditors', color: 'emerald' },
       { id: 'timesheets', icon: Clock, label: 'Timesheets', value: pendingTimesheets, sub: 'Awaiting approval', color: 'blue' },
     ]},
     { group: 'Contacts', icon: Building2, accent: 'from-indigo-500 to-blue-600', items: [
       { id: 'clients', icon: Building2, label: 'Clients', value: clients.length, sub: 'Client contacts', color: 'emerald' },
-      { id: 'contractors', icon: HardHat, label: 'Contractors', value: contractors.length, sub: 'Subcontractors', color: 'indigo' },
+      { id: 'contractors', icon: HardHat, label: 'Sub-contractors', value: contractors.length, sub: 'Onboard & vet', color: 'indigo' },
       { id: 'suppliers', icon: Package, label: 'Suppliers', value: suppliers.length, sub: 'Hire suppliers', color: 'amber' },
     ]},
     { group: 'Finance & Billing', icon: Receipt, accent: 'from-emerald-600 to-green-700', items: [
       { id: 'rate-card', icon: Receipt, label: 'Master Price List', value: ourRateItems, sub: 'Your rate card', color: 'emerald' },
       { id: 'billing', icon: Banknote, label: 'Billing Rules', value: billingRules.length, sub: 'Charge rules', color: 'blue' },
       { id: 'invoicing', icon: Receipt, label: 'Billing & Invoicing', value: '—', sub: 'Job cost summaries', color: 'emerald' },
+      { id: 'data-exchange', icon: ArrowUpDown, label: 'Data Exchange', value: '—', sub: 'Bulk import / export CSV', color: 'cyan' },
       { id: 'overtime', icon: Timer, label: 'Overtime', value: '—', sub: 'Rate multipliers', color: 'rose' },
       { id: 'business-rules', icon: Scale, label: 'Business Rules', value: '—', sub: 'Hours & travel rules', color: 'slate' },
+    ]},
+    { group: 'Financial Control', icon: TrendingUp, accent: 'from-amber-500 to-orange-600', items: [
+      { id: 'expense-presets', icon: Receipt, label: 'Expense Presets', value: '—', sub: 'Quick-add crew expenses', color: 'amber' },
+      { id: 'subcon-markup', icon: TrendingUp, label: 'Sub-Con Markup', value: '—', sub: 'Default markup %', color: 'emerald' },
+      { id: 'gl-mapping', icon: FileSpreadsheet, label: 'GL Code Mapping', value: '—', sub: 'Map to SAP Concur GL', color: 'slate' },
+      { id: 'billing-contracts', icon: ScrollText, label: 'Billing Contracts', value: '—', sub: 'Locked per-job terms', color: 'indigo' },
+      { id: 'financial-audit', icon: History, label: 'Financial Audit Log', value: '—', sub: 'Tamper-evident history', color: 'rose' },
+      { id: 'job-alerts', icon: Gauge, label: 'Job Budget Alerts', value: '—', sub: 'Budget & margin alerts', color: 'amber' },
     ]},
     { group: 'Communication', icon: Mail, accent: 'from-violet-500 to-purple-600', items: [
       { id: 'global-branding', icon: Palette, label: 'Global Branding', value: '—', sub: 'Email colours & banners', color: 'violet' },
@@ -77,14 +119,14 @@ export default function SettingsHubOverview({ onNavigate }) {
 
   // Accent stripe + icon tile colour per card colour
   const accent = {
-    emerald: { stripe: 'from-emerald-400 to-emerald-600', tile: 'bg-gradient-to-br from-emerald-400 to-emerald-600', text: 'text-emerald-600', ring: 'ring-emerald-100' },
-    blue: { stripe: 'from-blue-400 to-blue-600', tile: 'bg-gradient-to-br from-blue-400 to-blue-600', text: 'text-blue-600', ring: 'ring-blue-100' },
-    amber: { stripe: 'from-amber-400 to-orange-500', tile: 'bg-gradient-to-br from-amber-400 to-orange-500', text: 'text-amber-600', ring: 'ring-amber-100' },
-    rose: { stripe: 'from-rose-400 to-pink-600', tile: 'bg-gradient-to-br from-rose-400 to-pink-600', text: 'text-rose-600', ring: 'ring-rose-100' },
-    slate: { stripe: 'from-slate-400 to-slate-600', tile: 'bg-gradient-to-br from-slate-400 to-slate-600', text: 'text-slate-600', ring: 'ring-slate-100' },
-    violet: { stripe: 'from-violet-400 to-purple-600', tile: 'bg-gradient-to-br from-violet-400 to-purple-600', text: 'text-violet-600', ring: 'ring-violet-100' },
-    cyan: { stripe: 'from-cyan-400 to-sky-600', tile: 'bg-gradient-to-br from-cyan-400 to-sky-600', text: 'text-cyan-600', ring: 'ring-cyan-100' },
-    indigo: { stripe: 'from-indigo-400 to-blue-600', tile: 'bg-gradient-to-br from-indigo-400 to-blue-600', text: 'text-indigo-600', ring: 'ring-indigo-100' },
+    emerald: { stripe: 'from-emerald-400 to-emerald-600', tile: 'bg-gradient-to-br from-emerald-400 to-emerald-600' },
+    blue: { stripe: 'from-blue-400 to-blue-600', tile: 'bg-gradient-to-br from-blue-400 to-blue-600' },
+    amber: { stripe: 'from-amber-400 to-orange-500', tile: 'bg-gradient-to-br from-amber-400 to-orange-500' },
+    rose: { stripe: 'from-rose-400 to-pink-600', tile: 'bg-gradient-to-br from-rose-400 to-pink-600' },
+    slate: { stripe: 'from-slate-400 to-slate-600', tile: 'bg-gradient-to-br from-slate-400 to-slate-600' },
+    violet: { stripe: 'from-violet-400 to-purple-600', tile: 'bg-gradient-to-br from-violet-400 to-purple-600' },
+    cyan: { stripe: 'from-cyan-400 to-sky-600', tile: 'bg-gradient-to-br from-cyan-400 to-sky-600' },
+    indigo: { stripe: 'from-indigo-400 to-blue-600', tile: 'bg-gradient-to-br from-indigo-400 to-blue-600' },
   };
 
   // Needs-attention alerts
@@ -107,6 +149,12 @@ export default function SettingsHubOverview({ onNavigate }) {
     { label: 'Vehicles', value: vehicles.length, icon: Truck },
     { label: 'Clients', value: clients.length, icon: Building2 },
   ];
+
+  // Search filtering
+  const q = search.toLowerCase().trim();
+  const filteredGroups = q
+    ? groups.map(g => ({ ...g, items: g.items.filter(i => i.label.toLowerCase().includes(q) || i.sub.toLowerCase().includes(q)) })).filter(g => g.items.length > 0)
+    : groups;
 
   return (
     <div className="space-y-6">
@@ -139,8 +187,41 @@ export default function SettingsHubOverview({ onNavigate }) {
         </div>
       </div>
 
+      {/* Search bar */}
+      <div className="relative">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search settings..."
+          className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10 shadow-sm"
+        />
+      </div>
+
+      {/* Integrations Hub banner — only shown when not searching */}
+      {!q && (
+        <button
+          onClick={() => onNavigate('integrations')}
+          className="w-full insight-card relative rounded-2xl p-5 text-left group overflow-hidden"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-lg icon-tile-glow">
+              <Link2 className="w-7 h-7 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-slate-900">Integrations Hub</h3>
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">{integrationConnectedCount} connected</span>
+              </div>
+              <p className="text-sm text-slate-500 mt-0.5">All external system connections — Geotab, Holman, Asset Panda, Bob HR, SAP Concur, Xero/Sage, Stripe, WhatsApp, Met Office & more</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-[#2E5A1A] group-hover:translate-x-1 transition flex-shrink-0" />
+          </div>
+        </button>
+      )}
+
       {/* Needs Attention */}
-      {alerts.length > 0 && (
+      {!q && alerts.length > 0 && (
         <div>
           <h3 className="text-sm font-bold text-slate-700 mb-2.5 px-1 flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-rose-500" /> Needs Attention
@@ -163,8 +244,15 @@ export default function SettingsHubOverview({ onNavigate }) {
         </div>
       )}
 
+      {/* No results */}
+      {q && filteredGroups.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-sm text-slate-400">No settings match "{search}"</p>
+        </div>
+      )}
+
       {/* Grouped cards */}
-      {groups.map(group => {
+      {filteredGroups.map(group => {
         const GroupIcon = group.icon;
         return (
           <div key={group.group}>
@@ -179,9 +267,8 @@ export default function SettingsHubOverview({ onNavigate }) {
                 const Icon = item.icon;
                 const a = accent[item.color] || accent.slate;
                 return (
-                  <button key={item.id} onClick={() => onNavigate(item.id)}
-                    className="insight-card relative rounded-xl p-4 text-left group overflow-hidden">
-                    <span className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${a.stripe}`} />
+                  <button key={item.id} onClick={() => onNavigate(item.id)} className="insight-card relative rounded-xl p-4 text-left group overflow-hidden">
+                    <span className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${a.stripe}`}></span>
                     <div className="flex items-center gap-3 pl-1">
                       <div className={`w-11 h-11 rounded-xl ${a.tile} flex items-center justify-center flex-shrink-0 shadow-md icon-tile-glow`}>
                         <Icon className="w-5 h-5 text-white" />
