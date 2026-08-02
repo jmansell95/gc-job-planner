@@ -65,7 +65,7 @@ const INTEGRATION_IDS = new Set([
   'met-office', 'google-maps', 'whatsapp', 'accounting-sync', 'payment-gateway',
 ]);
 
-export default function SettingsPage({ initialTab, onSelectJob }) {
+export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
   const [activeTab, setActiveTab] = useState(initialTab || 'hub');
   const [profile, setProfile] = useState(null);
 
@@ -158,13 +158,13 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
   return (
     <div>
       <PageHeader
-        title="Settings"
-        icon={Settings}
-        subtitle={active?.label ? `${active.label}${active.desc ? ' · ' + active.desc : ''}` : 'Configure crews, assets, billing & automation'}
+        title={standalone && active?.label ? active.label : 'Settings'}
+        icon={standalone && active?.icon ? active.icon : Settings}
+        subtitle={standalone && active?.desc ? active.desc : (active?.label ? `${active.label}${active.desc ? ' · ' + active.desc : ''}` : 'Configure crews, assets, billing & automation')}
       />
 
-      {/* Back button — shown on all sub-pages, returns to overview or integrations hub */}
-      {activeTab !== 'hub' && (
+      {/* Back button — hidden in standalone mode (these pages have their own sidebar entry) */}
+      {!standalone && activeTab !== 'hub' && (
         <button
           onClick={() => setActiveTab(isIntegration ? 'integrations' : 'hub')}
           className="mb-4 inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition shadow-sm"

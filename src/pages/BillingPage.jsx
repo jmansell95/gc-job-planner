@@ -7,6 +7,7 @@ export default function BillingPage() {
   return (
     <SettingsPage
       initialTab="invoicing"
+      standalone
       onSelectJob={(job) => navigate('/admin', { state: { section: 'job-detail', job } })}
     />
   );

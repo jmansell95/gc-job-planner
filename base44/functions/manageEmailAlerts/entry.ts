@@ -15,7 +15,9 @@ const DEFAULTS = [
   { alert_key: 'compliance_expiry', enabled: true, recipient_emails: '', days_before_warning: 30, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
   { alert_key: 'daily_standup', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
   { alert_key: 'timesheet_summary', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'milestone_push', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
+  { alert_key: 'milestone_push', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'training_request', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'auto_invoice_digest', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
 ];
 
 function escapeHtml(s) {
@@ -184,6 +186,19 @@ function renderTestTemplate(alert_key, template) {
       .replace(/\{reviewed_by\}/g, 'John Smith')
       .replace(/\{borehole_ref\}/g, 'BH01');
   }
+  if (alert_key === 'training_request') {
+    return template
+      .replace(/\{staff_name\}/g, 'John Smith')
+      .replace(/\{course_title\}/g, 'CSCS Skilled Worker Card Renewal')
+      .replace(/\{provider\}/g, 'CITB')
+      .replace(/\{suggested_date\}/g, '2026-08-15')
+      .replace(/\{request_text\}/g, 'Need to renew my CSCS card');
+  }
+  if (alert_key === 'auto_invoice_digest') {
+    return template
+      .replace(/\{invoice_count\}/g, '2')
+      .replace(/\{invoice_list\}/g, '   • Sample Job — INV-2026-0007 — £4,250.00\n   • Second Job — INV-2026-0008 — £1,830.00');
+  }
   return template
     .replace(/\{staff_name\}/g, 'John Smith')
     .replace(/\{job_name\}/g, 'Sample Job')
@@ -283,7 +298,7 @@ Deno.serve(async (req) => {
       if (recipients.length === 0) {
         return Response.json({ error: 'No recipients configured' }, { status: 400 });
       }
-      const defaultSubjects = { vehicle_maintenance: 'Vehicle Maintenance Alert (Test)', assignment_notification: 'New Job Assignment (Test)', staff_schedule: 'Weekly Schedule (Test)', staff_invitation: 'App Invitation (Test)', absence_request: 'Absence Request (Test)', job_status_change: 'Job Status Updated (Test)', new_job: 'New Job Created (Test)', timesheet_submitted: 'Timesheet Submitted (Test)', maintenance_booking: 'Maintenance Booking (Test)', training_booking: 'Training Booking (Test)', daily_reminder: 'Daily Schedule Reminder (Test)', compliance_expiry: 'Compliance Expiry Alert (Test)', daily_standup: 'Daily Stand-up (Test)', timesheet_summary: 'Timesheet Summary (Test)', milestone_push: 'Milestone Completed (Test)' };
+      const defaultSubjects = { vehicle_maintenance: 'Vehicle Maintenance Alert (Test)', assignment_notification: 'New Job Assignment (Test)', staff_schedule: 'Weekly Schedule (Test)', staff_invitation: 'App Invitation (Test)', absence_request: 'Absence Request (Test)', job_status_change: 'Job Status Updated (Test)', new_job: 'New Job Created (Test)', timesheet_submitted: 'Timesheet Submitted (Test)', maintenance_booking: 'Maintenance Booking (Test)', training_booking: 'Training Booking (Test)', training_request: 'Training Request (Test)', daily_reminder: 'Daily Schedule Reminder (Test)', compliance_expiry: 'Compliance Expiry Alert (Test)', daily_standup: 'Daily Stand-up (Test)', timesheet_summary: 'Timesheet Summary (Test)', milestone_push: 'Milestone Completed (Test)', auto_invoice_digest: 'Auto-Invoice Digest (Test)' };
       const subject = cfg.subject || defaultSubjects[alert_key] || 'Alert (Test)';
       const text = renderTestTemplate(alert_key, cfg.template);
       const baseUrl = await getAppBaseUrl(base44);

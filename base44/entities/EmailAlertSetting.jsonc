@@ -16,7 +16,12 @@
         "timesheet_submitted",
         "maintenance_booking",
         "training_booking",
-        "daily_reminder"
+        "training_request",
+        "daily_reminder",
+        "daily_standup",
+        "timesheet_summary",
+        "milestone_push",
+        "auto_invoice_digest"
       ],
       "description": "Which automated alert this configures"
     },

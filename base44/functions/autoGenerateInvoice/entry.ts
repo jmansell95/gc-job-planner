@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { escapeHtml, styledHtml, getAppBaseUrl } from '../../shared/emailStyling.ts';
+import { escapeHtml, linkBlock, styledHtml, getAppBaseUrl } from '../../shared/emailStyling.ts';
 import { resolveHireCharge } from '../../shared/supplierRateMatcher.ts';
 
 /**
@@ -284,26 +284,48 @@ export default async function(req) {
       }
       const created = results.filter((r) => r.invoice_number);
 
-      // Email admins a digest when drafts were created.
+      // Email admins a digest when drafts were created — uses the email template system.
       if (created.length > 0) {
         const baseUrl = await getAppBaseUrl(base44);
-        const admins = (await base44.asServiceRole.entities.User.list()).filter((u) => u.role === 'admin');
-        if (admins.length > 0) {
-          const rows = created.map((r) =>
-            '<tr><td style="padding:8px 10px;border-bottom:1px solid #e2e8f0">' + escapeHtml(r.job_name) + '</td>' +
-            '<td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;font-weight:600">' + escapeHtml(r.invoice_number) + '</td>' +
-            '<td style="padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right">£' + (Number(r.gross_total) || 0).toLocaleString('en-GB', { minimumFractionDigits: 2 }) + '</td></tr>'
-          ).join('');
-          const bodyHtml = '<p>The Auto-Invoice Engine created <strong>' + created.length + '</strong> new draft invoice' + (created.length === 1 ? '' : 's') + ' from approved work today:</p>' +
-            '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px"><thead><tr><th style="text-align:left;padding:8px 10px;background:#f1f5f9">Job</th><th style="text-align:left;padding:8px 10px;background:#f1f5f9">Invoice No.</th><th style="text-align:right;padding:8px 10px;background:#f1f5f9">Total</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-            '<p style="margin-top:14px">Review and mark them sent from the Billing panel once checked.</p>';
-          const to = admins.map((a) => a.email).filter(Boolean).join(',');
-          if (to) {
-            await base44.integrations.Core.SendEmail({
-              to,
-              subject: 'Auto-Invoice Engine — ' + created.length + ' draft' + (created.length === 1 ? '' : 's') + ' created',
-              body: styledHtml(bodyHtml, { banner_title: 'GC Job Planner — Auto-Invoice Digest', accent_color: '#2E5A1A' }),
-            });
+        const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'auto_invoice_digest' });
+        const cfg = cfgList[0] || { accent_color: '#2E5A1A', banner_title: 'GC Job Planner — Auto-Invoice Digest', show_banner: true, footer_text: 'GC Job Planner' };
+        if (cfg.enabled !== false) {
+          let recipients = [];
+          if (cfg.recipient_emails) {
+            recipients = cfg.recipient_emails.split(',').map(s => s.trim()).filter(Boolean);
+          } else {
+            const admins = (await base44.asServiceRole.entities.User.list()).filter((u) => u.role === 'admin');
+            recipients = admins.map((a) => a.email).filter(Boolean);
+          }
+
+          const invoiceList = created.map((r) =>
+            '   • ' + r.job_name + ' — ' + r.invoice_number + ' — £' + (Number(r.gross_total) || 0).toLocaleString('en-GB', { minimumFractionDigits: 2 })
+          ).join('\n');
+
+          let text;
+          if (cfg.template) {
+            text = cfg.template
+              .replace(/\{invoice_count\}/g, String(created.length))
+              .replace(/\{invoice_list\}/g, invoiceList);
+          } else {
+            const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+            text = intro + 'The Auto-Invoice Engine created ' + created.length + ' new draft invoice' + (created.length === 1 ? '' : 's') + ' from approved work today:\n\n' + invoiceList + '\n\nReview and mark them sent from the Billing panel once checked.\n\nGC Job Planner';
+          }
+
+          const subject = cfg.subject
+            ? cfg.subject.replace(/\{invoice_count\}/g, String(created.length))
+            : 'Auto-Invoice Engine — ' + created.length + ' draft' + (created.length === 1 ? '' : 's') + ' created';
+
+          const bodyHtml = escapeHtml(text).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open planner');
+
+          for (const to of recipients) {
+            try {
+              await base44.asServiceRole.integrations.Core.SendEmail({
+                to,
+                subject,
+                body: styledHtml(bodyHtml, cfg),
+              });
+            } catch (_) {}
           }
         }
       }

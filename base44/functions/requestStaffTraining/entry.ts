@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { escapeHtml, linkBlock, styledHtml, getAppBaseUrl } from '../../shared/emailStyling.ts';
 
 const TYPE_LABELS = {
   cscs_card: 'CSCS Card',
@@ -82,20 +83,55 @@ Keep it realistic for the UK construction industry.`;
       status: 'booked',
     });
 
-    // Notify admins so they can confirm/arrange
+    // Notify admins so they can confirm/arrange — uses the email template system
     try {
-      const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
-      for (const admin of admins) {
-        if (admin.email) {
-          await base44.integrations.Core.SendEmail({
-            to: admin.email,
-            subject: `Training Request — ${staff_name}: ${course.title}`,
-            body: `${staff_name} has requested training via the self-service portal.\n\n` +
-              `Suggested course: ${course.title}\n` +
-              `Provider: ${course.provider || 'TBC'}\n` +
-              `Date: ${startDate}\n\n` +
-              `Please review and confirm the booking in the Training Manager (Admin → Training).`,
-          });
+      const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'training_request' });
+      const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+      if (cfg.enabled !== false) {
+        let recipients = [];
+        if (cfg.recipient_emails) {
+          recipients = cfg.recipient_emails.split(',').map(s => s.trim()).filter(Boolean);
+        } else {
+          const admins = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
+          recipients = admins.filter(u => u.email).map(u => u.email);
+        }
+
+        const tok = {
+          staff_name: staff_name,
+          course_title: course.title || 'Training Course',
+          provider: course.provider || 'TBC',
+          suggested_date: startDate,
+          request_text: request_text || `Renewal for ${docType}`,
+        };
+
+        let text;
+        if (cfg.template) {
+          text = cfg.template
+            .replace(/\{staff_name\}/g, tok.staff_name)
+            .replace(/\{course_title\}/g, tok.course_title)
+            .replace(/\{provider\}/g, tok.provider)
+            .replace(/\{suggested_date\}/g, tok.suggested_date)
+            .replace(/\{request_text\}/g, tok.request_text);
+        } else {
+          const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+          text = intro + `A staff member has requested training via the self-service portal:\n\nStaff: ${tok.staff_name}\nSuggested course: ${tok.course_title}\nProvider: ${tok.provider}\nDate: ${tok.suggested_date}\n\nRequest: ${tok.request_text}\n\nPlease review and confirm the booking in the Training Manager (Admin → Training).\n\nGC Job Planner`;
+        }
+
+        const subject = cfg.subject
+          ? cfg.subject.replace(/\{staff_name\}/g, tok.staff_name).replace(/\{course_title\}/g, tok.course_title)
+          : `Training Request — ${tok.staff_name}: ${tok.course_title}`;
+
+        const baseUrl = await getAppBaseUrl(base44);
+        const bodyHtml = escapeHtml(text).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open planner');
+
+        for (const to of recipients) {
+          try {
+            await base44.asServiceRole.integrations.Core.SendEmail({
+              to,
+              subject,
+              body: styledHtml(bodyHtml, cfg),
+            });
+          } catch (_) {}
         }
       }
     } catch (_) {
