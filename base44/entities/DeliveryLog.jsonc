@@ -186,6 +186,26 @@
     "handover_completed_at": {
       "type": "string",
       "description": "ISO timestamp when the handover was confirmed by the receiving colleague (their sign-off)."
+    },
+    "optimized_sequence_index": {
+      "type": "number",
+      "description": "Recommended stop order for the day (1-based). Set by the optimizeDailyRoute function using Google Maps Directions API with waypoint optimisation. Lower = earlier in the day."
+    },
+    "optimized_eta": {
+      "type": "string",
+      "description": "ISO timestamp of the estimated arrival time at this stop, calculated from the route optimisation start time plus cumulative leg durations."
+    },
+    "leg_duration_minutes": {
+      "type": "number",
+      "description": "Travel time in minutes from the previous stop to this stop (traffic-aware). Set by the optimizeDailyRoute function."
+    },
+    "leg_distance_miles": {
+      "type": "number",
+      "description": "Road distance in miles from the previous stop to this stop. Set by the optimizeDailyRoute function."
+    },
+    "route_optimized_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the route was last optimised for this delivery."
     }
   },
   "required": [

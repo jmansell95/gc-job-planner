@@ -5,6 +5,7 @@ import { Truck, Search, LayoutGrid, List, Filter, Clock, PlayCircle, CheckCircle
 import { format, isToday, isFuture, isPast } from 'date-fns';
 import DeliveryBoard from '@/components/admin/DeliveryBoard';
 import DeliveryTable from '@/components/admin/DeliveryTable';
+import RouteOptimizeBar from '@/components/delivery/RouteOptimizeBar';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 
 const typeFilters = [
@@ -168,6 +169,20 @@ export default function AdminDeliveryHub() {
           )}
         </div>
       </div>
+
+      {/* Route optimiser — shows when a specific driver is selected */}
+      {driverFilter !== 'all' && (() => {
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const driverTodays = deliveries.filter(d =>
+          d.driver_staff_id === driverFilter &&
+          d.scheduled_date === todayStr &&
+          (d.status === 'pending' || d.status === 'in_progress')
+        );
+        if (driverTodays.length < 2) return null;
+        return (
+          <RouteOptimizeBar driverStaffId={driverFilter} date={todayStr} count={driverTodays.length} />
+        );
+      })()}
 
       {/* Content */}
       {isLoading ? (

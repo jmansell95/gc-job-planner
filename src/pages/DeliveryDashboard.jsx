@@ -7,6 +7,8 @@ import { format, isFuture, isToday } from 'date-fns';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 import DeliveryCard from '@/components/delivery/DeliveryCard';
 import DeliveryCompleteModal from '@/components/delivery/DeliveryCompleteModal';
+import MissionTimeline from '@/components/delivery/MissionTimeline';
+import RouteOptimizeBar from '@/components/delivery/RouteOptimizeBar';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/lib/AuthContext';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
@@ -380,9 +382,19 @@ export default function DeliveryDashboard() {
           </div>
         ) : (
           <div className="space-y-3">
-            {todaysSorted.map(d => (
-              <DeliveryCard key={d.id} {...cardProps(d)} defaultExpanded={d.id === autoExpandId || d.status === 'in_progress'} />
-            ))}
+            {todaysSorted.length >= 2 && staff?.id && (
+              <RouteOptimizeBar driverStaffId={staff.id} date={todayStr} count={todaysSorted.length} />
+            )}
+            <MissionTimeline
+              deliveries={todaysSorted}
+              jobs={jobs}
+              vehicles={vehicles}
+              allStaff={allStaff}
+              onStart={handleStart}
+              onComplete={(d) => setCompleteDelivery(d)}
+              canPerformActions={canPerformActions}
+              autoExpandId={autoExpandId}
+            />
           </div>
         )}
 
