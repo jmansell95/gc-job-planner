@@ -201,6 +201,8 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         onLogout={handleLogout}
         onAssistant={openChat}
         onDrillingIntelligence={() => { openDrillingIntelligence(); setDrawerOpen(false); }}
+        onNotifications={() => { setNotifOpen(true); setDrawerOpen(false); }}
+        notifCount={notifCount}
         onAssetLens={() => { setLensOpen(true); setDrawerOpen(false); }}
         onDeliveries={() => { navigate('/deliveries'); setDrawerOpen(false); }}
         onHelp={() => { navigate('/help'); setDrawerOpen(false); }}
