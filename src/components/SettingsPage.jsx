@@ -46,6 +46,12 @@ import CISSettings from '@/components/settings/CISSettings';
 import HolmanSettings from '@/components/settings/HolmanSettings';
 import GeotabSettings from '@/components/settings/GeotabSettings';
 import JobAlertSettings from '@/components/settings/JobAlertSettings';
+import IntegrationsHub from '@/components/settings/IntegrationsHub';
+import MetOfficeSettings from '@/components/settings/MetOfficeSettings';
+import GoogleMapsSettings from '@/components/settings/GoogleMapsSettings';
+import WhatsAppSettings from '@/components/settings/WhatsAppSettings';
+import AccountingSyncSettings from '@/components/settings/AccountingSyncSettings';
+import PaymentGatewaySettings from '@/components/settings/PaymentGatewaySettings';
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -94,6 +100,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
    
     switch (activeTab) {
       case 'hub': return <SettingsHubOverview onNavigate={setActiveTab} />;
+      case 'integrations': return <IntegrationsHub onNavigate={setActiveTab} />;
       case 'staff': return <StaffCommand />;
       case 'teams': return <CrewTypeCommand />;
       case 'access-levels': return <PermissionGroupManager profile={profile} />;
@@ -137,6 +144,11 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'job-alerts': return <JobAlertSettings />;
       case 'holman-sync': return <HolmanSettings />;
       case 'geotab-sync': return <GeotabSettings />;
+      case 'met-office': return <MetOfficeSettings />;
+      case 'google-maps': return <GoogleMapsSettings />;
+      case 'whatsapp': return <WhatsAppSettings />;
+      case 'accounting-sync': return <AccountingSyncSettings />;
+      case 'payment-gateway': return <PaymentGatewaySettings />;
       default: return null;
     }
   };

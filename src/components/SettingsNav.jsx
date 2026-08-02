@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Lock, Radio, ArrowUpDown, Satellite, QrCode } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes, Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Lock, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard } from 'lucide-react';
 import { normalizePermissions } from '@/utils/permissions';
 
 export const settingsGroups = [
@@ -7,6 +7,7 @@ export const settingsGroups = [
     label: 'Overview',
     items: [
       { id: 'hub', label: 'Command Hub', icon: LayoutGrid, desc: 'At-a-glance overview of every settings area with live counts' },
+      { id: 'integrations', label: 'Integrations Hub', icon: Link2, desc: 'All external system connections in one place — API keys, webhooks & sync status for every integration', roles: ['admin'] },
     ],
   },
   {
@@ -33,6 +34,9 @@ export const settingsGroups = [
       { id: 'automations', label: 'Automations', icon: Zap, desc: 'View and toggle background automations' },
       { id: 'ags-import', label: 'KeyLogBook Settings', icon: FileUp, desc: 'KeyLogBook webhook sync & AGS file imports — real-time borehole data from KeyLogBook', roles: ['admin', 'manager'] },
       { id: 'safety-culture', label: 'Safety Culture Sync', icon: ShieldAlert, desc: 'Sync site safety audits & inspection forms from SafetyCulture (iAuditor) — webhook & API integration ready for later setup', roles: ['admin', 'manager'] },
+      { id: 'met-office', label: 'Met Office Weather', icon: Cloud, desc: 'Daily weather forecasts per site postcode — flag weather-impacted days on the rota', roles: ['admin'] },
+      { id: 'google-maps', label: 'Google Maps', icon: MapPin, desc: 'Geocoding for job sites & delivery route optimisation', roles: ['admin'] },
+      { id: 'whatsapp', label: 'WhatsApp Business', icon: MessageCircle, desc: 'Push critical alerts to crew via WhatsApp Business API — job cancellations, rig breakdowns, new rotas', roles: ['admin'] },
     ],
   },
   {
@@ -75,6 +79,8 @@ export const settingsGroups = [
       { id: 'billing-contracts', label: 'Billing Contracts', icon: ScrollText, desc: 'Locked per-job billing terms — version-controlled contracts with rate snapshots, POA items & retention' },
       { id: 'financial-audit', label: 'Financial Audit Log', icon: History, desc: 'Tamper-evident record of every change to locked rate cards, SORs, billing rules, presets & contracts', roles: ['admin'] },
       { id: 'payroll-export', label: 'Payroll Export', icon: FileSpreadsheet, desc: 'Export approved weekly timesheets to CSV / Xero / Sage 50 — locks records after export', roles: ['admin'] },
+      { id: 'accounting-sync', label: 'Xero / Sage Sync', icon: FileSpreadsheet, desc: 'Push invoices & purchase costs directly to Xero or Sage accounting — eliminates double-entry', roles: ['admin'] },
+      { id: 'payment-gateway', label: 'Stripe Payments', icon: CreditCard, desc: 'Accept client invoice payments in the client portal via Stripe — auto-marks invoices as paid', roles: ['admin'] },
       { id: 'job-alerts', label: 'Job Budget Alerts', icon: Gauge, desc: 'Automated alerts when active jobs breach budget, margin or profit thresholds', roles: ['admin'] },
     ],
   },
