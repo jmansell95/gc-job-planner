@@ -104,7 +104,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             <ScanLine className="w-4 h-4" />
           </button>
           <button onClick={openChat} type="button" title="Ask Assistant"
-            className="flex items-center justify-center py-2 rounded-lg bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white hover:brightness-110 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none shadow-sm">
+            className="flex items-center justify-center py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <Sparkles className="w-4 h-4" />
           </button>
         </div>
