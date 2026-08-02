@@ -17,7 +17,7 @@ export default function StaffHeader({ staff, onShowSchedule }) {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <Logo height={40} className="flex-shrink-0" />
-            <div className="min-w-0 hidden sm:block">
+            <div className="min-w-0">
               <p className="text-white font-bold text-sm leading-tight truncate">{staff?.name?.split(' ')[0] || 'Staff'}</p>
               <p className="text-white/60 text-xs">{format(new Date(), 'EEE dd MMM · HH:mm')}</p>
             </div>
