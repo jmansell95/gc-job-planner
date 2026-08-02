@@ -9,6 +9,7 @@ import FormSection from '@/components/forms/FormSection';
 import { Skeleton, SkeletonText } from '@/components/StateViews';
 import { formatWorkerType } from '@/utils/format';
 import { useConfigLists } from '@/hooks/useConfigLists';
+import { useAuth } from '@/lib/AuthContext';
 import { TEAM_CATEGORIES, LANDING_PAGES, CAPABILITY_KEYS, DEFAULT_CAPABILITIES, DEFAULT_LANDING_PAGE } from '@/utils/teamAccess';
 
 const workerBadge = {
@@ -35,7 +36,9 @@ export default function TeamManager() {
 
   const { data: teams = [], isLoading: teamsLoading } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: staff = [], isLoading: staffLoading } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
-  const { data: users = [] } = useQuery({ queryKey: ['users-list'], queryFn: () => base44.entities.User.list().catch(() => []) });
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const { data: users = [] } = useQuery({ queryKey: ['users-list'], queryFn: () => base44.entities.User.list().catch(() => []), enabled: !!isAdmin });
   const isLoading = teamsLoading || staffLoading;
 
   // Dynamic dropdown options — fetched from ConfigList (editable in Settings → Dropdown Manager)
