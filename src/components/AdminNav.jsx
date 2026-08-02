@@ -152,25 +152,37 @@ export default function AdminNav({ activeSection, setActiveSection }) {
               <Logo variant="full" height={30} tone="light" />
             </div>
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-0.5 flex-shrink-0">
             {canViewSchedule && (
               <button onClick={() => navigate('/staff-schedule')} aria-label="My Schedule" type="button"
-                className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
-                <CalendarDays className="w-5 h-5" />
+                className="relative h-9 w-9 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
+                <CalendarDays className="w-4 h-4" />
               </button>
             )}
+            <button onClick={() => navigate('/staff-profile')} aria-label="My Profile" type="button"
+              className="relative h-9 w-9 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
+              <User className="w-4 h-4" />
+            </button>
+            <button onClick={() => navigate('/help')} aria-label="Help & Guide" type="button"
+              className="relative h-9 w-9 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
+              <HelpCircle className="w-4 h-4" />
+            </button>
             <button onClick={openChat} aria-label="Ask Assistant" type="button"
-              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
-              <Sparkles className="w-5 h-5" />
+              className="relative h-9 w-9 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
+              <Sparkles className="w-4 h-4" />
             </button>
             <button onClick={() => setNotifOpen(true)} aria-label="Notifications" type="button"
-              className="relative h-11 w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
-              <Bell className="w-5 h-5" />
+              className="relative h-9 w-9 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
+              <Bell className="w-4 h-4" />
               {notifCount > 0 && (
-                <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 bg-[#8DC63F] text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-1 ring-white/30">
+                <span className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 px-1 bg-[#8DC63F] text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-1 ring-white/30">
                   {notifCount > 9 ? '9+' : notifCount}
                 </span>
               )}
+            </button>
+            <button onClick={handleLogout} aria-label="Logout" type="button"
+              className="relative h-9 w-9 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
