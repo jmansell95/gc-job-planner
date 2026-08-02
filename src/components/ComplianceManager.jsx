@@ -46,7 +46,7 @@ export default function ComplianceManager() {
               <ShieldCheck className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">GC Compliance Manager</h2>
+              <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Compliance Manager</h2>
               <p className="text-emerald-50/90 text-sm">Track certificates, training &amp; site qualifications — synced live.</p>
             </div>
           </div>

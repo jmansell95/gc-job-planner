@@ -156,8 +156,8 @@ export default function RigHub() {
           </div>
 
           {/* Fleet health gauge + compliance donut + colourful summary tiles */}
-          <div className="flex flex-col lg:flex-row gap-4 items-center lg:items-stretch">
-            <div className="flex items-center gap-5 justify-center bg-white/10 backdrop-blur-sm rounded-xl ring-1 ring-white/15 px-6 py-3 flex-shrink-0">
+          <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+            <div className="flex items-center justify-center gap-4 sm:gap-5 bg-white/10 backdrop-blur-sm rounded-xl ring-1 ring-white/15 px-4 sm:px-6 py-3 lg:flex-shrink-0">
               <FleetHealthGauge percent={fleetHealthPct} />
               <FleetComplianceDonut counts={fleetCounts} onSegmentClick={(k) => setCompFilter(k)} />
             </div>
