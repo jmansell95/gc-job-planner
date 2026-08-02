@@ -37,19 +37,9 @@ function getColorIndex(name) {
 export default function ProfileAvatar({ name, avatarUrl, size = 40, className = '' }) {
   const initials = getInitials(name);
   const [c1, c2] = AVATAR_COLORS[getColorIndex(name)];
+  const [imgError, setImgError] = React.useState(false);
 
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt={name || 'Profile'}
-        style={{ width: size, height: size }}
-        className={`rounded-full object-cover flex-shrink-0 ring-2 ring-white/20 ${className}`}
-      />
-    );
-  }
-
-  return (
+  const fallback = (
     <div
       style={{
         width: size,
@@ -62,4 +52,18 @@ export default function ProfileAvatar({ name, avatarUrl, size = 40, className = 
       {initials}
     </div>
   );
+
+  if (avatarUrl && !imgError) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name || 'Profile'}
+        style={{ width: size, height: size }}
+        className={`rounded-full object-cover flex-shrink-0 ring-2 ring-white/20 ${className}`}
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
+  return fallback;
 }
