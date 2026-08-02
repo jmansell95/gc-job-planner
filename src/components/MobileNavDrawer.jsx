@@ -35,8 +35,7 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
                   className="flex-1 min-w-0 flex items-center gap-2.5 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer touch-manipulation select-none">
                   <ProfileAvatar name={profile.name} avatarUrl={profile.avatar_url} size={38} />
                   <div className="min-w-0 flex-1 text-left">
-                    <p className="text-sm font-semibold text-white truncate leading-tight">{profile.name}</p>
-                    <p className="text-[11px] text-white/50 truncate leading-tight">{profile.email}</p>
+                    <p className="text-sm font-semibold text-white truncate leading-tight">{profile.name?.split(' ')[0]}</p>
                   </div>
                 </button>
               )}
