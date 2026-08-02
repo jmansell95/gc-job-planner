@@ -68,7 +68,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
   const desktopNav = (
     <>
-      <div className="px-4 pt-4 pb-4 border-b border-white/10">
+      <div className="px-4 pt-3 pb-3 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="flex flex-col items-start flex-shrink-0">
             <img src="https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/993ce8312_GC_Logo-removebg-preview.png" alt="Ground Control" className="w-28 h-auto object-contain" />
@@ -85,13 +85,13 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           )}
         </div>
       </div>
-      <div className="flex-1 px-3 py-2.5 space-y-0.5 overflow-y-auto">
+      <div className="flex-1 px-3 py-1.5 space-y-0.5 overflow-y-auto">
         {navItems.map(item => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
           return (
             <button key={item.id} type="button" onClick={() => setActiveSection(item.id)}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
+              className={`w-full flex items-center gap-3 px-3.5 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
                 isActive
                   ? 'bg-white/15 text-white shadow-[inset_3px_0_0_0_#8DC63F]'
                   : 'text-white/75 hover:bg-white/10 hover:text-white'
@@ -103,44 +103,44 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         })}
       </div>
       {/* Compact action cluster — single row of quick actions */}
-      <div className="px-3 pt-2 pb-2 border-t border-white/10 space-y-1.5">
+      <div className="px-3 pt-1.5 pb-1.5 border-t border-white/10 space-y-1.5">
         <GlobalSearch />
         <div className="grid grid-cols-3 gap-2">
           <button onClick={openDrillingIntelligence} type="button" title="Drilling Intelligence"
-            className="h-10 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+            className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <HardHat className="w-4 h-4" />
           </button>
           <button onClick={() => setLensOpen(true)} type="button" title="Asset Lens"
-            className="h-10 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+            className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <ScanLine className="w-4 h-4" />
           </button>
           <button onClick={openChat} type="button" title="Ask Assistant"
-            className="h-10 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+            className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <Sparkles className="w-4 h-4" />
           </button>
         </div>
       </div>
       {/* Personal links + system actions */}
-      <div className="px-3 py-2 border-t border-white/10 space-y-0.5">
+      <div className="px-3 py-1.5 border-t border-white/10 space-y-0.5">
         {canViewSchedule && (
           <button type="button" onClick={() => navigate('/staff-schedule')}
-            className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
+            className="w-full flex items-center gap-3 px-3.5 py-1.5 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
             <CalendarDays className="w-[18px] h-[18px] flex-shrink-0" />
             <span>My Schedule</span>
           </button>
         )}
         <button type="button" onClick={() => navigate('/staff-profile')}
-          className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
+          className="w-full flex items-center gap-3 px-3.5 py-1.5 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
           <User className="w-[18px] h-[18px] flex-shrink-0" />
           <span>My Profile</span>
         </button>
         <button type="button" onClick={() => navigate('/help')}
-          className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
+          className="w-full flex items-center gap-3 px-3.5 py-1.5 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
           <HelpCircle className="w-[18px] h-[18px] flex-shrink-0" />
           <span>Help & Guide</span>
         </button>
         <button type="button" onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
+          className="w-full flex items-center gap-3 px-3.5 py-1.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
           <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
           <span>Logout</span>
         </button>
