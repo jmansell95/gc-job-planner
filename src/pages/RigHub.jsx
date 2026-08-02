@@ -145,7 +145,6 @@ export default function RigHub() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <FleetSyncPanel />
               <button onClick={() => navigate('/pat-testing')} className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-amber-400/90 hover:bg-amber-400 text-slate-900 rounded-lg font-semibold text-sm active:scale-95 transition shadow-sm">
                 <Plug className="w-4 h-4" /> PAT Console
               </button>
@@ -153,6 +152,9 @@ export default function RigHub() {
                 <Plus className="w-4 h-4" /> Add Asset
               </button>
             </div>
+          </div>
+          <div className="mb-4">
+            <FleetSyncPanel />
           </div>
 
           {/* Fleet health gauge + compliance donut + colourful summary tiles */}
