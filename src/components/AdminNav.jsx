@@ -165,10 +165,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
                 <CalendarDays className="w-[18px] h-[18px]" />
               </button>
             )}
-            <button onClick={() => navigate('/staff-profile')} aria-label="My Profile" type="button"
-              className="relative flex items-center justify-center active:scale-95 rounded-full transition flex-shrink-0 touch-manipulation select-none">
-              <ProfileAvatar name={profile?.name} avatarUrl={profile?.avatar_url} size={32} />
-            </button>
             <button onClick={() => navigate('/help')} aria-label="Help & Guide" type="button"
               className="relative h-10 w-10 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <HelpCircle className="w-[18px] h-[18px]" />
@@ -185,6 +181,11 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             <button onClick={handleLogout} aria-label="Logout" type="button"
               className="relative h-10 w-10 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <LogOut className="w-[18px] h-[18px]" />
+            </button>
+            <div className="h-7 w-px bg-white/20 mx-1 flex-shrink-0" />
+            <button onClick={() => navigate('/staff-profile')} aria-label="My Profile" type="button"
+              className="relative flex items-center justify-center active:scale-95 rounded-full transition flex-shrink-0 touch-manipulation select-none">
+              <ProfileAvatar name={profile?.name} avatarUrl={profile?.avatar_url} size={32} />
             </button>
           </div>
         </div>
