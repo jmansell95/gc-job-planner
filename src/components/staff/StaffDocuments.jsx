@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { FileText, CreditCard, ExternalLink, FolderOpen, IdCard, Award, Car, ShieldCheck, Loader2 } from 'lucide-react';
+import { FileText, CreditCard, ExternalLink, FolderOpen, IdCard, Award, Car, ShieldCheck, Loader2, Plus } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import SmartUploadWizard from './SmartUploadWizard';
 
 const isImageUrl = (url) => url && url.match(/\.(jpg|jpeg|png|gif|webp|heic)(\?|$)/i);
 
@@ -115,6 +116,7 @@ function DocThumb({ url, label }) {
 }
 
 export default function StaffDocuments({ staffId, staffName }) {
+  const [showWizard, setShowWizard] = useState(false);
   const { data: allItems = [], isLoading } = useQuery({
     queryKey: ['staff-documents', staffId],
     queryFn: () => base44.entities.ComplianceItem.filter({ category: 'staff' }),
@@ -168,14 +170,20 @@ export default function StaffDocuments({ staffId, staffName }) {
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
-      <div className="flex items-center gap-2.5 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center flex-shrink-0">
-          <FolderOpen className="w-4 h-4 text-sky-700" />
+      <div className="flex items-center justify-between gap-2.5 mb-4">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center flex-shrink-0">
+            <FolderOpen className="w-4 h-4 text-sky-700" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-slate-900">My Documents</h2>
+            <p className="text-xs text-slate-500">{myItems.length} document{myItems.length !== 1 ? 's' : ''} on file</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">My Documents</h2>
-          <p className="text-xs text-slate-500">{myItems.length} document{myItems.length !== 1 ? 's' : ''} on file</p>
-        </div>
+        <button onClick={() => setShowWizard(true)} type="button"
+          className="flex items-center gap-1.5 px-3 py-2 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 active:scale-95 transition touch-manipulation flex-shrink-0 shadow-sm">
+          <Plus className="w-4 h-4" /> Add
+        </button>
       </div>
 
       {myItems.length === 0 ? (
@@ -203,6 +211,13 @@ export default function StaffDocuments({ staffId, staffName }) {
             </TabsContent>
           ))}
         </Tabs>
+      )}
+      {showWizard && (
+        <SmartUploadWizard
+          staffId={staffId}
+          staffName={staffName}
+          onClose={() => setShowWizard(false)}
+        />
       )}
     </div>
   );

@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { GraduationCap, CheckCircle2, XCircle, Clock, FileText, ExternalLink, Calendar, Award } from 'lucide-react';
+import { GraduationCap, CheckCircle2, XCircle, Clock, FileText, ExternalLink, Calendar, Award, Plus } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import CertificateLink from './CertificateLink';
+import RequestTrainingModal from './RequestTrainingModal';
 
 const BOOKING_STATUS = {
   booked: { label: 'Booked', color: 'bg-blue-100 text-blue-700', icon: Clock },
@@ -16,6 +17,7 @@ const BOOKING_STATUS = {
 
 export default function TrainingHistory({ staffId, staffName }) {
   const [expanded, setExpanded] = useState(true);
+  const [showRequest, setShowRequest] = useState(false);
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['staff-training-history', staffId],
@@ -54,11 +56,17 @@ export default function TrainingHistory({ staffId, staffName }) {
             </p>
           </div>
         </div>
-        {myBookings.length > 3 && (
-          <button onClick={() => setExpanded(!expanded)} className="text-xs font-medium text-violet-700 hover:text-violet-900">
-            {expanded ? 'Show less' : 'Show all'}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={() => setShowRequest(true)} type="button"
+            className="flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white rounded-lg text-sm font-medium hover:bg-violet-700 active:scale-95 transition touch-manipulation shadow-sm">
+            <Plus className="w-4 h-4" /> Request
           </button>
-        )}
+          {myBookings.length > 3 && (
+            <button onClick={() => setExpanded(!expanded)} className="text-xs font-medium text-violet-700 hover:text-violet-900">
+              {expanded ? 'Show less' : 'Show all'}
+            </button>
+          )}
+        </div>
       </div>
 
       {myBookings.length === 0 ? (
@@ -108,6 +116,13 @@ export default function TrainingHistory({ staffId, staffName }) {
             );
           })}
         </div>
+      )}
+      {showRequest && (
+        <RequestTrainingModal
+          staffId={staffId}
+          staffName={staffName}
+          onClose={() => setShowRequest(false)}
+        />
       )}
     </div>
   );
