@@ -54,7 +54,7 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
                 )}
                 {onAssistant && (
                   <button onClick={onAssistant} type="button"
-                    className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white hover:brightness-110 active:scale-[0.98] transition touch-manipulation select-none shadow-sm">
+                    className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition touch-manipulation select-none ring-1 ring-white/15">
                     <Sparkles className="w-4 h-4" />
                     <span className="text-[10px] font-medium leading-tight text-center">Assistant</span>
                   </button>

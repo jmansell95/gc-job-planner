@@ -85,13 +85,13 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       {/* Compact action cluster — single row of quick actions */}
       <div className="px-3 pt-2 pb-2 border-t border-white/10 space-y-1.5">
         <GlobalSearch />
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-4 gap-2">
           <button onClick={openDrillingIntelligence} type="button" title="Drilling Intelligence"
-            className="flex items-center justify-center py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+            className="h-10 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <HardHat className="w-4 h-4" />
           </button>
           <button onClick={() => setNotifOpen(true)} type="button" title="Notifications"
-            className="relative flex items-center justify-center py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+            className="relative h-10 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <Bell className="w-4 h-4" />
             {notifCount > 0 && (
               <span className="absolute top-0.5 right-0.5 min-w-[14px] h-3.5 px-1 bg-[#8DC63F] text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-1 ring-white/30">
@@ -100,11 +100,11 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             )}
           </button>
           <button onClick={() => setLensOpen(true)} type="button" title="Asset Lens"
-            className="flex items-center justify-center py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+            className="h-10 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <ScanLine className="w-4 h-4" />
           </button>
           <button onClick={openChat} type="button" title="Ask Assistant"
-            className="flex items-center justify-center py-2 rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
+            className="h-10 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <Sparkles className="w-4 h-4" />
           </button>
         </div>
