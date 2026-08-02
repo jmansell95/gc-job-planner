@@ -60,11 +60,11 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
   const desktopNav = (
     <>
-      <div className="px-4 pt-4 pb-3 border-b border-white/10">
+      <div className="px-4 pt-5 pb-3 border-b border-white/10">
         <div className="flex items-center justify-start">
-          <img src="https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/993ce8312_GC_Logo-removebg-preview.png" alt="Ground Control" className="w-44 h-auto object-contain" />
+          <img src="https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/993ce8312_GC_Logo-removebg-preview.png" alt="Ground Control" className="w-52 h-auto object-contain" />
         </div>
-        <p className="text-left text-[10px] text-white/60 mt-1.5 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
+        <p className="text-left text-[11px] text-white/70 mt-2 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
       </div>
       <div className="flex-1 px-3 py-2.5 space-y-0.5 overflow-y-auto">
         {navItems.map(item => {
