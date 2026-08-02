@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { X, CheckCircle2, Car, Ruler, FileText, ClipboardCheck, Send, ChevronRight, AlertTriangle, Coffee, Briefcase, Info, ShieldCheck, Clock, Receipt } from 'lucide-react';
+import { X, CheckCircle2, Car, Ruler, FileText, ClipboardCheck, Send, ChevronRight, AlertTriangle, Coffee, Briefcase, Info, ShieldCheck, Clock, Receipt, Boxes } from 'lucide-react';
 import { format } from 'date-fns';
 import DailyExpenseStep from './DailyExpenseStep';
+import AssetRecoveryStep from './AssetRecoveryStep';
 
 const fmtDur = (mins) => {
   const m = Math.round(Number(mins) || 0);
@@ -36,7 +37,10 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
   const [arriveHome, setArriveHome] = useState('');
   const [expenses, setExpenses] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [assetReturnData, setAssetReturnData] = useState({ scannedItems: [], scannedAssetIds: [], scannedManifestIds: [] });
   const [confirmations, setConfirmations] = useState({ tasks: false, travel: false, hours: false });
+
+  const isDecommissioning = job?.status === 'decommissioning';
 
   const { data: todayEntries = [], isLoading } = useQuery({
     queryKey: ['daily-tasks', staffId, today],
@@ -49,6 +53,7 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
       setStep(0); setMeterage(''); setProgressNotes(assignment?.progress_notes || '');
       setDepartSite(''); setArriveHome(''); setSubmitting(false);
       setExpenses([]);
+      setAssetReturnData({ scannedItems: [], scannedAssetIds: [], scannedManifestIds: [] });
       setConfirmations({ tasks: false, travel: false, hours: false });
     }
   }, [open]);
@@ -58,6 +63,7 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
     ...(isDriller ? [{ key: 'meterage', label: 'Meterage' }] : []),
     { key: 'notes', label: 'Notes' },
     { key: 'expenses', label: 'Expenses' },
+    ...(isDecommissioning ? [{ key: 'assets', label: 'Gear Return' }] : []),
     ...(isLastJob ? [{ key: 'travel', label: 'Travel Home' }] : []),
     { key: 'submit', label: 'Submit' },
   ];
@@ -120,6 +126,11 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
       meterage: isDriller ? (parseFloat(meterage) || 0) : undefined,
       progressNotes: progressNotes.trim(),
       travelHome: isLastJob ? { departSite: departSite || null, arriveHome: arriveHome || null } : null,
+      assetReturn: isDecommissioning && assetReturnData.scannedItems.length > 0 ? {
+        scannedAssetIds: assetReturnData.scannedAssetIds || [],
+        scannedManifestIds: assetReturnData.scannedManifestIds || [],
+        notes: '',
+      } : null,
     });
   };
 
@@ -324,6 +335,17 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
                 />
               )}
 
+              {/* Step: Asset Recovery (decommissioning only) */}
+              {currentStep.key === 'assets' && (
+                <AssetRecoveryStep
+                  job={job}
+                  staffId={staffId}
+                  staffName={assignment?.staff_name || ''}
+                  returnData={assetReturnData}
+                  setReturnData={setAssetReturnData}
+                />
+              )}
+
               {/* Step 4: Travel Home (last job only) */}
               {currentStep.key === 'travel' && (
                 <div className="space-y-4">
@@ -420,6 +442,12 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-slate-500 flex items-center gap-1"><Receipt className="w-3.5 h-3.5" /> Expenses</span>
                         <span className="font-semibold text-slate-900">{expenses.length} item{expenses.length !== 1 ? 's' : ''}</span>
+                      </div>
+                    )}
+                    {isDecommissioning && assetReturnData.scannedItems.length > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-500 flex items-center gap-1"><Boxes className="w-3.5 h-3.5" /> Gear returning</span>
+                        <span className="font-semibold text-slate-900">{assetReturnData.scannedItems.length} item{assetReturnData.scannedItems.length !== 1 ? 's' : ''}</span>
                       </div>
                     )}
                   </div>

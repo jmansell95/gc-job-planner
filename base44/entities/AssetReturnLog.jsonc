@@ -1,0 +1,104 @@
+{
+  "name": "AssetReturnLog",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job the assets are being returned from."
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display)."
+    },
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member who scanned and returned the assets."
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Staff member name (denormalised for display)."
+    },
+    "return_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the assets were returned / scanned."
+    },
+    "returned_at": {
+      "type": "string",
+      "description": "ISO timestamp of the return scan."
+    },
+    "scanned_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "asset_id": {
+            "type": "string"
+          },
+          "asset_name": {
+            "type": "string"
+          },
+          "panda_asset_id": {
+            "type": "string"
+          },
+          "scan_type": {
+            "type": "string",
+            "enum": [
+              "individual",
+              "manifest"
+            ]
+          },
+          "manifest_id": {
+            "type": "string"
+          },
+          "manifest_name": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "List of all assets scanned in this return event. Each item records whether it was scanned individually (barcode) or via a manifest QR."
+    },
+    "total_items": {
+      "type": "number",
+      "default": 0,
+      "description": "Total number of assets returned in this event (count of scanned_items)."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes from the crew member about the return (e.g. 'Casing needs cleaning', 'One shackle missing')."
+    },
+    "synced_to_panda": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the stock-level update has been pushed to Asset Panda."
+    },
+    "synced_at": {
+      "type": "string",
+      "description": "ISO timestamp when the Asset Panda push completed."
+    },
+    "sync_error": {
+      "type": "string",
+      "description": "Error message if the Asset Panda push failed (for retry by the scheduled sync)."
+    }
+  },
+  "required": [
+    "job_id",
+    "staff_id",
+    "return_date"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

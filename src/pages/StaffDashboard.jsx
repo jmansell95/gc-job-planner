@@ -303,6 +303,28 @@ export default function StaffDashboard() {
       if (data.meterage !== undefined && data.meterage !== '' && !isNaN(data.meterage)) {
         updateData.meterage = Number(data.meterage);
       }
+      // Process asset returns if the crew scanned gear during decommissioning
+      if (data.assetReturn && (data.assetReturn.scannedAssetIds?.length > 0 || data.assetReturn.scannedManifestIds?.length > 0)) {
+        try {
+          const assignment = assignments.find(a => a.id === assignmentId);
+          const job = jobs.find(j => j.id === assignment?.job_id);
+          await base44.functions.invoke('processAssetReturn', {
+            job_id: assignment?.job_id || '',
+            staff_id: staff.id,
+            staff_name: staff.name || '',
+            job_name: job?.name || '',
+            scanned_asset_ids: data.assetReturn.scannedAssetIds || [],
+            scanned_manifest_ids: data.assetReturn.scannedManifestIds || [],
+            notes: data.assetReturn.notes || '',
+          });
+          queryClient.invalidateQueries({ queryKey: ['job-asset-assignments'] });
+          queryClient.invalidateQueries({ queryKey: ['site-assets-for-return'] });
+          toast({ title: 'Gear return logged', description: `${data.assetReturn.scannedAssetIds.length + data.assetReturn.scannedManifestIds.length} scan(s) sent to yard & Asset Panda.` });
+        } catch (assetErr) {
+          console.error('Asset return error:', assetErr);
+          toast({ title: 'Gear return failed', description: 'Your timesheet was submitted but the asset return could not be processed. Please tell the yard manager.', variant: 'destructive' });
+        }
+      }
       await base44.entities.RotaAssignment.update(assignmentId, updateData);
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['daily-tasks'] });

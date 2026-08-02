@@ -17,6 +17,7 @@ import BillingRulesManager from '@/components/BillingRulesManager';
 import EquipmentLibraryManager from '@/components/EquipmentLibraryManager';
 import CrewTypeCommand from '@/components/CrewTypeCommand';
 import AssetPandaSettings from '@/components/AssetPandaSettings';
+import AssetManifestManager from '@/components/assetpanda/AssetManifestManager';
 import RateCardManager from '@/components/RateCardManager';
 import DropdownConfigManager from '@/components/DropdownConfigManager';
 import SettingsHubOverview from '@/components/SettingsHubOverview';
@@ -97,6 +98,7 @@ export default function SettingsPage({ initialTab, onSelectJob }) {
       case 'teams': return <CrewTypeCommand />;
       case 'access-levels': return <PermissionGroupManager profile={profile} />;
       case 'asset-panda': return <AssetPandaSettings />;
+      case 'asset-manifests': return <AssetManifestManager />;
       case 'vehicles': return <VehicleManager />;
       case 'clients': return <ClientManager />;
       case 'contractors': return <ContractorManager />;

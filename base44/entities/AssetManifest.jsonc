@@ -1,0 +1,69 @@
+{
+  "name": "AssetManifest",
+  "type": "object",
+  "properties": {
+    "manifest_code": {
+      "type": "string",
+      "description": "The QR code value encoded on the physical print-out kept in the van. When a crew member scans this QR, the app resolves it to all the assets listed in asset_ids. Used for bulky items (casing sets, rig tooling bundles) that can't have individual barcode stickers."
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable label for this manifest (e.g. '5x 125mm Casing Set', 'Rig 1 Tooling Bundle'). Shown to the crew member when they scan the QR so they can confirm what they're returning."
+    },
+    "asset_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "IDs of the SiteAsset records this manifest represents. When scanned, all these assets are marked as returned in one action."
+    },
+    "panda_asset_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Corresponding Asset Panda object IDs for each asset in asset_ids. Used to push status updates to Asset Panda when the manifest is scanned."
+    },
+    "asset_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Denormalised asset names for display in the scan confirmation list, so the crew can see what's in the bundle without a join."
+    },
+    "category": {
+      "type": "string",
+      "description": "Grouping label for organising manifests in the admin manager (e.g. 'Casing', 'Tooling', 'Lifting Gear')."
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this manifest QR is still in use. Deactivate when a print-out is replaced or retired."
+    }
+  },
+  "required": [
+    "manifest_code",
+    "name"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
