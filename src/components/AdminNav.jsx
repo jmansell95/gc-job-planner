@@ -70,9 +70,9 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     <>
       <div className="px-4 pt-4 pb-3 border-b border-white/10">
         <div className="flex flex-col items-start gap-3">
-          <div className="flex flex-col items-start w-full">
+          <div className="flex flex-col items-center w-full">
             <img src="https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/993ce8312_GC_Logo-removebg-preview.png" alt="Ground Control" className="w-28 h-auto object-contain" />
-            <p className="text-left text-[11px] text-white/60 mt-1.5 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
+            <p className="text-[11px] text-white/60 mt-1.5 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
           </div>
           {profile && (
             <button type="button" onClick={() => navigate('/staff-profile')} title={`${profile.name} — ${profile.email}`}
