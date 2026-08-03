@@ -27,9 +27,13 @@
       ],
       "description": "Type of worker"
     },
+    "job_title": {
+      "type": "string",
+      "description": "Staff member's job title / role (e.g. 'Cable Percussion Driller', 'Groundworker'). Derived from the crew section during spreadsheet import."
+    },
     "team_id": {
       "type": "string",
-      "description": "Team/group assignment \u2014 determines which jobs this staff member can be assigned to"
+      "description": "Team/group assignment \u2014 determines which jobs this staff member can assigned to"
     },
     "permission_group_id": {
       "type": "string",
