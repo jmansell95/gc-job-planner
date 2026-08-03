@@ -340,11 +340,21 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       const rateCardItem = matchRigRateCard(rig);
       const rigDayRate = rateCardItem ? (Number(rateCardItem.price) || 0) : (Number(rig.daily_billing_rate) || 0);
       const rigUnit = rateCardItem?.unit || 'day';
+      // Calculate the rig quantity from the on-site date range so day-rate
+      // billing reflects the actual number of days on site (inclusive).
+      // Gear items keep quantity 1 — they're £0 (included in the rig rate).
+      const rigStartDate = dates.onSiteStart || job?.start_date || '';
+      const rigEndDate = dates.onSiteEnd || job?.end_date || '';
+      let rigQuantity = 1;
+      if (rigUnit === 'day' && rigStartDate && rigEndDate) {
+        const d = differenceInCalendarDays(new Date(rigEndDate + 'T00:00:00'), new Date(rigStartDate + 'T00:00:00')) + 1;
+        if (d > 0) rigQuantity = d;
+      }
       const payload = [
         { job_id: jobId, category: 'internal_equipment', supplier_id: '', description: rig.name,
           reference_number: rig.serial_number || '', responsible_person: rig.responsible_person || '', site_asset_id: rig.id,
-          rate_card_item_id: rateCardItem?.id || '', po_number: '', start_date: dates.onSiteStart || job?.start_date || '', end_date: dates.onSiteEnd || job?.end_date || '', unit_cost: rigDayRate,
-          quantity: 1, unit_label: rigUnit, vat_exempt: false,
+          rate_card_item_id: rateCardItem?.id || '', po_number: '', start_date: rigStartDate, end_date: rigEndDate, unit_cost: rigDayRate,
+          quantity: rigQuantity, unit_label: rigUnit, vat_exempt: false,
           hire_status: 'active', current_location: 'yard', notes: rateCardItem ? `Day rate from Our Rate Card — includes ${gear.length} linked gear item(s)` : `Day rate from Asset Panda — includes ${gear.length} linked gear item(s)` },
         ...gear.map(g => ({
           job_id: jobId, category: 'internal_equipment', supplier_id: '', description: g.name,

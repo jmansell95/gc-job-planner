@@ -1456,6 +1456,14 @@ export default async function(req) {
       const raJob = jobMap.get(nameKey(ra.job_name));
       const jobStart = ra.assigned_date || raJob?.start_date || '';
       const jobEnd = raJob?.end_date || '';
+      // Calculate the rig quantity from the on-site date range so day-rate
+      // billing reflects the actual number of days on site (inclusive).
+      let rigQuantity = 1;
+      const rigUnitLabel = ra.unit_label || 'day';
+      if (rigUnitLabel === 'day' && jobStart && jobEnd) {
+        const d = Math.round((new Date(jobEnd + 'T00:00:00Z').getTime() - new Date(jobStart + 'T00:00:00Z').getTime()) / 86400000) + 1;
+        if (d > 0) rigQuantity = d;
+      }
       await base44.asServiceRole.entities.JobCostItem.create({
         job_id: ra.job_id,
         category: 'internal_equipment',
@@ -1467,8 +1475,8 @@ export default async function(req) {
         start_date: jobStart,
         end_date: jobEnd,
         unit_cost: ra.unit_cost || 0,
-        quantity: 1,
-        unit_label: ra.unit_label || 'day',
+        quantity: rigQuantity,
+        unit_label: rigUnitLabel,
         vat_exempt: false,
         hire_status: 'active',
         current_location: 'yard',
