@@ -78,7 +78,8 @@ export default function Vehicles() {
     queryKey: ['geotab-live-locations-fleet'],
     queryFn: async () => {
       const res = await base44.functions.invoke('getVehicleLocationHistory', { mode: 'live', limit: 500 });
-      return res.data || res || [];
+      const data = res?.data ?? res;
+      return Array.isArray(data) ? data : (Array.isArray(data?.locations) ? data.locations : []);
     },
     refetchInterval: 60000,
   });
