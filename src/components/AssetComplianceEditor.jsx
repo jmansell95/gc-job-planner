@@ -16,7 +16,6 @@ const ASSET_TYPES = [
   { value: 'rig', label: 'Rig', icon: Cog },
   { value: 'machinery', label: 'Machinery', icon: Wrench },
   { value: 'trailer', label: 'Trailer', icon: Package },
-  { value: 'vehicle', label: 'Vehicle', icon: Truck },
   { value: 'lifting', label: 'Lifting Gear', icon: Anchor },
   { value: 'portable_appliance', label: 'PAT / Electrical', icon: Plug },
 ];

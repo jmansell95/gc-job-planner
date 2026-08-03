@@ -24,11 +24,13 @@ import BulkActionBar from '@/components/righub/BulkActionBar';
 import FleetSyncPanel from '@/components/righub/FleetSyncPanel';
 import DrillingEfficiencyPanel from '@/components/righub/DrillingEfficiencyPanel';
 import FleetUtilizationHeatmap from '@/components/righub/FleetUtilizationHeatmap';
+import BulkAssetUpload from '@/components/righub/BulkAssetUpload';
+import SmartCertImport from '@/components/righub/SmartCertImport';
 import RigUtilizationSparkline from '@/components/righub/RigUtilizationSparkline';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Skeleton } from '@/components/StateViews';
-import { RefreshCw, Lock, Check, CheckSquare } from 'lucide-react';
+import { RefreshCw, Lock, Check, CheckSquare, Upload } from 'lucide-react';
 
 const TYPE_ICON = { rig: Cog, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Anchor, portable_appliance: Plug };
 
@@ -56,6 +58,8 @@ export default function RigHub() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
   const [bulkCerts, setBulkCerts] = useState(null);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showSmartImport, setShowSmartImport] = useState(false);
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
@@ -151,7 +155,13 @@ export default function RigHub() {
               <button onClick={() => navigate('/pat-testing')} className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-amber-400/90 hover:bg-amber-400 text-slate-900 rounded-lg font-semibold text-sm active:scale-95 transition shadow-sm">
                 <Plug className="w-4 h-4" /> PAT Console
               </button>
-              <button onClick={openAdd} className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2.5 bg-white text-[#2E5A1A] rounded-lg font-semibold text-sm hover:bg-white/90 active:scale-95 transition flex-shrink-0 shadow-sm">
+              <button onClick={() => setShowSmartImport(true)} className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white/15 hover:bg-white/25 ring-1 ring-white/25 text-white rounded-lg font-semibold text-sm active:scale-95 transition flex-shrink-0">
+                <ScanLine className="w-4 h-4" /> Smart Import
+              </button>
+              <button onClick={() => setShowBulkUpload(true)} className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white/15 hover:bg-white/25 ring-1 ring-white/25 text-white rounded-lg font-semibold text-sm active:scale-95 transition flex-shrink-0">
+                <Upload className="w-4 h-4" /> Bulk Upload
+              </button>
+              <button onClick={openAdd} className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white text-[#2E5A1A] rounded-lg font-semibold text-sm hover:bg-white/90 active:scale-95 transition flex-shrink-0 shadow-sm">
                 <Plus className="w-4 h-4" /> Add Asset
               </button>
             </div>
@@ -234,6 +244,12 @@ export default function RigHub() {
             <div className="flex gap-2 sm:hidden">
               <button onClick={() => navigate('/pat-testing')} className="inline-flex items-center gap-1 px-3 py-2 bg-amber-500 text-white rounded-lg text-sm font-semibold">
                 <Plug className="w-4 h-4" /> PAT
+              </button>
+              <button onClick={() => setShowSmartImport(true)} className="inline-flex items-center gap-1 px-3 py-2 bg-white/20 text-white rounded-lg text-sm font-semibold ring-1 ring-white/25">
+                <ScanLine className="w-4 h-4" /> Scan
+              </button>
+              <button onClick={() => setShowBulkUpload(true)} className="inline-flex items-center gap-1 px-3 py-2 bg-white/20 text-white rounded-lg text-sm font-semibold ring-1 ring-white/25">
+                <Upload className="w-4 h-4" /> Bulk
               </button>
               <button onClick={openAdd} className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold">
                 <Plus className="w-4 h-4" /> Add
@@ -500,6 +516,8 @@ export default function RigHub() {
           </div>
         </div>
       )}
+      {showBulkUpload && <BulkAssetUpload onClose={() => setShowBulkUpload(false)} />}
+      {showSmartImport && <SmartCertImport onClose={() => setShowSmartImport(false)} />}
         </div>
       </main>
     </div>
