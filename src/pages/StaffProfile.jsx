@@ -20,6 +20,7 @@ import { resolveRole, isOfficeStaff } from '@/utils/access';
 import StaffProfileEditDrawer from '@/components/staff/StaffProfileEditDrawer';
 import StaffPerformanceCard from '@/components/staff/StaffPerformanceCard';
 import IncentiveDashboard from '@/components/staff/IncentiveDashboard';
+import NoCrewProfileState from '@/components/staff/NoCrewProfileState';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
@@ -223,12 +224,16 @@ export default function StaffProfile() {
 
         {/* Tab Content */}
         <div className="mt-4">
-          {activeTab === 'performance' && staff.id && <StaffPerformanceCard staffId={staff.id} />}
-          {activeTab === 'incentives' && staff.id && (
-            <IncentiveDashboard staffId={staff.id} staffName={staff.name} teamId={staff.team_id} />
-          )}
-          {activeTab === 'timesheets' && <TimesheetHistory staffId={staff.id} />}
-          {activeTab === 'bookings' && (
+          {activeTab === 'performance' && (staff.id
+            ? <StaffPerformanceCard staffId={staff.id} />
+            : <NoCrewProfileState tab="performance" onGoAdmin={() => navigate('/admin')} />)}
+          {activeTab === 'incentives' && (staff.id
+            ? <IncentiveDashboard staffId={staff.id} staffName={staff.name} teamId={staff.team_id} />
+            : <NoCrewProfileState tab="incentives" onGoAdmin={() => navigate('/admin')} />)}
+          {activeTab === 'timesheets' && (staff.id
+            ? <TimesheetHistory staffId={staff.id} />
+            : <NoCrewProfileState tab="timesheets" onGoAdmin={() => navigate('/admin')} />)}
+          {activeTab === 'bookings' && (staff.id ? (
             <div className="space-y-5">
               {upcomingAbsences.length > 0 && (
                 <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
@@ -265,12 +270,16 @@ export default function StaffProfile() {
                 <StaffBookings staffId={staff.id} />
               </div>
             </div>
-          )}
-          {activeTab === 'training' && <TrainingHistory staffId={staff.id} staffName={staff.name} />}
-          {activeTab === 'documents' && <StaffDocuments staffId={staff.id} staffName={staff.name} />}
-          {activeTab === 'crew' && staff.team_id && (
-            <TeamMiniFeed teamId={staff.team_id} currentStaffId={staff.id} />
-          )}
+          ) : <NoCrewProfileState tab="bookings" onGoAdmin={() => navigate('/admin')} />)}
+          {activeTab === 'training' && (staff.id
+            ? <TrainingHistory staffId={staff.id} staffName={staff.name} />
+            : <NoCrewProfileState tab="training" onGoAdmin={() => navigate('/admin')} />)}
+          {activeTab === 'documents' && (staff.id
+            ? <StaffDocuments staffId={staff.id} staffName={staff.name} />
+            : <NoCrewProfileState tab="documents" onGoAdmin={() => navigate('/admin')} />)}
+          {activeTab === 'crew' && (staff.team_id
+            ? <TeamMiniFeed teamId={staff.team_id} currentStaffId={staff.id} />
+            : <NoCrewProfileState tab="crew" onGoAdmin={() => navigate('/admin')} />)}
         </div>
       </div>
 

@@ -26,6 +26,7 @@ import StaffTabBar from '@/components/staff/StaffTabBar';
 import StaffHeader from '@/components/staff/StaffHeader';
 import StaffAlerts from '@/components/staff/StaffAlerts';
 import ActiveJobCard from '@/components/staff/ActiveJobCard';
+import IncentiveQuickLook from '@/components/staff/IncentiveQuickLook';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
 export default function StaffDashboard() {
@@ -579,6 +580,11 @@ export default function StaffDashboard() {
               </button>
             );
           })()}
+
+          {/* Incentive Quick-Look — mini score card */}
+          {staff?.id && !staff?.is_admin && (
+            <IncentiveQuickLook staffId={staff.id} teamId={staff.team_id} />
+          )}
 
           {/* Today's assignments — active job hero + compact secondary cards */}
           {assignmentsLoading ? (
