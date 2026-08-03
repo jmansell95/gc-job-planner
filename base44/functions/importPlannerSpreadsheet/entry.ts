@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import * as XLSX from 'npm:xlsx@0.18.5';
 import { buildContractorMaps, findOrCreateAgency, buildAssetMaps, fuzzyFindAsset, assetRole } from '../../shared/entityRegistry.ts';
+import { findRigRateCardItem } from '../../shared/rigRateMatcher.ts';
 import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, looksLikeAssetName, normalizeName, nameKey, findProjectForJob, extractSiteName, isActualTrainingCourse, extractTrainingCourseTitle, inferTrainingCategory } from '../../shared/spreadsheetParser.ts';
 
 // ---------------------------------------------------------------------------
@@ -148,6 +149,19 @@ function inferDrillingMethod(crewSection) {
   return inferFromMap(crewSection, CREW_SECTION_TO_DRILLING_METHOD, 'not_applicable');
 }
 
+// Infer a job title from the sheet name when no crew section is available
+// (staff who only appear under "Leave/Sick" with no real crew assignments).
+// "Drillers" / "Team Planner 2026_Drilling" → Driller
+// "Team Planner 2026_GW+Depot" → Groundworker (default for GW+Depot sheet)
+function inferJobTitleFromSheet(sheetName) {
+  if (!sheetName) return '';
+  const lower = String(sheetName).toLowerCase().trim();
+  if (lower.includes('driller') || lower.includes('drilling')) return 'Driller';
+  if (lower.includes('gw') || lower.includes('groundwork')) return 'Groundworker';
+  if (lower.includes('depot')) return 'Yard/Depot Staff';
+  return '';
+}
+
 function getMostCommon(arr) {
   if (!arr || arr.length === 0) return '';
   const counts = {};
@@ -180,7 +194,7 @@ function isPlantPlannerSheet(sheetName) {
 //   • "Team Planner 2026_GW+Depot" → Groundworkers and Depot Staff
 //   • "Drillers" → Drilling team (latest)
 const TARGET_SHEET_PATTERNS = [
-  /team\s*planner.*2026.*(gw|depot)/i,
+  /team\s*planner.*2026.*(gw|depot|drill)/i,
   /driller/i,
 ];
 
@@ -269,6 +283,7 @@ function parseSheet(sheet, sheetName) {
   const assignments = [];
   const sectionsFound = new Set();
   let currentSection = '';
+  let rawSection = '';
   let isSubSection = false;
   let isAgencySectionFlag = false;
   let currentAgencyName = '';
@@ -280,7 +295,8 @@ function parseSheet(sheet, sheetName) {
     if (!row) continue;
     for (let c = 0; c < 6 && c < row.length; c++) {
       if (isSectionHeader(row[c])) {
-        currentSection = normalizeSection(String(row[c]).trim());
+        rawSection = String(row[c]).trim();
+        currentSection = normalizeSection(rawSection);
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
         if (!isAgencySectionFlag) currentAgencyName = '';
@@ -305,7 +321,8 @@ function parseSheet(sheet, sheetName) {
     let foundSection = false;
     for (const cell of firstCells) {
       if (isSectionHeader(cell)) {
-        currentSection = normalizeSection(String(cell).trim());
+        rawSection = String(cell).trim();
+        currentSection = normalizeSection(rawSection);
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
         if (!isAgencySectionFlag) currentAgencyName = '';
@@ -357,7 +374,9 @@ function parseSheet(sheet, sheetName) {
         non_job_type: nonJobType || undefined,
         non_job_label: nonJobType ? jobName : undefined,
         date,
-        crew_section: currentSection, is_subcontractor_section: entityIsSubbie,
+        crew_section: currentSection, raw_crew_section: rawSection,
+        sheet_name: sheetName,
+        is_subcontractor_section: entityIsSubbie,
         is_agency_section: entityIsAgency,
         agency_name: entityAgencyName || undefined,
         is_potential_asset: isAssetName,
@@ -368,7 +387,9 @@ function parseSheet(sheet, sheetName) {
     if (!hadAssignment) {
       assignments.push({
         staff_name: entityName, job_name: null, date: null,
-        crew_section: currentSection, is_subcontractor_section: entityIsSubbie,
+        crew_section: currentSection, raw_crew_section: rawSection,
+        sheet_name: sheetName,
+        is_subcontractor_section: entityIsSubbie,
         is_agency_section: entityIsAgency,
         agency_name: entityAgencyName || undefined,
         is_potential_asset: isAssetName,
@@ -477,6 +498,8 @@ export default async function(req) {
     const assetMaps = buildAssetMaps(allAssets);
     const assetById = new Map();
     for (const a of allAssets) assetById.set(a.id, a);
+    // Load RateCardItem records for rig day-rate matching when auto-linking rigs
+    const allRateCardItems = await base44.asServiceRole.entities.RateCardItem.list('-created_date', 5000);
 
     const movedToPlant = [];
     const droppedPotentialAssets = new Set();
@@ -512,6 +535,7 @@ export default async function(req) {
     const allJobs = await base44.asServiceRole.entities.Job.list('-created_date', 5000);
     const allCrews = await base44.asServiceRole.entities.DrillingCrew.list('-created_date', 5000);
     const allAssetAssignments = await base44.asServiceRole.entities.JobAssetAssignment.list('-created_date', 5000);
+    const allCostItems = await base44.asServiceRole.entities.JobCostItem.list('-created_date', 5000);
     const allTrainingBookings = await base44.asServiceRole.entities.TrainingBooking.list('-created_date', 5000);
     const allAbsences = await base44.asServiceRole.entities.Absence.list('-created_date', 5000);
     purgeSummary.rotas_deleted = allRotas.length;
@@ -520,6 +544,7 @@ export default async function(req) {
     purgeSummary.jobs_deleted = allJobs.length;
     purgeSummary.crews_deleted = allCrews.length;
     purgeSummary.asset_assignments_deleted = allAssetAssignments.length;
+    purgeSummary.cost_items_deleted = allCostItems.length;
     purgeSummary.training_bookings_deleted = allTrainingBookings.length;
     purgeSummary.absences_deleted = allAbsences.length;
     if (!dryRun) {
@@ -529,9 +554,10 @@ export default async function(req) {
       if (allJobs.length > 0) await base44.asServiceRole.entities.Job.deleteMany({});
       if (allCrews.length > 0) await base44.asServiceRole.entities.DrillingCrew.deleteMany({});
       if (allAssetAssignments.length > 0) await base44.asServiceRole.entities.JobAssetAssignment.deleteMany({});
+      if (allCostItems.length > 0) await base44.asServiceRole.entities.JobCostItem.deleteMany({});
       if (allTrainingBookings.length > 0) await base44.asServiceRole.entities.TrainingBooking.deleteMany({});
       if (allAbsences.length > 0) await base44.asServiceRole.entities.Absence.deleteMany({});
-      warnings.push(`Full wipe: deleted ${purgeSummary.rotas_deleted} rotas, ${purgeSummary.staff_deleted} staff, ${purgeSummary.teams_deleted} teams, ${purgeSummary.jobs_deleted} jobs, ${purgeSummary.crews_deleted} crews, ${purgeSummary.asset_assignments_deleted} asset assignments, ${purgeSummary.training_bookings_deleted} training bookings, ${purgeSummary.absences_deleted} absences.`);
+      warnings.push(`Full wipe: deleted ${purgeSummary.rotas_deleted} rotas, ${purgeSummary.staff_deleted} staff, ${purgeSummary.teams_deleted} teams, ${purgeSummary.jobs_deleted} jobs, ${purgeSummary.crews_deleted} crews, ${purgeSummary.asset_assignments_deleted} asset assignments, ${purgeSummary.cost_items_deleted} cost items, ${purgeSummary.training_bookings_deleted} training bookings, ${purgeSummary.absences_deleted} absences.`);
     }
 
     // -----------------------------------------------------------------------
@@ -660,7 +686,18 @@ export default async function(req) {
       const workerType = agency ? 'agency' : (subbie ? 'subcontractor' : 'direct_employee');
       const crewSectionCounts = staffAssignments.map(a => a.crew_section).filter(Boolean);
       const mostCommonSection = getMostCommon(crewSectionCounts);
-      const jobTitle = inferJobTitle(mostCommonSection);
+      // Fall back to raw crew section (non-work sections like "Leave/Sick" are
+      // normalized to '' — use the original section name for job title inference,
+      // excluding non-work sections since they don't indicate a real crew role)
+      const rawSectionCounts = staffAssignments
+        .map(a => a.raw_crew_section)
+        .filter(s => s && !isNonWorkSection(s));
+      const mostCommonRawSection = getMostCommon(rawSectionCounts);
+      // Last resort: infer from the sheet name (Drillers → Driller, GW+Depot → Groundworker)
+      const mostCommonSheet = getMostCommon(staffAssignments.map(a => a.sheet_name).filter(Boolean));
+      const jobTitle = inferJobTitle(mostCommonSection)
+        || inferJobTitle(mostCommonRawSection)
+        || inferJobTitleFromSheet(mostCommonSheet);
       const team = agency ? agencyTeam : (subbie ? subconTeam : (teamMap[mostCommonSection] || fallbackTeam));
 
       // Resolve the agency (Contractor) for agency workers. The agency name
@@ -927,10 +964,21 @@ export default async function(req) {
       else if (match.method === 'serial') assetMatchBreakdown.serial++;
       else { assetMatchBreakdown.fuzzy++; fuzzyAssetMatches.push({ query: pa.staff_name, matched: asset.name, score: Math.round(match.score * 100), method: match.method }); }
 
+      // Match rig to RateCardItem for day-rate pricing (project-scoped rates first)
+      const isRigAsset = asset.is_rig || asset.asset_type === 'rig';
+      const rateCardItem = isRigAsset ? findRigRateCardItem(asset, allRateCardItems, job.project_id) : null;
+      const rigDayRate = rateCardItem ? (Number(rateCardItem.price) || 0) : 0;
+      const rigUnit = rateCardItem?.unit || 'day';
+
       rigAssignments.push({
         job_id: job.id, job_name: job.name, asset_id: asset.id, asset_name: asset.name,
         asset_type: asset.asset_type || 'rig', rig_type: asset.rig_type || 'n/a',
         role: assetRole(asset), assigned_date: pa.date,
+        is_rig: isRigAsset,
+        rate_card_item_id: rateCardItem?.id || '',
+        unit_cost: rigDayRate,
+        unit_label: rigUnit,
+        responsible_person: asset.responsible_person || '',
       });
 
       // Enrich job drilling_method from the matched rig's rig_type
@@ -952,6 +1000,11 @@ export default async function(req) {
             job_id: job.id, job_name: job.name, asset_id: eq.id, asset_name: eq.name,
             asset_type: eq.asset_type || 'machinery', rig_type: 'n/a',
             role: assetRole(eq), assigned_date: pa.date,
+            is_rig: false,
+            rate_card_item_id: '',
+            unit_cost: 0,
+            unit_label: 'day',
+            responsible_person: eq.responsible_person || '',
           });
         }
       }
@@ -1360,7 +1413,9 @@ export default async function(req) {
         new_teams: newTeamNames,
         new_rig_assignments: dedupedRigAssignments.map(ra => ({
           job_name: ra.job_name, asset_name: ra.asset_name, asset_type: ra.asset_type,
-          role: ra.role, rig_type: ra.rig_type, assigned_date: ra.assigned_date
+          role: ra.role, rig_type: ra.rig_type, assigned_date: ra.assigned_date,
+          is_rig: ra.is_rig, unit_cost: ra.unit_cost || 0, unit_label: ra.unit_label || 'day',
+          rate_card_item_id: ra.rate_card_item_id || ''
         })),
         training_breakdown: Object.entries(trainingGroups).map(([key, group]) => {
           const course = trainingCourseMap.get(key);
@@ -1391,12 +1446,34 @@ export default async function(req) {
       }
     }
 
+    // Create JobCostItem records (not JobAssetAssignment) so rigs and gear
+    // appear in the job's Logistics tab → Equipment & Assets section. This
+    // matches the manual "Add Rig & Gear" flow which creates JobCostItem
+    // records with category 'internal_equipment' and site_asset_id set.
     let rigAssignmentCount = 0;
     for (const ra of dedupedRigAssignments) {
-      await base44.asServiceRole.entities.JobAssetAssignment.create({
-        job_id: ra.job_id, job_name: ra.job_name, asset_id: ra.asset_id, asset_name: ra.asset_name,
-        asset_type: ra.asset_type || 'rig', rig_type: ra.rig_type || 'n/a',
-        role: ra.role || 'primary_rig', status: 'assigned', assigned_date: ra.assigned_date,
+      const raJob = jobMap.get(nameKey(ra.job_name));
+      const jobStart = ra.assigned_date || raJob?.start_date || '';
+      const jobEnd = raJob?.end_date || '';
+      await base44.asServiceRole.entities.JobCostItem.create({
+        job_id: ra.job_id,
+        category: 'internal_equipment',
+        description: ra.asset_name,
+        site_asset_id: ra.asset_id,
+        responsible_person: ra.responsible_person || '',
+        rate_card_item_id: ra.rate_card_item_id || '',
+        reference_number: '',
+        start_date: jobStart,
+        end_date: jobEnd,
+        unit_cost: ra.unit_cost || 0,
+        quantity: 1,
+        unit_label: ra.unit_label || 'day',
+        vat_exempt: false,
+        hire_status: 'active',
+        current_location: 'yard',
+        notes: ra.is_rig
+          ? `Auto-linked from planner import${ra.rate_card_item_id ? ' — day rate from Our Rate Card' : ''}`
+          : 'Included in rig day rate (auto-linked from planner import)',
       });
       rigAssignmentCount++;
     }

@@ -74,11 +74,12 @@ export default function ImportCompleteModal({ result, onClose, type = 'planner' 
                   <Trash2 className="w-4 h-4 text-rose-600" />
                   <p className="text-sm font-bold text-rose-800">Wiped & Rebuilt</p>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-5 gap-2">
                   <MiniStat value={s.purge?.staff_deleted || 0} label="Staff" />
                   <MiniStat value={s.purge?.jobs_deleted || 0} label="Jobs" />
                   <MiniStat value={s.purge?.rotas_deleted || 0} label="Rotas" />
                   <MiniStat value={s.purge?.teams_deleted || 0} label="Teams" />
+                  <MiniStat value={s.purge?.cost_items_deleted || 0} label="Cost Items" />
                 </div>
               </div>
 

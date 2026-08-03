@@ -162,6 +162,7 @@ export default function ImportDashboard() {
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.crews_deleted}</span> crews</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.rotas_deleted}</span> rotas</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.asset_assignments_deleted}</span> asset assignments</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.cost_items_deleted || 0}</span> cost items</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.training_bookings_deleted || 0}</span> training bookings</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.absences_deleted || 0}</span> absences</div>
               </div>
