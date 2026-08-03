@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle, Users, Briefcase, CalendarDays, Trash2, HardHat, Wrench, AlertCircle } from 'lucide-react';
+import { UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle, Users, Briefcase, CalendarDays, Trash2, HardHat, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function ImportDashboard() {
   const { toast } = useToast();
@@ -12,6 +12,7 @@ export default function ImportDashboard() {
   const [applying, setApplying] = useState(false);
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState(null);
+  const [purge, setPurge] = useState(true);
 
   const handleFileChange = (e) => {
     const f = e.target.files?.[0];
@@ -45,7 +46,8 @@ export default function ImportDashboard() {
     try {
       const res = await base44.functions.invoke('importPlannerSpreadsheet', {
         file_url: url,
-        dry_run: true
+        dry_run: true,
+        purge
       });
       setPreview(res.data);
     } catch (e) {
@@ -63,12 +65,14 @@ export default function ImportDashboard() {
     try {
       const res = await base44.functions.invoke('importPlannerSpreadsheet', {
         file_url: fileUrl,
-        dry_run: false
+        dry_run: false,
+        purge
       });
       const s = res.data.summary;
+      const purgeMsg = s.purge ? `${s.purge.staff_deleted} old staff, ${s.purge.rotas_deleted} old rotas cleared. ` : '';
       toast({
         title: 'Import complete',
-        description: `Created ${s.rotas.created} rotas, ${s.staff.new} staff, ${s.jobs.new} jobs. Deleted ${s.rotas.deleted} stale assignments.`
+        description: `${purgeMsg}Created ${s.rotas.created} rotas, ${s.staff.new} staff, ${s.jobs.new} jobs.`
       });
       setPreview(null);
       setFile(null);
@@ -118,6 +122,25 @@ export default function ImportDashboard() {
             </button>
           </div>
 
+          {/* Purge toggle */}
+          <label className="mt-4 flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={purge}
+              onChange={(e) => setPurge(e.target.checked)}
+              className="mt-0.5 w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+            />
+            <div>
+              <div className="flex items-center gap-1.5">
+                <RefreshCw className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-sm font-semibold text-slate-700">Clear old data before import</span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Deletes all existing rota assignments and auto-created staff (those without a linked login account) before importing. Real user-linked staff are always kept. This ensures a clean, duplicate-free import every time.
+              </p>
+            </div>
+          </label>
+
           {error && (
             <div className="mt-4 flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
               <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -138,8 +161,16 @@ export default function ImportDashboard() {
             {/* Dedup guarantee banner */}
             <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2.5 text-sm text-emerald-800 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span><strong>Single-entry deduplication active.</strong> Existing staff, jobs, teams &amp; rotas are matched case-insensitively — nothing is duplicated.</span>
+              <span><strong>Single-entry deduplication active.</strong> Staff, jobs, teams &amp; rotas are matched case-insensitively — nothing is duplicated. Generic role labels (e.g. "Sampling Team") are filtered out.</span>
             </div>
+
+            {/* Purge preview */}
+            {preview.summary.purge && (
+              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 text-sm text-blue-800 flex items-center gap-2">
+                <Trash2 className="w-4 h-4 flex-shrink-0" />
+                <span><strong>Purge mode ON:</strong> {preview.summary.purge.staff_deleted} old staff and {preview.summary.purge.rotas_deleted} old rota assignments will be deleted before import.</span>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
               <StatTile icon={Users} label="Staff" total={preview.summary.staff.total} sub={`${preview.summary.staff.found} found · ${preview.summary.staff.new} new`} color="blue" />
@@ -165,7 +196,7 @@ export default function ImportDashboard() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-emerald-900">Direct Employees</p>
-                  <p className="text-xs text-emerald-700">{preview.summary.staff.total - preview.summary.staff.subcontractors} person(s) → crew-section teams</p>
+                  <p className="text-xs text-emerald-700">{preview.summary.staff.direct_employees} person(s) → crew-section teams</p>
                 </div>
               </div>
             </div>
@@ -207,9 +238,10 @@ export default function ImportDashboard() {
             <div className="mt-5 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>
-                Confirming will <strong>create {preview.summary.rotas.to_create} new rota assignments</strong> and{' '}
-                <strong>delete {preview.summary.rotas.to_delete} existing assignments</strong> in this date range that are not in the spreadsheet.
-                Staff and jobs are never deleted — only created if missing.
+                Confirming will <strong>create {preview.summary.rotas.to_create} new rota assignments</strong>
+                {preview.summary.purge && <> and <strong>delete {preview.summary.purge.staff_deleted} old staff + {preview.summary.purge.rotas_deleted} old rotas</strong></>}
+                {preview.summary.rotas.to_delete > 0 && <> and <strong>delete {preview.summary.rotas.to_delete} stale assignments</strong></>}.
+                Real user-linked staff are always kept.
               </span>
             </div>
 
@@ -239,12 +271,13 @@ export default function ImportDashboard() {
             <ol className="space-y-3 text-sm text-slate-600">
               <Step n={1} title="Upload your planner file">The Excel file is uploaded and parsed directly — no third-party AI involved.</Step>
               <Step n={2} title="Extract crews, jobs &amp; rotas">The system reads the grid — staff names, job names, dates, and crew sections — and matches them against your existing records.</Step>
-              <Step n={3} title="Single-entry deduplication">Staff, jobs, and teams are matched case-insensitively. Subcontractors (names with "subbies", "subcontractor", etc.) go into the Subcontractors team; everyone else goes into their crew-section team as a Direct Employee.</Step>
-              <Step n={4} title="Review the preview">See exactly what will be created, updated, or deleted — with found vs new counts and any warnings — before anything changes.</Step>
-              <Step n={5} title="Confirm &amp; apply">On confirm, missing staff/jobs/teams are created in batch, new rota assignments are added, and stale ones (in the sheet's date range) are removed.</Step>
+              <Step n={3} title="Person-name filtering">Generic role labels like "Sampling Team", "Drilling Crew", "Excavator driver" are automatically filtered out — only real person names are imported as staff.</Step>
+              <Step n={4} title="Subcontractor detection">Names under a "Drilling Subbies" or "Subcontractor" section header are automatically classified as subcontractors and grouped into the Subcontractors team. Everyone else goes to their crew-section team as a Direct Employee.</Step>
+              <Step n={5} title="Review the preview">See exactly what will be created, updated, or deleted — with found vs new counts and any warnings — before anything changes.</Step>
+              <Step n={6} title="Confirm &amp; apply">On confirm, missing staff/jobs/teams are created in batch, new rota assignments are added, and stale ones are removed. With "Clear old data" enabled, the system starts from a clean slate every time.</Step>
             </ol>
             <div className="mt-4 text-xs text-slate-400 bg-slate-50 rounded-lg px-4 py-3">
-              <strong>Note:</strong> Staff without an email are auto-created with <code className="text-xs bg-slate-100 px-1 rounded">firstname.lastname@ground-control.co.uk</code>. Only rota assignments within the spreadsheet's date range are affected — historical data outside that range is untouched.
+              <strong>Note:</strong> Staff without an email are auto-created with <code className="text-xs bg-slate-100 px-1 rounded">firstname.lastname@ground-control.co.uk</code>. Only rota assignments within the spreadsheet's date range are affected — historical data outside that range is untouched (unless purge is enabled).
             </div>
           </div>
         )}

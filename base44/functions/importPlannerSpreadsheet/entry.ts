@@ -13,25 +13,34 @@ import * as XLSX from 'npm:xlsx@0.18.5';
 //     duplicated. All lookup maps are keyed by case-insensitive normalised
 //     name so "John Smith", "john smith", and "John  Smith" all resolve to
 //     the same record.
-//   • Subcontractors (names containing "subbies", "subcontractor",
-//     "sub-contractor", or "subby") are classified as worker_type =
-//     'subcontractor' and assigned to a dedicated "Subcontractors" team.
-//   • Everyone else is classified as worker_type = 'direct_employee' and
-//     assigned to their crew-section team (Cable, Rotary, Groundworks, etc.).
-//   • Batch creation — new staff and jobs are created via bulkCreate in a
-//     single call rather than one-by-one.
-//   • Full audit report — the response includes found/new/update counts and
-//     a warnings list for any ambiguous rows.
+//   • Person-name filtering — generic role/crew labels like "Sampling Team",
+//     "Excavator driver", "Drilling Crew", "Mob Crew" are rejected and
+//     never created as staff. Only real person names (2+ capitalised words,
+//     no numbers) are accepted.
+//   • Section-based subcontractor detection — any name appearing under a
+//     section header containing "subbies" / "subcontractor" is classified
+//     as a subcontractor, regardless of the name itself.
+//   • Subcontractors → "Subcontractors" team (worker_type = subcontractor).
+//   • Everyone else → their crew-section team (worker_type = direct_employee).
+//   • Purge mode — when purge=true, all existing RotaAssignments are deleted
+//     and all auto-created Staff (those without a linked user_id) that don't
+//     appear in the new spreadsheet are removed, giving a clean slate.
+//   • Batch creation — new staff and jobs are created via bulkCreate.
+//   • Idempotent — re-importing the same file produces the same result.
 //
 // Two modes:
 //   dry_run: true  → preview of what would be created/updated/deleted (no writes)
 //   dry_run: false → apply all changes
+//
+// Optional:
+//   purge: true → wipe old rota + auto-created staff before import
 // ---------------------------------------------------------------------------
 
 const DEFAULT_DOMAIN = 'ground-control.co.uk';
 const PLACEHOLDER_LOCATION = 'TBC — imported from planner';
 
 const SUBCONTRACTOR_TEAM_NAME = 'Subcontractors';
+const DIRECT_EMPLOYEE_TEAM_NAME = 'Direct Employees';
 
 const CREW_SECTION_TO_JOB_TYPE = {
   'cable': 'cp_drilling',
@@ -90,11 +99,27 @@ const CREW_SECTION_TO_DRILLING_METHOD = {
   'sick': 'not_applicable',
 };
 
-const SECTION_KEYWORDS = ['cable', 'rotary', 'groundwork', 'coring', 'trial pit', 'trial_pit', 'enabling', 'depot', 'yard', 'leave', 'sick', 'plant'];
+// Keywords that mark a row as a section header (not a staff name).
+const SECTION_KEYWORDS = [
+  'cable', 'rotary', 'groundwork', 'coring', 'trial pit', 'trial_pit',
+  'enabling', 'depot', 'yard', 'leave', 'sick', 'plant',
+  'subbies', 'subcontractor', 'sub-contractor', 'subby', 'drilling subbies',
+  'sub.con', 'sub con', 'sub-con', 'field teams',
+];
 
-// Patterns that identify a subcontractor entry in the planner.
-// Matched case-insensitively against the normalised staff name.
-const SUBCONTRACTOR_PATTERNS = ['subbies', 'subcontractor', 'sub-contractor', 'subby'];
+// Patterns that identify a subcontractor entry or section.
+const SUBCONTRACTOR_PATTERNS = ['subbies', 'subcontractor', 'sub-contractor', 'subby', 'sub.con', 'sub con', 'sub-con'];
+
+// Words that, when present as a whole word in a cell, indicate it is NOT a
+// person name but a role/crew label (e.g. "Sampling Team", "Drilling Crew").
+const NON_PERSON_WORDS = [
+  'team', 'teams', 'crew', 'driver', 'supervisor', 'excavator', 'excavtion',
+  'operative', 'labourer', 'labour', 'helper', 'assistant',
+  'mobilisation', 'mobilization', 'mobil', 'sampling',
+  'fitter', 'mechanic', 'groundworker', 'groundworker+', 'ground',
+  'man', 'ex', 'subbies', 'subcontractor', 'sub-contractor',
+  'sub.con', 'sub', 'eng', 'field', 'drilling',
+];
 
 // --- Helpers ---
 
@@ -107,7 +132,7 @@ function nameKey(name) {
   return normalizeName(name).toLowerCase();
 }
 
-// Detect whether a planner name refers to a subcontractor crew.
+// Detect whether a planner name or section refers to a subcontractor.
 function isSubcontractor(name) {
   const lower = normalizeName(name).toLowerCase();
   return SUBCONTRACTOR_PATTERNS.some(p => lower.includes(p));
@@ -196,17 +221,33 @@ function isSectionHeader(text) {
   return SECTION_KEYWORDS.some(kw => lower === kw || lower.startsWith(kw) || lower.includes(kw));
 }
 
-function looksLikeStaffName(text) {
+// Check if a cell value is a non-person label (role/crew description).
+function isNonPersonName(text) {
+  if (!text) return true;
+  const lower = normalizeName(text).toLowerCase();
+  const words = lower.split(/\s+/);
+  return words.some(w => NON_PERSON_WORDS.includes(w));
+}
+
+// Strict person-name check: 2+ capitalised words, no numbers, no role keywords.
+function looksLikePersonName(text) {
   if (!text) return false;
   const s = String(text).trim();
   if (s.length < 2) return false;
-  if (s.length === 1) return false;
   if (cellToDate(s)) return false;
   if (isSectionHeader(s)) return false;
   const lower = s.toLowerCase();
   if (lower === 'team planner' || lower === 'plant planner') return false;
   if (!/[a-zA-Z]/.test(s)) return false;
-  return true;
+  if (/\d/.test(s)) return false;                    // no numbers
+  if (isNonPersonName(s)) return false;               // no role/crew keywords
+
+  const words = s.split(/\s+/);
+  if (words.length < 2) return false;                 // need first + last name
+  if (words.length > 5) return false;                  // not a novel
+
+  // Every word must start with an uppercase letter (proper noun).
+  return words.every(w => /^[A-Z]/.test(w));
 }
 
 function isPlantPlannerSheet(sheetName) {
@@ -228,7 +269,9 @@ function parseJobName(rawName) {
   return { name, job_reference: '', location: '' };
 }
 
-// Parse a single sheet and extract assignments
+// Parse a single sheet and extract assignments.
+// Tracks whether the current section is a subcontractor section so all
+// names below a "Drilling Subbies" header are classified as subcontractors.
 function parseSheet(sheet, sheetName) {
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
   if (rows.length < 5) return [];
@@ -257,12 +300,15 @@ function parseSheet(sheet, sheetName) {
 
   const assignments = [];
   let currentSection = sheetName || '';
+  let isSubSection = false;
 
   for (let r = dateHeaderRowIdx + 2; r < rows.length; r++) {
     const row = rows[r];
     if (!row || row.length === 0) continue;
 
-    const firstCells = [row[0], row[1], row[2], row[3]].filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+    // Check the first 6 cells for section headers — some sheets place
+    // crew labels in col 2, 3, 4 or 5 (e.g. "Drilling Subbies" in col 4).
+    const firstCells = [row[0], row[1], row[2], row[3], row[4], row[5]].filter(v => v !== null && v !== undefined && String(v).trim() !== '');
 
     let hasAssignment = false;
     for (const colStr of Object.keys(colToDate)) {
@@ -278,23 +324,28 @@ function parseSheet(sheet, sheetName) {
     for (const cell of firstCells) {
       if (isSectionHeader(cell)) {
         currentSection = String(cell).trim();
+        isSubSection = isSubcontractor(currentSection);
         foundSection = true;
         break;
       }
     }
     if (foundSection && !hasAssignment) continue;
 
-    // Find the name (staff or plant) in cols 0-3
+    // Find the person name in cols 0-5 (strict person-name check)
     let entityName = null;
-    for (let c = 0; c < 4; c++) {
-      if (looksLikeStaffName(row[c])) {
+    for (let c = 0; c < 6; c++) {
+      if (looksLikePersonName(row[c])) {
         entityName = normalizeName(row[c]);
         break;
       }
     }
     if (!entityName) continue;
 
-    // Extract assignments
+    // Extract assignments — also push a staff-only entry if no dates are
+    // filled in, so the person is still created as a staff record (this is
+    // how subcontractor names under a "Drilling Subbies" header with no
+    // schedule get picked up).
+    let hadAssignment = false;
     for (const [colStr, date] of Object.entries(colToDate)) {
       const c = Number(colStr);
       const cellVal = row[c];
@@ -307,6 +358,20 @@ function parseSheet(sheet, sheetName) {
         job_name: jobName,
         date: date,
         crew_section: currentSection,
+        is_subcontractor_section: isSubSection,
+      });
+      hadAssignment = true;
+    }
+
+    // Staff-only entry: person is listed but has no date assignments.
+    // Push with null date/job so the staff record is still created.
+    if (!hadAssignment) {
+      assignments.push({
+        staff_name: entityName,
+        job_name: null,
+        date: null,
+        crew_section: currentSection,
+        is_subcontractor_section: isSubSection,
       });
     }
   }
@@ -328,6 +393,7 @@ export default async function(req) {
     const body = await req.json();
     const fileUrl = body.file_url;
     const dryRun = body.dry_run !== false;
+    const purge = body.purge === true;
 
     if (!fileUrl) {
       return Response.json({ error: 'file_url is required' }, { status: 400 });
@@ -366,13 +432,37 @@ export default async function(req) {
       }, { status: 422 });
     }
 
-    // Date range covered by the sheet
-    const allDates = allAssignments.map(a => a.date).sort();
+    // Date range covered by the sheet (skip staff-only entries with null dates)
+    const allDates = allAssignments.map(a => a.date).filter(Boolean).sort();
     const dateFrom = allDates[0];
     const dateTo = allDates[allDates.length - 1];
 
     // -----------------------------------------------------------------------
-    // 2. Resolve Teams (crew-section teams + dedicated Subcontractors team)
+    // 2. PURGE — wipe old rota + auto-created staff for a clean slate
+    // -----------------------------------------------------------------------
+    let purgeSummary = { rotas_deleted: 0, staff_deleted: 0 };
+    if (purge && !dryRun) {
+      // Delete ALL existing rota assignments
+      const allRotas = await base44.asServiceRole.entities.RotaAssignment.list('-created_date', 5000);
+      if (allRotas.length > 0) {
+        await base44.asServiceRole.entities.RotaAssignment.deleteMany({});
+        purgeSummary.rotas_deleted = allRotas.length;
+      }
+
+      // Delete auto-created staff (those without a linked user_id)
+      const allStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 5000);
+      const autoStaff = allStaff.filter(s => !s.user_id);
+      if (autoStaff.length > 0) {
+        for (const s of autoStaff) {
+          await base44.asServiceRole.entities.Staff.delete(s.id);
+        }
+        purgeSummary.staff_deleted = autoStaff.length;
+      }
+      warnings.push(`Purge: deleted ${purgeSummary.rotas_deleted} rota assignments and ${purgeSummary.staff_deleted} auto-created staff records.`);
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. Resolve Teams (crew-section teams + dedicated Subcontractors team)
     // -----------------------------------------------------------------------
     const crewSections = [...new Set(teamAssignments.map(a => a.crew_section).filter(Boolean))];
     const existingTeams = await base44.asServiceRole.entities.Team.list();
@@ -390,8 +480,8 @@ export default async function(req) {
       if (!dryRun) {
         subconTeam = await base44.asServiceRole.entities.Team.create({
           name: SUBCONTRACTOR_TEAM_NAME,
-          category: 'subcontractor',
-          default_landing_page: '/subcontractor'
+          category: 'field_ops',
+          default_landing_page: '/staff-schedule'
         });
       } else {
         subconTeam = { id: `temp_team_subcon`, name: SUBCONTRACTOR_TEAM_NAME };
@@ -422,24 +512,22 @@ export default async function(req) {
     }
 
     // Fallback team for direct employees without a crew section
-    let fallbackTeam = teamByLabel['direct employees'] || teamByLabel['imported staff'];
+    let fallbackTeam = teamByLabel[DIRECT_EMPLOYEE_TEAM_NAME.toLowerCase()] || teamByLabel['imported staff'];
     if (!fallbackTeam) {
       if (!dryRun) {
         fallbackTeam = await base44.asServiceRole.entities.Team.create({
-          name: 'Direct Employees',
+          name: DIRECT_EMPLOYEE_TEAM_NAME,
           category: 'field_ops',
           default_landing_page: '/staff-schedule'
         });
       } else {
-        fallbackTeam = { id: 'temp_team_fallback', name: 'Direct Employees' };
+        fallbackTeam = { id: 'temp_team_fallback', name: DIRECT_EMPLOYEE_TEAM_NAME };
       }
     }
 
     // -----------------------------------------------------------------------
-    // 3. Resolve Staff — single entry per person (case-insensitive dedup)
+    // 4. Resolve Staff — single entry per person (case-insensitive dedup)
     // -----------------------------------------------------------------------
-    // Collect unique staff names using the case-insensitive key so "John
-    // Smith" and "john smith" collapse to a single entry.
     const uniqueStaffKeys = new Set();
     const staffNameByKey = {};
     for (const a of teamAssignments) {
@@ -456,9 +544,9 @@ export default async function(req) {
       if (s.email) staffByEmail.set(s.email.toLowerCase(), s);
     }
 
-    const staffMap = new Map();      // key → staff record
-    const newStaffPayloads = [];     // payloads awaiting bulkCreate
-    const newStaffKeys = [];          // keys in creation order (to map back)
+    const staffMap = new Map();
+    const newStaffPayloads = [];
+    const newStaffKeys = [];
     const staffUpdates = [];
     let staffFoundCount = 0;
 
@@ -470,23 +558,22 @@ export default async function(req) {
         staff = staffByEmail.get(email.toLowerCase());
       }
 
-      const subbie = isSubcontractor(name);
+      // Subcontractor if the name itself contains subbie patterns OR if
+      // the person appears under a subcontractor section header.
+      const staffAssignments = teamAssignments.filter(a => nameKey(a.staff_name) === key);
+      const inSubSection = staffAssignments.some(a => a.is_subcontractor_section);
+      const subbie = isSubcontractor(name) || inSubSection;
       const workerType = subbie ? 'subcontractor' : 'direct_employee';
 
-      // Derive job title from most common crew section
-      const staffAssignments = teamAssignments.filter(a => nameKey(a.staff_name) === key);
       const crewSectionCounts = staffAssignments.map(a => a.crew_section).filter(Boolean);
       const mostCommonSection = getMostCommon(crewSectionCounts);
       const jobTitle = inferJobTitle(mostCommonSection);
 
-      // Team assignment: subcontractors → Subcontractors team;
-      // direct employees → their crew-section team (or fallback)
       const team = subbie
         ? subconTeam
         : (teamMap[mostCommonSection] || fallbackTeam);
 
       if (!staff) {
-        // Queue for batch creation
         const email = generateEmail(name);
         newStaffPayloads.push({
           name,
@@ -499,11 +586,9 @@ export default async function(req) {
         newStaffKeys.push(key);
       } else {
         staffFoundCount++;
-        // Update existing staff if job_title or worker_type needs filling
         const updates = {};
         if (jobTitle && !staff.job_title) updates.job_title = jobTitle;
         if (!staff.worker_type) updates.worker_type = workerType;
-        // Re-team subcontractors that were previously in a crew-section team
         if (subbie && staff.team_id && staff.team_id !== subconTeam.id) {
           updates.team_id = subconTeam.id;
         }
@@ -518,7 +603,7 @@ export default async function(req) {
       }
     }
 
-    // Batch-create all new staff in one call
+    // Batch-create all new staff
     if (newStaffPayloads.length > 0) {
       let createdStaff;
       if (!dryRun) {
@@ -541,12 +626,12 @@ export default async function(req) {
     const newStaff = newStaffKeys.map(k => staffMap.get(k));
 
     // -----------------------------------------------------------------------
-    // 4. Resolve Jobs — single entry per job (case-insensitive dedup)
+    // 5. Resolve Jobs — single entry per job (case-insensitive dedup)
     // -----------------------------------------------------------------------
-    // Collect unique job names using the case-insensitive key.
     const uniqueJobKeys = new Set();
     const jobNameByKey = {};
     for (const a of allAssignments) {
+      if (!a.job_name) continue; // skip staff-only entries
       const key = nameKey(a.job_name);
       uniqueJobKeys.add(key);
       jobNameByKey[key] = a.job_name;
@@ -560,7 +645,7 @@ export default async function(req) {
       if (j.job_reference) jobByReference.set(j.job_reference.toLowerCase(), j);
     }
 
-    const jobMap = new Map();         // key → job record
+    const jobMap = new Map();
     const newJobPayloads = [];
     const newJobKeys = [];
     const jobUpdates = [];
@@ -570,7 +655,6 @@ export default async function(req) {
       const rawName = jobNameByKey[key];
       const parsed = parseJobName(rawName);
 
-      // Try to match by reference first, then by name
       let job = null;
       if (parsed.job_reference) {
         job = jobByReference.get(parsed.job_reference.toLowerCase());
@@ -579,7 +663,6 @@ export default async function(req) {
         job = jobByName.get(key);
       }
 
-      // Determine drilling method and job type from crew sections of staff assigned
       const jobCrewSections = teamAssignments
         .filter(a => nameKey(a.job_name) === key)
         .map(a => a.crew_section)
@@ -589,7 +672,6 @@ export default async function(req) {
       const jobType = inferJobType(mostCommonSection);
 
       if (!job) {
-        // Queue for batch creation
         newJobPayloads.push({
           name: parsed.name,
           job_reference: parsed.job_reference || undefined,
@@ -603,7 +685,6 @@ export default async function(req) {
         newJobKeys.push(key);
       } else {
         jobFoundCount++;
-        // Update existing job if location/reference is placeholder or empty
         const updates = {};
         if (parsed.location && (job.location === PLACEHOLDER_LOCATION || !job.location)) {
           updates.location = parsed.location;
@@ -628,7 +709,7 @@ export default async function(req) {
       }
     }
 
-    // Batch-create all new jobs in one call
+    // Batch-create all new jobs
     if (newJobPayloads.length > 0) {
       let createdJobs;
       if (!dryRun) {
@@ -651,7 +732,7 @@ export default async function(req) {
     const newJobs = newJobKeys.map(k => jobMap.get(k));
 
     // -----------------------------------------------------------------------
-    // 5. Resolve Rigs from Plant Planner → JobAssetAssignment
+    // 6. Resolve Rigs from Plant Planner → JobAssetAssignment
     // -----------------------------------------------------------------------
     const existingRigs = await base44.asServiceRole.entities.SiteAsset.filter({ is_rig: true });
     const rigByName = new Map();
@@ -659,7 +740,6 @@ export default async function(req) {
       if (r.name) rigByName.set(nameKey(r.name), r);
     }
 
-    // Build rig assignments from plant planner sheet
     const rigAssignments = [];
     for (const pa of plantAssignments) {
       const job = jobMap.get(nameKey(pa.job_name));
@@ -675,7 +755,6 @@ export default async function(req) {
       }
     }
 
-    // Dedupe rig assignments by job_id + asset_id (keep earliest date)
     const rigAssignmentMap = new Map();
     for (const ra of rigAssignments) {
       const key = `${ra.job_id}|${ra.asset_id}`;
@@ -685,7 +764,6 @@ export default async function(req) {
     }
     const dedupedRigAssignments = [...rigAssignmentMap.values()];
 
-    // Check existing JobAssetAssignments to avoid duplicates
     const existingAssetAssignments = await base44.asServiceRole.entities.JobAssetAssignment.list();
     const existingAssetAssignmentKeys = new Set(
       existingAssetAssignments.map(a => `${a.job_id}|${a.asset_id}`)
@@ -696,11 +774,13 @@ export default async function(req) {
     );
 
     // -----------------------------------------------------------------------
-    // 6. Build desired rota set and compare against existing
+    // 7. Build desired rota set and compare against existing
     // -----------------------------------------------------------------------
-    const existingRotas = await base44.asServiceRole.entities.RotaAssignment.filter({
-      assigned_date: { $gte: dateFrom, $lte: dateTo }
-    });
+    const existingRotas = purge
+      ? []  // purge already wiped everything
+      : await base44.asServiceRole.entities.RotaAssignment.filter({
+          assigned_date: { $gte: dateFrom, $lte: dateTo }
+        });
 
     const existingRotaIndex = {};
     for (const r of existingRotas) {
@@ -712,6 +792,10 @@ export default async function(req) {
     const rotasToCreate = [];
     let duplicateRotaRows = 0;
     for (const a of teamAssignments) {
+      // Skip staff-only entries (no date or job) — these are people listed
+      // in the planner with no schedule. They're still created as staff
+      // but don't get rota assignments.
+      if (!a.date || !a.job_name) continue;
       const staff = staffMap.get(nameKey(a.staff_name));
       const job = jobMap.get(nameKey(a.job_name));
       if (!staff || !job) continue;
@@ -742,20 +826,28 @@ export default async function(req) {
     });
 
     // -----------------------------------------------------------------------
-    // 7. Preview (dry run) or apply
+    // 8. Preview (dry run) or apply
     // -----------------------------------------------------------------------
+    const subbieCount = [...uniqueStaffKeys].filter(k => {
+      const name = staffNameByKey[k];
+      const inSub = teamAssignments.some(a => nameKey(a.staff_name) === k && a.is_subcontractor_section);
+      return isSubcontractor(name) || inSub;
+    }).length;
+
     const summary = {
       total_assignments_parsed: allAssignments.length,
       team_assignments: teamAssignments.length,
       plant_assignments: plantAssignments.length,
       sheets_parsed: sheetNames,
       date_range: { from: dateFrom, to: dateTo },
+      purge: purge ? purgeSummary : null,
       staff: {
         total: uniqueStaffKeys.size,
         found: staffFoundCount,
         new: newStaffPayloads.length,
         updates: staffUpdates.length,
-        subcontractors: [...uniqueStaffKeys].filter(k => isSubcontractor(staffNameByKey[k])).length,
+        subcontractors: subbieCount,
+        direct_employees: uniqueStaffKeys.size - subbieCount,
       },
       jobs: {
         total: uniqueJobKeys.size,
@@ -783,6 +875,8 @@ export default async function(req) {
         status: 'success',
         dry_run: true,
         summary,
+        debug_sub_cells: debugSubCells,
+        debug_subbie_rows: debugSubbieRows,
         new_staff: newStaff.map(s => ({ name: s.name, email: s.email, job_title: s.job_title, worker_type: s.worker_type, team: s.team_id === subconTeam.id ? SUBCONTRACTOR_TEAM_NAME : 'Direct Employee' })),
         new_jobs: newJobs.map(j => ({ name: j.name, location: j.location, job_reference: j.job_reference, drilling_method: j.drilling_method, job_type: j.job_type })),
         staff_updates: staffUpdates,
@@ -794,7 +888,6 @@ export default async function(req) {
 
     // --- Apply ---
 
-    // Create new rotas in batches
     let createdCount = 0;
     if (rotasToCreate.length > 0) {
       for (let i = 0; i < rotasToCreate.length; i += 400) {
@@ -804,7 +897,6 @@ export default async function(req) {
       }
     }
 
-    // Delete stale rotas
     let deletedCount = 0;
     if (rotasToDelete.length > 0) {
       for (const r of rotasToDelete) {
@@ -813,7 +905,6 @@ export default async function(req) {
       }
     }
 
-    // Create new rig assignments
     let rigAssignmentCount = 0;
     for (const ra of newRigAssignments) {
       await base44.asServiceRole.entities.JobAssetAssignment.create({
