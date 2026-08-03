@@ -20,10 +20,8 @@ import EarlyLeaveModal from '@/components/staff/EarlyLeaveModal';
 import ScheduleSplash from '@/components/staff/ScheduleSplash';
 import NextJobPrompt from '@/components/staff/NextJobPrompt';
 import AdHocVisitModal from '@/components/staff/AdHocVisitModal';
-import StaffBookings from '@/components/staff/StaffBookings';
 import TodayPrepStrip from '@/components/staff/TodayPrepStrip';
 import SyncHUD from '@/components/staff/SyncHUD';
-import WeeklyProgress from '@/components/staff/WeeklyProgress';
 import StaffTabBar from '@/components/staff/StaffTabBar';
 import StaffHeader from '@/components/staff/StaffHeader';
 import StaffAlerts from '@/components/staff/StaffAlerts';
@@ -734,21 +732,6 @@ export default function StaffDashboard() {
             </button>
           </div>
 
-          {staff?.id && (
-            <WeeklyProgress staffId={staff.id} />
-          )}
-
-          {staff?.id && (
-            <div>
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 flex items-center justify-center shadow-sm">
-                  <CalendarClock className="w-4 h-4 text-amber-600" />
-                </div>
-                <h2 className="text-lg md:text-xl font-bold text-slate-900 tracking-tight">My Bookings</h2>
-              </div>
-              <StaffBookings staffId={staff.id} compact />
-            </div>
-          )}
         </div>
       )}
 
