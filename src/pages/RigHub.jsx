@@ -147,7 +147,7 @@ export default function RigHub() {
                 <Boxes className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-lg font-bold text-white truncate">Rigs</h1>
+                <h1 className="text-lg font-bold text-white truncate">Rigs & Equipment</h1>
                 <p className="text-xs text-white/70 truncate">Compliance, maintenance & utilisation</p>
               </div>
             </div>
