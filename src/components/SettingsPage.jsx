@@ -30,6 +30,7 @@ import TimesheetManager from '@/components/TimesheetManager';
 import BillingPage from '@/components/BillingPage';
 import FinancialDataExchange from '@/components/billing/FinancialDataExchange';
 import AGSImportSettings from '@/components/AGSImportSettings';
+import ImportDashboard from '@/pages/ImportDashboard';
 import SafetyCultureSettings from '@/components/SafetyCultureSettings';
 import DemoDataManager from '@/components/DemoDataManager';
 import SystemLogicGuide from '@/components/SystemLogicGuide';
@@ -132,6 +133,7 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'invoicing': return <BillingPage onSelectJob={onSelectJob} />;
       case 'data-exchange': return <FinancialDataExchange />;
       case 'ags-import': return <AGSImportSettings />;
+      case 'planner-import': return <ImportDashboard />;
       case 'safety-culture': return <SafetyCultureSettings />;
       case 'demo-data': return <DemoDataManager />;
       case 'system-guide': return <SystemLogicGuide />;

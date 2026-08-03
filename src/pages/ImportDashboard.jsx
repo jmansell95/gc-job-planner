@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle, ArrowLeft, Users, Briefcase, CalendarDays, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle, Users, Briefcase, CalendarDays, Trash2 } from 'lucide-react';
 
 export default function ImportDashboard() {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState(null);
@@ -83,23 +81,7 @@ export default function ImportDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="hero-gradient text-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-          <button onClick={() => navigate('/admin')} className="flex items-center gap-2 text-white/80 hover:text-white text-sm mb-4 transition">
-            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-          </button>
-          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
-            <FileSpreadsheet className="w-7 h-7" /> Planner Spreadsheet Import
-          </h1>
-          <p className="text-white/80 mt-2 text-sm sm:text-base max-w-2xl">
-            Upload your Team &amp; Plant Planner Excel file. The system will automatically parse crews, jobs, and rotas — creating any missing records and syncing assignments for the dates in the sheet.
-          </p>
-        </div>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div className="space-y-6">
         {/* Upload Card */}
         <div className="insight-card rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-slate-800 mb-1">1. Upload Spreadsheet</h2>
@@ -212,7 +194,6 @@ export default function ImportDashboard() {
             </div>
           </div>
         )}
-      </main>
     </div>
   );
 }

@@ -33,6 +33,7 @@ export const settingsGroups = [
       { id: 'dropdowns', label: 'Dropdown Manager', icon: ListChecks, desc: 'Add, rename, reorder or remove options in every dropdown — qualifications, asset types, revenue streams & more' },
       { id: 'automations', label: 'Automations', icon: Zap, desc: 'View and toggle background automations' },
       { id: 'ags-import', label: 'KeyLogBook Settings', icon: FileUp, desc: 'KeyLogBook webhook sync & AGS file imports — real-time borehole data from KeyLogBook', roles: ['admin', 'manager'] },
+      { id: 'planner-import', label: 'Planner Import', icon: FileSpreadsheet, desc: 'Upload your Team & Plant Planner Excel file — auto-creates staff, jobs, teams & rotas with deduplication', roles: ['admin'] },
       { id: 'safety-culture', label: 'Safety Culture Sync', icon: ShieldAlert, desc: 'Sync site safety audits & inspection forms from SafetyCulture (iAuditor) — webhook & API integration ready for later setup', roles: ['admin', 'manager'] },
       { id: 'met-office', label: 'Met Office Weather', icon: Cloud, desc: 'Daily weather forecasts per site postcode — flag weather-impacted days on the rota', roles: ['admin'] },
       { id: 'google-maps', label: 'Google Maps', icon: MapPin, desc: 'Geocoding for job sites & delivery route optimisation', roles: ['admin'] },

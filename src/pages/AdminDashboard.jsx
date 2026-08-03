@@ -82,8 +82,8 @@ export default function AdminDashboard() {
       setActiveSection('overview');
     }
     if (activeSection === 'import') {
-      navigate('/admin/import');
-      setActiveSection('overview');
+      setActiveSection('settings');
+      setSettingsTab('planner-import');
     }
   }, [activeSection, navigate]);
 
