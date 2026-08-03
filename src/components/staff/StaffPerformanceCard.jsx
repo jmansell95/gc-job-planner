@@ -1,10 +1,8 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { HardHat, TrendingUp, Ruler, PoundSterling, Calendar } from 'lucide-react';
+import { HardHat, TrendingUp, Ruler, Compass, Calendar } from 'lucide-react';
 import { format, startOfWeek } from 'date-fns';
-
-const gbp = (n) => n != null && !isNaN(n) ? '£' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '£0';
 
 export default function StaffPerformanceCard({ staffId }) {
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -38,18 +36,14 @@ export default function StaffPerformanceCard({ staffId }) {
     if (l.depth_to != null && l.depth_from != null) return s + (l.depth_to - l.depth_from);
     return s;
   }, 0);
-  const totalChargeable = thisWeekLogs
-    .filter(l => l.chargeable && l.charge_amount)
-    .reduce((s, l) => s + (l.charge_amount || 0), 0);
+  // Boreholes worked on this week
+  const thisWeekBoreholes = new Set(thisWeekLogs.map(l => l.borehole_ref).filter(Boolean)).size;
 
   // All-time totals
   const allTimeMetrage = logs.reduce((s, l) => {
     if (l.depth_to != null && l.depth_from != null) return s + (l.depth_to - l.depth_from);
     return s;
   }, 0);
-  const allTimeChargeable = logs
-    .filter(l => l.chargeable && l.charge_amount)
-    .reduce((s, l) => s + (l.charge_amount || 0), 0);
 
   // Days worked this week (from summary timesheets)
   const thisWeekDays = timesheets.filter(t => t.week_start === weekStart && t.weekly_total_minutes).length;
@@ -63,7 +57,7 @@ export default function StaffPerformanceCard({ staffId }) {
 
   const stats = [
     { label: 'This Week Metres', value: `${totalMetrage.toFixed(1)}m`, icon: Ruler, grad: 'stat-gradient-emerald' },
-    { label: 'This Week Revenue', value: gbp(totalChargeable), icon: PoundSterling, grad: 'stat-gradient-blue' },
+    { label: 'Boreholes This Week', value: thisWeekBoreholes, icon: Compass, grad: 'stat-gradient-blue' },
     { label: 'Hours This Week', value: `${weekHours}h`, icon: Calendar, grad: 'stat-gradient-amber' },
     { label: 'All-Time Metres', value: `${allTimeMetrage.toFixed(0)}m`, icon: TrendingUp, grad: 'stat-gradient-violet' },
   ];
@@ -95,10 +89,6 @@ export default function StaffPerformanceCard({ staffId }) {
 
       {/* Quick summary row */}
       <div className="flex items-center gap-4 text-sm pt-3 border-t border-slate-100">
-        <div className="flex items-center gap-1.5">
-          <span className="text-slate-400 text-xs">All-time revenue:</span>
-          <span className="font-semibold text-slate-700 tabular-nums">{gbp(allTimeChargeable)}</span>
-        </div>
         <div className="flex items-center gap-1.5">
           <span className="text-slate-400 text-xs">Boreholes touched:</span>
           <span className="font-semibold text-slate-700 tabular-nums">{boreholes.size}</span>
