@@ -211,10 +211,12 @@ function parseSheet(sheet, sheetName) {
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
   if (rows.length < 5) return [];
 
-  // Find the date header row: the row with the most date-like values
+  // Find the date header row: the row with the most date-like values.
+  // Scan up to 30 rows to handle sheets that list section headers (Cable,
+  // Rotary, Groundworkers, etc.) above the date grid.
   let dateHeaderRowIdx = -1;
   let maxDates = 0;
-  for (let i = 0; i < Math.min(rows.length, 15); i++) {
+  for (let i = 0; i < Math.min(rows.length, 30); i++) {
     let dateCount = 0;
     for (const cell of rows[i]) {
       if (cellToDate(cell)) dateCount++;
@@ -223,11 +225,46 @@ function parseSheet(sheet, sheetName) {
   }
   if (dateHeaderRowIdx === -1 || maxDates < 3) return [];
 
-  // Build column → date mapping
+  // Build column → date mapping from the date header row
   const colToDate = {};
   for (let c = 0; c < rows[dateHeaderRowIdx].length; c++) {
     const d = cellToDate(rows[dateHeaderRowIdx][c]);
     if (d) colToDate[c] = d;
+  }
+
+  // If dates are weekly (every 7 columns), interpolate daily dates for the
+  // columns in between. This handles sheets that only show week-start dates
+  // in the header but have daily staff assignments in every column.
+  const dateCols = Object.keys(colToDate).map(Number).sort((a, b) => a - b);
+  if (dateCols.length >= 2) {
+    const gap = dateCols[1] - dateCols[0];
+    if (gap === 7) {
+      // Weekly headers — fill in daily dates between each pair
+      for (let i = 0; i < dateCols.length - 1; i++) {
+        const startCol = dateCols[i];
+        const endCol = dateCols[i + 1];
+        const startDate = new Date(colToDate[startCol] + 'T00:00:00Z');
+        for (let offset = 1; offset < 7; offset++) {
+          const fillCol = startCol + offset;
+          if (fillCol < endCol && !colToDate[fillCol]) {
+            const d = new Date(startDate);
+            d.setUTCDate(d.getUTCDate() + offset);
+            colToDate[fillCol] = d.toISOString().slice(0, 10);
+          }
+        }
+      }
+      // Also fill the last week (6 days after the last weekly date)
+      const lastCol = dateCols[dateCols.length - 1];
+      const lastDate = new Date(colToDate[lastCol] + 'T00:00:00Z');
+      for (let offset = 1; offset <= 6; offset++) {
+        const fillCol = lastCol + offset;
+        if (!colToDate[fillCol]) {
+          const d = new Date(lastDate);
+          d.setUTCDate(d.getUTCDate() + offset);
+          colToDate[fillCol] = d.toISOString().slice(0, 10);
+        }
+      }
+    }
   }
 
   const assignments = [];
@@ -304,9 +341,14 @@ function parseSheet(sheet, sheetName) {
     }
   }
 
-  // Attach sections found to the first assignment for collection by the caller
+  // Attach diagnostics + sections to the first assignment for the caller
   if (assignments.length > 0) {
     assignments[0]._sections = [...sectionsFound];
+    assignments[0]._diag = {
+      dateHeaderRowIdx,
+      dateColumnCount: Object.keys(colToDate).length,
+      sampleCols: Object.entries(colToDate).slice(0, 5).map(([c, d]) => ({ col: Number(c), date: d })),
+    };
   }
   return assignments;
 }
@@ -353,11 +395,15 @@ export default async function(req) {
       for (const a of sheetAssignments) {
         if (a.crew_section) allSectionsDetected.add(a.crew_section);
       }
+      const sheetDates = sheetAssignments.map(a => a.date).filter(Boolean).sort();
+      const diag = sheetAssignments.length > 0 ? sheetAssignments[0]._diag : null;
       sheetBreakdown.push({
         sheet: sheetName,
         is_plant: isPlantPlannerSheet(sheetName),
         assignments: sheetAssignments.length,
         sections: [...new Set(sheetAssignments.map(a => a.crew_section).filter(Boolean))],
+        date_range: sheetDates.length ? { from: sheetDates[0], to: sheetDates[sheetDates.length - 1] } : null,
+        diag: diag || { dateHeaderRowIdx: -1, dateColumnCount: 0, sampleCols: [] },
       });
       if (isPlantPlannerSheet(sheetName)) {
         plantAssignments = plantAssignments.concat(sheetAssignments);
@@ -764,6 +810,11 @@ export default async function(req) {
       sheets_parsed: sheetNames,
       date_range: { from: dateFrom, to: dateTo },
       today: TODAY,
+      sheet_breakdown: sheetBreakdown.map(s => ({
+        sheet: s.sheet, assignments: s.assignments,
+        date_range: s.date_range, sections: s.sections.length,
+        diag: s.diag,
+      })),
       purge: purgeSummary,
       staff: {
         total: uniqueStaffKeys.size,

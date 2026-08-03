@@ -196,7 +196,12 @@ export default function ImportDashboard() {
                       </div>
                       <div className="flex items-center gap-3 text-xs text-slate-500">
                         <span>{s.assignments} assignments</span>
-                        <span>{s.sections.length} sections</span>
+                        <span>{s.sections} sections</span>
+                        {s.date_range ? (
+                          <span className="text-emerald-600 font-medium">{s.date_range.from} → {s.date_range.to}</span>
+                        ) : (
+                          <span className="text-amber-600">no dates</span>
+                        )}
                       </div>
                     </div>
                   ))}
