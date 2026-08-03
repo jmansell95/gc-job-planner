@@ -53,7 +53,7 @@ export default function EarlyLeaveModal({ open, onClose, onConfirm, jobName }) {
                   <DoorOpen className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold leading-tight">Leaving Site Early</h2>
+                  <h2 className="text-lg font-bold leading-tight">Leaving Site</h2>
                   <p className="text-emerald-100 text-xs">{jobName || 'Record your reason'}</p>
                 </div>
               </div>
@@ -67,12 +67,12 @@ export default function EarlyLeaveModal({ open, onClose, onConfirm, jobName }) {
               <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-100 rounded-xl px-3.5 py-3">
                 <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-900 leading-relaxed">
-                  Your shift will be completed early. Your reason is recorded on your timesheet for your manager to review.
+                  Please record your reason for leaving site. This is saved on your timesheet for your manager to review.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Reason for leaving early</label>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Reason for leaving site</label>
                 <div className="grid grid-cols-1 gap-2">
                   {DEFAULT_REASONS.map(r => {
                     const selected = reason === r;
@@ -114,7 +114,7 @@ export default function EarlyLeaveModal({ open, onClose, onConfirm, jobName }) {
               </button>
               <button onClick={handleConfirm} disabled={!canConfirm}
                 className="flex items-center justify-center gap-1.5 flex-1 px-4 py-3 bg-amber-600 text-white rounded-xl hover:bg-amber-700 active:scale-95 transition text-sm font-bold disabled:opacity-50 touch-manipulation">
-                {saving ? 'Saving…' : 'Complete & Leave Early'}
+                {saving ? 'Saving…' : 'Confirm & Leave Site'}
               </button>
             </div>
           </motion.div>

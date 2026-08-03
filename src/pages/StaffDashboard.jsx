@@ -209,45 +209,32 @@ export default function StaffDashboard() {
     }
   };
 
-  // Opens the early-leave modal for a started assignment.
-  const handleEarlyLeave = (assignmentId) => {
+  // Opens the leave-site modal — the single way to leave site. A reason is
+  // required before the staff member can confirm they've left.
+  const handleLeaveSite = (assignmentId) => {
     const assignment = assignments.find(a => a.id === assignmentId);
     if (!assignment) return;
     setEarlyLeaveAssignment(assignment);
   };
 
-  // Records that the staff member has left site without completing the shift.
-  // The job stays open ('started') for up to 5 hours so they can enter their
-  // travel-home time and review/submit their timesheet when they get home.
-  const handleLeaveSite = async (assignmentId) => {
-    try {
-      await base44.entities.RotaAssignment.update(assignmentId, { left_site_at: new Date().toISOString() });
-      queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
-      toast({ title: 'Left site recorded', description: `Enter your travel home & submit your timesheet within ${Number(bizConfig?.post_leave_site_window_hours) || 5} hours.` });
-    } catch (error) {
-      console.error('Error recording leave site:', error);
-      toast({ title: 'Error', description: 'Could not record leave site. Please try again.', variant: 'destructive' });
-    }
-  };
-
-  // Confirms an early departure: records the reason on the assignment then
-  // runs the normal completion flow (travel-home capture + timesheet submit).
+  // Confirms leaving site: records the reason on the assignment and marks the
+  // staff member as having left. The job stays open ('started') for up to 5
+  // hours so they can enter their travel-home time and submit their timesheet.
   const handleEarlyLeaveConfirm = async ({ reason, note }) => {
     const assignment = earlyLeaveAssignment;
     if (!assignment) return;
     setEarlyLeaveAssignment(null);
     try {
-      // Record the reason before completing
       await base44.entities.RotaAssignment.update(assignment.id, {
         early_leave_reason: reason,
-        early_leave_note: note
+        early_leave_note: note,
+        left_site_at: new Date().toISOString()
       });
       queryClient.invalidateQueries({ queryKey: ['staff-assignments'] });
-      toast({ title: 'Early departure recorded', description: 'Your manager will be notified. Please log your travel home next.' });
-      // Open the Shift Wizard at the end-of-shift step
-      handleOpenShiftWizard(assignment.id, { forceStep: 'end_of_shift' });
+      toast({ title: 'Left site recorded', description: `Enter your travel home & submit your timesheet within ${Number(bizConfig?.post_leave_site_window_hours) || 5} hours.` });
     } catch (error) {
-      console.error('Error recording early leave:', error);
+      console.error('Error recording leave site:', error);
+      toast({ title: 'Error', description: 'Could not record leave site. Please try again.', variant: 'destructive' });
     }
   };
 
@@ -529,7 +516,6 @@ export default function StaffDashboard() {
     client: clients.find(c => c.id === jobs.find(j => j.id === assignment.job_id)?.client_id),
     staff,
     onOpenShiftWizard: (id, opts) => handleOpenShiftWizard(id, opts),
-    onEarlyLeave: handleEarlyLeave,
     onLeaveSite: handleLeaveSite,
     canPerformActions,
     tasksSubmitted: mgrTimesheets.some(t => t.job_id === assignment.job_id && t.date === todayStr && (t.status === 'submitted' || t.status === 'approved')),

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MapPin, Calendar, Clock, Truck, PlayCircle, PauseCircle, Navigation,
+  MapPin, Calendar, Clock, Truck, PlayCircle, Navigation,
   ChevronDown, ShieldCheck, Briefcase, Phone, Hotel, FileText, ExternalLink,
   Ruler, CheckCircle2, AlertTriangle, MessageSquare, Camera, DoorOpen, Send,
 } from 'lucide-react';
@@ -22,7 +22,7 @@ const statusConfig = {
 // Details are collapsible so the button is always visible without scrolling.
 export default function ActiveJobCard({
   assignment, job, vehicle, client, staff,
-  onOpenShiftWizard, onEarlyLeave, onLeaveSite,
+  onOpenShiftWizard, onLeaveSite,
   canPerformActions = true, tasksSubmitted = false, needsBriefing = false,
   arrivedOnSite = false, crewSignedCount = 0, crewTotal = 0, allCrewSigned = false,
   previousProgress = [], hotelBooking = null, onAdHocVisit,
@@ -153,10 +153,6 @@ export default function ActiveJobCard({
             <button onClick={() => onLeaveSite?.(assignment.id)} type="button"
               className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-[#2E5A1A]/10 text-[#2E5A1A] rounded-2xl hover:bg-[#2E5A1A]/15 active:scale-95 transition text-sm font-semibold touch-manipulation">
               <DoorOpen className="w-5 h-5" /> Leave Site
-            </button>
-            <button onClick={() => onEarlyLeave(assignment.id)} type="button"
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3.5 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 active:scale-95 transition text-sm font-semibold touch-manipulation">
-              <PauseCircle className="w-5 h-5" /> Early Leave
             </button>
             {onAdHocVisit && (
               <button onClick={onAdHocVisit} type="button"
