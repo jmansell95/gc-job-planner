@@ -99,8 +99,8 @@ export default function NeedsAttentionPanel({ onNavigate }) {
                   <Icon className={`w-5 h-5 ${t.iconText}`} />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-slate-900 truncate">{it.label}</p>
-                  {it.value != null && <p className="text-xs text-slate-400">{it.value} {it.value === 1 ? 'item' : 'items'}</p>}
+                  <p className="text-sm font-semibold text-slate-900 leading-tight">{it.label}</p>
+                  {it.value != null && <p className="text-xs text-slate-400 mt-0.5">{it.value} {it.value === 1 ? 'item' : 'items'}</p>}
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition flex-shrink-0" />
               </motion.button>
