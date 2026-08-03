@@ -875,8 +875,6 @@ export default async function(req) {
         status: 'success',
         dry_run: true,
         summary,
-        debug_sub_cells: debugSubCells,
-        debug_subbie_rows: debugSubbieRows,
         new_staff: newStaff.map(s => ({ name: s.name, email: s.email, job_title: s.job_title, worker_type: s.worker_type, team: s.team_id === subconTeam.id ? SUBCONTRACTOR_TEAM_NAME : 'Direct Employee' })),
         new_jobs: newJobs.map(j => ({ name: j.name, location: j.location, job_reference: j.job_reference, drilling_method: j.drilling_method, job_type: j.job_type })),
         staff_updates: staffUpdates,
