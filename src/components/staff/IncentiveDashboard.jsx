@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import CrewLeaderboard from '@/components/staff/CrewLeaderboard';
 import { EarnedBadgeRow, BadgeCollection, CategoryFilter } from '@/components/staff/AchievementBadges';
 import StaffProgressModal from '@/components/staff/StaffProgressModal';
+import BadgeDetailModal from '@/components/staff/BadgeDetailModal';
 import { Skeleton } from '@/components/StateViews';
 
 function getWeekStart(date = new Date()) {
@@ -23,6 +24,7 @@ export default function IncentiveDashboard({ staffId, staffName, teamId }) {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [badgeDetail, setBadgeDetail] = useState(null);
   const weekStart = getWeekStart();
 
   // Auto-calculate on first load if no score exists yet
@@ -151,7 +153,7 @@ export default function IncentiveDashboard({ staffId, staffName, teamId }) {
               <span className="text-xs text-slate-400 font-normal">({weekBadges.length})</span>
             </h3>
             <div className="bg-slate-50 rounded-xl border border-slate-100 p-4">
-              <EarnedBadgeRow achievements={weekBadges} />
+              <EarnedBadgeRow achievements={weekBadges} onBadgeClick={setBadgeDetail} />
             </div>
           </div>
 
@@ -188,7 +190,7 @@ export default function IncentiveDashboard({ staffId, staffName, teamId }) {
                 <span className="text-xs text-slate-400 font-normal">({lifetimeBadges.length})</span>
               </h3>
               <div className="bg-slate-50 rounded-xl border border-slate-100 p-4">
-                <EarnedBadgeRow achievements={lifetimeBadges} max={20} />
+                <EarnedBadgeRow achievements={lifetimeBadges} max={20} onBadgeClick={setBadgeDetail} />
               </div>
             </div>
           )}
@@ -200,7 +202,7 @@ export default function IncentiveDashboard({ staffId, staffName, teamId }) {
               <CategoryFilter active={badgeCategory} onChange={setBadgeCategory} />
             </div>
             <div className="bg-slate-50 rounded-xl border border-slate-100 p-4">
-              <BadgeCollection earnedKeys={earnedKeys} category={badgeCategory} />
+              <BadgeCollection earnedKeys={earnedKeys} category={badgeCategory} achievements={achievements} score={score} onBadgeClick={setBadgeDetail} />
             </div>
           </div>
 
@@ -232,6 +234,16 @@ export default function IncentiveDashboard({ staffId, staffName, teamId }) {
           teamId={teamId}
           weekStart={weekStart}
           onClose={() => setSelectedMember(null)}
+        />
+      )}
+
+      {/* Badge detail modal */}
+      {badgeDetail && (
+        <BadgeDetailModal
+          badge={badgeDetail.badge}
+          achievement={badgeDetail.achievement}
+          score={badgeDetail.score || score}
+          onClose={() => setBadgeDetail(null)}
         />
       )}
     </>

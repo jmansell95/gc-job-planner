@@ -5,6 +5,7 @@ import { X, RefreshCw, Ruler, Clock, Calendar, ShieldCheck, ClipboardCheck, Comp
 import { format, startOfWeek } from 'date-fns';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import { EarnedBadgeRow, BadgeCollection, CategoryFilter } from '@/components/staff/AchievementBadges';
+import BadgeDetailModal from '@/components/staff/BadgeDetailModal';
 import { Skeleton } from '@/components/StateViews';
 
 function getWeekStart(date = new Date()) {
@@ -20,6 +21,7 @@ export default function StaffProgressModal({ staffId, staffName, teamId, weekSta
   const queryClient = useQueryClient();
   const [badgeCategory, setBadgeCategory] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [badgeDetail, setBadgeDetail] = useState(null);
 
   const ws = weekStart || getWeekStart();
 
@@ -150,7 +152,7 @@ export default function StaffProgressModal({ staffId, staffName, teamId, weekSta
               <span className="text-xs text-slate-400 font-normal">({weekBadges.length})</span>
             </h3>
             <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-              <EarnedBadgeRow achievements={weekBadges} />
+              <EarnedBadgeRow achievements={weekBadges} onBadgeClick={setBadgeDetail} />
             </div>
           </div>
 
@@ -163,7 +165,7 @@ export default function StaffProgressModal({ staffId, staffName, teamId, weekSta
                 <span className="text-xs text-slate-400 font-normal">({lifetimeBadges.length})</span>
               </h3>
               <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <EarnedBadgeRow achievements={lifetimeBadges} max={20} />
+                <EarnedBadgeRow achievements={lifetimeBadges} max={20} onBadgeClick={setBadgeDetail} />
               </div>
             </div>
           )}
@@ -175,7 +177,7 @@ export default function StaffProgressModal({ staffId, staffName, teamId, weekSta
               <CategoryFilter active={badgeCategory} onChange={setBadgeCategory} />
             </div>
             <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-              <BadgeCollection earnedKeys={earnedKeys} category={badgeCategory} />
+              <BadgeCollection earnedKeys={earnedKeys} category={badgeCategory} achievements={achievements} score={score} onBadgeClick={setBadgeDetail} />
             </div>
           </div>
 
@@ -198,6 +200,16 @@ export default function StaffProgressModal({ staffId, staffName, teamId, weekSta
           )}
         </div>
       </div>
+
+      {/* Badge detail modal */}
+      {badgeDetail && (
+        <BadgeDetailModal
+          badge={badgeDetail.badge}
+          achievement={badgeDetail.achievement}
+          score={badgeDetail.score || score}
+          onClose={() => setBadgeDetail(null)}
+        />
+      )}
     </div>
   );
 }
