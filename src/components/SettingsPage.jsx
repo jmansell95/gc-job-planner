@@ -56,7 +56,6 @@ import PaymentGatewaySettings from '@/components/settings/PaymentGatewaySettings
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import PageHeader from '@/components/PageHeader';
 import { resolveRole } from '@/utils/access';
 import { base44 } from '@/api/base44Client';
 
@@ -161,9 +160,6 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
 
   return (
     <div>
-      {standalone && active && (
-        <PageHeader title={active.label} icon={active.icon} />
-      )}
       {/* Back button — hidden in standalone mode (these pages have their own sidebar entry) */}
       {!standalone && activeTab !== 'hub' && (
         <button
