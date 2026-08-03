@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import * as XLSX from 'npm:xlsx@0.18.5';
 import { buildContractorMaps, findOrCreateAgency, buildAssetMaps, fuzzyFindAsset, assetRole } from '../../shared/entityRegistry.ts';
-import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, normalizeName, nameKey, findProjectForJob, extractSiteName, isActualTrainingCourse, extractTrainingCourseTitle, inferTrainingCategory } from '../../shared/spreadsheetParser.ts';
+import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, looksLikeAssetName, normalizeName, nameKey, findProjectForJob, extractSiteName, isActualTrainingCourse, extractTrainingCourseTitle, inferTrainingCategory } from '../../shared/spreadsheetParser.ts';
 
 // ---------------------------------------------------------------------------
 // Team & Plant Planner Spreadsheet Import — Clean-Slate Edition
@@ -190,9 +190,16 @@ function isTargetSheet(sheetName) {
 
 function parseJobName(rawName) {
   const name = normalizeName(rawName);
-  const match = name.match(/^(.+?)\s+is\s+(.+)$/i);
-  if (match) {
-    return { name, job_reference: match[1].trim(), location: match[2].trim() };
+  // "REF is LOCATION" separator
+  const isMatch = name.match(/^(.+?)\s+is\s+(.+)$/i);
+  if (isMatch) {
+    return { name, job_reference: isMatch[1].trim(), location: isMatch[2].trim() };
+  }
+  // "REF - LOCATION" separator when left side looks like a job reference
+  // (1-3 letters followed by 4-6 digits, e.g. "I260124 - EWR")
+  const dashMatch = name.match(/^([A-Za-z]{1,3}\d{4,6})\s*[-–—]\s*(.+)$/);
+  if (dashMatch) {
+    return { name, job_reference: dashMatch[1].trim(), location: dashMatch[2].trim() };
   }
   return { name, job_reference: '', location: '' };
 }
@@ -309,14 +316,17 @@ function parseSheet(sheet, sheetName) {
     }
     if (foundSection && !hasAssignment) continue;
 
-    // Find the entity name in cols 0-5 — either a person name (direct staff)
-    // or a company name (subcontractor). Company names are tagged so they
-    // route to the Subcontractors team during resolution.
+    // Find the entity name in cols 0-5 — either a person name (direct staff),
+    // a company name (subcontractor), or a rig/equipment name (plant).
+    // Rig names often contain digits (asset numbers) which the person/company
+    // checks reject, so looksLikeAssetName is the fallback that captures them.
     let entityName = null;
     let isCompanyName = false;
+    let isAssetName = false;
     for (let c = 0; c < 6; c++) {
       if (looksLikePersonName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = false; break; }
       if (looksLikeCompanyName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = true; break; }
+      if (looksLikeAssetName(row[c])) { entityName = normalizeName(row[c]); isAssetName = true; break; }
     }
     if (!entityName) continue;
 
@@ -350,6 +360,7 @@ function parseSheet(sheet, sheetName) {
         crew_section: currentSection, is_subcontractor_section: entityIsSubbie,
         is_agency_section: entityIsAgency,
         agency_name: entityAgencyName || undefined,
+        is_potential_asset: isAssetName,
       });
       hadAssignment = true;
     }
@@ -360,6 +371,7 @@ function parseSheet(sheet, sheetName) {
         crew_section: currentSection, is_subcontractor_section: entityIsSubbie,
         is_agency_section: entityIsAgency,
         agency_name: entityAgencyName || undefined,
+        is_potential_asset: isAssetName,
       });
     }
   }
@@ -450,6 +462,45 @@ export default async function(req) {
     const allDates = allAssignments.map(a => a.date).filter(Boolean).sort();
     const dateFrom = allDates[0];
     const dateTo = allDates[allDates.length - 1];
+
+    // -----------------------------------------------------------------------
+    // 1b. Post-process: move rig/equipment rows from team planner sheets into
+    // plantAssignments so they are linked to jobs as assets, not staff.
+    // Rigs in the drilling sheets appear as row entries (name in cols 0-5,
+    // job/site in date columns) but were previously skipped because their
+    // names contain digits. Now looksLikeAssetName captures them, and here
+    // we match each against SiteAssets to decide: asset → plantAssignments,
+    // non-matching potential-asset → dropped (not a person), everything else
+    // stays in teamAssignments for staff/rota resolution.
+    // -----------------------------------------------------------------------
+    const allAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 5000);
+    const assetMaps = buildAssetMaps(allAssets);
+    const assetById = new Map();
+    for (const a of allAssets) assetById.set(a.id, a);
+
+    const movedToPlant = [];
+    const droppedPotentialAssets = new Set();
+    const remainingTeamAssignments = [];
+    for (const a of teamAssignments) {
+      if (!a.staff_name || !a.is_potential_asset) {
+        remainingTeamAssignments.push(a);
+        continue;
+      }
+      const match = fuzzyFindAsset(a.staff_name, allAssets, assetMaps);
+      if (match) {
+        movedToPlant.push(a);
+      } else {
+        droppedPotentialAssets.add(a.staff_name);
+      }
+    }
+    teamAssignments = remainingTeamAssignments;
+    plantAssignments = plantAssignments.concat(movedToPlant);
+    if (droppedPotentialAssets.size > 0) {
+      warnings.push(`${droppedPotentialAssets.size} potential rig/equipment name(s) in the team planner did not match any SiteAsset and were skipped: ${[...droppedPotentialAssets].slice(0, 10).join(', ')}${droppedPotentialAssets.size > 10 ? '…' : ''}`);
+    }
+    if (movedToPlant.length > 0) {
+      warnings.push(`${movedToPlant.length} rig/equipment assignment(s) moved from team planner to plant matching (linked to jobs as assets).`);
+    }
 
     // -----------------------------------------------------------------------
     // 2. PURGE — full wipe: delete ALL staff, teams, jobs, crews, rotas
@@ -845,19 +896,15 @@ export default async function(req) {
     // -----------------------------------------------------------------------
     // 6. Resolve Rigs & Equipment from Plant Planner → JobAssetAssignment
     // -----------------------------------------------------------------------
-    // Loads ALL site assets (rigs, trailers, machinery, lifting gear) and
-    // matches each plant-planner row to an asset by:
+    // Uses the SiteAssets loaded in step 1b (before staff resolution) to match
+    // each plant-planner row to an asset by:
     //   1. Exact name key
     //   2. Serial-number containment (spreadsheet name contains a known serial)
     //   3. Fuzzy name similarity (token + Levenshtein + substring bonus)
     // When a rig is matched, its linked_equipment_ids (lifting gear, trailers)
     // are also pulled in so the job's "Rig & Gear" is fully populated.
     // The matched rig's rig_type also enriches the job's drilling_method.
-    const allAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 5000);
-    const assetMaps = buildAssetMaps(allAssets);
-    const assetById = new Map();
-    for (const a of allAssets) assetById.set(a.id, a);
-
+    // (allAssets, assetMaps, assetById were loaded in step 1b)
     const rigAssignments = [];
     const assetMatchBreakdown = { exact: 0, serial: 0, fuzzy: 0, unmatched: 0 };
     const unmatchedAssetNames = new Set();

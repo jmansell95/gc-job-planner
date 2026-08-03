@@ -303,3 +303,30 @@ export function looksLikePersonName(text) {
   if (words.length > 5) return false;
   return words.every(w => /^[A-Z]/.test(w));
 }
+
+// Detect rig/equipment/plant names in the name column. These often contain
+// digits (asset numbers, serial tags) which causes looksLikePersonName and
+// looksLikeCompanyName to reject them — so without this check, rig rows in
+// the team planner sheets are silently skipped and never linked to jobs.
+export function looksLikeAssetName(text) {
+  if (!text) return false;
+  const s = String(text).trim();
+  if (s.length < 2) return false;
+  if (cellToDate(s)) return false;
+  if (isSectionHeader(s)) return false;
+  if (!/[a-zA-Z]/.test(s)) return false;
+  const lower = s.toLowerCase();
+  if (lower === 'team planner' || lower === 'plant planner') return false;
+  // Rig / plant keywords
+  const ASSET_KEYWORDS = [
+    'rig', 'trailer', 'compressor', 'pump', 'excavator', 'generator',
+    'welfare', 'cabin', 'van', 'truck', 'tractor', 'forklift', 'crusher',
+    'screen', 'dozer', 'roller', 'dumper', 'mount', 'bobcat', 'jcb',
+    'hino', 'iveco', 'volvo', 'trailer-mounted', 'truck-mounted',
+  ];
+  if (ASSET_KEYWORDS.some(kw => lower.includes(kw))) return true;
+  // Contains digits AND at least one letter — likely an asset tag/number
+  // (e.g. "R1", "CP Rig 2", "T-03", "GC-R1-023")
+  if (/\d/.test(s) && /[a-zA-Z]/.test(s)) return true;
+  return false;
+}

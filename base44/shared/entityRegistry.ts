@@ -19,8 +19,12 @@ export function nameKey(name) {
   // "smith, john" → "john smith"
   const commaMatch = n.match(/^([a-z.'-]+),\s*(.+)$/);
   if (commaMatch) n = `${commaMatch[2]} ${commaMatch[1]}`;
-  // strip all punctuation except spaces
-  n = n.replace(/[.,'"`’‘()]/g, '').replace(/\s+/g, ' ').trim();
+  // strip punctuation — replace hyphens/slashes with spaces so
+  // "I260124 - EWR", "I260124-EWR" and "I260124 EWR" all produce the same key
+  n = n.replace(/[.,'"`’‘()]/g, '')
+       .replace(/[-–—/\\]/g, ' ')
+       .replace(/\s+/g, ' ')
+       .trim();
   return n;
 }
 
