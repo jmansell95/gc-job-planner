@@ -7,7 +7,7 @@
  * display logic and business rules keep working for both old and new records.
  */
 
-const DRILLING_TYPES = ['cp_drilling', 'rotary_drilling'];
+const DRILLING_TYPES = ['drilling', 'cp_drilling', 'rotary_drilling'];
 
 export const JOB_TYPE_COLORS = {
   emerald: { bg: 'bg-emerald-100', text: 'text-emerald-800', dot: 'bg-emerald-500', border: 'border-emerald-200', bar: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200' },

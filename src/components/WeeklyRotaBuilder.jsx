@@ -21,6 +21,7 @@ import { computeRotaWarnings } from '@/utils/rotaWarnings';
 import RotaWarningsPanel from '@/components/RotaWarningsPanel';
 
 const jobTypeColors = {
+  drilling: { bg: 'bg-amber-50', border: 'border-amber-400', text: 'text-amber-800', dot: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700' },
   groundworks: { bg: 'bg-emerald-50', border: 'border-emerald-400', text: 'text-emerald-800', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
   cp_drilling: { bg: 'bg-amber-50', border: 'border-amber-400', text: 'text-amber-800', dot: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700' },
   rotary_drilling: { bg: 'bg-blue-50', border: 'border-blue-400', text: 'text-blue-800', dot: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700' },
@@ -85,6 +86,9 @@ export default function WeeklyRotaBuilder() {
   const rotasByStaff = {};
   filteredStaff.forEach(s => { rotasByStaff[s.id] = Array.from({ length: days.length }, () => []); });
   rotas.forEach(rota => {
+    // Non-job assignments (annual_leave, sick, training) are shown via the
+    // leaveState banner, not as job cards — skip them here to avoid "Unknown".
+    if (rota.assignment_type && rota.assignment_type !== 'job') return;
     const dayIndex = days.findIndex(d => format(d, 'yyyy-MM-dd') === rota.assigned_date);
     if (dayIndex !== -1 && rotasByStaff[rota.staff_id]) {
       rotasByStaff[rota.staff_id][dayIndex].push(rota);
@@ -95,8 +99,16 @@ export default function WeeklyRotaBuilder() {
     const dow = new Date(dateStr + 'T00:00:00').getDay();
     const rec = recurring.find(r => r.staff_id === staffId && r.is_active !== false && Array.isArray(r.days_of_week) && r.days_of_week.includes(dow));
     if (rec) return { recurring: true, label: rec.label || 'Day Off' };
+    // Check for non-job rota assignments (annual_leave, sick, training) — these
+    // are imported from the planner and give us a specific type + label.
+    const nonJobRota = rotas.find(r => r.staff_id === staffId && r.assigned_date === dateStr && r.assignment_type && r.assignment_type !== 'job');
+    if (nonJobRota) {
+      if (nonJobRota.assignment_type === 'sick') return { recurring: false, label: 'Sick', type: 'sick' };
+      if (nonJobRota.assignment_type === 'training') return { recurring: false, label: 'Training', type: 'training' };
+      return { recurring: false, label: 'On Leave', type: 'annual_leave' };
+    }
     const leave = absences.some(a => a.staff_id === staffId && a.status === 'approved' && a.start_date <= dateStr && a.end_date >= dateStr);
-    if (leave) return { recurring: false, label: 'On Leave' };
+    if (leave) return { recurring: false, label: 'On Leave', type: 'annual_leave' };
     return null;
   };
 
@@ -288,9 +300,10 @@ export default function WeeklyRotaBuilder() {
   const goToPrevWeek = () => setSelectedWeek(prev => addDays(prev, -7));
   const goToNextWeek = () => setSelectedWeek(prev => addDays(prev, 7));
 
-  const totalAssignments = rotas.length;
-  const staffWorking = [...new Set(rotas.map(r => r.staff_id))].length;
-  const jobsActive = [...new Set(rotas.map(r => r.job_id))].length;
+  const jobRotas = rotas.filter(r => !r.assignment_type || r.assignment_type === 'job');
+  const totalAssignments = jobRotas.length;
+  const staffWorking = [...new Set(jobRotas.map(r => r.staff_id))].length;
+  const jobsActive = [...new Set(jobRotas.map(r => r.job_id).filter(Boolean))].length;
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
 
@@ -523,7 +536,7 @@ export default function WeeklyRotaBuilder() {
       <div className="hidden lg:flex gap-2 mb-3 pl-[180px]">
         {days.map(day => {
           const dayStr = format(day, 'yyyy-MM-dd');
-          const dayRotas = rotas.filter(r => r.assigned_date === dayStr);
+          const dayRotas = rotas.filter(r => r.assigned_date === dayStr && (!r.assignment_type || r.assignment_type === 'job'));
           const overlaps = dayRotas.length > 1
             ? dayRotas.filter(r => r.start_time && r.end_time && dayRotas.some(o => o.id !== r.id && o.staff_id === r.staff_id && o.start_time && o.end_time && (() => { const a = r.start_time.replace(':',''), b = r.end_time.replace(':',''), c = o.start_time.replace(':',''), d = o.end_time.replace(':',''); return a < d && c < b; })())).length
             : 0;
@@ -621,8 +634,13 @@ export default function WeeklyRotaBuilder() {
                             <div ref={provided.innerRef} {...provided.droppableProps}
                               className={`space-y-1.5 min-h-[44px] rounded-lg transition ${snapshot.isDraggingOver ? 'bg-emerald-50/70 ring-2 ring-emerald-300/60' : ''}`}>
                               {ls && (
-                                <div className={`px-2 py-1 rounded text-[10px] font-bold text-center ${ls.recurring ? 'bg-slate-200 text-slate-600' : 'bg-red-100 text-red-600'}`}>
-                                  {ls.recurring ? (ls.label || 'DAY OFF').toUpperCase() : 'ON LEAVE'}
+                                <div className={`px-2 py-1 rounded text-[10px] font-bold text-center ${
+                                  ls.recurring ? 'bg-slate-200 text-slate-600' :
+                                  ls.type === 'sick' ? 'bg-rose-100 text-rose-600' :
+                                  ls.type === 'training' ? 'bg-violet-100 text-violet-600' :
+                                  'bg-red-100 text-red-600'
+                                }`}>
+                                  {(ls.label || 'ON LEAVE').toUpperCase()}
                                 </div>
                               )}
                               {dayAssignments.map((assignment, aIdx) => (
@@ -677,7 +695,7 @@ export default function WeeklyRotaBuilder() {
         ) : days.map((day) => {
           const dayStr = format(day, 'yyyy-MM-dd');
           const isToday = dayStr === todayStr;
-          const dayAssignments = rotas.filter(r => r.assigned_date === dayStr && filteredStaff.some(s => s.id === r.staff_id));
+          const dayAssignments = rotas.filter(r => r.assigned_date === dayStr && (!r.assignment_type || r.assignment_type === 'job') && filteredStaff.some(s => s.id === r.staff_id));
           return (
             <div key={dayStr} className={`bg-white rounded-xl border shadow-sm overflow-hidden ${isToday ? 'border-emerald-400' : 'border-slate-200'}`}>
               <div className={`px-4 py-2.5 flex items-center justify-between ${isToday ? 'bg-emerald-700 text-white' : 'bg-slate-50 border-b border-slate-100'}`}>

@@ -1,4 +1,5 @@
 const jobTypeLabels = {
+  drilling: 'Drilling',
   groundworks: 'Groundworks',
   cp_drilling: 'CP Drilling',
   rotary_drilling: 'Rotary Drilling',

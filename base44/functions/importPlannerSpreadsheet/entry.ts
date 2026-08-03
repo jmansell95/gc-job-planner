@@ -34,15 +34,16 @@ const DEPOT_ALIASES = ['dartford', 'yard', 'depot', 'warehouse'];
 const ANNUAL_LEAVE_TEAM_NAME = 'Annual Leave';
 
 const CREW_SECTION_TO_JOB_TYPE = {
-  'cable': 'cp_drilling', 'cable percussion': 'cp_drilling',
-  'rotary': 'rotary_drilling', 'groundworks': 'groundworks', 'groundworker': 'groundworks',
-  'coring': 'coring', 'trial pit': 'trial_pit', 'trial_pit': 'trial_pit',
-  'enabling': 'enabling_works', 'enabling works': 'enabling_works',
-  'depot': 'depot', 'yard': 'depot', 'yard/depot': 'depot',
-  'dartford': 'depot', 'warehouse': 'depot',
-  'annual leave': 'depot', 'holiday': 'depot',
-  'leave/sick': 'depot', 'leave': 'depot', 'sick': 'depot',
-  'fitter': 'depot', 'plant fitter': 'depot',
+  'cable': 'drilling', 'cable percussion': 'drilling',
+  'rotary': 'drilling', 'coring': 'drilling',
+  'groundworks': 'groundworks', 'groundworker': 'groundworks',
+  'trial pit': 'groundworks', 'trial_pit': 'groundworks',
+  'enabling': 'groundworks', 'enabling works': 'groundworks',
+  'depot': 'groundworks', 'yard': 'groundworks', 'yard/depot': 'groundworks',
+  'dartford': 'groundworks', 'warehouse': 'groundworks',
+  'annual leave': 'groundworks', 'holiday': 'groundworks',
+  'leave/sick': 'groundworks', 'leave': 'groundworks', 'sick': 'groundworks',
+  'fitter': 'groundworks', 'plant fitter': 'groundworks',
 };
 
 const CREW_SECTION_TO_JOB_TITLE = {
