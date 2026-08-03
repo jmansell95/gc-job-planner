@@ -94,15 +94,15 @@ export default function NeedsAttentionPanel({ onNavigate }) {
             return (
               <motion.button key={it.key} variants={itemAnim}
                 onClick={() => onNavigate(it.nav)}
-                className={`card-modern rounded-2xl p-4 flex items-center gap-3 text-left hover:shadow-lg transition group min-w-[78%] sm:min-w-0 snap-start flex-shrink-0 sm:flex-shrink`}>
+                className={`card-modern rounded-2xl p-4 flex items-start gap-3 text-left hover:shadow-lg transition group min-w-[85%] sm:min-w-0 snap-start flex-shrink-0 sm:flex-shrink`}>
                 <div className={`w-10 h-10 rounded-xl ${t.iconBg} flex items-center justify-center flex-shrink-0`}>
                   <Icon className={`w-5 h-5 ${t.iconText}`} />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-slate-900 leading-tight">{it.label}</p>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <p className="text-sm font-semibold text-slate-900 leading-snug">{it.label}</p>
                   {it.value != null && <p className="text-xs text-slate-400 mt-0.5">{it.value} {it.value === 1 ? 'item' : 'items'}</p>}
                 </div>
-                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition flex-shrink-0" />
+                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition flex-shrink-0 mt-1" />
               </motion.button>
             );
           })}
