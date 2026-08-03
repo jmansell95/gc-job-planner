@@ -39,6 +39,7 @@ const CREW_SECTION_TO_JOB_TYPE = {
   'dartford': 'depot', 'warehouse': 'depot',
   'annual leave': 'depot', 'holiday': 'depot',
   'leave/sick': 'depot', 'leave': 'depot', 'sick': 'depot',
+  'fitter': 'depot', 'plant fitter': 'depot',
 };
 
 const CREW_SECTION_TO_JOB_TITLE = {
@@ -50,6 +51,7 @@ const CREW_SECTION_TO_JOB_TITLE = {
   'dartford': 'Yard/Depot Staff', 'warehouse': 'Yard/Depot Staff',
   'annual leave': '', 'holiday': '',
   'leave/sick': '', 'leave': '', 'sick': '',
+  'fitter': 'Plant Fitter', 'plant fitter': 'Plant Fitter',
 };
 
 const CREW_SECTION_TO_DRILLING_METHOD = {
@@ -61,6 +63,7 @@ const CREW_SECTION_TO_DRILLING_METHOD = {
   'dartford': 'not_applicable', 'warehouse': 'not_applicable',
   'annual leave': 'not_applicable', 'holiday': 'not_applicable',
   'leave/sick': 'not_applicable', 'leave': 'not_applicable', 'sick': 'not_applicable',
+  'fitter': 'not_applicable', 'plant fitter': 'not_applicable',
 };
 
 const SECTION_KEYWORDS = [
@@ -104,6 +107,9 @@ const NON_PERSON_WORDS = [
   'cover', 'covering', 'spare', 'backup', 'relief',
   'staff', 'personnel', 'workforce', 'gang', 'squad', 'unit',
   'agency', 'workers', 'worker', 'driller', 'drillers',
+  'base', 'area', 'rig', 'type', 'number', 'asset',
+  'opratives', 'operatives', 'full name',
+  'job', 'title',
 ];
 
 // Keywords that indicate a company name rather than a person name.
@@ -137,6 +143,7 @@ const STRONG_ROLE_WORDS = [
   'personnel', 'workforce', 'gang', 'squad', 'unit', 'resource',
   'resources', 'allocation', 'allocated', 'unallocated',
   'driller', 'drillers', 'agency', 'workers', 'worker',
+  'type', 'number', 'base', 'area', 'asset',
 ];
 
 // --- Helpers ---
@@ -239,17 +246,27 @@ function getWeekStart(dateStr) {
   return d.toISOString().slice(0, 10);
 }
 
+// Partial-match inference: tries exact match first, then checks if the
+// section name contains any keyword (longest keyword first for specificity).
+// This handles names like "Cable Percussive Crew 1" → matches "cable".
+function inferFromMap(crewSection, map, defaultVal) {
+  if (!crewSection) return defaultVal;
+  const lower = String(crewSection).trim().toLowerCase();
+  if (map[lower]) return map[lower];
+  const keys = Object.keys(map).sort((a, b) => b.length - a.length);
+  for (const key of keys) {
+    if (map[key] && lower.includes(key)) return map[key];
+  }
+  return defaultVal;
+}
 function inferJobType(crewSection) {
-  if (!crewSection) return '';
-  return CREW_SECTION_TO_JOB_TYPE[String(crewSection).trim().toLowerCase()] || '';
+  return inferFromMap(crewSection, CREW_SECTION_TO_JOB_TYPE, '');
 }
 function inferJobTitle(crewSection) {
-  if (!crewSection) return '';
-  return CREW_SECTION_TO_JOB_TITLE[String(crewSection).trim().toLowerCase()] || '';
+  return inferFromMap(crewSection, CREW_SECTION_TO_JOB_TITLE, '');
 }
 function inferDrillingMethod(crewSection) {
-  if (!crewSection) return 'not_applicable';
-  return CREW_SECTION_TO_DRILLING_METHOD[String(crewSection).trim().toLowerCase()] || 'not_applicable';
+  return inferFromMap(crewSection, CREW_SECTION_TO_DRILLING_METHOD, 'not_applicable');
 }
 
 function getMostCommon(arr) {
@@ -303,6 +320,8 @@ function cellToDate(cell) {
 function isSectionHeader(text) {
   if (!text) return false;
   const s = String(text).trim();
+  if (s.length > 50 || /[\r\n]/.test(s)) return false; // long/multi-line text is notes, not a section
+  if (/[^a-z0-9\s/.-]/i.test(s)) return false; // special chars like & mean it's a label, not a section
   const lower = s.toLowerCase();
   const words = lower.split(/\s+/);
   // Reject company names (e.g. "Dartford Drilling Services") — they're
