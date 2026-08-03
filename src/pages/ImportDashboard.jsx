@@ -16,6 +16,7 @@ export default function ImportDashboard() {
   const [analyzing, setAnalyzing] = useState(false);
   const [applying, setApplying] = useState(false);
   const [preview, setPreview] = useState(null);
+  const [applyResult, setApplyResult] = useState(null);
   const [error, setError] = useState(null);
 
   const handleFileChange = (e) => {
@@ -59,14 +60,12 @@ export default function ImportDashboard() {
     setError(null);
     try {
       const res = await base44.functions.invoke('importPlannerSpreadsheet', { file_url: fileUrl, dry_run: false });
+      setApplyResult(res.data);
       const s = res.data.summary;
       toast({
         title: 'Import complete',
-        description: `Wiped ${s.purge.staff_deleted} staff, ${s.purge.jobs_deleted} jobs, ${s.purge.teams_deleted} teams, ${s.purge.crews_deleted} crews. Created ${s.rotas.created} rotas, ${s.staff.new} staff, ${s.jobs.new} jobs.`
+        description: `Wiped ${s.purge.staff_deleted} staff, ${s.purge.jobs_deleted} jobs, ${s.purge.teams_deleted} teams. Created ${s.rotas.created} rotas, ${s.staff.new} staff, ${s.jobs.new} jobs.`
       });
-      setPreview(null);
-      setFile(null);
-      setFileUrl(null);
     } catch (e) {
       const msg = e?.response?.data?.error || e.message || 'Import failed';
       setError(msg);
@@ -75,13 +74,135 @@ export default function ImportDashboard() {
     }
   };
 
+  const handleReset = () => {
+    setApplyResult(null);
+    setPreview(null);
+    setFile(null);
+    setFileUrl(null);
+    setError(null);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Completion breakdown — shown after applying */}
+      {applyResult && (
+        <div className="space-y-4">
+          <div className="insight-card rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-800">Import Complete — Full Breakdown</h2>
+                <p className="text-sm text-slate-500">
+                  Wiped everything and rebuilt from {applyResult.summary.target_tabs?.length || 0} tab(s):{' '}
+                  <span className="font-medium text-slate-700">{applyResult.summary.target_tabs?.join(', ')}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Purge + create summary */}
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Trash2 className="w-4 h-4 text-red-600" />
+                <p className="text-sm font-semibold text-red-800">Wiped (Deleted)</p>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.staff_deleted}</span> staff</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.jobs_deleted}</span> jobs</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.teams_deleted}</span> teams</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.crews_deleted}</span> crews</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.rotas_deleted}</span> rotas</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.asset_assignments_deleted}</span> asset assignments</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
+              <StatTile icon={Users} label="Staff Created" total={applyResult.summary.staff.new} sub={`${applyResult.summary.staff.subcontractors} subcon`} color="blue" />
+              <StatTile icon={Briefcase} label="Jobs Created" total={applyResult.summary.jobs.new} sub={`${applyResult.summary.jobs.completed} completed`} color="emerald" />
+              <StatTile icon={CalendarDays} label="Rotas Created" total={applyResult.summary.rotas.created} sub={`${applyResult.summary.rotas.duplicates_collapsed} dupes`} color="amber" />
+              <StatTile icon={Building2} label="Teams" total={applyResult.summary.teams.total} sub={`${applyResult.summary.teams.new} new`} color="teal" />
+              <StatTile icon={CheckCircle2} label="Completed Jobs" total={applyResult.summary.jobs.completed} sub="past dates" color="slate" />
+              <StatTile icon={Clock} label="In Progress" total={applyResult.summary.jobs.in_progress} sub="today/future" color="teal" />
+            </div>
+
+            {/* Skipped sheets */}
+            {applyResult.summary.skipped_sheets?.length > 0 && (
+              <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 mb-3">
+                <p className="text-sm font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4" /> Skipped Tabs ({applyResult.summary.skipped_sheets.length}) — Prehistoric Data
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {applyResult.summary.skipped_sheets.map((s, i) => (
+                    <span key={i} className="text-xs bg-slate-200 text-slate-500 rounded-full px-3 py-1 line-through">{s}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleReset}
+              className="command-gradient text-white px-5 py-3 rounded-xl font-semibold text-sm flex items-center gap-2 transition hover:shadow-lg"
+            >
+              <RefreshCw className="w-4 h-4" /> Start New Import
+            </button>
+          </div>
+
+          {/* Staff breakdown */}
+          {applyResult.staff_breakdown?.length > 0 && (
+            <CollapsibleSection title={`Staff Created (${applyResult.staff_breakdown.length})`} icon={Users} defaultOpen={false}>
+              <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                {applyResult.staff_breakdown.map((s, i) => (
+                  <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-700">{s.name}</span>
+                        <span className={`text-xs rounded-full px-2 py-0.5 ${s.worker_type === 'subcontractor' ? 'bg-indigo-100 text-indigo-700' : s.worker_type === 'agency' ? 'bg-cyan-100 text-cyan-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {s.worker_type === 'subcontractor' ? 'Subcon' : s.worker_type === 'agency' ? 'Agency' : 'Direct'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400">{s.assignment_count} assignments</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                      <span>📧 {s.email}</span>
+                      <span>👥 {s.team}</span>
+                      {s.job_title && <span>🔧 {s.job_title}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {/* Jobs breakdown */}
+          {applyResult.jobs_breakdown?.length > 0 && (
+            <CollapsibleSection title={`Jobs Created (${applyResult.jobs_breakdown.length})`} icon={Briefcase} defaultOpen={false}>
+              <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                {applyResult.jobs_breakdown.map((j, i) => (
+                  <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-slate-700">{j.name}</span>
+                      <StatusBadge status={j.status} />
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                      {j.reference && <span>🏷️ {j.reference}</span>}
+                      {j.location && <span><MapPin className="w-3 h-3 inline" /> {j.location}</span>}
+                      <span>📅 {j.start_date || '—'} → {j.end_date || '—'}</span>
+                      <span>👷 {j.staff_count} staff</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
+        </div>
+      )}
+
       {/* Upload Card */}
       <div className="insight-card rounded-2xl p-6">
         <h2 className="text-lg font-semibold text-slate-800 mb-1">1. Upload Spreadsheet</h2>
         <p className="text-sm text-slate-500 mb-4">
-          Select your <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">.xlsx</code> planner file. Every import <strong>wipes all old rota data</strong> and replaces it with the spreadsheet contents.
+          Select your <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">.xlsx</code> planner file. Only the <strong>"Team Planner 2026_GW+Depot"</strong> and <strong>"Drillers"</strong> tabs are imported — all other tabs are ignored. Every import <strong>wipes all old rota data</strong> and replaces it with the spreadsheet contents.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
@@ -238,6 +359,20 @@ export default function ImportDashboard() {
                 <div className="flex flex-wrap gap-2">
                   {preview.summary.sections_detected.map((s, i) => (
                     <span key={i} className="text-xs bg-slate-100 text-slate-700 rounded-full px-3 py-1 font-medium">{s}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Skipped sheets */}
+            {preview.summary.skipped_sheets?.length > 0 && (
+              <div className="mb-4 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                <p className="text-sm font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4" /> Skipped Tabs ({preview.summary.skipped_sheets.length}) — Prehistoric Data
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {preview.summary.skipped_sheets.map((s, i) => (
+                    <span key={i} className="text-xs bg-slate-200 text-slate-500 rounded-full px-3 py-1 line-through">{s}</span>
                   ))}
                 </div>
               </div>
@@ -443,7 +578,7 @@ export default function ImportDashboard() {
           <h2 className="text-lg font-semibold text-slate-800 mb-3">How it works</h2>
           <ol className="space-y-3 text-sm text-slate-600">
             <Step n={1} title="Upload your planner file">The Excel file is uploaded and parsed directly — no third-party AI involved.</Step>
-            <Step n={2} title="Full header mapping">The system scans every sheet, finds the date header row, maps every column to a date, and tracks section headers (Cable, Rotary, Groundworkers, Yard/Depot, Leave/Sick, etc.) across all columns.</Step>
+            <Step n={2} title="Targeted tab import">Only two tabs are imported: <strong>"Team Planner 2026_GW+Depot"</strong> (Groundworkers &amp; Depot Staff) and <strong>"Drillers"</strong> (drilling team). All other tabs are treated as prehistoric data and skipped.</Step>
             <Step n={3} title="Date-aware job status">Jobs with all past dates are marked <strong>completed</strong>. Jobs with any today/future dates are marked <strong>in_progress</strong>. New jobs with no dates yet are <strong>planning</strong>.</Step>
             <Step n={4} title="Leaver detection">Staff with linked logins who aren't in this spreadsheet are flagged as leavers and will be marked inactive on import.</Step>
             <Step n={5} title="Full breakdown review">See every staff member, every job, every section, every sheet, and every leaver before you confirm — so you can drill down and verify everything is correct.</Step>

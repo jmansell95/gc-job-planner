@@ -389,6 +389,19 @@ function isPlantPlannerSheet(sheetName) {
   return String(sheetName || '').toLowerCase().includes('plant');
 }
 
+// Target sheet patterns — only these tabs are imported. All other tabs
+// are treated as prehistoric/legacy data and skipped.
+//   • "Team Planner 2026_GW+Depot" → Groundworkers and Depot Staff
+//   • "Drillers" → Drilling team (latest)
+const TARGET_SHEET_PATTERNS = [
+  /team\s*planner.*2026.*(gw|depot)/i,
+  /driller/i,
+];
+
+function isTargetSheet(sheetName) {
+  return TARGET_SHEET_PATTERNS.some(p => p.test(String(sheetName || '')));
+}
+
 function parseJobName(rawName) {
   const name = normalizeName(rawName);
   const match = name.match(/^(.+?)\s+is\s+(.+)$/i);
@@ -593,8 +606,14 @@ export default async function(req) {
     const warnings = [];
     const allSectionsDetected = new Set();
     const sheetBreakdown = [];
+    const skippedSheets = [];
 
     for (const sheetName of workbook.SheetNames) {
+      if (!isTargetSheet(sheetName)) {
+        skippedSheets.push(sheetName);
+        warnings.push(`Skipped sheet "${sheetName}" — prehistoric data, not a target tab.`);
+        continue;
+      }
       const sheet = workbook.Sheets[sheetName];
       if (!sheet) continue;
       sheetNames.push(sheetName);
@@ -625,7 +644,7 @@ export default async function(req) {
     const allAssignments = teamAssignments.concat(plantAssignments);
 
     if (allAssignments.length === 0) {
-      return Response.json({ error: `No assignment rows could be read from this file. Sheets found: ${sheetNames.join(', ')}` }, { status: 422 });
+      return Response.json({ error: `No assignment rows could be read from the target tabs. Looked for tabs matching "Team Planner 2026_GW+Depot" (Groundworkers & Depot) and "Drillers" (drilling team). Sheets in file: ${workbook.SheetNames.join(', ')}. Skipped: ${skippedSheets.join(', ') || 'none'}` }, { status: 422 });
     }
 
     const allDates = allAssignments.map(a => a.date).filter(Boolean).sort();
@@ -1140,6 +1159,8 @@ export default async function(req) {
         total: dedupedRigAssignments.length,
       },
       sections_detected: [...allSectionsDetected],
+      skipped_sheets: skippedSheets,
+      target_tabs: sheetNames,
       warnings,
     };
 
@@ -1200,6 +1221,21 @@ export default async function(req) {
         rig_assignments: { created: rigAssignmentCount, total: dedupedRigAssignments.length },
         staff: { ...summary.staff, leavers_marked_inactive: leaversMarked },
       },
+      sheet_breakdown: sheetBreakdown,
+      staff_breakdown: staffBreakdown,
+      jobs_breakdown: jobsBreakdown,
+      new_staff: newStaff.map(s => ({
+        name: s.name, email: s.email, job_title: s.job_title,
+        worker_type: s.worker_type,
+        team: s.team_id === agencyTeam.id ? AGENCY_TEAM_NAME
+          : (s.team_id === subconTeam.id ? SUBCONTRACTOR_TEAM_NAME : 'Direct Employee')
+      })),
+      new_jobs: newJobs.map(j => ({
+        name: j.name, location: j.location, job_reference: j.job_reference,
+        drilling_method: j.drilling_method, job_type: j.job_type,
+        status: j.status, start_date: j.start_date, end_date: j.end_date,
+      })),
+      new_teams: newTeamNames,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
