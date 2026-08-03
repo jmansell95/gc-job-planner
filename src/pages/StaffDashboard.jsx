@@ -171,7 +171,7 @@ export default function StaffDashboard() {
 
   // Confirms arrival: creates a travel_to draft timesheet entry and marks the
   // assignment as arrived. The wizard handles the transition to briefing/working.
-  const handleArrivedConfirm = async ({ assignmentId, departHome, arriveSite }) => {
+  const handleArrivedConfirm = async ({ assignmentId, departHome, arriveSite, gpsPrefilled }) => {
     const assignment = assignments.find(a => a.id === assignmentId);
     if (!assignment) return;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
@@ -182,6 +182,9 @@ export default function StaffDashboard() {
         const [ah, am] = arriveSite.split(':').map(Number);
         const travelMins = (ah * 60 + am) - (dh * 60 + dm);
         if (travelMins > 0) {
+          // If times were pre-filled from GPS but the user changed them,
+          // flag the entry for manager review
+          const overrideNote = gpsPrefilled ? 'Manually adjusted from GPS time — manager review required' : '';
           await base44.entities.Timesheet.create({
             staff_id: staff.id,
             date: todayStr,
@@ -194,7 +197,8 @@ export default function StaffDashboard() {
             total_hours: Math.round((travelMins / 60) * 100) / 100,
             status: 'draft',
             travel_depart_home: departHome,
-            travel_arrive_site: arriveSite
+            travel_arrive_site: arriveSite,
+            notes: overrideNote
           });
         }
       }

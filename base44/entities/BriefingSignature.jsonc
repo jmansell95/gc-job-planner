@@ -34,11 +34,19 @@
     "induction_completed": {
       "type": "boolean",
       "default": false,
-      "description": "Whether the crew member confirmed the site induction was completed (PowerPoint / third-party presentation)"
+      "description": "Whether the crew member confirmed the site induction was completed (one-time, third-party induction on first day at this site)"
     },
     "induction_completed_at": {
       "type": "string",
       "description": "ISO timestamp when induction confirmation was recorded"
+    },
+    "induction_completed_by": {
+      "type": "string",
+      "description": "Name of the third-party person who carried out the site induction (recorded for our records only). Entered by the staff member on their first day at a new site."
+    },
+    "daily_agenda_notes": {
+      "type": "string",
+      "description": "Today's daily agenda brief \u2014 what's the plan, any blockers, and what's left to sort out. Recorded each day as part of the daily briefing."
     },
     "document_ids_reviewed": {
       "type": "string",

@@ -11,6 +11,8 @@ import { format } from 'date-fns';
 import JobBriefingModal from '@/components/staff/JobBriefingModal';
 import EndOfShiftWizard from '@/components/staff/EndOfShiftWizard';
 import WorkingStep from '@/components/staff/WorkingStep';
+import WeatherCard from '@/components/staff/WeatherCard';
+import JobContextCard from '@/components/staff/JobContextCard';
 
 const fmtDur = (mins) => {
   const m = Math.round(Number(mins) || 0);
@@ -21,12 +23,32 @@ const fmtDur = (mins) => {
 };
 
 // ── Arrive Step ──────────────────────────────────────────────────────────
-function ArriveStep({ job, jobLocation, inductionRequired, onConfirm, saving }) {
+function ArriveStep({ job, jobLocation, inductionRequired, saving, staffId }) {
+  const today = format(new Date(), 'yyyy-MM-dd');
   const [departHome, setDepartHome] = useState('');
   const [arriveSite, setArriveSite] = useState(() => {
     const now = new Date();
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   });
+  const [gpsPrefilled, setGpsPrefilled] = useState(false);
+
+  // Fetch Geotab auto-generated travel times for today to pre-fill the form
+  const { data: geotabEntries = [] } = useQuery({
+    queryKey: ['geotab-travel-today', staffId, today],
+    queryFn: () => base44.entities.Timesheet.filter({ staff_id: staffId, date: today, source: 'geotab_auto' }),
+    enabled: !!staffId,
+  });
+
+  // Pre-fill from the first geotab_auto travel_to entry
+  useEffect(() => {
+    if (gpsPrefilled) return;
+    const travelTo = geotabEntries.find(t => t.task_type === 'travel_to');
+    if (travelTo && travelTo.travel_depart_home && travelTo.travel_arrive_site) {
+      setDepartHome(travelTo.travel_depart_home);
+      setArriveSite(travelTo.travel_arrive_site);
+      setGpsPrefilled(true);
+    }
+  }, [geotabEntries, gpsPrefilled]);
 
   const travelMins = departHome && arriveSite
     ? (() => {
@@ -47,12 +69,23 @@ function ArriveStep({ job, jobLocation, inductionRequired, onConfirm, saving }) 
           <p className="text-xs text-slate-700 break-words">{jobLocation}</p>
         </div>
       )}
-      <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-3">
+
+      {/* GPS info banner */}
+      <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-xl px-3.5 py-3">
         <Car className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-blue-900 leading-relaxed">
-          Log your travel time to site — this is the first thing you do before starting the briefing or induction.
+          {gpsPrefilled
+            ? "Your travel times below come from your vehicle's live GPS (Geotab). If they're not right, you can change them — your manager will review any changes. You can still start work straight away."
+            : "Log your travel time to site. If your vehicle GPS (Geotab) data arrives later, it will update automatically. You can change these times if needed — your manager will review any changes."}
         </p>
       </div>
+
+      {/* Weather */}
+      <WeatherCard lat={job?.site_lat} lng={job?.site_lng} locationName={job?.location} />
+
+      {/* Job context — site contact, notes, safety info */}
+      <JobContextCard job={job} />
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1.5">Left home</label>
@@ -82,18 +115,18 @@ function ArriveStep({ job, jobLocation, inductionRequired, onConfirm, saving }) 
         <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-100 rounded-xl px-3.5 py-3">
           <ShieldCheck className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-amber-900 leading-relaxed">
-            After logging your travel, you'll start the site briefing and induction. This is only needed on your first day at this site.
+            After logging your travel, you'll do a quick site induction and daily briefing. The induction is only needed on your first day at this site.
           </p>
         </div>
       ) : (
         <div className="flex items-start gap-2.5 bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-3">
           <ShieldCheck className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" />
           <p className="text-xs text-[#2E5A1A] leading-relaxed">
-            You've already completed the induction for this site — you'll be ready to start work once you confirm arrival.
+            You've already done the site induction — you'll just do a quick daily briefing, then you're ready to work.
           </p>
         </div>
       )}
-      <input type="hidden" id="arrive-can-confirm" value={canConfirm ? '1' : '0'} data-depart={departHome} data-arrive={arriveSite} />
+      <input type="hidden" id="arrive-can-confirm" value={canConfirm ? '1' : '0'} data-depart={departHome} data-arrive={arriveSite} data-gps-prefilled={gpsPrefilled ? '1' : '0'} />
     </div>
   );
 }
@@ -164,9 +197,10 @@ export default function ShiftWizard({
     if (!el || el.value !== '1') return;
     const departHome = el.dataset.depart;
     const arriveSite = el.dataset.arrive;
+    const gpsPrefilled = el.dataset.gpsPrefilled === '1';
     setSaving(true);
     try {
-      await onArrivedConfirm({ assignmentId: assignment.id, departHome, arriveSite });
+      await onArrivedConfirm({ assignmentId: assignment.id, departHome, arriveSite, gpsPrefilled });
       setSaving(false);
       if (needsBriefing) {
         setStep('briefing');
@@ -309,6 +343,7 @@ export default function ShiftWizard({
                     jobLocation={job?.location}
                     inductionRequired={needsBriefing}
                     saving={saving}
+                    staffId={staffId}
                   />
                 )}
                 {step === 'working' && (

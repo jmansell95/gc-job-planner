@@ -29,10 +29,10 @@ const fmtDur = (mins) => {
   return m > 0 ? `${r}m` : '0m';
 };
 
-export default function DailyTaskLog({ staffId, hideSubmit = false }) {
+export default function DailyTaskLog({ staffId, hideSubmit = false, lockedJobId = null }) {
   const today = format(new Date(), 'yyyy-MM-dd');
   const todayDow = new Date().getDay();
-  const [jobId, setJobId] = useState('');
+  const [jobId, setJobId] = useState(lockedJobId || '');
   const [task, setTask] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -69,7 +69,9 @@ export default function DailyTaskLog({ staffId, hideSubmit = false }) {
   const assignedJobs = [...todayJobs, ...otherJobs];
   const todayShift = shifts.find(s => s.day_of_week === todayDow);
 
-  useEffect(() => { if (!jobId && todayJobs.length === 1) setJobId(todayJobs[0].id); else if (!jobId && todayJobs.length === 0 && assignedJobs.length === 1) setJobId(assignedJobs[0].id); }, [todayJobs, assignedJobs, jobId]);
+  useEffect(() => { if (lockedJobId) return; if (!jobId && todayJobs.length === 1) setJobId(todayJobs[0].id); else if (!jobId && todayJobs.length === 0 && assignedJobs.length === 1) setJobId(assignedJobs[0].id); }, [todayJobs, assignedJobs, jobId, lockedJobId]);
+  // Sync jobId when lockedJobId changes (job switcher in WorkingStep)
+  useEffect(() => { if (lockedJobId) setJobId(lockedJobId); }, [lockedJobId]);
   useEffect(() => { if (!startTime && todayShift?.start_time) setStartTime(todayShift.start_time); }, [todayShift]);
 
   const selectedJob = jobs.find(j => j.id === jobId);
@@ -304,7 +306,7 @@ export default function DailyTaskLog({ staffId, hideSubmit = false }) {
           </p>
         ) : (
           <form id="daily-task-form" onSubmit={addTask} className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
-            {!isLunch && (
+            {!isLunch && !lockedJobId && (
               <div>
                 <label className="block text-xs font-medium text-slate-600 mb-1">Job *</label>
                 <select value={jobId} onChange={e => setJobId(e.target.value)} required

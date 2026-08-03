@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
-import { Tablet, CheckCircle2, ChevronRight, Clock, Info, FileX } from 'lucide-react';
+import { Tablet, CheckCircle2, ChevronRight, Clock, Info, Briefcase, ChevronDown } from 'lucide-react';
 import DailyTaskLog from '@/components/DailyTaskLog';
 
 /**
@@ -16,7 +16,62 @@ import DailyTaskLog from '@/components/DailyTaskLog';
  *
  * If no AGS data exists for today, the standard DailyTaskLog form is shown
  * so the driller can log their tasks manually (the fallback).
+ *
+ * A job switcher bar at the top lets staff switch between today's jobs
+ * without leaving the task logging view. The selected job is passed to
+ * DailyTaskLog as lockedJobId so the job dropdown is hidden.
  */
+function JobSwitcherBar({ currentJobId, jobs, onChange }) {
+  const [open, setOpen] = useState(false);
+  const currentJob = jobs.find(j => j.id === currentJobId);
+
+  if (jobs.length <= 1) {
+    return (
+      <div className="px-5 py-3 bg-emerald-50 border-b border-emerald-100 flex items-center gap-2">
+        <Briefcase className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+        <span className="text-sm font-semibold text-emerald-900 truncate">{currentJob?.name || 'No job'}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 py-3 bg-emerald-50 border-b border-emerald-100 relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-2"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <Briefcase className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span className="text-sm font-semibold text-emerald-900 truncate">
+            Logging for: {currentJob?.name || 'Select job'}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 text-emerald-700 flex-shrink-0">
+          <span className="text-xs font-medium">Switch</span>
+          <ChevronDown className={`w-4 h-4 transition ${open ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+      {open && (
+        <div className="absolute left-5 right-5 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 z-10 overflow-hidden">
+          {jobs.map(j => (
+            <button
+              key={j.id}
+              onClick={() => { onChange(j.id); setOpen(false); }}
+              className={`w-full flex items-center gap-2 px-3.5 py-2.5 text-left text-sm transition ${
+                j.id === currentJobId ? 'bg-emerald-50 text-emerald-900 font-semibold' : 'text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <Briefcase className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+              <span className="truncate">{j.name}</span>
+              {j.id === currentJobId && <CheckCircle2 className="w-4 h-4 text-emerald-600 ml-auto flex-shrink-0" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function KeyLogBookReviewPanel({ job, hasAutoTimesheet, onGoToEndOfShift }) {
   const today = format(new Date(), 'yyyy-MM-dd');
   const { data: autoTimesheets = [] } = useQuery({
@@ -86,22 +141,30 @@ function KeyLogBookReviewPanel({ job, hasAutoTimesheet, onGoToEndOfShift }) {
   );
 }
 
-function ManualEntryFallback({ staffId, job }) {
-  return (
-    <div className="px-0 py-0">
-      <DailyTaskLog staffId={staffId} hideSubmit />
-    </div>
-  );
-}
-
 export default function WorkingStep({ staffId, job, assignment, onGoToEndOfShift }) {
   const today = format(new Date(), 'yyyy-MM-dd');
+  const [activeJobId, setActiveJobId] = useState(job?.id || '');
+
+  // Fetch today's assignments so we can show a job switcher
+  const { data: todayAssignments = [] } = useQuery({
+    queryKey: ['staff-assignments-today', staffId],
+    queryFn: () => base44.entities.RotaAssignment.filter({ staff_id: staffId, assigned_date: today }),
+    enabled: !!staffId,
+  });
+  const { data: allJobs = [] } = useQuery({
+    queryKey: ['jobs-for-working-step'],
+    queryFn: () => base44.entities.Job.list(),
+  });
+
+  const todayJobIds = [...new Set(todayAssignments.map(a => a.job_id))];
+  const todayJobs = allJobs.filter(j => todayJobIds.includes(j.id));
+  const activeJob = allJobs.find(j => j.id === activeJobId) || job;
 
   // Check for AGS-imported investigation logs for this job + today
   const { data: invLogs = [], isLoading } = useQuery({
-    queryKey: ['klb-ags-check', job?.id, today],
-    queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job?.id, source: 'ags_import' }),
-    enabled: !!job?.id,
+    queryKey: ['klb-ags-check', activeJobId, today],
+    queryFn: () => base44.entities.InvestigationLog.filter({ job_id: activeJobId, source: 'ags_import' }),
+    enabled: !!activeJobId,
   });
 
   const todaysAgsLogs = invLogs.filter(l => l.date === today);
@@ -116,8 +179,20 @@ export default function WorkingStep({ staffId, job, assignment, onGoToEndOfShift
   }
 
   if (usingKeyLogBook) {
-    return <KeyLogBookReviewPanel job={job} onGoToEndOfShift={onGoToEndOfShift} />;
+    return (
+      <>
+        <JobSwitcherBar currentJobId={activeJobId} jobs={todayJobs} onChange={setActiveJobId} />
+        <KeyLogBookReviewPanel job={activeJob} onGoToEndOfShift={onGoToEndOfShift} />
+      </>
+    );
   }
 
-  return <ManualEntryFallback staffId={staffId} job={job} />;
+  return (
+    <>
+      <JobSwitcherBar currentJobId={activeJobId} jobs={todayJobs} onChange={setActiveJobId} />
+      <div className="px-0 py-0">
+        <DailyTaskLog staffId={staffId} hideSubmit lockedJobId={activeJobId} />
+      </div>
+    </>
+  );
 }

@@ -38,6 +38,10 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
   const [elapsedLabel, setElapsedLabel] = useState('');
   const [reviewedDocIds, setReviewedDocIds] = useState(new Set());
   const [inductionConfirmed, setInductionConfirmed] = useState(false);
+  const [inductionCompletedBy, setInductionCompletedBy] = useState('');
+  const [agendaPlan, setAgendaPlan] = useState('');
+  const [agendaBlockers, setAgendaBlockers] = useState('');
+  const [agendaLeft, setAgendaLeft] = useState('');
   const [powraConfirmed, setPowraConfirmed] = useState(false);
   const [equipCheckConfirmed, setEquipCheckConfirmed] = useState(false);
   const [signatureDataUrl, setSignatureDataUrl] = useState(null);
@@ -152,13 +156,15 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
     if (phase === 'intro') setPhase('travel');
     else if (phase === 'travel') setPhase(briefingDocs.length > 0 ? 'documents' : 'induction');
     else if (phase === 'documents') setPhase('induction');
-    else if (phase === 'induction') setPhase('risk');
+    else if (phase === 'induction') setPhase('agenda');
+    else if (phase === 'agenda') setPhase('risk');
     else if (phase === 'risk') setPhase('sign');
   };
 
   const goPrev = () => {
     if (phase === 'sign') setPhase('risk');
-    else if (phase === 'risk') setPhase('induction');
+    else if (phase === 'risk') setPhase('agenda');
+    else if (phase === 'agenda') setPhase('induction');
     else if (phase === 'induction') setPhase(briefingDocs.length > 0 ? 'documents' : 'travel');
     else if (phase === 'documents') setPhase('travel');
     else if (phase === 'travel') setPhase('intro');
@@ -178,6 +184,11 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
     const signedAt = new Date().toISOString();
     const durationMin = briefingStartAt ? Math.round((new Date(signedAt) - new Date(briefingStartAt)) / 60000) : 0;
     const docIds = Array.from(reviewedDocIds).join(',');
+    const dailyAgendaNotes = [
+      agendaPlan && `Plan: ${agendaPlan}`,
+      agendaBlockers && `Blockers: ${agendaBlockers}`,
+      agendaLeft && `Left to sort: ${agendaLeft}`,
+    ].filter(Boolean).join('\n');
 
     try {
       if (!navigator.onLine) {
@@ -191,6 +202,8 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
           signed_at: signedAt,
           induction_completed: inductionConfirmed,
           induction_completed_at: inductionConfirmed ? signedAt : null,
+          induction_completed_by: inductionCompletedBy || null,
+          daily_agenda_notes: dailyAgendaNotes || null,
           document_ids_reviewed: docIds,
           briefing_duration_minutes: durationMin,
           briefing_start_at: briefingStartAt,
@@ -215,6 +228,8 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
         signed_at: signedAt,
         induction_completed: inductionConfirmed,
         induction_completed_at: inductionConfirmed ? signedAt : null,
+        induction_completed_by: inductionCompletedBy || null,
+        daily_agenda_notes: dailyAgendaNotes || null,
         document_ids_reviewed: docIds,
         briefing_duration_minutes: durationMin,
         synced_from_offline: false
@@ -252,16 +267,16 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
   const stepLabels = [
     ...(vehicleCheckNeeded ? ['Vehicle'] : []),
     ...(skipTravel
-      ? ['Induction', 'Safety', 'Sign']
-      : ['Briefing', 'Travel', briefingDocs.length > 0 ? 'Documents' : null, 'Induction', 'Safety', 'Sign'].filter(Boolean)),
+      ? ['Induction', 'Agenda', 'Safety', 'Sign']
+      : ['Briefing', 'Travel', briefingDocs.length > 0 ? 'Documents' : null, 'Induction', 'Agenda', 'Safety', 'Sign'].filter(Boolean)),
   ];
   const docOffset = briefingDocs.length > 0 ? 1 : 0;
   const vcOffset = vehicleCheckNeeded ? 1 : 0;
   const activeStep = phase === 'vehicle'
     ? 0
     : skipTravel
-      ? vcOffset + (phase === 'induction' ? 0 : phase === 'risk' ? 1 : 2)
-      : vcOffset + (phase === 'intro' ? 0 : phase === 'travel' ? 1 : phase === 'documents' ? 2 : phase === 'induction' ? (2 + docOffset) : phase === 'risk' ? (3 + docOffset) : (4 + docOffset));
+      ? vcOffset + (phase === 'induction' ? 0 : phase === 'agenda' ? 1 : phase === 'risk' ? 2 : 3)
+      : vcOffset + (phase === 'intro' ? 0 : phase === 'travel' ? 1 : phase === 'documents' ? 2 : phase === 'induction' ? (2 + docOffset) : phase === 'agenda' ? (3 + docOffset) : phase === 'risk' ? (4 + docOffset) : (5 + docOffset));
 
   return (
     <AnimatePresence>
@@ -374,7 +389,7 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 mb-2">Welcome to site</h3>
                 <p className="text-sm text-slate-500 max-w-sm mx-auto mb-5">
-                  Complete this site briefing before starting work. You'll review mandatory documents, confirm the site induction, and sign off.
+                  Quick briefing before you start. Review any documents, confirm your site induction, note today's plan, and sign off.
                 </p>
                 <div className="bg-slate-50 rounded-xl p-4 text-left mb-5">
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Job Details</p>
@@ -472,67 +487,68 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
               </div>
             )}
 
-            {/* INDUCTION */}
+            {/* INDUCTION — one-time, third-party */}
             {phase === 'induction' && (
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 mb-1">Site Induction</h3>
-                  <p className="text-sm text-slate-500">Review the site-specific safety information below.</p>
+                  <p className="text-sm text-slate-500">This is done once on your first day at this site by a third party (site manager, principal contractor). Just record who did it for our records.</p>
                 </div>
 
-                <div className="space-y-3">
+                {/* Site safety reference */}
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Site Safety Info</p>
                   {job.fire_assembly_point && (
-                    <div className="flex items-start gap-3 bg-red-50/50 rounded-xl p-3.5 border border-red-100">
-                      <Flame className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-3 bg-red-50/50 rounded-xl p-3 border border-red-100">
+                      <Flame className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">Fire Assembly Point</p>
+                        <p className="text-[11px] font-semibold text-red-700 uppercase tracking-wide">Fire Assembly Point</p>
                         <p className="text-sm text-slate-700 mt-0.5">{job.fire_assembly_point}</p>
                       </div>
                     </div>
                   )}
                   {job.first_aid_location && (
-                    <div className="flex items-start gap-3 bg-rose-50/50 rounded-xl p-3.5 border border-rose-100">
-                      <HeartPulse className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-3 bg-rose-50/50 rounded-xl p-3 border border-rose-100">
+                      <HeartPulse className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs font-semibold text-rose-700 uppercase tracking-wide">First Aid</p>
+                        <p className="text-[11px] font-semibold text-rose-700 uppercase tracking-wide">First Aid</p>
                         <p className="text-sm text-slate-700 mt-0.5">{job.first_aid_location}</p>
                       </div>
                     </div>
                   )}
                   {job.emergency_procedures && (
-                    <div className="flex items-start gap-3 bg-amber-50/50 rounded-xl p-3.5 border border-amber-100">
-                      <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-3 bg-amber-50/50 rounded-xl p-3 border border-amber-100">
+                      <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Emergency Procedures</p>
+                        <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wide">Emergency Procedures</p>
                         <p className="text-sm text-slate-700 mt-0.5 whitespace-pre-wrap">{job.emergency_procedures}</p>
                       </div>
                     </div>
                   )}
-                  {job.induction_notes && (
-                    <div className="flex items-start gap-3 bg-slate-50 rounded-xl p-3.5 border border-slate-200">
-                      <Info className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Additional Induction Notes</p>
-                        <p className="text-sm text-slate-700 mt-0.5 whitespace-pre-wrap">{job.induction_notes}</p>
-                      </div>
-                    </div>
-                  )}
-                  {!job.fire_assembly_point && !job.first_aid_location && !job.emergency_procedures && !job.induction_notes && (
-                    <div className="bg-slate-50 rounded-xl p-6 text-center">
-                      <Info className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-sm text-slate-500">No site-specific induction details recorded for this job.</p>
+                  {!job.fire_assembly_point && !job.first_aid_location && !job.emergency_procedures && (
+                    <div className="bg-slate-50 rounded-xl p-3 text-center">
+                      <p className="text-xs text-slate-500">No site-specific safety info recorded for this job.</p>
                     </div>
                   )}
                 </div>
 
-                {/* Induction confirmation */}
+                {/* Who did the induction? */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Who completed your site induction?</label>
+                  <input type="text" value={inductionCompletedBy} onChange={e => setInductionCompletedBy(e.target.value)}
+                    placeholder="e.g. John Smith (Balfour Beatty site manager)"
+                    className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white" />
+                  <p className="text-[11px] text-slate-400 mt-1">Just for our records — enter the name of the person who inducted you.</p>
+                </div>
+
+                {/* Confirmation */}
                 <button onClick={() => setInductionConfirmed(!inductionConfirmed)}
                   className={`flex items-start gap-2.5 w-full text-left rounded-xl border-2 p-3.5 transition ${inductionConfirmed ? 'border-emerald-300 bg-emerald-50/50' : 'border-slate-200 bg-white'}`}>
                   <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${inductionConfirmed ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
                     {inductionConfirmed && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                   </div>
                   <span className={`text-sm font-medium ${inductionConfirmed ? 'text-emerald-700' : 'text-slate-600'}`}>
-                    I confirm the site induction has been completed (e.g. PowerPoint, third-party presentation, or site walkthrough).
+                    I've completed the site induction.
                   </span>
                 </button>
 
@@ -551,12 +567,53 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
               </div>
             )}
 
+            {/* DAILY AGENDA — each day's plan, blockers, what's left */}
+            {phase === 'agenda' && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">Daily Agenda</h3>
+                  <p className="text-sm text-slate-500">Quick run-through of today's plan. This is separate from the site induction — just a daily catch-up.</p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">What's the plan today?</label>
+                    <textarea value={agendaPlan} onChange={e => setAgendaPlan(e.target.value)} rows={2}
+                      placeholder="e.g. Drill BH-03 and BH-04, then set up the standpipe"
+                      className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white resize-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Any blockers?</label>
+                    <textarea value={agendaBlockers} onChange={e => setAgendaBlockers(e.target.value)} rows={2}
+                      placeholder="e.g. Waiting on client to confirm borehole locations"
+                      className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white resize-none" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">What's left to sort out?</label>
+                    <textarea value={agendaLeft} onChange={e => setAgendaLeft(e.target.value)} rows={2}
+                      placeholder="e.g. Need more casing, rig service due next week"
+                      className="w-full px-3.5 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 bg-white resize-none" />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button onClick={goPrevSkipAware} className="flex items-center gap-1.5 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition text-sm font-semibold">
+                    <ChevronLeft className="w-4 h-4" /> Back
+                  </button>
+                  <button onClick={goNext}
+                    className="flex items-center justify-center gap-1.5 flex-1 px-4 py-3 bg-emerald-700 text-white rounded-xl hover:bg-emerald-800 active:scale-95 transition text-sm font-bold touch-manipulation">
+                    Next <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* RISK / POWRA */}
             {phase === 'risk' && (
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 mb-1">Point of Work Risk Assessment</h3>
-                  <p className="text-sm text-slate-500">Before any work starts, complete your Point of Work Risk Assessment (POWRA) on Safety Culture. Click the link below to action this.</p>
+                  <p className="text-sm text-slate-500">Complete your POWRA on Safety Culture before starting any work. Tap the link below.</p>
                 </div>
 
                 <a href={POWRA_URL} target="_blank" rel="noopener noreferrer"
@@ -588,8 +645,8 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
                   <div className="flex items-center gap-2 mb-2">
                     <Wrench className="w-4 h-4 text-blue-600" />
                     <h4 className="text-sm font-bold text-slate-900">Equipment &amp; Plant Inspection</h4>
-                  </div>
-                  <p className="text-xs text-slate-500 mb-3">Complete the Equipment &amp; Plant Inspection on Safety Culture before you can start work.</p>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-3">Complete this on Safety Culture before you start work.</p>
                 </div>
 
                 <a href={EQUIP_CHECK_URL} target="_blank" rel="noopener noreferrer"
@@ -706,8 +763,7 @@ export default function JobBriefingModal({ assignment, job, client, staff, crewA
                     <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                       <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Declaration</p>
                       <p className="text-sm text-slate-600 leading-relaxed">
-                        By signing below, I confirm that I have read and understood the site briefing, reviewed all mandatory documents,
-                        completed the site induction, and understand the hazards and control measures for this site. I am fit to carry out the work.
+                        By signing below, I confirm I've reviewed the documents, completed the site induction, noted today's plan, and understand the site hazards. I'm fit to work.
                       </p>
                     </div>
 
