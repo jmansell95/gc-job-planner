@@ -19,6 +19,7 @@ import { EmptyState } from '@/components/StateViews';
 import { resolveRole, isOfficeStaff } from '@/utils/access';
 import StaffProfileEditDrawer from '@/components/staff/StaffProfileEditDrawer';
 import StaffPerformanceCard from '@/components/staff/StaffPerformanceCard';
+import IncentiveDashboard from '@/components/staff/IncentiveDashboard';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
@@ -186,6 +187,11 @@ export default function StaffProfile() {
 
         {/* Performance — weekly metres, revenue & hours */}
         {staff.id && <StaffPerformanceCard staffId={staff.id} />}
+
+        {/* Incentives & Achievements — leaderboard, badges, crew progress */}
+        {staff.id && (
+          <IncentiveDashboard staffId={staff.id} staffName={staff.name} teamId={staff.team_id} />
+        )}
 
         {/* Timesheet History (Daily Diaries) — read-only record of submitted timesheets */}
         <TimesheetHistory staffId={staff.id} />

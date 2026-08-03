@@ -1,0 +1,99 @@
+{
+  "name": "Achievement",
+  "type": "object",
+  "properties": {
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member who earned this achievement"
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Staff member name (denormalised for display)"
+    },
+    "team_id": {
+      "type": "string",
+      "description": "Crew/team the staff member belonged to when they earned this badge"
+    },
+    "badge_key": {
+      "type": "string",
+      "description": "Unique badge identifier \u2014 matches a key in the badge definitions (e.g. 'metre_100', 'early_bird', 'safety_champion')"
+    },
+    "badge_name": {
+      "type": "string",
+      "description": "Display name of the badge (e.g. 'Centurion', 'Early Bird')"
+    },
+    "badge_description": {
+      "type": "string",
+      "description": "What the badge was awarded for (e.g. 'Drilled 100m in a week')"
+    },
+    "badge_category": {
+      "type": "string",
+      "enum": [
+        "drilling",
+        "punctuality",
+        "safety",
+        "team",
+        "special"
+      ],
+      "description": "Badge category for grouping and filtering in the UI"
+    },
+    "badge_tier": {
+      "type": "string",
+      "enum": [
+        "bronze",
+        "silver",
+        "gold",
+        "platinum"
+      ],
+      "default": "bronze",
+      "description": "Rarity tier. bronze < silver < gold < platinum. Controls badge colour and prestige."
+    },
+    "badge_icon": {
+      "type": "string",
+      "description": "Lucide icon name used to render the badge (e.g. 'Ruler', 'ShieldCheck', 'Trophy')"
+    },
+    "week_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Week this badge was earned. Null for lifetime/all-time achievements."
+    },
+    "is_lifetime": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for permanent milestone badges (e.g. '500m all-time'). False for weekly badges that reset."
+    },
+    "awarded_at": {
+      "type": "string",
+      "description": "ISO timestamp when the badge was awarded"
+    },
+    "points_value": {
+      "type": "number",
+      "default": 0,
+      "description": "Point value of this badge when it was awarded (for historical reference)"
+    }
+  },
+  "required": [
+    "staff_id",
+    "badge_key",
+    "badge_name",
+    "badge_category"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

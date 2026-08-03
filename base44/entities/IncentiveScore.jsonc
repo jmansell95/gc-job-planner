@@ -1,0 +1,115 @@
+{
+  "name": "IncentiveScore",
+  "type": "object",
+  "properties": {
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member this score belongs to"
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Staff member name (denormalised for leaderboard display)"
+    },
+    "team_id": {
+      "type": "string",
+      "description": "Crew/team the staff member belongs to (for crew leaderboard grouping)"
+    },
+    "team_name": {
+      "type": "string",
+      "description": "Team name (denormalised for display)"
+    },
+    "week_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Monday of the week this score covers. One record per staff per week."
+    },
+    "total_metres": {
+      "type": "number",
+      "default": 0,
+      "description": "Total metres drilled this week (sum of borehole depth intervals from InvestigationLogs)"
+    },
+    "total_hours": {
+      "type": "number",
+      "default": 0,
+      "description": "Total hours worked this week (from weekly timesheet summaries)"
+    },
+    "days_worked": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of days worked this week (count of daily summary timesheets with hours)"
+    },
+    "on_time_arrivals": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of days with an on-time arrival (submitted timesheet with travel_to or on_site entry)"
+    },
+    "safety_logs_submitted": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of safety-related logs submitted this week (site_setup, reinstatement, inspection logs)"
+    },
+    "vehicle_checks_completed": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of vehicle/equipment checks completed this week (proxied from site_setup logs and maintenance reports)"
+    },
+    "boreholes_worked": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of unique boreholes worked on this week"
+    },
+    "total_points": {
+      "type": "number",
+      "default": 0,
+      "description": "Weighted incentive score. metres\u00d71 + on_time\u00d710 + vehicle_checks\u00d75 + safety_logs\u00d75 + days\u00d715 + boreholes\u00d78"
+    },
+    "rank_in_crew": {
+      "type": "number",
+      "description": "Ranking within the crew for this week (1 = top scorer). Calculated after all crew scores are computed."
+    },
+    "all_time_metres": {
+      "type": "number",
+      "default": 0,
+      "description": "All-time total metres drilled (for lifetime milestone badges). Updated each week."
+    },
+    "all_time_boreholes": {
+      "type": "number",
+      "default": 0,
+      "description": "All-time unique borehole count. Updated each week."
+    },
+    "badges_earned": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Badge keys earned this week (denormalised for quick display without joining Achievement records)"
+    },
+    "calculated_at": {
+      "type": "string",
+      "description": "ISO timestamp of when this score was last calculated"
+    }
+  },
+  "required": [
+    "staff_id",
+    "week_start"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
