@@ -193,7 +193,7 @@ export default function StaffProfile() {
 
         {/* Tab Bar */}
         <div className="sticky top-0 z-20 -mx-4 md:-mx-6 px-4 md:px-6 pt-3 pb-2 bg-slate-50/95 backdrop-blur-md mt-5">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
             {[
               { key: 'performance', label: 'Performance', icon: TrendingUp },
               { key: 'incentives', label: 'Incentives', icon: Trophy },
@@ -208,13 +208,13 @@ export default function StaffProfile() {
               const disabled = tab.key === 'crew' && !staff.team_id;
               return (
                 <button key={tab.key} onClick={() => !disabled && setActiveTab(tab.key)} type="button" disabled={disabled}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition touch-manipulation ${
+                  className={`flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-1 sm:px-3 py-2 rounded-xl sm:rounded-full text-[11px] sm:text-sm font-semibold transition touch-manipulation ${
                     isActive ? 'bg-[#2E5A1A] text-white shadow-sm' :
                     disabled ? 'bg-slate-100 text-slate-300' :
                     'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
                   }`}>
-                  <Icon className="w-4 h-4" />
-                  {tab.label}
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="leading-tight text-center">{tab.label}</span>
                 </button>
               );
             })}
