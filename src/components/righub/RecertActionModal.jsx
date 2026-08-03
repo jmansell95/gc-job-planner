@@ -86,6 +86,7 @@ export default function RecertActionModal({ asset, onClose, onSaved }) {
         certificate_url: form.certificate_url || '',
         certificate_name: form.certificate_name || '',
       });
+      const reactivating = form.result === 'pass' && asset.is_active === false;
       if (['loler_inspection', 'puwer_inspection', 'pat_inspection'].includes(form.record_type)) {
         const warnDays = 30;
         const daysUntil = expiryDate ? Math.floor((new Date(expiryDate + 'T00:00:00') - new Date()) / 86400000) : null;
@@ -100,6 +101,7 @@ export default function RecertActionModal({ asset, onClose, onSaved }) {
           compliance_expiry_date: expiryDate || null,
           compliance_status: status,
           compliance_last_checked: new Date().toISOString(),
+          ...(reactivating ? { is_active: true } : {}),
         });
       }
       queryClient.invalidateQueries({ queryKey: ['site-assets'] });
@@ -107,7 +109,7 @@ export default function RecertActionModal({ asset, onClose, onSaved }) {
       queryClient.invalidateQueries({ queryKey: ['cert-vault'] });
       queryClient.invalidateQueries({ queryKey: ['master-cert-vault'] });
       queryClient.invalidateQueries({ queryKey: ['recert-pipeline'] });
-      toast({ title: 'Re-cert logged', description: `${asset.name} marked ${form.result === 'fail' ? 'failed' : 'compliant'} · next due ${expiryDate ? safeFormat(expiryDate, 'dd MMM yyyy') : 'n/a'}.` });
+      toast({ title: 'Re-cert logged', description: `${asset.name} marked ${form.result === 'fail' ? 'failed' : 'compliant'} · next due ${expiryDate ? safeFormat(expiryDate, 'dd MMM yyyy') : 'n/a'}${reactivating ? ' · reactivated' : ''}.` });
       onSaved?.();
       onClose();
     } catch (e) { toast({ title: 'Save failed', description: e.message, variant: 'destructive' }); }

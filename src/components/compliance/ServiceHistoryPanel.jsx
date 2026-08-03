@@ -116,6 +116,9 @@ export default function ServiceHistoryPanel({ assetId, assetName, assetType }) {
           : (daysUntil !== null && daysUntil < 0) ? 'expired'
           : (daysUntil !== null && daysUntil <= warnDays) ? 'expiring'
           : 'compliant';
+        // Reactivate the asset if it was deactivated and this is a passing inspection
+        const existingAsset = await base44.entities.SiteAsset.get(assetId);
+        const reactivating = form.result === 'pass' && existingAsset?.is_active === false;
         await base44.entities.SiteAsset.update(assetId, {
           last_service_date: form.date,
           next_service_date: expiryDate || null,
@@ -123,6 +126,7 @@ export default function ServiceHistoryPanel({ assetId, assetName, assetType }) {
           compliance_status: status,
           compliance_last_checked: new Date().toISOString(),
           service_notes: form.notes ? `${form.tested_by ? 'Tested by ' + form.tested_by + ': ' : ''}${form.notes}` : '',
+          ...(reactivating ? { is_active: true } : {}),
         });
         queryClient.invalidateQueries({ queryKey: ['site-assets'] });
       }

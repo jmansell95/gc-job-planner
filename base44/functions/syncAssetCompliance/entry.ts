@@ -1,766 +1,176 @@
-import { createClientFromRequest, createClient } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 
-Deno.serve(async (req) => {
+// ============================================================
+// syncAssetCompliance — the smart compliance automation engine
+// ============================================================
+// Runs nightly (or on-demand from the Rig Hub) to:
+//   1. Auto-calculate compliance_status from expiry dates
+//      (expired < 0 days, expiring ≤ 30 days, compliant > 30 days)
+//   2. Auto-calculate next_service_date from last_service_date +
+//      the asset type's inspection cycle (6mo rigs, 12mo vehicles, etc.)
+//   3. Auto-calculate maintenance_status from operating hours vs
+//      service interval (or next_service_date for date-based assets)
+//   4. Auto-deactivate assets with expired compliance (can't be assigned)
+//   5. Reactivate assets when compliance is renewed
+// Returns a summary of all changes so admins can audit what was updated.
+
+const INSPECTION_CYCLE_MONTHS = {
+  rig: 6,
+  machinery: 6,
+  trailer: 12,
+  vehicle: 12,
+  lifting: 6,
+  portable_appliance: 12,
+};
+
+const DEFAULT_SERVICE_INTERVALS = {
+  rig: 250,
+  machinery: 500,
+};
+
+function autoComplianceStatus(expiryDate) {
+  if (!expiryDate) return 'unknown';
+  const d = new Date(expiryDate + 'T00:00:00');
+  if (isNaN(d.getTime())) return 'unknown';
+  const days = Math.floor((d - new Date(new Date().toDateString())) / 86400000);
+  if (days < 0) return 'expired';
+  if (days <= 30) return 'expiring';
+  return 'compliant';
+}
+
+function autoNextServiceDate(lastServiceDate, assetType) {
+  if (!lastServiceDate) return null;
+  const cycle = INSPECTION_CYCLE_MONTHS[assetType];
+  if (!cycle) return null;
+  const d = new Date(lastServiceDate + 'T00:00:00');
+  if (isNaN(d.getTime())) return null;
+  d.setMonth(d.getMonth() + cycle);
+  return d.toISOString().slice(0, 10);
+}
+
+function autoMaintenanceStatus(asset) {
+  // Usage-based (rigs & machinery with service_interval_hours)
+  if (asset.service_interval_hours) {
+    const since = Number(asset.hours_since_last_service) || 0;
+    const interval = Number(asset.service_interval_hours) || 0;
+    if (interval === 0) return 'unknown';
+    if (since >= interval) return 'overdue';
+    if (since >= interval * 0.8) return 'due_soon';
+    return 'ok';
+  }
+  // Date-based (vehicles, trailers, lifting, PAT)
+  if (asset.next_service_date) {
+    const d = new Date(asset.next_service_date + 'T00:00:00');
+    if (isNaN(d.getTime())) return 'unknown';
+    const days = Math.floor((d - new Date(new Date().toDateString())) / 86400000);
+    if (days < 0) return 'overdue';
+    if (days <= 30) return 'due_soon';
+    return 'ok';
+  }
+  return 'unknown';
+}
+
+export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
 
-    // Connect to the GC Compliance Manager app using the current user's token
-    const authHeader = req.headers.get('authorization') || '';
-    const userToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-    const complianceApp = createClient({ appId: "6a3be07293b53789beb4f09e", token: userToken });
-
-    // Fetch all Equipment records from the compliance app
-    let equipmentRecords = [];
+    // Allow service-role execution when invoked from a scheduled automation
+    // (no user session), but require admin when called manually from the UI.
+    let isAdmin = true;
     try {
-      equipmentRecords = await complianceApp.entities.Equipment.list('-created_date', 500);
-    } catch (fetchErr) {
-      return Response.json({
-        error: 'Failed to fetch from Compliance Manager app',
-        details: fetchErr.message,
-        hint: 'Ensure your Base44 account has access to the GC Compliance Manager app, or set that app to Public.'
-      }, { status: 502 });
-    }
+      const user = await base44.auth.me();
+      if (user && user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
+      if (!user) isAdmin = false; // scheduled — continue with service role
+    } catch (_) { isAdmin = false; }
 
-    // Fetch all Rig records from the compliance app
-    let rigRecords = [];
-    try {
-      rigRecords = await complianceApp.entities.Rig.list('-created_date', 500);
-    } catch (rigFetchErr) {
-      // Rigs entity might not exist yet — continue with equipment only
-      console.error('Could not fetch Rig records:', rigFetchErr.message);
-    }
+    const body = await req.json().catch(() => ({}));
+    const dryRun = body.dry_run === true;
 
-    // Fetch all SiteAssets in this app — exclude demo assets so sync never
-    // touches or purges showcase data created by the Demo Data Manager.
-    const allSiteAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
-    const siteAssets = allSiteAssets.filter(a => !a.is_demo_data);
+    // Load all assets
+    const assets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
 
-    // === Helpers for Equipment records ===
+    const updates = [];
+    const changes = {
+      compliance_status: 0,
+      next_service_date: 0,
+      maintenance_status: 0,
+      deactivated: 0,
+      reactivated: 0,
+    };
+    const details = [];
 
-    // GC Compliance Manager stores expiry dates in inconsistent formats
-    // (ISO "2026-10-01", DD/MM/YYYY "28/11/2026", DD-MM-YYYY "05-09-2026",
-    // and truncated month names like "26 Decembe"). The native Date constructor
-    // returns Invalid Date for most of these, which silently made every item
-    // "unknown" — so the expired/expiring counts on the settings page read 0.
-    // This parser handles all the formats GC actually emits.
-    const parseFlexibleDate = (raw) => {
-      if (!raw) return null;
-      const s = String(raw).trim();
-      if (!s || /^null$/i.test(s)) return null;
-      // DD/MM/YYYY or DD/MM/YY
-      const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-      if (m) {
-        let [, d, mo, y] = m;
-        if (y.length === 2) y = '20' + y;
-        const dt = new Date(`${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00`);
-        return isNaN(dt.getTime()) ? null : dt;
-      }
-      // DD-MM-YYYY
-      const m2 = s.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
-      if (m2) {
-        let [, d, mo, y] = m2;
-        if (y.length === 2) y = '20' + y;
-        const dt = new Date(`${y}-${mo.padStart(2, '0')}-${d.padStart(2, '0')}T00:00:00`);
-        return isNaN(dt.getTime()) ? null : dt;
-      }
-      // Truncated month name — "26 Decembe" -> pad to "26 December"
-      const monthShort = s.match(/^(\d{1,2})\s+([A-Za-z]{3,})/);
-      if (monthShort && !s.match(/^\d{4}-/)) {
-        const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-        const partial = monthShort[2].toLowerCase();
-        const fullMonth = months.find(mn => mn.toLowerCase().startsWith(partial));
-        if (fullMonth) {
-          const yearMatch = s.match(/(\d{4})/);
-          const y = yearMatch ? yearMatch[1] : String(new Date().getFullYear());
-          const mo = String(months.indexOf(fullMonth) + 1).padStart(2, '0');
-          const dt = new Date(`${y}-${mo}-${monthShort[1].padStart(2, '0')}T00:00:00`);
-          return isNaN(dt.getTime()) ? null : dt;
+    for (const asset of assets) {
+      const update: any = {};
+      const changesList = [];
+
+      // 1. Auto-calc compliance_status from expiry date
+      if (asset.compliance_expiry_date) {
+        const newStatus = autoComplianceStatus(asset.compliance_expiry_date);
+        if (newStatus !== (asset.compliance_status || 'unknown')) {
+          update.compliance_status = newStatus;
+          changes.compliance_status++;
+          changesList.push(`status: ${asset.compliance_status || 'unknown'} → ${newStatus}`);
         }
       }
-      // ISO or anything Date can parse
-      const dt = new Date(s);
-      return isNaN(dt.getTime()) ? null : dt;
-    };
 
-    const extractExpiry = (e) => {
-      return e.expiry_date || e.compliance_expiry_date || e.next_inspection_date || e.next_service_date || e.nextTestDate || e.inspection_due_date || e.loler_expiry || e.test_due_date || '';
-    };
-
-    // Status is driven by the expiry/inspection date (the source of truth), not
-    // the raw status text — GC sometimes marks items "compliant" even when the
-    // expiry date has already passed. If a valid date exists, it wins.
-    const extractEquipmentStatus = (e) => {
-      const raw = e.status || e.compliance_status || e.complianceStatus || '';
-      const expiryRaw = extractExpiry(e);
-      const expiryDate = parseFlexibleDate(expiryRaw);
-      if (expiryDate) {
-        const now = new Date();
-        const daysUntil = (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-        if (daysUntil < 0) return 'expired';
-        if (daysUntil < 30) return 'expiring';
-        return 'compliant';
-      }
-      // No usable date — fall back to the raw status text
-      if (raw) {
-        const lower = String(raw).toLowerCase();
-        if (lower.includes('compliant') && !lower.includes('non')) return 'compliant';
-        if (lower.includes('expir')) return 'expiring';
-        if (lower.includes('expired') || lower.includes('lapsed') || lower.includes('non')) return 'expired';
-        if (lower.includes('unknown') || lower.includes('pending')) return 'unknown';
-      }
-      return 'unknown';
-    };
-
-    const extractSerial = (e) => {
-      return e.serial_number || e.serialNumber || e.serial || e.registration_number || '';
-    };
-
-    const extractEquipmentType = (e) => {
-      return String(e.equipment_type || e.type_name || e.type || '').trim();
-    };
-
-    // Raw category value copied verbatim from the GC Compliance Manager record.
-    // Kept separate from equipment_type so the original GC grouping is preserved exactly.
-    const extractCategory = (e) => {
-      return String(e.category || e.asset_type || e.equipment_category || e.group || e.category_label || '').trim();
-    };
-
-    const extractToolingNotes = (e) => {
-      return String(e.tooling_notes || e.tooling || e.casing_sizes || e.augers || e.core_barrels || e.specifications || e.tooling || '').trim();
-    };
-
-    const extractResponsiblePerson = (e) => {
-      return String(e.responsible_person || e.responsiblePerson || e.owner || e.assigned_to || e.person_responsible || e.operator || e.manager || e.inspector || e.tested_by || e.examiner || '').trim();
-    };
-
-    // Identifying colour of the asset (rigs are colour-coded for quick site ID).
-    const extractColour = (e) => String(e.colour || e.color || '').trim();
-
-    // Where the asset lives when not on a job — the GC "location" field holds
-    // the depot/yard name (e.g. 'Dartford Depot'). Drives the yard vs assigned view.
-    const extractStorageLocation = (e) => String(e.location || e.storage_location || e.depot || e.yard || '').trim();
-
-    // Certificate PDF URL + certificate number from the GC record. The GC app
-    // stores these as public Base44 file URLs, so they're fetchable without auth.
-    const extractCertificateFile = (e) => String(e.certificate_file || e.certificate_url || e.report_url || e.inspection_report_url || e.report_pdf || '').trim();
-    const extractCertificateNumber = (e) => String(e.certificate_number || e.certificate_no || e.cert_number || '').trim();
-
-    // === Maintenance / Service data (GC Compliance Manager) ===
-    // GC stores service history as "last test" (LOLER/PUWER inspection) data:
-    // last_test_date = when the asset was last inspected/serviced,
-    // inspection_interval_months = the re-test cadence (e.g. 6 or 12 months),
-    // expiry_date = the next inspection due date. We compute next_service_date
-    // from last_test_date + interval when possible, falling back to expiry_date.
-    // Repair info comes from decommissioned_reason / decommissioned_date.
-    const toDateStr = (dt) => (dt instanceof Date && !isNaN(dt.getTime())) ? dt.toISOString().slice(0, 10) : null;
-
-    const addMonths = (dt, months) => {
-      if (!dt || !months) return null;
-      const d = new Date(dt.getTime());
-      d.setMonth(d.getMonth() + Number(months));
-      return d;
-    };
-
-    const extractLastServiceDate = (e) => {
-      const raw = e.last_test_date || e.lastTestDate || e.issue_date || e.date_last_serviced || '';
-      return parseFlexibleDate(raw);
-    };
-
-    const extractNextServiceDate = (e) => {
-      const lastTest = parseFlexibleDate(e.last_test_date || e.lastTestDate);
-      const interval = Number(e.inspection_interval_months || e.inspectionIntervalMonths) || 0;
-      if (lastTest && interval) {
-        const computed = addMonths(lastTest, interval);
-        if (computed) return computed;
-      }
-      // Fall back to the compliance expiry date (which IS the next inspection due)
-      return parseFlexibleDate(e.expiry_date || e.next_inspection_date || e.next_service_date || '');
-    };
-
-    const extractServiceNotes = (e) => {
-      const parts = [
-        e.last_test_notes && `Notes: ${e.last_test_notes}`,
-        e.last_test_result && `Result: ${e.last_test_result}`,
-        e.last_test_company && `Tested by: ${e.last_test_company}`,
-        e.inspector && `Inspector: ${e.inspector}`,
-      ].filter(Boolean);
-      return parts.join(' · ').trim();
-    };
-
-    const extractRepairNotes = (e) => {
-      const parts = [
-        e.decommissioned_reason && `Decommissioned: ${e.decommissioned_reason}`,
-        e.decommissioned_date && `Date: ${e.decommissioned_date}`,
-      ].filter(Boolean);
-      return parts.join(' · ').trim();
-    };
-
-    const deriveMaintenanceStatus = (nextServiceDate) => {
-      if (!nextServiceDate) return 'unknown';
-      const now = new Date();
-      const daysUntil = (nextServiceDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-      if (daysUntil < 0) return 'overdue';
-      if (daysUntil < 30) return 'due_soon';
-      return 'ok';
-    };
-
-    const extractEquipmentAssetType = (e) => {
-      // Build a combined string from equipment_type, name, and category —
-      // some lifting gear has equipment_type "Other" but the asset NAME contains
-      // the real type (e.g. "Tipping Hook", "Sinker Bar"). Checking the name
-      // catches these where the type field alone doesn't.
-      const typeRaw = String(e.equipment_type || e.type_name || e.type || '').toLowerCase();
-      const nameRaw = String(e.name || e.title || '').toLowerCase();
-      const catRaw = String(e.category || e.asset_type || '').toLowerCase();
-      const combined = `${typeRaw} ${nameRaw} ${catRaw}`;
-      const liftingKeywords = ['lift', 'shackle', 'sling', 'chain', 'rope', 'hook', 'hoist', 'crane', 'rigging', 'swl', 'lever', 'pull', 'beam', 'spreader', 'thimble', 'ferrule', 'sheave', 'sleeve', 'eyebolt', 'eye bolt', 'd-shackle', 'bow shackle', 'wire rope', 'sinker', 'clevis', 'tipping hook', 'winch'];
-      if (combined.includes('trailer')) return 'trailer';
-      if (['pat', 'portable appliance', '110v', '240v', 'transformer', 'power tool', 'extension lead', 'rcd'].some(kw => combined.includes(kw))) return 'portable_appliance';
-      if (liftingKeywords.some(kw => combined.includes(kw))) return 'lifting';
-      if (combined.includes('machine') || combined.includes('excav') || combined.includes('digger') || combined.includes('grout') || combined.includes('mixer')) return 'machinery';
-      if (combined.includes('vehicle') || combined.includes('van') || combined.includes('truck')) return 'vehicle';
-      return 'machinery';
-    };
-
-    // === Helpers for Rig records ===
-
-    const extractRigType = (r) => {
-      const raw = String(r.rig_type || r.drilling_type || '').toLowerCase();
-      if (raw.includes('rotary')) return 'rotary';
-      if (raw.includes('cp') || raw.includes('cable') || raw.includes('percussion')) return 'cp';
-      return 'n/a';
-    };
-
-    const extractRigStatus = (r) => {
-      const raw = String(r.status || '').toLowerCase();
-      if (!raw) return 'unknown';
-      if (raw.includes('active') || raw.includes('compliant') || raw.includes('deploy')) return 'compliant';
-      if (raw.includes('decommission') || raw.includes('inactive') || raw.includes('expired') || raw.includes('non')) return 'expired';
-      if (raw.includes('expir')) return 'expiring';
-      return 'unknown';
-    };
-
-    const now = new Date().toISOString();
-    let synced = 0;
-    let unmatched = 0;
-    let created = 0;
-    let rigsSynced = 0;
-    let rigsCreated = 0;
-    const unmatchedAssets = [];
-    const matchedEquipmentIds = new Set();
-    const matchedRigIds = new Set();
-    const matchedSiteAssetIds = new Set();
-
-    // === Sync Equipment records (existing assets) ===
-    for (const asset of siteAssets) {
-      // Skip assets that are rigs — they'll be matched against rig records below
-      if (asset.asset_type === 'rig') continue;
-
-      // Match STRICTLY by the GC compliance record ID. The previous serial and
-      // name fallbacks silently re-linked orphaned assets (whose original GC
-      // record had been deleted) to a DIFFERENT GC record that happened to
-      // share a serial or name — overwriting external_compliance_id and
-      // hiding the orphan from the purge, so phantom assets not in the real
-      // GC app kept appearing. ID-only matching keeps the link honest; true
-      // orphans now fall through to the purge below.
-      let match = null;
-      if (asset.external_compliance_id) {
-        match = equipmentRecords.find(e => e.id === asset.external_compliance_id);
-      }
-
-      if (!match) {
-        unmatched++;
-        unmatchedAssets.push({ id: asset.id, name: asset.name, serial: asset.serial_number });
-        continue;
-      }
-
-      matchedEquipmentIds.add(match.id);
-      matchedSiteAssetIds.add(asset.id);
-      const status = extractEquipmentStatus(match);
-      const assetType = extractEquipmentAssetType(match);
-      // Machinery & trailers: CoC lasts the lifetime of the equipment — no expiry date
-      const expiryDate = (assetType === 'machinery' || assetType === 'trailer') ? null : (extractExpiry(match) || null);
-
-      await base44.asServiceRole.entities.SiteAsset.update(asset.id, {
-        compliance_status: status,
-        compliance_expiry_date: expiryDate,
-        compliance_last_checked: now,
-        external_compliance_id: match.id,
-        asset_type: assetType,
-        equipment_type: extractEquipmentType(match) || asset.equipment_type || '',
-        compliance_category: extractCategory(match) || asset.compliance_category || '',
-        responsible_person: extractResponsiblePerson(match),
-        colour: extractColour(match) || asset.colour || '',
-        storage_location: extractStorageLocation(match) || asset.storage_location || '',
-        tooling_notes: extractToolingNotes(match) || asset.tooling_notes || '',
-        notes: match.notes || match.last_test_notes || asset.notes || '',
-        last_service_date: toDateStr(extractLastServiceDate(match)),
-        next_service_date: toDateStr(extractNextServiceDate(match)),
-        service_notes: extractServiceNotes(match),
-        repair_notes: extractRepairNotes(match),
-        maintenance_status: deriveMaintenanceStatus(extractNextServiceDate(match)),
-      });
-      synced++;
-    }
-
-    // === Create new SiteAssets from unmatched Equipment records ===
-    // Skip any demo-tagged assets that may have matched — they must never be
-    // overwritten by the sync. (siteAssets list already excludes demo records,
-    // so matchedEquipmentIds only contains real assets.)
-    const newEquipmentAssets = [];
-    for (const eq of equipmentRecords) {
-      if (matchedEquipmentIds.has(eq.id)) continue;
-      const name = eq.name || eq.title || 'Unnamed Equipment';
-      const serial = extractSerial(eq);
-      const assetType = extractEquipmentAssetType(eq);
-
-      newEquipmentAssets.push({
-        name,
-        asset_type: assetType,
-        is_rig: false,
-        equipment_type: extractEquipmentType(eq),
-        compliance_category: extractCategory(eq),
-        rig_type: 'n/a',
-        serial_number: serial,
-        external_compliance_id: eq.id,
-        compliance_status: extractEquipmentStatus(eq),
-        compliance_expiry_date: (assetType === 'machinery' || assetType === 'trailer') ? null : (extractExpiry(eq) || null),
-        compliance_last_checked: now,
-        responsible_person: extractResponsiblePerson(eq),
-        colour: extractColour(eq),
-        storage_location: extractStorageLocation(eq),
-        tooling_notes: extractToolingNotes(eq),
-        is_active: true,
-        notes: eq.notes || eq.last_test_notes || '',
-        last_service_date: toDateStr(extractLastServiceDate(eq)),
-        next_service_date: toDateStr(extractNextServiceDate(eq)),
-        service_notes: extractServiceNotes(eq),
-        repair_notes: extractRepairNotes(eq),
-        maintenance_status: deriveMaintenanceStatus(extractNextServiceDate(eq)),
-      });
-    }
-
-    if (newEquipmentAssets.length > 0) {
-      try {
-        await base44.asServiceRole.entities.SiteAsset.bulkCreate(newEquipmentAssets);
-        created = newEquipmentAssets.length;
-      } catch (createErr) {
-        console.error('Error creating new equipment assets:', createErr.message);
-      }
-    }
-
-    // === Sync Rig records ===
-    for (const asset of siteAssets) {
-      // Only process rig-type assets against rig records
-      if (asset.asset_type !== 'rig') continue;
-
-      // Strict ID-only matching (see equipment loop comment above).
-      let match = null;
-      if (asset.external_compliance_id) {
-        match = rigRecords.find(r => r.id === asset.external_compliance_id);
-      }
-
-      if (!match) {
-        // Rig no longer in compliance app — leave it for the purge below.
-        continue;
-      }
-
-      matchedRigIds.add(match.id);
-      matchedSiteAssetIds.add(asset.id);
-      await base44.asServiceRole.entities.SiteAsset.update(asset.id, {
-        compliance_status: extractRigStatus(match),
-        compliance_last_checked: now,
-        external_compliance_id: match.id,
-        rig_type: extractRigType(match),
-        serial_number: match.registration_number || asset.serial_number || '',
-        compliance_category: extractCategory(match) || asset.compliance_category || '',
-        responsible_person: extractResponsiblePerson(match),
-        colour: extractColour(match) || asset.colour || '',
-        storage_location: extractStorageLocation(match) || asset.storage_location || '',
-        tooling_notes: extractToolingNotes(match) || asset.tooling_notes || '',
-        notes: match.notes || asset.notes || '',
-        is_rig: true,
-        last_service_date: toDateStr(extractLastServiceDate(match)),
-        next_service_date: toDateStr(extractNextServiceDate(match)),
-        service_notes: extractServiceNotes(match),
-        repair_notes: extractRepairNotes(match),
-        maintenance_status: deriveMaintenanceStatus(extractNextServiceDate(match)),
-      });
-      rigsSynced++;
-    }
-
-    // === Create new SiteAssets from unmatched Rig records ===
-    const newRigAssets = [];
-    for (const rig of rigRecords) {
-      if (matchedRigIds.has(rig.id)) continue;
-      newRigAssets.push({
-        name: rig.name || 'Unnamed Rig',
-        asset_type: 'rig',
-        is_rig: true,
-        rig_type: extractRigType(rig),
-        serial_number: rig.registration_number || '',
-        external_compliance_id: rig.id,
-        compliance_status: extractRigStatus(rig),
-        compliance_expiry_date: null,
-        compliance_last_checked: now,
-        compliance_category: extractCategory(rig),
-        responsible_person: extractResponsiblePerson(rig),
-        colour: extractColour(rig),
-        storage_location: extractStorageLocation(rig),
-        tooling_notes: extractToolingNotes(rig),
-        is_active: true,
-        notes: rig.notes || '',
-        last_service_date: toDateStr(extractLastServiceDate(rig)),
-        next_service_date: toDateStr(extractNextServiceDate(rig)),
-        service_notes: extractServiceNotes(rig),
-        repair_notes: extractRepairNotes(rig),
-        maintenance_status: deriveMaintenanceStatus(extractNextServiceDate(rig)),
-      });
-    }
-
-    if (newRigAssets.length > 0) {
-      try {
-        await base44.asServiceRole.entities.SiteAsset.bulkCreate(newRigAssets);
-        rigsCreated = newRigAssets.length;
-      } catch (createErr) {
-        console.error('Error creating new rig assets:', createErr.message);
-      }
-    }
-
-    // Purge removed — GC Job Planner is now the master for SiteAssets. Assets
-    // are managed locally (added/edited/deleted via the Asset Compliance Editor).
-    // The GC import is additive only: records no longer present in GC are kept
-    // so the dashboard never silently drops assets the team still relies on
-    // (which would happen if the GC app is deleted and an empty list is pulled).
-    let purged = 0;
-    let jobAssignmentsRemoved = 0;
-    let jobCostItemsRemoved = 0;
-
-    // === Seed ServiceRecord history from each asset's last-test data ===
-    // On import, create one historical entry per asset from the GC last_test
-    // fields so the new Service History timeline isn't empty. Only created if
-    // the asset doesn't already have a record (re-runs are additive-safe).
-    let serviceRecordsSeeded = 0;
-    try {
-      const freshForHistory = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
-      let existingRecords = [];
-      try {
-        existingRecords = await base44.asServiceRole.entities.ServiceRecord.list('-created_date', 500);
-      } catch (_) { /* entity may not exist yet on first run */ }
-      const assetsWithRecords = new Set(existingRecords.map(r => r.site_asset_id));
-
-      const newRecords = [];
-      for (const a of freshForHistory) {
-        if (assetsWithRecords.has(a.id)) continue;
-        if (!a.last_service_date && !a.service_notes && !a.compliance_expiry_date) continue;
-        // Determine the source record type — lifting gear uses LOLER, others PUWER/service
-        const recordType = a.asset_type === 'portable_appliance' ? 'pat_inspection' : (a.asset_type === 'lifting' || a.asset_type === 'rig' ? 'loler_inspection' : 'puwer_inspection');
-        newRecords.push({
-          site_asset_id: a.id,
-          record_type: recordType,
-          date: a.last_service_date || a.compliance_last_checked || now.slice(0, 10),
-          result: a.compliance_status === 'expired' ? 'fail' : 'pass',
-          tested_by: a.responsible_person || '',
-          company: '',
-          resulting_expiry_date: a.compliance_expiry_date || null,
-          notes: a.service_notes || 'Imported from GC Compliance Manager',
-          imported_from_gc: true,
-        });
-      }
-      if (newRecords.length > 0) {
-        try {
-          const created = await base44.asServiceRole.entities.ServiceRecord.bulkCreate(newRecords);
-          serviceRecordsSeeded = created.length;
-        } catch (seedErr) { console.error('Error seeding service records:', seedErr.message); }
-      }
-    } catch (e) { console.error('Service record seeding skipped:', e.message); }
-
-    // === Certificate re-hosting ===
-    // Pull each asset's certificate PDF out of the GC Compliance Manager and
-    // store it permanently in THIS app's storage so the records survive after
-    // the old GC app is deleted. GC certificate URLs are public Base44 file
-    // URLs, so fetch needs no auth. We cap re-hosts per run to stay within the
-    // function time budget — re-running continues from where we left off
-    // (records already pointing to a local URL are skipped).
-    const GC_APP_ID = "6a3be07293b53789beb4f09e";
-    const MAX_CERT_REHOSTS_PER_RUN = 30;
-    let certificatesLinked = 0;
-    let certificatesRehosted = 0;
-    let certificateErrors = 0;
-
-    try {
-      // Map external_compliance_id -> { file, number } for equipment + rigs.
-      const certByExtId = {};
-      for (const eq of equipmentRecords) {
-        const f = extractCertificateFile(eq);
-        if (f) certByExtId[eq.id] = { file: f, number: extractCertificateNumber(eq) };
-      }
-      for (const r of rigRecords) {
-        const f = extractCertificateFile(r);
-        if (f) certByExtId[r.id] = { file: f, number: extractCertificateNumber(r) };
-      }
-
-      const freshForCerts = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
-      const allServiceRecords = await base44.asServiceRole.entities.ServiceRecord.list('-created_date', 500);
-
-      // Group imported service records by their asset id (one per asset).
-      const importedByAsset = {};
-      for (const sr of allServiceRecords) {
-        if (sr.imported_from_gc && sr.site_asset_id) importedByAsset[sr.site_asset_id] = sr;
-      }
-
-      for (const a of freshForCerts) {
-        if (certificatesRehosted >= MAX_CERT_REHOSTS_PER_RUN) break;
-        const extId = a.external_compliance_id;
-        if (!extId) continue;
-        const cert = certByExtId[extId];
-        if (!cert || !cert.file) continue;
-        const sr = importedByAsset[a.id];
-        if (!sr) continue;
-
-        // Already re-hosted locally (URL no longer points to the GC app) — skip.
-        const alreadyLocal = sr.certificate_url && !sr.certificate_url.includes(GC_APP_ID);
-        if (alreadyLocal && sr.certificate_name) continue;
-
-        let localUrl = null;
-        try {
-          const resp = await fetch(cert.file);
-          if (!resp.ok) throw new Error(`fetch ${resp.status}`);
-          const blob = await resp.blob();
-          // Derive a filename from the URL path.
-          const urlPath = new URL(cert.file).pathname;
-          const filename = decodeURIComponent(urlPath.split('/').pop() || 'certificate.pdf');
-          const file = new File([blob], filename, { type: blob.type || 'application/pdf' });
-          const upload = await base44.asServiceRole.integrations.Core.UploadFile({ file });
-          localUrl = upload?.file_url || null;
-        } catch (fetchErr) {
-          console.error('Cert rehost failed for', a.name, ':', fetchErr.message);
-          certificateErrors++;
+      // 2. Auto-calc next_service_date from last_service_date + cycle
+      if (asset.last_service_date && !asset.next_service_date) {
+        const nextDate = autoNextServiceDate(asset.last_service_date, asset.asset_type);
+        if (nextDate) {
+          update.next_service_date = nextDate;
+          changes.next_service_date++;
+          changesList.push(`next_service: → ${nextDate}`);
         }
+      }
 
-        const finalUrl = localUrl || cert.file; // fall back to GC URL if re-host fails
-        const certName = cert.number || (localUrl ? null : 'GC certificate');
-        await base44.asServiceRole.entities.ServiceRecord.update(sr.id, {
-          certificate_url: finalUrl,
-          certificate_name: certName,
+      // 3. Auto-calc maintenance_status
+      const newMaintStatus = autoMaintenanceStatus(asset);
+      if (newMaintStatus !== (asset.maintenance_status || 'unknown')) {
+        update.maintenance_status = newMaintStatus;
+        changes.maintenance_status++;
+        changesList.push(`maintenance: ${asset.maintenance_status || 'unknown'} → ${newMaintStatus}`);
+      }
+
+      // 4. Auto-deactivate expired assets (can't be assigned to jobs)
+      if (update.compliance_status === 'expired' && asset.is_active !== false) {
+        update.is_active = false;
+        changes.deactivated++;
+        changesList.push('deactivated (expired compliance)');
+      }
+      // 4b. Reactivate when compliance is renewed
+      if ((update.compliance_status === 'compliant' || update.compliance_status === 'expiring') && asset.is_active === false) {
+        update.is_active = true;
+        changes.reactivated++;
+        changesList.push('reactivated (compliance renewed)');
+      }
+
+      if (Object.keys(update).length > 0) {
+        updates.push({ id: asset.id, name: asset.name, ...update });
+        details.push({ id: asset.id, name: asset.name, asset_type: asset.asset_type, changes: changesList });
+      }
+    }
+
+    // Apply updates in batches
+    if (!dryRun && updates.length > 0) {
+      for (let i = 0; i < updates.length; i += 400) {
+        const batch = updates.slice(i, i + 400).map(u => {
+          const { id, name, ...rest } = u;
+          return { id, ...rest };
         });
-        certificatesLinked++;
-        if (localUrl) certificatesRehosted++;
-      }
-    } catch (certErr) {
-      console.error('Certificate re-hosting pass failed:', certErr.message);
-    }
-
-    // === Sync linked equipment — group equipment records by rig_id ===
-    const freshSiteAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 500);
-    let linksUpdated = 0;
-
-    const equipmentByRigId = {};
-    for (const eq of equipmentRecords) {
-      const rigId = eq.rig_id || eq.rigId || eq.linked_rig_id || '';
-      if (rigId && String(rigId) !== 'null') {
-        const key = String(rigId);
-        if (!equipmentByRigId[key]) equipmentByRigId[key] = [];
-        equipmentByRigId[key].push(eq.id);
-      }
-    }
-
-    for (const [complianceRigId, eqIds] of Object.entries(equipmentByRigId)) {
-      const rigAsset = freshSiteAssets.find(a => a.asset_type === 'rig' && a.external_compliance_id === complianceRigId);
-      if (!rigAsset) continue;
-
-      const siteAssetLinkedIds = eqIds
-        .map(eqId => {
-          const eqAsset = freshSiteAssets.find(a => a.external_compliance_id === eqId);
-          return eqAsset ? eqAsset.id : null;
-        })
-        .filter(Boolean);
-
-      if (siteAssetLinkedIds.length === 0) continue;
-
-      const current = new Set(rigAsset.linked_equipment_ids || []);
-      const needsUpdate = siteAssetLinkedIds.some(id => !current.has(id)) || siteAssetLinkedIds.length !== current.size;
-      if (needsUpdate) {
-        await base44.asServiceRole.entities.SiteAsset.update(rigAsset.id, {
-          linked_equipment_ids: siteAssetLinkedIds,
-        });
-        linksUpdated++;
-      }
-    }
-
-    // === Auto-provision EquipmentCatalogue entries for SiteAssets not yet in the catalogue ===
-    let catalogueCreated = 0;
-    let catalogueLinksUpdated = 0;
-
-    const existingCatalogue = await base44.asServiceRole.entities.EquipmentCatalogue.list('-created_date', 500);
-    const catByAssetId = {};
-    for (const c of existingCatalogue) {
-      if (c.site_asset_id) catByAssetId[c.site_asset_id] = c;
-    }
-
-    const importableTypes = ['rig', 'machinery', 'trailer', 'lifting'];
-    const newCatalogueEntries = [];
-    for (const a of freshSiteAssets) {
-      if (a.is_active === false) continue;
-      if (!importableTypes.includes(a.asset_type)) continue;
-      if (catByAssetId[a.id]) continue;
-      newCatalogueEntries.push({
-        description: a.name,
-        category: 'internal_equipment',
-        default_supplier_id: '',
-        default_unit_cost: 0,
-        default_unit_label: 'day',
-        default_vat_exempt: false,
-        reference_number: a.serial_number || '',
-        responsible_person: a.responsible_person || '',
-        site_asset_id: a.id,
-        is_active: true,
-      });
-    }
-
-    let allCatalogue = existingCatalogue;
-    if (newCatalogueEntries.length > 0) {
-      try {
-        const createdCat = await base44.asServiceRole.entities.EquipmentCatalogue.bulkCreate(newCatalogueEntries);
-        catalogueCreated = createdCat.length;
-        allCatalogue = [...existingCatalogue, ...createdCat];
-      } catch (catCreateErr) {
-        console.error('Error creating catalogue entries:', catCreateErr.message);
-      }
-    }
-
-    // Rebuild map with any newly created entries
-    const catByAssetIdFresh = {};
-    for (const c of allCatalogue) {
-      if (c.site_asset_id) catByAssetIdFresh[c.site_asset_id] = c;
-    }
-
-    // === Sync linked_catalogue_ids on rig catalogue items from SiteAsset linked_equipment_ids ===
-    for (const a of freshSiteAssets) {
-      if (a.asset_type !== 'rig') continue;
-      if (!a.linked_equipment_ids || a.linked_equipment_ids.length === 0) continue;
-      const rigCat = catByAssetIdFresh[a.id];
-      if (!rigCat) continue;
-
-      const linkedCatIds = a.linked_equipment_ids
-        .map(lid => catByAssetIdFresh[lid]?.id)
-        .filter(Boolean);
-
-      const current = rigCat.linked_catalogue_ids || [];
-      const currentSet = new Set(current);
-      const needsUpdate = linkedCatIds.some(id => !currentSet.has(id)) || linkedCatIds.length !== current.length;
-      if (needsUpdate && linkedCatIds.length > 0) {
-        await base44.asServiceRole.entities.EquipmentCatalogue.update(rigCat.id, {
-          linked_catalogue_ids: linkedCatIds,
-        });
-        catalogueLinksUpdated++;
-      }
-    }
-
-    // === Auto-link rig catalogue entries to Our Rate Card items and set day rate ===
-    let rateCardLinksSet = 0;
-    let rateCardCostsSet = 0;
-    const rateCardItems = await base44.asServiceRole.entities.RateCardItem.filter({ category: 'labour' });
-
-    const matchRigRateCard = (rigCat, asset) => {
-      // 1. Explicit link already set — respect it
-      if (rigCat.rate_card_item_id) {
-        const linked = rateCardItems.find(r => r.id === rigCat.rate_card_item_id);
-        if (linked) return linked;
-      }
-      const rigType = asset?.rig_type;
-      const desc = String(rigCat.description || '').toLowerCase();
-      const isCutdown = /cut\s*down|cutdown/i.test(desc);
-
-      // 2. CP rigs — rate card entries have no model numbers, match by type
-      const looksCp = rigType === 'cp' || ((!rigType || rigType === 'n/a') && (isCutdown || /dando|percussive|cable/i.test(desc)));
-      if (looksCp) {
-        if (isCutdown) {
-          const isElectric = /electric/i.test(desc);
-          const cutdown = rateCardItems.find(r =>
-            r.subcategory === 'Cable Percussive Crews' &&
-            /cutdown/i.test(r.description) &&
-            !/enabling/i.test(r.description) &&
-            (isElectric ? /electric/i.test(r.description) : /diesel/i.test(r.description))
-          );
-          if (cutdown) return cutdown;
-          // Fallback to any cutdown crew
-          const anyCutdown = rateCardItems.find(r =>
-            r.subcategory === 'Cable Percussive Crews' &&
-            /cutdown/i.test(r.description) &&
-            !/enabling/i.test(r.description)
-          );
-          if (anyCutdown) return anyCutdown;
-        }
-        // Standard CP crew (exact: "Cable Percussive Crew")
-        const cpCrew = rateCardItems.find(r =>
-          r.subcategory === 'Cable Percussive Crews' &&
-          /^cable percussive crew$/i.test(String(r.description || '').trim())
-        );
-        if (cpCrew) return cpCrew;
-      }
-
-      // 3. Rotary rigs — match by model number in description
-      const numMatch = desc.match(/(\d{2,4})/);
-      if (numMatch) {
-        const num = numMatch[1];
-        const match = rateCardItems.find(r =>
-          r.category === 'labour' &&
-          r.subcategory === 'Rotary Crews' &&
-          (r.description || '').includes(num) &&
-          !/additional|3rd|enabling/i.test(r.description || '')
-        );
-        if (match) return match;
-      }
-
-      return null;
-    };
-
-    for (const c of allCatalogue) {
-      const asset = c.site_asset_id ? freshSiteAssets.find(a => a.id === c.site_asset_id) : null;
-      if (!asset || asset.asset_type !== 'rig') continue;
-
-      const rateCardItem = matchRigRateCard(c, asset);
-      if (rateCardItem) {
-        const needsLink = c.rate_card_item_id !== rateCardItem.id;
-        const needsCost = (Number(c.default_unit_cost) || 0) === 0;
-        if (needsLink || needsCost) {
-          const update = {};
-          if (needsLink) { update.rate_card_item_id = rateCardItem.id; rateCardLinksSet++; }
-          if (needsCost) { update.default_unit_cost = Number(rateCardItem.price) || 0; rateCardCostsSet++; }
-          await base44.asServiceRole.entities.EquipmentCatalogue.update(c.id, update);
-        }
+        await base44.asServiceRole.entities.SiteAsset.bulkUpdate(batch);
       }
     }
 
     return Response.json({
-      success: true,
-      total_equipment_records: equipmentRecords.length,
-      total_rig_records: rigRecords.length,
-      equipment_synced: synced,
-      equipment_created: created,
-      equipment_unmatched: unmatched,
-      rigs_synced: rigsSynced,
-      rigs_created: rigsCreated,
-      links_updated: linksUpdated,
-      catalogue_created: catalogueCreated,
-      catalogue_links_updated: catalogueLinksUpdated,
-      rate_card_links_set: rateCardLinksSet,
-      rate_card_costs_set: rateCardCostsSet,
-      service_records_seeded: serviceRecordsSeeded,
-      certificates_linked: certificatesLinked,
-      certificates_rehosted: certificatesRehosted,
-      certificate_errors: certificateErrors,
-      unmatched_assets: unmatchedAssets,
-      purged,
-      job_assignments_removed: jobAssignmentsRemoved,
-      job_cost_items_removed: jobCostItemsRemoved,
-      synced_at: now,
+      status: 'success',
+      dry_run: dryRun,
+      total_assets: assets.length,
+      assets_updated: updates.length,
+      changes,
+      details: details.slice(0, 100),
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    const msg = (error && typeof error === 'object' && error.message) ? error.message : (typeof error === 'string' ? error : 'Internal server error');
+    return Response.json({ error: msg }, { status: 500 });
   }
-});
+}
