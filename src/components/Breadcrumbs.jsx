@@ -18,6 +18,10 @@ const ROUTE_MAP = {
   '/rig-hub': [{ label: 'Admin', to: '/admin' }, { label: 'Rig Fleet' }],
   '/vehicles': [{ label: 'Admin', to: '/admin' }, { label: 'Vehicles' }],
   '/pat-testing': [{ label: 'Admin', to: '/admin' }, { label: 'Rig Fleet', to: '/rig-hub' }, { label: 'PAT Testing' }],
+  '/timesheets': [{ label: 'Admin', to: '/admin' }, { label: 'Timesheets' }],
+  '/compliance': [{ label: 'Admin', to: '/admin' }, { label: 'Compliance' }],
+  '/billing': [{ label: 'Admin', to: '/admin' }, { label: 'Billing' }],
+  '/safety': [{ label: 'Admin', to: '/admin' }, { label: 'Safety' }],
 };
 
 // Convert a raw path segment into a human-readable label.

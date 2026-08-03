@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { EmptyState, Skeleton } from '@/components/StateViews';
 import { Button } from '@/components/ui/button';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const categoryConfig = {
   delivery: { label: 'Deliveries', icon: Truck, color: 'text-[#2E5A1A]', bg: 'bg-[#2E5A1A]/10' },
@@ -144,6 +145,7 @@ export default function HelpGuide() {
           </div>
         </div>
       </div>
+      <Breadcrumbs />
 
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>

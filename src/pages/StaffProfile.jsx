@@ -20,6 +20,7 @@ import { resolveRole, isOfficeStaff } from '@/utils/access';
 import StaffProfileEditDrawer from '@/components/staff/StaffProfileEditDrawer';
 import StaffPerformanceCard from '@/components/staff/StaffPerformanceCard';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const ABSENCE_REASONS = [
   { value: 'holiday', label: 'Holiday' },
@@ -185,6 +186,7 @@ export default function StaffProfile() {
           </div>
         </div>
       </div>
+      <Breadcrumbs />
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 md:px-6 pt-5 md:pt-8 space-y-5 md:space-y-6" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>

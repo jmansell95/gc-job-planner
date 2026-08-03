@@ -14,6 +14,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { saveOfflineDelivery, hasOfflineDelivery } from '@/utils/offlineSync';
 import { isDriver } from '@/utils/access';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -355,6 +356,7 @@ export default function DeliveryDashboard() {
           </div>
         </div>
       </div>
+      <Breadcrumbs />
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
