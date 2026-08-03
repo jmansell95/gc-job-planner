@@ -8,6 +8,10 @@
 
 export function normalizeName(name) {
   if (!name) return '';
+  // Date objects (from XLSX cellDates:true) are never valid names —
+  // String(dateObj) produces "Wed Jan 10 1900 00:00:00 GMT+0000..." which
+  // pollutes job/staff names. Return empty so they're skipped everywhere.
+  if (name instanceof Date) return '';
   return String(name).trim().replace(/\s+/g, ' ');
 }
 

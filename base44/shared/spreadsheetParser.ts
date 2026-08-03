@@ -84,6 +84,8 @@ export function cellToDate(cell) {
   if (!cell) return null;
   let iso = null;
   if (cell instanceof Date) {
+    // Guard against invalid Date objects (NaN) — toISOString() throws on them
+    if (isNaN(cell.getTime())) return null;
     iso = cell.toISOString().slice(0, 10);
   } else {
     const s = String(cell).trim();
@@ -269,6 +271,7 @@ export function isNonPersonName(text) {
 
 export function looksLikeCompanyName(text) {
   if (!text) return false;
+  if (text instanceof Date) return false;
   const s = String(text).trim();
   if (s.length < 2) return false;
   if (cellToDate(s)) return false;
@@ -288,6 +291,7 @@ export function looksLikeCompanyName(text) {
 
 export function looksLikePersonName(text) {
   if (!text) return false;
+  if (text instanceof Date) return false;
   const s = String(text).trim();
   if (s.length < 2) return false;
   if (cellToDate(s)) return false;
@@ -310,6 +314,7 @@ export function looksLikePersonName(text) {
 // the team planner sheets are silently skipped and never linked to jobs.
 export function looksLikeAssetName(text) {
   if (!text) return false;
+  if (text instanceof Date) return false;
   const s = String(text).trim();
   if (s.length < 2) return false;
   if (cellToDate(s)) return false;
