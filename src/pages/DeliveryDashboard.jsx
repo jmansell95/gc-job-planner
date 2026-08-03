@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Truck, Package, ArrowRightLeft, Calendar, CheckCircle2, Clock, HardHat, HelpCircle, ArrowRight, LogOut } from 'lucide-react';
+import { Truck, Package, ArrowRightLeft, Calendar, CheckCircle2, Clock, HardHat, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isToday } from 'date-fns';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
@@ -13,8 +13,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/lib/AuthContext';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { saveOfflineDelivery, hasOfflineDelivery } from '@/utils/offlineSync';
-import { isDriver } from '@/utils/access';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import StaffHeader from '@/components/staff/StaffHeader';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -304,54 +304,31 @@ export default function DeliveryDashboard() {
 
   return (
     <div className="bg-slate-50 min-h-screen">
-      {/* Header */}
-      <div className="hero-gradient relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-4">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <p className="text-emerald-100 text-sm md:text-base truncate">{staff.name.split(' ')[0]} · {format(new Date(), 'EEEE, do MMMM')}</p>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <button onClick={() => navigate('/help')} type="button"
-                className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                <HelpCircle className="w-5 h-5" />
-                <span className="hidden sm:inline">Help</span>
-              </button>
-              {!isDriver(staff) && (
-                <button onClick={() => navigate('/staff-schedule')} type="button"
-                  className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                  <Calendar className="w-5 h-5" />
-                  <span className="hidden sm:inline">Schedule</span>
-                </button>
-              )}
-              <button onClick={() => base44.auth.logout('/login')} type="button"
-                className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                <LogOut className="w-5 h-5" />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
-            </div>
-          </div>
+      <StaffHeader staff={staff} />
+      <Breadcrumbs />
 
-          {/* Quick stats */}
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
+        {/* Page title + quick stats */}
+        <div className="mb-4 md:mb-6">
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">My Deliveries</h1>
           <div className="grid grid-cols-3 gap-2 md:gap-3">
             {[
               { label: 'Today', value: todays.length, icon: Clock },
               { label: 'Upcoming', value: upcoming.length, icon: Calendar },
               { label: 'Done', value: deliveries.filter(d => d.status === 'completed').length, icon: CheckCircle2 }
             ].map(stat => (
-              <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-xl px-3 py-2.5 ring-1 ring-white/15">
+              <div key={stat.label} className="bg-white rounded-xl border border-slate-200 px-3 py-2.5 shadow-sm">
                 <div className="flex items-center gap-1.5">
-                  <stat.icon className="w-3.5 h-3.5 text-emerald-200" />
-                  <p className="text-[10px] md:text-xs font-medium text-emerald-100 uppercase tracking-wide">{stat.label}</p>
+                  <stat.icon className="w-3.5 h-3.5 text-emerald-600" />
+                  <p className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide">{stat.label}</p>
                 </div>
-                <p className="text-xl md:text-2xl font-bold text-white mt-0.5">{stat.value}</p>
+                <p className="text-xl md:text-2xl font-bold text-slate-900 mt-0.5">{stat.value}</p>
               </div>
             ))}
           </div>
         </div>
-      </div>
-      <Breadcrumbs />
 
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
         {/* My Deliveries Today heading */}
         <div className="flex items-center gap-2.5 mb-3 md:mb-4">
           <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
