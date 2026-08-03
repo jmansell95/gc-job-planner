@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert } from 'lucide-react';
+import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert, ChevronRight } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -68,19 +68,21 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
   const desktopNav = (
     <>
-      <div className="px-4 pt-3 pb-3 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col items-start flex-shrink-0">
+      <div className="px-4 pt-4 pb-3 border-b border-white/10">
+        <div className="flex flex-col items-start gap-3">
+          <div className="flex flex-col items-start w-full">
             <img src="https://media.base44.com/images/public/6a44ff49723371caf4d96d4c/993ce8312_GC_Logo-removebg-preview.png" alt="Ground Control" className="w-28 h-auto object-contain" />
-            <p className="text-left text-[11px] text-white/70 mt-1.5 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
+            <p className="text-left text-[11px] text-white/60 mt-1.5 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
           </div>
           {profile && (
             <button type="button" onClick={() => navigate('/staff-profile')} title={`${profile.name} — ${profile.email}`}
-              className="flex-1 min-w-0 flex items-center gap-2.5 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition cursor-pointer touch-manipulation select-none">
-              <ProfileAvatar name={profile.name} avatarUrl={profile.avatar_url} size={38} />
+              className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer touch-manipulation select-none ring-1 ring-white/10">
+              <ProfileAvatar name={profile.name} avatarUrl={profile.avatar_url} size={40} />
               <div className="min-w-0 flex-1 text-left">
-                <p className="text-sm font-semibold text-white truncate leading-tight">{profile.name?.split(' ')[0]}</p>
+                <p className="text-sm font-semibold text-white truncate leading-tight">{profile.name}</p>
+                <p className="text-[11px] text-white/50 truncate leading-tight mt-0.5">{profile.email}</p>
               </div>
+              <ChevronRight className="w-4 h-4 text-white/40 flex-shrink-0" />
             </button>
           )}
         </div>
