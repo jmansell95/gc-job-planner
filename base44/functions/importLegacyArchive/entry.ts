@@ -275,6 +275,32 @@ export default async function(req) {
       return !existingRotaKeys.has(key);
     });
 
+    // Build absence payloads from non-job assignments (holiday/sick/training)
+    const ABSENCE_REASON_MAP = { annual_leave: 'holiday', sick: 'sick', training: 'training' };
+    const nonJobRotas = trulyNewRotas.filter(r => r.assignment_type);
+    const absencesByStaffTypeWeek = {};
+    for (const r of nonJobRotas) {
+      const key = `${r.staff_id}|${r.assignment_type}|${r.week_start}`;
+      if (!absencesByStaffTypeWeek[key]) absencesByStaffTypeWeek[key] = [];
+      absencesByStaffTypeWeek[key].push(r);
+    }
+    const absencePayloads = [];
+    for (const [key, rotas] of Object.entries(absencesByStaffTypeWeek)) {
+      const [staffId, type] = key.split('|');
+      const reason = ABSENCE_REASON_MAP[type] || 'other';
+      const dates = rotas.map(r => r.assigned_date).sort();
+      const labels = [...new Set(rotas.map(r => r.non_job_label).filter(Boolean))];
+      absencePayloads.push({
+        staff_id: staffId,
+        start_date: dates[0],
+        end_date: dates[dates.length - 1],
+        reason,
+        notes: labels.length > 0 ? labels.join(', ') : undefined,
+        status: 'approved',
+        source: 'manual',
+      });
+    }
+
     const summary = {
       legacy_sheets: legacySheetNames,
       total_assignments: allAssignments.length,
@@ -285,6 +311,7 @@ export default async function(req) {
       rotas_to_create: trulyNewRotas.length,
       duplicates_skipped: rotasToCreate.length - trulyNewRotas.length,
       internal_duplicates_collapsed: duplicateCount,
+      absences_to_create: absencePayloads.length,
     };
 
     if (dryRun) {
@@ -306,10 +333,26 @@ export default async function(req) {
       createdCount += batch.length;
     }
 
+    // Create Absence records (check for existing to avoid duplicates)
+    const existingAbsences = await base44.asServiceRole.entities.Absence.list('-created_date', 5000);
+    const existingAbsenceKeys = new Set();
+    for (const a of existingAbsences) {
+      existingAbsenceKeys.add(`${a.staff_id}|${a.start_date}|${a.end_date}|${a.reason}`);
+    }
+    const trulyNewAbsences = absencePayloads.filter(a =>
+      !existingAbsenceKeys.has(`${a.staff_id}|${a.start_date}|${a.end_date}|${a.reason}`)
+    );
+    let createdAbsences = 0;
+    for (let i = 0; i < trulyNewAbsences.length; i += 400) {
+      const batch = trulyNewAbsences.slice(i, i + 400);
+      await base44.asServiceRole.entities.Absence.bulkCreate(batch);
+      createdAbsences += batch.length;
+    }
+
     return Response.json({
       status: 'success',
       dry_run: false,
-      summary: { ...summary, rotas_created: createdCount },
+      summary: { ...summary, rotas_created: createdCount, absences_created: createdAbsences },
       sheet_breakdown: sheetBreakdown,
       unmatched_staff: [...unmatchedStaffNames].slice(0, 100),
       unmatched_jobs: [...unmatchedJobNames].slice(0, 100),

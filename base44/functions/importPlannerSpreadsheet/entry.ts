@@ -454,7 +454,7 @@ export default async function(req) {
     // -----------------------------------------------------------------------
     // 2. PURGE — full wipe: delete ALL staff, teams, jobs, crews, rotas
     // -----------------------------------------------------------------------
-    let purgeSummary = { rotas_deleted: 0, staff_deleted: 0, teams_deleted: 0, jobs_deleted: 0, crews_deleted: 0, asset_assignments_deleted: 0, training_bookings_deleted: 0 };
+    let purgeSummary = { rotas_deleted: 0, staff_deleted: 0, teams_deleted: 0, jobs_deleted: 0, crews_deleted: 0, asset_assignments_deleted: 0, training_bookings_deleted: 0, absences_deleted: 0 };
     const allRotas = await base44.asServiceRole.entities.RotaAssignment.list('-created_date', 5000);
     const allStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 5000);
     const allTeams = await base44.asServiceRole.entities.Team.list('-created_date', 5000);
@@ -462,6 +462,7 @@ export default async function(req) {
     const allCrews = await base44.asServiceRole.entities.DrillingCrew.list('-created_date', 5000);
     const allAssetAssignments = await base44.asServiceRole.entities.JobAssetAssignment.list('-created_date', 5000);
     const allTrainingBookings = await base44.asServiceRole.entities.TrainingBooking.list('-created_date', 5000);
+    const allAbsences = await base44.asServiceRole.entities.Absence.list('-created_date', 5000);
     purgeSummary.rotas_deleted = allRotas.length;
     purgeSummary.staff_deleted = allStaff.length;
     purgeSummary.teams_deleted = allTeams.length;
@@ -469,6 +470,7 @@ export default async function(req) {
     purgeSummary.crews_deleted = allCrews.length;
     purgeSummary.asset_assignments_deleted = allAssetAssignments.length;
     purgeSummary.training_bookings_deleted = allTrainingBookings.length;
+    purgeSummary.absences_deleted = allAbsences.length;
     if (!dryRun) {
       if (allRotas.length > 0) await base44.asServiceRole.entities.RotaAssignment.deleteMany({});
       if (allStaff.length > 0) await base44.asServiceRole.entities.Staff.deleteMany({});
@@ -477,7 +479,8 @@ export default async function(req) {
       if (allCrews.length > 0) await base44.asServiceRole.entities.DrillingCrew.deleteMany({});
       if (allAssetAssignments.length > 0) await base44.asServiceRole.entities.JobAssetAssignment.deleteMany({});
       if (allTrainingBookings.length > 0) await base44.asServiceRole.entities.TrainingBooking.deleteMany({});
-      warnings.push(`Full wipe: deleted ${purgeSummary.rotas_deleted} rotas, ${purgeSummary.staff_deleted} staff, ${purgeSummary.teams_deleted} teams, ${purgeSummary.jobs_deleted} jobs, ${purgeSummary.crews_deleted} crews, ${purgeSummary.asset_assignments_deleted} asset assignments, ${purgeSummary.training_bookings_deleted} training bookings.`);
+      if (allAbsences.length > 0) await base44.asServiceRole.entities.Absence.deleteMany({});
+      warnings.push(`Full wipe: deleted ${purgeSummary.rotas_deleted} rotas, ${purgeSummary.staff_deleted} staff, ${purgeSummary.teams_deleted} teams, ${purgeSummary.jobs_deleted} jobs, ${purgeSummary.crews_deleted} crews, ${purgeSummary.asset_assignments_deleted} asset assignments, ${purgeSummary.training_bookings_deleted} training bookings, ${purgeSummary.absences_deleted} absences.`);
     }
 
     // -----------------------------------------------------------------------
@@ -888,6 +891,7 @@ export default async function(req) {
     // -----------------------------------------------------------------------
     const desiredKeys = new Set();
     const rotasToCreate = [];
+    const nonJobDays = [];
     let duplicateRotaRows = 0;
     const nonJobCounts = { annual_leave: 0, sick: 0, training: 0 };
     for (const a of teamAssignments) {
@@ -905,6 +909,7 @@ export default async function(req) {
           non_job_label: a.non_job_label || undefined,
         });
         nonJobCounts[a.non_job_type]++;
+        nonJobDays.push({ staff_id: staff.id, staff_name: staff.name, date: a.date, type: a.non_job_type, label: a.non_job_label });
       } else if (a.job_name) {
         const job = jobMap.get(nameKey(a.job_name));
         if (!job) continue;
@@ -1019,6 +1024,64 @@ export default async function(req) {
       }
     } else {
       createdTrainingBookings = newBookingPayloads.length;
+    }
+
+    // -----------------------------------------------------------------------
+    // 7c. Create Absence records from non-job assignments (holiday/sick/training)
+    // -----------------------------------------------------------------------
+    // Non-job rota days (annual_leave, sick, training) also become Absence
+    // records so they appear in the Absence Manager and sync to Bob HR. Grouped
+    // by staff + type + week → one absence per staff per type per week.
+    const ABSENCE_REASON_MAP = { annual_leave: 'holiday', sick: 'sick', training: 'training' };
+    const absencesByStaffTypeWeek = {};
+    for (const d of nonJobDays) {
+      const ws = getWeekStart(d.date);
+      const key = `${d.staff_id}|${d.type}|${ws}`;
+      if (!absencesByStaffTypeWeek[key]) absencesByStaffTypeWeek[key] = [];
+      absencesByStaffTypeWeek[key].push(d);
+    }
+
+    const absencePayloads = [];
+    const absenceBreakdown = [];
+    for (const [key, days] of Object.entries(absencesByStaffTypeWeek)) {
+      const parts = key.split('|');
+      const staffId = parts[0];
+      const type = parts[1];
+      const reason = ABSENCE_REASON_MAP[type] || 'other';
+      days.sort((a, b) => a.date.localeCompare(b.date));
+      const startDate = days[0].date;
+      const endDate = days[days.length - 1].date;
+      const labels = [...new Set(days.map(d => d.label).filter(Boolean))];
+      absencePayloads.push({
+        staff_id: staffId,
+        start_date: startDate,
+        end_date: endDate,
+        reason,
+        notes: labels.length > 0 ? labels.join(', ') : undefined,
+        status: 'approved',
+        source: 'manual',
+      });
+      absenceBreakdown.push({
+        staff_name: days[0].staff_name,
+        staff_id: staffId,
+        reason,
+        type,
+        start_date: startDate,
+        end_date: endDate,
+        days: days.length,
+        notes: labels.length > 0 ? labels.join(', ') : '',
+      });
+    }
+
+    let createdAbsences = 0;
+    if (absencePayloads.length > 0 && !dryRun) {
+      for (let i = 0; i < absencePayloads.length; i += 400) {
+        const batch = absencePayloads.slice(i, i + 400);
+        await base44.asServiceRole.entities.Absence.bulkCreate(batch);
+        createdAbsences += batch.length;
+      }
+    } else {
+      createdAbsences = absencePayloads.length;
     }
 
     // -----------------------------------------------------------------------
@@ -1152,6 +1215,12 @@ export default async function(req) {
         completed_courses: newCoursePayloads.filter(c => c.status === 'completed').length,
         scheduled_courses: newCoursePayloads.filter(c => c.status === 'scheduled').length,
       },
+      absences: {
+        created: absencePayloads.length,
+        holiday: absencePayloads.filter(a => a.reason === 'holiday').length,
+        sick: absencePayloads.filter(a => a.reason === 'sick').length,
+        training: absencePayloads.filter(a => a.reason === 'training').length,
+      },
       rig_assignments: {
         total: dedupedRigAssignments.length,
       },
@@ -1207,6 +1276,7 @@ export default async function(req) {
             is_new: newCourseKeys.includes(key),
           };
         }),
+        absence_breakdown: absenceBreakdown,
       });
     }
 
@@ -1238,6 +1308,7 @@ export default async function(req) {
         rig_assignments: { created: rigAssignmentCount, total: dedupedRigAssignments.length },
         staff: { ...summary.staff, leavers_marked_inactive: leaversMarked },
         training: { ...summary.training, bookings_created: createdTrainingBookings },
+        absences: { ...summary.absences, created: createdAbsences },
       },
       sheet_breakdown: sheetBreakdown,
       staff_breakdown: staffBreakdown,
@@ -1269,6 +1340,7 @@ export default async function(req) {
           is_new: newCourseKeys.includes(key),
         };
       }),
+      absence_breakdown: absenceBreakdown,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

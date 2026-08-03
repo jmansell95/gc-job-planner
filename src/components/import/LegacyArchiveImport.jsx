@@ -61,7 +61,7 @@ export default function LegacyArchiveImport() {
       setResult(res.data);
       toast({
         title: 'Legacy import complete',
-        description: `Created ${res.data.summary.rotas_created || 0} historical rota assignments.`,
+        description: `Created ${res.data.summary.rotas_created || 0} rotas, ${res.data.summary.absences_created || 0} absences.`,
       });
     } catch (e) {
       const msg = e?.response?.data?.error || e.message || 'Import failed';
@@ -121,6 +121,10 @@ export default function LegacyArchiveImport() {
             <div className="bg-teal-50 rounded-lg px-3 py-2 text-center">
               <p className="text-2xl font-bold text-teal-600">{result.summary.rotas_created || 0}</p>
               <p className="text-xs text-teal-600">Rotas Created</p>
+            </div>
+            <div className="bg-violet-50 rounded-lg px-3 py-2 text-center">
+              <p className="text-2xl font-bold text-violet-600">{result.summary.absences_created || 0}</p>
+              <p className="text-xs text-violet-600">Absences Created</p>
             </div>
           </div>
           {result.unmatched_staff?.length > 0 && (
@@ -225,6 +229,10 @@ export default function LegacyArchiveImport() {
                 <div className="bg-teal-50 rounded-lg px-3 py-2 text-center">
                   <p className="text-xl font-bold text-teal-600">{preview.summary.rotas_to_create}</p>
                   <p className="text-xs text-teal-600">Rotas to Create</p>
+                </div>
+                <div className="bg-violet-50 rounded-lg px-3 py-2 text-center">
+                  <p className="text-xl font-bold text-violet-600">{preview.summary.absences_to_create || 0}</p>
+                  <p className="text-xs text-violet-600">Absences to Create</p>
                 </div>
               </div>
 

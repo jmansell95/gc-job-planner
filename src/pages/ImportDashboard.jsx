@@ -116,6 +116,7 @@ export default function ImportDashboard() {
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.rotas_deleted}</span> rotas</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.asset_assignments_deleted}</span> asset assignments</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.training_bookings_deleted || 0}</span> training bookings</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.absences_deleted || 0}</span> absences</div>
               </div>
             </div>
 
@@ -128,6 +129,7 @@ export default function ImportDashboard() {
               <StatTile icon={Clock} label="In Progress" total={applyResult.summary.jobs.in_progress} sub="today/future" color="teal" />
               <StatTile icon={Layers} label="Projects" total={(applyResult.summary.projects?.existing_matched || 0) + (applyResult.summary.projects?.new_created || 0)} sub={`${applyResult.summary.projects?.new_created || 0} new`} color="violet" />
               <StatTile icon={GraduationCap} label="Training" total={(applyResult.summary.training?.courses_new || 0) + (applyResult.summary.training?.courses_matched || 0)} sub={`${applyResult.summary.training?.bookings_created || 0} bookings`} color="indigo" />
+              <StatTile icon={Palmtree} label="Absences" total={applyResult.summary.absences?.created || 0} sub={`${applyResult.summary.absences?.holiday || 0} hol · ${applyResult.summary.absences?.sick || 0} sick`} color="rose" />
             </div>
 
             {/* Agency breakdown */}
@@ -249,6 +251,31 @@ export default function ImportDashboard() {
               </div>
             </CollapsibleSection>
           )}
+
+          {/* Absence breakdown */}
+          {applyResult.absence_breakdown?.length > 0 && (
+            <CollapsibleSection title={`Absences (${applyResult.absence_breakdown.length})`} icon={Palmtree} defaultOpen={false}>
+              <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                {applyResult.absence_breakdown.map((a, i) => (
+                  <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-700">{a.staff_name}</span>
+                        <span className={`text-xs rounded-full px-2 py-0.5 ${a.reason === 'holiday' ? 'bg-teal-100 text-teal-700' : a.reason === 'sick' ? 'bg-rose-100 text-rose-700' : 'bg-violet-100 text-violet-700'}`}>
+                          {a.reason === 'holiday' ? 'Holiday' : a.reason === 'sick' ? 'Sick' : 'Training'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400">{a.days} day{a.days !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                      <span>📅 {a.start_date}{a.end_date !== a.start_date ? ` → ${a.end_date}` : ''}</span>
+                      {a.notes && <span>📝 {a.notes}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
         </div>
       )}
 
@@ -292,7 +319,7 @@ export default function ImportDashboard() {
         {/* Clean-slate warning */}
         <div className="mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
           <RefreshCw className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span><strong>Full wipe mode:</strong> Importing will delete ALL existing staff, teams, jobs, drilling crews, rota assignments, and asset assignments — then rebuild everything fresh from this spreadsheet. This happens every time you upload.</span>
+          <span><strong>Full wipe mode:</strong> Importing will delete ALL existing staff, teams, jobs, drilling crews, rota assignments, asset assignments, training bookings, and absences — then rebuild everything fresh from this spreadsheet. This happens every time you upload.</span>
         </div>
 
         {error && (
@@ -329,6 +356,7 @@ export default function ImportDashboard() {
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.rotas_deleted}</span> rotas</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.asset_assignments_deleted}</span> asset assignments</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.training_bookings_deleted || 0}</span> training bookings</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.absences_deleted || 0}</span> absences</div>
               </div>
             </div>
 
@@ -341,6 +369,7 @@ export default function ImportDashboard() {
               <StatTile icon={Clock} label="In Progress" total={preview.summary.jobs.in_progress} sub="today/future" color="teal" />
               <StatTile icon={Layers} label="Projects" total={(preview.summary.projects?.existing_matched || 0) + (preview.summary.projects?.new_created || 0)} sub={`${preview.summary.projects?.new_created || 0} new`} color="violet" />
               <StatTile icon={GraduationCap} label="Training" total={(preview.summary.training?.courses_new || 0) + (preview.summary.training?.courses_matched || 0)} sub={`${preview.summary.training?.bookings_created || 0} bookings`} color="indigo" />
+              <StatTile icon={Palmtree} label="Absences" total={preview.summary.absences?.created || 0} sub={`${preview.summary.absences?.holiday || 0} hol · ${preview.summary.absences?.sick || 0} sick`} color="rose" />
             </div>
 
             {/* Subcon / Agency / Direct split */}
@@ -650,6 +679,31 @@ export default function ImportDashboard() {
             </CollapsibleSection>
           )}
 
+          {/* Absence breakdown */}
+          {preview.absence_breakdown?.length > 0 && (
+            <CollapsibleSection title={`Absences (${preview.absence_breakdown.length})`} icon={Palmtree} defaultOpen={false}>
+              <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                {preview.absence_breakdown.map((a, i) => (
+                  <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-700">{a.staff_name}</span>
+                        <span className={`text-xs rounded-full px-2 py-0.5 ${a.reason === 'holiday' ? 'bg-teal-100 text-teal-700' : a.reason === 'sick' ? 'bg-rose-100 text-rose-700' : 'bg-violet-100 text-violet-700'}`}>
+                          {a.reason === 'holiday' ? 'Holiday' : a.reason === 'sick' ? 'Sick' : 'Training'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400">{a.days} day{a.days !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                      <span>📅 {a.start_date}{a.end_date !== a.start_date ? ` → ${a.end_date}` : ''}</span>
+                      {a.notes && <span>📝 {a.notes}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
+
           {/* New rig assignments */}
           {preview.new_rig_assignments?.length > 0 && (
             <CollapsibleSection title={`Rig Assignments (${preview.new_rig_assignments.length})`} icon={Layers} defaultOpen={false}>
@@ -668,7 +722,7 @@ export default function ImportDashboard() {
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 flex items-start gap-2 mb-4">
               <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>
-                Confirming will <strong>delete ALL existing staff, teams, jobs, crews, and rotas</strong>, then rebuild everything fresh from this spreadsheet.
+                Confirming will <strong>delete ALL existing staff, teams, jobs, crews, rotas, training bookings, and absences</strong>, then rebuild everything fresh from this spreadsheet.
               </span>
             </div>
             <div className="flex gap-3">
@@ -705,8 +759,9 @@ export default function ImportDashboard() {
             <Step n={2} title="Targeted tab import">Only two tabs are imported: <strong>"Team Planner 2026_GW+Depot"</strong> (Groundworkers &amp; Depot Staff) and <strong>"Drillers"</strong> (drilling team). All other tabs are treated as prehistoric data and skipped.</Step>
             <Step n={3} title="Date-aware job status">Jobs with all past dates are marked <strong>completed</strong>. Jobs with any today/future dates are marked <strong>in_progress</strong>. New jobs with no dates yet are <strong>planning</strong>.</Step>
             <Step n={4} title="Leaver detection">Staff with linked logins who aren't in this spreadsheet are flagged as leavers and will be marked inactive on import.</Step>
-            <Step n={5} title="Full breakdown review">See every staff member, every job, every section, every sheet, and every leaver before you confirm — so you can drill down and verify everything is correct.</Step>
-            <Step n={6} title="Full wipe &amp; rebuild">On confirm, ALL existing staff, teams, jobs, drilling crews, rota assignments, and asset assignments are deleted. The spreadsheet becomes the single source of truth — everything is rebuilt fresh from scratch every time you upload.</Step>
+            <Step n={5} title="Absences &amp; training">Non-job days (holiday, sick, training) create Absence records in the Absence Manager — grouped by staff and week. Training courses create TrainingCourse + TrainingBooking records linked to staff.</Step>
+            <Step n={6} title="Full breakdown review">See every staff member, every job, every section, every sheet, and every leaver before you confirm — so you can drill down and verify everything is correct.</Step>
+            <Step n={7} title="Full wipe &amp; rebuild">On confirm, ALL existing staff, teams, jobs, drilling crews, rota assignments, asset assignments, training bookings, and absences are deleted. The spreadsheet becomes the single source of truth — everything is rebuilt fresh from scratch every time you upload.</Step>
           </ol>
         </div>
       )}
