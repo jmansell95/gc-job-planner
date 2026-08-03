@@ -26,6 +26,8 @@ const TODAY = new Date().toISOString().slice(0, 10);
 const SUBCONTRACTOR_TEAM_NAME = 'Subcontractors';
 const DIRECT_EMPLOYEE_TEAM_NAME = 'Direct Employees';
 const AGENCY_TEAM_NAME = 'Agency Workers';
+const DEPOT_TEAM_NAME = 'Dartford Depot';
+const DEPOT_ALIASES = ['dartford', 'yard', 'depot', 'warehouse'];
 
 const CREW_SECTION_TO_JOB_TYPE = {
   'cable': 'cp_drilling', 'cable percussion': 'cp_drilling',
@@ -33,6 +35,7 @@ const CREW_SECTION_TO_JOB_TYPE = {
   'coring': 'coring', 'trial pit': 'trial_pit', 'trial_pit': 'trial_pit',
   'enabling': 'enabling_works', 'enabling works': 'enabling_works',
   'depot': 'depot', 'yard': 'depot', 'yard/depot': 'depot',
+  'dartford': 'depot', 'warehouse': 'depot',
   'leave/sick': 'depot', 'leave': 'depot', 'sick': 'depot',
 };
 
@@ -42,6 +45,7 @@ const CREW_SECTION_TO_JOB_TITLE = {
   'coring': 'Coring Driller', 'trial pit': 'Trial Pit Operative', 'trial_pit': 'Trial Pit Operative',
   'enabling': 'Enabling Works Operative', 'enabling works': 'Enabling Works Operative',
   'depot': 'Yard/Depot Staff', 'yard': 'Yard/Depot Staff', 'yard/depot': 'Yard/Depot Staff',
+  'dartford': 'Yard/Depot Staff', 'warehouse': 'Yard/Depot Staff',
   'leave/sick': '', 'leave': '', 'sick': '',
 };
 
@@ -51,12 +55,13 @@ const CREW_SECTION_TO_DRILLING_METHOD = {
   'trial pit': 'not_applicable', 'trial_pit': 'not_applicable',
   'enabling': 'not_applicable', 'enabling works': 'not_applicable',
   'depot': 'not_applicable', 'yard': 'not_applicable', 'yard/depot': 'not_applicable',
+  'dartford': 'not_applicable', 'warehouse': 'not_applicable',
   'leave/sick': 'not_applicable', 'leave': 'not_applicable', 'sick': 'not_applicable',
 };
 
 const SECTION_KEYWORDS = [
   'cable', 'rotary', 'groundwork', 'coring', 'trial pit', 'trial_pit',
-  'enabling', 'depot', 'yard', 'leave', 'sick', 'plant',
+  'enabling',   'depot', 'yard', 'dartford', 'warehouse', 'leave', 'sick', 'plant',
   'subbies', 'subcontractor', 'sub-contractor', 'subby', 'drilling subbies',
   'sub.con', 'sub con', 'sub-con', 'field teams',
   'agency',
@@ -79,7 +84,7 @@ const NON_PERSON_WORDS = [
   'night', 'day', 'early', 'late', 'shift', 'rota',
   'chargehand', 'foreman', 'ganger', 'charge',
   'driller', 'drillers', 'piling', 'pile', 'coring', 'cable', 'rotary',
-  'groundworks', 'enabling', 'depot', 'yard', 'leave', 'sick',
+  'groundworks', 'enabling', 'depot', 'yard', 'dartford', 'warehouse', 'leave', 'sick',
   'holiday', 'absence', 'off', 'rest', 'break',
   'tbc', 'tba', 'tbd', 'unknown', 'n/a', 'na', 'none',
   'no', 'yes', 'am', 'pm', 'hrs', 'hours',
@@ -151,6 +156,18 @@ function isAgencySection(name) {
   if (!name) return false;
   const lower = normalizeName(name).toLowerCase();
   return lower.includes('agency');
+}
+
+function isDepotSection(name) {
+  if (!name) return false;
+  const lower = normalizeName(name).toLowerCase();
+  return DEPOT_ALIASES.some(a => lower === a || lower.includes(a));
+}
+
+function normalizeDepotSection(section) {
+  if (!section) return section;
+  if (isDepotSection(section)) return DEPOT_TEAM_NAME;
+  return section;
 }
 
 function generateEmail(name, existingEmails) {
@@ -240,7 +257,15 @@ function cellToDate(cell) {
 
 function isSectionHeader(text) {
   if (!text) return false;
-  const lower = String(text).toLowerCase().trim();
+  const s = String(text).trim();
+  const lower = s.toLowerCase();
+  const words = lower.split(/\s+/);
+  // Reject company names (e.g. "Dartford Drilling Services") — they're
+  // subcontractor entities, not section headers. Pure depot/yard/dartford/
+  // warehouse labels still pass through as section headers.
+  if (words.length >= 2 && words.some(w => COMPANY_KEYWORDS.includes(w)) && !words.some(w => STRONG_ROLE_WORDS.includes(w))) {
+    return false;
+  }
   return SECTION_KEYWORDS.some(kw => lower === kw || lower.startsWith(kw) || lower.includes(kw));
 }
 
@@ -384,7 +409,7 @@ function parseSheet(sheet, sheetName) {
     if (!row) continue;
     for (let c = 0; c < 6 && c < row.length; c++) {
       if (isSectionHeader(row[c])) {
-        currentSection = String(row[c]).trim();
+        currentSection = normalizeDepotSection(String(row[c]).trim());
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
         sectionsFound.add(currentSection);
@@ -408,7 +433,7 @@ function parseSheet(sheet, sheetName) {
     let foundSection = false;
     for (const cell of firstCells) {
       if (isSectionHeader(cell)) {
-        currentSection = String(cell).trim();
+        currentSection = normalizeDepotSection(String(cell).trim());
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
         sectionsFound.add(currentSection);
