@@ -608,36 +608,36 @@ export default async function(req) {
     const dateTo = allDates[allDates.length - 1];
 
     // -----------------------------------------------------------------------
-    // 2. PURGE — always wipe old data for a clean slate
+    // 2. PURGE — full wipe: delete ALL staff, teams, jobs, crews, rotas
     // -----------------------------------------------------------------------
-    let purgeSummary = { rotas_deleted: 0, staff_deleted: 0, asset_assignments_deleted: 0 };
+    let purgeSummary = { rotas_deleted: 0, staff_deleted: 0, teams_deleted: 0, jobs_deleted: 0, crews_deleted: 0, asset_assignments_deleted: 0 };
+    const allRotas = await base44.asServiceRole.entities.RotaAssignment.list('-created_date', 5000);
+    const allStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 5000);
+    const allTeams = await base44.asServiceRole.entities.Team.list('-created_date', 5000);
+    const allJobs = await base44.asServiceRole.entities.Job.list('-created_date', 5000);
+    const allCrews = await base44.asServiceRole.entities.DrillingCrew.list('-created_date', 5000);
+    const allAssetAssignments = await base44.asServiceRole.entities.JobAssetAssignment.list('-created_date', 5000);
+    purgeSummary.rotas_deleted = allRotas.length;
+    purgeSummary.staff_deleted = allStaff.length;
+    purgeSummary.teams_deleted = allTeams.length;
+    purgeSummary.jobs_deleted = allJobs.length;
+    purgeSummary.crews_deleted = allCrews.length;
+    purgeSummary.asset_assignments_deleted = allAssetAssignments.length;
     if (!dryRun) {
-      const allRotas = await base44.asServiceRole.entities.RotaAssignment.list('-created_date', 5000);
-      if (allRotas.length > 0) {
-        await base44.asServiceRole.entities.RotaAssignment.deleteMany({});
-        purgeSummary.rotas_deleted = allRotas.length;
-      }
-      const allStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 5000);
-      const autoStaff = allStaff.filter(s => !s.user_id);
-      if (autoStaff.length > 0) {
-        for (const s of autoStaff) {
-          await base44.asServiceRole.entities.Staff.delete(s.id);
-        }
-        purgeSummary.staff_deleted = autoStaff.length;
-      }
-      const allAssetAssignments = await base44.asServiceRole.entities.JobAssetAssignment.list('-created_date', 5000);
-      if (allAssetAssignments.length > 0) {
-        await base44.asServiceRole.entities.JobAssetAssignment.deleteMany({});
-        purgeSummary.asset_assignments_deleted = allAssetAssignments.length;
-      }
-      warnings.push(`Purge: deleted ${purgeSummary.rotas_deleted} rota assignments, ${purgeSummary.staff_deleted} auto-created staff, ${purgeSummary.asset_assignments_deleted} asset assignments.`);
+      if (allRotas.length > 0) await base44.asServiceRole.entities.RotaAssignment.deleteMany({});
+      if (allStaff.length > 0) await base44.asServiceRole.entities.Staff.deleteMany({});
+      if (allTeams.length > 0) await base44.asServiceRole.entities.Team.deleteMany({});
+      if (allJobs.length > 0) await base44.asServiceRole.entities.Job.deleteMany({});
+      if (allCrews.length > 0) await base44.asServiceRole.entities.DrillingCrew.deleteMany({});
+      if (allAssetAssignments.length > 0) await base44.asServiceRole.entities.JobAssetAssignment.deleteMany({});
+      warnings.push(`Full wipe: deleted ${purgeSummary.rotas_deleted} rotas, ${purgeSummary.staff_deleted} staff, ${purgeSummary.teams_deleted} teams, ${purgeSummary.jobs_deleted} jobs, ${purgeSummary.crews_deleted} crews, ${purgeSummary.asset_assignments_deleted} asset assignments.`);
     }
 
     // -----------------------------------------------------------------------
     // 3. Resolve Teams
     // -----------------------------------------------------------------------
     const crewSections = [...new Set(teamAssignments.map(a => a.crew_section).filter(Boolean))];
-    const existingTeams = await base44.asServiceRole.entities.Team.list();
+    const existingTeams = []; // After full wipe, no existing teams
     const teamByLabel = {};
     for (const t of existingTeams) teamByLabel[String(t.name).toLowerCase().trim()] = t;
 
@@ -711,7 +711,8 @@ export default async function(req) {
       staffNameByKey[key] = a.staff_name;
     }
 
-    const existingStaff = await base44.asServiceRole.entities.Staff.list();
+    // After full wipe, no existing staff — all will be created fresh
+    const existingStaff = [];
     const staffByName = new Map();
     const staffByEmail = new Map();
     for (const s of existingStaff) {
@@ -832,7 +833,7 @@ export default async function(req) {
       }
     }
 
-    const existingJobs = await base44.asServiceRole.entities.Job.list();
+    const existingJobs = []; // After full wipe, no existing jobs
     const jobByName = new Map();
     const jobByReference = new Map();
     for (const j of existingJobs) {

@@ -62,7 +62,7 @@ export default function ImportDashboard() {
       const s = res.data.summary;
       toast({
         title: 'Import complete',
-        description: `Purged ${s.purge.rotas_deleted} rotas, ${s.purge.staff_deleted} staff. Created ${s.rotas.created} rotas, ${s.staff.new} staff, ${s.jobs.new} jobs. ${s.staff.leavers_marked_inactive} leavers marked inactive.`
+        description: `Wiped ${s.purge.staff_deleted} staff, ${s.purge.jobs_deleted} jobs, ${s.purge.teams_deleted} teams, ${s.purge.crews_deleted} crews. Created ${s.rotas.created} rotas, ${s.staff.new} staff, ${s.jobs.new} jobs.`
       });
       setPreview(null);
       setFile(null);
@@ -117,7 +117,7 @@ export default function ImportDashboard() {
         {/* Clean-slate warning */}
         <div className="mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
           <RefreshCw className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span><strong>Clean-slate mode:</strong> Importing will delete ALL existing rota assignments, auto-created staff, and asset assignments, then rebuild everything from this spreadsheet. Staff with linked logins not in the file will be marked as "left the company".</span>
+          <span><strong>Full wipe mode:</strong> Importing will delete ALL existing staff, teams, jobs, drilling crews, rota assignments, and asset assignments — then rebuild everything fresh from this spreadsheet. This happens every time you upload.</span>
         </div>
 
         {error && (
@@ -139,6 +139,22 @@ export default function ImportDashboard() {
               <span className="font-medium text-slate-700">{preview.summary.date_range.to}</span>
               <span className="ml-2 text-xs text-slate-400">(today: {preview.summary.today})</span>
             </p>
+
+            {/* Full wipe summary */}
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Trash2 className="w-4 h-4 text-red-600" />
+                <p className="text-sm font-semibold text-red-800">Full Wipe — Everything Will Be Deleted</p>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.staff_deleted}</span> staff</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.jobs_deleted}</span> jobs</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.teams_deleted}</span> teams</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.crews_deleted}</span> crews</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.rotas_deleted}</span> rotas</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.asset_assignments_deleted}</span> asset assignments</div>
+              </div>
+            </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
               <StatTile icon={Users} label="Staff" total={preview.summary.staff.total} sub={`${preview.summary.staff.new} new`} color="blue" />
@@ -398,8 +414,7 @@ export default function ImportDashboard() {
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 flex items-start gap-2 mb-4">
               <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>
-                Confirming will <strong>wipe all existing rota data</strong> and replace it with the {preview.summary.rotas.to_create} assignments above.
-                {preview.leavers.length > 0 && <> {preview.leavers.length} staff will be marked as left.</>}
+                Confirming will <strong>delete ALL existing staff, teams, jobs, crews, and rotas</strong>, then rebuild everything fresh from this spreadsheet.
               </span>
             </div>
             <div className="flex gap-3">
@@ -432,7 +447,7 @@ export default function ImportDashboard() {
             <Step n={3} title="Date-aware job status">Jobs with all past dates are marked <strong>completed</strong>. Jobs with any today/future dates are marked <strong>in_progress</strong>. New jobs with no dates yet are <strong>planning</strong>.</Step>
             <Step n={4} title="Leaver detection">Staff with linked logins who aren't in this spreadsheet are flagged as leavers and will be marked inactive on import.</Step>
             <Step n={5} title="Full breakdown review">See every staff member, every job, every section, every sheet, and every leaver before you confirm — so you can drill down and verify everything is correct.</Step>
-            <Step n={6} title="Clean-slate apply">On confirm, ALL old rota assignments, auto-created staff, and asset assignments are deleted. The spreadsheet becomes the single source of truth. Staff with logins not in the file are marked as left the company.</Step>
+            <Step n={6} title="Full wipe &amp; rebuild">On confirm, ALL existing staff, teams, jobs, drilling crews, rota assignments, and asset assignments are deleted. The spreadsheet becomes the single source of truth — everything is rebuilt fresh from scratch every time you upload.</Step>
           </ol>
         </div>
       )}
