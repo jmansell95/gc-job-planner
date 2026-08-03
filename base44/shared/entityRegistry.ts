@@ -193,6 +193,90 @@ export function fuzzyFindJob(queryName, jobList, threshold = 0.55) {
   return null;
 }
 
+// Build lookup maps for SiteAssets (rigs, trailers, machinery, lifting gear).
+// Returns { byNameKey, bySerial } for fast matching.
+export function buildAssetMaps(assetList) {
+  const byNameKey = new Map();
+  const bySerial = new Map();
+  for (const a of assetList) {
+    if (a.name) {
+      const key = nameKey(a.name);
+      // Prefer active assets when multiple share a name
+      if (!byNameKey.has(key) || (byNameKey.get(key).is_active === false && a.is_active !== false)) {
+        byNameKey.set(key, a);
+      }
+    }
+    if (a.serial_number) {
+      const sKey = a.serial_number.toLowerCase().trim();
+      if (sKey) {
+        if (!bySerial.has(sKey) || (bySerial.get(sKey).is_active === false && a.is_active !== false)) {
+          bySerial.set(sKey, a);
+        }
+      }
+    }
+  }
+  return { byNameKey, bySerial };
+}
+
+// Fuzzy match an asset name from the spreadsheet against a list of SiteAsset
+// records. Tries exact nameKey first, then serial-number containment, then
+// fuzzy name similarity (token + Levenshtein + substring bonus).
+// Returns { asset, score, method } or null if no match above threshold.
+export function fuzzyFindAsset(queryName, assetList, assetMaps, threshold = 0.55) {
+  const queryKey = nameKey(queryName);
+  if (!queryKey) return null;
+
+  // 1. Exact nameKey match via the pre-built map
+  const exact = assetMaps.byNameKey.get(queryKey);
+  if (exact) return { asset: exact, score: 1, method: 'exact' };
+
+  // 2. Serial-number containment: spreadsheet rig name contains a known serial
+  //    (e.g. "Rig 1 (GC-R1-023)" matches serial "GC-R1-023") or vice versa.
+  for (const [serial, asset] of assetMaps.bySerial) {
+    if (serial.length < 3) continue;
+    if (queryKey.includes(serial) || serial.includes(queryKey)) {
+      return { asset, score: 0.95, method: 'serial' };
+    }
+  }
+
+  // 3. Fuzzy name similarity
+  let bestMatch = null;
+  let bestScore = 0;
+  let bestMethod = '';
+  for (const a of assetList) {
+    if (!a.name) continue;
+    const assetKey = nameKey(a.name);
+    if (!assetKey || assetKey === queryKey) continue;
+
+    const tokSim = tokenSimilarity(queryKey, assetKey);
+    const strSim = stringSimilarity(queryKey, assetKey);
+    let subBonus = 0;
+    if (queryKey.length >= 4 && assetKey.length >= 4) {
+      if (queryKey.includes(assetKey) || assetKey.includes(queryKey)) subBonus = 0.15;
+    }
+    const score = Math.min(1, Math.max(tokSim, strSim) + subBonus);
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = a;
+      bestMethod = tokSim >= strSim ? 'token' : 'levenshtein';
+    }
+  }
+
+  if (bestScore >= threshold) {
+    return { asset: bestMatch, score: bestScore, method: bestMethod };
+  }
+  return null;
+}
+
+// Map a SiteAsset asset_type to the JobAssetAssignment role.
+export function assetRole(asset) {
+  if (asset.is_rig || asset.asset_type === 'rig') return 'primary_rig';
+  if (asset.asset_type === 'trailer') return 'trailer';
+  if (asset.asset_type === 'lifting') return 'lifting';
+  return 'machinery';
+}
+
 // Resolve or create an Agency (Contractor with contractor_type='agency').
 // Returns the contractor record (existing or newly created).
 // In dry_run mode, returns a temp object with a synthetic id.

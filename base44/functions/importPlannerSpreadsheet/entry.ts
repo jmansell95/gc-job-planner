@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import * as XLSX from 'npm:xlsx@0.18.5';
-import { buildContractorMaps, findOrCreateAgency } from '../../shared/entityRegistry.ts';
+import { buildContractorMaps, findOrCreateAgency, buildAssetMaps, fuzzyFindAsset, assetRole } from '../../shared/entityRegistry.ts';
 import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, normalizeName, nameKey, findProjectForJob, extractSiteName, isActualTrainingCourse, extractTrainingCourseTitle, inferTrainingCategory } from '../../shared/spreadsheetParser.ts';
 
 // ---------------------------------------------------------------------------
@@ -843,34 +843,74 @@ export default async function(req) {
     }
 
     // -----------------------------------------------------------------------
-    // 6. Resolve Rigs from Plant Planner → JobAssetAssignment
+    // 6. Resolve Rigs & Equipment from Plant Planner → JobAssetAssignment
     // -----------------------------------------------------------------------
-    const existingRigs = await base44.asServiceRole.entities.SiteAsset.filter({ is_rig: true });
-    const rigByName = new Map();
-    for (const r of existingRigs) {
-      if (r.name) {
-        const rk = nameKey(r.name);
-        // If multiple rigs share the same name, keep the first active one
-        if (!rigByName.has(rk) || (rigByName.get(rk).is_active === false && r.is_active !== false)) {
-          rigByName.set(rk, r);
+    // Loads ALL site assets (rigs, trailers, machinery, lifting gear) and
+    // matches each plant-planner row to an asset by:
+    //   1. Exact name key
+    //   2. Serial-number containment (spreadsheet name contains a known serial)
+    //   3. Fuzzy name similarity (token + Levenshtein + substring bonus)
+    // When a rig is matched, its linked_equipment_ids (lifting gear, trailers)
+    // are also pulled in so the job's "Rig & Gear" is fully populated.
+    // The matched rig's rig_type also enriches the job's drilling_method.
+    const allAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 5000);
+    const assetMaps = buildAssetMaps(allAssets);
+    const assetById = new Map();
+    for (const a of allAssets) assetById.set(a.id, a);
+
+    const rigAssignments = [];
+    const assetMatchBreakdown = { exact: 0, serial: 0, fuzzy: 0, unmatched: 0 };
+    const unmatchedAssetNames = new Set();
+    const fuzzyAssetMatches = [];
+    const jobDrillingMethodUpdates = []; // { id, drilling_method }
+
+    for (const pa of plantAssignments) {
+      if (!pa.job_name || !pa.staff_name) continue;
+      const job = jobMap.get(nameKey(pa.job_name));
+      if (!job) continue;
+
+      const match = fuzzyFindAsset(pa.staff_name, allAssets, assetMaps);
+      if (!match) {
+        assetMatchBreakdown.unmatched++;
+        unmatchedAssetNames.add(pa.staff_name);
+        continue;
+      }
+      const asset = match.asset;
+      if (match.method === 'exact') assetMatchBreakdown.exact++;
+      else if (match.method === 'serial') assetMatchBreakdown.serial++;
+      else { assetMatchBreakdown.fuzzy++; fuzzyAssetMatches.push({ query: pa.staff_name, matched: asset.name, score: Math.round(match.score * 100), method: match.method }); }
+
+      rigAssignments.push({
+        job_id: job.id, job_name: job.name, asset_id: asset.id, asset_name: asset.name,
+        asset_type: asset.asset_type || 'rig', rig_type: asset.rig_type || 'n/a',
+        role: assetRole(asset), assigned_date: pa.date,
+      });
+
+      // Enrich job drilling_method from the matched rig's rig_type
+      if (asset.is_rig && asset.rig_type && asset.rig_type !== 'n/a') {
+        const current = job.drilling_method;
+        if (!current || current === 'not_applicable') {
+          jobDrillingMethodUpdates.push({ id: job.id, drilling_method: asset.rig_type });
+          job.drilling_method = asset.rig_type; // update in-memory copy
+        }
+      }
+
+      // Pull in linked equipment (lifting gear, trailers, machinery) so the
+      // job's "Rig & Gear" is fully populated in one import.
+      if (asset.linked_equipment_ids && asset.linked_equipment_ids.length > 0) {
+        for (const eqId of asset.linked_equipment_ids) {
+          const eq = assetById.get(eqId);
+          if (!eq) continue;
+          rigAssignments.push({
+            job_id: job.id, job_name: job.name, asset_id: eq.id, asset_name: eq.name,
+            asset_type: eq.asset_type || 'machinery', rig_type: 'n/a',
+            role: assetRole(eq), assigned_date: pa.date,
+          });
         }
       }
     }
 
-    const rigAssignments = [];
-    for (const pa of plantAssignments) {
-      if (!pa.job_name || !pa.staff_name) continue;
-      const job = jobMap.get(nameKey(pa.job_name));
-      const rig = rigByName.get(nameKey(pa.staff_name));
-      if (job && rig) {
-        rigAssignments.push({
-          job_id: job.id, job_name: job.name, asset_id: rig.id, asset_name: rig.name,
-          assigned_date: pa.date,
-        });
-      }
-    }
-
-    // Deduplicate by (job_id, asset_id, assigned_date) — one assignment per rig per job per date
+    // Deduplicate by (job_id, asset_id, assigned_date) — one assignment per asset per job per date
     const rigAssignmentMap = new Map();
     for (const ra of rigAssignments) {
       const key = `${ra.job_id}|${ra.asset_id}|${ra.assigned_date || ''}`;
@@ -885,6 +925,13 @@ export default async function(req) {
       }
     }
     const dedupedRigAssignments = [...rigByJobAsset.values()];
+
+    // Apply drilling_method enrichment from matched rigs
+    if (jobDrillingMethodUpdates.length > 0 && !dryRun) {
+      for (let i = 0; i < jobDrillingMethodUpdates.length; i += 400) {
+        await base44.asServiceRole.entities.Job.bulkUpdate(jobDrillingMethodUpdates.slice(i, i + 400));
+      }
+    }
 
     // -----------------------------------------------------------------------
     // 7. Build desired rota set
@@ -1223,6 +1270,12 @@ export default async function(req) {
       },
       rig_assignments: {
         total: dedupedRigAssignments.length,
+        rigs: dedupedRigAssignments.filter(ra => ra.role === 'primary_rig').length,
+        linked_equipment: dedupedRigAssignments.filter(ra => ra.role !== 'primary_rig').length,
+        match_breakdown: assetMatchBreakdown,
+        unmatched_asset_names: [...unmatchedAssetNames].slice(0, 50),
+        fuzzy_matches: fuzzyAssetMatches.slice(0, 50),
+        drilling_methods_enriched: jobDrillingMethodUpdates.length,
       },
       agencies: {
         total: Object.keys(agencyBreakdown).length,
@@ -1259,7 +1312,8 @@ export default async function(req) {
         job_updates: jobUpdates,
         new_teams: newTeamNames,
         new_rig_assignments: dedupedRigAssignments.map(ra => ({
-          job_name: ra.job_name, asset_name: ra.asset_name, assigned_date: ra.assigned_date
+          job_name: ra.job_name, asset_name: ra.asset_name, asset_type: ra.asset_type,
+          role: ra.role, rig_type: ra.rig_type, assigned_date: ra.assigned_date
         })),
         training_breakdown: Object.entries(trainingGroups).map(([key, group]) => {
           const course = trainingCourseMap.get(key);
@@ -1294,7 +1348,8 @@ export default async function(req) {
     for (const ra of dedupedRigAssignments) {
       await base44.asServiceRole.entities.JobAssetAssignment.create({
         job_id: ra.job_id, job_name: ra.job_name, asset_id: ra.asset_id, asset_name: ra.asset_name,
-        asset_type: 'rig', role: 'primary_rig', status: 'assigned', assigned_date: ra.assigned_date,
+        asset_type: ra.asset_type || 'rig', rig_type: ra.rig_type || 'n/a',
+        role: ra.role || 'primary_rig', status: 'assigned', assigned_date: ra.assigned_date,
       });
       rigAssignmentCount++;
     }

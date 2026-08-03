@@ -511,13 +511,97 @@ export default function ImportDashboard() {
             </CollapsibleSection>
           )}
 
-          {/* New rig assignments */}
+          {/* Rig & Equipment matching summary */}
+          {preview.summary.rig_assignments && (
+            <div className="insight-card rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                  <Layers className="w-4 h-4 text-amber-600" />
+                </div>
+                <h3 className="text-base font-semibold text-slate-800">Rig &amp; Equipment Matching</h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
+                <div className="bg-amber-50 rounded-lg px-3 py-2 text-center">
+                  <p className="text-xl font-bold text-amber-600">{preview.summary.rig_assignments.total}</p>
+                  <p className="text-xs text-amber-600">Total Assignments</p>
+                </div>
+                <div className="bg-emerald-50 rounded-lg px-3 py-2 text-center">
+                  <p className="text-xl font-bold text-emerald-600">{preview.summary.rig_assignments.rigs || 0}</p>
+                  <p className="text-xs text-emerald-600">Rigs</p>
+                </div>
+                <div className="bg-indigo-50 rounded-lg px-3 py-2 text-center">
+                  <p className="text-xl font-bold text-indigo-600">{preview.summary.rig_assignments.linked_equipment || 0}</p>
+                  <p className="text-xs text-indigo-600">Linked Gear</p>
+                </div>
+                <div className="bg-blue-50 rounded-lg px-3 py-2 text-center">
+                  <p className="text-xl font-bold text-blue-600">{preview.summary.rig_assignments.drilling_methods_enriched || 0}</p>
+                  <p className="text-xs text-blue-600">Drill Methods Set</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg px-3 py-2 text-center">
+                  <p className="text-xl font-bold text-slate-600">{preview.summary.rig_assignments.match_breakdown?.exact || 0}</p>
+                  <p className="text-xs text-slate-500">Exact Matches</p>
+                </div>
+                <div className="bg-violet-50 rounded-lg px-3 py-2 text-center">
+                  <p className="text-xl font-bold text-violet-600">{(preview.summary.rig_assignments.match_breakdown?.serial || 0) + (preview.summary.rig_assignments.match_breakdown?.fuzzy || 0)}</p>
+                  <p className="text-xs text-violet-600">Serial + Fuzzy</p>
+                </div>
+              </div>
+
+              {/* Fuzzy matches */}
+              {preview.summary.rig_assignments.fuzzy_matches?.length > 0 && (
+                <div className="bg-violet-50 border border-violet-200 rounded-lg px-4 py-3 mb-3">
+                  <p className="text-sm font-semibold text-violet-800 mb-1.5 flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4" /> Fuzzy / Serial Matches ({preview.summary.rig_assignments.fuzzy_matches.length})
+                  </p>
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {preview.summary.rig_assignments.fuzzy_matches.map((m, i) => (
+                      <div key={i} className="text-xs text-violet-700 flex items-center gap-2">
+                        <span className="bg-violet-100 rounded px-1.5 py-0.5 font-medium">{m.score}%</span>
+                        <span className="line-through text-slate-400">{m.query}</span>
+                        <span>→</span>
+                        <span className="font-medium">{m.matched}</span>
+                        <span className="text-violet-400">({m.method})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Unmatched asset names */}
+              {preview.summary.rig_assignments.unmatched_asset_names?.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-rose-700 mb-1.5 flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4" /> Unmatched Plant ({preview.summary.rig_assignments.unmatched_asset_names.length}) — no SiteAsset found
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                    {preview.summary.rig_assignments.unmatched_asset_names.map((name, i) => (
+                      <span key={i} className="text-xs bg-rose-100 text-rose-600 rounded-full px-2.5 py-1">{name}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* New rig & equipment assignments */}
           {preview.new_rig_assignments?.length > 0 && (
-            <CollapsibleSection title={`Rig Assignments (${preview.new_rig_assignments.length})`} icon={Layers} defaultOpen={false}>
-              <div className="space-y-1.5 max-h-60 overflow-y-auto">
+            <CollapsibleSection title={`Rig & Gear Assignments (${preview.new_rig_assignments.length})`} icon={Layers} defaultOpen={false}>
+              <div className="space-y-1.5 max-h-96 overflow-y-auto">
                 {preview.new_rig_assignments.map((ra, i) => (
-                  <div key={i} className="text-sm bg-slate-50 rounded px-3 py-1.5 text-slate-600">
-                    {ra.asset_name} → {ra.job_name} ({ra.assigned_date})
+                  <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-700">{ra.asset_name}</span>
+                        <span className={`text-xs rounded-full px-2 py-0.5 ${ra.role === 'primary_rig' ? 'bg-amber-100 text-amber-700' : ra.role === 'trailer' ? 'bg-blue-100 text-blue-700' : ra.role === 'lifting' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {ra.role === 'primary_rig' ? 'Rig' : ra.role === 'trailer' ? 'Trailer' : ra.role === 'lifting' ? 'Lifting' : 'Machinery'}
+                        </span>
+                        {ra.rig_type && ra.rig_type !== 'n/a' && (
+                          <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 uppercase">{ra.rig_type}</span>
+                        )}
+                      </div>
+                      <span className="text-xs text-slate-400">{ra.assigned_date || '—'}</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">→ {ra.job_name}</div>
                   </div>
                 ))}
               </div>

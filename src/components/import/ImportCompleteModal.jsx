@@ -90,6 +90,7 @@ export default function ImportCompleteModal({ result, onClose, type = 'planner' 
                 <VisualStat icon={Layers} value={(s.projects?.existing_matched || 0) + (s.projects?.new_created || 0)} label="Projects" sub={`${s.projects?.new_created || 0} new`} gradient="stat-gradient-violet" />
                 <VisualStat icon={GraduationCap} value={(s.training?.courses_new || 0) + (s.training?.courses_matched || 0)} label="Training" sub={`${s.training?.bookings_created || 0} bookings`} gradient="stat-gradient-indigo" />
                 <VisualStat icon={Palmtree} value={s.absences?.created || 0} label="Absences" sub={`${s.absences?.holiday || 0} hol`} gradient="stat-gradient-rose" />
+                <VisualStat icon={Layers} value={s.rig_assignments?.total || 0} label="Rig & Gear" sub={`${s.rig_assignments?.rigs || 0} rigs · ${s.rig_assignments?.linked_equipment || 0} gear`} gradient="stat-gradient-amber" />
               </div>
             </>
           ) : (
