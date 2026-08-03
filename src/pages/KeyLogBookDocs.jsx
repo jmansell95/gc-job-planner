@@ -122,7 +122,7 @@ export default function KeyLogBookDocs() {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(26);
     doc.setTextColor(255, 255, 255);
-    doc.text('GC MissionControl', margin, 70);
+    doc.text('GC Mission Control', margin, 70);
     doc.setFontSize(13);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(141, 198, 63);
@@ -132,12 +132,12 @@ export default function KeyLogBookDocs() {
     doc.text(`Document Version 1.0  ·  ${new Date().toLocaleDateString('en-GB')}`, margin, 118);
     y = 175;
 
-    addParagraph('This document defines the webhook integration between KeyLogBook and GC MissionControl — our field operations, compliance, and financial lifecycle platform. It is intended for the KeyLogBook development team to implement automated data push from KeyLogBook into our system.');
+    addParagraph('This document defines the webhook integration between KeyLogBook and GC Mission Control — our field operations, compliance, and financial lifecycle platform. It is intended for the KeyLogBook development team to implement automated data push from KeyLogBook into our system.');
     y += 10;
 
     // === 1. OVERVIEW ===
     addHeading('1. Overview');
-    addParagraph('GC MissionControl ingests real-time borehole log data and driller daily remarks from KeyLogBook via a single webhook endpoint. The integration supports two data streams:');
+    addParagraph('GC Mission Control ingests real-time borehole log data and driller daily remarks from KeyLogBook via a single webhook endpoint. The integration supports two data streams:');
     addParagraph('• Stream 1 — Driller Remarks: Free-text daily remarks (e.g. "7:30_8:45 = Start briefing...") are parsed into individual time-stamped activities, AI-professionalised, and saved as pending Site Logs for manager review. On approval, these auto-generate timesheet entries.');
     addParagraph('• Stream 2 — Structured Borehole Data: Technical borehole/log records (AGS-style) are ingested as read-only records shown in our Borehole Data Explorer.');
     y += 6;
@@ -151,7 +151,7 @@ export default function KeyLogBookDocs() {
 
     // === 3. AUTH ===
     addHeading('3. Authentication');
-    addParagraph('All requests must include a shared secret token for validation. The token is configured in the GC MissionControl admin panel under Settings → KeyLogBook. Include it in one of the following ways:');
+    addParagraph('All requests must include a shared secret token for validation. The token is configured in the GC Mission Control admin panel under Settings → KeyLogBook. Include it in one of the following ways:');
     addParagraph('• Header: x-klb-signature: <shared-secret>');
     addParagraph('• Header: x-keylogbook-signature: <shared-secret>');
     addParagraph('• Query parameter: ?secret=<shared-secret>');
@@ -165,10 +165,10 @@ export default function KeyLogBookDocs() {
       ['Field', 'Type', 'Description'],
       [
         ['job_reference', 'string', 'Our internal job reference or PO number. Used to match the log to an active Job. Required unless job_id is provided.'],
-        ['job_id', 'string', 'Explicit GC MissionControl Job ID (UUID). Takes precedence over job_reference. Optional.'],
+        ['job_id', 'string', 'Explicit GC Mission Control Job ID (UUID). Takes precedence over job_reference. Optional.'],
         ['date', 'string', 'Working date in YYYY-MM-DD format. Defaults to today if omitted.'],
         ['lead_driller_name', 'string', 'Full name of the lead driller on shift. Optional but recommended.'],
-        ['lead_driller_id', 'string', 'GC MissionControl Staff ID (UUID). Optional.'],
+        ['lead_driller_id', 'string', 'GC Mission Control Staff ID (UUID). Optional.'],
         ['meterage', 'number', 'Total metres drilled that day. Optional.'],
         ['remarks', 'string', 'Driller daily remarks string. Parsed into time-stamped activities. Optional but this is the primary value stream.'],
         ['notes', 'string', 'Alternative field for remarks (used if remarks is empty).'],
@@ -257,7 +257,7 @@ export default function KeyLogBookDocs() {
     // === 10. TESTING ===
     addHeading('10. Testing & Support');
     addParagraph('To test the integration, contact our admin team to receive a shared secret and a test job reference. We recommend sending a test payload with a known job_reference and verifying the 200 response before enabling automated push from production.');
-    addParagraph('For integration support, contact the GC MissionControl admin team.', 9);
+    addParagraph('For integration support, contact the GC Mission Control admin team.', 9);
     y += 20;
 
     // Footer on every page
@@ -267,7 +267,7 @@ export default function KeyLogBookDocs() {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(148, 163, 184);
-      doc.text('GC MissionControl — KeyLogBook Webhook Integration Specification', margin, pageH - 20);
+      doc.text('GC Mission Control — KeyLogBook Webhook Integration Specification', margin, pageH - 20);
       doc.text(`Page ${i} of ${pageCount}`, pageW - margin - 60, pageH - 20);
     }
 
@@ -288,12 +288,12 @@ export default function KeyLogBookDocs() {
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold">GC MissionControl</h1>
+              <h1 className="text-xl font-bold">GC Mission Control</h1>
               <p className="text-sm text-white/70">KeyLogBook Webhook Integration Specification</p>
             </div>
           </div>
           <p className="text-sm text-white/80 mt-3">
-            This document defines the webhook integration between KeyLogBook and GC MissionControl.
+            This document defines the webhook integration between KeyLogBook and GC Mission Control.
             Download the PDF and share it with the KeyLogBook development team to implement automated data push.
           </p>
           <button onClick={generatePDF}
@@ -305,7 +305,7 @@ export default function KeyLogBookDocs() {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5 text-sm text-slate-700">
           <section>
             <h2 className="font-bold text-slate-900 text-base mb-1.5">1. Overview</h2>
-            <p className="text-slate-600">GC MissionControl ingests real-time borehole log data and driller daily remarks from KeyLogBook via a single webhook endpoint, supporting two streams: parsed driller remarks (pending manager review) and structured borehole records (read-only technical data).</p>
+            <p className="text-slate-600">GC Mission Control ingests real-time borehole log data and driller daily remarks from KeyLogBook via a single webhook endpoint, supporting two streams: parsed driller remarks (pending manager review) and structured borehole records (read-only technical data).</p>
           </section>
           <section>
             <h2 className="font-bold text-slate-900 text-base mb-1.5">2. Webhook Endpoint</h2>

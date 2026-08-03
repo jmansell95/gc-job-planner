@@ -20,9 +20,9 @@ function escapeHtml(s) {
 
 function buildPreviewHtml(cfg) {
   const accent = cfg.default_accent_color || '#0e7a4f';
-  const bannerTitle = cfg.default_banner_title || 'GC Job Planner';
+  const bannerTitle = cfg.default_banner_title || 'GC Mission Control';
   const showBanner = cfg.default_show_banner !== false;
-  const footer = cfg.default_footer_text || 'GC Job Planner';
+  const footer = cfg.default_footer_text || 'GC Mission Control';
   const sampleBody = 'Hello John Smith,\n\nYou have been assigned to a new job:\n\nJob: Sample Job\nLocation: Sample Site, London\nDate: Monday, 15 July 2026\n\nPlease check your schedule for full details.';
   const safe = escapeHtml(sampleBody).replace(/\n/g, '<br>');
   const banner = showBanner

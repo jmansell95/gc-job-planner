@@ -55,7 +55,7 @@
     },
     "banner_title": {
       "type": "string",
-      "default": "GC Job Planner",
+      "default": "GC Mission Control",
       "description": "Title shown in the email banner header"
     },
     "show_banner": {
@@ -65,7 +65,7 @@
     },
     "footer_text": {
       "type": "string",
-      "default": "GC Job Planner",
+      "default": "GC Mission Control",
       "description": "Text shown in the email footer"
     }
   },
