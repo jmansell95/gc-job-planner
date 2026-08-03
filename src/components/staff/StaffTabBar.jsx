@@ -10,7 +10,7 @@ export default function StaffTabBar({ activeTab, onChange, counts = {} }) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/80 safe-area-bottom lg:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/80 safe-area-bottom">
       <div className="max-w-6xl mx-auto flex items-stretch justify-around px-2">
         {tabs.map(tab => {
           const Icon = tab.icon;

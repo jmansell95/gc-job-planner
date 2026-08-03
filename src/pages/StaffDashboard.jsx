@@ -634,13 +634,6 @@ export default function StaffDashboard() {
               {/* Active / next job — hero card with big action button */}
               {nextTodayAssignment && (
                 <div>
-                  {activeStarted && (
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#2E5A1A]/10 text-[#2E5A1A] text-xs font-bold uppercase tracking-wide">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#2E5A1A] animate-pulse" /> In Progress
-                      </span>
-                    </div>
-                  )}
                   {!activeStarted && todaysSorted.length > 1 && (
                     <div className="flex items-center gap-2 mb-2">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold uppercase tracking-wide">
