@@ -115,6 +115,7 @@ export default function ImportDashboard() {
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.crews_deleted}</span> crews</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.rotas_deleted}</span> rotas</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.asset_assignments_deleted}</span> asset assignments</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.training_bookings_deleted || 0}</span> training bookings</div>
               </div>
             </div>
 
@@ -126,6 +127,7 @@ export default function ImportDashboard() {
               <StatTile icon={CheckCircle2} label="Completed Jobs" total={applyResult.summary.jobs.completed} sub="past dates" color="slate" />
               <StatTile icon={Clock} label="In Progress" total={applyResult.summary.jobs.in_progress} sub="today/future" color="teal" />
               <StatTile icon={Layers} label="Projects" total={(applyResult.summary.projects?.existing_matched || 0) + (applyResult.summary.projects?.new_created || 0)} sub={`${applyResult.summary.projects?.new_created || 0} new`} color="violet" />
+              <StatTile icon={GraduationCap} label="Training" total={(applyResult.summary.training?.courses_new || 0) + (applyResult.summary.training?.courses_matched || 0)} sub={`${applyResult.summary.training?.bookings_created || 0} bookings`} color="indigo" />
             </div>
 
             {/* Agency breakdown */}
@@ -220,6 +222,33 @@ export default function ImportDashboard() {
               </div>
             </CollapsibleSection>
           )}
+
+          {/* Training breakdown */}
+          {applyResult.training_breakdown?.length > 0 && (
+            <CollapsibleSection title={`Training Courses (${applyResult.training_breakdown.length})`} icon={GraduationCap} defaultOpen={false}>
+              <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                {applyResult.training_breakdown.map((t, i) => (
+                  <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-700">{t.title}</span>
+                        {t.is_new && <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">NEW</span>}
+                        <span className={`text-xs rounded-full px-2 py-0.5 ${t.status === 'completed' ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {t.status === 'completed' ? 'Completed' : 'Scheduled'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400">{t.staff_count} staff</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                      <span>📅 {t.start_date}{t.end_date !== t.start_date ? ` → ${t.end_date}` : ''}</span>
+                      <span>🏷️ {t.category}</span>
+                      <span>👥 {t.staff_names.join(', ')}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
         </div>
       )}
 
@@ -299,6 +328,7 @@ export default function ImportDashboard() {
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.crews_deleted}</span> crews</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.rotas_deleted}</span> rotas</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.asset_assignments_deleted}</span> asset assignments</div>
+                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.training_bookings_deleted || 0}</span> training bookings</div>
               </div>
             </div>
 
@@ -310,6 +340,7 @@ export default function ImportDashboard() {
               <StatTile icon={CheckCircle2} label="Completed Jobs" total={preview.summary.jobs.completed} sub="past dates" color="slate" />
               <StatTile icon={Clock} label="In Progress" total={preview.summary.jobs.in_progress} sub="today/future" color="teal" />
               <StatTile icon={Layers} label="Projects" total={(preview.summary.projects?.existing_matched || 0) + (preview.summary.projects?.new_created || 0)} sub={`${preview.summary.projects?.new_created || 0} new`} color="violet" />
+              <StatTile icon={GraduationCap} label="Training" total={(preview.summary.training?.courses_new || 0) + (preview.summary.training?.courses_matched || 0)} sub={`${preview.summary.training?.bookings_created || 0} bookings`} color="indigo" />
             </div>
 
             {/* Subcon / Agency / Direct split */}
@@ -592,6 +623,33 @@ export default function ImportDashboard() {
             </CollapsibleSection>
           )}
 
+          {/* Training breakdown */}
+          {preview.training_breakdown?.length > 0 && (
+            <CollapsibleSection title={`Training Courses (${preview.training_breakdown.length})`} icon={GraduationCap} defaultOpen={false}>
+              <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                {preview.training_breakdown.map((t, i) => (
+                  <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-700">{t.title}</span>
+                        {t.is_new && <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">NEW</span>}
+                        <span className={`text-xs rounded-full px-2 py-0.5 ${t.status === 'completed' ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {t.status === 'completed' ? 'Completed' : 'Scheduled'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400">{t.staff_count} staff</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                      <span>📅 {t.start_date}{t.end_date !== t.start_date ? ` → ${t.end_date}` : ''}</span>
+                      <span>🏷️ {t.category}</span>
+                      <span>👥 {t.staff_names.join(', ')}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
+
           {/* New rig assignments */}
           {preview.new_rig_assignments?.length > 0 && (
             <CollapsibleSection title={`Rig Assignments (${preview.new_rig_assignments.length})`} icon={Layers} defaultOpen={false}>
@@ -661,6 +719,7 @@ function StatTile({ icon: Icon, label, total, sub, color }) {
     blue: 'stat-gradient-blue', emerald: 'stat-gradient-emerald',
     amber: 'stat-gradient-amber', rose: 'stat-gradient-rose',
     slate: 'stat-gradient-slate', teal: 'stat-gradient-teal',
+    violet: 'stat-gradient-violet', indigo: 'stat-gradient-indigo',
   };
   return (
     <div className={`${colors[color]} rounded-xl p-4 text-white`}>

@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import * as XLSX from 'npm:xlsx@0.18.5';
 import { buildContractorMaps, findOrCreateAgency } from '../../shared/entityRegistry.ts';
-import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, normalizeName, nameKey, findProjectForJob, extractSiteName } from '../../shared/spreadsheetParser.ts';
+import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, normalizeName, nameKey, findProjectForJob, extractSiteName, isActualTrainingCourse, extractTrainingCourseTitle, inferTrainingCategory } from '../../shared/spreadsheetParser.ts';
 
 // ---------------------------------------------------------------------------
 // Team & Plant Planner Spreadsheet Import — Clean-Slate Edition
@@ -454,19 +454,21 @@ export default async function(req) {
     // -----------------------------------------------------------------------
     // 2. PURGE — full wipe: delete ALL staff, teams, jobs, crews, rotas
     // -----------------------------------------------------------------------
-    let purgeSummary = { rotas_deleted: 0, staff_deleted: 0, teams_deleted: 0, jobs_deleted: 0, crews_deleted: 0, asset_assignments_deleted: 0 };
+    let purgeSummary = { rotas_deleted: 0, staff_deleted: 0, teams_deleted: 0, jobs_deleted: 0, crews_deleted: 0, asset_assignments_deleted: 0, training_bookings_deleted: 0 };
     const allRotas = await base44.asServiceRole.entities.RotaAssignment.list('-created_date', 5000);
     const allStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 5000);
     const allTeams = await base44.asServiceRole.entities.Team.list('-created_date', 5000);
     const allJobs = await base44.asServiceRole.entities.Job.list('-created_date', 5000);
     const allCrews = await base44.asServiceRole.entities.DrillingCrew.list('-created_date', 5000);
     const allAssetAssignments = await base44.asServiceRole.entities.JobAssetAssignment.list('-created_date', 5000);
+    const allTrainingBookings = await base44.asServiceRole.entities.TrainingBooking.list('-created_date', 5000);
     purgeSummary.rotas_deleted = allRotas.length;
     purgeSummary.staff_deleted = allStaff.length;
     purgeSummary.teams_deleted = allTeams.length;
     purgeSummary.jobs_deleted = allJobs.length;
     purgeSummary.crews_deleted = allCrews.length;
     purgeSummary.asset_assignments_deleted = allAssetAssignments.length;
+    purgeSummary.training_bookings_deleted = allTrainingBookings.length;
     if (!dryRun) {
       if (allRotas.length > 0) await base44.asServiceRole.entities.RotaAssignment.deleteMany({});
       if (allStaff.length > 0) await base44.asServiceRole.entities.Staff.deleteMany({});
@@ -474,7 +476,8 @@ export default async function(req) {
       if (allJobs.length > 0) await base44.asServiceRole.entities.Job.deleteMany({});
       if (allCrews.length > 0) await base44.asServiceRole.entities.DrillingCrew.deleteMany({});
       if (allAssetAssignments.length > 0) await base44.asServiceRole.entities.JobAssetAssignment.deleteMany({});
-      warnings.push(`Full wipe: deleted ${purgeSummary.rotas_deleted} rotas, ${purgeSummary.staff_deleted} staff, ${purgeSummary.teams_deleted} teams, ${purgeSummary.jobs_deleted} jobs, ${purgeSummary.crews_deleted} crews, ${purgeSummary.asset_assignments_deleted} asset assignments.`);
+      if (allTrainingBookings.length > 0) await base44.asServiceRole.entities.TrainingBooking.deleteMany({});
+      warnings.push(`Full wipe: deleted ${purgeSummary.rotas_deleted} rotas, ${purgeSummary.staff_deleted} staff, ${purgeSummary.teams_deleted} teams, ${purgeSummary.jobs_deleted} jobs, ${purgeSummary.crews_deleted} crews, ${purgeSummary.asset_assignments_deleted} asset assignments, ${purgeSummary.training_bookings_deleted} training bookings.`);
     }
 
     // -----------------------------------------------------------------------
@@ -919,6 +922,106 @@ export default async function(req) {
     }
 
     // -----------------------------------------------------------------------
+    // 7b. Create Training Courses + Bookings from training-type assignments
+    // -----------------------------------------------------------------------
+    // Training entries (non-job cells categorised as 'training' that are
+    // actual training courses — not overheads/meetings/audits) become
+    // TrainingCourse + TrainingBooking records. Past dates → completed
+    // course with 'attended' booking. Future dates → scheduled course
+    // with 'booked' booking. Courses are deduplicated by title + start_date;
+    // bookings by course_id + staff_id. TrainingCourse records survive the
+    // wipe (only TrainingBookings are purged since they link to wiped staff).
+    const trainingEntries = teamAssignments.filter(
+      a => a.non_job_type === 'training' && a.date && a.non_job_label && isActualTrainingCourse(a.non_job_label)
+    );
+    // Group by (title, week_start) — same training in the same week = one course
+    const trainingGroups = {};
+    for (const a of trainingEntries) {
+      const title = extractTrainingCourseTitle(a.non_job_label);
+      if (!title) continue;
+      const staffKey = nameKey(a.staff_name);
+      const ws = getWeekStart(a.date);
+      const key = `${nameKey(title)}|${ws}`;
+      if (!trainingGroups[key]) trainingGroups[key] = { title, week_start: ws, dates: [], staffDates: {} };
+      trainingGroups[key].dates.push(a.date);
+      if (!trainingGroups[key].staffDates[staffKey]) trainingGroups[key].staffDates[staffKey] = [];
+      trainingGroups[key].staffDates[staffKey].push(a.date);
+    }
+
+    // Load existing training courses for deduplication (they survive the wipe)
+    const existingCourses = await base44.asServiceRole.entities.TrainingCourse.list('-created_date', 5000);
+    const courseByTitleDate = new Map();
+    for (const c of existingCourses) {
+      if (c.title && c.start_date) courseByTitleDate.set(`${nameKey(c.title)}|${c.start_date}`, c);
+    }
+
+    const trainingCourseMap = new Map();
+    const newCoursePayloads = [];
+    const newCourseKeys = [];
+    let trainingCoursesMatched = 0;
+    for (const [key, group] of Object.entries(trainingGroups)) {
+      const dates = group.dates.sort();
+      const startDate = dates[0];
+      const endDate = dates[dates.length - 1];
+      const isPast = endDate < TODAY;
+      const status = isPast ? 'completed' : 'scheduled';
+      const category = inferTrainingCategory(group.title);
+
+      const dedupeKey = `${nameKey(group.title)}|${startDate}`;
+      let course = courseByTitleDate.get(dedupeKey);
+      if (course) {
+        trainingCoursesMatched++;
+      } else {
+        newCoursePayloads.push({ title: group.title, category, start_date: startDate, end_date: endDate, status });
+        newCourseKeys.push(key);
+        course = null;
+      }
+      if (course) trainingCourseMap.set(key, course);
+    }
+
+    let createdCourses = [];
+    if (newCoursePayloads.length > 0 && !dryRun) {
+      createdCourses = await base44.asServiceRole.entities.TrainingCourse.bulkCreate(newCoursePayloads);
+    } else if (dryRun) {
+      createdCourses = newCoursePayloads.map((p, i) => ({ id: `temp_course_${newCourseKeys[i]}`, ...p }));
+    }
+    for (let i = 0; i < createdCourses.length; i++) trainingCourseMap.set(newCourseKeys[i], createdCourses[i]);
+
+    // Create bookings — one per (course, staff), deduplicated
+    const newBookingPayloads = [];
+    const bookingKeys = new Set();
+    for (const [key, group] of Object.entries(trainingGroups)) {
+      const course = trainingCourseMap.get(key);
+      if (!course) continue;
+      for (const [staffKey, staffDates] of Object.entries(group.staffDates)) {
+        const staff = staffMap.get(staffKey);
+        if (!staff) continue;
+        const bKey = `${course.id}|${staff.id}`;
+        if (bookingKeys.has(bKey)) continue;
+        bookingKeys.add(bKey);
+        const sortedDates = staffDates.sort();
+        const isPast = sortedDates[sortedDates.length - 1] < TODAY;
+        newBookingPayloads.push({
+          course_id: course.id,
+          staff_id: staff.id,
+          staff_name: staff.name,
+          status: isPast ? 'attended' : 'booked',
+        });
+      }
+    }
+
+    let createdTrainingBookings = 0;
+    if (newBookingPayloads.length > 0 && !dryRun) {
+      for (let i = 0; i < newBookingPayloads.length; i += 400) {
+        const batch = newBookingPayloads.slice(i, i + 400);
+        await base44.asServiceRole.entities.TrainingBooking.bulkCreate(batch);
+        createdTrainingBookings += batch.length;
+      }
+    } else {
+      createdTrainingBookings = newBookingPayloads.length;
+    }
+
+    // -----------------------------------------------------------------------
     // 8. Build full audit breakdown
     // -----------------------------------------------------------------------
     const subbieCount = [...uniqueStaffKeys].filter(k => {
@@ -1042,6 +1145,13 @@ export default async function(req) {
         duplicates_collapsed: duplicateRotaRows,
       },
       non_job_assignments: nonJobCounts,
+      training: {
+        courses_new: newCoursePayloads.length,
+        courses_matched: trainingCoursesMatched,
+        bookings_created: newBookingPayloads.length,
+        completed_courses: newCoursePayloads.filter(c => c.status === 'completed').length,
+        scheduled_courses: newCoursePayloads.filter(c => c.status === 'scheduled').length,
+      },
       rig_assignments: {
         total: dedupedRigAssignments.length,
       },
@@ -1082,6 +1192,21 @@ export default async function(req) {
         new_rig_assignments: dedupedRigAssignments.map(ra => ({
           job_name: ra.job_name, asset_name: ra.asset_name, assigned_date: ra.assigned_date
         })),
+        training_breakdown: Object.entries(trainingGroups).map(([key, group]) => {
+          const course = trainingCourseMap.get(key);
+          const dates = group.dates.sort();
+          const isPast = dates[dates.length - 1] < TODAY;
+          return {
+            title: group.title,
+            category: inferTrainingCategory(group.title),
+            start_date: dates[0],
+            end_date: dates[dates.length - 1],
+            status: isPast ? 'completed' : 'scheduled',
+            staff_count: Object.keys(group.staffDates).length,
+            staff_names: Object.keys(group.staffDates).map(sk => staffMap.get(sk)?.name || sk).filter(Boolean),
+            is_new: newCourseKeys.includes(key),
+          };
+        }),
       });
     }
 
@@ -1112,6 +1237,7 @@ export default async function(req) {
         rotas: { created: createdCount, duplicates_collapsed: duplicateRotaRows },
         rig_assignments: { created: rigAssignmentCount, total: dedupedRigAssignments.length },
         staff: { ...summary.staff, leavers_marked_inactive: leaversMarked },
+        training: { ...summary.training, bookings_created: createdTrainingBookings },
       },
       sheet_breakdown: sheetBreakdown,
       staff_breakdown: staffBreakdown,
@@ -1128,6 +1254,21 @@ export default async function(req) {
         status: j.status, start_date: j.start_date, end_date: j.end_date,
       })),
       new_teams: newTeamNames,
+      training_breakdown: Object.entries(trainingGroups).map(([key, group]) => {
+        const course = trainingCourseMap.get(key);
+        const dates = group.dates.sort();
+        const isPast = dates[dates.length - 1] < TODAY;
+        return {
+          title: group.title,
+          category: inferTrainingCategory(group.title),
+          start_date: dates[0],
+          end_date: dates[dates.length - 1],
+          status: isPast ? 'completed' : 'scheduled',
+          staff_count: Object.keys(group.staffDates).length,
+          staff_names: Object.keys(group.staffDates).map(sk => staffMap.get(sk)?.name || sk).filter(Boolean),
+          is_new: newCourseKeys.includes(key),
+        };
+      }),
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

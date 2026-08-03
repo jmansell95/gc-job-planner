@@ -192,6 +192,74 @@ export function isSectionHeader(text) {
   return SECTION_KEYWORDS.some(kw => lower === kw || lower.startsWith(kw) || lower.includes(kw));
 }
 
+// Training course keywords — only these create TrainingCourse records.
+// Overheads (yard, depot, home), meetings, audits etc. are NOT training courses
+// even though they share the 'training' rota assignment type.
+export const TRAINING_COURSE_KEYWORDS = [
+  'first aid', 'sssts', 'iosh', 'rolo', 'cat&genny', 'cat & genny', 'cscs',
+  'breathing apparatus', 'breathing', 'asbestos', 'confined space',
+  'induction', 'orientation', 'medical', 'refresher', 'streetworks',
+  'cpd', 'training', 'course', 'npors', 'cpcs', 'forklift',
+  'working at height', 'manual handling', 'fire warden', 'fire marshal',
+  'abrasive wheels', 'noise', 'vibration', 'hsv', 'puwer', 'loler',
+  'mental health', 'dse', 'display screen', 'ladder', 'harness',
+  'spillage', 'spill kit', 'traffic marshal', 'banksman', 'signaller',
+  'cat & genny', 'cable avoidance', 'underground services',
+];
+
+const OVERHEAD_NON_TRAINING_KEYWORDS = [
+  'yard', 'depot', 'dartford', 'home', 'leeds depot', 'overhead',
+  'internal', 'driving', 'warehouse', 'rig repair', 'rig maintenance',
+  'collecting rigs', 'potholes', 'site visit', 'internal works',
+  'internal job', 'internal site', 'fuel', 'van', 'mot', 'service',
+  'breakdown', 'holman', 'geotab', 'site', 'meeting', 'meet',
+  'networking', 'wfh', 'working from home', 'sample run', 'deliveries',
+  'rigs', 'monitoring', 'half day', 'ft visit', 'st marys axe',
+  'concept', 'greenwich', 'hap regeneration', 'ads rotary',
+  'rotary drilling', 'cable percussion', 'rail & infrastructure',
+  'audit', 'bda',
+];
+
+export function isActualTrainingCourse(label) {
+  if (!label) return false;
+  const lower = String(label).trim().toLowerCase();
+  if (!lower) return false;
+  // Exclude overheads/meetings/audits first
+  for (const kw of OVERHEAD_NON_TRAINING_KEYWORDS) {
+    if (lower === kw || lower.startsWith(kw)) return false;
+  }
+  return TRAINING_COURSE_KEYWORDS.some(kw => lower.includes(kw));
+}
+
+export function extractTrainingCourseTitle(label) {
+  if (!label) return null;
+  let s = String(label).trim();
+  // Strip common prefixes/suffixes
+  s = s.replace(/^training\s*course\s*[-:–]?\s*/i, '');
+  s = s.replace(/^training\s*[-:–]?\s*/i, '');
+  s = s.replace(/\s*training\s*course$/i, '');
+  s = s.replace(/\s*course\s*$/i, '');
+  s = s.replace(/^course\s*[-:–]?\s*/i, '');
+  s = s.replace(/\s*day\s*$/i, '');
+  s = s.trim();
+  if (!s) return null;
+  // Title-case the result
+  return s.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ').trim() || null;
+}
+
+export function inferTrainingCategory(title) {
+  if (!title) return 'other';
+  const lower = String(title).toLowerCase();
+  if (lower.includes('first aid')) return 'first_aid_cert';
+  if (lower.includes('cscs')) return 'cscs_card';
+  if (lower.includes('cpcs')) return 'cpcs_card';
+  if (lower.includes('npors')) return 'npors_card';
+  if (lower.includes('forklift')) return 'forklift';
+  if (lower.includes('driver') || lower.includes('licence') || lower.includes('license')) return 'driver_license';
+  if (lower.includes('dbs')) return 'dbs_certificate';
+  return 'other';
+}
+
 export function isNonPersonName(text) {
   if (!text) return true;
   const lower = String(text).trim().toLowerCase();
