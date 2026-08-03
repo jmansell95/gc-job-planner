@@ -6,6 +6,15 @@
       "type": "string",
       "description": "Sub-contractor company or individual name"
     },
+    "contractor_type": {
+      "type": "string",
+      "enum": [
+        "subcontractor",
+        "agency"
+      ],
+      "default": "subcontractor",
+      "description": "Type of external entity. 'subcontractor' = a company or individual that carries out work directly (drilling, groundworks, etc.). 'agency' = a labour supply company that provides workers to us on a temporary basis \u2014 we direct the labourer's daily work but pay the agency, not the individual."
+    },
     "contact_name": {
       "type": "string",
       "description": "Primary contact person"

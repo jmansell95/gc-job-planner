@@ -27,6 +27,10 @@
       ],
       "description": "Type of worker"
     },
+    "agency_id": {
+      "type": "string",
+      "description": "Linked Contractor (Agency) record \u2014 set when worker_type is 'agency'. Identifies which agency company supplies this labourer so payroll and financials can be grouped by supplier."
+    },
     "job_title": {
       "type": "string",
       "description": "Staff member's job title / role (e.g. 'Cable Percussion Driller', 'Groundworker'). Derived from the crew section during spreadsheet import."

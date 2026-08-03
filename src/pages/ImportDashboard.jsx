@@ -5,8 +5,9 @@ import {
   UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle,
   Users, Briefcase, CalendarDays, Trash2, HardHat, AlertCircle, RefreshCw,
   ChevronDown, ChevronRight, MapPin, Building2, UserX, Layers, Clock,
-  Palmtree, Thermometer, GraduationCap
+  Palmtree, Thermometer, GraduationCap, Building
 } from 'lucide-react';
+import LegacyArchiveImport from '@/components/import/LegacyArchiveImport';
 
 export default function ImportDashboard() {
   const { toast } = useToast();
@@ -125,6 +126,29 @@ export default function ImportDashboard() {
               <StatTile icon={CheckCircle2} label="Completed Jobs" total={applyResult.summary.jobs.completed} sub="past dates" color="slate" />
               <StatTile icon={Clock} label="In Progress" total={applyResult.summary.jobs.in_progress} sub="today/future" color="teal" />
             </div>
+
+            {/* Agency breakdown */}
+            {applyResult.summary.agencies?.total > 0 && (
+              <div className="mb-3">
+                <p className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                  <Building className="w-4 h-4" /> Agency Suppliers ({applyResult.summary.agencies.total})
+                </p>
+                <div className="space-y-1.5">
+                  {Object.entries(applyResult.summary.agencies.breakdown).map(([agencyName, data], i) => (
+                    <div key={i} className="bg-cyan-50 border border-cyan-200 rounded-lg px-4 py-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-cyan-600" />
+                        <span className="text-sm font-medium text-cyan-900">{agencyName}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-cyan-700">
+                        <span><strong>{data.workers}</strong> workers</span>
+                        <span><strong>{data.assignments}</strong> assignments</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Skipped sheets */}
             {applyResult.summary.skipped_sheets?.length > 0 && (
@@ -303,7 +327,7 @@ export default function ImportDashboard() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-cyan-900">Agency: {preview.summary.staff.agency}</p>
-                  <p className="text-xs text-cyan-700">→ Agency Workers team</p>
+                  <p className="text-xs text-cyan-700">→ Grouped by supplying agency</p>
                 </div>
               </div>
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -316,6 +340,29 @@ export default function ImportDashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Agency breakdown — workers grouped by supplying agency */}
+            {preview.summary.agencies?.total > 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                  <Building className="w-4 h-4" /> Agency Suppliers ({preview.summary.agencies.total})
+                </p>
+                <div className="space-y-2">
+                  {Object.entries(preview.summary.agencies.breakdown).map(([agencyName, data], i) => (
+                    <div key={i} className="bg-cyan-50 border border-cyan-200 rounded-lg px-4 py-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-cyan-600" />
+                        <span className="text-sm font-medium text-cyan-900">{agencyName}</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-cyan-700">
+                        <span><strong>{data.workers}</strong> workers</span>
+                        <span><strong>{data.assignments}</strong> assignments</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Non-job days (Annual Leave / Sick / Training) */}
             {preview.summary.non_job_assignments && (preview.summary.non_job_assignments.annual_leave + preview.summary.non_job_assignments.sick + preview.summary.non_job_assignments.training) > 0 && (
@@ -466,6 +513,7 @@ export default function ImportDashboard() {
                     <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
                       <span>📧 {s.email}</span>
                       <span>👥 {s.team}</span>
+                      {s.agency_name && <span>🏢 {s.agency_name}</span>}
                       {s.job_title && <span>🔧 {s.job_title}</span>}
                       {s.date_range && <span>📅 {s.date_range.from} → {s.date_range.to}</span>}
                     </div>
@@ -570,6 +618,11 @@ export default function ImportDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Legacy Archive Import */}
+      {!preview && !applyResult && (
+        <LegacyArchiveImport />
       )}
 
       {/* How it works */}

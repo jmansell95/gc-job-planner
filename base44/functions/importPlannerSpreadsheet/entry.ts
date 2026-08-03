@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import * as XLSX from 'npm:xlsx@0.18.5';
+import { buildContractorMaps, findOrCreateAgency } from '../../shared/entityRegistry.ts';
+import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, normalizeName, nameKey } from '../../shared/spreadsheetParser.ts';
 
 // ---------------------------------------------------------------------------
 // Team & Plant Planner Spreadsheet Import — Clean-Slate Edition
@@ -66,14 +68,6 @@ const CREW_SECTION_TO_DRILLING_METHOD = {
   'fitter': 'not_applicable', 'plant fitter': 'not_applicable',
 };
 
-const SECTION_KEYWORDS = [
-  'cable', 'rotary', 'groundwork', 'coring', 'trial pit', 'trial_pit',
-  'enabling',   'depot', 'yard', 'dartford', 'warehouse', 'leave', 'sick', 'holiday', 'plant',
-  'subbies', 'subcontractor', 'sub-contractor', 'subby', 'drilling subbies',
-  'sub.con', 'sub con', 'sub-con', 'field teams',
-  'agency', 'bh', 'bank holiday', 'absence',
-];
-
 // Non-work section headers — these are NOT teams/crews. Staff listed under
 // them are on annual leave, sick, training, etc. They should be assigned to
 // their real crew team (or fallback), not a team named "Annual Leave".
@@ -83,87 +77,6 @@ const NON_WORK_SECTION_KEYWORDS = [
 ];
 
 const SUBCONTRACTOR_PATTERNS = ['subbies', 'subcontractor', 'sub-contractor', 'subby', 'sub.con', 'sub con', 'sub-con'];
-
-const NON_PERSON_WORDS = [
-  'team', 'teams', 'crew', 'driver', 'supervisor', 'excavator', 'excavtion',
-  'operative', 'labourer', 'labour', 'helper', 'assistant',
-  'mobilisation', 'mobilization', 'mobil', 'sampling',
-  'fitter', 'mechanic', 'groundworker', 'groundworker+', 'ground',
-  'man', 'ex', 'subbies', 'subcontractor', 'sub-contractor',
-  'sub.con', 'sub', 'eng', 'field', 'drilling',
-  // Role labels and job titles that aren't people
-  'agent', 'manager', 'engineer', 'engineers', 'operator', 'operators',
-  'inspector', 'surveyor', 'technician', 'analyst', 'consultant',
-  'site', 'plant', 'safety', 'welfare', 'office', 'admin', 'administration',
-  'lead', 'senior', 'junior', 'trainee', 'apprentice', 'master',
-  'night', 'day', 'early', 'late', 'shift', 'rota',
-  'chargehand', 'foreman', 'ganger', 'charge',
-  'driller', 'drillers', 'piling', 'pile', 'coring', 'cable', 'rotary',
-  'groundworks', 'enabling', 'depot', 'yard', 'dartford', 'warehouse', 'leave', 'sick',
-  'holiday', 'absence', 'off', 'rest', 'break',
-  'tbc', 'tba', 'tbd', 'unknown', 'n/a', 'na', 'none',
-  'no', 'yes', 'am', 'pm', 'hrs', 'hours',
-  'resource', 'resources', 'allocation', 'allocated', 'unallocated',
-  'cover', 'covering', 'spare', 'backup', 'relief',
-  'staff', 'personnel', 'workforce', 'gang', 'squad', 'unit',
-  'agency', 'workers', 'worker', 'driller', 'drillers',
-  'base', 'area', 'rig', 'type', 'number', 'asset',
-  'opratives', 'operatives', 'full name',
-  'job', 'title',
-];
-
-// Keywords that indicate a company name rather than a person name.
-// If any word in a cell matches one of these, the cell is treated as a
-// subcontractor company (e.g. "DJ Drilling", "ABC Services Ltd").
-const COMPANY_KEYWORDS = [
-  'drilling', 'services', 'ltd', 'limited', 'construction', 'groundwork',
-  'groundworks', 'engineering', 'solutions', 'group', 'plant', 'hire',
-  'contractors', 'contracting', 'uk', 'co', 'trading', 'enterprises',
-  'holdings', 'developments', 'foundations', 'piling', 'civils',
-  'geotechnical', 'environmental', 'consulting', 'associates', 'partners',
-  'subbies', 'subcontractor', 'sub-contractor', 'subby',
-  'logistics', 'transport', 'haulage', 'demolition', 'excavation',
-  'remediation', 'specialists', 'industries', 'works',
-  'investigations', 'investigation', 'geo', 'surveying', 'testing',
-];
-
-// Strong role words that NEVER appear in a company name. Used to reject
-// role labels like "Drilling Supervisor" or "Engineering Staff" even when
-// the text also contains a company keyword. Words like "site" or "ground"
-// are deliberately NOT here because they can appear in company names
-// (e.g. "SDA Site Investigations", "Ground Engineering Ltd").
-const STRONG_ROLE_WORDS = [
-  'supervisor', 'manager', 'agent', 'crew', 'team', 'teams', 'staff',
-  'operator', 'operators', 'driver', 'labourer', 'labour', 'mechanic',
-  'fitter', 'inspector', 'surveyor', 'technician', 'analyst', 'consultant',
-  'lead', 'senior', 'junior', 'trainee', 'apprentice', 'master',
-  'chargehand', 'foreman', 'ganger', 'operative', 'helper', 'assistant',
-  'charge', 'night', 'day', 'shift', 'rota', 'holiday', 'absence',
-  'sick', 'leave', 'cover', 'covering', 'spare', 'backup', 'relief',
-  'personnel', 'workforce', 'gang', 'squad', 'unit', 'resource',
-  'resources', 'allocation', 'allocated', 'unallocated',
-  'driller', 'drillers', 'agency', 'workers', 'worker',
-  'type', 'number', 'base', 'area', 'asset',
-];
-
-// --- Helpers ---
-
-function normalizeName(name) {
-  if (!name) return '';
-  return String(name).trim().replace(/\s+/g, ' ');
-}
-// Aggressive dedup key: lowercases, strips punctuation, and normalises
-// "Last, First" → "first last" so the same person isn't imported twice
-// under slightly different name formats.
-function nameKey(name) {
-  let n = normalizeName(name).toLowerCase();
-  // "smith, john" → "john smith"
-  const commaMatch = n.match(/^([a-z.'-]+),\s*(.+)$/);
-  if (commaMatch) n = `${commaMatch[2]} ${commaMatch[1]}`;
-  // strip all punctuation except spaces
-  n = n.replace(/[.,'"`’‘()]/g, '').replace(/\s+/g, ' ').trim();
-  return n;
-}
 
 function isSubcontractor(name) {
   const lower = normalizeName(name).toLowerCase();
@@ -196,32 +109,6 @@ function normalizeSection(section) {
   return section;
 }
 
-// --- Non-job cell detection (date-column values that aren't job names) ---
-// "Off", "Golf day", "Holiday" → annual_leave
-// "Sick", "Off sick" → sick
-// "Training course", "CPD" → training
-// These are NOT jobs — they're categorised and stored as non-job RotaAssignments.
-const ANNUAL_LEAVE_CELL_KEYWORDS = [
-  'off', 'golf', 'golf day', 'holiday', 'holidays', 'al', 'annual leave',
-  'leave', 'vacation', 'pto', 'rest day', 'day off', 'rest', 'leave day',
-  'bh', 'bank holiday',
-];
-const SICK_CELL_KEYWORDS = ['sick', 'off sick', 'illness', 'unwell', 'sick leave'];
-const TRAINING_CELL_KEYWORDS = ['training', 'training course', 'course', 'cpd', 'training day'];
-
-function categorizeNonJobCell(cellValue) {
-  if (!cellValue) return null;
-  const lower = normalizeName(cellValue).toLowerCase().trim();
-  if (!lower || lower.length < 2) return null;
-  if (ANNUAL_LEAVE_CELL_KEYWORDS.includes(lower)) return 'annual_leave';
-  if (lower.startsWith('annual leave') || lower.startsWith('golf')) return 'annual_leave';
-  if (SICK_CELL_KEYWORDS.includes(lower)) return 'sick';
-  if (lower.startsWith('sick')) return 'sick';
-  if (TRAINING_CELL_KEYWORDS.includes(lower)) return 'training';
-  if (lower.startsWith('training') || lower.startsWith('course ')) return 'training';
-  return null;
-}
-
 function generateEmail(name, existingEmails) {
   const clean = normalizeName(name).toLowerCase().replace(/[^a-z0-9\s.-]/g, '').trim();
   if (!clean) return `imported.staff@${DEFAULT_DOMAIN}`;
@@ -236,14 +123,6 @@ function generateEmail(name, existingEmails) {
     base = `${first}.${last}${i}@${DEFAULT_DOMAIN}`;
   }
   return base;
-}
-
-function getWeekStart(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00Z');
-  const day = d.getUTCDay();
-  const diff = (day === 0 ? -6 : 1) - day;
-  d.setUTCDate(d.getUTCDate() + diff);
-  return d.toISOString().slice(0, 10);
 }
 
 // Partial-match inference: tries exact match first, then checks if the
@@ -290,99 +169,6 @@ function determineJobStatus(dates) {
   const allPast = dates.every(d => d < TODAY);
   if (allPast) return 'completed';
   return 'in_progress';
-}
-
-function cellToDate(cell) {
-  if (!cell) return null;
-  let iso = null;
-  if (cell instanceof Date) {
-    iso = cell.toISOString().slice(0, 10);
-  } else {
-    const s = String(cell).trim();
-    if (!s) return null;
-    const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (isoMatch) {
-      iso = `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
-    } else {
-      const num = Number(s);
-      if (!isNaN(num) && num > 30000 && num < 80000) {
-        const d = new Date(Math.round((num - 25569) * 86400 * 1000));
-        iso = d.toISOString().slice(0, 10);
-      }
-    }
-  }
-  if (!iso) return null;
-  const year = parseInt(iso.slice(0, 4), 10);
-  if (year < 2020 || year > 2030) return null;
-  return iso;
-}
-
-function isSectionHeader(text) {
-  if (!text) return false;
-  const s = String(text).trim();
-  if (s.length > 50 || /[\r\n]/.test(s)) return false; // long/multi-line text is notes, not a section
-  if (/[^a-z0-9\s/.-]/i.test(s)) return false; // special chars like & mean it's a label, not a section
-  const lower = s.toLowerCase();
-  const words = lower.split(/\s+/);
-  // Reject company names (e.g. "Dartford Drilling Services") — they're
-  // subcontractor entities, not section headers. Pure depot/yard/dartford/
-  // warehouse labels still pass through as section headers.
-  if (words.length >= 2 && words.some(w => COMPANY_KEYWORDS.includes(w)) && !words.some(w => STRONG_ROLE_WORDS.includes(w))) {
-    return false;
-  }
-  return SECTION_KEYWORDS.some(kw => lower === kw || lower.startsWith(kw) || lower.includes(kw));
-}
-
-function isNonPersonName(text) {
-  if (!text) return true;
-  const lower = normalizeName(text).toLowerCase();
-  const words = lower.split(/\s+/);
-  return words.some(w => NON_PERSON_WORDS.includes(w));
-}
-
-// Detects company names: "DJ Drilling", "ABC Services Ltd", "Smith & Jones"
-// Returns true if the text contains a company keyword or starts with
-// all-caps initials (2+ uppercase letters with no lowercase).
-function looksLikeCompanyName(text) {
-  if (!text) return false;
-  const s = String(text).trim();
-  if (s.length < 2) return false;
-  if (cellToDate(s)) return false;
-  if (isSectionHeader(s)) return false;
-  if (!/[a-zA-Z]/.test(s)) return false;
-  if (/\d/.test(s)) return false;
-  const lower = s.toLowerCase();
-  const words = lower.split(/\s+/);
-  // Reject role labels: if any word is a strong role word (supervisor, crew,
-  // staff, etc.) this is a role/label, not a company — even if it also
-  // contains a company keyword (e.g. "Drilling Supervisor", "Engineering Staff").
-  for (const w of words) {
-    if (STRONG_ROLE_WORDS.includes(w)) return false;
-  }
-  // Contains a company keyword (drilling, services, ltd, etc.)
-  if (words.some(w => COMPANY_KEYWORDS.includes(w))) return true;
-  // Starts with all-caps initials (e.g. "DJ Drilling", "AB Services")
-  const firstWord = s.split(/\s+/)[0];
-  if (words.length >= 2 && /^[A-Z]{2,}$/.test(firstWord)) return true;
-  return false;
-}
-
-function looksLikePersonName(text) {
-  if (!text) return false;
-  const s = String(text).trim();
-  if (s.length < 2) return false;
-  if (cellToDate(s)) return false;
-  if (isSectionHeader(s)) return false;
-  const lower = s.toLowerCase();
-  if (lower === 'team planner' || lower === 'plant planner') return false;
-  if (!/[a-zA-Z]/.test(s)) return false;
-  if (/\d/.test(s)) return false;
-  if (isNonPersonName(s)) return false;
-  if (looksLikeCompanyName(s)) return false; // company names → subcontractor, not direct staff
-  const words = s.split(/\s+/);
-  if (words.length < 2) return false;
-  if (words.length > 5) return false;
-  return words.every(w => /^[A-Z]/.test(w));
 }
 
 function isPlantPlannerSheet(sheetName) {
@@ -478,6 +264,7 @@ function parseSheet(sheet, sheetName) {
   let currentSection = '';
   let isSubSection = false;
   let isAgencySectionFlag = false;
+  let currentAgencyName = '';
 
   // Pre-scan rows between the title row and the date header row for section
   // headers (some sheets list sections above the date grid).
@@ -489,6 +276,7 @@ function parseSheet(sheet, sheetName) {
         currentSection = normalizeSection(String(row[c]).trim());
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
+        if (!isAgencySectionFlag) currentAgencyName = '';
         if (currentSection) sectionsFound.add(currentSection);
       }
     }
@@ -513,6 +301,7 @@ function parseSheet(sheet, sheetName) {
         currentSection = normalizeSection(String(cell).trim());
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
+        if (!isAgencySectionFlag) currentAgencyName = '';
         if (currentSection) sectionsFound.add(currentSection);
         foundSection = true;
         break;
@@ -531,8 +320,17 @@ function parseSheet(sheet, sheetName) {
     }
     if (!entityName) continue;
 
+    // Within an agency section, company names are the agency supplier —
+    // track it and skip the row (don't create assignments for the agency
+    // company itself). Person names after it are linked to that agency.
+    if (isAgencySectionFlag && isCompanyName) {
+      currentAgencyName = entityName;
+      continue;
+    }
+
     const entityIsSubbie = isSubSection || isCompanyName;
     const entityIsAgency = isAgencySectionFlag;
+    const entityAgencyName = isAgencySectionFlag ? currentAgencyName : '';
 
     let hadAssignment = false;
     for (const [colStr, date] of Object.entries(colToDate)) {
@@ -551,6 +349,7 @@ function parseSheet(sheet, sheetName) {
         date,
         crew_section: currentSection, is_subcontractor_section: entityIsSubbie,
         is_agency_section: entityIsAgency,
+        agency_name: entityAgencyName || undefined,
       });
       hadAssignment = true;
     }
@@ -560,6 +359,7 @@ function parseSheet(sheet, sheetName) {
         staff_name: entityName, job_name: null, date: null,
         crew_section: currentSection, is_subcontractor_section: entityIsSubbie,
         is_agency_section: entityIsAgency,
+        agency_name: entityAgencyName || undefined,
       });
     }
   }
@@ -769,6 +569,12 @@ export default async function(req) {
       .filter(s => s.user_id && s.is_active !== false && !uniqueStaffKeys.has(nameKey(s.name)))
       .map(s => ({ id: s.id, name: s.name, email: s.email, team_id: s.team_id }));
 
+    // Load existing contractors (agencies + subcontractors) — these survive
+    // the full wipe so agency relationships persist across re-imports.
+    const existingContractors = await base44.asServiceRole.entities.Contractor.list('-created_date', 5000);
+    const contractorMaps = buildContractorMaps(existingContractors);
+    const newAgencies = [];
+
     const staffMap = new Map();
     const newStaffPayloads = [];
     const newStaffKeys = [];
@@ -800,12 +606,27 @@ export default async function(req) {
       const jobTitle = inferJobTitle(mostCommonSection);
       const team = agency ? agencyTeam : (subbie ? subconTeam : (teamMap[mostCommonSection] || fallbackTeam));
 
+      // Resolve the agency (Contractor) for agency workers. The agency name
+      // comes from the company-name row above the worker in the spreadsheet.
+      let agencyId = undefined;
+      let agencyNameResolved = '';
+      if (agency) {
+        const agencyNames = staffAssignments.map(a => a.agency_name).filter(Boolean);
+        agencyNameResolved = getMostCommon(agencyNames) || 'Unknown Agency';
+        const agencyRec = await findOrCreateAgency(base44, agencyNameResolved, contractorMaps, dryRun);
+        agencyId = agencyRec.id;
+        if (!existingContractors.find(c => c.id === agencyRec.id) && !newAgencies.find(a => a.id === agencyRec.id)) {
+          newAgencies.push(agencyRec);
+        }
+      }
+
       if (!staff) {
         const email = generateEmail(name, allKnownEmails);
         allKnownEmails.add(email.toLowerCase());
         newStaffPayloads.push({
           name, email, worker_type: workerType,
-          job_title: jobTitle || undefined, team_id: team.id, is_active: true,
+          agency_id: agencyId, job_title: jobTitle || undefined,
+          team_id: team.id, is_active: true,
         });
         newStaffKeys.push(key);
       } else {
@@ -813,6 +634,7 @@ export default async function(req) {
         const updates = {};
         if (jobTitle && !staff.job_title) updates.job_title = jobTitle;
         if (!staff.worker_type) updates.worker_type = workerType;
+        if (agency && agencyId && !staff.agency_id) updates.agency_id = agencyId;
         if (subbie && staff.team_id && staff.team_id !== subconTeam.id) updates.team_id = subconTeam.id;
         if (!staff.is_active) updates.is_active = true; // reactivate if returning
 
@@ -1065,6 +887,18 @@ export default async function(req) {
       teamAssignments.some(a => nameKey(a.staff_name) === k && a.is_agency_section)
     ).length;
 
+    // Group agency workers by their supplying agency
+    const agencyBreakdown = {};
+    for (const key of uniqueStaffKeys) {
+      const sAssignments = teamAssignments.filter(a => nameKey(a.staff_name) === key && a.is_agency_section);
+      if (sAssignments.length === 0) continue;
+      const agencyNames = sAssignments.map(a => a.agency_name).filter(Boolean);
+      const agencyName = getMostCommon(agencyNames) || 'Unknown Agency';
+      if (!agencyBreakdown[agencyName]) agencyBreakdown[agencyName] = { workers: 0, assignments: 0 };
+      agencyBreakdown[agencyName].workers++;
+      agencyBreakdown[agencyName].assignments += sAssignments.length;
+    }
+
     // Per-staff breakdown: name, email, team, type, assignment count, dates worked
     const staffBreakdown = [...uniqueStaffKeys].map(key => {
       const staff = staffMap.get(key);
@@ -1077,10 +911,14 @@ export default async function(req) {
       const inAgency = sAssignments.some(a => a.is_agency_section);
       const subbie = isSubcontractor(name) || inSub;
       const agency = inAgency;
+      const agencyNames = sAssignments.map(a => a.agency_name).filter(Boolean);
+      const agencyName = agency ? (getMostCommon(agencyNames) || 'Unknown Agency') : '';
       return {
         name,
         email: staff?.email || generateEmail(name),
         worker_type: agency ? 'agency' : (subbie ? 'subcontractor' : 'direct_employee'),
+        agency_name: agencyName,
+        agency_id: staff?.agency_id || '',
         team: agency ? AGENCY_TEAM_NAME : (subbie ? SUBCONTRACTOR_TEAM_NAME : (sections[0] || DIRECT_EMPLOYEE_TEAM_NAME)),
         job_title: staff?.job_title || inferJobTitle(sections[0]) || '',
         assignment_count: sAssignments.length,
@@ -1157,6 +995,11 @@ export default async function(req) {
       non_job_assignments: nonJobCounts,
       rig_assignments: {
         total: dedupedRigAssignments.length,
+      },
+      agencies: {
+        total: Object.keys(agencyBreakdown).length,
+        new: newAgencies.length,
+        breakdown: agencyBreakdown,
       },
       sections_detected: [...allSectionsDetected],
       skipped_sheets: skippedSheets,
