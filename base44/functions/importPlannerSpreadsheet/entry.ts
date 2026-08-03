@@ -28,6 +28,7 @@ const DIRECT_EMPLOYEE_TEAM_NAME = 'Direct Employees';
 const AGENCY_TEAM_NAME = 'Agency Workers';
 const DEPOT_TEAM_NAME = 'Dartford Depot';
 const DEPOT_ALIASES = ['dartford', 'yard', 'depot', 'warehouse'];
+const ANNUAL_LEAVE_TEAM_NAME = 'Annual Leave';
 
 const CREW_SECTION_TO_JOB_TYPE = {
   'cable': 'cp_drilling', 'cable percussion': 'cp_drilling',
@@ -36,6 +37,7 @@ const CREW_SECTION_TO_JOB_TYPE = {
   'enabling': 'enabling_works', 'enabling works': 'enabling_works',
   'depot': 'depot', 'yard': 'depot', 'yard/depot': 'depot',
   'dartford': 'depot', 'warehouse': 'depot',
+  'annual leave': 'depot', 'holiday': 'depot',
   'leave/sick': 'depot', 'leave': 'depot', 'sick': 'depot',
 };
 
@@ -46,6 +48,7 @@ const CREW_SECTION_TO_JOB_TITLE = {
   'enabling': 'Enabling Works Operative', 'enabling works': 'Enabling Works Operative',
   'depot': 'Yard/Depot Staff', 'yard': 'Yard/Depot Staff', 'yard/depot': 'Yard/Depot Staff',
   'dartford': 'Yard/Depot Staff', 'warehouse': 'Yard/Depot Staff',
+  'annual leave': '', 'holiday': '',
   'leave/sick': '', 'leave': '', 'sick': '',
 };
 
@@ -56,12 +59,13 @@ const CREW_SECTION_TO_DRILLING_METHOD = {
   'enabling': 'not_applicable', 'enabling works': 'not_applicable',
   'depot': 'not_applicable', 'yard': 'not_applicable', 'yard/depot': 'not_applicable',
   'dartford': 'not_applicable', 'warehouse': 'not_applicable',
+  'annual leave': 'not_applicable', 'holiday': 'not_applicable',
   'leave/sick': 'not_applicable', 'leave': 'not_applicable', 'sick': 'not_applicable',
 };
 
 const SECTION_KEYWORDS = [
   'cable', 'rotary', 'groundwork', 'coring', 'trial pit', 'trial_pit',
-  'enabling',   'depot', 'yard', 'dartford', 'warehouse', 'leave', 'sick', 'plant',
+  'enabling',   'depot', 'yard', 'dartford', 'warehouse', 'leave', 'sick', 'holiday', 'plant',
   'subbies', 'subcontractor', 'sub-contractor', 'subby', 'drilling subbies',
   'sub.con', 'sub con', 'sub-con', 'field teams',
   'agency',
@@ -164,9 +168,18 @@ function isDepotSection(name) {
   return DEPOT_ALIASES.some(a => lower === a || lower.includes(a));
 }
 
-function normalizeDepotSection(section) {
+function isAnnualLeaveSection(name) {
+  if (!name) return false;
+  const lower = normalizeName(name).toLowerCase();
+  if (lower.includes('holiday')) return true;
+  if (lower.includes('annual') && lower.includes('leave')) return true;
+  return false;
+}
+
+function normalizeSection(section) {
   if (!section) return section;
   if (isDepotSection(section)) return DEPOT_TEAM_NAME;
+  if (isAnnualLeaveSection(section)) return ANNUAL_LEAVE_TEAM_NAME;
   return section;
 }
 
@@ -409,7 +422,7 @@ function parseSheet(sheet, sheetName) {
     if (!row) continue;
     for (let c = 0; c < 6 && c < row.length; c++) {
       if (isSectionHeader(row[c])) {
-        currentSection = normalizeDepotSection(String(row[c]).trim());
+        currentSection = normalizeSection(String(row[c]).trim());
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
         sectionsFound.add(currentSection);
@@ -433,7 +446,7 @@ function parseSheet(sheet, sheetName) {
     let foundSection = false;
     for (const cell of firstCells) {
       if (isSectionHeader(cell)) {
-        currentSection = normalizeDepotSection(String(cell).trim());
+        currentSection = normalizeSection(String(cell).trim());
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
         sectionsFound.add(currentSection);
