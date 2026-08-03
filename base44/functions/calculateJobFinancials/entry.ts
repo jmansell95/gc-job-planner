@@ -4,6 +4,7 @@ import { resolveHireCharges } from '../../shared/supplierRateMatcher.ts';
 
 // ============================================================
 // calculateJobFinancials — the zero-touch auto-financials engine
+// (all entity queries are wrapped in try/catch to prevent 500s)
 // ============================================================
 // Given a job_id, this function:
 //   1. Detects the drilling method (CP / Rotary / Mixed) from rig
@@ -35,13 +36,19 @@ export default async function(req: Request): Promise<Response> {
     const jobId = body.job_id;
     if (!jobId) return Response.json({ error: 'job_id is required' }, { status: 400 });
 
-    const job = await base44.asServiceRole.entities.Job.get(jobId);
+    let job: any;
+    try {
+      job = await base44.asServiceRole.entities.Job.get(jobId);
+    } catch (_) {
+      return Response.json({ error: 'Job not found' }, { status: 404 });
+    }
     if (!job) return Response.json({ error: 'Job not found' }, { status: 404 });
 
     const vatRate = Number(job.vat_rate) || 20;
 
     // ── Load all investigation logs ──
-    const logs: any[] = await base44.asServiceRole.entities.InvestigationLog.filter({ job_id: jobId });
+    let logs: any[] = [];
+    try { logs = await base44.asServiceRole.entities.InvestigationLog.filter({ job_id: jobId }); } catch (_) {}
 
     // ── Load rate card items at all three levels ──
     const staffIds = [...new Set(logs.map((l: any) => l.staff_id).filter(Boolean))] as string[];
@@ -53,7 +60,8 @@ export default async function(req: Request): Promise<Response> {
       } catch (_) { staffRates[sid] = []; }
     }
 
-    const projectRateItems = await loadProjectRateCardItems(base44, job.project_id);
+    let projectRateItems: RateCardItemLike[] = [];
+    try { projectRateItems = await loadProjectRateCardItems(base44, job.project_id); } catch (_) { projectRateItems = []; }
 
     let globalItems: RateCardItemLike[] = [];
     if (job.project_id) {
@@ -72,7 +80,8 @@ export default async function(req: Request): Promise<Response> {
     // records) or JobCostItem entries created via the Logistics tab (with
     // site_asset_id linking to a rig-type SiteAsset). We check both so rigs
     // added in Logistics feed drilling-method detection.
-    const rigAssignments = await base44.asServiceRole.entities.JobAssetAssignment.filter({ job_id: jobId });
+    let rigAssignments: any[] = [];
+    try { rigAssignments = await base44.asServiceRole.entities.JobAssetAssignment.filter({ job_id: jobId }); } catch (_) {}
     const rigs = (rigAssignments as any[]).filter((a: any) => a.asset_type === 'rig');
     const rigMethods = new Set<string>();
     for (const r of rigs) {
@@ -411,7 +420,8 @@ export default async function(req: Request): Promise<Response> {
     boreholeRevenue.sort((a, b) => a.borehole_ref.localeCompare(b.borehole_ref));
 
     // ── Costs ──
-    const costItems = await base44.asServiceRole.entities.JobCostItem.filter({ job_id: jobId });
+    let costItems: any[] = [];
+    try { costItems = await base44.asServiceRole.entities.JobCostItem.filter({ job_id: jobId }); } catch (_) {}
 
     // ── Supplier rate-card matching for plant hire ──
     // Hired plant has a buy side (supplier rate card) and a sell side (Our Rate
@@ -428,10 +438,10 @@ export default async function(req: Request): Promise<Response> {
     const hireMarkupPct = Number(job.markup_percentage) || 15;
     const hireBreakdown = resolveHireCharges(costItems, supplierRateItems, ourRateItemsForHire, hireMarkupPct);
 
-    const hotelBookings = await base44.asServiceRole.entities.HotelBooking.filter({ job_id: jobId });
-    const deliveries = await base44.asServiceRole.entities.DeliveryLog.filter({ job_id: jobId });
-    const timesheets = await base44.asServiceRole.entities.Timesheet.filter({ job_id: jobId });
-    const rotaAssignments = await base44.asServiceRole.entities.RotaAssignment.filter({ job_id: jobId });
+    let hotelBookings: any[] = []; try { hotelBookings = await base44.asServiceRole.entities.HotelBooking.filter({ job_id: jobId }); } catch (_) {}
+    let deliveries: any[] = []; try { deliveries = await base44.asServiceRole.entities.DeliveryLog.filter({ job_id: jobId }); } catch (_) {}
+    let timesheets: any[] = []; try { timesheets = await base44.asServiceRole.entities.Timesheet.filter({ job_id: jobId }); } catch (_) {}
+    let rotaAssignments: any[] = []; try { rotaAssignments = await base44.asServiceRole.entities.RotaAssignment.filter({ job_id: jobId }); } catch (_) {}
 
     // ── Daily costs (crew expenses from End-of-Shift wizard) ──
     let dailyCosts: any[] = [];

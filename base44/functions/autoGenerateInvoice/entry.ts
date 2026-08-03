@@ -166,14 +166,14 @@ function buildInvoiceLines(job, d) {
 
 async function loadJobData(base44, jobId) {
   const [costItems, hotelBookings, deliveries, timesheets, invLogs, rigAssignments, dailyCosts, subconLogs] = await Promise.all([
-    base44.asServiceRole.entities.JobCostItem.filter({ job_id: jobId }),
-    base44.asServiceRole.entities.HotelBooking.filter({ job_id: jobId }),
-    base44.asServiceRole.entities.DeliveryLog.filter({ job_id: jobId }),
-    base44.asServiceRole.entities.Timesheet.filter({ job_id: jobId }),
-    base44.asServiceRole.entities.InvestigationLog.filter({ job_id: jobId }),
-    base44.asServiceRole.entities.JobAssetAssignment.filter({ job_id: jobId }),
-    base44.asServiceRole.entities.DailyCost.filter({ job_id: jobId }),
-    base44.asServiceRole.entities.SubcontractorLog.filter({ job_id: jobId }),
+    base44.asServiceRole.entities.JobCostItem.filter({ job_id: jobId }).catch(() => []),
+    base44.asServiceRole.entities.HotelBooking.filter({ job_id: jobId }).catch(() => []),
+    base44.asServiceRole.entities.DeliveryLog.filter({ job_id: jobId }).catch(() => []),
+    base44.asServiceRole.entities.Timesheet.filter({ job_id: jobId }).catch(() => []),
+    base44.asServiceRole.entities.InvestigationLog.filter({ job_id: jobId }).catch(() => []),
+    base44.asServiceRole.entities.JobAssetAssignment.filter({ job_id: jobId }).catch(() => []),
+    base44.asServiceRole.entities.DailyCost.filter({ job_id: jobId }).catch(() => []),
+    base44.asServiceRole.entities.SubcontractorLog.filter({ job_id: jobId }).catch(() => []),
   ]);
   // Only approved staff logs; AGS imports always billable.
   const billableLogs = invLogs.filter((l) => l.source === 'ags_import' || l.manager_review_status === 'approved');

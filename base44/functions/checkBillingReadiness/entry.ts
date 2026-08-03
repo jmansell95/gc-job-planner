@@ -28,13 +28,13 @@ export default async function(req) {
     const [
       costItems, deliveries, timesheets, subconLogs, rotas, rateItems, boqLines
     ] = await Promise.all([
-      base44.asServiceRole.entities.JobCostItem.filter({ job_id: jobId }),
-      base44.asServiceRole.entities.DeliveryLog.filter({ job_id: jobId }),
-      base44.asServiceRole.entities.Timesheet.filter({ job_id: jobId }),
-      base44.asServiceRole.entities.SubcontractorLog.filter({ job_id: jobId }),
-      base44.asServiceRole.entities.RotaAssignment.filter({ job_id: jobId }),
-      base44.asServiceRole.entities.RateCardItem.filter({ category: 'labour', is_active: true }),
-      base44.asServiceRole.entities.JobBillOfQuantities.filter({ job_id: jobId }),
+      base44.asServiceRole.entities.JobCostItem.filter({ job_id: jobId }).catch(() => []),
+      base44.asServiceRole.entities.DeliveryLog.filter({ job_id: jobId }).catch(() => []),
+      base44.asServiceRole.entities.Timesheet.filter({ job_id: jobId }).catch(() => []),
+      base44.asServiceRole.entities.SubcontractorLog.filter({ job_id: jobId }).catch(() => []),
+      base44.asServiceRole.entities.RotaAssignment.filter({ job_id: jobId }).catch(() => []),
+      base44.asServiceRole.entities.RateCardItem.filter({ category: 'labour', is_active: true }).catch(() => []),
+      base44.asServiceRole.entities.JobBillOfQuantities.filter({ job_id: jobId }).catch(() => []),
     ]);
 
     const blockers = [];
