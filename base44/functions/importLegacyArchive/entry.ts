@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import * as XLSX from 'npm:xlsx@0.18.5';
-import { nameKey, normalizeName, buildStaffMaps, buildJobMaps } from '../../shared/entityRegistry.ts';
+import { nameKey, normalizeName, buildStaffMaps, buildJobMaps, fuzzyFindStaff, fuzzyFindJob } from '../../shared/entityRegistry.ts';
 import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, looksLikePersonName } from '../../shared/spreadsheetParser.ts';
 
 // ---------------------------------------------------------------------------
@@ -202,17 +202,36 @@ export default async function(req) {
     const staffMaps = buildStaffMaps(existingStaff);
     const jobMaps = buildJobMaps(existingJobs);
 
-    // Match staff and jobs
+    // Match staff and jobs using FUZZY matching — old data may have typos,
+    // abbreviations, or slightly different name formats. We try exact nameKey
+    // first (via the maps), then fall back to fuzzy token + Levenshtein
+    // similarity so "Jon Smith" matches "John Smith", "Hayes Coring" matches
+    // "Hayes - Coring", etc.
     const matchedAssignments = [];
     const unmatchedStaffNames = new Set();
     const unmatchedJobNames = new Set();
     const matchedStaffIds = new Set();
     const matchedJobIds = new Set();
+    const fuzzyStaffMatches = []; // { query, matched, score, method }
+    const fuzzyJobMatches = [];
 
     for (const a of allAssignments) {
       if (!a.date) continue;
       const staffKey = nameKey(a.staff_name);
-      const staff = staffMaps.byNameKey.get(staffKey);
+
+      // Try exact match first, then fuzzy
+      let staff = staffMaps.byNameKey.get(staffKey);
+      let staffMatchMethod = 'exact';
+      let staffMatchScore = 1;
+      if (!staff) {
+        const fuzzy = fuzzyFindStaff(a.staff_name, existingStaff);
+        if (fuzzy) {
+          staff = fuzzy.staff;
+          staffMatchMethod = fuzzy.method;
+          staffMatchScore = fuzzy.score;
+          fuzzyStaffMatches.push({ query: a.staff_name, matched: staff.name, score: Math.round(fuzzy.score * 100), method: fuzzy.method });
+        }
+      }
       if (!staff) {
         unmatchedStaffNames.add(a.staff_name);
         continue;
@@ -230,7 +249,18 @@ export default async function(req) {
         });
       } else if (a.job_name) {
         const jobKey = nameKey(a.job_name);
-        const job = jobMaps.byNameKey.get(jobKey);
+        let job = jobMaps.byNameKey.get(jobKey);
+        let jobMatchMethod = 'exact';
+        let jobMatchScore = 1;
+        if (!job) {
+          const fuzzy = fuzzyFindJob(a.job_name, existingJobs);
+          if (fuzzy) {
+            job = fuzzy.job;
+            jobMatchMethod = fuzzy.method;
+            jobMatchScore = fuzzy.score;
+            fuzzyJobMatches.push({ query: a.job_name, matched: job.name, score: Math.round(fuzzy.score * 100), method: fuzzy.method });
+          }
+        }
         if (!job) {
           unmatchedJobNames.add(a.job_name);
           continue;
@@ -312,6 +342,8 @@ export default async function(req) {
       duplicates_skipped: rotasToCreate.length - trulyNewRotas.length,
       internal_duplicates_collapsed: duplicateCount,
       absences_to_create: absencePayloads.length,
+      fuzzy_staff_matches: fuzzyStaffMatches.length,
+      fuzzy_job_matches: fuzzyJobMatches.length,
     };
 
     if (dryRun) {
@@ -322,6 +354,8 @@ export default async function(req) {
         sheet_breakdown: sheetBreakdown,
         unmatched_staff: [...unmatchedStaffNames].slice(0, 100),
         unmatched_jobs: [...unmatchedJobNames].slice(0, 100),
+        fuzzy_staff_matches: fuzzyStaffMatches.slice(0, 100),
+        fuzzy_job_matches: fuzzyJobMatches.slice(0, 100),
       });
     }
 
@@ -356,6 +390,8 @@ export default async function(req) {
       sheet_breakdown: sheetBreakdown,
       unmatched_staff: [...unmatchedStaffNames].slice(0, 100),
       unmatched_jobs: [...unmatchedJobNames].slice(0, 100),
+      fuzzy_staff_matches: fuzzyStaffMatches.slice(0, 100),
+      fuzzy_job_matches: fuzzyJobMatches.slice(0, 100),
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

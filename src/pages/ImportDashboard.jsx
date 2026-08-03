@@ -8,6 +8,7 @@ import {
   Palmtree, Thermometer, GraduationCap, Building
 } from 'lucide-react';
 import LegacyArchiveImport from '@/components/import/LegacyArchiveImport';
+import ImportCompleteModal from '@/components/import/ImportCompleteModal';
 
 export default function ImportDashboard() {
   const { toast } = useToast();
@@ -85,200 +86,6 @@ export default function ImportDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Completion breakdown — shown after applying */}
-      {applyResult && (
-        <div className="space-y-4">
-          <div className="insight-card rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-slate-800">Import Complete — Full Breakdown</h2>
-                <p className="text-sm text-slate-500">
-                  Wiped everything and rebuilt from {applyResult.summary.target_tabs?.length || 0} tab(s):{' '}
-                  <span className="font-medium text-slate-700">{applyResult.summary.target_tabs?.join(', ')}</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Purge + create summary */}
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Trash2 className="w-4 h-4 text-red-600" />
-                <p className="text-sm font-semibold text-red-800">Wiped (Deleted)</p>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
-                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.staff_deleted}</span> staff</div>
-                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.jobs_deleted}</span> jobs</div>
-                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.teams_deleted}</span> teams</div>
-                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.crews_deleted}</span> crews</div>
-                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.rotas_deleted}</span> rotas</div>
-                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.asset_assignments_deleted}</span> asset assignments</div>
-                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.training_bookings_deleted || 0}</span> training bookings</div>
-                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{applyResult.summary.purge.absences_deleted || 0}</span> absences</div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
-              <StatTile icon={Users} label="Staff Created" total={applyResult.summary.staff.new} sub={`${applyResult.summary.staff.subcontractors} subcon`} color="blue" />
-              <StatTile icon={Briefcase} label="Jobs Created" total={applyResult.summary.jobs.new} sub={`${applyResult.summary.jobs.completed} completed`} color="emerald" />
-              <StatTile icon={CalendarDays} label="Rotas Created" total={applyResult.summary.rotas.created} sub={`${applyResult.summary.rotas.duplicates_collapsed} dupes`} color="amber" />
-              <StatTile icon={Building2} label="Teams" total={applyResult.summary.teams.total} sub={`${applyResult.summary.teams.new} new`} color="teal" />
-              <StatTile icon={CheckCircle2} label="Completed Jobs" total={applyResult.summary.jobs.completed} sub="past dates" color="slate" />
-              <StatTile icon={Clock} label="In Progress" total={applyResult.summary.jobs.in_progress} sub="today/future" color="teal" />
-              <StatTile icon={Layers} label="Projects" total={(applyResult.summary.projects?.existing_matched || 0) + (applyResult.summary.projects?.new_created || 0)} sub={`${applyResult.summary.projects?.new_created || 0} new`} color="violet" />
-              <StatTile icon={GraduationCap} label="Training" total={(applyResult.summary.training?.courses_new || 0) + (applyResult.summary.training?.courses_matched || 0)} sub={`${applyResult.summary.training?.bookings_created || 0} bookings`} color="indigo" />
-              <StatTile icon={Palmtree} label="Absences" total={applyResult.summary.absences?.created || 0} sub={`${applyResult.summary.absences?.holiday || 0} hol · ${applyResult.summary.absences?.sick || 0} sick`} color="rose" />
-            </div>
-
-            {/* Agency breakdown */}
-            {applyResult.summary.agencies?.total > 0 && (
-              <div className="mb-3">
-                <p className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
-                  <Building className="w-4 h-4" /> Agency Suppliers ({applyResult.summary.agencies.total})
-                </p>
-                <div className="space-y-1.5">
-                  {Object.entries(applyResult.summary.agencies.breakdown).map(([agencyName, data], i) => (
-                    <div key={i} className="bg-cyan-50 border border-cyan-200 rounded-lg px-4 py-2 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-cyan-600" />
-                        <span className="text-sm font-medium text-cyan-900">{agencyName}</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-cyan-700">
-                        <span><strong>{data.workers}</strong> workers</span>
-                        <span><strong>{data.assignments}</strong> assignments</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Skipped sheets */}
-            {applyResult.summary.skipped_sheets?.length > 0 && (
-              <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 mb-3">
-                <p className="text-sm font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                  <Layers className="w-4 h-4" /> Skipped Tabs ({applyResult.summary.skipped_sheets.length}) — Prehistoric Data
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {applyResult.summary.skipped_sheets.map((s, i) => (
-                    <span key={i} className="text-xs bg-slate-200 text-slate-500 rounded-full px-3 py-1 line-through">{s}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={handleReset}
-              className="command-gradient text-white px-5 py-3 rounded-xl font-semibold text-sm flex items-center gap-2 transition hover:shadow-lg"
-            >
-              <RefreshCw className="w-4 h-4" /> Start New Import
-            </button>
-          </div>
-
-          {/* Staff breakdown */}
-          {applyResult.staff_breakdown?.length > 0 && (
-            <CollapsibleSection title={`Staff Created (${applyResult.staff_breakdown.length})`} icon={Users} defaultOpen={false}>
-              <div className="space-y-1.5 max-h-96 overflow-y-auto">
-                {applyResult.staff_breakdown.map((s, i) => (
-                  <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-700">{s.name}</span>
-                        <span className={`text-xs rounded-full px-2 py-0.5 ${s.worker_type === 'subcontractor' ? 'bg-indigo-100 text-indigo-700' : s.worker_type === 'agency' ? 'bg-cyan-100 text-cyan-700' : 'bg-slate-100 text-slate-600'}`}>
-                          {s.worker_type === 'subcontractor' ? 'Subcon' : s.worker_type === 'agency' ? 'Agency' : 'Direct'}
-                        </span>
-                      </div>
-                      <span className="text-xs text-slate-400">{s.assignment_count} assignments</span>
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                      <span>📧 {s.email}</span>
-                      <span>👥 {s.team}</span>
-                      {s.job_title && <span>🔧 {s.job_title}</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
-          )}
-
-          {/* Jobs breakdown */}
-          {applyResult.jobs_breakdown?.length > 0 && (
-            <CollapsibleSection title={`Jobs Created (${applyResult.jobs_breakdown.length})`} icon={Briefcase} defaultOpen={false}>
-              <div className="space-y-1.5 max-h-96 overflow-y-auto">
-                {applyResult.jobs_breakdown.map((j, i) => (
-                  <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-slate-700">{j.name}</span>
-                      <StatusBadge status={j.status} />
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                      {j.reference && <span>🏷️ {j.reference}</span>}
-                      {j.location && <span><MapPin className="w-3 h-3 inline" /> {j.location}</span>}
-                      <span>📅 {j.start_date || '—'} → {j.end_date || '—'}</span>
-                      <span>👷 {j.staff_count} staff</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
-          )}
-
-          {/* Training breakdown */}
-          {applyResult.training_breakdown?.length > 0 && (
-            <CollapsibleSection title={`Training Courses (${applyResult.training_breakdown.length})`} icon={GraduationCap} defaultOpen={false}>
-              <div className="space-y-1.5 max-h-96 overflow-y-auto">
-                {applyResult.training_breakdown.map((t, i) => (
-                  <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-700">{t.title}</span>
-                        {t.is_new && <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">NEW</span>}
-                        <span className={`text-xs rounded-full px-2 py-0.5 ${t.status === 'completed' ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {t.status === 'completed' ? 'Completed' : 'Scheduled'}
-                        </span>
-                      </div>
-                      <span className="text-xs text-slate-400">{t.staff_count} staff</span>
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                      <span>📅 {t.start_date}{t.end_date !== t.start_date ? ` → ${t.end_date}` : ''}</span>
-                      <span>🏷️ {t.category}</span>
-                      <span>👥 {t.staff_names.join(', ')}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
-          )}
-
-          {/* Absence breakdown */}
-          {applyResult.absence_breakdown?.length > 0 && (
-            <CollapsibleSection title={`Absences (${applyResult.absence_breakdown.length})`} icon={Palmtree} defaultOpen={false}>
-              <div className="space-y-1.5 max-h-96 overflow-y-auto">
-                {applyResult.absence_breakdown.map((a, i) => (
-                  <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-700">{a.staff_name}</span>
-                        <span className={`text-xs rounded-full px-2 py-0.5 ${a.reason === 'holiday' ? 'bg-teal-100 text-teal-700' : a.reason === 'sick' ? 'bg-rose-100 text-rose-700' : 'bg-violet-100 text-violet-700'}`}>
-                          {a.reason === 'holiday' ? 'Holiday' : a.reason === 'sick' ? 'Sick' : 'Training'}
-                        </span>
-                      </div>
-                      <span className="text-xs text-slate-400">{a.days} day{a.days !== 1 ? 's' : ''}</span>
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                      <span>📅 {a.start_date}{a.end_date !== a.start_date ? ` → ${a.end_date}` : ''}</span>
-                      {a.notes && <span>📝 {a.notes}</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CollapsibleSection>
-          )}
-        </div>
-      )}
-
       {/* Upload Card */}
       <div className="insight-card rounded-2xl p-6">
         <h2 className="text-lg font-semibold text-slate-800 mb-1">1. Upload Spreadsheet</h2>
@@ -765,6 +572,9 @@ export default function ImportDashboard() {
           </ol>
         </div>
       )}
+
+      {/* Completion pop-up modal */}
+      {applyResult && <ImportCompleteModal result={applyResult} onClose={handleReset} type="planner" />}
     </div>
   );
 }
