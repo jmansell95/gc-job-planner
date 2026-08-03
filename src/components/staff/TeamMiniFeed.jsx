@@ -1,36 +1,15 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { Users, Phone, Mail, Briefcase } from 'lucide-react';
+import { Users, Phone, Mail } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 
-function getWeekStart(date = new Date()) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  return format(d, 'yyyy-MM-dd');
-}
-
 export default function TeamMiniFeed({ teamId, currentStaffId }) {
-  const weekStart = getWeekStart();
-
   const { data: allStaff = [], isLoading: staffLoading } = useQuery({
     queryKey: ['staff'],
     queryFn: () => base44.entities.Staff.list()
   });
-  const { data: assignments = [] } = useQuery({
-    queryKey: ['team-assignments', teamId, weekStart],
-    queryFn: () => base44.entities.RotaAssignment.filter({ week_start: weekStart }),
-    enabled: !!teamId
-  });
-  const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
-
   const teamMembers = allStaff.filter(s => s.team_id === teamId && s.is_active !== false);
-  const teamMemberIds = new Set(teamMembers.map(m => m.id));
-  const weekAssignments = assignments.filter(a => teamMemberIds.has(a.staff_id));
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
@@ -82,30 +61,6 @@ export default function TeamMiniFeed({ teamId, currentStaffId }) {
             ))}
           </div>
 
-          {/* This week's roster */}
-          {weekAssignments.length > 0 && (
-            <div className="border-t border-slate-100 pt-3">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">This Week's Roster</p>
-              <div className="space-y-1.5">
-                {weekAssignments
-                  .sort((a, b) => new Date(a.assigned_date) - new Date(b.assigned_date))
-                  .map(a => {
-                    const member = teamMembers.find(m => m.id === a.staff_id);
-                    const job = jobs.find(j => j.id === a.job_id);
-                    if (!member || !job) return null;
-                    return (
-                      <div key={a.id} className="flex items-center gap-2 text-xs">
-                        <Briefcase className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                        <span className="font-medium text-slate-600 min-w-0 truncate">{member.name.split(' ')[0]}</span>
-                        <span className="text-slate-300">·</span>
-                        <span className="text-slate-500 min-w-0 truncate flex-1">{job.name}</span>
-                        <span className="text-slate-400 flex-shrink-0">{format(new Date(a.assigned_date + 'T00:00:00'), 'EEE')}</span>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
