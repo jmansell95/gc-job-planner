@@ -77,20 +77,38 @@ function normalizeName(name) {
   if (!name) return '';
   return String(name).trim().replace(/\s+/g, ' ');
 }
-function nameKey(name) { return normalizeName(name).toLowerCase(); }
+// Aggressive dedup key: lowercases, strips punctuation, and normalises
+// "Last, First" → "first last" so the same person isn't imported twice
+// under slightly different name formats.
+function nameKey(name) {
+  let n = normalizeName(name).toLowerCase();
+  // "smith, john" → "john smith"
+  const commaMatch = n.match(/^([a-z.'-]+),\s*(.+)$/);
+  if (commaMatch) n = `${commaMatch[2]} ${commaMatch[1]}`;
+  // strip all punctuation except spaces
+  n = n.replace(/[.,'"`’‘()]/g, '').replace(/\s+/g, ' ').trim();
+  return n;
+}
 
 function isSubcontractor(name) {
   const lower = normalizeName(name).toLowerCase();
   return SUBCONTRACTOR_PATTERNS.some(p => lower.includes(p));
 }
 
-function generateEmail(name) {
+function generateEmail(name, existingEmails) {
   const clean = normalizeName(name).toLowerCase().replace(/[^a-z0-9\s.-]/g, '').trim();
   if (!clean) return `imported.staff@${DEFAULT_DOMAIN}`;
   const parts = clean.split(/\s+/);
   const first = parts[0] || '';
   const last = parts.slice(1).join('') || parts[0] || '';
-  return `${first}.${last}@${DEFAULT_DOMAIN}`;
+  let base = `${first}.${last}@${DEFAULT_DOMAIN}`;
+  // Ensure uniqueness against existing emails and already-generated ones
+  if (existingEmails && existingEmails.has(base.toLowerCase())) {
+    let i = 2;
+    while (existingEmails.has(`${first}.${last}${i}@${DEFAULT_DOMAIN}`.toLowerCase())) i++;
+    base = `${first}.${last}${i}@${DEFAULT_DOMAIN}`;
+  }
+  return base;
 }
 
 function getWeekStart(dateStr) {
@@ -532,11 +550,17 @@ export default async function(req) {
     const staffUpdates = [];
     let staffFoundCount = 0;
 
+    // Track all known emails (DB + generated) to prevent email collisions
+    const allKnownEmails = new Set();
+    for (const s of existingStaff) {
+      if (s.email) allKnownEmails.add(s.email.toLowerCase());
+    }
+
     for (const key of uniqueStaffKeys) {
       const name = staffNameByKey[key];
       let staff = staffByName.get(key);
       if (!staff) {
-        const email = generateEmail(name);
+        const email = generateEmail(name, allKnownEmails);
         staff = staffByEmail.get(email.toLowerCase());
       }
 
@@ -550,7 +574,8 @@ export default async function(req) {
       const team = subbie ? subconTeam : (teamMap[mostCommonSection] || fallbackTeam);
 
       if (!staff) {
-        const email = generateEmail(name);
+        const email = generateEmail(name, allKnownEmails);
+        allKnownEmails.add(email.toLowerCase());
         newStaffPayloads.push({
           name, email, worker_type: workerType,
           job_title: jobTitle || undefined, team_id: team.id, is_active: true,
@@ -573,16 +598,28 @@ export default async function(req) {
     }
 
     if (newStaffPayloads.length > 0) {
+      // Safety: deduplicate by email (paranoia — the loop above should
+      // already guarantee uniqueness, but this is a final guard)
+      const seenEmails = new Set();
+      const dedupedStaffPayloads = [];
+      const dedupedStaffKeys = [];
+      for (let i = 0; i < newStaffPayloads.length; i++) {
+        const emailKey = newStaffPayloads[i].email.toLowerCase();
+        if (seenEmails.has(emailKey)) continue;
+        seenEmails.add(emailKey);
+        dedupedStaffPayloads.push(newStaffPayloads[i]);
+        dedupedStaffKeys.push(newStaffKeys[i]);
+      }
       let createdStaff;
       if (!dryRun) {
-        createdStaff = await base44.asServiceRole.entities.Staff.bulkCreate(newStaffPayloads);
+        createdStaff = await base44.asServiceRole.entities.Staff.bulkCreate(dedupedStaffPayloads);
       } else {
-        createdStaff = newStaffPayloads.map((p, i) => ({
-          id: `temp_staff_${newStaffKeys[i]}`, name: p.name, email: p.email,
+        createdStaff = dedupedStaffPayloads.map((p, i) => ({
+          id: `temp_staff_${dedupedStaffKeys[i]}`, name: p.name, email: p.email,
           worker_type: p.worker_type, job_title: p.job_title, team_id: p.team_id,
         }));
       }
-      for (let i = 0; i < createdStaff.length; i++) staffMap.set(newStaffKeys[i], createdStaff[i]);
+      for (let i = 0; i < createdStaff.length; i++) staffMap.set(dedupedStaffKeys[i], createdStaff[i]);
     }
 
     const newStaff = newStaffKeys.map(k => staffMap.get(k));
@@ -679,18 +716,29 @@ export default async function(req) {
     }
 
     if (newJobPayloads.length > 0) {
+      // Safety: deduplicate by name key (final guard against duplicate job names)
+      const seenJobKeys = new Set();
+      const dedupedJobPayloads = [];
+      const dedupedJobKeys = [];
+      for (let i = 0; i < newJobPayloads.length; i++) {
+        const jk = nameKey(newJobPayloads[i].name);
+        if (seenJobKeys.has(jk)) continue;
+        seenJobKeys.add(jk);
+        dedupedJobPayloads.push(newJobPayloads[i]);
+        dedupedJobKeys.push(newJobKeys[i]);
+      }
       let createdJobs;
       if (!dryRun) {
-        createdJobs = await base44.asServiceRole.entities.Job.bulkCreate(newJobPayloads);
+        createdJobs = await base44.asServiceRole.entities.Job.bulkCreate(dedupedJobPayloads);
       } else {
-        createdJobs = newJobPayloads.map((p, i) => ({
-          id: `temp_job_${newJobKeys[i]}`, name: p.name,
+        createdJobs = dedupedJobPayloads.map((p, i) => ({
+          id: `temp_job_${dedupedJobKeys[i]}`, name: p.name,
           job_reference: p.job_reference || '', location: p.location,
           drilling_method: p.drilling_method, job_type: p.job_type || '',
           start_date: p.start_date, end_date: p.end_date, status: p.status,
         }));
       }
-      for (let i = 0; i < createdJobs.length; i++) jobMap.set(newJobKeys[i], createdJobs[i]);
+      for (let i = 0; i < createdJobs.length; i++) jobMap.set(dedupedJobKeys[i], createdJobs[i]);
     }
 
     const newJobs = newJobKeys.map(k => jobMap.get(k));
@@ -700,10 +748,19 @@ export default async function(req) {
     // -----------------------------------------------------------------------
     const existingRigs = await base44.asServiceRole.entities.SiteAsset.filter({ is_rig: true });
     const rigByName = new Map();
-    for (const r of existingRigs) { if (r.name) rigByName.set(nameKey(r.name), r); }
+    for (const r of existingRigs) {
+      if (r.name) {
+        const rk = nameKey(r.name);
+        // If multiple rigs share the same name, keep the first active one
+        if (!rigByName.has(rk) || (rigByName.get(rk).is_active === false && r.is_active !== false)) {
+          rigByName.set(rk, r);
+        }
+      }
+    }
 
     const rigAssignments = [];
     for (const pa of plantAssignments) {
+      if (!pa.job_name || !pa.staff_name) continue;
       const job = jobMap.get(nameKey(pa.job_name));
       const rig = rigByName.get(nameKey(pa.staff_name));
       if (job && rig) {
@@ -714,14 +771,21 @@ export default async function(req) {
       }
     }
 
+    // Deduplicate by (job_id, asset_id, assigned_date) — one assignment per rig per job per date
     const rigAssignmentMap = new Map();
     for (const ra of rigAssignments) {
+      const key = `${ra.job_id}|${ra.asset_id}|${ra.assigned_date || ''}`;
+      if (!rigAssignmentMap.has(key)) rigAssignmentMap.set(key, ra);
+    }
+    // Further deduplicate by (job_id, asset_id) keeping the earliest date
+    const rigByJobAsset = new Map();
+    for (const ra of rigAssignmentMap.values()) {
       const key = `${ra.job_id}|${ra.asset_id}`;
-      if (!rigAssignmentMap.has(key) || ra.assigned_date < rigAssignmentMap.get(key).assigned_date) {
-        rigAssignmentMap.set(key, ra);
+      if (!rigByJobAsset.has(key) || (ra.assigned_date && (!rigByJobAsset.get(key).assigned_date || ra.assigned_date < rigByJobAsset.get(key).assigned_date))) {
+        rigByJobAsset.set(key, ra);
       }
     }
-    const dedupedRigAssignments = [...rigAssignmentMap.values()];
+    const dedupedRigAssignments = [...rigByJobAsset.values()];
 
     // -----------------------------------------------------------------------
     // 7. Build desired rota set
