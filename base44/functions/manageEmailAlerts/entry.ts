@@ -17,7 +17,14 @@ const DEFAULTS = [
   { alert_key: 'timesheet_summary', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
   { alert_key: 'milestone_push', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
   { alert_key: 'training_request', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'auto_invoice_digest', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
+  { alert_key: 'auto_invoice_digest', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  // === New system templates (previously missing from the editor) ===
+  { alert_key: 'auto_maintenance_booking', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'asset_compliance_alert', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'job_budget_alert', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'retention_status', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'monthly_statement', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'retention_release', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
 ];
 
 function escapeHtml(s) {
@@ -199,6 +206,51 @@ function renderTestTemplate(alert_key, template) {
       .replace(/\{invoice_count\}/g, '2')
       .replace(/\{invoice_list\}/g, '   • Sample Job — INV-2026-0007 — £4,250.00\n   • Second Job — INV-2026-0008 — £1,830.00');
   }
+  // === New system templates ===
+  if (alert_key === 'auto_maintenance_booking') {
+    return template
+      .replace(/\{vehicle_name\}/g, 'Van 01 (AB12 CDE)')
+      .replace(/\{booking_type\}/g, 'Service')
+      .replace(/\{booking_date\}/g, 'Monday, 15 July 2026')
+      .replace(/\{supplier_name\}/g, 'Holman')
+      .replace(/\{location\}/g, 'Holman Garage, Bristol');
+  }
+  if (alert_key === 'asset_compliance_alert') {
+    return template
+      .replace(/\{alert_count\}/g, '3')
+      .replace(/\{alert_list\}/g, '   • Rig 1 — LOLER expired (due 2026-06-15)\n   • Excavator CAT 320 — PUWER overdue (due 2026-05-30)\n   • 110V Transformer T-12 — PAT expired (due 2026-04-10)');
+  }
+  if (alert_key === 'job_budget_alert') {
+    return template
+      .replace(/\{job_name\}/g, 'Sample Job')
+      .replace(/\{job_reference\}/g, 'JOB-001')
+      .replace(/\{budget_amount\}/g, '£25,000')
+      .replace(/\{actual_cost\}/g, '£28,500')
+      .replace(/\{variance_pct\}/g, '14%');
+  }
+  if (alert_key === 'retention_status') {
+    return template
+      .replace(/\{job_name\}/g, 'Sample Job')
+      .replace(/\{contract_value\}/g, '£50,000')
+      .replace(/\{retention_pct\}/g, '5%')
+      .replace(/\{retention_held\}/g, '£2,500')
+      .replace(/\{status\}/g, 'release eligible');
+  }
+  if (alert_key === 'monthly_statement') {
+    return template
+      .replace(/\{client_name\}/g, 'ABC Construction Ltd')
+      .replace(/\{month\}/g, 'July 2026')
+      .replace(/\{statement_total\}/g, '£12,450.00')
+      .replace(/\{invoice_count\}/g, '3');
+  }
+  if (alert_key === 'retention_release') {
+    return template
+      .replace(/\{job_name\}/g, 'Sample Job')
+      .replace(/\{client_name\}/g, 'ABC Construction Ltd')
+      .replace(/\{retention_amount\}/g, '£2,500')
+      .replace(/\{released_by\}/g, 'John Smith');
+  }
+  // Custom templates — just return as-is (tokens are user-defined)
   return template
     .replace(/\{staff_name\}/g, 'John Smith')
     .replace(/\{job_name\}/g, 'Sample Job')
@@ -223,6 +275,7 @@ Deno.serve(async (req) => {
       const map = {};
       existing.forEach((e) => { map[e.alert_key] = e; });
       const result = [];
+      // System templates — create any that don't exist yet
       for (const d of DEFAULTS) {
         if (map[d.alert_key]) {
           result.push(map[d.alert_key]);
@@ -231,11 +284,17 @@ Deno.serve(async (req) => {
           result.push(created);
         }
       }
+      // Custom templates — include any user-created templates
+      for (const e of existing) {
+        if (e.is_custom && !result.find(r => r.alert_key === e.alert_key)) {
+          result.push(e);
+        }
+      }
       return Response.json({ settings: result });
     }
 
     if (action === 'save') {
-      const { alert_key, enabled, recipient_emails, days_before_warning, subject, intro_message, template, accent_color, banner_title, show_banner, footer_text } = body;
+      const { alert_key, enabled, recipient_emails, days_before_warning, subject, intro_message, template, accent_color, banner_title, show_banner, footer_text, custom_name, custom_description, custom_tokens } = body;
       if (!alert_key) return Response.json({ error: 'alert_key required' }, { status: 400 });
       const data = {
         alert_key,
@@ -248,7 +307,10 @@ Deno.serve(async (req) => {
         accent_color: accent_color || '#0e7a4f',
         banner_title: banner_title || 'GC Job Planner',
         show_banner: show_banner !== false,
-        footer_text: footer_text || 'GC Job Planner'
+        footer_text: footer_text || 'GC Job Planner',
+        custom_name: custom_name || '',
+        custom_description: custom_description || '',
+        custom_tokens: custom_tokens || ''
       };
       const existing = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key });
       let saved;
@@ -258,6 +320,46 @@ Deno.serve(async (req) => {
         saved = await base44.asServiceRole.entities.EmailAlertSetting.create(data);
       }
       return Response.json({ saved: true, setting: saved });
+    }
+
+    if (action === 'create_custom') {
+      const { custom_name, custom_description, custom_tokens, subject, template, accent_color, banner_title, show_banner, footer_text, recipient_emails } = body;
+      if (!custom_name) return Response.json({ error: 'Template name is required' }, { status: 400 });
+      // Generate a unique alert_key for the custom template
+      const slug = custom_name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').substring(0, 40);
+      const alert_key = 'custom_' + (slug || 'template_' + Date.now());
+      // Check for collisions
+      const existing = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key });
+      if (existing[0]) return Response.json({ error: 'A template with this name already exists' }, { status: 400 });
+      const data = {
+        alert_key,
+        is_custom: true,
+        custom_name,
+        custom_description: custom_description || '',
+        custom_tokens: custom_tokens || '',
+        enabled: true,
+        recipient_emails: recipient_emails || '',
+        days_before_warning: null,
+        subject: subject || '',
+        intro_message: '',
+        template: template || '',
+        accent_color: accent_color || '#0e7a4f',
+        banner_title: banner_title || 'GC Job Planner',
+        show_banner: show_banner !== false,
+        footer_text: footer_text || 'GC Job Planner'
+      };
+      const created = await base44.asServiceRole.entities.EmailAlertSetting.create(data);
+      return Response.json({ saved: true, setting: created });
+    }
+
+    if (action === 'delete_custom') {
+      const { alert_key } = body;
+      if (!alert_key) return Response.json({ error: 'alert_key required' }, { status: 400 });
+      const existing = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key });
+      if (!existing[0]) return Response.json({ error: 'Template not found' }, { status: 404 });
+      if (!existing[0].is_custom) return Response.json({ error: 'System templates cannot be deleted' }, { status: 400 });
+      await base44.asServiceRole.entities.EmailAlertSetting.delete(existing[0].id);
+      return Response.json({ deleted: true });
     }
 
     if (action === 'preview') {
@@ -298,8 +400,32 @@ Deno.serve(async (req) => {
       if (recipients.length === 0) {
         return Response.json({ error: 'No recipients configured' }, { status: 400 });
       }
-      const defaultSubjects = { vehicle_maintenance: 'Vehicle Maintenance Alert (Test)', assignment_notification: 'New Job Assignment (Test)', staff_schedule: 'Weekly Schedule (Test)', staff_invitation: 'App Invitation (Test)', absence_request: 'Absence Request (Test)', job_status_change: 'Job Status Updated (Test)', new_job: 'New Job Created (Test)', timesheet_submitted: 'Timesheet Submitted (Test)', maintenance_booking: 'Maintenance Booking (Test)', training_booking: 'Training Booking (Test)', training_request: 'Training Request (Test)', daily_reminder: 'Daily Schedule Reminder (Test)', compliance_expiry: 'Compliance Expiry Alert (Test)', daily_standup: 'Daily Stand-up (Test)', timesheet_summary: 'Timesheet Summary (Test)', milestone_push: 'Milestone Completed (Test)', auto_invoice_digest: 'Auto-Invoice Digest (Test)' };
-      const subject = cfg.subject || defaultSubjects[alert_key] || 'Alert (Test)';
+      const defaultSubjects = {
+        vehicle_maintenance: 'Vehicle Maintenance Alert (Test)',
+        assignment_notification: 'New Job Assignment (Test)',
+        staff_schedule: 'Weekly Schedule (Test)',
+        staff_invitation: 'App Invitation (Test)',
+        absence_request: 'Absence Request (Test)',
+        job_status_change: 'Job Status Updated (Test)',
+        new_job: 'New Job Created (Test)',
+        timesheet_submitted: 'Timesheet Submitted (Test)',
+        maintenance_booking: 'Maintenance Booking (Test)',
+        training_booking: 'Training Booking (Test)',
+        training_request: 'Training Request (Test)',
+        daily_reminder: 'Daily Schedule Reminder (Test)',
+        compliance_expiry: 'Compliance Expiry Alert (Test)',
+        daily_standup: 'Daily Stand-up (Test)',
+        timesheet_summary: 'Timesheet Summary (Test)',
+        milestone_push: 'Milestone Completed (Test)',
+        auto_invoice_digest: 'Auto-Invoice Digest (Test)',
+        auto_maintenance_booking: 'Auto-Booked Maintenance (Test)',
+        asset_compliance_alert: 'Asset Compliance Alert (Test)',
+        job_budget_alert: 'Job Budget Alert (Test)',
+        retention_status: 'Retention Status (Test)',
+        monthly_statement: 'Monthly Statement (Test)',
+        retention_release: 'Retention Release (Test)'
+      };
+      const subject = cfg.subject || defaultSubjects[alert_key] || cfg.custom_name || 'Alert (Test)';
       const text = renderTestTemplate(alert_key, cfg.template);
       const baseUrl = await getAppBaseUrl(base44);
       const link = linkForAlert(alert_key);
@@ -320,8 +446,6 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Invitation email is disabled. Enable it in Email Alerts.' }, { status: 400 });
       }
       const name = staff_name || (email.split('@')[0] || 'there');
-      // Fall back to a sensible default invitation message when no custom
-      // template has been configured, so the branded invite always sends.
       const defaultTemplate = 'Hi {staff_name},\n\nYou have been invited to join the GC Job Planner app. Use the login link sent to {email} to set up your account and start viewing your schedule and logging timesheets.\n\nGC Job Planner';
       const template = (cfg && cfg.template) ? cfg.template : defaultTemplate;
       const subject = (cfg && cfg.subject)
@@ -368,11 +492,13 @@ Deno.serve(async (req) => {
       } else {
         saved = await base44.asServiceRole.entities.AppSetting.create(data);
       }
-      // Apply branding defaults to all email alert settings
+      // Apply branding defaults to all email alert settings (system templates only — preserve custom template branding)
       const allAlerts = await base44.asServiceRole.entities.EmailAlertSetting.list();
-      const updates = allAlerts.map(function (a) {
-        return { id: a.id, accent_color: data.default_accent_color, banner_title: data.default_banner_title, show_banner: data.default_show_banner, footer_text: data.default_footer_text };
-      });
+      const updates = allAlerts
+        .filter(a => !a.is_custom)
+        .map(function (a) {
+          return { id: a.id, accent_color: data.default_accent_color, banner_title: data.default_banner_title, show_banner: data.default_show_banner, footer_text: data.default_footer_text };
+        });
       if (updates.length > 0) {
         await base44.asServiceRole.entities.EmailAlertSetting.bulkUpdate(updates);
       }

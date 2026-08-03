@@ -4,26 +4,24 @@
   "properties": {
     "alert_key": {
       "type": "string",
-      "enum": [
-        "vehicle_maintenance",
-        "compliance_expiry",
-        "assignment_notification",
-        "staff_schedule",
-        "staff_invitation",
-        "absence_request",
-        "job_status_change",
-        "new_job",
-        "timesheet_submitted",
-        "maintenance_booking",
-        "training_booking",
-        "training_request",
-        "daily_reminder",
-        "daily_standup",
-        "timesheet_summary",
-        "milestone_push",
-        "auto_invoice_digest"
-      ],
-      "description": "Which automated alert this configures"
+      "description": "Unique key for this email template. System templates use predefined keys (vehicle_maintenance, compliance_expiry, etc.). Custom templates use user-defined keys prefixed with 'custom_'."
+    },
+    "is_custom": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for user-created custom templates. System templates cannot be deleted; custom templates can."
+    },
+    "custom_name": {
+      "type": "string",
+      "description": "Display name for custom templates (shown in the template selector)"
+    },
+    "custom_description": {
+      "type": "string",
+      "description": "Description of when this custom template is sent"
+    },
+    "custom_tokens": {
+      "type": "string",
+      "description": "Comma-separated list of tokens available in this custom template (e.g. '{staff_name},{job_name}')"
     },
     "enabled": {
       "type": "boolean",

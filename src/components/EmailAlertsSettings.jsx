@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Mail, Save, Send, Loader2, Truck, UserCheck, Clock, Palette, RotateCcw, Eye, Sparkles, Type, Calendar, UserPlus, CalendarX, AlertTriangle, Briefcase, ClipboardCheck, Wrench, GraduationCap, Bell, ShieldCheck, Coffee, ListChecks, Flag, Receipt } from 'lucide-react';
+import { Mail, Save, Send, Loader2, Truck, UserCheck, Clock, Palette, RotateCcw, Eye, Sparkles, Type, Calendar, UserPlus, CalendarX, AlertTriangle, Briefcase, ClipboardCheck, Wrench, GraduationCap, Bell, ShieldCheck, Coffee, ListChecks, Flag, Receipt, Plus, Trash2, Wrench as WrenchIcon, Boxes, TrendingUp, ScrollText, FileBarChart } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
+import CustomTemplateModal from '@/components/settings/CustomTemplateModal';
 
 const ALERT_META = {
   vehicle_maintenance: {
@@ -158,6 +159,61 @@ const ALERT_META = {
     showRecipients: true,
     tokens: ['{invoice_count}', '{invoice_list}'],
   },
+  // === New system templates (previously missing) ===
+  auto_maintenance_booking: {
+    title: 'Auto-Booked Maintenance',
+    desc: 'Emails admins when a vehicle maintenance booking is automatically created by the system.',
+    schedule: 'Runs automatically when a maintenance need is detected',
+    icon: WrenchIcon,
+    showThreshold: false,
+    showRecipients: true,
+    tokens: ['{vehicle_name}', '{booking_type}', '{booking_date}', '{supplier_name}', '{location}'],
+  },
+  asset_compliance_alert: {
+    title: 'Asset Compliance Alert',
+    desc: 'Emails admins when rigs or equipment have expired LOLER, PUWER or PAT compliance.',
+    schedule: 'Runs automatically when asset compliance is checked',
+    icon: Boxes,
+    showThreshold: false,
+    showRecipients: true,
+    tokens: ['{alert_count}', '{alert_list}'],
+  },
+  job_budget_alert: {
+    title: 'Job Budget Alert',
+    desc: 'Emails admins when a job\'s actual cost exceeds its budget by more than 10%.',
+    schedule: 'Runs automatically when budget alerts are checked',
+    icon: TrendingUp,
+    showThreshold: false,
+    showRecipients: true,
+    tokens: ['{job_name}', '{job_reference}', '{budget_amount}', '{actual_cost}', '{variance_pct}'],
+  },
+  retention_status: {
+    title: 'Retention Status',
+    desc: 'Emails admins when a job\'s retention becomes eligible for release.',
+    schedule: 'Runs automatically when retention status is checked',
+    icon: ScrollText,
+    showThreshold: false,
+    showRecipients: true,
+    tokens: ['{job_name}', '{contract_value}', '{retention_pct}', '{retention_held}', '{status}'],
+  },
+  monthly_statement: {
+    title: 'Monthly Statement',
+    desc: 'Emails clients a monthly statement summarising all invoices for the period.',
+    schedule: 'Runs when monthly statements are generated',
+    icon: FileBarChart,
+    showThreshold: false,
+    showRecipients: true,
+    tokens: ['{client_name}', '{month}', '{statement_total}', '{invoice_count}'],
+  },
+  retention_release: {
+    title: 'Retention Release',
+    desc: 'Emails admins when a retention is released to a client.',
+    schedule: 'Runs automatically when retention is released',
+    icon: ScrollText,
+    showThreshold: false,
+    showRecipients: true,
+    tokens: ['{job_name}', '{client_name}', '{retention_amount}', '{released_by}'],
+  },
 };
 
 const ACCENT_PRESETS = [
@@ -188,6 +244,12 @@ const SUBJECT_PLACEHOLDERS = {
   milestone_push: 'Milestone completed: BH01 on Sample Job',
   training_request: 'Training Request — John Smith: CSCS Skilled Worker Card Renewal',
   auto_invoice_digest: 'Auto-Invoice Engine — 2 drafts created',
+  auto_maintenance_booking: 'Auto-Booked Maintenance — Van 01',
+  asset_compliance_alert: 'Asset Compliance Alert — 3 items expired',
+  job_budget_alert: 'Budget Alert — Sample Job over budget by 14%',
+  retention_status: 'Retention Status — Sample Job',
+  monthly_statement: 'Monthly Statement — ABC Construction Ltd — July 2026',
+  retention_release: 'Retention Released — Sample Job',
 };
 
 const TEMPLATE_PLACEHOLDERS = {
@@ -208,6 +270,12 @@ const TEMPLATE_PLACEHOLDERS = {
   milestone_push: '{milestone}\n\nJob: {job_name} ({job_reference})\nLocation: {location}\nReviewed by: {reviewed_by}\n\nThis milestone has been published to the client portal automatically.',
   training_request: 'A staff member has requested training via the self-service portal:\n\nStaff: {staff_name}\nSuggested course: {course_title}\nProvider: {provider}\nDate: {suggested_date}\n\nRequest: {request_text}\n\nPlease review and confirm the booking in the Training Manager (Admin → Training).\n\nGC Job Planner',
   auto_invoice_digest: 'The Auto-Invoice Engine created {invoice_count} new draft invoice(s) from approved work today:\n\n{invoice_list}\n\nReview and mark them sent from the Billing panel once checked.\n\nGC Job Planner',
+  auto_maintenance_booking: 'A vehicle maintenance booking has been automatically created:\n\nVehicle: {vehicle_name}\nBooking Type: {booking_type}\nDate: {booking_date}\nSupplier: {supplier_name}\nLocation: {location}\n\nReview and confirm the booking in the Vehicles page.\n\nGC Job Planner',
+  asset_compliance_alert: 'Asset Compliance Report\n\n{alert_count} asset(s) have expired compliance:\n\n{alert_list}\n\nSchedule inspections and update compliance status as soon as possible.\n\nGC Job Planner',
+  job_budget_alert: 'Budget Alert\n\nJob: {job_name} ({job_reference})\nBudget: {budget_amount}\nActual Cost: {actual_cost}\nVariance: {variance_pct} over budget\n\nReview the job costs and take corrective action.\n\nGC Job Planner',
+  retention_status: 'Retention Status Update\n\nJob: {job_name}\nContract Value: {contract_value}\nRetention Rate: {retention_pct}\nRetention Held: {retention_held}\nStatus: {status}\n\nReview and process the retention release if appropriate.\n\nGC Job Planner',
+  monthly_statement: 'Monthly Statement\n\nClient: {client_name}\nPeriod: {month}\nTotal: {statement_total}\nInvoices: {invoice_count}\n\nPlease review the attached statement and arrange payment.\n\nGC Job Planner',
+  retention_release: 'Retention Released\n\nJob: {job_name}\nClient: {client_name}\nRetention Amount: {retention_amount}\nReleased by: {released_by}\n\nThe retention has been released to the client.\n\nGC Job Planner',
 };
 
 function escapeHtml(s) {
@@ -305,6 +373,73 @@ function renderSampleBody(key, cfg) {
     const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
     return intro + 'The Auto-Invoice Engine created 2 new draft invoice(s) from approved work today:\n\n' + sampleList + '\n\nReview and mark them sent from the Billing panel once checked.\n\nGC Job Planner';
   }
+  // === New system templates ===
+  if (key === 'auto_maintenance_booking') {
+    if (cfg.template) return cfg.template
+      .replace(/\{vehicle_name\}/g, 'Van 01 (AB12 CDE)')
+      .replace(/\{booking_type\}/g, 'Service')
+      .replace(/\{booking_date\}/g, 'Monday, 15 July 2026')
+      .replace(/\{supplier_name\}/g, 'Holman')
+      .replace(/\{location\}/g, 'Holman Garage, Bristol');
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'A vehicle maintenance booking has been automatically created:\n\nVehicle: Van 01 (AB12 CDE)\nBooking Type: Service\nDate: Monday, 15 July 2026\nSupplier: Holman\nLocation: Holman Garage, Bristol\n\nReview and confirm the booking in the Vehicles page.\n\nGC Job Planner';
+  }
+  if (key === 'asset_compliance_alert') {
+    const sampleList = '   • Rig 1 — LOLER expired (due 2026-06-15)\n   • Excavator CAT 320 — PUWER overdue (due 2026-05-30)\n   • 110V Transformer T-12 — PAT expired (due 2026-04-10)';
+    if (cfg.template) return cfg.template
+      .replace(/\{alert_count\}/g, '3')
+      .replace(/\{alert_list\}/g, sampleList);
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'Asset Compliance Report\n\n3 asset(s) have expired compliance:\n\n' + sampleList + '\n\nSchedule inspections and update compliance status as soon as possible.\n\nGC Job Planner';
+  }
+  if (key === 'job_budget_alert') {
+    if (cfg.template) return cfg.template
+      .replace(/\{job_name\}/g, 'Sample Job')
+      .replace(/\{job_reference\}/g, 'JOB-001')
+      .replace(/\{budget_amount\}/g, '£25,000')
+      .replace(/\{actual_cost\}/g, '£28,500')
+      .replace(/\{variance_pct\}/g, '14%');
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'Budget Alert\n\nJob: Sample Job (JOB-001)\nBudget: £25,000\nActual Cost: £28,500\nVariance: 14% over budget\n\nReview the job costs and take corrective action.\n\nGC Job Planner';
+  }
+  if (key === 'retention_status') {
+    if (cfg.template) return cfg.template
+      .replace(/\{job_name\}/g, 'Sample Job')
+      .replace(/\{contract_value\}/g, '£50,000')
+      .replace(/\{retention_pct\}/g, '5%')
+      .replace(/\{retention_held\}/g, '£2,500')
+      .replace(/\{status\}/g, 'release eligible');
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'Retention Status Update\n\nJob: Sample Job\nContract Value: £50,000\nRetention Rate: 5%\nRetention Held: £2,500\nStatus: release eligible\n\nReview and process the retention release if appropriate.\n\nGC Job Planner';
+  }
+  if (key === 'monthly_statement') {
+    if (cfg.template) return cfg.template
+      .replace(/\{client_name\}/g, 'ABC Construction Ltd')
+      .replace(/\{month\}/g, 'July 2026')
+      .replace(/\{statement_total\}/g, '£12,450.00')
+      .replace(/\{invoice_count\}/g, '3');
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'Monthly Statement\n\nClient: ABC Construction Ltd\nPeriod: July 2026\nTotal: £12,450.00\nInvoices: 3\n\nPlease review the attached statement and arrange payment.\n\nGC Job Planner';
+  }
+  if (key === 'retention_release') {
+    if (cfg.template) return cfg.template
+      .replace(/\{job_name\}/g, 'Sample Job')
+      .replace(/\{client_name\}/g, 'ABC Construction Ltd')
+      .replace(/\{retention_amount\}/g, '£2,500')
+      .replace(/\{released_by\}/g, 'John Smith');
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'Retention Released\n\nJob: Sample Job\nClient: ABC Construction Ltd\nRetention Amount: £2,500\nReleased by: John Smith\n\nThe retention has been released to the client.\n\nGC Job Planner';
+  }
+  // Custom templates — render with user-defined tokens (sample data for preview)
+  if (key.startsWith('custom_') && cfg.template) {
+    const tokens = (cfg.custom_tokens || '').split(',').map(t => t.trim()).filter(Boolean);
+    let result = cfg.template;
+    for (const token of tokens) {
+      result = result.replace(new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), 'Sample');
+    }
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + result;
+  }
   if (key === 'staff_schedule') {
     if (cfg.template) {
       return cfg.template
@@ -375,7 +510,9 @@ export default function EmailAlertsSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
   const [testing, setTesting] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const [openKey, setOpenKey] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const textareaRefs = useRef({});
 
   useEffect(() => { load(); }, []);
@@ -445,6 +582,20 @@ export default function EmailAlertsSettings() {
     toast({ title: 'Template reset', description: 'Click Save to apply the defaults.' });
   };
 
+  const handleDeleteCustom = async (key) => {
+    if (!confirm('Delete this custom template? This cannot be undone.')) return;
+    setDeleting(key);
+    try {
+      await base44.functions.invoke('manageEmailAlerts', { action: 'delete_custom', alert_key: key });
+      toast({ title: 'Template deleted', description: 'Custom template removed.' });
+      await load();
+    } catch (e) {
+      toast({ title: 'Error deleting', description: e.message, variant: 'destructive' });
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -457,8 +608,9 @@ export default function EmailAlertsSettings() {
     <div className="space-y-6">
       <SettingsSectionHeader icon={Mail} title="Automated Email Alerts" description="Control recipients, timing, wording, colours and banner for each automated email" />
 
-      {/* Alert selector tabs */}
-      <div className="flex gap-2 flex-wrap">
+      {/* Alert selector tabs + Create button */}
+      <div className="flex gap-2 flex-wrap items-center">
+        {/* System templates from ALERT_META */}
         {Object.entries(ALERT_META).map(([key, meta]) => {
           const Icon = meta.icon;
           const isActive = openKey === key;
@@ -474,14 +626,55 @@ export default function EmailAlertsSettings() {
             </button>
           );
         })}
+        {/* Custom templates from drafts (not in ALERT_META) */}
+        {Object.entries(drafts).filter(([key, d]) => d.is_custom && !ALERT_META[key]).map(([key, d]) => {
+          const isActive = openKey === key;
+          const isEnabled = d.enabled !== false;
+          return (
+            <div key={key} className="relative group">
+              <button type="button" onClick={() => setOpenKey(key)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
+                  isActive ? 'bg-violet-700 text-white border-violet-700 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'
+                }`}>
+                <Sparkles className="w-4 h-4" />
+                {d.custom_name || 'Custom'}
+                <span className="text-[9px] font-bold bg-violet-500 text-white px-1.5 py-0.5 rounded-full">CUSTOM</span>
+                <span className={`w-2 h-2 rounded-full ${isEnabled ? 'bg-emerald-400' : 'bg-slate-400'}`} />
+              </button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteCustom(key); }} disabled={deleting === key}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-sm hover:bg-rose-600"
+                title="Delete custom template">
+                {deleting === key ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+              </button>
+            </div>
+          );
+        })}
+        {/* Create New Template button */}
+        <button type="button" onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50 text-emerald-700 text-sm font-semibold hover:bg-emerald-100 hover:border-emerald-400 transition cursor-pointer touch-manipulation select-none">
+          <Plus className="w-4 h-4" />
+          New Template
+        </button>
       </div>
+
+      {/* Custom Template Modal */}
+      {showCreateModal && (
+        <CustomTemplateModal
+          onClose={() => setShowCreateModal(false)}
+          onCreated={() => { setShowCreateModal(false); load(); }}
+        />
+      )}
 
       {openKey && (() => {
         const key = openKey;
         const meta = ALERT_META[key];
         const draft = drafts[key] || { alert_key: key, enabled: true, ...DEFAULT_STYLE };
-        const Icon = meta.icon;
+        const isCustom = draft.is_custom === true;
+        const Icon = isCustom ? Sparkles : (meta?.icon || Mail);
         const isEnabled = draft.enabled !== false;
+        const tokens = isCustom
+          ? (draft.custom_tokens || '').split(',').map(t => t.trim()).filter(Boolean)
+          : (meta?.tokens || []);
         const previewHtml = buildStyledHtml(renderSampleBody(key, draft), draft);
         return (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -493,8 +686,8 @@ export default function EmailAlertsSettings() {
                     <Icon className="w-5 h-5" style={{ color: draft.accent_color || '#0e7a4f' }} />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-slate-900">{meta.title}</h3>
-                    <p className="text-sm text-slate-500 mt-0.5">{meta.desc}</p>
+                    <h3 className="font-semibold text-slate-900">{isCustom ? (draft.custom_name || 'Custom Template') : meta.title}</h3>
+                    <p className="text-sm text-slate-500 mt-0.5">{isCustom ? (draft.custom_description || 'User-created email template') : meta.desc}</p>
                   </div>
                 </div>
                 <button type="button" onClick={() => updateDraft(key, 'enabled', !isEnabled)}
@@ -504,7 +697,7 @@ export default function EmailAlertsSettings() {
                 </button>
               </div>
               <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
-                <Clock className="w-3.5 h-3.5" />{meta.schedule}
+                <Clock className="w-3.5 h-3.5" />{isCustom ? 'Custom template — send manually or via automation' : meta.schedule}
               </div>
             </div>
 
@@ -548,12 +741,14 @@ export default function EmailAlertsSettings() {
                     <label className="block text-sm font-medium text-slate-700">Email body template <span className="text-slate-400 font-normal">(optional)</span></label>
                   </div>
                   <div className="flex flex-wrap gap-1.5 mb-2">
-                    {meta.tokens.map((t) => (
+                    {tokens.length > 0 ? tokens.map((t) => (
                       <button key={t} type="button" onClick={() => insertToken(key, t)}
-                        className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-mono border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer">
+                        className={`px-2 py-1 rounded-md text-xs font-mono border transition cursor-pointer ${
+                          isCustom ? 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                        }`}>
                         {t}
                       </button>
-                    ))}
+                    )) : <p className="text-xs text-slate-400">No tokens defined for this template.</p>}
                   </div>
                   <textarea ref={(el) => (textareaRefs.current[key] = el)}
                     value={draft.template || ''} onChange={(e) => updateDraft(key, 'template', e.target.value)} rows="7"
