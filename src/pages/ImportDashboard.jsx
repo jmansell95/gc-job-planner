@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle, Users, Briefcase, CalendarDays, Trash2, HardHat, AlertCircle, RefreshCw } from 'lucide-react';
+import {
+  UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle,
+  Users, Briefcase, CalendarDays, Trash2, HardHat, AlertCircle, RefreshCw,
+  ChevronDown, ChevronRight, MapPin, Building2, UserX, Layers, Clock
+} from 'lucide-react';
 
 export default function ImportDashboard() {
   const { toast } = useToast();
@@ -12,16 +16,10 @@ export default function ImportDashboard() {
   const [applying, setApplying] = useState(false);
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState(null);
-  const [purge, setPurge] = useState(true);
 
   const handleFileChange = (e) => {
     const f = e.target.files?.[0];
-    if (f) {
-      setFile(f);
-      setFileUrl(null);
-      setPreview(null);
-      setError(null);
-    }
+    if (f) { setFile(f); setFileUrl(null); setPreview(null); setError(null); }
   };
 
   const handleUpload = async () => {
@@ -44,11 +42,7 @@ export default function ImportDashboard() {
     setAnalyzing(true);
     setError(null);
     try {
-      const res = await base44.functions.invoke('importPlannerSpreadsheet', {
-        file_url: url,
-        dry_run: true,
-        purge
-      });
+      const res = await base44.functions.invoke('importPlannerSpreadsheet', { file_url: url, dry_run: true });
       setPreview(res.data);
     } catch (e) {
       const msg = e?.response?.data?.error || e.message || 'Analysis failed';
@@ -63,16 +57,11 @@ export default function ImportDashboard() {
     setApplying(true);
     setError(null);
     try {
-      const res = await base44.functions.invoke('importPlannerSpreadsheet', {
-        file_url: fileUrl,
-        dry_run: false,
-        purge
-      });
+      const res = await base44.functions.invoke('importPlannerSpreadsheet', { file_url: fileUrl, dry_run: false });
       const s = res.data.summary;
-      const purgeMsg = s.purge ? `${s.purge.staff_deleted} old staff, ${s.purge.rotas_deleted} old rotas cleared. ` : '';
       toast({
         title: 'Import complete',
-        description: `${purgeMsg}Created ${s.rotas.created} rotas, ${s.staff.new} staff, ${s.jobs.new} jobs.`
+        description: `Purged ${s.purge.rotas_deleted} rotas, ${s.purge.staff_deleted} staff. Created ${s.rotas.created} rotas, ${s.staff.new} staff, ${s.jobs.new} jobs. ${s.staff.leavers_marked_inactive} leavers marked inactive.`
       });
       setPreview(null);
       setFile(null);
@@ -87,107 +76,87 @@ export default function ImportDashboard() {
 
   return (
     <div className="space-y-6">
-        {/* Upload Card */}
-        <div className="insight-card rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-slate-800 mb-1">1. Upload Spreadsheet</h2>
-          <p className="text-sm text-slate-500 mb-4">Select your <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">.xlsx</code> planner file to begin.</p>
+      {/* Upload Card */}
+      <div className="insight-card rounded-2xl p-6">
+        <h2 className="text-lg font-semibold text-slate-800 mb-1">1. Upload Spreadsheet</h2>
+        <p className="text-sm text-slate-500 mb-4">
+          Select your <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">.xlsx</code> planner file. Every import <strong>wipes all old rota data</strong> and replaces it with the spreadsheet contents.
+        </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-            <label className="flex-1 cursor-pointer">
-              <input type="file" accept=".xlsx,.xls" onChange={handleFileChange} className="hidden" />
-              <div className="border-2 border-dashed border-slate-300 rounded-xl px-4 py-6 text-center hover:border-emerald-500 hover:bg-emerald-50/40 transition">
-                {file ? (
-                  <div className="flex items-center justify-center gap-2 text-slate-700">
-                    <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
-                    <span className="text-sm font-medium">{file.name}</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-1 text-slate-400">
-                    <UploadCloud className="w-6 h-6" />
-                    <span className="text-sm">Click to choose a file</span>
-                  </div>
-                )}
-              </div>
-            </label>
-            <button
-              onClick={handleUpload}
-              disabled={!file || uploading || analyzing}
-              className="command-gradient text-white px-5 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition hover:shadow-lg"
-            >
-              {uploading || analyzing ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> {uploading ? 'Uploading…' : 'Analyzing…'}</>
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          <label className="flex-1 cursor-pointer">
+            <input type="file" accept=".xlsx,.xls" onChange={handleFileChange} className="hidden" />
+            <div className="border-2 border-dashed border-slate-300 rounded-xl px-4 py-6 text-center hover:border-emerald-500 hover:bg-emerald-50/40 transition">
+              {file ? (
+                <div className="flex items-center justify-center gap-2 text-slate-700">
+                  <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                  <span className="text-sm font-medium">{file.name}</span>
+                </div>
               ) : (
-                <><UploadCloud className="w-4 h-4" /> Upload &amp; Analyze</>
+                <div className="flex flex-col items-center gap-1 text-slate-400">
+                  <UploadCloud className="w-6 h-6" />
+                  <span className="text-sm">Click to choose a file</span>
+                </div>
               )}
-            </button>
-          </div>
-
-          {/* Purge toggle */}
-          <label className="mt-4 flex items-start gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              checked={purge}
-              onChange={(e) => setPurge(e.target.checked)}
-              className="mt-0.5 w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-            />
-            <div>
-              <div className="flex items-center gap-1.5">
-                <RefreshCw className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-sm font-semibold text-slate-700">Clear old data before import</span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Deletes all existing rota assignments and auto-created staff (those without a linked login account) before importing. Real user-linked staff are always kept. This ensures a clean, duplicate-free import every time.
-              </p>
             </div>
           </label>
-
-          {error && (
-            <div className="mt-4 flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-              <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+          <button
+            onClick={handleUpload}
+            disabled={!file || uploading || analyzing}
+            className="command-gradient text-white px-5 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition hover:shadow-lg"
+          >
+            {uploading || analyzing ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> {uploading ? 'Uploading…' : 'Analyzing…'}</>
+            ) : (
+              <><UploadCloud className="w-4 h-4" /> Upload &amp; Analyze</>
+            )}
+          </button>
         </div>
 
-        {/* Preview Card */}
-        {preview && (
+        {/* Clean-slate warning */}
+        <div className="mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+          <RefreshCw className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span><strong>Clean-slate mode:</strong> Importing will delete ALL existing rota assignments, auto-created staff, and asset assignments, then rebuild everything from this spreadsheet. Staff with linked logins not in the file will be marked as "left the company".</span>
+        </div>
+
+        {error && (
+          <div className="mt-4 flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
+            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Preview / Full Breakdown */}
+      {preview && (
+        <div className="space-y-4">
+          {/* Summary tiles */}
           <div className="insight-card rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-slate-800 mb-1">2. Review Import Preview</h2>
+            <h2 className="text-lg font-semibold text-slate-800 mb-1">2. Review Full Breakdown</h2>
             <p className="text-sm text-slate-500 mb-4">
               Date range: <span className="font-medium text-slate-700">{preview.summary.date_range.from}</span> →{' '}
               <span className="font-medium text-slate-700">{preview.summary.date_range.to}</span>
+              <span className="ml-2 text-xs text-slate-400">(today: {preview.summary.today})</span>
             </p>
 
-            {/* Dedup guarantee banner */}
-            <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2.5 text-sm text-emerald-800 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span><strong>Single-entry deduplication active.</strong> Staff, jobs, teams &amp; rotas are matched case-insensitively — nothing is duplicated. Generic role labels (e.g. "Sampling Team") are filtered out.</span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
+              <StatTile icon={Users} label="Staff" total={preview.summary.staff.total} sub={`${preview.summary.staff.new} new`} color="blue" />
+              <StatTile icon={Briefcase} label="Jobs" total={preview.summary.jobs.total} sub={`${preview.summary.jobs.new} new`} color="emerald" />
+              <StatTile icon={CalendarDays} label="Rotas" total={preview.summary.rotas.to_create} sub={`${preview.summary.rotas.duplicates_collapsed} dupes`} color="amber" />
+              <StatTile icon={UserX} label="Leavers" total={preview.summary.staff.leavers_detected} sub="not in file" color="rose" />
+              <StatTile icon={CheckCircle2} label="Completed Jobs" total={preview.summary.jobs.completed} sub="past dates" color="slate" />
+              <StatTile icon={Clock} label="In Progress" total={preview.summary.jobs.in_progress} sub="today/future" color="teal" />
             </div>
 
-            {/* Purge preview */}
-            {preview.summary.purge && (
-              <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 text-sm text-blue-800 flex items-center gap-2">
-                <Trash2 className="w-4 h-4 flex-shrink-0" />
-                <span><strong>Purge mode ON:</strong> {preview.summary.purge.staff_deleted} old staff and {preview.summary.purge.rotas_deleted} old rota assignments will be deleted before import.</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-              <StatTile icon={Users} label="Staff" total={preview.summary.staff.total} sub={`${preview.summary.staff.found} found · ${preview.summary.staff.new} new`} color="blue" />
-              <StatTile icon={Briefcase} label="Jobs" total={preview.summary.jobs.total} sub={`${preview.summary.jobs.found} found · ${preview.summary.jobs.new} new`} color="emerald" />
-              <StatTile icon={CalendarDays} label="Rotas to Create" total={preview.summary.rotas.to_create} color="amber" />
-              <StatTile icon={Trash2} label="Rotas to Delete" total={preview.summary.rotas.to_delete} color="rose" />
-            </div>
-
-            {/* Subcontractor / Direct Employee split */}
+            {/* Subcon / Direct split */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
                   <HardHat className="w-5 h-5 text-indigo-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-indigo-900">Subcontractors</p>
-                  <p className="text-xs text-indigo-700">{preview.summary.staff.subcontractors} person(s) → Subcontractors team</p>
+                  <p className="text-sm font-bold text-indigo-900">Subcontractors: {preview.summary.staff.subcontractors}</p>
+                  <p className="text-xs text-indigo-700">→ Subcontractors team</p>
                 </div>
               </div>
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -195,11 +164,45 @@ export default function ImportDashboard() {
                   <Users className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-emerald-900">Direct Employees</p>
-                  <p className="text-xs text-emerald-700">{preview.summary.staff.direct_employees} person(s) → crew-section teams</p>
+                  <p className="text-sm font-bold text-emerald-900">Direct Employees: {preview.summary.staff.direct_employees}</p>
+                  <p className="text-xs text-emerald-700">→ crew-section teams</p>
                 </div>
               </div>
             </div>
+
+            {/* Sections detected */}
+            {preview.summary.sections_detected?.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4" /> Sections Detected ({preview.summary.sections_detected.length})
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {preview.summary.sections_detected.map((s, i) => (
+                    <span key={i} className="text-xs bg-slate-100 text-slate-700 rounded-full px-3 py-1 font-medium">{s}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sheets breakdown */}
+            {preview.sheet_breakdown?.length > 0 && (
+              <CollapsibleSection title={`Sheets Parsed (${preview.sheet_breakdown.length})`} icon={FileSpreadsheet}>
+                <div className="space-y-2">
+                  {preview.sheet_breakdown.map((s, i) => (
+                    <div key={i} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-700">{s.sheet}</span>
+                        {s.is_plant && <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">Plant</span>}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-slate-500">
+                        <span>{s.assignments} assignments</span>
+                        <span>{s.sections.length} sections</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CollapsibleSection>
+            )}
 
             {/* Warnings */}
             {preview.summary.warnings?.length > 0 && (
@@ -215,37 +218,134 @@ export default function ImportDashboard() {
                 </ul>
               </div>
             )}
+          </div>
 
-            {preview.new_staff?.length > 0 && (
-              <DetailList title={`New Staff (${preview.summary.staff.new})`} items={preview.new_staff.map(s => `${s.name} — ${s.email} · ${s.team}`)} />
-            )}
-            {preview.staff_updates?.length > 0 && (
-              <DetailList title={`Staff Updates (${preview.staff_updates.length})`} items={preview.staff_updates.map(s => `${s.name} — ${Object.keys(s.updates).join(', ')}`)} />
-            )}
-            {preview.new_jobs?.length > 0 && (
-              <DetailList title={`New Jobs (${preview.summary.jobs.new})`} items={preview.new_jobs.map(j => j.name)} />
-            )}
-            {preview.job_updates?.length > 0 && (
-              <DetailList title={`Job Updates (${preview.job_updates.length})`} items={preview.job_updates.map(j => `${j.name} — ${Object.keys(j.updates).join(', ')}`)} />
-            )}
-            {preview.new_teams?.length > 0 && (
-              <DetailList title="New Teams" items={preview.new_teams} />
-            )}
-            {preview.new_rig_assignments?.length > 0 && (
-              <DetailList title={`New Rig Assignments (${preview.new_rig_assignments.length})`} items={preview.new_rig_assignments.map(ra => `${ra.asset_name} → ${ra.job_name} (${ra.assigned_date})`)} />
-            )}
+          {/* Leavers */}
+          {preview.leavers?.length > 0 && (
+            <div className="insight-card rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center">
+                  <UserX className="w-4 h-4 text-rose-600" />
+                </div>
+                <h3 className="text-base font-semibold text-slate-800">
+                  Staff Not in Spreadsheet ({preview.leavers.length})
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mb-3">
+                These staff have linked login accounts but don't appear in this spreadsheet. They will be marked as <strong>inactive (left the company)</strong> on import.
+              </p>
+              <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                {preview.leavers.map((l, i) => (
+                  <div key={i} className="flex items-center justify-between bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 text-sm">
+                    <div>
+                      <span className="font-medium text-slate-700">{l.name}</span>
+                      <span className="text-xs text-slate-400 ml-2">{l.email}</span>
+                    </div>
+                    <span className="text-xs text-rose-600 font-medium">Will be deactivated</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-            <div className="mt-5 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
+          {/* Staff breakdown */}
+          {preview.staff_breakdown?.length > 0 && (
+            <CollapsibleSection title={`Staff Breakdown (${preview.staff_breakdown.length})`} icon={Users} defaultOpen={false}>
+              <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                {preview.staff_breakdown.map((s, i) => (
+                  <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-700">{s.name}</span>
+                        {s.status === 'new' && <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">NEW</span>}
+                        <span className={`text-xs rounded-full px-2 py-0.5 ${s.worker_type === 'subcontractor' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {s.worker_type === 'subcontractor' ? 'Subcon' : 'Direct'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-400">{s.assignment_count} assignments</span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                      <span>📧 {s.email}</span>
+                      <span>👥 {s.team}</span>
+                      {s.job_title && <span>🔧 {s.job_title}</span>}
+                      {s.date_range && <span>📅 {s.date_range.from} → {s.date_range.to}</span>}
+                    </div>
+                    {s.jobs.length > 0 && (
+                      <div className="text-xs text-slate-400 mt-1">
+                        Jobs: {s.jobs.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {/* Jobs breakdown */}
+          {preview.jobs_breakdown?.length > 0 && (
+            <CollapsibleSection title={`Jobs Breakdown (${preview.jobs_breakdown.length})`} icon={Briefcase} defaultOpen={false}>
+              <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                {preview.jobs_breakdown.map((j, i) => (
+                  <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-700">{j.name}</span>
+                        {j.status_new === 'new' && <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">NEW</span>}
+                      </div>
+                      <StatusBadge status={j.status} />
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                      {j.reference && <span>🏷️ {j.reference}</span>}
+                      {j.location && <span><MapPin className="w-3 h-3 inline" /> {j.location}</span>}
+                      <span>📅 {j.start_date || '—'} → {j.end_date || '—'}</span>
+                      <span>👷 {j.staff_count} staff</span>
+                      <span>📋 {j.assignment_count} assignments</span>
+                    </div>
+                    {j.crew_sections.length > 0 && (
+                      <div className="text-xs text-slate-400 mt-1">
+                        Sections: {j.crew_sections.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {/* New teams */}
+          {preview.new_teams?.length > 0 && (
+            <CollapsibleSection title={`New Teams (${preview.new_teams.length})`} icon={Building2}>
+              <div className="flex flex-wrap gap-2">
+                {preview.new_teams.map((t, i) => (
+                  <span key={i} className="text-sm bg-emerald-50 text-emerald-700 rounded-lg px-3 py-1.5 font-medium">{t}</span>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {/* New rig assignments */}
+          {preview.new_rig_assignments?.length > 0 && (
+            <CollapsibleSection title={`Rig Assignments (${preview.new_rig_assignments.length})`} icon={Layers} defaultOpen={false}>
+              <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                {preview.new_rig_assignments.map((ra, i) => (
+                  <div key={i} className="text-sm bg-slate-50 rounded px-3 py-1.5 text-slate-600">
+                    {ra.asset_name} → {ra.job_name} ({ra.assigned_date})
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {/* Confirm bar */}
+          <div className="insight-card rounded-2xl p-6">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 flex items-start gap-2 mb-4">
               <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>
-                Confirming will <strong>create {preview.summary.rotas.to_create} new rota assignments</strong>
-                {preview.summary.purge && <> and <strong>delete {preview.summary.purge.staff_deleted} old staff + {preview.summary.purge.rotas_deleted} old rotas</strong></>}
-                {preview.summary.rotas.to_delete > 0 && <> and <strong>delete {preview.summary.rotas.to_delete} stale assignments</strong></>}.
-                Real user-linked staff are always kept.
+                Confirming will <strong>wipe all existing rota data</strong> and replace it with the {preview.summary.rotas.to_create} assignments above.
+                {preview.leavers.length > 0 && <> {preview.leavers.length} staff will be marked as left.</>}
               </span>
             </div>
-
-            <div className="mt-5 flex gap-3">
+            <div className="flex gap-3">
               <button
                 onClick={handleApply}
                 disabled={applying}
@@ -262,35 +362,32 @@ export default function ImportDashboard() {
               </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* How it works */}
-        {!preview && !analyzing && (
-          <div className="insight-card rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-slate-800 mb-3">How it works</h2>
-            <ol className="space-y-3 text-sm text-slate-600">
-              <Step n={1} title="Upload your planner file">The Excel file is uploaded and parsed directly — no third-party AI involved.</Step>
-              <Step n={2} title="Extract crews, jobs &amp; rotas">The system reads the grid — staff names, job names, dates, and crew sections — and matches them against your existing records.</Step>
-              <Step n={3} title="Person-name filtering">Generic role labels like "Sampling Team", "Drilling Crew", "Excavator driver" are automatically filtered out — only real person names are imported as staff.</Step>
-              <Step n={4} title="Subcontractor detection">Names under a "Drilling Subbies" or "Subcontractor" section header are automatically classified as subcontractors and grouped into the Subcontractors team. Everyone else goes to their crew-section team as a Direct Employee.</Step>
-              <Step n={5} title="Review the preview">See exactly what will be created, updated, or deleted — with found vs new counts and any warnings — before anything changes.</Step>
-              <Step n={6} title="Confirm &amp; apply">On confirm, missing staff/jobs/teams are created in batch, new rota assignments are added, and stale ones are removed. With "Clear old data" enabled, the system starts from a clean slate every time.</Step>
-            </ol>
-            <div className="mt-4 text-xs text-slate-400 bg-slate-50 rounded-lg px-4 py-3">
-              <strong>Note:</strong> Staff without an email are auto-created with <code className="text-xs bg-slate-100 px-1 rounded">firstname.lastname@ground-control.co.uk</code>. Only rota assignments within the spreadsheet's date range are affected — historical data outside that range is untouched (unless purge is enabled).
-            </div>
-          </div>
-        )}
+      {/* How it works */}
+      {!preview && !analyzing && (
+        <div className="insight-card rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-slate-800 mb-3">How it works</h2>
+          <ol className="space-y-3 text-sm text-slate-600">
+            <Step n={1} title="Upload your planner file">The Excel file is uploaded and parsed directly — no third-party AI involved.</Step>
+            <Step n={2} title="Full header mapping">The system scans every sheet, finds the date header row, maps every column to a date, and tracks section headers (Cable, Rotary, Groundworkers, Yard/Depot, Leave/Sick, etc.) across all columns.</Step>
+            <Step n={3} title="Date-aware job status">Jobs with all past dates are marked <strong>completed</strong>. Jobs with any today/future dates are marked <strong>in_progress</strong>. New jobs with no dates yet are <strong>planning</strong>.</Step>
+            <Step n={4} title="Leaver detection">Staff with linked logins who aren't in this spreadsheet are flagged as leavers and will be marked inactive on import.</Step>
+            <Step n={5} title="Full breakdown review">See every staff member, every job, every section, every sheet, and every leaver before you confirm — so you can drill down and verify everything is correct.</Step>
+            <Step n={6} title="Clean-slate apply">On confirm, ALL old rota assignments, auto-created staff, and asset assignments are deleted. The spreadsheet becomes the single source of truth. Staff with logins not in the file are marked as left the company.</Step>
+          </ol>
+        </div>
+      )}
     </div>
   );
 }
 
 function StatTile({ icon: Icon, label, total, sub, color }) {
   const colors = {
-    blue: 'stat-gradient-blue',
-    emerald: 'stat-gradient-emerald',
-    amber: 'stat-gradient-amber',
-    rose: 'stat-gradient-rose'
+    blue: 'stat-gradient-blue', emerald: 'stat-gradient-emerald',
+    amber: 'stat-gradient-amber', rose: 'stat-gradient-rose',
+    slate: 'stat-gradient-slate', teal: 'stat-gradient-teal',
   };
   return (
     <div className={`${colors[color]} rounded-xl p-4 text-white`}>
@@ -302,22 +399,26 @@ function StatTile({ icon: Icon, label, total, sub, color }) {
   );
 }
 
-function DetailList({ title, items }) {
-  const [expanded, setExpanded] = useState(false);
-  const shown = expanded ? items : items.slice(0, 5);
+function StatusBadge({ status }) {
+  const map = {
+    completed: { label: 'Completed', cls: 'bg-slate-200 text-slate-700' },
+    in_progress: { label: 'In Progress', cls: 'bg-teal-100 text-teal-700' },
+    planning: { label: 'Planning', cls: 'bg-blue-100 text-blue-700' },
+  };
+  const cfg = map[status] || map.planning;
+  return <span className={`text-xs rounded-full px-2 py-0.5 font-medium ${cfg.cls}`}>{cfg.label}</span>;
+}
+
+function CollapsibleSection({ title, icon: Icon, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="mb-4">
-      <p className="text-sm font-semibold text-slate-700 mb-2">{title}</p>
-      <ul className="space-y-1">
-        {shown.map((item, i) => (
-          <li key={i} className="text-sm text-slate-600 bg-slate-50 rounded px-3 py-1.5">{item}</li>
-        ))}
-      </ul>
-      {items.length > 5 && (
-        <button onClick={() => setExpanded(!expanded)} className="text-xs text-emerald-700 font-medium mt-1.5 hover:underline">
-          {expanded ? 'Show less' : `Show all ${items.length}`}
-        </button>
-      )}
+    <div className="insight-card rounded-2xl p-6">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-2 w-full text-left">
+        {open ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+        {Icon && <Icon className="w-4 h-4 text-slate-500" />}
+        <h3 className="text-base font-semibold text-slate-800">{title}</h3>
+      </button>
+      {open && <div className="mt-4">{children}</div>}
     </div>
   );
 }

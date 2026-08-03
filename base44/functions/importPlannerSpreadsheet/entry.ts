@@ -2,104 +2,57 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import * as XLSX from 'npm:xlsx@0.18.5';
 
 // ---------------------------------------------------------------------------
-// Team & Plant Planner Spreadsheet Import
+// Team & Plant Planner Spreadsheet Import — Clean-Slate Edition
 // ---------------------------------------------------------------------------
-// Parses a Team & Plant Planner Excel file using direct xlsx parsing.
-// Extracts staff/job/rota data from team planner sheets AND rig/plant
-// assignments from the Plant Planner sheet.
+// Parses the Team & Plant Planner Excel file and synchronises the database
+// to match it exactly. Every import is a FULL OVERWRITE:
 //
-// KEY GUARANTEES:
-//   • Single-entry deduplication — staff, jobs, teams, and rotas are never
-//     duplicated. All lookup maps are keyed by case-insensitive normalised
-//     name so "John Smith", "john smith", and "John  Smith" all resolve to
-//     the same record.
-//   • Person-name filtering — generic role/crew labels like "Sampling Team",
-//     "Excavator driver", "Drilling Crew", "Mob Crew" are rejected and
-//     never created as staff. Only real person names (2+ capitalised words,
-//     no numbers) are accepted.
-//   • Section-based subcontractor detection — any name appearing under a
-//     section header containing "subbies" / "subcontractor" is classified
-//     as a subcontractor, regardless of the name itself.
-//   • Subcontractors → "Subcontractors" team (worker_type = subcontractor).
-//   • Everyone else → their crew-section team (worker_type = direct_employee).
-//   • Purge mode — when purge=true, all existing RotaAssignments are deleted
-//     and all auto-created Staff (those without a linked user_id) that don't
-//     appear in the new spreadsheet are removed, giving a clean slate.
-//   • Batch creation — new staff and jobs are created via bulkCreate.
-//   • Idempotent — re-importing the same file produces the same result.
+//   • ALL existing RotaAssignments are deleted
+//   • ALL auto-created Staff (no linked user_id) are deleted
+//   • ALL JobAssetAssignments are deleted
+//   • Staff with linked logins not in the spreadsheet → marked is_active=false
+//   • Jobs are auto-statused: all past dates → completed, any today/future → in_progress
+//   • A full audit breakdown is returned so you can verify before applying
 //
 // Two modes:
-//   dry_run: true  → preview of what would be created/updated/deleted (no writes)
-//   dry_run: false → apply all changes
-//
-// Optional:
-//   purge: true → wipe old rota + auto-created staff before import
+//   dry_run: true  → full breakdown preview, no writes
+//   dry_run: false → apply everything, return summary
 // ---------------------------------------------------------------------------
 
 const DEFAULT_DOMAIN = 'ground-control.co.uk';
 const PLACEHOLDER_LOCATION = 'TBC — imported from planner';
+const TODAY = new Date().toISOString().slice(0, 10);
 
 const SUBCONTRACTOR_TEAM_NAME = 'Subcontractors';
 const DIRECT_EMPLOYEE_TEAM_NAME = 'Direct Employees';
 
 const CREW_SECTION_TO_JOB_TYPE = {
-  'cable': 'cp_drilling',
-  'cable percussion': 'cp_drilling',
-  'rotary': 'rotary_drilling',
-  'groundworks': 'groundworks',
-  'groundworker': 'groundworks',
-  'coring': 'coring',
-  'trial pit': 'trial_pit',
-  'trial_pit': 'trial_pit',
-  'enabling': 'enabling_works',
-  'enabling works': 'enabling_works',
-  'depot': 'depot',
-  'yard': 'depot',
-  'yard/depot': 'depot',
-  'leave/sick': 'depot',
-  'leave': 'depot',
-  'sick': 'depot',
+  'cable': 'cp_drilling', 'cable percussion': 'cp_drilling',
+  'rotary': 'rotary_drilling', 'groundworks': 'groundworks', 'groundworker': 'groundworks',
+  'coring': 'coring', 'trial pit': 'trial_pit', 'trial_pit': 'trial_pit',
+  'enabling': 'enabling_works', 'enabling works': 'enabling_works',
+  'depot': 'depot', 'yard': 'depot', 'yard/depot': 'depot',
+  'leave/sick': 'depot', 'leave': 'depot', 'sick': 'depot',
 };
 
 const CREW_SECTION_TO_JOB_TITLE = {
-  'cable': 'Cable Percussion Driller',
-  'cable percussion': 'Cable Percussion Driller',
-  'rotary': 'Rotary Driller',
-  'groundworks': 'Groundworker',
-  'groundworker': 'Groundworker',
-  'coring': 'Coring Driller',
-  'trial pit': 'Trial Pit Operative',
-  'trial_pit': 'Trial Pit Operative',
-  'enabling': 'Enabling Works Operative',
-  'enabling works': 'Enabling Works Operative',
-  'depot': 'Yard/Depot Staff',
-  'yard': 'Yard/Depot Staff',
-  'yard/depot': 'Yard/Depot Staff',
-  'leave/sick': '',
-  'leave': '',
-  'sick': '',
+  'cable': 'Cable Percussion Driller', 'cable percussion': 'Cable Percussion Driller',
+  'rotary': 'Rotary Driller', 'groundworks': 'Groundworker', 'groundworker': 'Groundworker',
+  'coring': 'Coring Driller', 'trial pit': 'Trial Pit Operative', 'trial_pit': 'Trial Pit Operative',
+  'enabling': 'Enabling Works Operative', 'enabling works': 'Enabling Works Operative',
+  'depot': 'Yard/Depot Staff', 'yard': 'Yard/Depot Staff', 'yard/depot': 'Yard/Depot Staff',
+  'leave/sick': '', 'leave': '', 'sick': '',
 };
 
 const CREW_SECTION_TO_DRILLING_METHOD = {
-  'cable': 'cp',
-  'cable percussion': 'cp',
-  'rotary': 'rotary',
-  'coring': 'rotary',
-  'groundworks': 'not_applicable',
-  'groundworker': 'not_applicable',
-  'trial pit': 'not_applicable',
-  'trial_pit': 'not_applicable',
-  'enabling': 'not_applicable',
-  'enabling works': 'not_applicable',
-  'depot': 'not_applicable',
-  'yard': 'not_applicable',
-  'yard/depot': 'not_applicable',
-  'leave/sick': 'not_applicable',
-  'leave': 'not_applicable',
-  'sick': 'not_applicable',
+  'cable': 'cp', 'cable percussion': 'cp', 'rotary': 'rotary', 'coring': 'rotary',
+  'groundworks': 'not_applicable', 'groundworker': 'not_applicable',
+  'trial pit': 'not_applicable', 'trial_pit': 'not_applicable',
+  'enabling': 'not_applicable', 'enabling works': 'not_applicable',
+  'depot': 'not_applicable', 'yard': 'not_applicable', 'yard/depot': 'not_applicable',
+  'leave/sick': 'not_applicable', 'leave': 'not_applicable', 'sick': 'not_applicable',
 };
 
-// Keywords that mark a row as a section header (not a staff name).
 const SECTION_KEYWORDS = [
   'cable', 'rotary', 'groundwork', 'coring', 'trial pit', 'trial_pit',
   'enabling', 'depot', 'yard', 'leave', 'sick', 'plant',
@@ -107,11 +60,8 @@ const SECTION_KEYWORDS = [
   'sub.con', 'sub con', 'sub-con', 'field teams',
 ];
 
-// Patterns that identify a subcontractor entry or section.
 const SUBCONTRACTOR_PATTERNS = ['subbies', 'subcontractor', 'sub-contractor', 'subby', 'sub.con', 'sub con', 'sub-con'];
 
-// Words that, when present as a whole word in a cell, indicate it is NOT a
-// person name but a role/crew label (e.g. "Sampling Team", "Drilling Crew").
 const NON_PERSON_WORDS = [
   'team', 'teams', 'crew', 'driver', 'supervisor', 'excavator', 'excavtion',
   'operative', 'labourer', 'labour', 'helper', 'assistant',
@@ -127,21 +77,15 @@ function normalizeName(name) {
   if (!name) return '';
   return String(name).trim().replace(/\s+/g, ' ');
 }
+function nameKey(name) { return normalizeName(name).toLowerCase(); }
 
-function nameKey(name) {
-  return normalizeName(name).toLowerCase();
-}
-
-// Detect whether a planner name or section refers to a subcontractor.
 function isSubcontractor(name) {
   const lower = normalizeName(name).toLowerCase();
   return SUBCONTRACTOR_PATTERNS.some(p => lower.includes(p));
 }
 
 function generateEmail(name) {
-  const clean = normalizeName(name).toLowerCase()
-    .replace(/[^a-z0-9\s.-]/g, '')
-    .trim();
+  const clean = normalizeName(name).toLowerCase().replace(/[^a-z0-9\s.-]/g, '').trim();
   if (!clean) return `imported.staff@${DEFAULT_DOMAIN}`;
   const parts = clean.split(/\s+/);
   const first = parts[0] || '';
@@ -161,12 +105,10 @@ function inferJobType(crewSection) {
   if (!crewSection) return '';
   return CREW_SECTION_TO_JOB_TYPE[String(crewSection).trim().toLowerCase()] || '';
 }
-
 function inferJobTitle(crewSection) {
   if (!crewSection) return '';
   return CREW_SECTION_TO_JOB_TITLE[String(crewSection).trim().toLowerCase()] || '';
 }
-
 function inferDrillingMethod(crewSection) {
   if (!crewSection) return 'not_applicable';
   return CREW_SECTION_TO_DRILLING_METHOD[String(crewSection).trim().toLowerCase()] || 'not_applicable';
@@ -175,21 +117,26 @@ function inferDrillingMethod(crewSection) {
 function getMostCommon(arr) {
   if (!arr || arr.length === 0) return '';
   const counts = {};
-  let maxCount = 0;
-  let maxItem = '';
+  let maxCount = 0, maxItem = '';
   for (const item of arr) {
     const key = String(item).toLowerCase().trim();
     counts[key] = (counts[key] || 0) + 1;
-    if (counts[key] > maxCount) {
-      maxCount = counts[key];
-      maxItem = item;
-    }
+    if (counts[key] > maxCount) { maxCount = counts[key]; maxItem = item; }
   }
   return maxItem;
 }
 
-// Convert an Excel cell value to an ISO date string (YYYY-MM-DD).
-// Rejects dates outside 2020-2030 (catches Excel epoch leaks like 1899-12-31).
+// Determine job status from its assignment dates:
+//   all past  → completed
+//   any today/future → in_progress
+//   no dates → planning
+function determineJobStatus(dates) {
+  if (!dates || dates.length === 0) return 'planning';
+  const allPast = dates.every(d => d < TODAY);
+  if (allPast) return 'completed';
+  return 'in_progress';
+}
+
 function cellToDate(cell) {
   if (!cell) return null;
   let iso = null;
@@ -221,7 +168,6 @@ function isSectionHeader(text) {
   return SECTION_KEYWORDS.some(kw => lower === kw || lower.startsWith(kw) || lower.includes(kw));
 }
 
-// Check if a cell value is a non-person label (role/crew description).
 function isNonPersonName(text) {
   if (!text) return true;
   const lower = normalizeName(text).toLowerCase();
@@ -229,7 +175,6 @@ function isNonPersonName(text) {
   return words.some(w => NON_PERSON_WORDS.includes(w));
 }
 
-// Strict person-name check: 2+ capitalised words, no numbers, no role keywords.
 function looksLikePersonName(text) {
   if (!text) return false;
   const s = String(text).trim();
@@ -239,14 +184,11 @@ function looksLikePersonName(text) {
   const lower = s.toLowerCase();
   if (lower === 'team planner' || lower === 'plant planner') return false;
   if (!/[a-zA-Z]/.test(s)) return false;
-  if (/\d/.test(s)) return false;                    // no numbers
-  if (isNonPersonName(s)) return false;               // no role/crew keywords
-
+  if (/\d/.test(s)) return false;
+  if (isNonPersonName(s)) return false;
   const words = s.split(/\s+/);
-  if (words.length < 2) return false;                 // need first + last name
-  if (words.length > 5) return false;                  // not a novel
-
-  // Every word must start with an uppercase letter (proper noun).
+  if (words.length < 2) return false;
+  if (words.length > 5) return false;
   return words.every(w => /^[A-Z]/.test(w));
 }
 
@@ -254,24 +196,17 @@ function isPlantPlannerSheet(sheetName) {
   return String(sheetName || '').toLowerCase().includes('plant');
 }
 
-// Parse a job name that may contain a reference and location.
-// Pattern: "I260236 is Kingsnorth Power Station" → ref="I260236", location="Kingsnorth Power Station"
 function parseJobName(rawName) {
   const name = normalizeName(rawName);
   const match = name.match(/^(.+?)\s+is\s+(.+)$/i);
   if (match) {
-    return {
-      name: name,
-      job_reference: match[1].trim(),
-      location: match[2].trim(),
-    };
+    return { name, job_reference: match[1].trim(), location: match[2].trim() };
   }
   return { name, job_reference: '', location: '' };
 }
 
-// Parse a single sheet and extract assignments.
-// Tracks whether the current section is a subcontractor section so all
-// names below a "Drilling Subbies" header are classified as subcontractors.
+// Parse a single sheet. Scans all rows for the date header row, then walks
+// every subsequent row tracking section headers and staff names.
 function parseSheet(sheet, sheetName) {
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
   if (rows.length < 5) return [];
@@ -279,19 +214,16 @@ function parseSheet(sheet, sheetName) {
   // Find the date header row: the row with the most date-like values
   let dateHeaderRowIdx = -1;
   let maxDates = 0;
-  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+  for (let i = 0; i < Math.min(rows.length, 15); i++) {
     let dateCount = 0;
     for (const cell of rows[i]) {
       if (cellToDate(cell)) dateCount++;
     }
-    if (dateCount > maxDates) {
-      maxDates = dateCount;
-      dateHeaderRowIdx = i;
-    }
+    if (dateCount > maxDates) { maxDates = dateCount; dateHeaderRowIdx = i; }
   }
   if (dateHeaderRowIdx === -1 || maxDates < 3) return [];
 
-  // Build column → date mapping from the date header row
+  // Build column → date mapping
   const colToDate = {};
   for (let c = 0; c < rows[dateHeaderRowIdx].length; c++) {
     const d = cellToDate(rows[dateHeaderRowIdx][c]);
@@ -299,24 +231,34 @@ function parseSheet(sheet, sheetName) {
   }
 
   const assignments = [];
-  let currentSection = sheetName || '';
+  const sectionsFound = new Set();
+  let currentSection = '';
   let isSubSection = false;
 
-  for (let r = dateHeaderRowIdx + 2; r < rows.length; r++) {
+  // Pre-scan rows between the title row and the date header row for section
+  // headers (some sheets list sections above the date grid).
+  for (let r = 2; r < dateHeaderRowIdx; r++) {
+    const row = rows[r];
+    if (!row) continue;
+    for (let c = 0; c < 6 && c < row.length; c++) {
+      if (isSectionHeader(row[c])) {
+        currentSection = String(row[c]).trim();
+        isSubSection = isSubcontractor(currentSection);
+        sectionsFound.add(currentSection);
+      }
+    }
+  }
+
+  for (let r = dateHeaderRowIdx + 1; r < rows.length; r++) {
     const row = rows[r];
     if (!row || row.length === 0) continue;
 
-    // Check the first 6 cells for section headers — some sheets place
-    // crew labels in col 2, 3, 4 or 5 (e.g. "Drilling Subbies" in col 4).
     const firstCells = [row[0], row[1], row[2], row[3], row[4], row[5]].filter(v => v !== null && v !== undefined && String(v).trim() !== '');
 
     let hasAssignment = false;
     for (const colStr of Object.keys(colToDate)) {
       const c = Number(colStr);
-      if (row[c] && String(row[c]).trim()) {
-        hasAssignment = true;
-        break;
-      }
+      if (row[c] && String(row[c]).trim()) { hasAssignment = true; break; }
     }
 
     // Check for section header
@@ -325,26 +267,20 @@ function parseSheet(sheet, sheetName) {
       if (isSectionHeader(cell)) {
         currentSection = String(cell).trim();
         isSubSection = isSubcontractor(currentSection);
+        sectionsFound.add(currentSection);
         foundSection = true;
         break;
       }
     }
     if (foundSection && !hasAssignment) continue;
 
-    // Find the person name in cols 0-5 (strict person-name check)
+    // Find the person name in cols 0-5
     let entityName = null;
     for (let c = 0; c < 6; c++) {
-      if (looksLikePersonName(row[c])) {
-        entityName = normalizeName(row[c]);
-        break;
-      }
+      if (looksLikePersonName(row[c])) { entityName = normalizeName(row[c]); break; }
     }
     if (!entityName) continue;
 
-    // Extract assignments — also push a staff-only entry if no dates are
-    // filled in, so the person is still created as a staff record (this is
-    // how subcontractor names under a "Drilling Subbies" header with no
-    // schedule get picked up).
     let hadAssignment = false;
     for (const [colStr, date] of Object.entries(colToDate)) {
       const c = Number(colStr);
@@ -354,28 +290,24 @@ function parseSheet(sheet, sheetName) {
       if (!jobName || jobName.length < 1) continue;
       if (jobName.length === 1) continue;
       assignments.push({
-        staff_name: entityName,
-        job_name: jobName,
-        date: date,
-        crew_section: currentSection,
-        is_subcontractor_section: isSubSection,
+        staff_name: entityName, job_name: jobName, date,
+        crew_section: currentSection, is_subcontractor_section: isSubSection,
       });
       hadAssignment = true;
     }
 
-    // Staff-only entry: person is listed but has no date assignments.
-    // Push with null date/job so the staff record is still created.
     if (!hadAssignment) {
       assignments.push({
-        staff_name: entityName,
-        job_name: null,
-        date: null,
-        crew_section: currentSection,
-        is_subcontractor_section: isSubSection,
+        staff_name: entityName, job_name: null, date: null,
+        crew_section: currentSection, is_subcontractor_section: isSubSection,
       });
     }
   }
 
+  // Attach sections found to the first assignment for collection by the caller
+  if (assignments.length > 0) {
+    assignments[0]._sections = [...sectionsFound];
+  }
   return assignments;
 }
 
@@ -393,11 +325,7 @@ export default async function(req) {
     const body = await req.json();
     const fileUrl = body.file_url;
     const dryRun = body.dry_run !== false;
-    const purge = body.purge === true;
-
-    if (!fileUrl) {
-      return Response.json({ error: 'file_url is required' }, { status: 400 });
-    }
+    if (!fileUrl) return Response.json({ error: 'file_url is required' }, { status: 400 });
 
     // -----------------------------------------------------------------------
     // 1. Fetch and parse the Excel file
@@ -411,12 +339,26 @@ export default async function(req) {
     let plantAssignments = [];
     const sheetNames = [];
     const warnings = [];
+    const allSectionsDetected = new Set();
+    const sheetBreakdown = [];
 
     for (const sheetName of workbook.SheetNames) {
       const sheet = workbook.Sheets[sheetName];
       if (!sheet) continue;
       sheetNames.push(sheetName);
       const sheetAssignments = parseSheet(sheet, sheetName);
+      if (sheetAssignments.length > 0 && sheetAssignments[0]._sections) {
+        for (const s of sheetAssignments[0]._sections) allSectionsDetected.add(s);
+      }
+      for (const a of sheetAssignments) {
+        if (a.crew_section) allSectionsDetected.add(a.crew_section);
+      }
+      sheetBreakdown.push({
+        sheet: sheetName,
+        is_plant: isPlantPlannerSheet(sheetName),
+        assignments: sheetAssignments.length,
+        sections: [...new Set(sheetAssignments.map(a => a.crew_section).filter(Boolean))],
+      });
       if (isPlantPlannerSheet(sheetName)) {
         plantAssignments = plantAssignments.concat(sheetAssignments);
       } else {
@@ -427,29 +369,23 @@ export default async function(req) {
     const allAssignments = teamAssignments.concat(plantAssignments);
 
     if (allAssignments.length === 0) {
-      return Response.json({
-        error: `No assignment rows could be read from this file. Sheets found: ${sheetNames.join(', ')}`
-      }, { status: 422 });
+      return Response.json({ error: `No assignment rows could be read from this file. Sheets found: ${sheetNames.join(', ')}` }, { status: 422 });
     }
 
-    // Date range covered by the sheet (skip staff-only entries with null dates)
     const allDates = allAssignments.map(a => a.date).filter(Boolean).sort();
     const dateFrom = allDates[0];
     const dateTo = allDates[allDates.length - 1];
 
     // -----------------------------------------------------------------------
-    // 2. PURGE — wipe old rota + auto-created staff for a clean slate
+    // 2. PURGE — always wipe old data for a clean slate
     // -----------------------------------------------------------------------
-    let purgeSummary = { rotas_deleted: 0, staff_deleted: 0 };
-    if (purge && !dryRun) {
-      // Delete ALL existing rota assignments
+    let purgeSummary = { rotas_deleted: 0, staff_deleted: 0, asset_assignments_deleted: 0 };
+    if (!dryRun) {
       const allRotas = await base44.asServiceRole.entities.RotaAssignment.list('-created_date', 5000);
       if (allRotas.length > 0) {
         await base44.asServiceRole.entities.RotaAssignment.deleteMany({});
         purgeSummary.rotas_deleted = allRotas.length;
       }
-
-      // Delete auto-created staff (those without a linked user_id)
       const allStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 5000);
       const autoStaff = allStaff.filter(s => !s.user_id);
       if (autoStaff.length > 0) {
@@ -458,38 +394,37 @@ export default async function(req) {
         }
         purgeSummary.staff_deleted = autoStaff.length;
       }
-      warnings.push(`Purge: deleted ${purgeSummary.rotas_deleted} rota assignments and ${purgeSummary.staff_deleted} auto-created staff records.`);
+      const allAssetAssignments = await base44.asServiceRole.entities.JobAssetAssignment.list('-created_date', 5000);
+      if (allAssetAssignments.length > 0) {
+        await base44.asServiceRole.entities.JobAssetAssignment.deleteMany({});
+        purgeSummary.asset_assignments_deleted = allAssetAssignments.length;
+      }
+      warnings.push(`Purge: deleted ${purgeSummary.rotas_deleted} rota assignments, ${purgeSummary.staff_deleted} auto-created staff, ${purgeSummary.asset_assignments_deleted} asset assignments.`);
     }
 
     // -----------------------------------------------------------------------
-    // 3. Resolve Teams (crew-section teams + dedicated Subcontractors team)
+    // 3. Resolve Teams
     // -----------------------------------------------------------------------
     const crewSections = [...new Set(teamAssignments.map(a => a.crew_section).filter(Boolean))];
     const existingTeams = await base44.asServiceRole.entities.Team.list();
     const teamByLabel = {};
-    for (const t of existingTeams) {
-      teamByLabel[String(t.name).toLowerCase().trim()] = t;
-    }
+    for (const t of existingTeams) teamByLabel[String(t.name).toLowerCase().trim()] = t;
 
     const teamMap = {};
     const newTeamNames = [];
 
-    // Ensure the dedicated Subcontractors team exists
     let subconTeam = teamByLabel[SUBCONTRACTOR_TEAM_NAME.toLowerCase()];
     if (!subconTeam) {
       if (!dryRun) {
         subconTeam = await base44.asServiceRole.entities.Team.create({
-          name: SUBCONTRACTOR_TEAM_NAME,
-          category: 'field_ops',
-          default_landing_page: '/staff-schedule'
+          name: SUBCONTRACTOR_TEAM_NAME, category: 'field_ops', default_landing_page: '/staff-schedule'
         });
       } else {
-        subconTeam = { id: `temp_team_subcon`, name: SUBCONTRACTOR_TEAM_NAME };
+        subconTeam = { id: 'temp_team_subcon', name: SUBCONTRACTOR_TEAM_NAME };
       }
       newTeamNames.push(SUBCONTRACTOR_TEAM_NAME);
     }
 
-    // Create crew-section teams for direct employees
     for (const section of crewSections) {
       const key = section.toLowerCase().trim();
       if (teamMap[section]) continue;
@@ -497,8 +432,7 @@ export default async function(req) {
       if (!team && !dryRun) {
         const jobType = inferJobType(section);
         team = await base44.asServiceRole.entities.Team.create({
-          name: section,
-          job_type: jobType || undefined,
+          name: section, job_type: jobType || undefined,
           category: jobType === 'depot' ? 'depot' : 'field_ops',
           default_landing_page: jobType === 'depot' ? '/admin' : '/staff-schedule'
         });
@@ -511,14 +445,11 @@ export default async function(req) {
       teamMap[section] = team;
     }
 
-    // Fallback team for direct employees without a crew section
     let fallbackTeam = teamByLabel[DIRECT_EMPLOYEE_TEAM_NAME.toLowerCase()] || teamByLabel['imported staff'];
     if (!fallbackTeam) {
       if (!dryRun) {
         fallbackTeam = await base44.asServiceRole.entities.Team.create({
-          name: DIRECT_EMPLOYEE_TEAM_NAME,
-          category: 'field_ops',
-          default_landing_page: '/staff-schedule'
+          name: DIRECT_EMPLOYEE_TEAM_NAME, category: 'field_ops', default_landing_page: '/staff-schedule'
         });
       } else {
         fallbackTeam = { id: 'temp_team_fallback', name: DIRECT_EMPLOYEE_TEAM_NAME };
@@ -526,7 +457,7 @@ export default async function(req) {
     }
 
     // -----------------------------------------------------------------------
-    // 4. Resolve Staff — single entry per person (case-insensitive dedup)
+    // 4. Resolve Staff + Leaver Detection
     // -----------------------------------------------------------------------
     const uniqueStaffKeys = new Set();
     const staffNameByKey = {};
@@ -544,6 +475,11 @@ export default async function(req) {
       if (s.email) staffByEmail.set(s.email.toLowerCase(), s);
     }
 
+    // Leaver detection: staff with linked logins not in the spreadsheet
+    const leavers = existingStaff
+      .filter(s => s.user_id && s.is_active !== false && !uniqueStaffKeys.has(nameKey(s.name)))
+      .map(s => ({ id: s.id, name: s.name, email: s.email, team_id: s.team_id }));
+
     const staffMap = new Map();
     const newStaffPayloads = [];
     const newStaffKeys = [];
@@ -558,30 +494,20 @@ export default async function(req) {
         staff = staffByEmail.get(email.toLowerCase());
       }
 
-      // Subcontractor if the name itself contains subbie patterns OR if
-      // the person appears under a subcontractor section header.
       const staffAssignments = teamAssignments.filter(a => nameKey(a.staff_name) === key);
       const inSubSection = staffAssignments.some(a => a.is_subcontractor_section);
       const subbie = isSubcontractor(name) || inSubSection;
       const workerType = subbie ? 'subcontractor' : 'direct_employee';
-
       const crewSectionCounts = staffAssignments.map(a => a.crew_section).filter(Boolean);
       const mostCommonSection = getMostCommon(crewSectionCounts);
       const jobTitle = inferJobTitle(mostCommonSection);
-
-      const team = subbie
-        ? subconTeam
-        : (teamMap[mostCommonSection] || fallbackTeam);
+      const team = subbie ? subconTeam : (teamMap[mostCommonSection] || fallbackTeam);
 
       if (!staff) {
         const email = generateEmail(name);
         newStaffPayloads.push({
-          name,
-          email,
-          worker_type: workerType,
-          job_title: jobTitle || undefined,
-          team_id: team.id,
-          is_active: true,
+          name, email, worker_type: workerType,
+          job_title: jobTitle || undefined, team_id: team.id, is_active: true,
         });
         newStaffKeys.push(key);
       } else {
@@ -589,52 +515,56 @@ export default async function(req) {
         const updates = {};
         if (jobTitle && !staff.job_title) updates.job_title = jobTitle;
         if (!staff.worker_type) updates.worker_type = workerType;
-        if (subbie && staff.team_id && staff.team_id !== subconTeam.id) {
-          updates.team_id = subconTeam.id;
-        }
+        if (subbie && staff.team_id && staff.team_id !== subconTeam.id) updates.team_id = subconTeam.id;
+        if (!staff.is_active) updates.is_active = true; // reactivate if returning
 
         if (Object.keys(updates).length > 0) {
           staffUpdates.push({ id: staff.id, name: staff.name, updates });
-          if (!dryRun) {
-            await base44.asServiceRole.entities.Staff.update(staff.id, updates);
-          }
+          if (!dryRun) await base44.asServiceRole.entities.Staff.update(staff.id, updates);
         }
         staffMap.set(key, staff);
       }
     }
 
-    // Batch-create all new staff
     if (newStaffPayloads.length > 0) {
       let createdStaff;
       if (!dryRun) {
         createdStaff = await base44.asServiceRole.entities.Staff.bulkCreate(newStaffPayloads);
       } else {
         createdStaff = newStaffPayloads.map((p, i) => ({
-          id: `temp_staff_${newStaffKeys[i]}`,
-          name: p.name,
-          email: p.email,
-          worker_type: p.worker_type,
-          job_title: p.job_title,
-          team_id: p.team_id,
+          id: `temp_staff_${newStaffKeys[i]}`, name: p.name, email: p.email,
+          worker_type: p.worker_type, job_title: p.job_title, team_id: p.team_id,
         }));
       }
-      for (let i = 0; i < createdStaff.length; i++) {
-        staffMap.set(newStaffKeys[i], createdStaff[i]);
-      }
+      for (let i = 0; i < createdStaff.length; i++) staffMap.set(newStaffKeys[i], createdStaff[i]);
     }
 
     const newStaff = newStaffKeys.map(k => staffMap.get(k));
 
+    // Mark leavers as inactive
+    let leaversMarked = 0;
+    if (!dryRun && leavers.length > 0) {
+      for (const l of leavers) {
+        await base44.asServiceRole.entities.Staff.update(l.id, { is_active: false });
+        leaversMarked++;
+      }
+    }
+
     // -----------------------------------------------------------------------
-    // 5. Resolve Jobs — single entry per job (case-insensitive dedup)
+    // 5. Resolve Jobs — with date-aware status
     // -----------------------------------------------------------------------
     const uniqueJobKeys = new Set();
     const jobNameByKey = {};
+    const jobDatesByKey = {};
     for (const a of allAssignments) {
-      if (!a.job_name) continue; // skip staff-only entries
+      if (!a.job_name) continue;
       const key = nameKey(a.job_name);
       uniqueJobKeys.add(key);
       jobNameByKey[key] = a.job_name;
+      if (a.date) {
+        if (!jobDatesByKey[key]) jobDatesByKey[key] = [];
+        jobDatesByKey[key].push(a.date);
+      }
     }
 
     const existingJobs = await base44.asServiceRole.entities.Job.list();
@@ -654,31 +584,30 @@ export default async function(req) {
     for (const key of uniqueJobKeys) {
       const rawName = jobNameByKey[key];
       const parsed = parseJobName(rawName);
+      const jobDates = (jobDatesByKey[key] || []).sort();
+      const jobStatus = determineJobStatus(jobDates);
 
       let job = null;
-      if (parsed.job_reference) {
-        job = jobByReference.get(parsed.job_reference.toLowerCase());
-      }
-      if (!job) {
-        job = jobByName.get(key);
-      }
+      if (parsed.job_reference) job = jobByReference.get(parsed.job_reference.toLowerCase());
+      if (!job) job = jobByName.get(key);
 
       const jobCrewSections = teamAssignments
         .filter(a => nameKey(a.job_name) === key)
-        .map(a => a.crew_section)
-        .filter(Boolean);
+        .map(a => a.crew_section).filter(Boolean);
       const mostCommonSection = getMostCommon(jobCrewSections);
       const drillingMethod = inferDrillingMethod(mostCommonSection);
       const jobType = inferJobType(mostCommonSection);
+      const jobStart = jobDates.length ? jobDates[0] : dateFrom;
+      const jobEnd = jobDates.length ? jobDates[jobDates.length - 1] : dateTo;
 
       if (!job) {
         newJobPayloads.push({
           name: parsed.name,
           job_reference: parsed.job_reference || undefined,
           location: parsed.location || PLACEHOLDER_LOCATION,
-          start_date: dateFrom,
-          end_date: dateTo,
-          status: 'planning',
+          start_date: jobStart,
+          end_date: jobEnd,
+          status: jobStatus,
           drilling_method: drillingMethod,
           job_type: jobType || undefined,
         });
@@ -686,47 +615,36 @@ export default async function(req) {
       } else {
         jobFoundCount++;
         const updates = {};
-        if (parsed.location && (job.location === PLACEHOLDER_LOCATION || !job.location)) {
-          updates.location = parsed.location;
-        }
-        if (parsed.job_reference && !job.job_reference) {
-          updates.job_reference = parsed.job_reference;
-        }
-        if (drillingMethod !== 'not_applicable' && (!job.drilling_method || job.drilling_method === 'not_applicable')) {
-          updates.drilling_method = drillingMethod;
-        }
-        if (jobType && !job.job_type) {
-          updates.job_type = jobType;
-        }
+        if (parsed.location && (job.location === PLACEHOLDER_LOCATION || !job.location)) updates.location = parsed.location;
+        if (parsed.job_reference && !job.job_reference) updates.job_reference = parsed.job_reference;
+        if (drillingMethod !== 'not_applicable' && (!job.drilling_method || job.drilling_method === 'not_applicable')) updates.drilling_method = drillingMethod;
+        if (jobType && !job.job_type) updates.job_type = jobType;
+        // Always sync dates and status from the spreadsheet
+        updates.start_date = jobStart;
+        updates.end_date = jobEnd;
+        updates.status = jobStatus;
 
         if (Object.keys(updates).length > 0) {
           jobUpdates.push({ id: job.id, name: job.name, updates });
-          if (!dryRun) {
-            await base44.asServiceRole.entities.Job.update(job.id, updates);
-          }
+          if (!dryRun) await base44.asServiceRole.entities.Job.update(job.id, updates);
         }
         jobMap.set(key, job);
       }
     }
 
-    // Batch-create all new jobs
     if (newJobPayloads.length > 0) {
       let createdJobs;
       if (!dryRun) {
         createdJobs = await base44.asServiceRole.entities.Job.bulkCreate(newJobPayloads);
       } else {
         createdJobs = newJobPayloads.map((p, i) => ({
-          id: `temp_job_${newJobKeys[i]}`,
-          name: p.name,
-          job_reference: p.job_reference || '',
-          location: p.location,
-          drilling_method: p.drilling_method,
-          job_type: p.job_type || '',
+          id: `temp_job_${newJobKeys[i]}`, name: p.name,
+          job_reference: p.job_reference || '', location: p.location,
+          drilling_method: p.drilling_method, job_type: p.job_type || '',
+          start_date: p.start_date, end_date: p.end_date, status: p.status,
         }));
       }
-      for (let i = 0; i < createdJobs.length; i++) {
-        jobMap.set(newJobKeys[i], createdJobs[i]);
-      }
+      for (let i = 0; i < createdJobs.length; i++) jobMap.set(newJobKeys[i], createdJobs[i]);
     }
 
     const newJobs = newJobKeys.map(k => jobMap.get(k));
@@ -736,9 +654,7 @@ export default async function(req) {
     // -----------------------------------------------------------------------
     const existingRigs = await base44.asServiceRole.entities.SiteAsset.filter({ is_rig: true });
     const rigByName = new Map();
-    for (const r of existingRigs) {
-      if (r.name) rigByName.set(nameKey(r.name), r);
-    }
+    for (const r of existingRigs) { if (r.name) rigByName.set(nameKey(r.name), r); }
 
     const rigAssignments = [];
     for (const pa of plantAssignments) {
@@ -746,10 +662,7 @@ export default async function(req) {
       const rig = rigByName.get(nameKey(pa.staff_name));
       if (job && rig) {
         rigAssignments.push({
-          job_id: job.id,
-          job_name: job.name,
-          asset_id: rig.id,
-          asset_name: rig.name,
+          job_id: job.id, job_name: job.name, asset_id: rig.id, asset_name: rig.name,
           assigned_date: pa.date,
         });
       }
@@ -764,69 +677,31 @@ export default async function(req) {
     }
     const dedupedRigAssignments = [...rigAssignmentMap.values()];
 
-    const existingAssetAssignments = await base44.asServiceRole.entities.JobAssetAssignment.list();
-    const existingAssetAssignmentKeys = new Set(
-      existingAssetAssignments.map(a => `${a.job_id}|${a.asset_id}`)
-    );
-
-    const newRigAssignments = dedupedRigAssignments.filter(ra =>
-      !existingAssetAssignmentKeys.has(`${ra.job_id}|${ra.asset_id}`)
-    );
-
     // -----------------------------------------------------------------------
-    // 7. Build desired rota set and compare against existing
+    // 7. Build desired rota set
     // -----------------------------------------------------------------------
-    const existingRotas = purge
-      ? []  // purge already wiped everything
-      : await base44.asServiceRole.entities.RotaAssignment.filter({
-          assigned_date: { $gte: dateFrom, $lte: dateTo }
-        });
-
-    const existingRotaIndex = {};
-    for (const r of existingRotas) {
-      const k = `${r.staff_id}|${r.assigned_date}|${r.job_id}`;
-      existingRotaIndex[k] = r;
-    }
-
     const desiredKeys = new Set();
     const rotasToCreate = [];
     let duplicateRotaRows = 0;
     for (const a of teamAssignments) {
-      // Skip staff-only entries (no date or job) — these are people listed
-      // in the planner with no schedule. They're still created as staff
-      // but don't get rota assignments.
       if (!a.date || !a.job_name) continue;
       const staff = staffMap.get(nameKey(a.staff_name));
       const job = jobMap.get(nameKey(a.job_name));
       if (!staff || !job) continue;
       const key = `${staff.id}|${a.date}|${job.id}`;
-      if (desiredKeys.has(key)) {
-        duplicateRotaRows++;
-        continue;
-      }
+      if (desiredKeys.has(key)) { duplicateRotaRows++; continue; }
       desiredKeys.add(key);
-      if (!existingRotaIndex[key]) {
-        rotasToCreate.push({
-          staff_id: staff.id,
-          job_id: job.id,
-          assigned_date: a.date,
-          week_start: getWeekStart(a.date),
-          status: 'assigned'
-        });
-      }
+      rotasToCreate.push({
+        staff_id: staff.id, job_id: job.id, assigned_date: a.date,
+        week_start: getWeekStart(a.date), status: 'assigned'
+      });
     }
-
     if (duplicateRotaRows > 0) {
-      warnings.push(`${duplicateRotaRows} duplicate rota row(s) in the spreadsheet were collapsed into single entries.`);
+      warnings.push(`${duplicateRotaRows} duplicate rota row(s) collapsed into single entries.`);
     }
-
-    const rotasToDelete = existingRotas.filter(r => {
-      const k = `${r.staff_id}|${r.assigned_date}|${r.job_id}`;
-      return !desiredKeys.has(k);
-    });
 
     // -----------------------------------------------------------------------
-    // 8. Preview (dry run) or apply
+    // 8. Build full audit breakdown
     // -----------------------------------------------------------------------
     const subbieCount = [...uniqueStaffKeys].filter(k => {
       const name = staffNameByKey[k];
@@ -834,13 +709,62 @@ export default async function(req) {
       return isSubcontractor(name) || inSub;
     }).length;
 
+    // Per-staff breakdown: name, email, team, type, assignment count, dates worked
+    const staffBreakdown = [...uniqueStaffKeys].map(key => {
+      const staff = staffMap.get(key);
+      const name = staffNameByKey[key];
+      const sAssignments = teamAssignments.filter(a => nameKey(a.staff_name) === key && a.date);
+      const jobs = [...new Set(sAssignments.map(a => a.job_name).filter(Boolean))];
+      const dates = sAssignments.map(a => a.date).sort();
+      const sections = [...new Set(sAssignments.map(a => a.crew_section).filter(Boolean))];
+      const inSub = sAssignments.some(a => a.is_subcontractor_section);
+      const subbie = isSubcontractor(name) || inSub;
+      return {
+        name,
+        email: staff?.email || generateEmail(name),
+        worker_type: subbie ? 'subcontractor' : 'direct_employee',
+        team: subbie ? SUBCONTRACTOR_TEAM_NAME : (sections[0] || DIRECT_EMPLOYEE_TEAM_NAME),
+        job_title: staff?.job_title || inferJobTitle(sections[0]) || '',
+        assignment_count: sAssignments.length,
+        date_range: dates.length ? { from: dates[0], to: dates[dates.length - 1] } : null,
+        jobs: jobs.slice(0, 20),
+        sections,
+        status: newStaffKeys.includes(key) ? 'new' : 'existing',
+      };
+    });
+
+    // Per-job breakdown: name, ref, location, status, dates, staff count
+    const jobsBreakdown = [...uniqueJobKeys].map(key => {
+      const job = jobMap.get(key);
+      const rawName = jobNameByKey[key];
+      const parsed = parseJobName(rawName);
+      const dates = (jobDatesByKey[key] || []).sort();
+      const jAssignments = allAssignments.filter(a => a.job_name && nameKey(a.job_name) === key);
+      const staffList = [...new Set(jAssignments.map(a => a.staff_name))];
+      const sections = [...new Set(jAssignments.map(a => a.crew_section).filter(Boolean))];
+      return {
+        name: parsed.name,
+        reference: parsed.job_reference || '',
+        location: parsed.location || '',
+        status: determineJobStatus(dates),
+        start_date: dates.length ? dates[0] : '',
+        end_date: dates.length ? dates[dates.length - 1] : '',
+        assignment_count: dates.length,
+        staff_count: staffList.length,
+        drilling_method: job?.drilling_method || inferDrillingMethod(sections[0]),
+        crew_sections: sections,
+        status_new: newJobKeys.includes(key) ? 'new' : 'existing',
+      };
+    });
+
     const summary = {
       total_assignments_parsed: allAssignments.length,
       team_assignments: teamAssignments.length,
       plant_assignments: plantAssignments.length,
       sheets_parsed: sheetNames,
       date_range: { from: dateFrom, to: dateTo },
-      purge: purge ? purgeSummary : null,
+      today: TODAY,
+      purge: purgeSummary,
       staff: {
         total: uniqueStaffKeys.size,
         found: staffFoundCount,
@@ -848,25 +772,27 @@ export default async function(req) {
         updates: staffUpdates.length,
         subcontractors: subbieCount,
         direct_employees: uniqueStaffKeys.size - subbieCount,
+        leavers_detected: leavers.length,
+        leavers_marked_inactive: dryRun ? 0 : leaversMarked,
       },
       jobs: {
         total: uniqueJobKeys.size,
         found: jobFoundCount,
         new: newJobPayloads.length,
         updates: jobUpdates.length,
+        completed: jobsBreakdown.filter(j => j.status === 'completed').length,
+        in_progress: jobsBreakdown.filter(j => j.status === 'in_progress').length,
+        planning: jobsBreakdown.filter(j => j.status === 'planning').length,
       },
       teams: { total: crewSections.length + 1, new: newTeamNames.length },
       rotas: {
         to_create: rotasToCreate.length,
-        to_delete: rotasToDelete.length,
-        existing_kept: existingRotas.length - rotasToDelete.length,
         duplicates_collapsed: duplicateRotaRows,
       },
       rig_assignments: {
         total: dedupedRigAssignments.length,
-        new: newRigAssignments.length,
-        existing: dedupedRigAssignments.length - newRigAssignments.length,
       },
+      sections_detected: [...allSectionsDetected],
       warnings,
     };
 
@@ -875,17 +801,30 @@ export default async function(req) {
         status: 'success',
         dry_run: true,
         summary,
-        new_staff: newStaff.map(s => ({ name: s.name, email: s.email, job_title: s.job_title, worker_type: s.worker_type, team: s.team_id === subconTeam.id ? SUBCONTRACTOR_TEAM_NAME : 'Direct Employee' })),
-        new_jobs: newJobs.map(j => ({ name: j.name, location: j.location, job_reference: j.job_reference, drilling_method: j.drilling_method, job_type: j.job_type })),
+        sheet_breakdown: sheetBreakdown,
+        staff_breakdown: staffBreakdown,
+        jobs_breakdown: jobsBreakdown,
+        leavers,
+        new_staff: newStaff.map(s => ({
+          name: s.name, email: s.email, job_title: s.job_title,
+          worker_type: s.worker_type,
+          team: s.team_id === subconTeam.id ? SUBCONTRACTOR_TEAM_NAME : 'Direct Employee'
+        })),
+        new_jobs: newJobs.map(j => ({
+          name: j.name, location: j.location, job_reference: j.job_reference,
+          drilling_method: j.drilling_method, job_type: j.job_type,
+          status: j.status, start_date: j.start_date, end_date: j.end_date,
+        })),
         staff_updates: staffUpdates,
         job_updates: jobUpdates,
         new_teams: newTeamNames,
-        new_rig_assignments: newRigAssignments.map(ra => ({ job_name: ra.job_name, asset_name: ra.asset_name, assigned_date: ra.assigned_date })),
+        new_rig_assignments: dedupedRigAssignments.map(ra => ({
+          job_name: ra.job_name, asset_name: ra.asset_name, assigned_date: ra.assigned_date
+        })),
       });
     }
 
     // --- Apply ---
-
     let createdCount = 0;
     if (rotasToCreate.length > 0) {
       for (let i = 0; i < rotasToCreate.length; i += 400) {
@@ -895,25 +834,11 @@ export default async function(req) {
       }
     }
 
-    let deletedCount = 0;
-    if (rotasToDelete.length > 0) {
-      for (const r of rotasToDelete) {
-        await base44.asServiceRole.entities.RotaAssignment.delete(r.id);
-        deletedCount++;
-      }
-    }
-
     let rigAssignmentCount = 0;
-    for (const ra of newRigAssignments) {
+    for (const ra of dedupedRigAssignments) {
       await base44.asServiceRole.entities.JobAssetAssignment.create({
-        job_id: ra.job_id,
-        job_name: ra.job_name,
-        asset_id: ra.asset_id,
-        asset_name: ra.asset_name,
-        asset_type: 'rig',
-        role: 'primary_rig',
-        status: 'assigned',
-        assigned_date: ra.assigned_date,
+        job_id: ra.job_id, job_name: ra.job_name, asset_id: ra.asset_id, asset_name: ra.asset_name,
+        asset_type: 'rig', role: 'primary_rig', status: 'assigned', assigned_date: ra.assigned_date,
       });
       rigAssignmentCount++;
     }
@@ -923,8 +848,9 @@ export default async function(req) {
       dry_run: false,
       summary: {
         ...summary,
-        rotas: { created: createdCount, deleted: deletedCount, duplicates_collapsed: duplicateRotaRows },
+        rotas: { created: createdCount, duplicates_collapsed: duplicateRotaRows },
         rig_assignments: { created: rigAssignmentCount, total: dedupedRigAssignments.length },
+        staff: { ...summary.staff, leavers_marked_inactive: leaversMarked },
       },
     });
   } catch (error) {
