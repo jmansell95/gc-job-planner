@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, Bell, UserCog } from 'lucide-react';
+import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, Bell, UserCog, CalendarClock } from 'lucide-react';
 import { format } from 'date-fns';
 import TimesheetHistory from '@/components/staff/TimesheetHistory';
 import StaffBookings from '@/components/staff/StaffBookings';
@@ -163,6 +163,11 @@ export default function StaffProfile() {
                 )}
               </button>
             )}
+            <button onClick={() => navigate('/staff-schedule')} type="button"
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
+              <CalendarClock className="w-4 h-4" />
+              <span>My Schedule</span>
+            </button>
             <button onClick={openChat} type="button"
               className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
               <Sparkles className="w-4 h-4" />

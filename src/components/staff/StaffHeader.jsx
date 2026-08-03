@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { LogOut, Phone, WifiOff, Wifi } from 'lucide-react';
+import { LogOut, Phone, WifiOff, Wifi, UserCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import Logo from '@/components/Logo';
 import { base44 } from '@/api/base44Client';
 import UsefulNumbersModal from '@/components/UsefulNumbersModal';
@@ -9,6 +10,7 @@ import StaffMaintenanceReportModal from '@/components/staff/StaffMaintenanceRepo
 // Modern staff header — glassmorphic gradient bar with greeting, live clock,
 // and connection status. Keeps the compact single-row layout but adds polish.
 export default function StaffHeader({ staff, onShowSchedule }) {
+  const navigate = useNavigate();
   const [showNumbers, setShowNumbers] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -49,6 +51,10 @@ export default function StaffHeader({ staff, onShowSchedule }) {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
+            <button onClick={() => navigate('/staff-profile')} type="button" aria-label="My Profile"
+              className="w-11 h-11 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white flex items-center justify-center active:scale-95 transition touch-manipulation">
+              <UserCircle className="w-5 h-5" />
+            </button>
             <button onClick={() => setShowNumbers(true)} type="button" aria-label="Useful Numbers"
               className="w-11 h-11 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white flex items-center justify-center active:scale-95 transition touch-manipulation">
               <Phone className="w-5 h-5" />
