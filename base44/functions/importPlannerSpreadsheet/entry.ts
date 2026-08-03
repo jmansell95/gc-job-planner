@@ -25,6 +25,7 @@ const TODAY = new Date().toISOString().slice(0, 10);
 
 const SUBCONTRACTOR_TEAM_NAME = 'Subcontractors';
 const DIRECT_EMPLOYEE_TEAM_NAME = 'Direct Employees';
+const AGENCY_TEAM_NAME = 'Agency Workers';
 
 const CREW_SECTION_TO_JOB_TYPE = {
   'cable': 'cp_drilling', 'cable percussion': 'cp_drilling',
@@ -58,6 +59,7 @@ const SECTION_KEYWORDS = [
   'enabling', 'depot', 'yard', 'leave', 'sick', 'plant',
   'subbies', 'subcontractor', 'sub-contractor', 'subby', 'drilling subbies',
   'sub.con', 'sub con', 'sub-con', 'field teams',
+  'agency',
 ];
 
 const SUBCONTRACTOR_PATTERNS = ['subbies', 'subcontractor', 'sub-contractor', 'subby', 'sub.con', 'sub con', 'sub-con'];
@@ -143,6 +145,12 @@ function isSubcontractor(name) {
   const lower = normalizeName(name).toLowerCase();
   if (SUBCONTRACTOR_PATTERNS.some(p => lower.includes(p))) return true;
   return looksLikeCompanyName(name);
+}
+
+function isAgencySection(name) {
+  if (!name) return false;
+  const lower = normalizeName(name).toLowerCase();
+  return lower.includes('agency');
 }
 
 function generateEmail(name, existingEmails) {
@@ -367,6 +375,7 @@ function parseSheet(sheet, sheetName) {
   const sectionsFound = new Set();
   let currentSection = '';
   let isSubSection = false;
+  let isAgencySectionFlag = false;
 
   // Pre-scan rows between the title row and the date header row for section
   // headers (some sheets list sections above the date grid).
@@ -377,6 +386,7 @@ function parseSheet(sheet, sheetName) {
       if (isSectionHeader(row[c])) {
         currentSection = String(row[c]).trim();
         isSubSection = isSubcontractor(currentSection);
+        isAgencySectionFlag = isAgencySection(currentSection);
         sectionsFound.add(currentSection);
       }
     }
@@ -400,6 +410,7 @@ function parseSheet(sheet, sheetName) {
       if (isSectionHeader(cell)) {
         currentSection = String(cell).trim();
         isSubSection = isSubcontractor(currentSection);
+        isAgencySectionFlag = isAgencySection(currentSection);
         sectionsFound.add(currentSection);
         foundSection = true;
         break;
@@ -419,6 +430,7 @@ function parseSheet(sheet, sheetName) {
     if (!entityName) continue;
 
     const entityIsSubbie = isSubSection || isCompanyName;
+    const entityIsAgency = isAgencySectionFlag;
 
     let hadAssignment = false;
     for (const [colStr, date] of Object.entries(colToDate)) {
@@ -431,6 +443,7 @@ function parseSheet(sheet, sheetName) {
       assignments.push({
         staff_name: entityName, job_name: jobName, date,
         crew_section: currentSection, is_subcontractor_section: entityIsSubbie,
+        is_agency_section: entityIsAgency,
       });
       hadAssignment = true;
     }
@@ -439,6 +452,7 @@ function parseSheet(sheet, sheetName) {
       assignments.push({
         staff_name: entityName, job_name: null, date: null,
         crew_section: currentSection, is_subcontractor_section: entityIsSubbie,
+        is_agency_section: entityIsAgency,
       });
     }
   }
@@ -573,6 +587,19 @@ export default async function(req) {
       newTeamNames.push(SUBCONTRACTOR_TEAM_NAME);
     }
 
+    let agencyTeam = teamByLabel[AGENCY_TEAM_NAME.toLowerCase()];
+    if (!agencyTeam) {
+      if (!dryRun) {
+        agencyTeam = await base44.asServiceRole.entities.Team.create({
+          name: AGENCY_TEAM_NAME, category: 'field_ops', default_landing_page: '/staff-schedule'
+        });
+      } else {
+        agencyTeam = { id: 'temp_team_agency', name: AGENCY_TEAM_NAME };
+      }
+      newTeamNames.push(AGENCY_TEAM_NAME);
+    }
+    teamByLabel[AGENCY_TEAM_NAME.toLowerCase()] = agencyTeam;
+
     for (const section of crewSections) {
       const key = section.toLowerCase().trim();
       if (teamMap[section]) continue;
@@ -650,12 +677,14 @@ export default async function(req) {
 
       const staffAssignments = teamAssignments.filter(a => nameKey(a.staff_name) === key);
       const inSubSection = staffAssignments.some(a => a.is_subcontractor_section);
+      const inAgencySection = staffAssignments.some(a => a.is_agency_section);
       const subbie = isSubcontractor(name) || inSubSection;
-      const workerType = subbie ? 'subcontractor' : 'direct_employee';
+      const agency = inAgencySection;
+      const workerType = agency ? 'agency' : (subbie ? 'subcontractor' : 'direct_employee');
       const crewSectionCounts = staffAssignments.map(a => a.crew_section).filter(Boolean);
       const mostCommonSection = getMostCommon(crewSectionCounts);
       const jobTitle = inferJobTitle(mostCommonSection);
-      const team = subbie ? subconTeam : (teamMap[mostCommonSection] || fallbackTeam);
+      const team = agency ? agencyTeam : (subbie ? subconTeam : (teamMap[mostCommonSection] || fallbackTeam));
 
       if (!staff) {
         const email = generateEmail(name, allKnownEmails);
@@ -903,6 +932,10 @@ export default async function(req) {
       return isSubcontractor(name) || inSub;
     }).length;
 
+    const agencyCount = [...uniqueStaffKeys].filter(k =>
+      teamAssignments.some(a => nameKey(a.staff_name) === k && a.is_agency_section)
+    ).length;
+
     // Per-staff breakdown: name, email, team, type, assignment count, dates worked
     const staffBreakdown = [...uniqueStaffKeys].map(key => {
       const staff = staffMap.get(key);
@@ -912,12 +945,14 @@ export default async function(req) {
       const dates = sAssignments.map(a => a.date).sort();
       const sections = [...new Set(sAssignments.map(a => a.crew_section).filter(Boolean))];
       const inSub = sAssignments.some(a => a.is_subcontractor_section);
+      const inAgency = sAssignments.some(a => a.is_agency_section);
       const subbie = isSubcontractor(name) || inSub;
+      const agency = inAgency;
       return {
         name,
         email: staff?.email || generateEmail(name),
-        worker_type: subbie ? 'subcontractor' : 'direct_employee',
-        team: subbie ? SUBCONTRACTOR_TEAM_NAME : (sections[0] || DIRECT_EMPLOYEE_TEAM_NAME),
+        worker_type: agency ? 'agency' : (subbie ? 'subcontractor' : 'direct_employee'),
+        team: agency ? AGENCY_TEAM_NAME : (subbie ? SUBCONTRACTOR_TEAM_NAME : (sections[0] || DIRECT_EMPLOYEE_TEAM_NAME)),
         job_title: staff?.job_title || inferJobTitle(sections[0]) || '',
         assignment_count: sAssignments.length,
         date_range: dates.length ? { from: dates[0], to: dates[dates.length - 1] } : null,
@@ -970,7 +1005,8 @@ export default async function(req) {
         new: newStaffPayloads.length,
         updates: staffUpdates.length,
         subcontractors: subbieCount,
-        direct_employees: uniqueStaffKeys.size - subbieCount,
+        agency: agencyCount,
+        direct_employees: uniqueStaffKeys.size - subbieCount - agencyCount,
         leavers_detected: leavers.length,
         leavers_marked_inactive: dryRun ? 0 : leaversMarked,
       },
@@ -1007,7 +1043,8 @@ export default async function(req) {
         new_staff: newStaff.map(s => ({
           name: s.name, email: s.email, job_title: s.job_title,
           worker_type: s.worker_type,
-          team: s.team_id === subconTeam.id ? SUBCONTRACTOR_TEAM_NAME : 'Direct Employee'
+          team: s.team_id === agencyTeam.id ? AGENCY_TEAM_NAME
+            : (s.team_id === subconTeam.id ? SUBCONTRACTOR_TEAM_NAME : 'Direct Employee')
         })),
         new_jobs: newJobs.map(j => ({
           name: j.name, location: j.location, job_reference: j.job_reference,

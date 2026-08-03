@@ -148,8 +148,8 @@ export default function ImportDashboard() {
               <StatTile icon={Clock} label="In Progress" total={preview.summary.jobs.in_progress} sub="today/future" color="teal" />
             </div>
 
-            {/* Subcon / Direct split */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+            {/* Subcon / Agency / Direct split */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
               <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
                   <HardHat className="w-5 h-5 text-indigo-600" />
@@ -157,6 +157,15 @@ export default function ImportDashboard() {
                 <div>
                   <p className="text-sm font-bold text-indigo-900">Subcontractors: {preview.summary.staff.subcontractors}</p>
                   <p className="text-xs text-indigo-700">→ Subcontractors team</p>
+                </div>
+              </div>
+              <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-cyan-100 flex items-center justify-center flex-shrink-0">
+                  <Users className="w-5 h-5 text-cyan-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-cyan-900">Agency: {preview.summary.staff.agency}</p>
+                  <p className="text-xs text-cyan-700">→ Agency Workers team</p>
                 </div>
               </div>
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -263,8 +272,8 @@ export default function ImportDashboard() {
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-slate-700">{s.name}</span>
                         {s.status === 'new' && <span className="text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">NEW</span>}
-                        <span className={`text-xs rounded-full px-2 py-0.5 ${s.worker_type === 'subcontractor' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
-                          {s.worker_type === 'subcontractor' ? 'Subcon' : 'Direct'}
+                        <span className={`text-xs rounded-full px-2 py-0.5 ${s.worker_type === 'subcontractor' ? 'bg-indigo-100 text-indigo-700' : s.worker_type === 'agency' ? 'bg-cyan-100 text-cyan-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {s.worker_type === 'subcontractor' ? 'Subcon' : s.worker_type === 'agency' ? 'Agency' : 'Direct'}
                         </span>
                       </div>
                       <span className="text-xs text-slate-400">{s.assignment_count} assignments</span>
