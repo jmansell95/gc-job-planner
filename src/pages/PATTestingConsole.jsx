@@ -91,7 +91,16 @@ export default function PATTestingConsole() {
       {/* Stats bar */}
       <div className="hero-gradient text-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3">
-          <div className="flex justify-end mb-3">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                <Plug className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-lg font-bold text-white truncate">PAT Testing Console</h1>
+                <p className="text-xs text-white/70 truncate">Portable appliance testing queue & labels</p>
+              </div>
+            </div>
             <button onClick={handleSync} disabled={syncing}
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 rounded-lg text-sm font-medium transition flex-shrink-0 disabled:opacity-60">
               <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? 'Syncing…' : 'Sync Panda'}

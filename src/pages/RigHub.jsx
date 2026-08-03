@@ -135,7 +135,16 @@ export default function RigHub() {
       {/* Action bar */}
       <div className="hero-gradient rounded-2xl text-white shadow-lg overflow-hidden mb-4">
         <div className="px-4 md:px-5 py-3">
-          <div className="flex items-center justify-end gap-3 mb-3">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                <Boxes className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-lg font-bold text-white truncate">Rig Fleet</h1>
+                <p className="text-xs text-white/70 truncate">Compliance, maintenance & utilisation</p>
+              </div>
+            </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <button onClick={() => navigate('/pat-testing')} className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-amber-400/90 hover:bg-amber-400 text-slate-900 rounded-lg font-semibold text-sm active:scale-95 transition shadow-sm">
                 <Plug className="w-4 h-4" /> PAT Console

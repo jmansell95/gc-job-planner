@@ -5,6 +5,7 @@ import {
   ShieldAlert, ShieldCheck, Car, Wrench, ClipboardCheck, FileText, Loader2,
   ExternalLink, AlertTriangle, Users, Calendar, ChevronRight, Search,
 } from 'lucide-react';
+import PageHeader from '@/components/PageHeader';
 const ACCENT = '#2E5A1A';
 
 // Classify a SafetyCulture audit template into one of the standard daily checks.
@@ -101,6 +102,7 @@ export default function SafetyCultureCheckHub({ onNavigate }) {
 
   return (
     <div>
+      <PageHeader title="Safety Hub" icon={ShieldAlert} subtitle="SafetyCulture audits, overdue actions & daily checks" />
       {/* Stat tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {stats.map((s) => {
