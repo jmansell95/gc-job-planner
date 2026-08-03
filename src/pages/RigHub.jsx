@@ -23,8 +23,10 @@ import FleetComplianceDonut from '@/components/righub/FleetComplianceDonut';
 import BulkActionBar from '@/components/righub/BulkActionBar';
 import FleetSyncPanel from '@/components/righub/FleetSyncPanel';
 import DrillingEfficiencyPanel from '@/components/righub/DrillingEfficiencyPanel';
+import FleetUtilizationHeatmap from '@/components/righub/FleetUtilizationHeatmap';
 import RigUtilizationSparkline from '@/components/righub/RigUtilizationSparkline';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { Skeleton } from '@/components/StateViews';
 import { RefreshCw, Lock, Check, CheckSquare } from 'lucide-react';
 
@@ -249,13 +251,18 @@ export default function RigHub() {
             {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}
           </div>
         ) : view === 'maintenance' ? (
-          <FleetMaintenancePanel />
+          <ErrorBoundary><FleetMaintenancePanel /></ErrorBoundary>
         ) : view === 'efficiency' ? (
-          <DrillingEfficiencyPanel assets={assets} />
+          <ErrorBoundary>
+            <div className="space-y-4">
+              <FleetUtilizationHeatmap assets={assets} />
+              <DrillingEfficiencyPanel assets={assets} />
+            </div>
+          </ErrorBoundary>
         ) : view === 'recert' ? (
-          <RecertPipeline assets={assets} onRecert={(a) => setRecertAsset(a)} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} />
+          <ErrorBoundary><RecertPipeline assets={assets} onRecert={(a) => setRecertAsset(a)} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} /></ErrorBoundary>
         ) : view === 'certificates' ? (
-          <MasterCertificateVault assets={assets} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} />
+          <ErrorBoundary><MasterCertificateVault assets={assets} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} /></ErrorBoundary>
         ) : view === 'rigs' ? (
           filteredRigs.length === 0 ? (
             <div className="bg-white rounded-xl border border-slate-200 p-10 text-center">
