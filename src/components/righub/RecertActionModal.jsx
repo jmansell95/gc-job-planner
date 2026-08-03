@@ -109,7 +109,7 @@ export default function RecertActionModal({ asset, onClose, onSaved }) {
       queryClient.invalidateQueries({ queryKey: ['cert-vault'] });
       queryClient.invalidateQueries({ queryKey: ['master-cert-vault'] });
       queryClient.invalidateQueries({ queryKey: ['recert-pipeline'] });
-      toast({ title: 'Re-cert logged', description: `${asset.name} marked ${form.result === 'fail' ? 'failed' : 'compliant'} · next due ${expiryDate ? safeFormat(expiryDate, 'dd MMM yyyy') : 'n/a'}${reactivating ? ' · reactivated' : ''}.` });
+      toast({ title: 'Re-cert logged', description: `${asset.name} marked ${form.result === 'fail' ? 'failed' : 'compliant'} · next due ${expiryDate ? safeFormat(expiryDate, 'dd MMM yyyy') : 'n/a'}${form.result === 'pass' && asset.is_active === false ? ' · reactivated' : ''}.` });
       onSaved?.();
       onClose();
     } catch (e) { toast({ title: 'Save failed', description: e.message, variant: 'destructive' }); }
