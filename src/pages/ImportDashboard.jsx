@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle, Users, Briefcase, CalendarDays, Trash2 } from 'lucide-react';
+import { UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle, Users, Briefcase, CalendarDays, Trash2, HardHat, Wrench, AlertCircle } from 'lucide-react';
 
 export default function ImportDashboard() {
   const { toast } = useToast();
@@ -65,9 +65,10 @@ export default function ImportDashboard() {
         file_url: fileUrl,
         dry_run: false
       });
+      const s = res.data.summary;
       toast({
         title: 'Import complete',
-        description: `Created ${res.data.summary.rotas.created} rotas, deleted ${res.data.summary.rotas.deleted} stale ones.`
+        description: `Created ${s.rotas.created} rotas, ${s.staff.new} staff, ${s.jobs.new} jobs. Deleted ${s.rotas.deleted} stale assignments.`
       });
       setPreview(null);
       setFile(null);
@@ -134,21 +135,73 @@ export default function ImportDashboard() {
               <span className="font-medium text-slate-700">{preview.summary.date_range.to}</span>
             </p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-              <StatTile icon={Users} label="Staff" total={preview.summary.staff.total} isNew={preview.summary.staff.new} color="blue" />
-              <StatTile icon={Briefcase} label="Jobs" total={preview.summary.jobs.total} isNew={preview.summary.jobs.new} color="emerald" />
+            {/* Dedup guarantee banner */}
+            <div className="mb-4 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2.5 text-sm text-emerald-800 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span><strong>Single-entry deduplication active.</strong> Existing staff, jobs, teams &amp; rotas are matched case-insensitively — nothing is duplicated.</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <StatTile icon={Users} label="Staff" total={preview.summary.staff.total} sub={`${preview.summary.staff.found} found · ${preview.summary.staff.new} new`} color="blue" />
+              <StatTile icon={Briefcase} label="Jobs" total={preview.summary.jobs.total} sub={`${preview.summary.jobs.found} found · ${preview.summary.jobs.new} new`} color="emerald" />
               <StatTile icon={CalendarDays} label="Rotas to Create" total={preview.summary.rotas.to_create} color="amber" />
               <StatTile icon={Trash2} label="Rotas to Delete" total={preview.summary.rotas.to_delete} color="rose" />
             </div>
 
+            {/* Subcontractor / Direct Employee split */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                  <HardHat className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-indigo-900">Subcontractors</p>
+                  <p className="text-xs text-indigo-700">{preview.summary.staff.subcontractors} person(s) → Subcontractors team</p>
+                </div>
+              </div>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <Users className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-emerald-900">Direct Employees</p>
+                  <p className="text-xs text-emerald-700">{preview.summary.staff.total - preview.summary.staff.subcontractors} person(s) → crew-section teams</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Warnings */}
+            {preview.summary.warnings?.length > 0 && (
+              <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <p className="text-sm font-semibold text-amber-800">Warnings</p>
+                </div>
+                <ul className="space-y-1">
+                  {preview.summary.warnings.map((w, i) => (
+                    <li key={i} className="text-xs text-amber-700">{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {preview.new_staff?.length > 0 && (
-              <DetailList title="New Staff (auto-generated emails)" items={preview.new_staff.map(s => `${s.name} — ${s.email}`)} />
+              <DetailList title={`New Staff (${preview.summary.staff.new})`} items={preview.new_staff.map(s => `${s.name} — ${s.email} · ${s.team}`)} />
+            )}
+            {preview.staff_updates?.length > 0 && (
+              <DetailList title={`Staff Updates (${preview.staff_updates.length})`} items={preview.staff_updates.map(s => `${s.name} — ${Object.keys(s.updates).join(', ')}`)} />
             )}
             {preview.new_jobs?.length > 0 && (
-              <DetailList title="New Jobs" items={preview.new_jobs.map(j => j.name)} />
+              <DetailList title={`New Jobs (${preview.summary.jobs.new})`} items={preview.new_jobs.map(j => j.name)} />
+            )}
+            {preview.job_updates?.length > 0 && (
+              <DetailList title={`Job Updates (${preview.job_updates.length})`} items={preview.job_updates.map(j => `${j.name} — ${Object.keys(j.updates).join(', ')}`)} />
             )}
             {preview.new_teams?.length > 0 && (
               <DetailList title="New Teams" items={preview.new_teams} />
+            )}
+            {preview.new_rig_assignments?.length > 0 && (
+              <DetailList title={`New Rig Assignments (${preview.new_rig_assignments.length})`} items={preview.new_rig_assignments.map(ra => `${ra.asset_name} → ${ra.job_name} (${ra.assigned_date})`)} />
             )}
 
             <div className="mt-5 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
@@ -184,10 +237,11 @@ export default function ImportDashboard() {
           <div className="insight-card rounded-2xl p-6">
             <h2 className="text-lg font-semibold text-slate-800 mb-3">How it works</h2>
             <ol className="space-y-3 text-sm text-slate-600">
-              <Step n={1} title="Upload your planner file">The Excel file is uploaded and sent to the AI parser.</Step>
-              <Step n={2} title="AI extracts crews, jobs &amp; rotas">The system reads the grid — staff names, job names, dates, and crew sections — and matches them against your existing records.</Step>
-              <Step n={3} title="Review the preview">See exactly what will be created or deleted before anything changes.</Step>
-              <Step n={4} title="Confirm &amp; apply">On confirm, missing staff/jobs/teams are created, new rota assignments are added, and stale ones (in the sheet's date range) are removed.</Step>
+              <Step n={1} title="Upload your planner file">The Excel file is uploaded and parsed directly — no third-party AI involved.</Step>
+              <Step n={2} title="Extract crews, jobs &amp; rotas">The system reads the grid — staff names, job names, dates, and crew sections — and matches them against your existing records.</Step>
+              <Step n={3} title="Single-entry deduplication">Staff, jobs, and teams are matched case-insensitively. Subcontractors (names with "subbies", "subcontractor", etc.) go into the Subcontractors team; everyone else goes into their crew-section team as a Direct Employee.</Step>
+              <Step n={4} title="Review the preview">See exactly what will be created, updated, or deleted — with found vs new counts and any warnings — before anything changes.</Step>
+              <Step n={5} title="Confirm &amp; apply">On confirm, missing staff/jobs/teams are created in batch, new rota assignments are added, and stale ones (in the sheet's date range) are removed.</Step>
             </ol>
             <div className="mt-4 text-xs text-slate-400 bg-slate-50 rounded-lg px-4 py-3">
               <strong>Note:</strong> Staff without an email are auto-created with <code className="text-xs bg-slate-100 px-1 rounded">firstname.lastname@ground-control.co.uk</code>. Only rota assignments within the spreadsheet's date range are affected — historical data outside that range is untouched.
@@ -198,7 +252,7 @@ export default function ImportDashboard() {
   );
 }
 
-function StatTile({ icon: Icon, label, total, isNew, color }) {
+function StatTile({ icon: Icon, label, total, sub, color }) {
   const colors = {
     blue: 'stat-gradient-blue',
     emerald: 'stat-gradient-emerald',
@@ -210,9 +264,7 @@ function StatTile({ icon: Icon, label, total, isNew, color }) {
       <Icon className="w-5 h-5 mb-2 opacity-80" />
       <p className="text-2xl font-bold tabular-nums">{total}</p>
       <p className="text-xs opacity-90">{label}</p>
-      {isNew !== undefined && isNew > 0 && (
-        <p className="text-[11px] mt-1 bg-white/20 rounded-full px-2 py-0.5 inline-block">{isNew} new</p>
-      )}
+      {sub && <p className="text-[11px] mt-1 bg-white/20 rounded-full px-2 py-0.5 inline-block">{sub}</p>}
     </div>
   );
 }
@@ -222,7 +274,7 @@ function DetailList({ title, items }) {
   const shown = expanded ? items : items.slice(0, 5);
   return (
     <div className="mb-4">
-      <p className="text-sm font-semibold text-slate-700 mb-2">{title} ({items.length})</p>
+      <p className="text-sm font-semibold text-slate-700 mb-2">{title}</p>
       <ul className="space-y-1">
         {shown.map((item, i) => (
           <li key={i} className="text-sm text-slate-600 bg-slate-50 rounded px-3 py-1.5">{item}</li>

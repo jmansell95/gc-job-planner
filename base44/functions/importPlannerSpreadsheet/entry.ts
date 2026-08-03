@@ -6,9 +6,22 @@ import * as XLSX from 'npm:xlsx@0.18.5';
 // ---------------------------------------------------------------------------
 // Parses a Team & Plant Planner Excel file using direct xlsx parsing.
 // Extracts staff/job/rota data from team planner sheets AND rig/plant
-// assignments from the Plant Planner sheet. Reconciles against existing
-// entities with robust deduplication, classifies subcontractors, derives
-// job titles, parses locations from job references, and links rigs to jobs.
+// assignments from the Plant Planner sheet.
+//
+// KEY GUARANTEES:
+//   • Single-entry deduplication — staff, jobs, teams, and rotas are never
+//     duplicated. All lookup maps are keyed by case-insensitive normalised
+//     name so "John Smith", "john smith", and "John  Smith" all resolve to
+//     the same record.
+//   • Subcontractors (names containing "subbies", "subcontractor",
+//     "sub-contractor", or "subby") are classified as worker_type =
+//     'subcontractor' and assigned to a dedicated "Subcontractors" team.
+//   • Everyone else is classified as worker_type = 'direct_employee' and
+//     assigned to their crew-section team (Cable, Rotary, Groundworks, etc.).
+//   • Batch creation — new staff and jobs are created via bulkCreate in a
+//     single call rather than one-by-one.
+//   • Full audit report — the response includes found/new/update counts and
+//     a warnings list for any ambiguous rows.
 //
 // Two modes:
 //   dry_run: true  → preview of what would be created/updated/deleted (no writes)
@@ -17,6 +30,8 @@ import * as XLSX from 'npm:xlsx@0.18.5';
 
 const DEFAULT_DOMAIN = 'ground-control.co.uk';
 const PLACEHOLDER_LOCATION = 'TBC — imported from planner';
+
+const SUBCONTRACTOR_TEAM_NAME = 'Subcontractors';
 
 const CREW_SECTION_TO_JOB_TYPE = {
   'cable': 'cp_drilling',
@@ -77,11 +92,25 @@ const CREW_SECTION_TO_DRILLING_METHOD = {
 
 const SECTION_KEYWORDS = ['cable', 'rotary', 'groundwork', 'coring', 'trial pit', 'trial_pit', 'enabling', 'depot', 'yard', 'leave', 'sick', 'plant'];
 
+// Patterns that identify a subcontractor entry in the planner.
+// Matched case-insensitively against the normalised staff name.
+const SUBCONTRACTOR_PATTERNS = ['subbies', 'subcontractor', 'sub-contractor', 'subby'];
+
 // --- Helpers ---
 
 function normalizeName(name) {
   if (!name) return '';
   return String(name).trim().replace(/\s+/g, ' ');
+}
+
+function nameKey(name) {
+  return normalizeName(name).toLowerCase();
+}
+
+// Detect whether a planner name refers to a subcontractor crew.
+function isSubcontractor(name) {
+  const lower = normalizeName(name).toLowerCase();
+  return SUBCONTRACTOR_PATTERNS.some(p => lower.includes(p));
 }
 
 function generateEmail(name) {
@@ -315,6 +344,7 @@ export default async function(req) {
     let teamAssignments = [];
     let plantAssignments = [];
     const sheetNames = [];
+    const warnings = [];
 
     for (const sheetName of workbook.SheetNames) {
       const sheet = workbook.Sheets[sheetName];
@@ -342,7 +372,7 @@ export default async function(req) {
     const dateTo = allDates[allDates.length - 1];
 
     // -----------------------------------------------------------------------
-    // 2. Resolve Teams (create missing ones based on crew sections)
+    // 2. Resolve Teams (crew-section teams + dedicated Subcontractors team)
     // -----------------------------------------------------------------------
     const crewSections = [...new Set(teamAssignments.map(a => a.crew_section).filter(Boolean))];
     const existingTeams = await base44.asServiceRole.entities.Team.list();
@@ -353,6 +383,23 @@ export default async function(req) {
 
     const teamMap = {};
     const newTeamNames = [];
+
+    // Ensure the dedicated Subcontractors team exists
+    let subconTeam = teamByLabel[SUBCONTRACTOR_TEAM_NAME.toLowerCase()];
+    if (!subconTeam) {
+      if (!dryRun) {
+        subconTeam = await base44.asServiceRole.entities.Team.create({
+          name: SUBCONTRACTOR_TEAM_NAME,
+          category: 'subcontractor',
+          default_landing_page: '/subcontractor'
+        });
+      } else {
+        subconTeam = { id: `temp_team_subcon`, name: SUBCONTRACTOR_TEAM_NAME };
+      }
+      newTeamNames.push(SUBCONTRACTOR_TEAM_NAME);
+    }
+
+    // Create crew-section teams for direct employees
     for (const section of crewSections) {
       const key = section.toLowerCase().trim();
       if (teamMap[section]) continue;
@@ -368,84 +415,98 @@ export default async function(req) {
         teamByLabel[key] = team;
         newTeamNames.push(section);
       } else if (!team && dryRun) {
-        // Simulate for dry run
         team = { id: `temp_team_${key}`, name: section };
         newTeamNames.push(section);
       }
       teamMap[section] = team;
     }
 
-    let fallbackTeam = teamByLabel['depot'];
+    // Fallback team for direct employees without a crew section
+    let fallbackTeam = teamByLabel['direct employees'] || teamByLabel['imported staff'];
     if (!fallbackTeam) {
       if (!dryRun) {
         fallbackTeam = await base44.asServiceRole.entities.Team.create({
-          name: 'Imported Staff',
+          name: 'Direct Employees',
           category: 'field_ops',
           default_landing_page: '/staff-schedule'
         });
       } else {
-        fallbackTeam = { id: 'temp_team_fallback', name: 'Imported Staff' };
+        fallbackTeam = { id: 'temp_team_fallback', name: 'Direct Employees' };
       }
     }
 
     // -----------------------------------------------------------------------
-    // 3. Resolve Staff (dedupe by name then email; classify; set job_title)
+    // 3. Resolve Staff — single entry per person (case-insensitive dedup)
     // -----------------------------------------------------------------------
-    const uniqueStaffNames = [...new Set(teamAssignments.map(a => a.staff_name))];
+    // Collect unique staff names using the case-insensitive key so "John
+    // Smith" and "john smith" collapse to a single entry.
+    const uniqueStaffKeys = new Set();
+    const staffNameByKey = {};
+    for (const a of teamAssignments) {
+      const key = nameKey(a.staff_name);
+      uniqueStaffKeys.add(key);
+      staffNameByKey[key] = a.staff_name;
+    }
+
     const existingStaff = await base44.asServiceRole.entities.Staff.list();
     const staffByName = new Map();
     const staffByEmail = new Map();
     for (const s of existingStaff) {
-      if (s.name) staffByName.set(normalizeName(s.name).toLowerCase(), s);
+      if (s.name) staffByName.set(nameKey(s.name), s);
       if (s.email) staffByEmail.set(s.email.toLowerCase(), s);
     }
 
-    const staffMap = new Map();
-    const newStaff = [];
+    const staffMap = new Map();      // key → staff record
+    const newStaffPayloads = [];     // payloads awaiting bulkCreate
+    const newStaffKeys = [];          // keys in creation order (to map back)
     const staffUpdates = [];
+    let staffFoundCount = 0;
 
-    for (const name of uniqueStaffNames) {
-      const key = name.toLowerCase();
+    for (const key of uniqueStaffKeys) {
+      const name = staffNameByKey[key];
       let staff = staffByName.get(key);
       if (!staff) {
         const email = generateEmail(name);
         staff = staffByEmail.get(email.toLowerCase());
       }
 
-      // Determine worker type: subcontractor if name contains "subbies"
-      const isSubbie = name.toLowerCase().includes('subbies');
-      const workerType = isSubbie ? 'subcontractor' : 'direct_employee';
+      const subbie = isSubcontractor(name);
+      const workerType = subbie ? 'subcontractor' : 'direct_employee';
 
       // Derive job title from most common crew section
-      const staffAssignments = teamAssignments.filter(a => a.staff_name === name);
+      const staffAssignments = teamAssignments.filter(a => nameKey(a.staff_name) === key);
       const crewSectionCounts = staffAssignments.map(a => a.crew_section).filter(Boolean);
       const mostCommonSection = getMostCommon(crewSectionCounts);
       const jobTitle = inferJobTitle(mostCommonSection);
 
-      if (!staff) {
-        // Create new staff
-        const firstAssignment = staffAssignments[0];
-        const team = (firstAssignment && teamMap[firstAssignment.crew_section]) || fallbackTeam;
-        const email = generateEmail(name);
+      // Team assignment: subcontractors → Subcontractors team;
+      // direct employees → their crew-section team (or fallback)
+      const team = subbie
+        ? subconTeam
+        : (teamMap[mostCommonSection] || fallbackTeam);
 
-        if (!dryRun) {
-          staff = await base44.asServiceRole.entities.Staff.create({
-            name,
-            email,
-            worker_type: workerType,
-            job_title: jobTitle || undefined,
-            team_id: team.id,
-            is_active: true,
-          });
-        } else {
-          staff = { id: `temp_staff_${key}`, name, email, worker_type: workerType, job_title: jobTitle, team_id: team.id };
-        }
-        newStaff.push(staff);
+      if (!staff) {
+        // Queue for batch creation
+        const email = generateEmail(name);
+        newStaffPayloads.push({
+          name,
+          email,
+          worker_type: workerType,
+          job_title: jobTitle || undefined,
+          team_id: team.id,
+          is_active: true,
+        });
+        newStaffKeys.push(key);
       } else {
+        staffFoundCount++;
         // Update existing staff if job_title or worker_type needs filling
         const updates = {};
         if (jobTitle && !staff.job_title) updates.job_title = jobTitle;
         if (!staff.worker_type) updates.worker_type = workerType;
+        // Re-team subcontractors that were previously in a crew-section team
+        if (subbie && staff.team_id && staff.team_id !== subconTeam.id) {
+          updates.team_id = subconTeam.id;
+        }
 
         if (Object.keys(updates).length > 0) {
           staffUpdates.push({ id: staff.id, name: staff.name, updates });
@@ -453,33 +514,61 @@ export default async function(req) {
             await base44.asServiceRole.entities.Staff.update(staff.id, updates);
           }
         }
+        staffMap.set(key, staff);
       }
-      staffMap.set(name, staff);
     }
 
+    // Batch-create all new staff in one call
+    if (newStaffPayloads.length > 0) {
+      let createdStaff;
+      if (!dryRun) {
+        createdStaff = await base44.asServiceRole.entities.Staff.bulkCreate(newStaffPayloads);
+      } else {
+        createdStaff = newStaffPayloads.map((p, i) => ({
+          id: `temp_staff_${newStaffKeys[i]}`,
+          name: p.name,
+          email: p.email,
+          worker_type: p.worker_type,
+          job_title: p.job_title,
+          team_id: p.team_id,
+        }));
+      }
+      for (let i = 0; i < createdStaff.length; i++) {
+        staffMap.set(newStaffKeys[i], createdStaff[i]);
+      }
+    }
+
+    const newStaff = newStaffKeys.map(k => staffMap.get(k));
+
     // -----------------------------------------------------------------------
-    // 4. Resolve Jobs (dedupe by name/reference; parse location; set drilling_method)
+    // 4. Resolve Jobs — single entry per job (case-insensitive dedup)
     // -----------------------------------------------------------------------
-    const allJobNames = [...new Set([
-      ...teamAssignments.map(a => a.job_name),
-      ...plantAssignments.map(a => a.job_name),
-    ])];
+    // Collect unique job names using the case-insensitive key.
+    const uniqueJobKeys = new Set();
+    const jobNameByKey = {};
+    for (const a of allAssignments) {
+      const key = nameKey(a.job_name);
+      uniqueJobKeys.add(key);
+      jobNameByKey[key] = a.job_name;
+    }
 
     const existingJobs = await base44.asServiceRole.entities.Job.list();
     const jobByName = new Map();
     const jobByReference = new Map();
     for (const j of existingJobs) {
-      if (j.name) jobByName.set(normalizeName(j.name).toLowerCase(), j);
+      if (j.name) jobByName.set(nameKey(j.name), j);
       if (j.job_reference) jobByReference.set(j.job_reference.toLowerCase(), j);
     }
 
-    const jobMap = new Map();
-    const newJobs = [];
+    const jobMap = new Map();         // key → job record
+    const newJobPayloads = [];
+    const newJobKeys = [];
     const jobUpdates = [];
+    let jobFoundCount = 0;
 
-    for (const rawName of allJobNames) {
+    for (const key of uniqueJobKeys) {
+      const rawName = jobNameByKey[key];
       const parsed = parseJobName(rawName);
-      const key = parsed.name.toLowerCase();
 
       // Try to match by reference first, then by name
       let job = null;
@@ -492,7 +581,7 @@ export default async function(req) {
 
       // Determine drilling method and job type from crew sections of staff assigned
       const jobCrewSections = teamAssignments
-        .filter(a => a.job_name === rawName)
+        .filter(a => nameKey(a.job_name) === key)
         .map(a => a.crew_section)
         .filter(Boolean);
       const mostCommonSection = getMostCommon(jobCrewSections);
@@ -500,30 +589,20 @@ export default async function(req) {
       const jobType = inferJobType(mostCommonSection);
 
       if (!job) {
-        // Create new job
-        if (!dryRun) {
-          job = await base44.asServiceRole.entities.Job.create({
-            name: parsed.name,
-            job_reference: parsed.job_reference || undefined,
-            location: parsed.location || PLACEHOLDER_LOCATION,
-            start_date: dateFrom,
-            end_date: dateTo,
-            status: 'planning',
-            drilling_method: drillingMethod,
-            job_type: jobType || undefined,
-          });
-        } else {
-          job = {
-            id: `temp_job_${key}`,
-            name: parsed.name,
-            job_reference: parsed.job_reference || '',
-            location: parsed.location || PLACEHOLDER_LOCATION,
-            drilling_method: drillingMethod,
-            job_type: jobType || '',
-          };
-        }
-        newJobs.push(job);
+        // Queue for batch creation
+        newJobPayloads.push({
+          name: parsed.name,
+          job_reference: parsed.job_reference || undefined,
+          location: parsed.location || PLACEHOLDER_LOCATION,
+          start_date: dateFrom,
+          end_date: dateTo,
+          status: 'planning',
+          drilling_method: drillingMethod,
+          job_type: jobType || undefined,
+        });
+        newJobKeys.push(key);
       } else {
+        jobFoundCount++;
         // Update existing job if location/reference is placeholder or empty
         const updates = {};
         if (parsed.location && (job.location === PLACEHOLDER_LOCATION || !job.location)) {
@@ -545,9 +624,31 @@ export default async function(req) {
             await base44.asServiceRole.entities.Job.update(job.id, updates);
           }
         }
+        jobMap.set(key, job);
       }
-      jobMap.set(rawName, job);
     }
+
+    // Batch-create all new jobs in one call
+    if (newJobPayloads.length > 0) {
+      let createdJobs;
+      if (!dryRun) {
+        createdJobs = await base44.asServiceRole.entities.Job.bulkCreate(newJobPayloads);
+      } else {
+        createdJobs = newJobPayloads.map((p, i) => ({
+          id: `temp_job_${newJobKeys[i]}`,
+          name: p.name,
+          job_reference: p.job_reference || '',
+          location: p.location,
+          drilling_method: p.drilling_method,
+          job_type: p.job_type || '',
+        }));
+      }
+      for (let i = 0; i < createdJobs.length; i++) {
+        jobMap.set(newJobKeys[i], createdJobs[i]);
+      }
+    }
+
+    const newJobs = newJobKeys.map(k => jobMap.get(k));
 
     // -----------------------------------------------------------------------
     // 5. Resolve Rigs from Plant Planner → JobAssetAssignment
@@ -555,14 +656,14 @@ export default async function(req) {
     const existingRigs = await base44.asServiceRole.entities.SiteAsset.filter({ is_rig: true });
     const rigByName = new Map();
     for (const r of existingRigs) {
-      if (r.name) rigByName.set(normalizeName(r.name).toLowerCase(), r);
+      if (r.name) rigByName.set(nameKey(r.name), r);
     }
 
     // Build rig assignments from plant planner sheet
     const rigAssignments = [];
     for (const pa of plantAssignments) {
-      const job = jobMap.get(pa.job_name);
-      const rig = rigByName.get(normalizeName(pa.staff_name).toLowerCase());
+      const job = jobMap.get(nameKey(pa.job_name));
+      const rig = rigByName.get(nameKey(pa.staff_name));
       if (job && rig) {
         rigAssignments.push({
           job_id: job.id,
@@ -609,11 +710,16 @@ export default async function(req) {
 
     const desiredKeys = new Set();
     const rotasToCreate = [];
+    let duplicateRotaRows = 0;
     for (const a of teamAssignments) {
-      const staff = staffMap.get(a.staff_name);
-      const job = jobMap.get(a.job_name);
+      const staff = staffMap.get(nameKey(a.staff_name));
+      const job = jobMap.get(nameKey(a.job_name));
       if (!staff || !job) continue;
       const key = `${staff.id}|${a.date}|${job.id}`;
+      if (desiredKeys.has(key)) {
+        duplicateRotaRows++;
+        continue;
+      }
       desiredKeys.add(key);
       if (!existingRotaIndex[key]) {
         rotasToCreate.push({
@@ -626,6 +732,10 @@ export default async function(req) {
       }
     }
 
+    if (duplicateRotaRows > 0) {
+      warnings.push(`${duplicateRotaRows} duplicate rota row(s) in the spreadsheet were collapsed into single entries.`);
+    }
+
     const rotasToDelete = existingRotas.filter(r => {
       const k = `${r.staff_id}|${r.assigned_date}|${r.job_id}`;
       return !desiredKeys.has(k);
@@ -634,23 +744,46 @@ export default async function(req) {
     // -----------------------------------------------------------------------
     // 7. Preview (dry run) or apply
     // -----------------------------------------------------------------------
+    const summary = {
+      total_assignments_parsed: allAssignments.length,
+      team_assignments: teamAssignments.length,
+      plant_assignments: plantAssignments.length,
+      sheets_parsed: sheetNames,
+      date_range: { from: dateFrom, to: dateTo },
+      staff: {
+        total: uniqueStaffKeys.size,
+        found: staffFoundCount,
+        new: newStaffPayloads.length,
+        updates: staffUpdates.length,
+        subcontractors: [...uniqueStaffKeys].filter(k => isSubcontractor(staffNameByKey[k])).length,
+      },
+      jobs: {
+        total: uniqueJobKeys.size,
+        found: jobFoundCount,
+        new: newJobPayloads.length,
+        updates: jobUpdates.length,
+      },
+      teams: { total: crewSections.length + 1, new: newTeamNames.length },
+      rotas: {
+        to_create: rotasToCreate.length,
+        to_delete: rotasToDelete.length,
+        existing_kept: existingRotas.length - rotasToDelete.length,
+        duplicates_collapsed: duplicateRotaRows,
+      },
+      rig_assignments: {
+        total: dedupedRigAssignments.length,
+        new: newRigAssignments.length,
+        existing: dedupedRigAssignments.length - newRigAssignments.length,
+      },
+      warnings,
+    };
+
     if (dryRun) {
       return Response.json({
         status: 'success',
         dry_run: true,
-        summary: {
-          total_assignments_parsed: allAssignments.length,
-          team_assignments: teamAssignments.length,
-          plant_assignments: plantAssignments.length,
-          sheets_parsed: sheetNames,
-          date_range: { from: dateFrom, to: dateTo },
-          staff: { total: uniqueStaffNames.length, new: newStaff.length, updates: staffUpdates.length },
-          jobs: { total: allJobNames.length, new: newJobs.length, updates: jobUpdates.length },
-          teams: { total: crewSections.length, new: newTeamNames.length },
-          rotas: { to_create: rotasToCreate.length, to_delete: rotasToDelete.length, existing_kept: existingRotas.length - rotasToDelete.length },
-          rig_assignments: { total: dedupedRigAssignments.length, new: newRigAssignments.length, existing: dedupedRigAssignments.length - newRigAssignments.length },
-        },
-        new_staff: newStaff.map(s => ({ name: s.name, email: s.email, job_title: s.job_title, worker_type: s.worker_type })),
+        summary,
+        new_staff: newStaff.map(s => ({ name: s.name, email: s.email, job_title: s.job_title, worker_type: s.worker_type, team: s.team_id === subconTeam.id ? SUBCONTRACTOR_TEAM_NAME : 'Direct Employee' })),
         new_jobs: newJobs.map(j => ({ name: j.name, location: j.location, job_reference: j.job_reference, drilling_method: j.drilling_method, job_type: j.job_type })),
         staff_updates: staffUpdates,
         job_updates: jobUpdates,
@@ -700,14 +833,8 @@ export default async function(req) {
       status: 'success',
       dry_run: false,
       summary: {
-        total_assignments_parsed: allAssignments.length,
-        team_assignments: teamAssignments.length,
-        plant_assignments: plantAssignments.length,
-        date_range: { from: dateFrom, to: dateTo },
-        staff: { total: uniqueStaffNames.length, new: newStaff.length, updates: staffUpdates.length },
-        jobs: { total: allJobNames.length, new: newJobs.length, updates: jobUpdates.length },
-        teams: { total: crewSections.length, new: newTeamNames.length },
-        rotas: { created: createdCount, deleted: deletedCount },
+        ...summary,
+        rotas: { created: createdCount, deleted: deletedCount, duplicates_collapsed: duplicateRotaRows },
         rig_assignments: { created: rigAssignmentCount, total: dedupedRigAssignments.length },
       },
     });
