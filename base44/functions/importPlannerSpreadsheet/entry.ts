@@ -68,7 +68,15 @@ const SECTION_KEYWORDS = [
   'enabling',   'depot', 'yard', 'dartford', 'warehouse', 'leave', 'sick', 'holiday', 'plant',
   'subbies', 'subcontractor', 'sub-contractor', 'subby', 'drilling subbies',
   'sub.con', 'sub con', 'sub-con', 'field teams',
-  'agency',
+  'agency', 'bh', 'bank holiday', 'absence',
+];
+
+// Non-work section headers — these are NOT teams/crews. Staff listed under
+// them are on annual leave, sick, training, etc. They should be assigned to
+// their real crew team (or fallback), not a team named "Annual Leave".
+const NON_WORK_SECTION_KEYWORDS = [
+  'annual leave', 'leave', 'sick', 'holiday', 'holidays', 'bh',
+  'bank holiday', 'leave/sick', 'absence',
 ];
 
 const SUBCONTRACTOR_PATTERNS = ['subbies', 'subcontractor', 'sub-contractor', 'subby', 'sub.con', 'sub con', 'sub-con'];
@@ -168,18 +176,16 @@ function isDepotSection(name) {
   return DEPOT_ALIASES.some(a => lower === a || lower.includes(a));
 }
 
-function isAnnualLeaveSection(name) {
+function isNonWorkSection(name) {
   if (!name) return false;
-  const lower = normalizeName(name).toLowerCase();
-  if (lower.includes('holiday')) return true;
-  if (lower.includes('annual') && lower.includes('leave')) return true;
-  return false;
+  const lower = normalizeName(name).toLowerCase().trim();
+  return NON_WORK_SECTION_KEYWORDS.some(kw => lower === kw || lower.includes(kw));
 }
 
 function normalizeSection(section) {
   if (!section) return section;
+  if (isNonWorkSection(section)) return ''; // Non-work sections are NOT teams
   if (isDepotSection(section)) return DEPOT_TEAM_NAME;
-  if (isAnnualLeaveSection(section)) return ANNUAL_LEAVE_TEAM_NAME;
   return section;
 }
 
@@ -451,7 +457,7 @@ function parseSheet(sheet, sheetName) {
         currentSection = normalizeSection(String(row[c]).trim());
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
-        sectionsFound.add(currentSection);
+        if (currentSection) sectionsFound.add(currentSection);
       }
     }
   }
@@ -475,7 +481,7 @@ function parseSheet(sheet, sheetName) {
         currentSection = normalizeSection(String(cell).trim());
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
-        sectionsFound.add(currentSection);
+        if (currentSection) sectionsFound.add(currentSection);
         foundSection = true;
         break;
       }
