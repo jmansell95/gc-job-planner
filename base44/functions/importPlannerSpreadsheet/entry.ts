@@ -69,6 +69,55 @@ const NON_PERSON_WORDS = [
   'fitter', 'mechanic', 'groundworker', 'groundworker+', 'ground',
   'man', 'ex', 'subbies', 'subcontractor', 'sub-contractor',
   'sub.con', 'sub', 'eng', 'field', 'drilling',
+  // Role labels and job titles that aren't people
+  'agent', 'manager', 'engineer', 'engineers', 'operator', 'operators',
+  'inspector', 'surveyor', 'technician', 'analyst', 'consultant',
+  'site', 'plant', 'safety', 'welfare', 'office', 'admin', 'administration',
+  'lead', 'senior', 'junior', 'trainee', 'apprentice', 'master',
+  'night', 'day', 'early', 'late', 'shift', 'rota',
+  'chargehand', 'foreman', 'ganger', 'charge',
+  'driller', 'drillers', 'piling', 'pile', 'coring', 'cable', 'rotary',
+  'groundworks', 'enabling', 'depot', 'yard', 'leave', 'sick',
+  'holiday', 'absence', 'off', 'rest', 'break',
+  'tbc', 'tba', 'tbd', 'unknown', 'n/a', 'na', 'none',
+  'no', 'yes', 'am', 'pm', 'hrs', 'hours',
+  'resource', 'resources', 'allocation', 'allocated', 'unallocated',
+  'cover', 'covering', 'spare', 'backup', 'relief',
+  'staff', 'personnel', 'workforce', 'gang', 'squad', 'unit',
+  'agency', 'workers', 'worker', 'driller', 'drillers',
+];
+
+// Keywords that indicate a company name rather than a person name.
+// If any word in a cell matches one of these, the cell is treated as a
+// subcontractor company (e.g. "DJ Drilling", "ABC Services Ltd").
+const COMPANY_KEYWORDS = [
+  'drilling', 'services', 'ltd', 'limited', 'construction', 'groundwork',
+  'groundworks', 'engineering', 'solutions', 'group', 'plant', 'hire',
+  'contractors', 'contracting', 'uk', 'co', 'trading', 'enterprises',
+  'holdings', 'developments', 'foundations', 'piling', 'civils',
+  'geotechnical', 'environmental', 'consulting', 'associates', 'partners',
+  'subbies', 'subcontractor', 'sub-contractor', 'subby',
+  'logistics', 'transport', 'haulage', 'demolition', 'excavation',
+  'remediation', 'specialists', 'industries', 'works',
+  'investigations', 'investigation', 'geo', 'surveying', 'testing',
+];
+
+// Strong role words that NEVER appear in a company name. Used to reject
+// role labels like "Drilling Supervisor" or "Engineering Staff" even when
+// the text also contains a company keyword. Words like "site" or "ground"
+// are deliberately NOT here because they can appear in company names
+// (e.g. "SDA Site Investigations", "Ground Engineering Ltd").
+const STRONG_ROLE_WORDS = [
+  'supervisor', 'manager', 'agent', 'crew', 'team', 'teams', 'staff',
+  'operator', 'operators', 'driver', 'labourer', 'labour', 'mechanic',
+  'fitter', 'inspector', 'surveyor', 'technician', 'analyst', 'consultant',
+  'lead', 'senior', 'junior', 'trainee', 'apprentice', 'master',
+  'chargehand', 'foreman', 'ganger', 'operative', 'helper', 'assistant',
+  'charge', 'night', 'day', 'shift', 'rota', 'holiday', 'absence',
+  'sick', 'leave', 'cover', 'covering', 'spare', 'backup', 'relief',
+  'personnel', 'workforce', 'gang', 'squad', 'unit', 'resource',
+  'resources', 'allocation', 'allocated', 'unallocated',
+  'driller', 'drillers', 'agency', 'workers', 'worker',
 ];
 
 // --- Helpers ---
@@ -92,7 +141,8 @@ function nameKey(name) {
 
 function isSubcontractor(name) {
   const lower = normalizeName(name).toLowerCase();
-  return SUBCONTRACTOR_PATTERNS.some(p => lower.includes(p));
+  if (SUBCONTRACTOR_PATTERNS.some(p => lower.includes(p))) return true;
+  return looksLikeCompanyName(name);
 }
 
 function generateEmail(name, existingEmails) {
@@ -193,6 +243,33 @@ function isNonPersonName(text) {
   return words.some(w => NON_PERSON_WORDS.includes(w));
 }
 
+// Detects company names: "DJ Drilling", "ABC Services Ltd", "Smith & Jones"
+// Returns true if the text contains a company keyword or starts with
+// all-caps initials (2+ uppercase letters with no lowercase).
+function looksLikeCompanyName(text) {
+  if (!text) return false;
+  const s = String(text).trim();
+  if (s.length < 2) return false;
+  if (cellToDate(s)) return false;
+  if (isSectionHeader(s)) return false;
+  if (!/[a-zA-Z]/.test(s)) return false;
+  if (/\d/.test(s)) return false;
+  const lower = s.toLowerCase();
+  const words = lower.split(/\s+/);
+  // Reject role labels: if any word is a strong role word (supervisor, crew,
+  // staff, etc.) this is a role/label, not a company — even if it also
+  // contains a company keyword (e.g. "Drilling Supervisor", "Engineering Staff").
+  for (const w of words) {
+    if (STRONG_ROLE_WORDS.includes(w)) return false;
+  }
+  // Contains a company keyword (drilling, services, ltd, etc.)
+  if (words.some(w => COMPANY_KEYWORDS.includes(w))) return true;
+  // Starts with all-caps initials (e.g. "DJ Drilling", "AB Services")
+  const firstWord = s.split(/\s+/)[0];
+  if (words.length >= 2 && /^[A-Z]{2,}$/.test(firstWord)) return true;
+  return false;
+}
+
 function looksLikePersonName(text) {
   if (!text) return false;
   const s = String(text).trim();
@@ -204,6 +281,7 @@ function looksLikePersonName(text) {
   if (!/[a-zA-Z]/.test(s)) return false;
   if (/\d/.test(s)) return false;
   if (isNonPersonName(s)) return false;
+  if (looksLikeCompanyName(s)) return false; // company names → subcontractor, not direct staff
   const words = s.split(/\s+/);
   if (words.length < 2) return false;
   if (words.length > 5) return false;
@@ -329,12 +407,18 @@ function parseSheet(sheet, sheetName) {
     }
     if (foundSection && !hasAssignment) continue;
 
-    // Find the person name in cols 0-5
+    // Find the entity name in cols 0-5 — either a person name (direct staff)
+    // or a company name (subcontractor). Company names are tagged so they
+    // route to the Subcontractors team during resolution.
     let entityName = null;
+    let isCompanyName = false;
     for (let c = 0; c < 6; c++) {
-      if (looksLikePersonName(row[c])) { entityName = normalizeName(row[c]); break; }
+      if (looksLikePersonName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = false; break; }
+      if (looksLikeCompanyName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = true; break; }
     }
     if (!entityName) continue;
+
+    const entityIsSubbie = isSubSection || isCompanyName;
 
     let hadAssignment = false;
     for (const [colStr, date] of Object.entries(colToDate)) {
@@ -346,7 +430,7 @@ function parseSheet(sheet, sheetName) {
       if (jobName.length === 1) continue;
       assignments.push({
         staff_name: entityName, job_name: jobName, date,
-        crew_section: currentSection, is_subcontractor_section: isSubSection,
+        crew_section: currentSection, is_subcontractor_section: entityIsSubbie,
       });
       hadAssignment = true;
     }
@@ -354,7 +438,7 @@ function parseSheet(sheet, sheetName) {
     if (!hadAssignment) {
       assignments.push({
         staff_name: entityName, job_name: null, date: null,
-        crew_section: currentSection, is_subcontractor_section: isSubSection,
+        crew_section: currentSection, is_subcontractor_section: entityIsSubbie,
       });
     }
   }
