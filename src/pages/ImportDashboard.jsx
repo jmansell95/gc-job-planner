@@ -125,6 +125,7 @@ export default function ImportDashboard() {
               <StatTile icon={Building2} label="Teams" total={applyResult.summary.teams.total} sub={`${applyResult.summary.teams.new} new`} color="teal" />
               <StatTile icon={CheckCircle2} label="Completed Jobs" total={applyResult.summary.jobs.completed} sub="past dates" color="slate" />
               <StatTile icon={Clock} label="In Progress" total={applyResult.summary.jobs.in_progress} sub="today/future" color="teal" />
+              <StatTile icon={Layers} label="Projects" total={(applyResult.summary.projects?.existing_matched || 0) + (applyResult.summary.projects?.new_created || 0)} sub={`${applyResult.summary.projects?.new_created || 0} new`} color="violet" />
             </div>
 
             {/* Agency breakdown */}
@@ -308,6 +309,7 @@ export default function ImportDashboard() {
               <StatTile icon={UserX} label="Leavers" total={preview.summary.staff.leavers_detected} sub="not in file" color="rose" />
               <StatTile icon={CheckCircle2} label="Completed Jobs" total={preview.summary.jobs.completed} sub="past dates" color="slate" />
               <StatTile icon={Clock} label="In Progress" total={preview.summary.jobs.in_progress} sub="today/future" color="teal" />
+              <StatTile icon={Layers} label="Projects" total={(preview.summary.projects?.existing_matched || 0) + (preview.summary.projects?.new_created || 0)} sub={`${preview.summary.projects?.new_created || 0} new`} color="violet" />
             </div>
 
             {/* Subcon / Agency / Direct split */}
@@ -574,6 +576,17 @@ export default function ImportDashboard() {
               <div className="flex flex-wrap gap-2">
                 {preview.new_teams.map((t, i) => (
                   <span key={i} className="text-sm bg-emerald-50 text-emerald-700 rounded-lg px-3 py-1.5 font-medium">{t}</span>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {/* New projects */}
+          {preview.summary.projects?.new_site_names?.length > 0 && (
+            <CollapsibleSection title={`New Projects (${preview.summary.projects.new_site_names.length})`} icon={Layers} defaultOpen={false}>
+              <div className="flex flex-wrap gap-2">
+                {preview.summary.projects.new_site_names.map((p, i) => (
+                  <span key={i} className="text-sm bg-violet-50 text-violet-700 rounded-lg px-3 py-1.5 font-medium">{p}</span>
                 ))}
               </div>
             </CollapsibleSection>

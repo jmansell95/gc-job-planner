@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import * as XLSX from 'npm:xlsx@0.18.5';
 import { buildContractorMaps, findOrCreateAgency } from '../../shared/entityRegistry.ts';
-import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, normalizeName, nameKey } from '../../shared/spreadsheetParser.ts';
+import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, normalizeName, nameKey, findProjectForJob, extractSiteName } from '../../shared/spreadsheetParser.ts';
 
 // ---------------------------------------------------------------------------
 // Team & Plant Planner Spreadsheet Import — Clean-Slate Edition
@@ -793,6 +793,50 @@ export default async function(req) {
     const newJobs = newJobKeys.map(k => jobMap.get(k));
 
     // -----------------------------------------------------------------------
+    // 5b. Link Jobs to Projects by site name
+    // -----------------------------------------------------------------------
+    // Projects survive the full wipe (only Staff/Team/Job/Rota/Crew are purged),
+    // so we load them after the wipe and match every job to a project by site
+    // name. Matched jobs get project_id set; unmatched sites get a new project
+    // created and linked. This ensures jobs are always grouped under their
+    // site project after every import.
+    const allProjects = await base44.asServiceRole.entities.Project.list('-created_date', 5000);
+    const jobProjectUpdates = [];
+    const unmatchedSiteGroups = {}; // siteName → [jobIds]
+    for (const [key, job] of jobMap) {
+      if (job.project_id) continue;
+      const project = findProjectForJob(job.name, allProjects);
+      if (project) {
+        jobProjectUpdates.push({ id: job.id, project_id: project.id });
+      } else {
+        const site = extractSiteName(job.name);
+        if (!unmatchedSiteGroups[site]) unmatchedSiteGroups[site] = [];
+        unmatchedSiteGroups[site].push(job.id);
+      }
+    }
+    if (jobProjectUpdates.length > 0 && !dryRun) {
+      for (let i = 0; i < jobProjectUpdates.length; i += 400) {
+        await base44.asServiceRole.entities.Job.bulkUpdate(jobProjectUpdates.slice(i, i + 400));
+      }
+    }
+    let newProjectsCreated = 0;
+    const unmatchedSiteNames = Object.keys(unmatchedSiteGroups);
+    if (unmatchedSiteNames.length > 0 && !dryRun) {
+      const newProjectPayloads = unmatchedSiteNames.map(name => ({ name, status: 'active' }));
+      const createdProjects = await base44.asServiceRole.entities.Project.bulkCreate(newProjectPayloads);
+      newProjectsCreated = createdProjects.length;
+      const newProjectLinks = [];
+      for (let i = 0; i < createdProjects.length; i++) {
+        for (const jobId of unmatchedSiteGroups[unmatchedSiteNames[i]]) {
+          newProjectLinks.push({ id: jobId, project_id: createdProjects[i].id });
+        }
+      }
+      for (let i = 0; i < newProjectLinks.length; i += 400) {
+        await base44.asServiceRole.entities.Job.bulkUpdate(newProjectLinks.slice(i, i + 400));
+      }
+    }
+
+    // -----------------------------------------------------------------------
     // 6. Resolve Rigs from Plant Planner → JobAssetAssignment
     // -----------------------------------------------------------------------
     const existingRigs = await base44.asServiceRole.entities.SiteAsset.filter({ is_rig: true });
@@ -988,6 +1032,11 @@ export default async function(req) {
         planning: jobsBreakdown.filter(j => j.status === 'planning').length,
       },
       teams: { total: crewSections.length + 1, new: newTeamNames.length },
+      projects: {
+        existing_matched: jobProjectUpdates.length,
+        new_created: dryRun ? unmatchedSiteNames.length : newProjectsCreated,
+        new_site_names: unmatchedSiteNames,
+      },
       rotas: {
         to_create: rotasToCreate.length,
         duplicates_collapsed: duplicateRotaRows,

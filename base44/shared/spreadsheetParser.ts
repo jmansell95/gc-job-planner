@@ -117,13 +117,66 @@ export function categorizeNonJobCell(cellValue) {
   if (!cellValue) return null;
   const lower = String(cellValue).trim().toLowerCase();
   if (!lower || lower.length < 2) return null;
-  if (ANNUAL_LEAVE_CELL_KEYWORDS.includes(lower)) return 'annual_leave';
-  if (lower.startsWith('annual leave') || lower.startsWith('golf')) return 'annual_leave';
-  if (SICK_CELL_KEYWORDS.includes(lower)) return 'sick';
-  if (lower.startsWith('sick')) return 'sick';
-  if (TRAINING_CELL_KEYWORDS.includes(lower)) return 'training';
-  if (lower.startsWith('training') || lower.startsWith('course ')) return 'training';
+
+  // Unassigned placeholder
+  if (lower === 'unassigned') return 'annual_leave';
+
+  // Annual leave / holidays / absence (exact match or starts-with)
+  if (/^(off|golf|golf day|holiday|holidays|hoilday|hoildays|al|bh|bank holiday|annual leave|leave|vacation|pto|rest|rest day|day off|leave day|on leave|absent|awol|left|compassionate|unpaid leave|unauthorised leave|emergency leave|no longer works|last day|start date|requested absence|italy)$/.test(lower)) return 'annual_leave';
+  if (lower.startsWith('annual leave') || lower.startsWith('golf') || lower.startsWith('holiday') || lower.startsWith('hoilday') || lower.startsWith('compassionate') || lower.startsWith('unpaid') || lower.startsWith('unauthorised') || lower.startsWith('emergency leave') || lower.startsWith('on leave') || lower.startsWith('requested absence') || lower.startsWith('no longer')) return 'annual_leave';
+
+  // Sick
+  if (lower.startsWith('sick') || /^(off sick|illness|unwell|sick leave)$/.test(lower)) return 'sick';
+
+  // Training courses (first aid, SSSTS, IOSH, ROLO, CAT&Genny, inductions, medicals, etc.)
+  if (/training|first aid|sssts|iosh|rolo|cat&genny|cscs|breathing|asbestos|confined space|induction|orientation|medical|course|refresher|learning|streetworks|cpd/.test(lower)) return 'training';
+
+  // Overheads / yard / depot / internal work (not client jobs)
+  if (/^yard|^depot|^dartford|^home$|^leeds depot|overhead|^internal|^driving|^warehouse|rig repair|cp rig|rig maintenance|collecting rigs|potholes|site visit|internal works|internal job|internal site|^fuel$|^van$|^mot$|^service$|breakdown|holman|geotab|^site$/.test(lower)) return 'training';
+
+  // Audits
+  if (/audit|bda/.test(lower)) return 'training';
+
+  // Meetings / networking / concepts / other non-job activities
+  if (/meeting|^meet |networking|^wfh|working from home|sample run|^deliveries|^rigs$|^monitoring$|half day|ft visit|st marys axe visit|^3750$|rotary drilling|cable percussion|rail & infrastructure|^concept job|greenwich concept|hap regeneration|ads rotary/.test(lower)) return 'training';
+
   return null;
+}
+
+// Normalize a job/site name for project matching: strips references, noise
+// suffixes (Window Sampling, Demob, Mob, Half Day, etc.) so that "Hayes -
+// Window Sampling" matches the "Hayes" project.
+export function normalizeForProjectMatching(name) {
+  return String(name || '').toLowerCase().trim()
+    .replace(/[a-z]{1,2}\d{6}(?:\/\d+)?/g, '')   // remove references like I260XXX
+    .replace(/inv\s*\d+/g, '')                    // remove INV 12345
+    .replace(/window sampling|concrete coring|demob|de-mob|mob|mobilised|monitoring|half day|one person|cancelled|morning|aft|afternoon|saturday night/g, '')
+    .replace(/[()]/g, '').replace(/\?+/g, '').replace(/^- /g, '').replace(/\s+/g, ' ').trim();
+}
+
+// Find the best-matching existing project for a job name using bidirectional
+// substring matching on normalized names. Prefers the longest match (most
+// specific project) to avoid generic names stealing real sites.
+export function findProjectForJob(jobName, projects) {
+  const jobNorm = normalizeForProjectMatching(jobName);
+  if (!jobNorm || jobNorm.length < 3) return null;
+  let bestMatch = null;
+  let bestLen = 0;
+  for (const p of projects) {
+    const pNorm = normalizeForProjectMatching(p.name);
+    if (!pNorm || pNorm.length < 3) continue;
+    if (jobNorm.includes(pNorm) || pNorm.includes(jobNorm)) {
+      if (pNorm.length > bestLen) { bestMatch = p; bestLen = pNorm.length; }
+    }
+  }
+  return bestMatch;
+}
+
+// Extract a clean, title-cased site name from a job name for new project creation.
+export function extractSiteName(jobName) {
+  const clean = normalizeForProjectMatching(jobName);
+  if (!clean) return jobName;
+  return clean.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ').trim() || jobName;
 }
 
 export function isSectionHeader(text) {
