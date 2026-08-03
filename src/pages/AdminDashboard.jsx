@@ -44,6 +44,7 @@ export default function AdminDashboard() {
     const navState = location.state;
     if (navState?.section) setActiveSection(navState.section);
     if (navState?.settingsTab) setSettingsTab(navState.settingsTab);
+    if (navState?.job) setSelectedJob(navState.job);
     // Clear state so a refresh doesn't re-trigger the section switch
     if (navState) window.history.replaceState({}, document.title);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
