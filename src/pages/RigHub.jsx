@@ -144,7 +144,7 @@ export default function RigHub() {
           <div className="flex items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-                <Boxes className="w-5 h-5 text-white" />
+                <Wrench className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0">
                 <h1 className="text-lg font-bold text-white truncate">Rigs & Equipment</h1>

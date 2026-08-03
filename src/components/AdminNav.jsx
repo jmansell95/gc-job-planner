@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert, ChevronRight } from 'lucide-react';
+import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert, ChevronRight, Wrench } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -55,7 +55,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'scheduling', label: 'Scheduling', icon: Calendar },
     { id: 'timesheets', label: 'Timesheets', icon: Clock },
     { id: 'logistics', label: 'Logistics', icon: Truck },
-    { id: 'fleet', label: 'Rig Fleet', icon: Boxes },
+    { id: 'fleet', label: 'Rigs & Equipment', icon: Wrench },
     { id: 'vehicles', label: 'Vehicles', icon: Car },
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck },
     { id: 'safety', label: 'Safety', icon: ShieldAlert },
