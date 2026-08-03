@@ -81,6 +81,10 @@ export default function AdminDashboard() {
       navigate('/safety');
       setActiveSection('overview');
     }
+    if (activeSection === 'import') {
+      navigate('/admin/import');
+      setActiveSection('overview');
+    }
   }, [activeSection, navigate]);
 
   useEffect(() => {

@@ -19,6 +19,7 @@ import DeliveryDashboard from './pages/DeliveryDashboard';
 import AdminDeliveryHub from './pages/AdminDeliveryHub';
 import HelpGuide from './pages/HelpGuide';
 import PresentationPack from './pages/PresentationPack';
+import ImportDashboard from './pages/ImportDashboard';
 import RigHub from './pages/RigHub';
 import Vehicles from './pages/Vehicles';
 import PATTestingConsole from './pages/PATTestingConsole';
@@ -79,6 +80,7 @@ const AuthenticatedApp = () => {
             <Route path="/subcontractor" element={<RouteGuard><SubcontractorDashboard /></RouteGuard>} />
             <Route path="/admin/logistics" element={<RouteGuard><AdminDeliveryHub /></RouteGuard>} />
             <Route path="/presentation-pack" element={<PresentationPack />} />
+            <Route path="/admin/import" element={<RouteGuard><ImportDashboard /></RouteGuard>} />
             <Route path="/pat-testing" element={<RouteGuard><PATTestingConsole /></RouteGuard>} />
             <Route path="/timesheets" element={<RouteGuard><TimesheetsPage /></RouteGuard>} />
             <Route path="/compliance" element={<RouteGuard><CompliancePage /></RouteGuard>} />
