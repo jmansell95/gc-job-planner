@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, Bell, UserCog, CalendarClock } from 'lucide-react';
+import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, Bell, UserCog, CalendarClock, TrendingUp, Trophy, ClipboardList, GraduationCap, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import TimesheetHistory from '@/components/staff/TimesheetHistory';
 import StaffBookings from '@/components/staff/StaffBookings';
@@ -43,6 +43,7 @@ export default function StaffProfile() {
   const [showApprovals, setShowApprovals] = useState(false);
   const [showAbsenceForm, setShowAbsenceForm] = useState(false);
   const [showEditDrawer, setShowEditDrawer] = useState(false);
+  const [activeTab, setActiveTab] = useState('performance');
   const [absenceForm, setAbsenceForm] = useState({ start_date: format(new Date(), 'yyyy-MM-dd'), end_date: format(new Date(), 'yyyy-MM-dd'), reason: 'holiday', notes: '' });
   const [savingAbsence, setSavingAbsence] = useState(false);
 
@@ -186,69 +187,91 @@ export default function StaffProfile() {
       <Breadcrumbs />
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 md:px-6 pt-5 md:pt-8 space-y-5 md:space-y-6" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
-        {/* Quick Stats */}
+      <div className="max-w-4xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
+        {/* Quick Stats — always visible */}
         <ProfileStats staffId={staff.id} jobType={staff.team?.job_type} />
 
-        {/* Performance — weekly metres, revenue & hours */}
-        {staff.id && <StaffPerformanceCard staffId={staff.id} />}
-
-        {/* Incentives & Achievements — leaderboard, badges, crew progress */}
-        {staff.id && (
-          <IncentiveDashboard staffId={staff.id} staffName={staff.name} teamId={staff.team_id} />
-        )}
-
-        {/* Timesheet History (Daily Diaries) — read-only record of submitted timesheets */}
-        <TimesheetHistory staffId={staff.id} />
-
-        {/* Bookings History — maintenance & training */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-              <Wrench className="w-4 h-4 text-amber-600" />
-            </div>
-            <h2 className="text-lg font-bold text-slate-900">Bookings History</h2>
+        {/* Tab Bar */}
+        <div className="sticky top-0 z-20 -mx-4 md:-mx-6 px-4 md:px-6 pt-3 pb-2 bg-slate-50/95 backdrop-blur-md mt-5">
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+            {[
+              { key: 'performance', label: 'Performance', icon: TrendingUp },
+              { key: 'incentives', label: 'Incentives', icon: Trophy },
+              { key: 'timesheets', label: 'Timesheets', icon: ClipboardList },
+              { key: 'bookings', label: 'Bookings', icon: Wrench },
+              { key: 'training', label: 'Training', icon: GraduationCap },
+              { key: 'documents', label: 'Documents', icon: FileText },
+              { key: 'crew', label: 'My Crew', icon: Users },
+            ].map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
+              const disabled = tab.key === 'crew' && !staff.team_id;
+              return (
+                <button key={tab.key} onClick={() => !disabled && setActiveTab(tab.key)} type="button" disabled={disabled}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold whitespace-nowrap flex-shrink-0 transition touch-manipulation ${
+                    isActive ? 'bg-[#2E5A1A] text-white shadow-sm' :
+                    disabled ? 'bg-slate-100 text-slate-300' :
+                    'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+                  }`}>
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
-          <StaffBookings staffId={staff.id} />
         </div>
 
-        {/* Upcoming Time Off */}
-        {upcomingAbsences.length > 0 && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
-            <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-                <Clock className="w-4 h-4 text-amber-600" />
-              </div>
-              <h2 className="text-lg font-bold text-slate-900">Upcoming Time Off</h2>
-            </div>
-            <div className="space-y-2">
-              {upcomingAbsences.map(a => (
-                <div key={a.id} className="flex items-center gap-2 text-sm">
-                  <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                  <span className="text-slate-700 font-medium capitalize">{a.reason}</span>
-                  <span className="text-slate-400">·</span>
-                  <span className="text-slate-500">{format(new Date(a.start_date + 'T00:00:00'), 'dd MMM')} – {format(new Date(a.end_date + 'T00:00:00'), 'dd MMM')}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ml-auto ${
-                    a.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                    a.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                    'bg-slate-100 text-slate-500'
-                  }`}>{a.status}</span>
+        {/* Tab Content */}
+        <div className="mt-4">
+          {activeTab === 'performance' && staff.id && <StaffPerformanceCard staffId={staff.id} />}
+          {activeTab === 'incentives' && staff.id && (
+            <IncentiveDashboard staffId={staff.id} staffName={staff.name} teamId={staff.team_id} />
+          )}
+          {activeTab === 'timesheets' && <TimesheetHistory staffId={staff.id} />}
+          {activeTab === 'bookings' && (
+            <div className="space-y-5">
+              {upcomingAbsences.length > 0 && (
+                <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <h2 className="text-lg font-bold text-slate-900">Upcoming Time Off</h2>
+                  </div>
+                  <div className="space-y-2">
+                    {upcomingAbsences.map(a => (
+                      <div key={a.id} className="flex items-center gap-2 text-sm">
+                        <Clock className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                        <span className="text-slate-700 font-medium capitalize">{a.reason}</span>
+                        <span className="text-slate-400">·</span>
+                        <span className="text-slate-500">{format(new Date(a.start_date + 'T00:00:00'), 'dd MMM')} – {format(new Date(a.end_date + 'T00:00:00'), 'dd MMM')}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ml-auto ${
+                          a.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                          a.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                          'bg-slate-100 text-slate-500'
+                        }`}>{a.status}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              )}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                    <Wrench className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <h2 className="text-lg font-bold text-slate-900">Bookings History</h2>
+                </div>
+                <StaffBookings staffId={staff.id} />
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* My Training — passed courses & certificates */}
-        <TrainingHistory staffId={staff.id} staffName={staff.name} />
-
-        {/* My Documents — CSCS card front/back, certificates */}
-        <StaffDocuments staffId={staff.id} staffName={staff.name} />
-
-        {/* Team Mini Feed */}
-        {staff.team_id && (
-          <TeamMiniFeed teamId={staff.team_id} currentStaffId={staff.id} />
-        )}
+          )}
+          {activeTab === 'training' && <TrainingHistory staffId={staff.id} staffName={staff.name} />}
+          {activeTab === 'documents' && <StaffDocuments staffId={staff.id} staffName={staff.name} />}
+          {activeTab === 'crew' && staff.team_id && (
+            <TeamMiniFeed teamId={staff.team_id} currentStaffId={staff.id} />
+          )}
+        </div>
       </div>
 
       {/* Approvals Sheet */}
