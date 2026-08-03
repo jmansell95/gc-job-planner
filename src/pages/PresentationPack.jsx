@@ -23,10 +23,9 @@ export default function PresentationPack() {
       <div className="max-w-2xl w-full">
         <Breadcrumbs />
         <div className="insight-card rounded-2xl overflow-hidden">
-          <div className="hero-gradient px-6 py-8 md:px-10 md:py-10 text-white">
-            <img src={EMBLEM_URL} alt="Ground Control" className="h-12 mb-4 object-contain" />
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Executive Presentation Pack</h1>
-            <p className="text-white/80 mt-1.5 text-sm md:text-base">AI, automation & financial value proposition — a full 45-minute briefing, print-ready.</p>
+          <div className="hero-gradient px-6 py-6 md:px-10 md:py-8 text-white">
+            <img src={EMBLEM_URL} alt="Ground Control" className="h-12 mb-3 object-contain" />
+            <p className="text-white/80 text-sm md:text-base">AI, automation & financial value proposition — a full 45-minute briefing, print-ready.</p>
           </div>
 
           <div className="p-6 md:p-10">

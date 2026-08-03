@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Plug, Search, ShieldCheck, ShieldAlert, ShieldX, HelpCircle,
+  Plug, Search, ShieldCheck, ShieldAlert, ShieldX, HelpCircle,
   RefreshCw, Plus, CheckCircle2, XCircle, Clock, Cog, Printer, Zap, ChevronRight,
 } from 'lucide-react';
 import { daysUntil, ASSET_TYPE_META } from '@/utils/rigRollup';
@@ -88,21 +88,10 @@ export default function PATTestingConsole() {
   return (
     <div className="bg-slate-50">
       <Breadcrumbs />
-      {/* Hero */}
+      {/* Stats bar */}
       <div className="hero-gradient text-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <button onClick={() => navigate('/rig-hub')} className="p-2 bg-white/15 hover:bg-white/25 rounded-lg transition flex-shrink-0">
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold tracking-tight truncate flex items-center gap-2">
-                  <Plug className="w-5 h-5 flex-shrink-0" /> PAT Testing Console
-                </h1>
-                <p className="text-xs sm:text-sm text-white/70">Portable appliance testing · synced from Asset Panda</p>
-              </div>
-            </div>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3">
+          <div className="flex justify-end mb-3">
             <button onClick={handleSync} disabled={syncing}
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 rounded-lg text-sm font-medium transition flex-shrink-0 disabled:opacity-60">
               <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? 'Syncing…' : 'Sync Panda'}

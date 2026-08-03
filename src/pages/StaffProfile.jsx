@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { HardHat, ArrowLeft, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, Bell, UserCog } from 'lucide-react';
+import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, Bell, UserCog } from 'lucide-react';
 import { format } from 'date-fns';
 import TimesheetHistory from '@/components/staff/TimesheetHistory';
 import StaffBookings from '@/components/staff/StaffBookings';
@@ -121,27 +121,18 @@ export default function StaffProfile() {
     <div className="bg-slate-50 min-h-screen">
       {/* Header with Quick Actions bar */}
       <div className="hero-gradient relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-7">
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <button onClick={() => navigate(canAccessAdmin ? '/admin' : '/staff-schedule')} type="button"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation flex-shrink-0">
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">{canAccessAdmin ? 'Dashboard' : 'Schedule'}</span>
-              </button>
-              <div className="min-w-0">
-                <div className="flex items-center gap-3">
-                  <ProfileAvatar name={staff.name} avatarUrl={staff.avatar_url} size={48} />
-                  <h1 className="text-xl md:text-2xl font-bold text-white truncate tracking-tight">My Profile</h1>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-emerald-100 text-sm truncate">{staff.name}{staff.team?.name ? ` · ${staff.team.name}` : ''}</p>
-                  {roleLabel && (
-                    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-white/15 text-white font-semibold ring-1 ring-white/20 whitespace-nowrap">
-                      <ShieldCheck className="w-3 h-3" /> {roleLabel}
-                    </span>
-                  )}
-                </div>
+        <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-5">
+          <div className="flex items-center gap-3 mb-4">
+            <ProfileAvatar name={staff.name} avatarUrl={staff.avatar_url} size={48} />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-white text-lg font-bold truncate">{staff.name}</p>
+                {staff.team?.name && <p className="text-emerald-100 text-sm truncate">· {staff.team.name}</p>}
+                {roleLabel && (
+                  <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-white/15 text-white font-semibold ring-1 ring-white/20 whitespace-nowrap">
+                    <ShieldCheck className="w-3 h-3" /> {roleLabel}
+                  </span>
+                )}
               </div>
             </div>
           </div>

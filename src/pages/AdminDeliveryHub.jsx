@@ -88,20 +88,9 @@ export default function AdminDeliveryHub() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
+      {/* Stat cards */}
       <div className="hero-gradient relative overflow-hidden rounded-2xl">
-        <div className="relative px-4 md:px-6 py-4 md:py-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center flex-shrink-0">
-              <Truck className="w-5 h-5 md:w-6 md:h-6 text-white" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-lg md:text-2xl font-bold text-white tracking-tight truncate">Logistics & Delivery Hub</h1>
-              <p className="text-emerald-100 text-xs md:text-sm truncate">Track every delivery, collection and handover movement</p>
-            </div>
-          </div>
-
-          {/* Stat cards */}
+        <div className="relative px-4 md:px-6 py-3 md:py-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3">
             {statCards.map(s => (
               <div key={s.label} className="bg-white/10 backdrop-blur-sm rounded-xl px-3.5 py-3 ring-1 ring-white/15">

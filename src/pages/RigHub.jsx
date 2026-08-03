@@ -132,19 +132,10 @@ export default function RigHub() {
       <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] lg:pt-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="px-4 pb-4 md:px-6 md:pb-6 lg:pt-6 w-full">
       <Breadcrumbs />
-      {/* Hero header */}
+      {/* Action bar */}
       <div className="hero-gradient rounded-2xl text-white shadow-lg overflow-hidden mb-4">
-        <div className="px-4 md:px-5 py-4">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0">
-                <Cog className="w-5 h-5 md:w-6 md:h-6" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-lg md:text-xl font-bold tracking-tight truncate">Rig Fleet</h1>
-                <p className="text-xs text-white/70 truncate">Master record for every rig, equipment, certificate & maintenance booking</p>
-              </div>
-            </div>
+        <div className="px-4 md:px-5 py-3">
+          <div className="flex items-center justify-end gap-3 mb-3">
             <div className="flex items-center gap-2 flex-shrink-0">
               <button onClick={() => navigate('/pat-testing')} className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-amber-400/90 hover:bg-amber-400 text-slate-900 rounded-lg font-semibold text-sm active:scale-95 transition shadow-sm">
                 <Plug className="w-4 h-4" /> PAT Console

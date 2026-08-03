@@ -306,17 +306,9 @@ export default function DeliveryDashboard() {
     <div className="bg-slate-50 min-h-screen">
       {/* Header */}
       <div className="hero-gradient relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-7">
-          <div className="flex items-center justify-between gap-3 mb-5">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg ring-1 ring-white/25 flex-shrink-0">
-                <Truck className="w-5 h-5 md:w-7 md:h-7 text-white" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-xl md:text-3xl font-bold text-white truncate tracking-tight">Deliveries</h1>
-                <p className="text-emerald-100 text-xs md:text-base mt-0.5 truncate">{staff.name.split(' ')[0]} · {format(new Date(), 'EEEE, do MMMM')}</p>
-              </div>
-            </div>
+        <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-3 md:py-4">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <p className="text-emerald-100 text-sm md:text-base truncate">{staff.name.split(' ')[0]} · {format(new Date(), 'EEEE, do MMMM')}</p>
             <div className="flex items-center gap-2 flex-shrink-0">
               <button onClick={() => navigate('/help')} type="button"
                 className="flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">

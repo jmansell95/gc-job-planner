@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, ArrowLeft } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
+import { ArrowLeft } from 'lucide-react';
 import StaffCommand from '@/components/StaffCommand';
 import VehicleManager from '@/components/VehicleManager';
 import ContractorManager from '@/components/ContractorManager';
@@ -161,12 +160,6 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
 
   return (
     <div>
-      <PageHeader
-        title={standalone && active?.label ? active.label : 'Settings'}
-        icon={standalone && active?.icon ? active.icon : Settings}
-        subtitle={standalone && active?.desc ? active.desc : (active?.label ? `${active.label}${active.desc ? ' · ' + active.desc : ''}` : 'Configure crews, assets, billing & automation')}
-      />
-
       {/* Back button — hidden in standalone mode (these pages have their own sidebar entry) */}
       {!standalone && activeTab !== 'hub' && (
         <button

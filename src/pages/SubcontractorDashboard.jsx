@@ -83,9 +83,9 @@ export default function SubcontractorDashboard() {
       <Breadcrumbs />
       {/* Header */}
       <div className="mesh-bg relative overflow-hidden">
-        <div className="relative max-w-2xl mx-auto px-4 py-5">
-          <div className="flex items-center justify-between mb-4">
-            <Logo variant="full" height={56} />
+        <div className="relative max-w-2xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <Logo variant="full" height={48} />
             <div className="flex gap-1.5">
               <button onClick={() => navigate('/help')} type="button"
                 className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
@@ -97,10 +97,7 @@ export default function SubcontractorDashboard() {
               </button>
             </div>
           </div>
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-white tracking-tight">Log My Day</h1>
-            <p className="text-white/85 text-sm mt-0.5">Welcome, {staff.name.split(' ')[0]}</p>
-          </div>
+          <p className="text-white/85 text-sm text-center">Welcome, {staff.name.split(' ')[0]}</p>
         </div>
       </div>
 

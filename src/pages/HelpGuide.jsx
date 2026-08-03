@@ -107,17 +107,8 @@ export default function HelpGuide() {
     <div className="bg-slate-50 min-h-screen">
       {/* Header */}
       <div className="hero-gradient relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-5 md:py-7">
-          <div className="flex items-center justify-between gap-2 sm:gap-4 mb-4">
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-[#8DC63F] to-[#2E5A1A] flex items-center justify-center shadow-lg ring-1 ring-white/25 flex-shrink-0">
-                <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate tracking-tight">Help Guide</h1>
-                <p className="text-white/80 text-xs sm:text-sm md:text-base mt-0.5">Everything you need to know</p>
-              </div>
-            </div>
+        <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-3 md:py-4">
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2 mb-3">
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <button onClick={handleExportPDF} type="button"
                 className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-xs sm:text-sm font-medium active:scale-95 transition touch-manipulation">
