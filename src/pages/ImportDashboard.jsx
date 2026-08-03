@@ -4,7 +4,8 @@ import { useToast } from '@/components/ui/use-toast';
 import {
   UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle,
   Users, Briefcase, CalendarDays, Trash2, HardHat, AlertCircle, RefreshCw,
-  ChevronDown, ChevronRight, MapPin, Building2, UserX, Layers, Clock
+  ChevronDown, ChevronRight, MapPin, Building2, UserX, Layers, Clock,
+  Palmtree, Thermometer, GraduationCap
 } from 'lucide-react';
 
 export default function ImportDashboard() {
@@ -179,6 +180,39 @@ export default function ImportDashboard() {
               </div>
             </div>
 
+            {/* Non-job days (Annual Leave / Sick / Training) */}
+            {preview.summary.non_job_assignments && (preview.summary.non_job_assignments.annual_leave + preview.summary.non_job_assignments.sick + preview.summary.non_job_assignments.training) > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0">
+                    <Palmtree className="w-5 h-5 text-teal-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-teal-900">Annual Leave: {preview.summary.non_job_assignments.annual_leave}</p>
+                    <p className="text-xs text-teal-700">days off (Off, Holiday, Golf day, AL)</p>
+                  </div>
+                </div>
+                <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center flex-shrink-0">
+                    <Thermometer className="w-5 h-5 text-rose-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-rose-900">Sick: {preview.summary.non_job_assignments.sick}</p>
+                    <p className="text-xs text-rose-700">sick days</p>
+                  </div>
+                </div>
+                <div className="bg-violet-50 border border-violet-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
+                    <GraduationCap className="w-5 h-5 text-violet-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-violet-900">Training: {preview.summary.non_job_assignments.training}</p>
+                    <p className="text-xs text-violet-700">training course days</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Sections detected */}
             {preview.summary.sections_detected?.length > 0 && (
               <div className="mb-4">
@@ -284,6 +318,15 @@ export default function ImportDashboard() {
                       {s.job_title && <span>🔧 {s.job_title}</span>}
                       {s.date_range && <span>📅 {s.date_range.from} → {s.date_range.to}</span>}
                     </div>
+                    {s.non_job_days?.length > 0 && (
+                      <div className="text-xs mt-1 flex flex-wrap gap-1">
+                        {s.non_job_days.map((d, i) => (
+                          <span key={i} className={`rounded-full px-2 py-0.5 font-medium ${d.type === 'annual_leave' ? 'bg-teal-100 text-teal-700' : d.type === 'sick' ? 'bg-rose-100 text-rose-700' : 'bg-violet-100 text-violet-700'}`}>
+                            {d.date}: {d.type === 'annual_leave' ? 'AL' : d.type === 'sick' ? 'Sick' : 'Training'}{d.label && d.label !== d.type ? ` (${d.label})` : ''}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {s.jobs.length > 0 && (
                       <div className="text-xs text-slate-400 mt-1">
                         Jobs: {s.jobs.join(', ')}

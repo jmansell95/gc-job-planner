@@ -4,7 +4,7 @@
   "properties": {
     "job_id": {
       "type": "string",
-      "description": "Assigned job"
+      "description": "Assigned job. Blank for non-job assignments (annual_leave, sick, training)."
     },
     "staff_id": {
       "type": "string",
@@ -23,6 +23,21 @@
       "type": "string",
       "format": "date",
       "description": "Start of the week for this rota entry"
+    },
+    "assignment_type": {
+      "type": "string",
+      "enum": [
+        "job",
+        "annual_leave",
+        "sick",
+        "training"
+      ],
+      "default": "job",
+      "description": "Type of day. 'job' = normal job assignment (requires job_id), 'annual_leave' = annual leave/holiday/day off (Off, Golf day, Holiday, AL), 'sick' = sick leave, 'training' = training course day. Non-job types have no job_id."
+    },
+    "non_job_label": {
+      "type": "string",
+      "description": "Original cell text from the planner for non-job days (e.g. 'Off', 'Golf day', 'Training course - First Aid'). Stored for audit/display so managers can see exactly what was written in the spreadsheet."
     },
     "status": {
       "type": "string",
@@ -122,7 +137,6 @@
     }
   },
   "required": [
-    "job_id",
     "staff_id",
     "assigned_date",
     "week_start"

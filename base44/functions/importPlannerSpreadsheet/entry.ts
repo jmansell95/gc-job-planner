@@ -183,6 +183,32 @@ function normalizeSection(section) {
   return section;
 }
 
+// --- Non-job cell detection (date-column values that aren't job names) ---
+// "Off", "Golf day", "Holiday" → annual_leave
+// "Sick", "Off sick" → sick
+// "Training course", "CPD" → training
+// These are NOT jobs — they're categorised and stored as non-job RotaAssignments.
+const ANNUAL_LEAVE_CELL_KEYWORDS = [
+  'off', 'golf', 'golf day', 'holiday', 'holidays', 'al', 'annual leave',
+  'leave', 'vacation', 'pto', 'rest day', 'day off', 'rest', 'leave day',
+  'bh', 'bank holiday',
+];
+const SICK_CELL_KEYWORDS = ['sick', 'off sick', 'illness', 'unwell', 'sick leave'];
+const TRAINING_CELL_KEYWORDS = ['training', 'training course', 'course', 'cpd', 'training day'];
+
+function categorizeNonJobCell(cellValue) {
+  if (!cellValue) return null;
+  const lower = normalizeName(cellValue).toLowerCase().trim();
+  if (!lower || lower.length < 2) return null;
+  if (ANNUAL_LEAVE_CELL_KEYWORDS.includes(lower)) return 'annual_leave';
+  if (lower.startsWith('annual leave') || lower.startsWith('golf')) return 'annual_leave';
+  if (SICK_CELL_KEYWORDS.includes(lower)) return 'sick';
+  if (lower.startsWith('sick')) return 'sick';
+  if (TRAINING_CELL_KEYWORDS.includes(lower)) return 'training';
+  if (lower.startsWith('training') || lower.startsWith('course ')) return 'training';
+  return null;
+}
+
 function generateEmail(name, existingEmails) {
   const clean = normalizeName(name).toLowerCase().replace(/[^a-z0-9\s.-]/g, '').trim();
   if (!clean) return `imported.staff@${DEFAULT_DOMAIN}`;
@@ -478,8 +504,13 @@ function parseSheet(sheet, sheetName) {
       const jobName = normalizeName(cellVal);
       if (!jobName || jobName.length < 1) continue;
       if (jobName.length === 1) continue;
+      const nonJobType = categorizeNonJobCell(jobName);
       assignments.push({
-        staff_name: entityName, job_name: jobName, date,
+        staff_name: entityName,
+        job_name: nonJobType ? null : jobName,
+        non_job_type: nonJobType || undefined,
+        non_job_label: nonJobType ? jobName : undefined,
+        date,
         crew_section: currentSection, is_subcontractor_section: entityIsSubbie,
         is_agency_section: entityIsAgency,
       });
@@ -944,18 +975,33 @@ export default async function(req) {
     const desiredKeys = new Set();
     const rotasToCreate = [];
     let duplicateRotaRows = 0;
+    const nonJobCounts = { annual_leave: 0, sick: 0, training: 0 };
     for (const a of teamAssignments) {
-      if (!a.date || !a.job_name) continue;
+      if (!a.date) continue;
       const staff = staffMap.get(nameKey(a.staff_name));
-      const job = jobMap.get(nameKey(a.job_name));
-      if (!staff || !job) continue;
-      const key = `${staff.id}|${a.date}|${job.id}`;
-      if (desiredKeys.has(key)) { duplicateRotaRows++; continue; }
-      desiredKeys.add(key);
-      rotasToCreate.push({
-        staff_id: staff.id, job_id: job.id, assigned_date: a.date,
-        week_start: getWeekStart(a.date), status: 'assigned'
-      });
+      if (!staff) continue;
+      if (a.non_job_type) {
+        const key = `${staff.id}|${a.date}|${a.non_job_type}`;
+        if (desiredKeys.has(key)) { duplicateRotaRows++; continue; }
+        desiredKeys.add(key);
+        rotasToCreate.push({
+          staff_id: staff.id, assigned_date: a.date,
+          week_start: getWeekStart(a.date), status: 'assigned',
+          assignment_type: a.non_job_type,
+          non_job_label: a.non_job_label || undefined,
+        });
+        nonJobCounts[a.non_job_type]++;
+      } else if (a.job_name) {
+        const job = jobMap.get(nameKey(a.job_name));
+        if (!job) continue;
+        const key = `${staff.id}|${a.date}|${job.id}`;
+        if (desiredKeys.has(key)) { duplicateRotaRows++; continue; }
+        desiredKeys.add(key);
+        rotasToCreate.push({
+          staff_id: staff.id, job_id: job.id, assigned_date: a.date,
+          week_start: getWeekStart(a.date), status: 'assigned'
+        });
+      }
     }
     if (duplicateRotaRows > 0) {
       warnings.push(`${duplicateRotaRows} duplicate rota row(s) collapsed into single entries.`);
@@ -997,6 +1043,7 @@ export default async function(req) {
         jobs: jobs.slice(0, 20),
         sections,
         status: newStaffKeys.includes(key) ? 'new' : 'existing',
+        non_job_days: sAssignments.filter(a => a.non_job_type).map(a => ({ date: a.date, type: a.non_job_type, label: a.non_job_label })),
       };
     });
 
@@ -1062,6 +1109,7 @@ export default async function(req) {
         to_create: rotasToCreate.length,
         duplicates_collapsed: duplicateRotaRows,
       },
+      non_job_assignments: nonJobCounts,
       rig_assignments: {
         total: dedupedRigAssignments.length,
       },
