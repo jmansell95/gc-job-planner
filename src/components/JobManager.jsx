@@ -19,7 +19,9 @@ const fmtDate = (d) => {
 };
 
 const jobTypeBadge = {
+  drilling: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
   groundworks: 'bg-[#2E5A1A]/15 text-[#2E5A1A] ring-1 ring-[#2E5A1A]/20',
+  // Legacy types — kept for backward-compatible display of old records
   cp_drilling: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
   rotary_drilling: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200',
   enabling_works: 'bg-purple-100 text-purple-700 ring-1 ring-purple-200',
@@ -27,7 +29,9 @@ const jobTypeBadge = {
 };
 
 const jobTypeBar = {
+  drilling: 'bg-gradient-to-r from-amber-400 to-orange-500',
   groundworks: 'bg-gradient-to-r from-[#8DC63F] to-[#2E5A1A]',
+  // Legacy types — kept for backward-compatible display of old records
   cp_drilling: 'bg-gradient-to-r from-amber-400 to-orange-500',
   rotary_drilling: 'bg-gradient-to-r from-blue-400 to-indigo-500',
   enabling_works: 'bg-gradient-to-r from-purple-400 to-fuchsia-500',
@@ -231,11 +235,7 @@ export default function JobManager({ onNavigateRota }) {
                 value: typeFilter, onChange: setTypeFilter,
                 options: [
                   { value: 'all', label: 'All Types' },
-                  { value: 'groundworks', label: 'Groundworks' },
-                  { value: 'cp_drilling', label: 'CP Drilling' },
-                  { value: 'rotary_drilling', label: 'Rotary Drilling' },
-                  { value: 'enabling_works', label: 'Enabling Works' },
-                  { value: 'depot', label: 'Depot' },
+                  ...jobTypes.map(jt => ({ value: jt.key, label: jt.label })),
                 ]
               },
               {

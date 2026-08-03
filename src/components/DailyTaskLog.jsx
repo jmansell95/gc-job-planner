@@ -75,7 +75,7 @@ export default function DailyTaskLog({ staffId, hideSubmit = false, lockedJobId 
   useEffect(() => { if (!startTime && todayShift?.start_time) setStartTime(todayShift.start_time); }, [todayShift]);
 
   const selectedJob = jobs.find(j => j.id === jobId);
-  const isDriller = selectedJob?.job_type === 'cp_drilling' || selectedJob?.job_type === 'rotary_drilling';
+  const isDriller = selectedJob?.job_type === 'drilling' || selectedJob?.job_type === 'cp_drilling' || selectedJob?.job_type === 'rotary_drilling';
   const durMins = calcDur(startTime, endTime);
   const shiftMins = todayShift ? calcDur(todayShift.start_time, todayShift.end_time) : 0;
 

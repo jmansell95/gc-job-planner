@@ -60,13 +60,8 @@ export const DEFAULT_CONFIG_LISTS = {
     category: 'Crews',
     is_system: true,
     options: [
+      { value: 'drilling', label: 'Drilling' },
       { value: 'groundworks', label: 'Groundworks' },
-      { value: 'coring', label: 'Coring (under Groundworks)' },
-      { value: 'trial_pit', label: 'Trial Pit (under Groundworks)' },
-      { value: 'cp_drilling', label: 'CP Drilling' },
-      { value: 'rotary_drilling', label: 'Rotary Drilling' },
-      { value: 'enabling_works', label: 'Enabling Works' },
-      { value: 'depot', label: 'Depot' },
     ],
   },
   // ---- Investigation Logging ----

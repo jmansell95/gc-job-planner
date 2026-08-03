@@ -14,6 +14,7 @@
  */
 export function getCrewMemberLabel(jobType) {
   switch (jobType) {
+    case 'drilling':
     case 'cp_drilling':
     case 'rotary_drilling':
       return 'Driller';
@@ -38,6 +39,7 @@ export function getCrewMemberLabel(jobType) {
 export function getCrewLabel(jobType, count) {
   const plural = count !== undefined && count !== 1;
   switch (jobType) {
+    case 'drilling':
     case 'cp_drilling':
       return plural ? 'Drilling Crew' : 'Driller';
     case 'rotary_drilling':
@@ -72,6 +74,7 @@ export function getShiftLabel(jobType, count) {
  */
 export function getWorkLabel(jobType) {
   switch (jobType) {
+    case 'drilling':
     case 'cp_drilling':
     case 'rotary_drilling':
       return 'drilling';
