@@ -262,6 +262,59 @@ export function inferTrainingCategory(title) {
   return 'other';
 }
 
+// Common suffix words that don't add specificity to a job/site name.
+// Stripping these during base-key extraction ensures "EWR" and "EWR Site"
+// consolidate into one master job rather than creating duplicates.
+export const JOB_NAME_NOISE_SUFFIXES = [
+  'site', 'project', 'job', 'works', 'work', 'phase', 'package',
+  'contract', 'scheme', 'development', 'area', 'zone', 'phase 1', 'phase 2',
+];
+
+// Second-layer filter: catches cells that pass categorizeNonJobCell but
+// still aren't real client jobs (pure rig names, asset tags, placeholders,
+// generic single words). These are treated as overhead/non-job days instead
+// of being created as Job entities that clutter the dashboard.
+const NON_JOB_NAME_PATTERNS = [
+  /^rig\s*\d/i, /^cp\s*rig/i, /^rotary\s*rig/i, /^rig\s+\d/i,
+  /^r\d{1,3}$/i, /^t[-_]?\d+/i, /^gc[-_]r/i,            // asset tags / rig IDs
+  /^tbc$|^tba$|^tbd$|^n\/a$|^na$|^none$|^unknown$/i,   // placeholders
+  /^\d+$/,                                              // pure numbers
+  /^unassigned$|^spare$|^cover$|^relief$|^tba$/i,      // unassigned markers
+  /^rig\s*repair$|^rig\s*maintenance$|^breakdown$/i,   // rig maintenance
+  /^potholes$|^monitoring$|^deliveries$|^rigs$/i,     // overhead activities
+];
+
+export function isLikelyRealJob(jobName) {
+  if (!jobName) return false;
+  const s = String(jobName).trim();
+  if (s.length < 3) return false;
+  const lower = s.toLowerCase();
+  // Pure rig/asset names, placeholders, and overhead markers
+  for (const pattern of NON_JOB_NAME_PATTERNS) {
+    if (pattern.test(lower)) return false;
+  }
+  return true;
+}
+
+// Canonical base key for job deduplication. Strips references, quantity
+// suffixes, and common noise suffix words so that variations of the same
+// site consolidate into one master job.
+export function canonicalJobKey(jobName) {
+  const name = normalizeName(jobName);
+  // Extract location after reference if present (e.g. "I260124 - EWR" → "EWR")
+  const dashMatch = name.match(/^[A-Za-z]{1,3}\d{4,6}\s*[-–—]\s*(.+)$/);
+  let base = dashMatch ? dashMatch[1] : name;
+  // Strip quantity suffix: " - N No. <anything>" or " - NNo. <anything>"
+  base = base.replace(/\s*[-–—]\s*\d+\s*No\.?\s*.*$/i, '').trim();
+  // Strip noise suffix words (site, project, works, etc.) — but only when
+  // there's more than one word left, so single-word site names are preserved.
+  const words = base.toLowerCase().split(/\s+/).filter(Boolean);
+  while (words.length > 1 && JOB_NAME_NOISE_SUFFIXES.includes(words[words.length - 1])) {
+    words.pop();
+  }
+  return nameKey(words.join(' '));
+}
+
 export function isNonPersonName(text) {
   if (!text) return true;
   const lower = String(text).trim().toLowerCase();

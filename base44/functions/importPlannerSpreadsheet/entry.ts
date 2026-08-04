@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import * as XLSX from 'npm:xlsx@0.18.5';
 import { buildContractorMaps, findOrCreateAgency, buildAssetMaps, fuzzyFindAsset, assetRole, fuzzyFindStaff, fuzzyFindJob } from '../../shared/entityRegistry.ts';
 import { findRigRateCardItem } from '../../shared/rigRateMatcher.ts';
-import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, looksLikeAssetName, normalizeName, nameKey, findProjectForJob, extractSiteName, isActualTrainingCourse, extractTrainingCourseTitle, inferTrainingCategory } from '../../shared/spreadsheetParser.ts';
+import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, looksLikeAssetName, normalizeName, nameKey, findProjectForJob, extractSiteName, isActualTrainingCourse, extractTrainingCourseTitle, inferTrainingCategory, isLikelyRealJob, canonicalJobKey } from '../../shared/spreadsheetParser.ts';
 
 // ---------------------------------------------------------------------------
 // Team & Plant Planner Spreadsheet Import — Clean-Slate Edition
@@ -247,17 +247,12 @@ function parseJobName(rawName) {
 }
 
 // Extract a base grouping key from a job name so that sub-entries like
-// "EWR - 1No.", "EWR - 2No." and the master "I260124 - EWR" all consolidate
-// into one master job. The base key is the site/location name (e.g., "EWR").
+// "EWR - 1No.", "EWR - 2No.", "EWR Site" and the master "I260124 - EWR" all
+// consolidate into one master job. Delegates to the shared canonicalJobKey
+// which strips references, quantity suffixes, and noise suffix words (site,
+// project, works, etc.) for robust deduplication.
 function extractJobBaseKey(jobName) {
-  const name = normalizeName(jobName);
-  // "REF - LOCATION" pattern (e.g., "I260124 - EWR - 3 No. 2 Monday" → "EWR - 3 No. 2 Monday")
-  const dashMatch = name.match(/^[A-Za-z]{1,3}\d{4,6}\s*[-–—]\s*(.+)$/);
-  let base = dashMatch ? dashMatch[1] : name;
-  // Strip trailing quantity suffix: " - N No. <anything>" or " - NNo. <anything>"
-  // (e.g., "EWR - 3 No. 2 Monday" → "EWR", "EWR - 1No." → "EWR")
-  base = base.replace(/\s*[-–—]\s*\d+\s*No\.?\s*.*$/i, '').trim();
-  return nameKey(base || name);
+  return canonicalJobKey(jobName);
 }
 
 // Parse a single sheet. Scans all rows for the date header row, then walks
@@ -409,12 +404,21 @@ function parseSheet(sheet, sheetName) {
       const jobName = normalizeName(cellVal);
       if (!jobName || jobName.length < 1) continue;
       if (jobName.length === 1) continue;
-      const nonJobType = categorizeNonJobCell(jobName);
+      let nonJobType = categorizeNonJobCell(jobName);
+      let filteredAsNonJob = false;
+      // Second-layer filter: cells that pass categorizeNonJobCell but still
+      // aren't real client jobs (rig names, placeholders, overhead markers)
+      // are treated as non-job overhead days so they don't create Job entities.
+      if (!nonJobType && !isLikelyRealJob(jobName)) {
+        nonJobType = 'training'; // overhead/internal — same bucket as yard/depot
+        filteredAsNonJob = true;
+      }
       assignments.push({
         staff_name: entityName,
         job_name: nonJobType ? null : jobName,
         non_job_type: nonJobType || undefined,
         non_job_label: nonJobType ? jobName : undefined,
+        filtered_as_non_job: filteredAsNonJob,
         date,
         crew_section: currentSection, raw_crew_section: rawSection,
         sheet_name: sheetName,
@@ -1489,6 +1493,8 @@ export default async function(req) {
         completed: jobsBreakdown.filter(j => j.status === 'completed').length,
         in_progress: jobsBreakdown.filter(j => j.status === 'in_progress').length,
         planning: jobsBreakdown.filter(j => j.status === 'planning').length,
+        filtered_as_non_jobs: allAssignments.filter(a => a.filtered_as_non_job).length,
+        filtered_labels: [...new Set(allAssignments.filter(a => a.filtered_as_non_job).map(a => a.non_job_label))].slice(0, 50),
       },
       teams: { total: crewSections.length + 1, new: newTeamNames.length },
       projects: {

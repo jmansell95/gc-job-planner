@@ -3,7 +3,7 @@ import {
   CheckCircle2, X, RefreshCw, Users, Briefcase, CalendarDays,
   Trash2, Building2, Clock, Layers, GraduationCap, Palmtree,
   ChevronDown, ChevronRight, MapPin, UserX, Building, HardHat,
-  AlertCircle, FileSpreadsheet, Sparkles, TrendingUp, Archive,
+  AlertCircle, FileSpreadsheet, Sparkles, TrendingUp, Archive, Filter,
 } from 'lucide-react';
 
 // Visual pop-up modal shown when an import completes.
@@ -87,6 +87,9 @@ export default function ImportCompleteModal({ result, onClose, type = 'planner' 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <VisualStat icon={Users} value={s.staff?.new || 0} label="Staff Created" sub={`${s.staff?.subcontractors || 0} subcon`} gradient="stat-gradient-blue" />
                 <VisualStat icon={Briefcase} value={s.jobs?.new || 0} label="Jobs Created" sub={`${s.jobs?.completed || 0} done`} gradient="stat-gradient-emerald" />
+                {s.jobs?.filtered_as_non_jobs > 0 && (
+                  <VisualStat icon={Filter} value={s.jobs?.filtered_as_non_jobs || 0} label="Filtered" sub="not real jobs" gradient="stat-gradient-amber" />
+                )}
                 <VisualStat icon={CalendarDays} value={s.rotas?.created || 0} label="Rotas Created" sub={`${s.rotas?.duplicates_collapsed || 0} dupes`} gradient="stat-gradient-amber" />
                 <VisualStat icon={Layers} value={(s.projects?.existing_matched || 0) + (s.projects?.new_created || 0)} label="Projects" sub={`${s.projects?.new_created || 0} new`} gradient="stat-gradient-violet" />
                 <VisualStat icon={GraduationCap} value={(s.training?.courses_new || 0) + (s.training?.courses_matched || 0)} label="Training" sub={`${s.training?.bookings_created || 0} bookings`} gradient="stat-gradient-indigo" />

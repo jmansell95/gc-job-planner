@@ -5,7 +5,7 @@ import {
   UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle,
   Users, Briefcase, CalendarDays, Trash2, HardHat, AlertCircle, RefreshCw,
   ChevronDown, ChevronRight, MapPin, Building2, UserX, Layers, Clock,
-  Palmtree, Thermometer, GraduationCap, Building
+  Palmtree, Thermometer, GraduationCap, Building, Filter
 } from 'lucide-react';
 import ImportCompleteModal from '@/components/import/ImportCompleteModal';
 
@@ -177,7 +177,25 @@ export default function ImportDashboard() {
               <StatTile icon={Layers} label="Projects" total={(preview.summary.projects?.existing_matched || 0) + (preview.summary.projects?.new_created || 0)} sub={`${preview.summary.projects?.new_created || 0} new`} color="violet" />
               <StatTile icon={GraduationCap} label="Training" total={(preview.summary.training?.courses_new || 0) + (preview.summary.training?.courses_matched || 0)} sub={`${preview.summary.training?.bookings_created || 0} bookings`} color="indigo" />
               <StatTile icon={Palmtree} label="Absences" total={preview.summary.absences?.created || 0} sub={`${preview.summary.absences?.holiday || 0} hol · ${preview.summary.absences?.sick || 0} sick`} color="rose" />
+              {preview.summary.jobs?.filtered_as_non_jobs > 0 && (
+                <StatTile icon={Filter} label="Filtered" total={preview.summary.jobs.filtered_as_non_jobs} sub="not real jobs" color="amber" />
+              )}
             </div>
+
+            {/* Filtered non-job entries — cells that looked like jobs but were rejected by the second-layer filter */}
+            {preview.summary.jobs?.filtered_labels?.length > 0 && (
+              <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                <p className="text-sm font-semibold text-amber-800 mb-1.5 flex items-center gap-1.5">
+                  <Filter className="w-4 h-4" /> Filtered as Non-Jobs ({preview.summary.jobs.filtered_as_non_jobs} entries)
+                </p>
+                <p className="text-xs text-amber-700 mb-2">These cells in the planner were treated as overhead/non-job days instead of being created as Job entities (rig names, placeholders, generic terms).</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {preview.summary.jobs.filtered_labels.map((label, i) => (
+                    <span key={i} className="text-xs bg-amber-100 text-amber-700 rounded-full px-2.5 py-1 font-medium">{label}</span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Subcon / Agency / Direct split */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
