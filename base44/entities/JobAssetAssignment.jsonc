@@ -25,7 +25,8 @@
         "machinery",
         "trailer",
         "vehicle",
-        "lifting"
+        "lifting",
+        "portable_appliance"
       ],
       "description": "Asset type (denormalised from SiteAsset)"
     },
