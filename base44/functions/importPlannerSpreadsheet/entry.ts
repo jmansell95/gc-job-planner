@@ -214,9 +214,15 @@ function parseJobName(rawName) {
   // (1-3 letters followed by 4-6 digits, e.g. "I260124 - EWR")
   const dashMatch = name.match(/^([A-Za-z]{1,3}\d{4,6})\s*[-–—]\s*(.+)$/);
   if (dashMatch) {
-    return { name, job_reference: dashMatch[1].trim(), location: dashMatch[2].trim() };
+    const ref = dashMatch[1].trim();
+    // Strip quantity suffix from location (e.g., "EWR - 3 No. 2 Monday" → "EWR")
+    const rawLocation = dashMatch[2].trim();
+    const cleanLocation = rawLocation.replace(/\s*[-–—]\s*\d+\s*No\.?\s*.*$/i, '').trim() || rawLocation;
+    return { name: `${ref} - ${cleanLocation}`, job_reference: ref, location: cleanLocation };
   }
-  return { name, job_reference: '', location: '' };
+  // No ref — strip quantity suffix from the name itself (e.g., "EWR - 1No." → "EWR")
+  const stripped = name.replace(/\s*[-–—]\s*\d+\s*No\.?\s*.*$/i, '').trim() || name;
+  return { name: stripped, job_reference: '', location: '' };
 }
 
 // Extract a base grouping key from a job name so that sub-entries like
@@ -224,12 +230,13 @@ function parseJobName(rawName) {
 // into one master job. The base key is the site/location name (e.g., "EWR").
 function extractJobBaseKey(jobName) {
   const name = normalizeName(jobName);
-  // "REF - LOCATION" pattern (e.g., "I260124 - EWR" → "EWR")
+  // "REF - LOCATION" pattern (e.g., "I260124 - EWR - 3 No. 2 Monday" → "EWR - 3 No. 2 Monday")
   const dashMatch = name.match(/^[A-Za-z]{1,3}\d{4,6}\s*[-–—]\s*(.+)$/);
-  if (dashMatch) return nameKey(dashMatch[1]);
-  // Strip " - NNo." suffix (e.g., "EWR - 1No." → "EWR")
-  const stripped = name.replace(/\s*[-–—]\s*\d+No\.?\s*$/i, '');
-  return nameKey(stripped || name);
+  let base = dashMatch ? dashMatch[1] : name;
+  // Strip trailing quantity suffix: " - N No. <anything>" or " - NNo. <anything>"
+  // (e.g., "EWR - 3 No. 2 Monday" → "EWR", "EWR - 1No." → "EWR")
+  base = base.replace(/\s*[-–—]\s*\d+\s*No\.?\s*.*$/i, '').trim();
+  return nameKey(base || name);
 }
 
 // Parse a single sheet. Scans all rows for the date header row, then walks
