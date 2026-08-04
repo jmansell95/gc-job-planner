@@ -6,7 +6,7 @@ import {
   Palette, Zap, Timer, Banknote, CalendarX, Tag, ListChecks, ShieldCheck,
   FlaskConical, Clock, ClipboardCheck, Scale, ArrowRight, Activity, BookOpen,
   Sparkles, QrCode, ArrowUpDown, TrendingUp, FileSpreadsheet, ScrollText,
-  History, Gauge, Link2, Search, ChevronRight,
+  History, Gauge, Link2, Search, ChevronRight, GitBranch, Lock,
 } from 'lucide-react';
 
 const INTEGRATION_SETTING_KEYS = [
@@ -86,6 +86,7 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'log-qc', icon: FlaskConical, label: 'Log QC', value: pendingReviewLogs, sub: 'Pending review', color: 'violet' },
       { id: 'audit-trail', icon: ClipboardCheck, label: 'Audit Trail', value: jobs.length, sub: 'Job packs for auditors', color: 'emerald' },
       { id: 'timesheets', icon: Clock, label: 'Timesheets', value: pendingTimesheets, sub: 'Awaiting approval', color: 'blue' },
+      { id: 'cis-verification', icon: ShieldCheck, label: 'CIS Verification', value: '—', sub: 'HMRC subcontractor checks', color: 'rose' },
     ]},
     { group: 'Contacts', icon: Building2, accent: 'from-indigo-500 to-blue-600', items: [
       { id: 'clients', icon: Building2, label: 'Clients', value: clients.length, sub: 'Client contacts', color: 'emerald' },
@@ -104,12 +105,14 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'expense-presets', icon: Receipt, label: 'Expense Presets', value: '—', sub: 'Quick-add crew expenses', color: 'amber' },
       { id: 'subcon-markup', icon: TrendingUp, label: 'Sub-Con Markup', value: '—', sub: 'Default markup %', color: 'emerald' },
       { id: 'gl-mapping', icon: FileSpreadsheet, label: 'GL Code Mapping', value: '—', sub: 'Map to SAP Concur GL', color: 'slate' },
+      { id: 'billing-pipeline', icon: GitBranch, label: 'Billing Pipeline', value: '—', sub: 'Contract & retention lifecycle', color: 'indigo' },
       { id: 'billing-contracts', icon: ScrollText, label: 'Billing Contracts', value: '—', sub: 'Locked per-job terms', color: 'indigo' },
       { id: 'financial-audit', icon: History, label: 'Financial Audit Log', value: '—', sub: 'Tamper-evident history', color: 'rose' },
       { id: 'job-alerts', icon: Gauge, label: 'Job Budget Alerts', value: '—', sub: 'Budget & margin alerts', color: 'amber' },
     ]},
     { group: 'Communication', icon: Mail, accent: 'from-violet-500 to-purple-600', items: [
       { id: 'global-branding', icon: Palette, label: 'Global Branding', value: '—', sub: 'Email colours & banners', color: 'violet' },
+      { id: 'login-branding', icon: Lock, label: 'Login Page Customizer', value: '—', sub: 'Login & reset screen branding', color: 'blue' },
       { id: 'email-alerts', icon: Mail, label: 'Email Alerts', value: '—', sub: 'Templates & timing', color: 'blue' },
     ]},
     { group: 'System', icon: Sparkles, accent: 'from-slate-500 to-slate-700', items: [
