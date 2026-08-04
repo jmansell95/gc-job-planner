@@ -1,8 +1,8 @@
 import React from 'react';
-import { FileText, HardHat, Building2, Factory, Truck } from 'lucide-react';
+import { FileText, HardHat, Building2, Factory, Truck, MapPin } from 'lucide-react';
 import { fmt, categoryConfig } from './shared';
 
-export default function ReviewStep({ form, suppliers = [], contractors = [], clients = [] }) {
+export default function ReviewStep({ form, setForm, suppliers = [], contractors = [], clients = [] }) {
   const isNoCost = form.category === 'contractor_supplied' || form.category === 'client_supplied';
   const isPurchased = form.category === 'purchased_equipment';
   const isContractorSupplied = form.category === 'contractor_supplied';
@@ -10,6 +10,7 @@ export default function ReviewStep({ form, suppliers = [], contractors = [], cli
   const isInternal = form.category === 'internal_equipment';
   const isLabour = form.category === 'labour';
   const lineTotal = (Number(form.unit_cost) || 0) * (Number(form.quantity) || 1);
+  const canBeOnSite = !isNoCost && !isLabour;
 
   return (
     <div className="space-y-2">
@@ -43,6 +44,20 @@ export default function ReviewStep({ form, suppliers = [], contractors = [], cli
         <div className="text-xs text-slate-600 bg-slate-50 rounded-md px-3 py-2 border border-slate-200 flex items-center gap-1.5">
           <Building2 className="w-3.5 h-3.5" /> Client-supplied — informational only. No cost or charge is tracked.
         </div>
+      )}
+      {canBeOnSite && (
+        <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-white cursor-pointer hover:bg-slate-50 transition">
+          <input type="checkbox" checked={!!form.already_on_site}
+            onChange={(e) => setForm(f => ({ ...f, already_on_site: e.target.checked }))}
+            className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+          <div className="flex items-center gap-1.5 min-w-0">
+            <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-slate-800">Already on site</p>
+              <p className="text-xs text-slate-500">Skip the yard/load planning — mark this item as already delivered to the job site.</p>
+            </div>
+          </div>
+        </label>
       )}
     </div>
   );

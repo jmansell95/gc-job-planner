@@ -126,7 +126,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
       if (isLabour) return <LabourFields form={form} setForm={setForm} rateCardItems={rateCardItems} staff={staff} defaultDates={defaultDates} />;
       if (isNoCost) return <NoCostFields form={form} setForm={setForm} contractors={contractors} clients={clients} isContractor={isContractorSupplied} />;
     }
-    if (step === 3) return <ReviewStep form={form} suppliers={suppliers} contractors={contractors} clients={clients} />;
+    if (step === 3) return <ReviewStep form={form} setForm={setForm} suppliers={suppliers} contractors={contractors} clients={clients} />;
     return null;
   };
 

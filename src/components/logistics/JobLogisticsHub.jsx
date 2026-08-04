@@ -24,7 +24,8 @@ const blankForm = () => ({
   category: 'hired_equipment', supplier_id: '', contractor_id: '', client_id: '', description: '',
   reference_number: '', responsible_person: '', site_asset_id: '', staff_id: '', po_number: '', order_slip_url: '', order_slip_name: '',
   rate_card_item_id: '', delivery_notes: '',
-  start_date: '', end_date: '', unit_cost: '', quantity: '1', unit_label: 'day', men: '', vat_exempt: false, notes: ''
+  start_date: '', end_date: '', unit_cost: '', quantity: '1', unit_label: 'day', men: '', vat_exempt: false, notes: '',
+  already_on_site: false
 });
 
 // Get the Monday (week_start) for a given YYYY-MM-DD date string
@@ -196,7 +197,8 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
         vat_exempt: (isContractorItem || isClientItem) ? false : !!formData.vat_exempt,
         notes: formData.notes || '',
         delivery_notes: formData.delivery_notes || '',
-        ...((isContractorItem || isClientItem || isLabourItem) ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {})
+        ...((isContractorItem || isClientItem || isLabourItem) ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {}),
+        ...(formData.already_on_site && !isContractorItem && !isClientItem && !isLabourItem ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {})
       };
       if (editingId) { await base44.entities.JobCostItem.update(editingId, payload); }
       else { await base44.entities.JobCostItem.create(payload); }
@@ -246,7 +248,8 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       rate_card_item_id: c.rate_card_item_id || '', start_date: c.start_date || '', end_date: c.end_date || '',
       unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'), men: c.men ? String(c.men) : '',
       unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt, notes: c.notes || '',
-      delivery_notes: c.delivery_notes || ''
+      delivery_notes: c.delivery_notes || '',
+      already_on_site: c.current_location === 'site'
     });
     setAdding(true);
   };
@@ -364,6 +367,26 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
           hire_status: 'active', current_location: 'yard', notes: 'Included in rig day rate' }))
       ];
       await base44.entities.JobCostItem.bulkCreate(payload);
+      // Also create JobAssetAssignment records so the dashboard "Job Assets"
+      // widget and compliance tracking pick up the rig + linked gear.
+      const today = new Date().toISOString().split('T')[0];
+      const assignmentPayload = [
+        { job_id: jobId, job_name: job?.name || '', asset_id: rig.id, asset_name: rig.name,
+          asset_type: 'rig', rig_type: rig.rig_type || 'n/a', role: 'primary_rig',
+          compliance_status: rig.compliance_status || 'unknown', status: 'assigned',
+          assigned_date: today, notes: `Auto-assigned from logistics hub` },
+        ...gear.map(g => ({
+          job_id: jobId, job_name: job?.name || '', asset_id: g.id, asset_name: g.name,
+          asset_type: g.asset_type || 'machinery', rig_type: 'n/a',
+          role: g.asset_type === 'lifting' ? 'lifting' : g.asset_type === 'trailer' ? 'trailer' : 'machinery',
+          compliance_status: g.compliance_status || 'unknown', status: 'assigned',
+          assigned_date: today, notes: `Linked to ${rig.name}` }))
+      ];
+      try {
+        await base44.entities.JobAssetAssignment.bulkCreate(assignmentPayload);
+        queryClient.invalidateQueries({ queryKey: ['job-asset-assignments-active'] });
+        queryClient.invalidateQueries({ queryKey: ['drawer-asset-assignments', jobId] });
+      } catch (assignErr) { console.error('Asset assignment creation failed:', assignErr); }
       queryClient.invalidateQueries({ queryKey: ['job-cost-items', jobId] });
       queryClient.invalidateQueries({ queryKey: ['job-cost-items-manifest', jobId] });
       toast({ title: `Added ${rig.name}`, description: `Rig + ${gear.length} gear items · ${fmt(rigDayRate)}/${rigUnit} · on site ${dates.onSiteStart || 'TBD'} → ${dates.onSiteEnd || 'ongoing'}.` });
