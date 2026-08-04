@@ -1,0 +1,96 @@
+{
+  "name": "LoginBranding",
+  "type": "object",
+  "properties": {
+    "background_type": {
+      "type": "string",
+      "enum": [
+        "gradient",
+        "image",
+        "solid"
+      ],
+      "default": "gradient",
+      "description": "Background style for the login/register/forgot-password pages. 'gradient' = CSS gradient from primary_color to secondary_color, 'image' = uploaded background image, 'solid' = flat colour."
+    },
+    "primary_color": {
+      "type": "string",
+      "default": "#2E5A1A",
+      "description": "Primary brand colour used for the gradient start, button backgrounds, and icon accents on auth pages."
+    },
+    "secondary_color": {
+      "type": "string",
+      "default": "#1c4a12",
+      "description": "Secondary brand colour used for the gradient end on auth page backgrounds."
+    },
+    "background_image_url": {
+      "type": "string",
+      "description": "URL of the uploaded background image (used when background_type is 'image')."
+    },
+    "background_image_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded background image."
+    },
+    "overlay_opacity": {
+      "type": "number",
+      "default": 0.75,
+      "description": "Opacity of the dark overlay applied on top of the background image (0 = no overlay, 1 = fully dark). Improves text readability over busy images."
+    },
+    "card_style": {
+      "type": "string",
+      "enum": [
+        "glass",
+        "solid",
+        "bordered"
+      ],
+      "default": "solid",
+      "description": "Login card visual style. 'glass' = frosted glass-morphism, 'solid' = opaque white card, 'bordered' = minimal border-only card."
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "URL of the company logo displayed above the login form title. Replaces the default icon."
+    },
+    "logo_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded logo."
+    },
+    "welcome_title": {
+      "type": "string",
+      "default": "Welcome back",
+      "description": "Custom heading text shown above the login form."
+    },
+    "welcome_subtitle": {
+      "type": "string",
+      "default": "Log in to your account",
+      "description": "Custom subtitle text shown below the login heading."
+    },
+    "show_logo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to show the uploaded logo instead of the default icon on auth pages."
+    },
+    "footer_text": {
+      "type": "string",
+      "default": "",
+      "description": "Optional custom footer text shown below the login card (e.g. company tagline or support contact)."
+    }
+  },
+  "required": [],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

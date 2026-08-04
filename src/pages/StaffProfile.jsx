@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, Bell, UserCog, CalendarClock, TrendingUp, Trophy, ClipboardList, GraduationCap, FileText } from 'lucide-react';
+import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, Bell, UserCog, CalendarClock, TrendingUp, Trophy, ClipboardList, GraduationCap, FileText, UserPlus, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import TimesheetHistory from '@/components/staff/TimesheetHistory';
 import StaffBookings from '@/components/staff/StaffBookings';
@@ -47,6 +47,7 @@ export default function StaffProfile() {
   const [activeTab, setActiveTab] = useState('performance');
   const [absenceForm, setAbsenceForm] = useState({ start_date: format(new Date(), 'yyyy-MM-dd'), end_date: format(new Date(), 'yyyy-MM-dd'), reason: 'holiday', notes: '' });
   const [savingAbsence, setSavingAbsence] = useState(false);
+  const [creatingProfile, setCreatingProfile] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -79,6 +80,32 @@ export default function StaffProfile() {
   const reporters = staff ? allStaff.filter(s => s.manager_id === staff.id) : [];
   const pendingCount = mgrTimesheets.filter(t => reporters.some(r => r.id === t.staff_id) && t.status === 'submitted').length;
   const upcomingAbsences = absences.filter(a => new Date(a.end_date + 'T00:00:00') >= new Date() && a.status !== 'rejected');
+
+  const handleCreateCrewProfile = async () => {
+    setCreatingProfile(true);
+    try {
+      // Fetch teams so the admin can pick one (or default to first)
+      const teams = await base44.entities.Team.list();
+      const firstTeam = teams[0];
+      const newStaff = await base44.entities.Staff.create({
+        name: user?.full_name || user?.email,
+        email: user?.email,
+        worker_type: 'direct_employee',
+        team_id: firstTeam?.id || '',
+        user_id: user?.id,
+        is_active: true,
+        system_role: 'admin',
+      });
+      // Reload the profile
+      const res = await base44.functions.invoke('getMyStaffProfile');
+      if (res.data) setStaff(res.data);
+      toast({ title: 'Crew profile created', description: 'You can now track your own performance, incentives and timesheets.' });
+    } catch (e) {
+      toast({ title: 'Error creating profile', description: e.message, variant: 'destructive' });
+    } finally {
+      setCreatingProfile(false);
+    }
+  };
 
   const handleSaveAbsence = async () => {
     if (!absenceForm.start_date || !absenceForm.end_date) return;
@@ -226,13 +253,13 @@ export default function StaffProfile() {
         <div className="mt-4">
           {activeTab === 'performance' && (staff.id
             ? <StaffPerformanceCard staffId={staff.id} />
-            : <NoCrewProfileState tab="performance" onGoAdmin={() => navigate('/admin')} />)}
+            : <NoCrewProfileState tab="performance" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'incentives' && (staff.id
             ? <IncentiveDashboard staffId={staff.id} staffName={staff.name} teamId={staff.team_id} />
-            : <NoCrewProfileState tab="incentives" onGoAdmin={() => navigate('/admin')} />)}
+            : <NoCrewProfileState tab="incentives" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'timesheets' && (staff.id
             ? <TimesheetHistory staffId={staff.id} />
-            : <NoCrewProfileState tab="timesheets" onGoAdmin={() => navigate('/admin')} />)}
+            : <NoCrewProfileState tab="timesheets" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'bookings' && (staff.id ? (
             <div className="space-y-5">
               {upcomingAbsences.length > 0 && (
@@ -270,16 +297,16 @@ export default function StaffProfile() {
                 <StaffBookings staffId={staff.id} />
               </div>
             </div>
-          ) : <NoCrewProfileState tab="bookings" onGoAdmin={() => navigate('/admin')} />)}
+          ) : <NoCrewProfileState tab="bookings" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'training' && (staff.id
             ? <TrainingHistory staffId={staff.id} staffName={staff.name} />
-            : <NoCrewProfileState tab="training" onGoAdmin={() => navigate('/admin')} />)}
+            : <NoCrewProfileState tab="training" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'documents' && (staff.id
             ? <StaffDocuments staffId={staff.id} staffName={staff.name} />
-            : <NoCrewProfileState tab="documents" onGoAdmin={() => navigate('/admin')} />)}
+            : <NoCrewProfileState tab="documents" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'crew' && (staff.team_id
             ? <TeamMiniFeed teamId={staff.team_id} currentStaffId={staff.id} />
-            : <NoCrewProfileState tab="crew" onGoAdmin={() => navigate('/admin')} />)}
+            : <NoCrewProfileState tab="crew" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
         </div>
       </div>
 

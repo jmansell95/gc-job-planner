@@ -1,10 +1,11 @@
 import React from 'react';
-import { HardHat, TrendingUp, Trophy, ClipboardList, Wrench, GraduationCap, FileText, Users } from 'lucide-react';
+import { HardHat, TrendingUp, Trophy, ClipboardList, Wrench, GraduationCap, FileText, Users, UserPlus, Loader2 } from 'lucide-react';
 
 // Shown when a platform admin has no linked crew profile (staff.id is null).
 // Instead of rendering a blank tab, this friendly state explains why no
-// personal performance/incentive/timesheet data is available and directs
-// them to the admin dashboard where their management data lives.
+// personal performance/incentive/timesheet data is available and offers the
+// admin a one-click button to create their own crew profile so they can
+// track their own performance, incentives and timesheets.
 const TAB_META = {
   performance: { icon: TrendingUp, title: 'No Performance Data', desc: 'Performance metrics are calculated from your crew logs and timesheets. Since you don\'t have a linked crew profile, there\'s nothing to display here.' },
   incentives: { icon: Trophy, title: 'No Incentive Score', desc: 'Incentive scores and badges are calculated weekly from your drilling logs, on-time arrivals, and safety submissions. Admin accounts without a crew profile don\'t earn incentives.' },
@@ -15,7 +16,7 @@ const TAB_META = {
   crew: { icon: Users, title: 'No Crew Assignment', desc: 'You\'re not assigned to a crew team. Admins oversee all crews from the Admin Dashboard.' },
 };
 
-export default function NoCrewProfileState({ tab = 'performance', onGoAdmin }) {
+export default function NoCrewProfileState({ tab = 'performance', onGoAdmin, onCreateProfile, creating }) {
   const meta = TAB_META[tab] || TAB_META.performance;
   const Icon = meta.icon;
 
@@ -27,16 +28,29 @@ export default function NoCrewProfileState({ tab = 'performance', onGoAdmin }) {
         </div>
         <h3 className="text-lg font-bold text-slate-800 mb-1.5">{meta.title}</h3>
         <p className="text-sm text-slate-500 leading-relaxed mb-5">{meta.desc}</p>
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl text-sm text-slate-600">
+
+        {/* Create crew profile CTA — lets admins track their own performance */}
+        {onCreateProfile && (
+          <button
+            onClick={onCreateProfile}
+            disabled={creating}
+            className="mt-2 px-5 py-2.5 bg-[#2E5A1A] text-white rounded-xl text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+            {creating ? 'Creating…' : 'Create My Crew Profile'}
+          </button>
+        )}
+
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl text-sm text-slate-600 mt-4">
           <HardHat className="w-4 h-4 text-slate-400 flex-shrink-0" />
           <span>Your account is an <strong className="text-slate-700">admin profile</strong> — no crew record linked.</span>
         </div>
         {onGoAdmin && (
           <button
             onClick={onGoAdmin}
-            className="mt-5 px-5 py-2.5 bg-[#2E5A1A] text-white rounded-xl text-sm font-semibold hover:bg-[#1c4a12] transition"
+            className="mt-3 text-sm text-slate-500 hover:text-slate-700 font-medium transition"
           >
-            Go to Admin Dashboard
+            Go to Admin Dashboard →
           </button>
         )}
       </div>
