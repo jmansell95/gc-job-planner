@@ -1069,7 +1069,8 @@ export default async function(req) {
         desiredKeys.add(key);
         rotasToCreate.push({
           staff_id: staff.id, assigned_date: a.date,
-          week_start: getWeekStart(a.date), status: 'assigned',
+          week_start: getWeekStart(a.date),
+          status: a.date < TODAY ? 'completed' : 'assigned',
           assignment_type: a.non_job_type,
           non_job_label: a.non_job_label || undefined,
         });
@@ -1083,7 +1084,11 @@ export default async function(req) {
         desiredKeys.add(key);
         rotasToCreate.push({
           staff_id: staff.id, job_id: job.id, assigned_date: a.date,
-          week_start: getWeekStart(a.date), status: 'assigned'
+          week_start: getWeekStart(a.date),
+          // Past shifts are done; today's and future shifts are planned.
+          // The dashboard "Crews On Site Today" widget filters by assigned_date
+          // === today, so today's assignments appear there regardless of status.
+          status: a.date < TODAY ? 'completed' : 'assigned',
         });
       }
     }
