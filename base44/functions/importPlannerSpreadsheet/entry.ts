@@ -562,16 +562,18 @@ export default async function(req) {
         continue;
       }
       const match = fuzzyFindAsset(a.staff_name, allAssets, assetMaps);
-      if (match) {
-        movedToPlant.push(a);
-      } else {
+      // Move ALL potential assets to plantAssignments — even unmatched ones.
+      // Unmatched ones are logged but still processed in step 6 so we can
+      // report which rig names couldn't be matched to SiteAssets.
+      movedToPlant.push(a);
+      if (!match) {
         droppedPotentialAssets.add(a.staff_name);
       }
     }
     teamAssignments = remainingTeamAssignments;
     plantAssignments = plantAssignments.concat(movedToPlant);
     if (droppedPotentialAssets.size > 0) {
-      warnings.push(`${droppedPotentialAssets.size} potential rig/equipment name(s) in the team planner did not match any SiteAsset and were skipped: ${[...droppedPotentialAssets].slice(0, 10).join(', ')}${droppedPotentialAssets.size > 10 ? '…' : ''}`);
+      warnings.push(`${droppedPotentialAssets.size} potential rig/equipment name(s) in the team planner did not match any SiteAsset: ${[...droppedPotentialAssets].slice(0, 10).join(', ')}${droppedPotentialAssets.size > 10 ? '…' : ''}`);
     }
     if (movedToPlant.length > 0) {
       warnings.push(`${movedToPlant.length} rig/equipment assignment(s) moved from team planner to plant matching (linked to jobs as assets).`);
@@ -851,12 +853,16 @@ export default async function(req) {
     const uniqueJobBaseKeys = new Set();
     const jobNameByBaseKey = {};
     const jobDatesByBaseKey = {};
+    const jobRefByBaseKey = {};  // canonical base key → job reference (lowercase)
     for (const a of allAssignments) {
       if (!a.job_name) continue;
       const baseKey = extractJobBaseKey(a.job_name);
       uniqueJobBaseKeys.add(baseKey);
       // Prefer a name with a job reference (e.g., "I260124 - EWR" over "EWR - 1No.")
       const parsed = parseJobName(a.job_name);
+      if (parsed.job_reference) {
+        jobRefByBaseKey[baseKey] = parsed.job_reference.toLowerCase();
+      }
       if (!jobNameByBaseKey[baseKey] || (parsed.job_reference && !parseJobName(jobNameByBaseKey[baseKey]).job_reference)) {
         jobNameByBaseKey[baseKey] = a.job_name;
       }
@@ -969,6 +975,39 @@ export default async function(req) {
 
     const newJobs = newJobKeys.map(k => jobMap.get(k));
 
+    // Multi-index job lookup — allows plant assignments and rota entries to
+    // find jobs by reference number OR canonical name OR raw name key OR
+    // fuzzy name match. This handles cases where the plant planner uses just
+    // the site name ("EWR") while the team planner used a ref ("I260124 - EWR").
+    const jobByRef = new Map();
+    const jobByCanonName = new Map();
+    const jobByNameKey = new Map();
+    for (const [baseKey, job] of jobMap) {
+      if (jobRefByBaseKey[baseKey]) jobByRef.set(jobRefByBaseKey[baseKey], job);
+      if (!jobByCanonName.has(baseKey)) jobByCanonName.set(baseKey, job);
+      if (job.name) jobByNameKey.set(nameKey(job.name), job);
+    }
+    function findJobForAssignment(jobName) {
+      if (!jobName) return null;
+      const parsed = parseJobName(jobName);
+      // 1. Try ref number
+      if (parsed.job_reference) {
+        const byRef = jobByRef.get(parsed.job_reference.toLowerCase());
+        if (byRef) return byRef;
+      }
+      // 2. Try canonical name key
+      const canonKey = extractJobBaseKey(jobName);
+      const byCanon = jobByCanonName.get(canonKey);
+      if (byCanon) return byCanon;
+      // 3. Try raw name key
+      const byName = jobByNameKey.get(nameKey(jobName));
+      if (byName) return byName;
+      // 4. Fuzzy match against all created jobs
+      const fuzzy = fuzzyFindJob(jobName, [...jobByCanonName.values()], 0.55);
+      if (fuzzy) return fuzzy.job;
+      return null;
+    }
+
     // -----------------------------------------------------------------------
     // 5b. Link Jobs to Projects by site name
     // -----------------------------------------------------------------------
@@ -1033,7 +1072,7 @@ export default async function(req) {
 
     for (const pa of plantAssignments) {
       if (!pa.job_name || !pa.staff_name) continue;
-      const job = jobMap.get(extractJobBaseKey(pa.job_name));
+      const job = findJobForAssignment(pa.job_name);
       if (!job) continue;
 
       const match = fuzzyFindAsset(pa.staff_name, allAssets, assetMaps);
@@ -1149,7 +1188,7 @@ export default async function(req) {
         nonJobCounts[a.non_job_type]++;
         nonJobDays.push({ staff_id: staff.id, staff_name: staff.name, date: a.date, type: a.non_job_type, label: a.non_job_label });
       } else if (a.job_name) {
-        const job = jobMap.get(extractJobBaseKey(a.job_name));
+        const job = findJobForAssignment(a.job_name);
         if (!job) continue;
         const key = `${staff.id}|${a.date}|${job.id}`;
         if (desiredKeys.has(key)) { duplicateRotaRows++; continue; }
@@ -1415,9 +1454,9 @@ export default async function(req) {
     const crewCostItemsByJobStaff = new Map();
     for (const a of teamAssignments) {
       if (!a.job_name || !a.date) continue;
-      const baseKey = extractJobBaseKey(a.job_name);
-      const job = jobMap.get(baseKey);
+      const job = findJobForAssignment(a.job_name);
       if (!job) continue;
+      const baseKey = extractJobBaseKey(a.job_name);
       const staffKey = nameKey(a.staff_name);
       const ciKey = `${baseKey}|${staffKey}`;
       if (!crewCostItemsByJobStaff.has(ciKey)) {
@@ -1614,7 +1653,7 @@ export default async function(req) {
     // records with category 'internal_equipment' and site_asset_id set.
     let rigAssignmentCount = 0;
     for (const ra of dedupedRigAssignments) {
-      const raJob = jobMap.get(extractJobBaseKey(ra.job_name));
+      const raJob = findJobForAssignment(ra.job_name);
       const jobStart = ra.assigned_date || raJob?.start_date || '';
       const jobEnd = raJob?.end_date || '';
       // Count actual on-site days from the collected assignment dates — not the
