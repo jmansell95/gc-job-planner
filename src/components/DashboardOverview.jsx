@@ -29,6 +29,7 @@ import CashFlowForecastWidget from '@/components/dashboard/CashFlowForecastWidge
 import DrillingPerformanceWidget from '@/components/dashboard/DrillingPerformanceWidget';
 import SafetyDashboardWidget from '@/components/dashboard/SafetyDashboardWidget';
 import PredictiveInsightsWidget from '@/components/dashboard/PredictiveInsightsWidget';
+import TrafficHeatmapWidget from '@/components/dashboard/TrafficHeatmapWidget';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
@@ -156,6 +157,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'drilling-performance': return <DrillingPerformanceWidget />;
       case 'safety-dashboard': return <SafetyDashboardWidget />;
       case 'predictive-insights': return <PredictiveInsightsWidget />;
+      case 'traffic-heatmap': return <TrafficHeatmapWidget onNavigateToJob={onNavigate} />;
       default: return null;
     }
   };

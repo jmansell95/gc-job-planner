@@ -1,4 +1,4 @@
-import { Truck, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Boxes, Sparkles, TrendingUp, HardHat, Activity, LayoutDashboard, MapPin, FileClock, FolderKanban, AlertTriangle, Scale, ClipboardCheck, Gauge, ShieldAlert, Brain } from 'lucide-react';
+import { Truck, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Boxes, Sparkles, TrendingUp, HardHat, Activity, LayoutDashboard, MapPin, FileClock, FolderKanban, AlertTriangle, Scale, ClipboardCheck, Gauge, ShieldAlert, Brain, Navigation } from 'lucide-react';
 
 export const WIDGET_REGISTRY = {
   'executive-snapshot': { title: 'Executive Snapshot', icon: LayoutDashboard },
@@ -25,6 +25,7 @@ export const WIDGET_REGISTRY = {
   'drilling-performance': { title: 'Drilling Performance', icon: Gauge },
   'safety-dashboard': { title: 'Safety Dashboard', icon: ShieldAlert },
   'predictive-insights': { title: 'Predictive AI Insights', icon: Brain },
+  'traffic-heatmap': { title: 'Mission Command — Traffic Heatmap', icon: Navigation },
 };
 
 export const DEFAULT_WIDGET_ORDER = [
@@ -55,7 +56,7 @@ export const DEFAULT_WIDGET_ORDER = [
 // (global-only widgets are hidden when a specific job is focused) and by cost
 // permission, so empty sections automatically collapse out of view.
 export const DASHBOARD_SECTIONS = [
-  { id: 'overview', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'geo-heatmap'] },
+  { id: 'overview', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'geo-heatmap'] },
   { id: 'performance', label: 'Performance & Financials', icon: TrendingUp, widgets: ['billing-readiness', 'outstanding-receivables', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'drilling-performance', 'rig-profitability', 'unbilled-wip', 'predictive-insights'] },
   { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'maintenance-quick-view', 'safety-dashboard'] },
 ];
@@ -89,6 +90,7 @@ export const DEFAULT_WIDGET_SIZES = {
   'drilling-performance': 'lg',
   'safety-dashboard': 'md',
   'predictive-insights': 'lg',
+  'traffic-heatmap': 'lg',
 };
 
 // Widgets that require costing permission (admin / manager only).
@@ -103,7 +105,7 @@ export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview',
 // one focus area, cutting scroll depth. Applied as an allow-list on top of the
 // user's saved widget order (saved customisation still respected within a profile).
 export const VIEW_PROFILES = [
-  { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'drilling-performance'] },
+  { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'drilling-performance'] },
   { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['outstanding-receivables', 'billing-readiness', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip', 'predictive-insights'] },
   { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['compliance-overview', 'maintenance-quick-view', 'safety-dashboard'] },
 ];
