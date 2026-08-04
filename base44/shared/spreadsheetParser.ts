@@ -5,7 +5,8 @@
 // (prehistoric data) to ensure both importers use identical parsing rules.
 // ---------------------------------------------------------------------------
 
-export { normalizeName, nameKey } from './entityRegistry.ts';
+import { normalizeName, nameKey } from './entityRegistry.ts';
+export { normalizeName, nameKey };
 
 // --- Keyword constants ---
 
