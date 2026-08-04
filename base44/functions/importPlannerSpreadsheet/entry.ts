@@ -219,6 +219,19 @@ function parseJobName(rawName) {
   return { name, job_reference: '', location: '' };
 }
 
+// Extract a base grouping key from a job name so that sub-entries like
+// "EWR - 1No.", "EWR - 2No." and the master "I260124 - EWR" all consolidate
+// into one master job. The base key is the site/location name (e.g., "EWR").
+function extractJobBaseKey(jobName) {
+  const name = normalizeName(jobName);
+  // "REF - LOCATION" pattern (e.g., "I260124 - EWR" → "EWR")
+  const dashMatch = name.match(/^[A-Za-z]{1,3}\d{4,6}\s*[-–—]\s*(.+)$/);
+  if (dashMatch) return nameKey(dashMatch[1]);
+  // Strip " - NNo." suffix (e.g., "EWR - 1No." → "EWR")
+  const stripped = name.replace(/\s*[-–—]\s*\d+No\.?\s*$/i, '');
+  return nameKey(stripped || name);
+}
+
 // Parse a single sheet. Scans all rows for the date header row, then walks
 // every subsequent row tracking section headers and staff names.
 function parseSheet(sheet, sheetName) {
@@ -780,17 +793,21 @@ export default async function(req) {
     // -----------------------------------------------------------------------
     // 5. Resolve Jobs — with date-aware status
     // -----------------------------------------------------------------------
-    const uniqueJobKeys = new Set();
-    const jobNameByKey = {};
-    const jobDatesByKey = {};
+    const uniqueJobBaseKeys = new Set();
+    const jobNameByBaseKey = {};
+    const jobDatesByBaseKey = {};
     for (const a of allAssignments) {
       if (!a.job_name) continue;
-      const key = nameKey(a.job_name);
-      uniqueJobKeys.add(key);
-      jobNameByKey[key] = a.job_name;
+      const baseKey = extractJobBaseKey(a.job_name);
+      uniqueJobBaseKeys.add(baseKey);
+      // Prefer a name with a job reference (e.g., "I260124 - EWR" over "EWR - 1No.")
+      const parsed = parseJobName(a.job_name);
+      if (!jobNameByBaseKey[baseKey] || (parsed.job_reference && !parseJobName(jobNameByBaseKey[baseKey]).job_reference)) {
+        jobNameByBaseKey[baseKey] = a.job_name;
+      }
       if (a.date) {
-        if (!jobDatesByKey[key]) jobDatesByKey[key] = [];
-        jobDatesByKey[key].push(a.date);
+        if (!jobDatesByBaseKey[baseKey]) jobDatesByBaseKey[baseKey] = [];
+        jobDatesByBaseKey[baseKey].push(a.date);
       }
     }
 
@@ -808,18 +825,18 @@ export default async function(req) {
     const jobUpdates = [];
     let jobFoundCount = 0;
 
-    for (const key of uniqueJobKeys) {
-      const rawName = jobNameByKey[key];
+    for (const baseKey of uniqueJobBaseKeys) {
+      const rawName = jobNameByBaseKey[baseKey];
       const parsed = parseJobName(rawName);
-      const jobDates = (jobDatesByKey[key] || []).sort();
+      const jobDates = (jobDatesByBaseKey[baseKey] || []).sort();
       const jobStatus = determineJobStatus(jobDates);
 
       let job = null;
       if (parsed.job_reference) job = jobByReference.get(parsed.job_reference.toLowerCase());
-      if (!job) job = jobByName.get(key);
+      if (!job) job = jobByName.get(baseKey);
 
       const jobCrewSections = teamAssignments
-        .filter(a => nameKey(a.job_name) === key)
+        .filter(a => a.job_name && extractJobBaseKey(a.job_name) === baseKey)
         .map(a => a.crew_section).filter(Boolean);
       const mostCommonSection = getMostCommon(jobCrewSections);
       const drillingMethod = inferDrillingMethod(mostCommonSection);
@@ -838,7 +855,7 @@ export default async function(req) {
           drilling_method: drillingMethod,
           job_type: jobType || undefined,
         });
-        newJobKeys.push(key);
+        newJobKeys.push(baseKey);
       } else {
         jobFoundCount++;
         const updates = {};
@@ -855,17 +872,17 @@ export default async function(req) {
           jobUpdates.push({ id: job.id, name: job.name, updates });
           if (!dryRun) await base44.asServiceRole.entities.Job.update(job.id, updates);
         }
-        jobMap.set(key, job);
+        jobMap.set(baseKey, job);
       }
     }
 
     if (newJobPayloads.length > 0) {
-      // Safety: deduplicate by name key (final guard against duplicate job names)
+      // Safety: deduplicate by base key (final guard against duplicate job names)
       const seenJobKeys = new Set();
       const dedupedJobPayloads = [];
       const dedupedJobKeys = [];
       for (let i = 0; i < newJobPayloads.length; i++) {
-        const jk = nameKey(newJobPayloads[i].name);
+        const jk = extractJobBaseKey(newJobPayloads[i].name);
         if (seenJobKeys.has(jk)) continue;
         seenJobKeys.add(jk);
         dedupedJobPayloads.push(newJobPayloads[i]);
@@ -951,7 +968,7 @@ export default async function(req) {
 
     for (const pa of plantAssignments) {
       if (!pa.job_name || !pa.staff_name) continue;
-      const job = jobMap.get(nameKey(pa.job_name));
+      const job = jobMap.get(extractJobBaseKey(pa.job_name));
       if (!job) continue;
 
       const match = fuzzyFindAsset(pa.staff_name, allAssets, assetMaps);
