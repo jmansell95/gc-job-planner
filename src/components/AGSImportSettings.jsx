@@ -4,7 +4,6 @@ import { UploadCloud, FileText, CheckCircle2, AlertCircle, Loader2, Link2 } from
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
-import KeyLogBookWebhookSection from '@/components/keylogbook/KeyLogBookWebhookSection';
 import AGSAutoSyncSection from '@/components/keylogbook/AGSAutoSyncSection';
 
 export default function AGSImportSettings() {
@@ -56,12 +55,9 @@ export default function AGSImportSettings() {
     <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
       <SettingsSectionHeader
         title="KeyLogBook Settings"
-        description="Connect KeyLogBook for real-time borehole data sync via webhook, or manually upload an AGS export. The webhook automatically creates draft timesheets for your drilling crew — they review and submit at the end of their shift."
+        description="KeyLogBook automatically pushes AGS files to Mission Control every 30 minutes — borehole data, strata logs, samples and driller remarks are imported and ready for review. You can also manually upload an AGS export below."
         icon={UploadCloud}
       />
-
-      {/* Real-time webhook sync configuration */}
-      <KeyLogBookWebhookSection />
 
       {/* Automated AGS file push sync (every 30 min) */}
       <AGSAutoSyncSection />
@@ -183,7 +179,7 @@ export default function AGSImportSettings() {
         </div>
         <div className="min-w-0">
           <h3 className="text-sm font-bold text-slate-900">Manual AGS File Upload</h3>
-          <p className="text-xs text-slate-500">Use this if real-time sync isn't set up yet, or to re-import a file.</p>
+          <p className="text-xs text-slate-500">Use this to re-import a file, or if the automated sync hasn't been set up yet.</p>
         </div>
       </div>
 
