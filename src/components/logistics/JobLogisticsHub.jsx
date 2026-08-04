@@ -432,7 +432,12 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
           assigned_date: today, notes: `Linked to ${rig.name}` }))
       ];
       try {
-        await base44.entities.JobAssetAssignment.bulkCreate(assignmentPayload);
+        // Create the rig assignment first (critical for dashboard visibility),
+        // then gear separately so a gear failure can't block the rig.
+        await base44.entities.JobAssetAssignment.create(assignmentPayload[0]);
+        if (assignmentPayload.length > 1) {
+          await base44.entities.JobAssetAssignment.bulkCreate(assignmentPayload.slice(1));
+        }
         queryClient.invalidateQueries({ queryKey: ['job-asset-assignments-active'] });
         queryClient.invalidateQueries({ queryKey: ['drawer-asset-assignments', jobId] });
       } catch (assignErr) { console.error('Asset assignment creation failed:', assignErr); }
