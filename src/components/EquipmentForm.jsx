@@ -36,11 +36,14 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
       if (isLabour && (!form.staff_id || (!form.unit_cost && !isPOA))) return false;
       return true;
     }
+    // Step 3 (review) — if "already on site" is checked, a signature is required
+    if (step === 3 && form.already_on_site && !form.on_site_signature) return false;
     return true;
   }, [step, form]);
 
   const submit = () => {
     if (!form.description?.trim()) return;
+    if (form.already_on_site && !form.on_site_signature) return;
     let payload = { ...form };
     if (isNoCost) {
       payload = { ...payload, unit_cost: 0, supplier_id: '', contractor_id: isContractorSupplied ? form.contractor_id : '', client_id: isClientSupplied ? form.client_id : '', vat_exempt: false, order_slip_url: '', order_slip_name: '' };
@@ -161,7 +164,7 @@ export default function EquipmentForm({ form, setForm, onSubmit, onCancel, savin
             Next <ChevronRight className="w-4 h-4" />
           </button>
         ) : (
-          <button type="button" onClick={submit} disabled={saving || !form.description?.trim()} className="flex-1 px-4 py-2 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition disabled:opacity-50 flex items-center justify-center">
+          <button type="button" onClick={submit} disabled={saving || !form.description?.trim() || (form.already_on_site && !form.on_site_signature)} className="flex-1 px-4 py-2 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition disabled:opacity-50 flex items-center justify-center">
             {saving ? 'Saving...' : editing ? 'Update item' : 'Add item'}
           </button>
         )}

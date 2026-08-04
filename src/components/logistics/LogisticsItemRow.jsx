@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, FileCheck, Package, Truck, MapPin, PackageCheck, Warehouse, Loader2, ShieldCheck, ShieldAlert, ShieldX, Wrench, ShoppingCart, HardHat, ChevronDown, ChevronUp, FileText, ExternalLink, Users } from 'lucide-react';
+import { Edit2, Trash2, FileCheck, Package, Truck, MapPin, PackageCheck, Warehouse, Loader2, ShieldCheck, ShieldAlert, ShieldX, Wrench, ShoppingCart, HardHat, ChevronDown, ChevronUp, FileText, ExternalLink, Users, PenLine } from 'lucide-react';
 import { format } from 'date-fns';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -92,6 +92,11 @@ export default function LogisticsItemRow({ item: c, isSelected, onToggleSelect, 
             {cert && (
               <a href={cert.document_url} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2 py-1 rounded-lg font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition inline-flex items-center gap-0.5">
                 <FileText className="w-3 h-3" /> Certificate <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            )}
+            {c.on_site_signature_url && (
+              <a href={c.on_site_signature_url} target="_blank" rel="noopener noreferrer" className="text-[10px] px-2 py-1 rounded-lg font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition inline-flex items-center gap-0.5" title={c.on_site_signed_by ? `Signed by ${c.on_site_signed_by}` : 'On-site receipt signature'}>
+                <PenLine className="w-3 h-3" /> On-site sig <ExternalLink className="w-2.5 h-2.5" />
               </a>
             )}
             {hasLinked && (

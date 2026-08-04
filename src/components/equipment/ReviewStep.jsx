@@ -1,6 +1,7 @@
 import React from 'react';
-import { FileText, HardHat, Building2, Factory, Truck, MapPin } from 'lucide-react';
+import { FileText, HardHat, Building2, Factory, Truck, MapPin, PenLine, CheckCircle2 } from 'lucide-react';
 import { fmt, categoryConfig } from './shared';
+import SignaturePad from '@/components/staff/SignaturePad';
 
 export default function ReviewStep({ form, setForm, suppliers = [], contractors = [], clients = [] }) {
   const isNoCost = form.category === 'contractor_supplied' || form.category === 'client_supplied';
@@ -11,6 +12,7 @@ export default function ReviewStep({ form, setForm, suppliers = [], contractors 
   const isLabour = form.category === 'labour';
   const lineTotal = (Number(form.unit_cost) || 0) * (Number(form.quantity) || 1);
   const canBeOnSite = !isNoCost && !isLabour;
+  const hasSignature = !!form.on_site_signature;
 
   return (
     <div className="space-y-2">
@@ -46,18 +48,36 @@ export default function ReviewStep({ form, setForm, suppliers = [], contractors 
         </div>
       )}
       {canBeOnSite && (
-        <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-white cursor-pointer hover:bg-slate-50 transition">
-          <input type="checkbox" checked={!!form.already_on_site}
-            onChange={(e) => setForm(f => ({ ...f, already_on_site: e.target.checked }))}
-            className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-          <div className="flex items-center gap-1.5 min-w-0">
-            <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-slate-800">Already on site</p>
-              <p className="text-xs text-slate-500">Skip the yard/load planning — mark this item as already delivered to the job site.</p>
+        <>
+          <label className="flex items-center gap-2.5 p-3 rounded-lg border border-slate-200 bg-white cursor-pointer hover:bg-slate-50 transition">
+            <input type="checkbox" checked={!!form.already_on_site}
+              onChange={(e) => setForm(f => ({ ...f, already_on_site: e.target.checked, on_site_signature: e.target.checked ? f.on_site_signature : null }))}
+              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+            <div className="flex items-center gap-1.5 min-w-0">
+              <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-slate-800">Already on site</p>
+                <p className="text-xs text-slate-500">Skip the yard/load planning — mark this item as already delivered to the job site.</p>
+              </div>
             </div>
-          </div>
-        </label>
+          </label>
+          {form.already_on_site && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <PenLine className="w-4 h-4 text-emerald-700" />
+                <p className="text-sm font-semibold text-emerald-800">Sign to confirm on-site receipt</p>
+                {hasSignature && <CheckCircle2 className="w-4 h-4 text-emerald-600 ml-auto" />}
+              </div>
+              <p className="text-xs text-slate-500">Draw your signature below to confirm this item is present on site. This is recorded as proof of receipt.</p>
+              <SignaturePad onChange={(dataUrl) => setForm(f => ({ ...f, on_site_signature: dataUrl }))} />
+              {!hasSignature && (
+                <p className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                  <PenLine className="w-3 h-3" /> Signature required to add this item as on-site.
+                </p>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

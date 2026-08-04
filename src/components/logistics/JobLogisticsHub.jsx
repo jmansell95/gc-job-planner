@@ -25,7 +25,7 @@ const blankForm = () => ({
   reference_number: '', responsible_person: '', site_asset_id: '', staff_id: '', po_number: '', order_slip_url: '', order_slip_name: '',
   rate_card_item_id: '', delivery_notes: '',
   start_date: '', end_date: '', unit_cost: '', quantity: '1', unit_label: 'day', men: '', vat_exempt: false, notes: '',
-  already_on_site: false
+  already_on_site: false, on_site_signature: null
 });
 
 // Get the Monday (week_start) for a given YYYY-MM-DD date string
@@ -173,6 +173,22 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       const isContractorItem = formData.category === 'contractor_supplied';
       const isClientItem = formData.category === 'client_supplied';
       const isLabourItem = formData.category === 'labour';
+
+      // Upload the on-site receipt signature (base64 data URL → file storage)
+      let onSiteSignatureUrl = '';
+      let onSiteSignedAt = '';
+      let onSiteSignedBy = '';
+      if (formData.already_on_site && formData.on_site_signature) {
+        try {
+          const blob = await (await fetch(formData.on_site_signature)).blob();
+          const sigFile = new File([blob], `onsite-receipt-${Date.now()}.png`, { type: 'image/png' });
+          const uploadRes = await base44.integrations.Core.UploadFile({ file: sigFile });
+          onSiteSignatureUrl = uploadRes.file_url;
+          onSiteSignedAt = new Date().toISOString();
+          const me = await base44.auth.me().catch(() => null);
+          onSiteSignedBy = me?.full_name || me?.email || '';
+        } catch (sigErr) { console.error('Signature upload failed:', sigErr); }
+      }
       // Number (men) and date fields must be null — not "" — when unset, otherwise
       // schema validation rejects the record ("Could not save item").
       const payload = {
@@ -198,10 +214,42 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
         notes: formData.notes || '',
         delivery_notes: formData.delivery_notes || '',
         ...((isContractorItem || isClientItem || isLabourItem) ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {}),
-        ...(formData.already_on_site && !isContractorItem && !isClientItem && !isLabourItem ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {})
+        ...(formData.already_on_site && !isContractorItem && !isClientItem && !isLabourItem ? { current_location: 'site', location_updated_at: new Date().toISOString() } : {}),
+        on_site_signature_url: onSiteSignatureUrl || '',
+        on_site_signed_at: onSiteSignedAt || '',
+        on_site_signed_by: onSiteSignedBy || ''
       };
-      if (editingId) { await base44.entities.JobCostItem.update(editingId, payload); }
-      else { await base44.entities.JobCostItem.create(payload); }
+      let savedItem;
+      if (editingId) { savedItem = await base44.entities.JobCostItem.update(editingId, payload); }
+      else { savedItem = await base44.entities.JobCostItem.create(payload); }
+
+      // Create a JobAssetAssignment for any item linked to a SiteAsset so the
+      // dashboard "Job Assets" widget picks it up. For "already on site" items,
+      // set status to 'on_site' with the arrival date; otherwise 'assigned'.
+      if (formData.site_asset_id && !editingId) {
+        const linkedAsset = (siteAssets || []).find(a => a.id === formData.site_asset_id);
+        if (linkedAsset) {
+          const today = new Date().toISOString().split('T')[0];
+          const isOnSite = formData.already_on_site && !isContractorItem && !isClientItem && !isLabourItem;
+          const roleMap = { rig: 'primary_rig', machinery: 'machinery', trailer: 'trailer', lifting: 'lifting', vehicle: 'machinery', portable_appliance: 'machinery' };
+          try {
+            await base44.entities.JobAssetAssignment.create({
+              job_id: jobId, job_name: job?.name || '',
+              asset_id: linkedAsset.id, asset_name: linkedAsset.name,
+              asset_type: linkedAsset.asset_type || 'machinery',
+              rig_type: linkedAsset.rig_type || 'n/a',
+              role: roleMap[linkedAsset.asset_type] || 'machinery',
+              compliance_status: linkedAsset.compliance_status || 'unknown',
+              status: isOnSite ? 'on_site' : 'assigned',
+              assigned_date: today,
+              arrived_on_site_date: isOnSite ? today : '',
+              notes: isOnSite ? 'Marked on-site on creation with signed receipt' : 'Auto-assigned from logistics hub'
+            });
+            queryClient.invalidateQueries({ queryKey: ['job-asset-assignments-active'] });
+            queryClient.invalidateQueries({ queryKey: ['drawer-asset-assignments', jobId] });
+          } catch (assignErr) { console.error('Asset assignment creation failed:', assignErr); }
+        }
+      }
 
       // For labour items (not editing), create a RotaAssignment for each working day
       // so the crew member appears on the job schedule and billing is linked.
@@ -249,7 +297,8 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       unit_cost: String(c.unit_cost ?? ''), quantity: String(c.quantity ?? '1'), men: c.men ? String(c.men) : '',
       unit_label: c.unit_label || 'each', vat_exempt: !!c.vat_exempt, notes: c.notes || '',
       delivery_notes: c.delivery_notes || '',
-      already_on_site: c.current_location === 'site'
+      already_on_site: c.current_location === 'site',
+      on_site_signature: null
     });
     setAdding(true);
   };

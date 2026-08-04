@@ -141,6 +141,18 @@
       "type": "string",
       "description": "Original filename of the off-hire note"
     },
+    "on_site_signature_url": {
+      "type": "string",
+      "description": "URL of the uploaded on-site receipt signature image (PNG). Captured when an item is marked 'Already on site' \u2014 evidences that the item was confirmed as delivered/present on site by the signing person."
+    },
+    "on_site_signed_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the on-site receipt signature was captured."
+    },
+    "on_site_signed_by": {
+      "type": "string",
+      "description": "Name of the person who signed to confirm the item is on site."
+    },
     "delivery_notes": {
       "type": "string",
       "description": "Notes for equipment delivery (address, contact, timing)"
