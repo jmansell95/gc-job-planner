@@ -317,29 +317,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                 </div>
               )}
 
-              {/* Other gear — colour-coded chips by type */}
-              {jobGear.length > 0 && (
-                <div className="flex items-center gap-1 mb-3 pl-1.5 flex-wrap">
-                  {jobGear.slice(0, 4).map(g => {
-                    const GearIcon = gearTypeIcon[g.asset_type] || Package;
-                    const chipColor = {
-                      machinery: 'bg-purple-50 text-purple-700 border-purple-200',
-                      trailer: 'bg-amber-50 text-amber-700 border-amber-200',
-                      lifting: 'bg-teal-50 text-teal-700 border-teal-200',
-                      vehicle: 'bg-slate-50 text-slate-600 border-slate-200',
-                      portable_appliance: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-                    }[g.asset_type] || 'bg-slate-50 text-slate-600 border-slate-200';
-                    return (
-                      <span key={g.id} className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md border font-medium ${chipColor}`}>
-                        <GearIcon className="w-2.5 h-2.5" />
-                        {g.asset_name}
-                        {g.serial_number && <span className="font-mono opacity-60">#{g.serial_number}</span>}
-                      </span>
-                    );
-                  })}
-                  {jobGear.length > 4 && <span className="text-[10px] text-slate-400 font-medium px-1">+{jobGear.length - 4}</span>}
-                </div>
-              )}
+
 
               {/* Crew avatars footer */}
               <div className="flex items-center gap-2 pl-1.5 pt-2 border-t border-slate-100">
