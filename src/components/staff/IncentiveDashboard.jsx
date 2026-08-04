@@ -7,6 +7,7 @@ import CrewLeaderboard from '@/components/staff/CrewLeaderboard';
 import { EarnedBadgeRow, BadgeCollection, CategoryFilter } from '@/components/staff/AchievementBadges';
 import StaffProgressModal from '@/components/staff/StaffProgressModal';
 import BadgeDetailModal from '@/components/staff/BadgeDetailModal';
+import AchievementHistory from '@/components/staff/AchievementHistory';
 import { Skeleton } from '@/components/StateViews';
 
 function getWeekStart(date = new Date()) {
@@ -225,6 +226,9 @@ export default function IncentiveDashboard({ staffId, staffName, teamId }) {
           )}
         </div>
       </div>
+
+      {/* Achievement history timeline */}
+      <AchievementHistory staffId={staffId} />
 
       {/* Staff progress modal — for viewing other crew members */}
       {selectedMember && (
