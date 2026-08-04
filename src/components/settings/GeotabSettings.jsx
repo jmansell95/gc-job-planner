@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   MapPin, Loader2, Save, Check, AlertTriangle, RefreshCw, Link2, Link2Off,
-  Settings2, Webhook, Copy, Shield, Satellite,
+  Settings2, Satellite,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
@@ -15,18 +15,12 @@ const DEFAULT_CONFIG = {
   username: '',
   password: '',
   database: '',
-  webhook_secret: '',
   auto_sync_enabled: false,
-  sync_frequency: 'hourly',
+  sync_frequency: '5min',
   last_sync_at: null,
   last_sync_status: null,
   last_sync_summary: '',
-  last_webhook_at: null,
-  last_webhook_status: null,
-  last_webhook_summary: '',
 };
-
-const WEBHOOK_RELATIVE = '/functions/geotabWebhook';
 
 export default function GeotabSettings() {
   const { toast } = useToast();
@@ -38,9 +32,6 @@ export default function GeotabSettings() {
   const [testResult, setTestResult] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
-  const [copied, setCopied] = useState(false);
-
-  const genSecret = () => Array.from({ length: 32 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
 
   const { data: settingsRec } = useQuery({
     queryKey: ['geotab-config'],
@@ -52,7 +43,6 @@ export default function GeotabSettings() {
   }, [settingsRec]);
 
   const configId = settingsRec?.[0]?.id;
-  const webhookUrl = typeof window !== 'undefined' ? `${window.location.origin}${WEBHOOK_RELATIVE}` : '';
   const connected = !!(config.username && config.password && config.database);
 
   const handleSave = async () => {
@@ -103,13 +93,6 @@ export default function GeotabSettings() {
       setSyncResult({ ok: false, msg: e.message || 'Sync failed' });
     }
     setSyncing(false);
-  };
-
-  const handleCopyWebhook = () => {
-    if (!webhookUrl) return;
-    navigator.clipboard.writeText(webhookUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -183,9 +166,11 @@ export default function GeotabSettings() {
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Sync Frequency</label>
             <select value={config.sync_frequency} onChange={e => setConfig({ ...config, sync_frequency: e.target.value })} className={inputCls}>
+              <option value="5min">Every 5 minutes</option>
+              <option value="15min">Every 15 minutes</option>
+              <option value="30min">Every 30 minutes</option>
               <option value="hourly">Hourly</option>
               <option value="daily">Daily (every night)</option>
-              <option value="weekly">Weekly (every Monday)</option>
             </select>
           </div>
         )}
@@ -195,40 +180,6 @@ export default function GeotabSettings() {
           </button>
           {saved && <span className="text-sm text-[#2E5A1A] font-medium flex items-center gap-1"><Check className="w-4 h-4" /> Saved</span>}
         </div>
-      </div>
-
-      {/* Webhook receiver */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
-        <div className="flex items-center gap-2">
-          <Webhook className="w-4 h-4 text-[#2E5A1A]" />
-          <h3 className="text-sm font-bold text-slate-800">Webhook Receiver</h3>
-        </div>
-        <p className="text-xs text-slate-500">Add this URL to your Geotab integration or middleware bridge to receive real-time vehicle location pushes. The webhook accepts individual or batch location events and matches them to your Vehicle records by registration number.</p>
-        <div className="flex items-center gap-2">
-          <input type="text" readOnly value={webhookUrl} className={`${inputCls} bg-slate-50 font-mono text-xs`} />
-          <button onClick={handleCopyWebhook} className="flex items-center gap-1.5 px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition flex-shrink-0">
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Copied' : 'Copy'}
-          </button>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Webhook Secret</label>
-          <div className="flex gap-2">
-            <input type="text" value={config.webhook_secret} onChange={e => setConfig({ ...config, webhook_secret: e.target.value })}
-              placeholder="Shared secret for authenticating Geotab webhooks" className={`${inputCls} font-mono`} />
-            <button onClick={() => setConfig({ ...config, webhook_secret: genSecret() })}
-              className="flex items-center gap-1 px-3 bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-200 transition flex-shrink-0">
-              <Shield className="w-3.5 h-3.5" /> Generate
-            </button>
-          </div>
-          <p className="text-[11px] text-slate-400 mt-1">Append as <code className="bg-slate-100 px-1 rounded">?webhook_secret=...</code> to the webhook URL, or send in the <code className="bg-slate-100 px-1 rounded">x-webhook-secret</code> header.</p>
-        </div>
-        {(config.last_webhook_at || config.last_webhook_status) && (
-          <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-            <p className="text-xs font-semibold text-slate-600 mb-1">Last webhook event</p>
-            <p className="text-xs text-slate-500">{config.last_webhook_summary || 'No summary'}</p>
-            {config.last_webhook_at && <p className="text-[11px] text-slate-400 mt-1">{new Date(config.last_webhook_at).toLocaleString('en-GB')}</p>}
-          </div>
-        )}
       </div>
 
       {/* Manual sync */}
