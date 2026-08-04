@@ -43,7 +43,64 @@
     },
     "vin": {
       "type": "string",
-      "description": "Vehicle Identification Number (chassis number). Used to match vehicles when syncing from Holman."
+      "description": "Vehicle Identification Number (chassis number). Used to match vehicles when syncing from Holman or Geotab."
+    },
+    "make": {
+      "type": "string",
+      "description": "Vehicle manufacturer (e.g. Ford, Mercedes, Iveco). Pulled from Geotab VehicleType during sync."
+    },
+    "model": {
+      "type": "string",
+      "description": "Vehicle model (e.g. Transit, Sprinter, Daily). Pulled from Geotab VehicleType during sync."
+    },
+    "year": {
+      "type": "number",
+      "description": "Vehicle model year. Pulled from Geotab VehicleType during sync."
+    },
+    "fuel_type": {
+      "type": "string",
+      "enum": [
+        "diesel",
+        "petrol",
+        "hybrid",
+        "electric",
+        "lpg",
+        "cng",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Fuel type. Pulled from Geotab VehicleType during sync."
+    },
+    "vehicle_type": {
+      "type": "string",
+      "description": "Vehicle category (e.g. Van, Truck, Car, Plant). Pulled from Geotab VehicleType name during sync."
+    },
+    "color": {
+      "type": "string",
+      "description": "Vehicle colour for quick visual identification in the yard."
+    },
+    "geotab_device_id": {
+      "type": "string",
+      "description": "Geotab's internal device ID for this vehicle. Set automatically when a vehicle is matched or created during Geotab sync."
+    },
+    "geotab_device_serial": {
+      "type": "string",
+      "description": "Geotab GO device serial number (the tracker hardware serial, not the VIN)."
+    },
+    "geotab_sync_status": {
+      "type": "string",
+      "enum": [
+        "synced",
+        "pending",
+        "failed",
+        "never"
+      ],
+      "default": "never",
+      "description": "Last Geotab sync outcome. 'synced' = latest data pulled, 'pending' = queued, 'failed' = last sync errored, 'never' = not yet synced."
+    },
+    "last_geotab_sync": {
+      "type": "string",
+      "description": "ISO timestamp of the last successful Geotab sync for this vehicle."
     },
     "holman_vehicle_id": {
       "type": "string",
@@ -51,7 +108,7 @@
     },
     "current_mileage": {
       "type": "number",
-      "description": "Latest odometer reading in miles, pulled from Holman fleet data."
+      "description": "Latest odometer reading in miles, pulled from Holman fleet data or Geotab odometer readings."
     },
     "holman_sync_status": {
       "type": "string",

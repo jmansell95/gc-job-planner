@@ -86,6 +86,8 @@ export default function GeotabSettings() {
         synced: d.synced || 0,
         unmatched: d.unmatched || 0,
         total: d.total_statuses || 0,
+        created: d.vehicles_created || 0,
+        updated: d.vehicles_updated || 0,
       });
       queryClient.invalidateQueries({ queryKey: ['geotab-config'] });
       queryClient.invalidateQueries({ queryKey: ['vehicle-location-logs'] });
@@ -100,7 +102,7 @@ export default function GeotabSettings() {
       <SettingsSectionHeader
         icon={Satellite}
         title="Geotab GPS Sync"
-        description="Connect Geotab fleet GPS tracking to see where your vehicles and staff are in real time. Pulls live locations by registration number and powers the live map on the Vehicles page. Configure API credentials and set up the webhook receiver for pushed location events."
+        description="Connect Geotab to auto-import your entire fleet — vehicle details (make, model, VIN, year, fuel type) and live GPS locations are pulled automatically. New vehicles in Geotab are created here on sync; existing ones are enriched with full spec data. Powers the live map and fleet cards on the Vehicles page."
       />
 
       {/* Connection status */}
@@ -200,9 +202,9 @@ export default function GeotabSettings() {
             <p className="flex items-start gap-2"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> {syncResult.msg}</p>
             {syncResult.ok && syncResult.total > 0 && (
               <div className="grid grid-cols-3 gap-2 mt-2 text-center">
-                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Total</p><p className="font-bold text-slate-700 tabular-nums">{syncResult.total}</p></div>
-                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Synced</p><p className="font-bold text-emerald-700 tabular-nums">{syncResult.synced}</p></div>
-                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Unmatched</p><p className="font-bold text-amber-700 tabular-nums">{syncResult.unmatched}</p></div>
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Locations</p><p className="font-bold text-emerald-700 tabular-nums">{syncResult.synced}</p></div>
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Created</p><p className="font-bold text-cyan-700 tabular-nums">{syncResult.created}</p></div>
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Updated</p><p className="font-bold text-blue-700 tabular-nums">{syncResult.updated}</p></div>
               </div>
             )}
           </div>
