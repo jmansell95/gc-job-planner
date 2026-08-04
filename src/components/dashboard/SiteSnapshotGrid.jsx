@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
-  MapPin, Users, Cog, ShieldCheck, ShieldAlert, ShieldX,
-  Calendar, ChevronRight, AlertTriangle, Activity, Radio, Loader2, ClipboardList, CalendarClock
+  MapPin, Cog, ShieldCheck, ShieldAlert, ShieldX,
+  ChevronRight, AlertTriangle, Activity, Radio, ClipboardList, CalendarClock, ChevronDown, Link2, Wrench, Package, Anchor
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
@@ -25,14 +25,78 @@ const statusBadge = {
   on_hold: { cls: 'bg-amber-100 text-amber-700 ring-amber-200', label: 'On Hold', dot: 'bg-amber-500' },
 };
 
+const gearTypeIcon = {
+  machinery: Wrench, trailer: Package, lifting: Anchor, vehicle: Package, portable_appliance: Package, rig: Cog,
+};
+
+function RigCard({ rigAsset, assetMap, costItems, jobId }) {
+  const [expanded, setExpanded] = useState(false);
+  const comp = complianceConfig[rigAsset.compliance_status] || complianceConfig.unknown;
+  const CompIcon = comp.icon;
+  const linkedIds = rigAsset.linked_equipment_ids || [];
+
+  // Find linked gear that is also on this job
+  const linkedOnJob = linkedIds
+    .map(id => {
+      const asset = assetMap[id];
+      if (!asset) return null;
+      const costItem = costItems.find(c => c.job_id === jobId && c.site_asset_id === id && (c.hire_status || 'active') === 'active');
+      return asset && costItem ? { asset, costItem } : null;
+    })
+    .filter(Boolean);
+
+  return (
+    <div className="bg-slate-50 rounded-lg overflow-hidden">
+      <div className="flex items-center gap-2 px-2.5 py-1.5">
+        <Cog className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" />
+        <span className="text-xs font-medium text-slate-700 truncate flex-1">{rigAsset.name}</span>
+        {rigAsset.serial_number && (
+          <span className="text-[9px] font-mono text-slate-400 flex-shrink-0">#{rigAsset.serial_number}</span>
+        )}
+        <span className={`inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full font-semibold ring-1 ${comp.cls} flex-shrink-0`}>
+          <CompIcon className="w-2.5 h-2.5" />{comp.label}
+        </span>
+        {linkedOnJob.length > 0 && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-blue-600 hover:text-blue-800 px-1 py-0.5 rounded-md hover:bg-blue-100 transition flex-shrink-0"
+          >
+            <Link2 className="w-2.5 h-2.5" />
+            {linkedOnJob.length}
+            <ChevronDown className={`w-2.5 h-2.5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          </button>
+        )}
+      </div>
+      {expanded && linkedOnJob.length > 0 && (
+        <div className="px-2.5 pb-2 pt-1 space-y-1 border-t border-slate-200/60">
+          {linkedOnJob.map(({ asset, costItem }) => {
+            const GearIcon = gearTypeIcon[asset.asset_type] || Package;
+            return (
+              <div key={asset.id} className="flex items-center gap-1.5 text-[11px] text-slate-600">
+                <GearIcon className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                <span className="font-medium truncate flex-1">{asset.name}</span>
+                {asset.serial_number && <span className="text-[9px] font-mono text-slate-400">#{asset.serial_number}</span>}
+                <span className="text-[9px] text-slate-400 capitalize">{asset.asset_type}</span>
+                {(costItem.current_location || 'yard') === 'site' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
   const { selectedJobId } = useJobFilter();
   const isAll = selectedJobId === 'all';
 
   const { data: jobs = [], isLoading } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
-  const { data: assignments = [] } = useQuery({
-    queryKey: ['job-asset-assignments-active'],
-    queryFn: () => base44.entities.JobAssetAssignment.list('-assigned_date', 300),
+  // Source of truth: JobCostItem + SiteAsset (same as JobAssetsWidget).
+  // JobAssetAssignment is an unreliable denormalised snapshot.
+  const { data: costItems = [] } = useQuery({
+    queryKey: ['job-cost-items-snapshot'],
+    queryFn: () => base44.entities.JobCostItem.list('-updated_date', 500),
   });
   const { data: assets = [] } = useQuery({ queryKey: ['site-assets'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
@@ -48,6 +112,9 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
     queryKey: ['inv-logs-snapshot'],
     queryFn: () => base44.entities.InvestigationLog.list('-created_date', 100),
   });
+
+  const assetMap = {};
+  (assets || []).forEach(a => { assetMap[a.id] = a; });
 
   // Only show active sites (in_progress, decommissioning) unless a specific job is focused
   const scopedJobs = isAll
@@ -66,27 +133,45 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
     rotasByJob[r.job_id].push(r);
   });
 
+  // Build assets-by-job from JobCostItem linked to SiteAsset (active only)
+  const activeAssetItems = (costItems || []).filter(c =>
+    c.site_asset_id &&
+    c.site_asset_id.trim() !== '' &&
+    (c.hire_status || 'active') === 'active' &&
+    c.category !== 'labour' &&
+    c.category !== 'contractor_supplied' &&
+    c.category !== 'client_supplied'
+  );
+
   const assetsByJob = {};
-  assignments.forEach(a => {
-    if (!assetsByJob[a.job_id]) assetsByJob[a.job_id] = [];
-    assetsByJob[a.job_id].push(a);
+  activeAssetItems.forEach(c => {
+    const asset = assetMap[c.site_asset_id];
+    if (!asset) return;
+    if (!assetsByJob[c.job_id]) assetsByJob[c.job_id] = [];
+    assetsByJob[c.job_id].push({
+      id: c.id,
+      asset_id: asset.id,
+      asset_name: asset.name || c.description,
+      asset_type: asset.asset_type || 'machinery',
+      serial_number: asset.serial_number || '',
+      linked_equipment_ids: asset.linked_equipment_ids || [],
+      compliance_status: asset.compliance_status || 'unknown',
+      on_site: (c.current_location || 'yard') === 'site',
+    });
   });
 
   // Risk assessment per site
   const assessRisk = (job, jobRigs, jobRotas) => {
     const risks = [];
-    // Compliance risk — any rig expired/expiring
-    const expiredRig = jobRigs.find(r => r.asset?.compliance_status === 'expired');
-    const expiringRig = jobRigs.find(r => r.asset?.compliance_status === 'expiring');
+    const expiredRig = jobRigs.find(r => r.compliance_status === 'expired');
+    const expiringRig = jobRigs.find(r => r.compliance_status === 'expiring');
     if (expiredRig) risks.push({ level: 'critical', reason: 'Rig compliance expired' });
     else if (expiringRig) risks.push({ level: 'warning', reason: 'Rig compliance expiring' });
 
-    // Deployment anomaly — active job with no crew arrived today
     if (job.status === 'in_progress' && (!jobRotas || jobRotas.length === 0)) {
       risks.push({ level: 'warning', reason: 'No crew on site today' });
     }
 
-    // No rig assigned to a drilling job
     const primaryType = getJobPrimaryType(job, teams);
     const isDrilling = primaryType === 'cp_drilling' || primaryType === 'rotary_drilling';
     if (isDrilling && jobRigs.filter(r => r.asset_type === 'rig').length === 0) {
@@ -145,7 +230,9 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {scopedJobs.map(job => {
-          const jobRigs = (assetsByJob[job.id] || []).map(a => ({ ...a, asset: assets.find(as => as.id === a.asset_id) }));
+          const jobAssets = assetsByJob[job.id] || [];
+          const jobRigs = jobAssets.filter(a => a.asset_type === 'rig');
+          const jobGear = jobAssets.filter(a => a.asset_type !== 'rig');
           const jobRotas = rotasByJob[job.id] || [];
           const crewToday = jobRotas.map(r => staff.find(s => s.id === r.staff_id)).filter(Boolean);
           const primaryType = getJobPrimaryType(job, teams);
@@ -153,10 +240,8 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
           const st = statusBadge[job.status] || statusBadge.in_progress;
           const risks = assessRisk(job, jobRigs, jobRotas);
           const hasCritical = risks.some(r => r.level === 'critical');
-          const hasWarning = risks.some(r => r.level === 'warning');
           const activityCount = logsByJob[job.id] || 0;
 
-          // Progress (drilling jobs use meterage target)
           const meterageProgress = job.meterage_target > 0 && job.meterage != null
             ? Math.min(100, (Number(job.meterage) / job.meterage_target) * 100)
             : null;
@@ -171,7 +256,6 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectJob(job); } }}
               className={`insight-card relative rounded-2xl p-5 text-left group overflow-hidden cursor-pointer ${hasCritical ? 'ring-2 ring-rose-300' : ''}`}
             >
-              {/* Accent stripe */}
               <div className={`absolute left-0 top-0 bottom-0 w-1 ${colors.bar}`} />
 
               {/* Header row */}
@@ -192,27 +276,35 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                 <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-[#2E5A1A] group-hover:translate-x-0.5 transition flex-shrink-0" />
               </div>
 
-              {/* Rig + compliance */}
-              {jobRigs.filter(r => r.asset_type === 'rig').length > 0 ? (
-                <div className="space-y-1.5 mb-3 pl-1.5">
-                  {jobRigs.filter(r => r.asset_type === 'rig').slice(0, 2).map(r => {
-                    const comp = r.asset ? complianceConfig[r.asset.compliance_status] || complianceConfig.unknown : complianceConfig.unknown;
-                    const CompIcon = comp.icon;
-                    return (
-                      <div key={r.id} className="flex items-center gap-2 bg-slate-50 rounded-lg px-2.5 py-1.5">
-                        <Cog className="w-3.5 h-3.5 text-slate-600 flex-shrink-0" />
-                        <span className="text-xs font-medium text-slate-700 truncate flex-1">{r.asset_name}</span>
-                        <span className={`inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full font-semibold ring-1 ${comp.cls}`}>
-                          <CompIcon className="w-2.5 h-2.5" />{comp.label}
-                        </span>
-                      </div>
-                    );
-                  })}
+              {/* Rigs with serial + linked gear dropdown */}
+              {jobRigs.length > 0 ? (
+                <div className="space-y-1.5 mb-3 pl-1.5" onClick={(e) => e.stopPropagation()}>
+                  {jobRigs.map(r => (
+                    <RigCard key={r.id} rigAsset={r} assetMap={assetMap} costItems={activeAssetItems} jobId={job.id} />
+                  ))}
                 </div>
               ) : (
                 <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-2.5 py-1.5 mb-3 pl-2.5">
                   <Cog className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
                   <span className="text-xs text-slate-400">No rig assigned</span>
+                </div>
+              )}
+
+              {/* Other gear count (quick visual) */}
+              {jobGear.length > 0 && (
+                <div className="flex items-center gap-1.5 mb-3 pl-1.5 flex-wrap">
+                  <span className="text-[10px] text-slate-400 font-medium">Gear:</span>
+                  {jobGear.slice(0, 4).map(g => {
+                    const GearIcon = gearTypeIcon[g.asset_type] || Package;
+                    return (
+                      <span key={g.id} className="inline-flex items-center gap-1 text-[10px] text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-200">
+                        <GearIcon className="w-2.5 h-2.5 text-slate-400" />
+                        {g.asset_name}
+                        {g.serial_number && <span className="font-mono text-slate-400">#{g.serial_number}</span>}
+                      </span>
+                    );
+                  })}
+                  {jobGear.length > 4 && <span className="text-[10px] text-slate-400">+{jobGear.length - 4} more</span>}
                 </div>
               )}
 
@@ -270,7 +362,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                 </div>
               )}
 
-              {/* Quick actions — jump straight to rota or logs without opening detail */}
+              {/* Quick actions */}
               {onNavigate && (
                 <div className="mt-3 pl-1.5 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
                   <button type="button" onClick={() => onNavigate('scheduling')}
