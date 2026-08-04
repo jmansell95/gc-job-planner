@@ -1076,7 +1076,7 @@ export default async function(req) {
         nonJobCounts[a.non_job_type]++;
         nonJobDays.push({ staff_id: staff.id, staff_name: staff.name, date: a.date, type: a.non_job_type, label: a.non_job_label });
       } else if (a.job_name) {
-        const job = jobMap.get(nameKey(a.job_name));
+        const job = jobMap.get(extractJobBaseKey(a.job_name));
         if (!job) continue;
         const key = `${staff.id}|${a.date}|${job.id}`;
         if (desiredKeys.has(key)) { duplicateRotaRows++; continue; }
@@ -1306,12 +1306,12 @@ export default async function(req) {
     });
 
     // Per-job breakdown: name, ref, location, status, dates, staff count
-    const jobsBreakdown = [...uniqueJobKeys].map(key => {
+    const jobsBreakdown = [...uniqueJobBaseKeys].map(key => {
       const job = jobMap.get(key);
-      const rawName = jobNameByKey[key];
+      const rawName = jobNameByBaseKey[key];
       const parsed = parseJobName(rawName);
-      const dates = (jobDatesByKey[key] || []).sort();
-      const jAssignments = allAssignments.filter(a => a.job_name && nameKey(a.job_name) === key);
+      const dates = (jobDatesByBaseKey[key] || []).sort();
+      const jAssignments = allAssignments.filter(a => a.job_name && extractJobBaseKey(a.job_name) === key);
       const staffList = [...new Set(jAssignments.map(a => a.staff_name))];
       const sections = [...new Set(jAssignments.map(a => a.crew_section).filter(Boolean))];
       return {
@@ -1328,6 +1328,60 @@ export default async function(req) {
         status_new: newJobKeys.includes(key) ? 'new' : 'existing',
       };
     });
+
+    // -----------------------------------------------------------------------
+    // 8b. Build crew JobCostItem payloads (labour + contractor_supplied)
+    // -----------------------------------------------------------------------
+    // One per (master job, staff/subcontractor). Computed here so the count
+    // appears in the dry-run preview; actual bulkCreate happens in the apply step.
+    const crewCostItemsByJobStaff = new Map();
+    for (const a of teamAssignments) {
+      if (!a.job_name || !a.date) continue;
+      const baseKey = extractJobBaseKey(a.job_name);
+      const job = jobMap.get(baseKey);
+      if (!job) continue;
+      const staffKey = nameKey(a.staff_name);
+      const ciKey = `${baseKey}|${staffKey}`;
+      if (!crewCostItemsByJobStaff.has(ciKey)) {
+        crewCostItemsByJobStaff.set(ciKey, {
+          job_id: job.id, job_base_key: baseKey, staff_key: staffKey,
+          staff_name: a.staff_name,
+          is_subcontractor: a.is_subcontractor_section || isSubcontractor(a.staff_name),
+          dates: [],
+        });
+      }
+      crewCostItemsByJobStaff.get(ciKey).dates.push(a.date);
+    }
+    const crewCostItemPayloads = [];
+    for (const ci of crewCostItemsByJobStaff.values()) {
+      const dates = ci.dates.sort();
+      const startDate = dates[0];
+      const endDate = dates[dates.length - 1];
+      const quantity = dates.length;
+      const job = jobMap.get(ci.job_base_key);
+      if (!job) continue;
+      if (ci.is_subcontractor) {
+        const contractor = contractorMaps.byNameKey.get(ci.staff_key);
+        crewCostItemPayloads.push({
+          job_id: job.id, category: 'contractor_supplied',
+          contractor_id: contractor?.id || '',
+          description: ci.staff_name,
+          start_date: startDate, end_date: endDate,
+          unit_cost: 0, quantity, unit_label: 'day',
+          notes: 'Auto-created from planner import',
+        });
+      } else {
+        const staff = staffMap.get(ci.staff_key);
+        crewCostItemPayloads.push({
+          job_id: job.id, category: 'labour',
+          staff_id: staff?.id || '',
+          description: staff?.job_title || staff?.name || ci.staff_name,
+          start_date: startDate, end_date: endDate,
+          unit_cost: 0, quantity, unit_label: 'day',
+          notes: 'Auto-created from planner import',
+        });
+      }
+    }
 
     const summary = {
       total_assignments_parsed: allAssignments.length,
@@ -1354,7 +1408,7 @@ export default async function(req) {
         leavers_marked_inactive: dryRun ? 0 : leaversMarked,
       },
       jobs: {
-        total: uniqueJobKeys.size,
+        total: uniqueJobBaseKeys.size,
         found: jobFoundCount,
         new: newJobPayloads.length,
         updates: jobUpdates.length,
@@ -1394,6 +1448,11 @@ export default async function(req) {
         unmatched_asset_names: [...unmatchedAssetNames].slice(0, 50),
         fuzzy_matches: fuzzyAssetMatches.slice(0, 50),
         drilling_methods_enriched: jobDrillingMethodUpdates.length,
+      },
+      crew_cost_items: {
+        total: crewCostItemPayloads.length,
+        labour: crewCostItemPayloads.filter(ci => ci.category === 'labour').length,
+        contractor_supplied: crewCostItemPayloads.filter(ci => ci.category === 'contractor_supplied').length,
       },
       agencies: {
         total: Object.keys(agencyBreakdown).length,
@@ -1470,7 +1529,7 @@ export default async function(req) {
     // records with category 'internal_equipment' and site_asset_id set.
     let rigAssignmentCount = 0;
     for (const ra of dedupedRigAssignments) {
-      const raJob = jobMap.get(nameKey(ra.job_name));
+      const raJob = jobMap.get(extractJobBaseKey(ra.job_name));
       const jobStart = ra.assigned_date || raJob?.start_date || '';
       const jobEnd = raJob?.end_date || '';
       // Calculate the rig quantity from the on-site date range so day-rate
@@ -1504,6 +1563,19 @@ export default async function(req) {
       rigAssignmentCount++;
     }
 
+    // Create crew JobCostItem records (labour + contractor_supplied) —
+    // payloads were built in step 8b so the count appears in the dry-run preview.
+    let crewCostItemsCreated = 0;
+    if (crewCostItemPayloads.length > 0 && !dryRun) {
+      for (let i = 0; i < crewCostItemPayloads.length; i += 400) {
+        const batch = crewCostItemPayloads.slice(i, i + 400);
+        await base44.asServiceRole.entities.JobCostItem.bulkCreate(batch);
+        crewCostItemsCreated += batch.length;
+      }
+    } else {
+      crewCostItemsCreated = crewCostItemPayloads.length;
+    }
+
     return Response.json({
       status: 'success',
       dry_run: false,
@@ -1511,6 +1583,7 @@ export default async function(req) {
         ...summary,
         rotas: { created: createdCount, duplicates_collapsed: duplicateRotaRows },
         rig_assignments: { created: rigAssignmentCount, total: dedupedRigAssignments.length },
+        crew_cost_items: { created: crewCostItemsCreated, total: crewCostItemPayloads.length },
         staff: { ...summary.staff, leavers_marked_inactive: leaversMarked },
         training: { ...summary.training, bookings_created: createdTrainingBookings },
         absences: { ...summary.absences, created: createdAbsences },
