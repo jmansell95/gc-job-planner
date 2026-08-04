@@ -508,12 +508,14 @@ export default async function(req) {
     // non-matching potential-asset → dropped (not a person), everything else
     // stays in teamAssignments for staff/rota resolution.
     // -----------------------------------------------------------------------
-    const allAssets = await base44.asServiceRole.entities.SiteAsset.list('-created_date', 5000);
+    // Parallel fetch — avoids sequential API round-trips that trigger rate limits
+    const [allAssets, allRateCardItems] = await Promise.all([
+      base44.asServiceRole.entities.SiteAsset.list('-created_date', 5000),
+      base44.asServiceRole.entities.RateCardItem.list('-created_date', 5000),
+    ]);
     const assetMaps = buildAssetMaps(allAssets);
     const assetById = new Map();
     for (const a of allAssets) assetById.set(a.id, a);
-    // Load RateCardItem records for rig day-rate matching when auto-linking rigs
-    const allRateCardItems = await base44.asServiceRole.entities.RateCardItem.list('-created_date', 5000);
 
     const movedToPlant = [];
     const droppedPotentialAssets = new Set();
@@ -543,15 +545,19 @@ export default async function(req) {
     // 2. PURGE — full wipe: delete ALL staff, teams, jobs, crews, rotas
     // -----------------------------------------------------------------------
     let purgeSummary = { rotas_deleted: 0, staff_deleted: 0, teams_deleted: 0, jobs_deleted: 0, crews_deleted: 0, asset_assignments_deleted: 0, training_bookings_deleted: 0, absences_deleted: 0 };
-    const allRotas = await base44.asServiceRole.entities.RotaAssignment.list('-created_date', 5000);
-    const allStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 5000);
-    const allTeams = await base44.asServiceRole.entities.Team.list('-created_date', 5000);
-    const allJobs = await base44.asServiceRole.entities.Job.list('-created_date', 5000);
-    const allCrews = await base44.asServiceRole.entities.DrillingCrew.list('-created_date', 5000);
-    const allAssetAssignments = await base44.asServiceRole.entities.JobAssetAssignment.list('-created_date', 5000);
-    const allCostItems = await base44.asServiceRole.entities.JobCostItem.list('-created_date', 5000);
-    const allTrainingBookings = await base44.asServiceRole.entities.TrainingBooking.list('-created_date', 5000);
-    const allAbsences = await base44.asServiceRole.entities.Absence.list('-created_date', 5000);
+    // Parallel fetch all entity lists — 9 round-trips collapsed into 1 batch
+    // to avoid hitting the platform API rate limit on large datasets.
+    const [allRotas, allStaff, allTeams, allJobs, allCrews, allAssetAssignments, allCostItems, allTrainingBookings, allAbsences] = await Promise.all([
+      base44.asServiceRole.entities.RotaAssignment.list('-created_date', 5000),
+      base44.asServiceRole.entities.Staff.list('-created_date', 5000),
+      base44.asServiceRole.entities.Team.list('-created_date', 5000),
+      base44.asServiceRole.entities.Job.list('-created_date', 5000),
+      base44.asServiceRole.entities.DrillingCrew.list('-created_date', 5000),
+      base44.asServiceRole.entities.JobAssetAssignment.list('-created_date', 5000),
+      base44.asServiceRole.entities.JobCostItem.list('-created_date', 5000),
+      base44.asServiceRole.entities.TrainingBooking.list('-created_date', 5000),
+      base44.asServiceRole.entities.Absence.list('-created_date', 5000),
+    ]);
     purgeSummary.rotas_deleted = allRotas.length;
     purgeSummary.staff_deleted = allStaff.length;
     purgeSummary.teams_deleted = allTeams.length;
@@ -562,15 +568,18 @@ export default async function(req) {
     purgeSummary.training_bookings_deleted = allTrainingBookings.length;
     purgeSummary.absences_deleted = allAbsences.length;
     if (!dryRun) {
-      if (allRotas.length > 0) await base44.asServiceRole.entities.RotaAssignment.deleteMany({});
-      if (allStaff.length > 0) await base44.asServiceRole.entities.Staff.deleteMany({});
-      if (allTeams.length > 0) await base44.asServiceRole.entities.Team.deleteMany({});
-      if (allJobs.length > 0) await base44.asServiceRole.entities.Job.deleteMany({});
-      if (allCrews.length > 0) await base44.asServiceRole.entities.DrillingCrew.deleteMany({});
-      if (allAssetAssignments.length > 0) await base44.asServiceRole.entities.JobAssetAssignment.deleteMany({});
-      if (allCostItems.length > 0) await base44.asServiceRole.entities.JobCostItem.deleteMany({});
-      if (allTrainingBookings.length > 0) await base44.asServiceRole.entities.TrainingBooking.deleteMany({});
-      if (allAbsences.length > 0) await base44.asServiceRole.entities.Absence.deleteMany({});
+      // Parallel delete — 9 round-trips collapsed into 1 batch
+      const deleteOps = [];
+      if (allRotas.length > 0) deleteOps.push(base44.asServiceRole.entities.RotaAssignment.deleteMany({}));
+      if (allStaff.length > 0) deleteOps.push(base44.asServiceRole.entities.Staff.deleteMany({}));
+      if (allTeams.length > 0) deleteOps.push(base44.asServiceRole.entities.Team.deleteMany({}));
+      if (allJobs.length > 0) deleteOps.push(base44.asServiceRole.entities.Job.deleteMany({}));
+      if (allCrews.length > 0) deleteOps.push(base44.asServiceRole.entities.DrillingCrew.deleteMany({}));
+      if (allAssetAssignments.length > 0) deleteOps.push(base44.asServiceRole.entities.JobAssetAssignment.deleteMany({}));
+      if (allCostItems.length > 0) deleteOps.push(base44.asServiceRole.entities.JobCostItem.deleteMany({}));
+      if (allTrainingBookings.length > 0) deleteOps.push(base44.asServiceRole.entities.TrainingBooking.deleteMany({}));
+      if (allAbsences.length > 0) deleteOps.push(base44.asServiceRole.entities.Absence.deleteMany({}));
+      if (deleteOps.length > 0) await Promise.all(deleteOps);
       warnings.push(`Full wipe: deleted ${purgeSummary.rotas_deleted} rotas, ${purgeSummary.staff_deleted} staff, ${purgeSummary.teams_deleted} teams, ${purgeSummary.jobs_deleted} jobs, ${purgeSummary.crews_deleted} crews, ${purgeSummary.asset_assignments_deleted} asset assignments, ${purgeSummary.cost_items_deleted} cost items, ${purgeSummary.training_bookings_deleted} training bookings, ${purgeSummary.absences_deleted} absences.`);
     }
 
