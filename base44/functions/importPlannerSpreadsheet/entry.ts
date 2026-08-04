@@ -175,14 +175,35 @@ function getMostCommon(arr) {
   return maxItem;
 }
 
+// Force-complete markers — planners can add [DONE], [CLOSED], [COMPLETE] or
+// [COMPLETED] to a job name in the spreadsheet to force it to completed status
+// regardless of its dates. This gives planners explicit control over job lifecycle.
+const FORCE_COMPLETE_MARKERS = ['[done]', '[closed]', '[complete]', '[completed]'];
+
+function hasForceCompleteMarker(jobName) {
+  if (!jobName) return false;
+  const lower = normalizeName(jobName).toLowerCase();
+  return FORCE_COMPLETE_MARKERS.some(m => lower.includes(m));
+}
+
 // Determine job status from its assignment dates:
-//   all past  → completed
-//   any today/future → in_progress
-//   no dates → planning
-function determineJobStatus(dates) {
+//   force-complete marker  → completed (explicit planner override)
+//   no dates               → planning
+//   no activity in 30 days → completed (stale — not worked recently)
+//   any today/future        → in_progress (actively being worked)
+// The 30-day inactivity rule prevents old jobs with only historical dates from
+// being held open indefinitely just because they still appear in the planner.
+function determineJobStatus(dates, jobName) {
+  if (hasForceCompleteMarker(jobName)) return 'completed';
   if (!dates || dates.length === 0) return 'planning';
-  const allPast = dates.every(d => d < TODAY);
-  if (allPast) return 'completed';
+  const sorted = [...dates].sort();
+  const lastDate = sorted[sorted.length - 1];
+  // Stale threshold: 30 days ago. If the last assignment was before this, the
+  // job hasn't been worked on in over a month → mark as completed.
+  const staleThreshold = new Date(TODAY + 'T00:00:00Z');
+  staleThreshold.setUTCDate(staleThreshold.getUTCDate() - 30);
+  const staleThresholdStr = staleThreshold.toISOString().slice(0, 10);
+  if (lastDate < staleThresholdStr) return 'completed';
   return 'in_progress';
 }
 
@@ -859,7 +880,7 @@ export default async function(req) {
       const rawName = jobNameByBaseKey[baseKey];
       const parsed = parseJobName(rawName);
       const jobDates = (jobDatesByBaseKey[baseKey] || []).sort();
-      const jobStatus = determineJobStatus(jobDates);
+      const jobStatus = determineJobStatus(jobDates, rawName);
 
       let job = null;
       if (parsed.job_reference) job = jobByReference.get(parsed.job_reference.toLowerCase());
@@ -1074,10 +1095,16 @@ export default async function(req) {
       const key = `${ra.job_id}|${ra.asset_id}|${ra.assigned_date || ''}`;
       if (!rigAssignmentMap.has(key)) rigAssignmentMap.set(key, ra);
     }
-    // Further deduplicate by (job_id, asset_id) keeping the earliest date
+    // Further deduplicate by (job_id, asset_id) keeping the earliest date.
+    // Also collect ALL unique on-site dates per (job_id, asset_id) so the rig
+    // quantity (day-rate billing) reflects actual days on site — not the full
+    // job span which would over-count for active jobs with old history.
     const rigByJobAsset = new Map();
+    const rigDatesByJobAsset = new Map();
     for (const ra of rigAssignmentMap.values()) {
       const key = `${ra.job_id}|${ra.asset_id}`;
+      if (!rigDatesByJobAsset.has(key)) rigDatesByJobAsset.set(key, new Set());
+      if (ra.assigned_date) rigDatesByJobAsset.get(key).add(ra.assigned_date);
       if (!rigByJobAsset.has(key) || (ra.assigned_date && (!rigByJobAsset.get(key).assigned_date || ra.assigned_date < rigByJobAsset.get(key).assigned_date))) {
         rigByJobAsset.set(key, ra);
       }
@@ -1365,7 +1392,7 @@ export default async function(req) {
         name: parsed.name,
         reference: parsed.job_reference || '',
         location: parsed.location || '',
-        status: determineJobStatus(dates),
+        status: determineJobStatus(dates, rawName),
         start_date: dates.length ? dates[0] : '',
         end_date: dates.length ? dates[dates.length - 1] : '',
         assignment_count: dates.length,
@@ -1543,7 +1570,8 @@ export default async function(req) {
           job_name: ra.job_name, asset_name: ra.asset_name, asset_type: ra.asset_type,
           role: ra.role, rig_type: ra.rig_type, assigned_date: ra.assigned_date,
           is_rig: ra.is_rig, unit_cost: ra.unit_cost || 0, unit_label: ra.unit_label || 'day',
-          rate_card_item_id: ra.rate_card_item_id || ''
+          rate_card_item_id: ra.rate_card_item_id || '',
+          on_site_days: (rigDatesByJobAsset.get(`${ra.job_id}|${ra.asset_id}`) || new Set()).size
         })),
         training_breakdown: Object.entries(trainingGroups).map(([key, group]) => {
           const course = trainingCourseMap.get(key);
@@ -1583,13 +1611,15 @@ export default async function(req) {
       const raJob = jobMap.get(extractJobBaseKey(ra.job_name));
       const jobStart = ra.assigned_date || raJob?.start_date || '';
       const jobEnd = raJob?.end_date || '';
-      // Calculate the rig quantity from the on-site date range so day-rate
-      // billing reflects the actual number of days on site (inclusive).
+      // Count actual on-site days from the collected assignment dates — not the
+      // full job span. This prevents active jobs with months of old history from
+      // being billed for every day in the span; only days the rig was actually
+      // scheduled count toward the day-rate quantity.
+      const rigDates = rigDatesByJobAsset.get(`${ra.job_id}|${ra.asset_id}`);
       let rigQuantity = 1;
       const rigUnitLabel = ra.unit_label || 'day';
-      if (rigUnitLabel === 'day' && jobStart && jobEnd) {
-        const d = Math.round((new Date(jobEnd + 'T00:00:00Z').getTime() - new Date(jobStart + 'T00:00:00Z').getTime()) / 86400000) + 1;
-        if (d > 0) rigQuantity = d;
+      if (rigUnitLabel === 'day' && rigDates && rigDates.size > 0) {
+        rigQuantity = rigDates.size;
       }
       await base44.asServiceRole.entities.JobCostItem.create({
         job_id: ra.job_id,

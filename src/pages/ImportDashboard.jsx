@@ -603,7 +603,12 @@ export default function ImportDashboard() {
                       </div>
                       <span className="text-xs text-slate-400">{ra.assigned_date || '—'}</span>
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">→ {ra.job_name}</div>
+                    <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                      <span>→ {ra.job_name}</span>
+                      {ra.on_site_days > 0 && (
+                        <span className="bg-amber-100 text-amber-700 rounded-full px-2 py-0.5 font-medium">{ra.on_site_days} day{ra.on_site_days !== 1 ? 's' : ''}</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
