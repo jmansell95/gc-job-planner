@@ -47,7 +47,7 @@ export default function ImportCompleteModal({ result, onClose, type = 'planner' 
             </h2>
             <p className="text-sm text-white/80">
               {isPlanner
-                ? `${s.target_tabs?.length || 0} tab(s) processed · everything rebuilt fresh`
+                ? `${s.target_tabs?.length || 0} active tab(s)${s.legacy?.sheet_count ? ` + ${s.legacy.sheet_count} legacy tab(s)` : ''} · everything rebuilt fresh`
                 : `${s.legacy_sheets?.length || 0} legacy sheet(s) processed · non-destructive`}
             </p>
           </div>
@@ -92,6 +92,9 @@ export default function ImportCompleteModal({ result, onClose, type = 'planner' 
                 <VisualStat icon={GraduationCap} value={(s.training?.courses_new || 0) + (s.training?.courses_matched || 0)} label="Training" sub={`${s.training?.bookings_created || 0} bookings`} gradient="stat-gradient-indigo" />
                 <VisualStat icon={Palmtree} value={s.absences?.created || 0} label="Absences" sub={`${s.absences?.holiday || 0} hol`} gradient="stat-gradient-rose" />
                 <VisualStat icon={Layers} value={s.rig_assignments?.total || 0} label="Rig & Gear" sub={`${s.rig_assignments?.rigs || 0} rigs · ${s.rig_assignments?.linked_equipment || 0} gear`} gradient="stat-gradient-amber" />
+                {s.legacy?.sheet_count > 0 && (
+                  <VisualStat icon={Archive} value={s.legacy?.assignment_count || 0} label="Legacy Data" sub={`${s.legacy?.sheet_count} tabs · historical`} gradient="stat-gradient-violet" />
+                )}
               </div>
             </>
           ) : (

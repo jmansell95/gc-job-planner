@@ -226,11 +226,26 @@ export function buildAssetMaps(assetList) {
   return { byNameKey, bySerial };
 }
 
+// Extract a rig/equipment number from a name (e.g. "R1" → "1", "Rig 2" → "2",
+// "CP Rig 3" → "3", "T-03" → "03"). Used to match spreadsheet rig names to
+// SiteAsset records when the names differ but the rig number is the same.
+function extractRigNumber(name) {
+  if (!name) return null;
+  const lower = String(name).toLowerCase();
+  // "R1", "R 1", "Rig 1", "CP Rig 2", "Rotary 3", "Trailer T-03"
+  const m = lower.match(/(?:^|\s)(?:r|R|rig|cp\s*rig|rotary|trailer|t)\s*[-]?\s*(\d+)\b/);
+  if (m) return m[1];
+  // Standalone number at the end: "Truck-mounted Rig 1" → "1"
+  const m2 = lower.match(/(\d+)\s*$/);
+  if (m2) return m2[1];
+  return null;
+}
+
 // Fuzzy match an asset name from the spreadsheet against a list of SiteAsset
 // records. Tries exact nameKey first, then serial-number containment, then
-// fuzzy name similarity (token + Levenshtein + substring bonus).
+// rig-number matching, then fuzzy name similarity.
 // Returns { asset, score, method } or null if no match above threshold.
-export function fuzzyFindAsset(queryName, assetList, assetMaps, threshold = 0.55) {
+export function fuzzyFindAsset(queryName, assetList, assetMaps, threshold = 0.50) {
   const queryKey = nameKey(queryName);
   if (!queryKey) return null;
 
@@ -247,7 +262,24 @@ export function fuzzyFindAsset(queryName, assetList, assetMaps, threshold = 0.55
     }
   }
 
-  // 3. Fuzzy name similarity
+  // 3. Rig-number matching: extract a rig number from the query and match it
+  //    to assets whose names contain the same rig number. This handles cases
+  //    like "R1" matching "Truck-mounted Rig 1" or "CP Rig 1 (GC-R1-023)".
+  const queryRigNum = extractRigNumber(queryKey);
+  if (queryRigNum) {
+    let rigMatch = null;
+    for (const a of assetList) {
+      if (!a.name) continue;
+      const assetRigNum = extractRigNumber(a.name);
+      if (assetRigNum === queryRigNum) {
+        // Prefer rigs over other asset types
+        if (!rigMatch || (a.is_rig && !rigMatch.is_rig)) rigMatch = a;
+      }
+    }
+    if (rigMatch) return { asset: rigMatch, score: 0.88, method: 'rig_number' };
+  }
+
+  // 4. Fuzzy name similarity
   let bestMatch = null;
   let bestScore = 0;
   let bestMethod = '';
@@ -260,7 +292,7 @@ export function fuzzyFindAsset(queryName, assetList, assetMaps, threshold = 0.55
     const strSim = stringSimilarity(queryKey, assetKey);
     let subBonus = 0;
     if (queryKey.length >= 4 && assetKey.length >= 4) {
-      if (queryKey.includes(assetKey) || assetKey.includes(queryKey)) subBonus = 0.15;
+      if (queryKey.includes(assetKey) || assetKey.includes(queryKey)) subBonus = 0.20;
     }
     const score = Math.min(1, Math.max(tokSim, strSim) + subBonus);
 

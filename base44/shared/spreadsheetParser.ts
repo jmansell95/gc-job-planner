@@ -289,6 +289,12 @@ export function looksLikeCompanyName(text) {
   return false;
 }
 
+// Common lowercase particles in names — these don't need to be capitalised
+const LOWERCASE_PARTICLES = [
+  'van', 'de', 'der', 'den', 'di', 'le', 'la', 'du', 'da', 'von', 'ter',
+  'ten', 'el', 'al', 'bin', 'ibn', 'del', 'della', 'lo', 'des', 'dos', 'das',
+];
+
 export function looksLikePersonName(text) {
   if (!text) return false;
   if (text instanceof Date) return false;
@@ -304,8 +310,12 @@ export function looksLikePersonName(text) {
   if (looksLikeCompanyName(s)) return false;
   const words = s.split(/\s+/);
   if (words.length < 2) return false;
-  if (words.length > 5) return false;
-  return words.every(w => /^[A-Z]/.test(w));
+  if (words.length > 6) return false;
+  // First word must start with an uppercase letter
+  if (!/^[A-Z]/.test(words[0])) return false;
+  // Every word must either start with uppercase OR be a known lowercase particle
+  // (handles "van der Berg", "de la Cruz", etc.)
+  return words.every(w => /^[A-Z]/.test(w) || LOWERCASE_PARTICLES.includes(w.toLowerCase()));
 }
 
 // Detect rig/equipment/plant names in the name column. These often contain

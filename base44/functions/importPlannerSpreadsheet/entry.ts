@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import * as XLSX from 'npm:xlsx@0.18.5';
-import { buildContractorMaps, findOrCreateAgency, buildAssetMaps, fuzzyFindAsset, assetRole } from '../../shared/entityRegistry.ts';
+import { buildContractorMaps, findOrCreateAgency, buildAssetMaps, fuzzyFindAsset, assetRole, fuzzyFindStaff, fuzzyFindJob } from '../../shared/entityRegistry.ts';
 import { findRigRateCardItem } from '../../shared/rigRateMatcher.ts';
 import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, looksLikeAssetName, normalizeName, nameKey, findProjectForJob, extractSiteName, isActualTrainingCourse, extractTrainingCourseTitle, inferTrainingCategory } from '../../shared/spreadsheetParser.ts';
 
@@ -457,21 +457,24 @@ export default async function(req) {
     let teamAssignments = [];
     let plantAssignments = [];
     const sheetNames = [];
+    const legacySheetNames = [];
     const warnings = [];
     const allSectionsDetected = new Set();
     const sheetBreakdown = [];
-    const skippedSheets = [];
 
+    // Process ALL tabs — target tabs (Team Planner 2026_GW+Depot, Drillers)
+    // are the primary source. All other tabs are processed as legacy data:
+    // their staff and jobs are created alongside target-tab data, and their
+    // rota assignments are added as historical (completed) entries. One
+    // upload does everything — no separate legacy import needed.
     for (const sheetName of workbook.SheetNames) {
-      if (!isTargetSheet(sheetName)) {
-        skippedSheets.push(sheetName);
-        warnings.push(`Skipped sheet "${sheetName}" — prehistoric data, not a target tab.`);
-        continue;
-      }
       const sheet = workbook.Sheets[sheetName];
       if (!sheet) continue;
+      const isTarget = isTargetSheet(sheetName);
       sheetNames.push(sheetName);
+      if (!isTarget) legacySheetNames.push(sheetName);
       const sheetAssignments = parseSheet(sheet, sheetName);
+      for (const a of sheetAssignments) a.is_legacy = !isTarget;
       if (sheetAssignments.length > 0 && sheetAssignments[0]._sections) {
         for (const s of sheetAssignments[0]._sections) allSectionsDetected.add(s);
       }
@@ -483,6 +486,7 @@ export default async function(req) {
       sheetBreakdown.push({
         sheet: sheetName,
         is_plant: isPlantPlannerSheet(sheetName),
+        is_legacy: !isTarget,
         assignments: sheetAssignments.length,
         sections: [...new Set(sheetAssignments.map(a => a.crew_section).filter(Boolean))],
         date_range: sheetDates.length ? { from: sheetDates[0], to: sheetDates[sheetDates.length - 1] } : null,
@@ -498,7 +502,7 @@ export default async function(req) {
     const allAssignments = teamAssignments.concat(plantAssignments);
 
     if (allAssignments.length === 0) {
-      return Response.json({ error: `No assignment rows could be read from the target tabs. Looked for tabs matching "Team Planner 2026_GW+Depot" (Groundworkers & Depot) and "Drillers" (drilling team). Sheets in file: ${workbook.SheetNames.join(', ')}. Skipped: ${skippedSheets.join(', ') || 'none'}` }, { status: 422 });
+      return Response.json({ error: `No assignment rows could be read from any tab in this file. Sheets found: ${workbook.SheetNames.join(', ')}` }, { status: 422 });
     }
 
     const allDates = allAssignments.map(a => a.date).filter(Boolean).sort();
@@ -707,6 +711,16 @@ export default async function(req) {
         const email = generateEmail(name, allKnownEmails);
         staff = staffByEmail.get(email.toLowerCase());
       }
+      // Fuzzy fallback: match to already-created staff with a similar name.
+      // Handles typos and variations across tabs (e.g. "Jon Smith" → "John Smith")
+      // so the same person isn't created twice under slightly different spellings.
+      if (!staff && staffMap.size > 0) {
+        const fuzzy = fuzzyFindStaff(name, [...staffMap.values()], 0.70);
+        if (fuzzy) {
+          staff = fuzzy.staff;
+          staffMap.set(key, staff);
+        }
+      }
 
       const staffAssignments = teamAssignments.filter(a => nameKey(a.staff_name) === key);
       const inSubSection = staffAssignments.some(a => a.is_subcontractor_section);
@@ -850,6 +864,16 @@ export default async function(req) {
       let job = null;
       if (parsed.job_reference) job = jobByReference.get(parsed.job_reference.toLowerCase());
       if (!job) job = jobByName.get(baseKey);
+      // Fuzzy fallback: match to already-created jobs with a similar name.
+      // Handles variations across tabs (e.g. "EWR Site" → "I260124 - EWR")
+      // so the same job isn't created twice under slightly different names.
+      if (!job && jobMap.size > 0) {
+        const fuzzy = fuzzyFindJob(rawName, [...jobMap.values()], 0.65);
+        if (fuzzy) {
+          job = fuzzy.job;
+          jobMap.set(baseKey, job);
+        }
+      }
 
       const jobCrewSections = teamAssignments
         .filter(a => a.job_name && extractJobBaseKey(a.job_name) === baseKey)
@@ -1086,7 +1110,8 @@ export default async function(req) {
         rotasToCreate.push({
           staff_id: staff.id, assigned_date: a.date,
           week_start: getWeekStart(a.date),
-          status: a.date < TODAY ? 'completed' : 'assigned',
+          // Legacy (prehistoric) data is always historical → completed
+          status: (a.is_legacy || a.date < TODAY) ? 'completed' : 'assigned',
           assignment_type: a.non_job_type,
           non_job_label: a.non_job_label || undefined,
         });
@@ -1101,10 +1126,11 @@ export default async function(req) {
         rotasToCreate.push({
           staff_id: staff.id, job_id: job.id, assigned_date: a.date,
           week_start: getWeekStart(a.date),
+          // Legacy (prehistoric) data is always historical → completed.
           // Past shifts are done; today's and future shifts are planned.
           // The dashboard "Crews On Site Today" widget filters by assigned_date
           // === today, so today's assignments appear there regardless of status.
-          status: a.date < TODAY ? 'completed' : 'assigned',
+          status: (a.is_legacy || a.date < TODAY) ? 'completed' : 'assigned',
         });
       }
     }
@@ -1481,8 +1507,12 @@ export default async function(req) {
         breakdown: agencyBreakdown,
       },
       sections_detected: [...allSectionsDetected],
-      skipped_sheets: skippedSheets,
-      target_tabs: sheetNames,
+      legacy: {
+        sheets: legacySheetNames,
+        sheet_count: legacySheetNames.length,
+        assignment_count: allAssignments.filter(a => a.is_legacy).length,
+      },
+      target_tabs: sheetNames.filter(n => isTargetSheet(n)),
       warnings,
     };
 

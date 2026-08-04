@@ -7,7 +7,6 @@ import {
   ChevronDown, ChevronRight, MapPin, Building2, UserX, Layers, Clock,
   Palmtree, Thermometer, GraduationCap, Building
 } from 'lucide-react';
-import LegacyArchiveImport from '@/components/import/LegacyArchiveImport';
 import ImportCompleteModal from '@/components/import/ImportCompleteModal';
 
 export default function ImportDashboard() {
@@ -90,7 +89,7 @@ export default function ImportDashboard() {
       <div className="insight-card rounded-2xl p-6">
         <h2 className="text-lg font-semibold text-slate-800 mb-1">1. Upload Spreadsheet</h2>
         <p className="text-sm text-slate-500 mb-4">
-          Select your <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">.xlsx</code> planner file. Only the <strong>"Team Planner 2026_GW+Depot"</strong> and <strong>"Drillers"</strong> tabs are imported — all other tabs are ignored. Every import <strong>wipes all old rota data</strong> and replaces it with the spreadsheet contents.
+          Select your <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">.xlsx</code> planner file. <strong>All tabs are processed in one go</strong> — active tabs (<strong>"Team Planner 2026_GW+Depot"</strong> and <strong>"Drillers"</strong>) rebuild staff, jobs and rotas; all other tabs are matched as historical data. Every import <strong>wipes all old rota data</strong> and replaces it with the spreadsheet contents.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
@@ -126,7 +125,7 @@ export default function ImportDashboard() {
         {/* Clean-slate warning */}
         <div className="mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
           <RefreshCw className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span><strong>Full wipe mode:</strong> Importing will delete ALL existing staff, teams, jobs, drilling crews, rota assignments, asset assignments, training bookings, and absences — then rebuild everything fresh from this spreadsheet. This happens every time you upload.</span>
+          <span><strong>Full wipe mode:</strong> Importing will delete ALL existing staff, teams, jobs, drilling crews, rota assignments, asset assignments, training bookings, and absences — then rebuild everything fresh from this spreadsheet. All tabs are processed in one pass — no separate legacy upload needed.</span>
         </div>
 
         {error && (
@@ -281,15 +280,16 @@ export default function ImportDashboard() {
               </div>
             )}
 
-            {/* Skipped sheets */}
-            {preview.summary.skipped_sheets?.length > 0 && (
-              <div className="mb-4 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
-                <p className="text-sm font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                  <Layers className="w-4 h-4" /> Skipped Tabs ({preview.summary.skipped_sheets.length}) — Prehistoric Data
+            {/* Legacy sheets (processed as historical data) */}
+            {preview.summary.legacy?.sheet_count > 0 && (
+              <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                <p className="text-sm font-semibold text-amber-800 mb-1.5 flex items-center gap-1.5">
+                  <Layers className="w-4 h-4" /> Legacy Tabs Also Processed ({preview.summary.legacy.sheet_count}) — Historical Data
                 </p>
+                <p className="text-xs text-amber-700 mb-2">{preview.summary.legacy.assignment_count} assignments from these tabs are matched to staff &amp; jobs and added as completed historical rotas.</p>
                 <div className="flex flex-wrap gap-2">
-                  {preview.summary.skipped_sheets.map((s, i) => (
-                    <span key={i} className="text-xs bg-slate-200 text-slate-500 rounded-full px-3 py-1 line-through">{s}</span>
+                  {preview.summary.legacy.sheets.map((s, i) => (
+                    <span key={i} className="text-xs bg-amber-100 text-amber-700 rounded-full px-3 py-1 font-medium">{s}</span>
                   ))}
                 </div>
               </div>
@@ -304,6 +304,7 @@ export default function ImportDashboard() {
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-slate-700">{s.sheet}</span>
                         {s.is_plant && <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">Plant</span>}
+                        {s.is_legacy && <span className="text-xs bg-violet-100 text-violet-700 rounded-full px-2 py-0.5">Legacy</span>}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-slate-500">
                         <span>{s.assignments} assignments</span>
@@ -614,7 +615,7 @@ export default function ImportDashboard() {
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 flex items-start gap-2 mb-4">
               <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>
-                Confirming will <strong>delete ALL existing staff, teams, jobs, crews, rotas, training bookings, and absences</strong>, then rebuild everything fresh from this spreadsheet.
+                Confirming will <strong>delete ALL existing staff, teams, jobs, crews, rotas, training bookings, and absences</strong>, then rebuild everything fresh from this spreadsheet — including all legacy tabs as historical data.
               </span>
             </div>
             <div className="flex gap-3">
@@ -637,23 +638,18 @@ export default function ImportDashboard() {
         </div>
       )}
 
-      {/* Legacy Archive Import */}
-      {!preview && !applyResult && (
-        <LegacyArchiveImport />
-      )}
-
       {/* How it works */}
       {!preview && !analyzing && (
         <div className="insight-card rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-slate-800 mb-3">How it works</h2>
           <ol className="space-y-3 text-sm text-slate-600">
             <Step n={1} title="Upload your planner file">The Excel file is uploaded and parsed directly — no third-party AI involved.</Step>
-            <Step n={2} title="Targeted tab import">Only two tabs are imported: <strong>"Team Planner 2026_GW+Depot"</strong> (Groundworkers &amp; Depot Staff) and <strong>"Drillers"</strong> (drilling team). All other tabs are treated as prehistoric data and skipped.</Step>
+            <Step n={2} title="All tabs processed in one go">Active tabs (<strong>"Team Planner 2026_GW+Depot"</strong> &amp; <strong>"Drillers"</strong>) rebuild staff, jobs, teams and rotas. All other tabs are matched as historical data — their staff and jobs are fuzzy-matched to the freshly created records so nothing is lost. No separate legacy upload needed.</Step>
             <Step n={3} title="Date-aware job status">Jobs with all past dates are marked <strong>completed</strong>. Jobs with any today/future dates are marked <strong>in_progress</strong>. New jobs with no dates yet are <strong>planning</strong>.</Step>
             <Step n={4} title="Leaver detection">Staff with linked logins who aren't in this spreadsheet are flagged as leavers and will be marked inactive on import.</Step>
             <Step n={5} title="Absences &amp; training">Non-job days (holiday, sick, training) create Absence records in the Absence Manager — grouped by staff and week. Training courses create TrainingCourse + TrainingBooking records linked to staff.</Step>
             <Step n={6} title="Full breakdown review">See every staff member, every job, every section, every sheet, and every leaver before you confirm — so you can drill down and verify everything is correct.</Step>
-            <Step n={7} title="Full wipe &amp; rebuild">On confirm, ALL existing staff, teams, jobs, drilling crews, rota assignments, asset assignments, training bookings, and absences are deleted. The spreadsheet becomes the single source of truth — everything is rebuilt fresh from scratch every time you upload.</Step>
+            <Step n={7} title="Full wipe &amp; rebuild">On confirm, ALL existing staff, teams, jobs, drilling crews, rota assignments, asset assignments, training bookings, and absences are deleted. The spreadsheet becomes the single source of truth — everything is rebuilt fresh from scratch every time you upload. All tabs are included in one pass.</Step>
           </ol>
         </div>
       )}
