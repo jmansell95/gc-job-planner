@@ -11,38 +11,66 @@ const assetTypeConfig = {
   trailer: { icon: Package, chip: 'bg-amber-50 text-amber-700 border-amber-200' },
   vehicle: { icon: Package, chip: 'bg-slate-50 text-slate-600 border-slate-200' },
   lifting: { icon: Anchor, chip: 'bg-teal-50 text-teal-700 border-teal-200' },
+  portable_appliance: { icon: Package, chip: 'bg-slate-50 text-slate-600 border-slate-200' },
 };
 
-function AssetChip({ type, name, status }) {
+function AssetChip({ type, name, onSite }) {
   const cfg = assetTypeConfig[type] || assetTypeConfig.machinery;
   const Icon = cfg.icon;
   return (
     <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium border ${cfg.chip}`}>
       <Icon className="w-3 h-3" />
       {name}
-      {status === 'on_site' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+      {onSite && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
     </span>
   );
 }
 
 export default function JobAssetsWidget({ onSelectJob }) {
   const { selectedJobId } = useJobFilter();
-  const { data: assignments = [], isLoading } = useQuery({
-    queryKey: ['job-asset-assignments-active'],
-    queryFn: () => base44.entities.JobAssetAssignment.list('-assigned_date', 200),
-  });
 
+  // Source of truth: JobCostItem records linked to a SiteAsset. The
+  // JobAssetAssignment entity is an unreliable denormalised snapshot that has
+  // historically failed to populate (schema enum mismatches, bulkCreate
+  // atomicity). Reading directly from JobCostItem + SiteAsset guarantees the
+  // dashboard reflects what managers actually assigned in the logistics hub.
+  const { data: costItems = [], isLoading } = useQuery({
+    queryKey: ['job-cost-items-with-assets'],
+    queryFn: () => base44.entities.JobCostItem.list('-updated_date', 500),
+  });
+  const { data: siteAssets = [] } = useQuery({
+    queryKey: ['site-assets-widget'],
+    queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
+  });
   const { data: jobs = [] } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
 
-  const activeAssignments = assignments.filter(a =>
-    (a.status === 'assigned' || a.status === 'on_site') &&
-    (selectedJobId === 'all' || a.job_id === selectedJobId)
+  const assetMap = {};
+  (siteAssets || []).forEach(a => { assetMap[a.id] = a; });
+
+  // Active cost items linked to a physical SiteAsset (rigs, machinery, gear).
+  // Excludes off-hired/returned items and non-physical categories (labour,
+  // contractor/client-supplied) that don't represent owned equipment on site.
+  const activeAssetItems = (costItems || []).filter(c =>
+    c.site_asset_id &&
+    c.site_asset_id.trim() !== '' &&
+    (c.hire_status || 'active') === 'active' &&
+    c.category !== 'labour' &&
+    c.category !== 'contractor_supplied' &&
+    c.category !== 'client_supplied' &&
+    (selectedJobId === 'all' || c.job_id === selectedJobId)
   );
 
   const byJob = {};
-  activeAssignments.forEach(a => {
-    if (!byJob[a.job_id]) byJob[a.job_id] = [];
-    byJob[a.job_id].push(a);
+  activeAssetItems.forEach(c => {
+    const asset = assetMap[c.site_asset_id];
+    if (!asset) return; // skip orphaned links
+    if (!byJob[c.job_id]) byJob[c.job_id] = [];
+    byJob[c.job_id].push({
+      id: c.id,
+      asset_name: asset.name || c.description,
+      asset_type: asset.asset_type || 'machinery',
+      on_site: (c.current_location || 'yard') === 'site',
+    });
   });
 
   const jobEntries = Object.entries(byJob)
@@ -78,6 +106,7 @@ export default function JobAssetsWidget({ onSelectJob }) {
             const rigs = assets.filter(a => a.asset_type === 'rig');
             const machinery = assets.filter(a => a.asset_type === 'machinery');
             const trailers = assets.filter(a => a.asset_type === 'trailer');
+            const other = assets.filter(a => !['rig', 'machinery', 'trailer'].includes(a.asset_type));
             return (
               <button key={job.id} onClick={() => onSelectJob(job)}
                 className="w-full px-4 py-3.5 rounded-xl border border-slate-100 hover:border-emerald-300 hover:bg-slate-50/50 hover:shadow-sm transition cursor-pointer text-left group">
@@ -91,9 +120,10 @@ export default function JobAssetsWidget({ onSelectJob }) {
                   </p>
                 )}
                 <div className="flex flex-wrap gap-1.5">
-                  {rigs.map(a => <AssetChip key={a.id} type="rig" name={a.asset_name} status={a.status} />)}
-                  {machinery.map(a => <AssetChip key={a.id} type="machinery" name={a.asset_name} status={a.status} />)}
-                  {trailers.map(a => <AssetChip key={a.id} type="trailer" name={a.asset_name} status={a.status} />)}
+                  {rigs.map(a => <AssetChip key={a.id} type="rig" name={a.asset_name} onSite={a.on_site} />)}
+                  {machinery.map(a => <AssetChip key={a.id} type="machinery" name={a.asset_name} onSite={a.on_site} />)}
+                  {trailers.map(a => <AssetChip key={a.id} type="trailer" name={a.asset_name} onSite={a.on_site} />)}
+                  {other.map(a => <AssetChip key={a.id} type={a.asset_type} name={a.asset_name} onSite={a.on_site} />)}
                 </div>
               </button>
             );
