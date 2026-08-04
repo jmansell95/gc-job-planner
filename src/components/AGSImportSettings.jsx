@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import KeyLogBookWebhookSection from '@/components/keylogbook/KeyLogBookWebhookSection';
+import AGSAutoSyncSection from '@/components/keylogbook/AGSAutoSyncSection';
 
 export default function AGSImportSettings() {
   const { toast } = useToast();
@@ -61,6 +62,9 @@ export default function AGSImportSettings() {
 
       {/* Real-time webhook sync configuration */}
       <KeyLogBookWebhookSection />
+
+      {/* Automated AGS file push sync (every 30 min) */}
+      <AGSAutoSyncSection />
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-5">
         {/* Job selector */}

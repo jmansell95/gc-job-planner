@@ -400,6 +400,35 @@ function logSignature(log: any): string {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+
+    // --- Automated AGS push authentication ---
+    // When KeyLogBook pushes an AGS file automatically (every 30 min), it
+    // sends a Bearer token in the Authorization header. We validate it
+    // against the ags_sync_secret stored in KeyLogBookConfig. If the config
+    // has ags_sync_enabled=true and a secret is set, external callers MUST
+    // provide the matching token. Internal app calls (from the settings UI)
+    // are identified by the absence of an Authorization header and are allowed
+    // through — the route guard already gates access to the settings page.
+    let isExternalPush = false;
+    let agsSyncConfig: any = null;
+    const authHeader = req.headers.get('authorization') || '';
+    if (authHeader.startsWith('Bearer ')) {
+      isExternalPush = true;
+      const token = authHeader.slice(7).trim();
+      try {
+        const configs = await base44.asServiceRole.entities.KeyLogBookConfig.filter({ key: 'global' });
+        agsSyncConfig = configs[0] || null;
+      } catch (e) { /* config not available */ }
+
+      if (!agsSyncConfig || !agsSyncConfig.ags_sync_enabled) {
+        return Response.json({ error: 'Automated AGS sync is not enabled.' }, { status: 403 });
+      }
+      const storedSecret = (agsSyncConfig.ags_sync_secret || '').trim();
+      if (!storedSecret || token !== storedSecret) {
+        return Response.json({ error: 'Invalid AGS sync credentials.' }, { status: 401 });
+      }
+    }
+
     // The caller's auth token is not reliably forwarded to backend functions
     // on the published site (the editor preview injects it automatically, but
     // the published gateway does not), so auth.me() can throw
@@ -1035,6 +1064,17 @@ Deno.serve(async (req) => {
       if (g.headings && g.headings.length > 0) groupDebug[name] = g.headings;
     }
 
+    // --- Record the sync status for automated pushes ---
+    if (isExternalPush && agsSyncConfig?.id) {
+      try {
+        await base44.asServiceRole.entities.KeyLogBookConfig.update(agsSyncConfig.id, {
+          last_ags_sync_at: new Date().toISOString(),
+          last_ags_sync_status: 'success',
+          last_ags_sync_summary: `Imported ${inserted} log entries into ${job.name}.`,
+        });
+      } catch (e) { /* best-effort status update */ }
+    }
+
     return Response.json({
       status: 'success', job_id: job.id, job_name: job.name,
       job_reference: job.job_reference, created_job: createdJob,
@@ -1042,6 +1082,16 @@ Deno.serve(async (req) => {
       duplicates: counts.duplicates, counts, groups: groupDebug,
     });
   } catch (error) {
+    // Record failed sync for automated pushes
+    if (isExternalPush && agsSyncConfig?.id) {
+      try {
+        await base44.asServiceRole.entities.KeyLogBookConfig.update(agsSyncConfig.id, {
+          last_ags_sync_at: new Date().toISOString(),
+          last_ags_sync_status: 'failed',
+          last_ags_sync_summary: error.message?.slice(0, 200) || 'Processing error',
+        });
+      } catch (e) { /* best-effort */ }
+    }
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

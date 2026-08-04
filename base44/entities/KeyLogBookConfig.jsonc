@@ -45,6 +45,38 @@
     "last_webhook_summary": {
       "type": "string",
       "description": "Short human-readable summary of the last webhook result (e.g. 'Processed 14 log entries \u00b7 2 timesheets drafted for BH-01 job')."
+    },
+    "ags_sync_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Master toggle for the automated AGS file push sync. When true, KeyLogBook can push whole-job AGS files to the importAGS endpoint every 30 minutes using the ags_sync_secret for authentication."
+    },
+    "ags_sync_secret": {
+      "type": "string",
+      "description": "Shared secret (API key) that KeyLogBook sends in the Authorization header (Bearer token) when pushing AGS files to the importAGS endpoint. The import function validates this against the stored value before processing."
+    },
+    "ags_sync_interval_minutes": {
+      "type": "number",
+      "default": 30,
+      "description": "How often KeyLogBook pushes an AGS file (in minutes). Displayed in the UI so the builder knows the expected cadence. Set by the KeyLogBook developer."
+    },
+    "last_ags_sync_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last automated AGS file push received from KeyLogBook."
+    },
+    "last_ags_sync_status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failed",
+        "never"
+      ],
+      "default": "never",
+      "description": "Outcome of the last automated AGS push \u2014 'success' = file processed, 'failed' = auth or processing error, 'never' = no push received yet."
+    },
+    "last_ags_sync_summary": {
+      "type": "string",
+      "description": "Short human-readable summary of the last AGS push result (e.g. 'Imported 42 log entries into Cambridge North job')."
     }
   },
   "required": [
