@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Boxes, Cog, Wrench, Package, ArrowRight, MapPin, Anchor } from 'lucide-react';
+import { Boxes, Cog, Wrench, Package, ArrowRight, MapPin, Anchor, ChevronDown, Link2 } from 'lucide-react';
 import { Skeleton } from '@/components/StateViews';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 
@@ -14,15 +14,62 @@ const assetTypeConfig = {
   portable_appliance: { icon: Package, chip: 'bg-slate-50 text-slate-600 border-slate-200' },
 };
 
-function AssetChip({ type, name, onSite }) {
+function AssetChip({ type, name, serial, onSite }) {
   const cfg = assetTypeConfig[type] || assetTypeConfig.machinery;
   const Icon = cfg.icon;
   return (
     <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium border ${cfg.chip}`}>
       <Icon className="w-3 h-3" />
       {name}
+      {serial && <span className="text-[10px] opacity-60 font-mono">#{serial}</span>}
       {onSite && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
     </span>
+  );
+}
+
+function RigRow({ rig, assetMap, costItems, jobId }) {
+  const [expanded, setExpanded] = useState(false);
+  const linkedIds = rig.linked_equipment_ids || [];
+
+  // Find linked gear that is also on this job (by matching site_asset_id)
+  const linkedOnJob = linkedIds
+    .map(id => {
+      const asset = assetMap[id];
+      if (!asset) return null;
+      const costItem = costItems.find(c => c.job_id === jobId && c.site_asset_id === id && (c.hire_status || 'active') === 'active');
+      return asset && costItem ? { asset, costItem } : null;
+    })
+    .filter(Boolean);
+
+  return (
+    <div className="rounded-lg border border-blue-100 bg-blue-50/40 overflow-hidden">
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5">
+        <AssetChip type="rig" name={rig.asset_name} serial={rig.serial_number} onSite={rig.on_site} />
+        {linkedOnJob.length > 0 && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-800 px-1.5 py-0.5 rounded-md hover:bg-blue-100 transition"
+          >
+            <Link2 className="w-3 h-3" />
+            {linkedOnJob.length} gear
+            <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          </button>
+        )}
+      </div>
+      {expanded && linkedOnJob.length > 0 && (
+        <div className="px-2.5 pb-2 pt-1 space-y-1 border-t border-blue-100/60">
+          {linkedOnJob.map(({ asset, costItem }) => (
+            <div key={asset.id} className="flex items-center gap-1.5 text-xs text-slate-600">
+              <span className="w-1 h-1 rounded-full bg-slate-300" />
+              <span className="font-medium">{asset.name}</span>
+              {asset.serial_number && <span className="text-[10px] font-mono text-slate-400">#{asset.serial_number}</span>}
+              <span className="text-[10px] text-slate-400 capitalize">{asset.asset_type}</span>
+              {(costItem.current_location || 'yard') === 'site' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -67,8 +114,11 @@ export default function JobAssetsWidget({ onSelectJob }) {
     if (!byJob[c.job_id]) byJob[c.job_id] = [];
     byJob[c.job_id].push({
       id: c.id,
+      asset_id: asset.id,
       asset_name: asset.name || c.description,
       asset_type: asset.asset_type || 'machinery',
+      serial_number: asset.serial_number || '',
+      linked_equipment_ids: asset.linked_equipment_ids || [],
       on_site: (c.current_location || 'yard') === 'site',
     });
   });
@@ -119,11 +169,17 @@ export default function JobAssetsWidget({ onSelectJob }) {
                     <MapPin className="w-3 h-3 flex-shrink-0" /> {job.location}
                   </p>
                 )}
-                <div className="flex flex-wrap gap-1.5">
-                  {rigs.map(a => <AssetChip key={a.id} type="rig" name={a.asset_name} onSite={a.on_site} />)}
-                  {machinery.map(a => <AssetChip key={a.id} type="machinery" name={a.asset_name} onSite={a.on_site} />)}
-                  {trailers.map(a => <AssetChip key={a.id} type="trailer" name={a.asset_name} onSite={a.on_site} />)}
-                  {other.map(a => <AssetChip key={a.id} type={a.asset_type} name={a.asset_name} onSite={a.on_site} />)}
+                <div className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                  {rigs.map(a => (
+                    <RigRow key={a.id} rig={a} assetMap={assetMap} costItems={activeAssetItems} jobId={job.id} />
+                  ))}
+                  {(machinery.length > 0 || trailers.length > 0 || other.length > 0) && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {machinery.map(a => <AssetChip key={a.id} type="machinery" name={a.asset_name} serial={a.serial_number} onSite={a.on_site} />)}
+                      {trailers.map(a => <AssetChip key={a.id} type="trailer" name={a.asset_name} serial={a.serial_number} onSite={a.on_site} />)}
+                      {other.map(a => <AssetChip key={a.id} type={a.asset_type} name={a.asset_name} serial={a.serial_number} onSite={a.on_site} />)}
+                    </div>
+                  )}
                 </div>
               </button>
             );
