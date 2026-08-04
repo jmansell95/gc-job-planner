@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, Calendar, FolderOpen } from 'lucide-react';
+import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, FolderOpen } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/dashboard/StatCard';
 import SearchFilterBar from '@/components/SearchFilterBar';
@@ -319,28 +319,27 @@ export default function JobManager({ onNavigateRota }) {
                       const duration = calcDuration(job.start_date, job.end_date);
                       return (
                         <div className="flex items-stretch gap-2.5 mb-1">
-                          <div className="flex flex-col items-center justify-center min-w-[52px] px-2 py-1.5 rounded-lg bg-slate-900 text-white">
-                            <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 leading-none">Start</span>
-                            <span className="text-base font-bold leading-tight mt-0.5">{fmtDateShort(job.start_date).split(' ')[0]}</span>
-                            <span className="text-[10px] font-medium text-slate-300 leading-none">{fmtDateShort(job.start_date).split(' ')[1]}</span>
-                          </div>
-                          <div className="flex-1 flex flex-col justify-center min-w-0">
-                            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                              <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                              <span className="truncate">{fmtDate(job.start_date)} → {fmtDate(job.end_date)}</span>
-                            </div>
-                            {duration != null && (
-                              <span className={`inline-flex items-center gap-1 mt-1 text-xs font-bold px-2 py-0.5 rounded-full self-start ${
-                                duration === 1 ? 'bg-blue-50 text-blue-700' :
-                                duration <= 7 ? 'bg-emerald-50 text-emerald-700' :
-                                duration <= 30 ? 'bg-amber-50 text-amber-700' :
-                                'bg-violet-50 text-violet-700'
-                              }`}>
-                                {duration} {duration === 1 ? 'day' : 'days'}
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                           <div className="flex flex-col items-center justify-center min-w-[52px] px-2 py-1.5 rounded-lg bg-slate-900 text-white">
+                             <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 leading-none">Start</span>
+                             <span className="text-base font-bold leading-tight mt-0.5">{fmtDateShort(job.start_date).split(' ')[0]}</span>
+                             <span className="text-[10px] font-medium text-slate-300 leading-none">{fmtDateShort(job.start_date).split(' ')[1]}</span>
+                           </div>
+                           <div className="flex flex-col items-center justify-center min-w-[52px] px-2 py-1.5 rounded-lg bg-slate-700 text-white">
+                             <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 leading-none">End</span>
+                             <span className="text-base font-bold leading-tight mt-0.5">{fmtDateShort(job.end_date).split(' ')[0]}</span>
+                             <span className="text-[10px] font-medium text-slate-300 leading-none">{fmtDateShort(job.end_date).split(' ')[1]}</span>
+                           </div>
+                           {duration != null && (
+                             <span className={`inline-flex items-center self-center text-xs font-bold px-2 py-0.5 rounded-full ${
+                               duration === 1 ? 'bg-blue-50 text-blue-700' :
+                               duration <= 7 ? 'bg-emerald-50 text-emerald-700' :
+                               duration <= 30 ? 'bg-amber-50 text-amber-700' :
+                               'bg-violet-50 text-violet-700'
+                             }`}>
+                               {duration} {duration === 1 ? 'day' : 'days'}
+                             </span>
+                           )}
+                         </div>
                       );
                     })()}
                   </div>
