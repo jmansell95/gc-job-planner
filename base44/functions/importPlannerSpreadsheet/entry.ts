@@ -551,17 +551,33 @@ export default async function(req) {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
 
-    const body = await req.json();
-    const fileUrl = body.file_url;
-    const dryRun = body.dry_run !== false;
-    if (!fileUrl) return Response.json({ error: 'file_url is required' }, { status: 400 });
+    // Accept the spreadsheet two ways for maximum compatibility:
+    //   1. Multipart form upload (preferred — functions.invoke with a File
+    //      object uses multipart/form-data, no JSON body size limit, no
+    //      admin-only UploadFile integration that fails on the published site).
+    //   2. A previously-uploaded file URL (file_url) — legacy fallback.
+    let dryRun = true;
+    let arrayBuffer: ArrayBuffer;
+    const contentType = req.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      const filePart = formData.get('file');
+      dryRun = formData.get('dry_run') !== 'false';
+      if (!filePart) return Response.json({ error: 'A spreadsheet file is required.' }, { status: 400 });
+      arrayBuffer = await (filePart as File).arrayBuffer();
+    } else {
+      const body = await req.json();
+      const fileUrl = body.file_url;
+      dryRun = body.dry_run !== false;
+      if (!fileUrl) return Response.json({ error: 'file_url is required' }, { status: 400 });
+      const fileRes = await fetch(fileUrl);
+      if (!fileRes.ok) return Response.json({ error: 'Could not download the uploaded file' }, { status: 422 });
+      arrayBuffer = await fileRes.arrayBuffer();
+    }
 
     // -----------------------------------------------------------------------
-    // 1. Fetch and parse the Excel file
+    // 1. Parse the Excel file
     // -----------------------------------------------------------------------
-    const fileRes = await fetch(fileUrl);
-    if (!fileRes.ok) return Response.json({ error: 'Could not download the uploaded file' }, { status: 422 });
-    const arrayBuffer = await fileRes.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
 
     let teamAssignments = [];

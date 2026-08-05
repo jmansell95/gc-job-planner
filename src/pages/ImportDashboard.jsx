@@ -30,22 +30,24 @@ export default function ImportDashboard() {
     setUploading(true);
     setError(null);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setFileUrl(file_url);
-      toast({ title: 'File uploaded', description: 'Analyzing spreadsheet…' });
-      await runAnalysis(file_url);
+      // Pass the file directly to the backend function via multipart form data.
+      // This bypasses the UploadFile integration which fails on the published
+      // site (requires admin-level file access). The backend reads it via
+      // req.formData() — same pattern as the AGS import.
+      toast({ title: 'Analyzing spreadsheet…', description: file.name });
+      await runAnalysis();
     } catch (e) {
-      setError(e.message || 'Upload failed');
+      setError(e.message || 'Analysis failed');
     } finally {
       setUploading(false);
     }
   };
 
-  const runAnalysis = async (url) => {
+  const runAnalysis = async () => {
     setAnalyzing(true);
     setError(null);
     try {
-      const res = await base44.functions.invoke('importPlannerSpreadsheet', { file_url: url, dry_run: true });
+      const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, dry_run: true });
       setPreview(res.data);
     } catch (e) {
       const msg = e?.response?.data?.error || e.message || 'Analysis failed';
@@ -56,11 +58,11 @@ export default function ImportDashboard() {
   };
 
   const handleApply = async () => {
-    if (!fileUrl) return;
+    if (!file) return;
     setApplying(true);
     setError(null);
     try {
-      const res = await base44.functions.invoke('importPlannerSpreadsheet', { file_url: fileUrl, dry_run: false });
+      const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, dry_run: false });
       setApplyResult(res.data);
       const s = res.data.summary;
       toast({
