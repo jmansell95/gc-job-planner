@@ -102,7 +102,7 @@ const CATEGORIES = [
     title: 'Timesheets & Payroll',
     color: 'orange',
     items: [
-      { priority: 'high', title: 'GPS-verified timesheets with geofencing', desc: 'Auto-detect arrival/departure from site using Geotab GPS data for accurate time tracking.' },
+      { priority: 'high', title: 'GPS-verified timesheets with geofencing', desc: 'Auto-detect arrival/departure from site using Geotab GPS data for accurate time tracking. A nightly automation generates draft travel-to / on-site / travel-home entries from the previous day\'s GPS logs; admins can also trigger it manually for any date from Settings → Geotab GPS Sync.', status: 'done' },
       { priority: 'high', title: 'Payroll export to multiple providers', desc: 'Export to Xero, Sage, QuickBooks with mapped pay codes and overtime rules.' },
       { priority: 'medium', title: 'Auto-break detection & compliance', desc: 'Automatically deduct breaks and flag non-compliant working patterns.' },
       { priority: 'medium', title: 'Holiday pay accrual tracking', desc: 'Track accrued holiday pay per staff member with carry-over rules and year-end reconciliation.' },

@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   MapPin, Loader2, Save, Check, AlertTriangle, RefreshCw, Link2, Link2Off,
-  Settings2, Satellite,
+  Settings2, Satellite, Clock, CalendarDays,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
@@ -32,6 +32,9 @@ export default function GeotabSettings() {
   const [testResult, setTestResult] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
+  const [tsDate, setTsDate] = useState(new Date().toISOString().slice(0, 10));
+  const [tsSyncing, setTsSyncing] = useState(false);
+  const [tsResult, setTsResult] = useState(null);
 
   const { data: settingsRec } = useQuery({
     queryKey: ['geotab-config'],
@@ -95,6 +98,27 @@ export default function GeotabSettings() {
       setSyncResult({ ok: false, msg: e.message || 'Sync failed' });
     }
     setSyncing(false);
+  };
+
+  const handleTsSync = async () => {
+    setTsSyncing(true);
+    setTsResult(null);
+    try {
+      const res = await base44.functions.invoke('syncGeotabTimesheets', { date: tsDate });
+      const d = res.data || res;
+      setTsResult({
+        ok: !!d.ok,
+        msg: d.message || d.error || 'Sync complete',
+        synced: d.synced || 0,
+        skipped: d.skipped || 0,
+        date: d.date || tsDate,
+        results: d.results || [],
+      });
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+    } catch (e) {
+      setTsResult({ ok: false, msg: e.message || 'Timesheet sync failed' });
+    }
+    setTsSyncing(false);
   };
 
   return (
@@ -216,6 +240,56 @@ export default function GeotabSettings() {
             {config.last_sync_at && <p className="text-[11px] text-slate-400 mt-1">{new Date(config.last_sync_at).toLocaleString('en-GB')}</p>}
           </div>
         )}
+      </div>
+
+      {/* Timesheet auto-generation from GPS */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Clock className="w-4 h-4 text-[#2E5A1A]" />
+          <h3 className="text-sm font-bold text-slate-800">Auto-Generate Timesheets from GPS</h3>
+          <span className="ml-auto text-xs text-slate-400">Geofence-based arrival/departure detection</span>
+        </div>
+        <p className="text-xs text-slate-500 mb-3">
+          Reads the GPS location logs for the selected date, matches each driver to their rota assignment, detects arrival and departure at the job site (within 200m geofence), and creates draft <span className="font-medium">travel-to / on-site / travel-home</span> timesheet entries. Jobs need site coordinates set (use the geocode button on the job form) for geofencing to work.
+        </p>
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3 mb-3">
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-slate-600 mb-1">Date to process</label>
+            <div className="relative">
+              <CalendarDays className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input type="date" value={tsDate} max={new Date().toISOString().slice(0, 10)} onChange={e => setTsDate(e.target.value)} className={`${inputCls} pl-9`} />
+            </div>
+          </div>
+          <button onClick={handleTsSync} disabled={!connected || tsSyncing || !tsDate}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-bold hover:bg-[#1c4a12] disabled:opacity-40 transition whitespace-nowrap">
+            {tsSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />} Generate Timesheets
+          </button>
+        </div>
+        {!connected && <p className="text-[11px] text-amber-600 mb-2">Save your Geotab credentials and sync locations first.</p>}
+        {tsResult && (
+          <div className={`rounded-lg px-3 py-2 text-xs ${tsResult.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+            <p className="flex items-start gap-2"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> {tsResult.msg}</p>
+            {tsResult.ok && (
+              <div className="grid grid-cols-2 gap-2 mt-2 text-center">
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Entries Created</p><p className="font-bold text-emerald-700 tabular-nums">{tsResult.synced}</p></div>
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Skipped</p><p className="font-bold text-slate-600 tabular-nums">{tsResult.skipped}</p></div>
+              </div>
+            )}
+            {tsResult.ok && tsResult.results?.length > 0 && (
+              <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                {tsResult.results.slice(0, 8).map((r, i) => (
+                  <div key={i} className="text-[11px] bg-white/50 rounded px-2 py-1 flex items-center gap-2">
+                    <span className="font-medium text-slate-700 truncate flex-1">{r.staff}</span>
+                    <span className="text-slate-400 truncate hidden sm:inline">{r.job}</span>
+                    <span className="text-slate-500 tabular-nums whitespace-nowrap">{r.arrival} → {r.departure}</span>
+                  </div>
+                ))}
+                {tsResult.results.length > 8 && <p className="text-[10px] text-slate-400 text-center pt-1">+{tsResult.results.length - 8} more</p>}
+              </div>
+            )}
+          </div>
+        )}
+        <p className="text-[11px] text-slate-400 mt-2">A nightly automation also runs this automatically for yesterday's shifts — entries appear as drafts for crew review.</p>
       </div>
     </div>
   );

@@ -45,7 +45,15 @@ export default async function(req: Request): Promise<Response> {
     }
 
     const body = await req.json().catch(() => ({}));
-    const targetDate = body.date || new Date().toISOString().slice(0, 10);
+    // When called without an explicit date (e.g. by the nightly automation),
+    // default to yesterday — the automation runs at 1am so the full previous
+    // day's GPS logs are available for arrival/departure detection. Manual UI
+    // calls always pass an explicit date, so this default only affects automations.
+    const targetDate = body.date || (() => {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      return d.toISOString().slice(0, 10);
+    })();
     const GEOFENCE_RADIUS_M = Number(body.radius) || 200;
 
     // Load all active staff for driver-name matching
