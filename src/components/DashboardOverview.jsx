@@ -41,6 +41,7 @@ import EnvironmentalImpactWidget from '@/components/dashboard/EnvironmentalImpac
 import PredictiveCompletionWidget from '@/components/dashboard/PredictiveCompletionWidget';
 import BenchmarkComparisonsWidget from '@/components/dashboard/BenchmarkComparisonsWidget';
 import SiteWeatherOverviewWidget from '@/components/dashboard/SiteWeatherOverviewWidget';
+import ConfigurationHealthWidget from '@/components/dashboard/ConfigurationHealthWidget';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
@@ -180,6 +181,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'predictive-completion': return <PredictiveCompletionWidget />;
       case 'benchmark-comparisons': return <BenchmarkComparisonsWidget />;
       case 'site-weather': return <SiteWeatherOverviewWidget onSelectJob={openJobDrawer} />;
+      case 'config-health': return <ConfigurationHealthWidget />;
       default: return null;
     }
   };

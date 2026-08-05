@@ -95,11 +95,16 @@ export default function ClientPortal() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [branding, setBranding] = useState(null);
 
   useEffect(() => {
     async function loadJob() {
       try {
-        const response = await base44.functions.invoke('getJobByPortalToken', { portal_token: token });
+        const [response, brandRes] = await Promise.all([
+          base44.functions.invoke('getJobByPortalToken', { portal_token: token }),
+          base44.functions.invoke('getPortalBranding', { portal_type: 'client_portal' }),
+        ]);
+        if (brandRes.data?.branding) setBranding(brandRes.data.branding);
         setData(response.data);
       } catch (err) {
         setError(err.response?.data?.error || 'Unable to load job details');

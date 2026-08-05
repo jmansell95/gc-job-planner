@@ -42,6 +42,7 @@ export default function SubcontractorOnboarding() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [contractor, setContractor] = useState(null);
+  const [branding, setBranding] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({});
@@ -49,7 +50,12 @@ export default function SubcontractorOnboarding() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await base44.functions.invoke('getContractorByToken', { onboarding_token: token });
+        // Load portal branding in parallel with contractor data
+        const [res, brandRes] = await Promise.all([
+          base44.functions.invoke('getContractorByToken', { onboarding_token: token }),
+          base44.functions.invoke('getPortalBranding', { portal_type: 'subcontractor_onboarding' }),
+        ]);
+        if (brandRes.data?.branding) setBranding(brandRes.data.branding);
         if (res.error) { setError(res.error); setLoading(false); return; }
         setContractor(res.data.contractor);
         setForm({
@@ -135,24 +141,52 @@ export default function SubcontractorOnboarding() {
   const isRejected = contractor.onboarding_status === 'rejected';
   const isReadOnly = isApproved || isRejected;
 
+  // Portal branding — falls back to defaults if not loaded yet
+  const accent = branding?.accent_color || '#2E5A1A';
+  const welcomeTitle = branding?.welcome_title || 'Sub-contractor Onboarding';
+  const welcomeSubtitle = branding?.welcome_subtitle || '';
+  const showLogo = branding?.show_logo && branding?.logo_url;
+  const portalDisabled = branding && branding.enabled === false;
+
+  if (portalDisabled) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-slate-200 p-8 text-center">
+          <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-7 h-7 text-amber-600" />
+          </div>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">Portal temporarily unavailable</h1>
+          <p className="text-sm text-slate-500">This onboarding portal is currently turned off. Please contact Ground Control to complete your onboarding.</p>
+          {branding?.support_phone && <p className="text-sm text-slate-600 mt-3">📞 {branding.support_phone}</p>}
+          {branding?.support_email && <p className="text-sm text-slate-600">✉️ {branding.support_email}</p>}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
-      {/* Header */}
-      <div className="hero-gradient px-4 py-6 sm:py-8">
+      {/* Header — uses portal branding accent colour */}
+      <div className="px-4 py-6 sm:py-8 text-white relative" style={{ background: `linear-gradient(135deg, ${accent} 0%, ${shadeHex(accent, -22)} 100%)` }}>
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-11 h-11 rounded-xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center backdrop-blur-sm">
-              <HardHat className="w-6 h-6 text-white" />
+              {showLogo
+                ? <img src={branding.logo_url} alt="logo" className="h-7 max-w-28 object-contain" />
+                : <HardHat className="w-6 h-6 text-white" />}
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-bold text-white">Sub-contractor Onboarding</h1>
-              <p className="text-white/80 text-sm">{contractor.name}</p>
+              <h1 className="text-lg sm:text-xl font-bold text-white">{welcomeTitle}</h1>
+              <p className="text-white/80 text-sm">{welcomeSubtitle || contractor.name}</p>
             </div>
           </div>
           <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${status.color}`}>
             <StatusIcon className="w-3.5 h-3.5" />
             {status.label}
           </div>
+          {branding?.intro_message && (
+            <p className="text-white/85 text-sm mt-3 max-w-2xl">{branding.intro_message}</p>
+          )}
         </div>
       </div>
 
@@ -349,4 +383,13 @@ function Field({ label, children }) {
       {children}
     </div>
   );
+}
+
+// Lighten/darken a hex colour by a percentage (-100..100)
+function shadeHex(hex, percent) {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.max(0, Math.min(255, (num >> 16) + Math.round(255 * percent / 100)));
+  const g = Math.max(0, Math.min(255, ((num >> 8) & 0xff) + Math.round(255 * percent / 100)));
+  const b = Math.max(0, Math.min(255, (num & 0xff) + Math.round(255 * percent / 100)));
+  return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
 }

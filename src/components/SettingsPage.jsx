@@ -8,6 +8,7 @@ import AbsenceManager from '@/components/AbsenceManager';
 import EmailAlertsSettings from '@/components/EmailAlertsSettings';
 import GlobalBrandingSettings from '@/components/GlobalBrandingSettings';
 import LoginBrandingSettings from '@/components/settings/LoginBrandingSettings';
+import PortalBrandingEditor from '@/components/settings/PortalBrandingEditor';
 import SupplierManager from '@/components/SupplierManager';
 import OvertimeRatesManager from '@/components/OvertimeRatesManager';
 import BusinessConfigManager from '@/components/BusinessConfigManager';
@@ -122,6 +123,7 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'email-alerts': return <EmailAlertsSettings />;
       case 'global-branding': return <GlobalBrandingSettings />;
       case 'login-branding': return <LoginBrandingSettings />;
+      case 'portal-branding': return <PortalBrandingEditor />;
       case 'automations': return <AutomationCenter />;
       case 'job-types': return <JobTypeManager />;
       case 'dropdowns': return <DropdownConfigManager />;

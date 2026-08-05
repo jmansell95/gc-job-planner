@@ -92,6 +92,7 @@ export const settingsGroups = [
     items: [
       { id: 'global-branding', label: 'Global Branding', icon: Palette, desc: 'Default colours, banner and footer for all automated emails' },
       { id: 'login-branding', label: 'Login Page Customizer', icon: Palette, desc: 'Customise the staff login page — background, colours, logo, welcome text & live preview', roles: ['admin'] },
+      { id: 'portal-branding', label: 'Portal Branding Editor', icon: Palette, desc: 'Customise the client portal & sub-contractor onboarding portal — welcome text, logo, colours, support contacts & live preview', roles: ['admin'] },
       { id: 'email-alerts', label: 'Email Alerts', icon: Mail, desc: 'Edit templates, recipients and timing for each automated email' },
     ],
   },

@@ -1,0 +1,85 @@
+{
+  "name": "PortalBranding",
+  "type": "object",
+  "properties": {
+    "portal_type": {
+      "type": "string",
+      "enum": [
+        "client_portal",
+        "subcontractor_onboarding"
+      ],
+      "description": "Which portal this branding record configures. Singleton per type."
+    },
+    "welcome_title": {
+      "type": "string",
+      "default": "",
+      "description": "Heading shown at the top of the portal. Blank falls back to the portal default."
+    },
+    "welcome_subtitle": {
+      "type": "string",
+      "default": "",
+      "description": "Subheading shown beneath the welcome title."
+    },
+    "accent_color": {
+      "type": "string",
+      "default": "#2E5A1A",
+      "description": "Hex colour used for the portal hero gradient, buttons and accents."
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "URL of the company logo shown in the portal header."
+    },
+    "logo_name": {
+      "type": "string",
+      "description": "Original filename of the uploaded logo."
+    },
+    "show_logo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to show the uploaded logo in the portal header."
+    },
+    "footer_text": {
+      "type": "string",
+      "default": "Ground Control",
+      "description": "Text shown in the portal footer."
+    },
+    "support_phone": {
+      "type": "string",
+      "description": "Contact phone number shown to portal visitors for support."
+    },
+    "support_email": {
+      "type": "string",
+      "description": "Contact email shown to portal visitors for support."
+    },
+    "intro_message": {
+      "type": "string",
+      "description": "Intro paragraph shown beneath the welcome heading (e.g. instructions for the onboarding form)."
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Master toggle. When false, the portal shows a 'temporarily unavailable' message."
+    }
+  },
+  "required": [
+    "portal_type"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
