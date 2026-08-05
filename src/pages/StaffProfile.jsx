@@ -219,9 +219,9 @@ export default function StaffProfile() {
         {/* Quick Stats — always visible */}
         <ProfileStats staffId={staff.id} jobType={staff.team?.job_type} />
 
-        {/* Tab Bar */}
+        {/* Tab Bar — horizontal scroll on mobile, grid on desktop */}
         <div className="sticky top-0 z-20 -mx-4 md:-mx-6 px-4 md:px-6 pt-3 pb-2 bg-slate-50/95 backdrop-blur-md mt-5">
-          <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+          <div className="flex md:grid md:grid-cols-7 gap-1.5 sm:gap-1.5 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1 md:pb-0">
             {[
               { key: 'performance', label: 'Performance', icon: TrendingUp },
               { key: 'incentives', label: 'Incentives', icon: Trophy },
@@ -236,13 +236,13 @@ export default function StaffProfile() {
               const disabled = tab.key === 'crew' && !staff.team_id;
               return (
                 <button key={tab.key} onClick={() => !disabled && setActiveTab(tab.key)} type="button" disabled={disabled}
-                  className={`flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 px-1 sm:px-3 py-2 rounded-xl sm:rounded-full text-[11px] sm:text-sm font-semibold transition touch-manipulation ${
+                  className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition touch-manipulation whitespace-nowrap flex-shrink-0 ${
                     isActive ? 'bg-[#2E5A1A] text-white shadow-sm' :
                     disabled ? 'bg-slate-100 text-slate-300' :
                     'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
                   }`}>
                   <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="leading-tight text-center">{tab.label}</span>
+                  <span className="leading-tight">{tab.label}</span>
                 </button>
               );
             })}

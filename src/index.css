@@ -305,8 +305,26 @@
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* === Mobile Overflow Guard ===
+     Prevents horizontal page scroll caused by wide tables/grids on phones.
+     Applied globally so every page is mobile-safe without per-component fixes. */
+  @media (max-width: 639px) {
+    html, body { overflow-x: hidden; max-width: 100vw; }
+    table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+    /* Allow inner scroll containers to scroll horizontally without breaking page layout */
+    .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+  }
+
+  /* Long text wraps instead of stretching containers on mobile */
+  @media (max-width: 639px) {
+    .break-words-mobile { word-break: break-word; overflow-wrap: anywhere; }
+  }
 }
 
 /* Leaflet map — ensure it renders above dashboard widgets but below modals */

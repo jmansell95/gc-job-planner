@@ -149,16 +149,21 @@ CRITICAL: Only return a motExpiryDate if it is a FUTURE date (after today, ${new
   };
   const fuelType = fuelMap[fuelRaw] || 'unknown';
 
-  // LLM web search results take priority over VIN-decoded values.
-  // Only update MOT expiry if we got a valid future date — never overwrite
-  // a good existing MOT expiry with null/bad data.
+  // ── MANUAL OVERRIDE PROTECTION ──
+  // Never overwrite a field that a user has manually set. The LLM web search
+  // can return wrong make/model (e.g. "Tesla" for a Land Rover plate), so we
+  // only fill fields that are currently empty. This preserves manual
+  // corrections and stops bad lookups from clobbering good data.
   const update: any = {};
-  if (make) update.make = make;
-  if (model) update.model = model;
-  if (fuelType && fuelType !== 'unknown') update.fuel_type = fuelType;
-  if (colour) update.color = colour;
-  if (motValid && motExpiry) update.mot_expiry = motExpiry;
-  if (year) update.year = year;
+  if (make && !vehicle.make) update.make = make;
+  if (model && !vehicle.model) update.model = model;
+  if (fuelType && fuelType !== 'unknown' && (!vehicle.fuel_type || vehicle.fuel_type === 'unknown')) update.fuel_type = fuelType;
+  if (colour && !vehicle.color) update.color = colour;
+  // MOT: only update if we got a valid future date AND the existing expiry is
+  // earlier (or missing). Never overwrite a later manual MOT with an earlier
+  // LLM-sourced one.
+  if (motValid && motExpiry && (!vehicle.mot_expiry || motExpiry > vehicle.mot_expiry)) update.mot_expiry = motExpiry;
+  if (year && !vehicle.year) update.year = year;
 
   if (Object.keys(update).length > 0) {
     await base44.asServiceRole.entities.Vehicle.update(vehicle.id, update);
