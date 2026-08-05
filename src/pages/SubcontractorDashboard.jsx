@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { HardHat, Send, CheckCircle2, Clock, LogOut, HelpCircle, Loader2 } from 'lucide-react';
+import { HardHat, Send, CheckCircle2, Clock, Loader2 } from 'lucide-react';
 import SubcontractorLogForm from '@/components/staff/SubcontractorLogForm';
 import SubconDelayReport from '@/components/subcontractors/SubconDelayReport';
 import SyncHUD from '@/components/staff/SyncHUD';
@@ -15,7 +14,6 @@ import PageHeader from '@/components/PageHeader';
 // Sub-contractors log their day (including metres drilled), see their weekly
 // progress, and trust the Sync HUD that their data reached the office.
 export default function SubcontractorDashboard() {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [staff, setStaff] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,10 +40,6 @@ export default function SubcontractorDashboard() {
     queryFn: () => base44.entities.InvestigationLog.filter({ staff_id: staff.id, crew_type: 'subcontractor' }),
     enabled: !!staff?.id,
   });
-
-  const handleLogout = async () => {
-    try { await base44.auth.logout('/login'); } catch (e) { window.location.href = '/login'; }
-  };
 
   if (loading) {
     return (

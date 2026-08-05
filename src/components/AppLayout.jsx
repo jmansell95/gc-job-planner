@@ -1,7 +1,6 @@
 import React from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AdminNav from '@/components/AdminNav';
-import Breadcrumbs from '@/components/Breadcrumbs';
 
 // Maps standalone routes to the closest AdminNav section so the
 // sidebar highlights the right item when on a non-dashboard page.
@@ -27,8 +26,8 @@ const ROUTE_SECTION_MAP = {
 /**
  * Shared layout that gives every authenticated page the admin sidebar
  * (desktop) and the fixed mobile header with hamburger drawer (mobile).
- * Pages that already render their own AdminNav (AdminDashboard, RigHub,
- * Vehicles) are NOT wrapped by this layout — they manage their own nav.
+ * AdminDashboard manages its own AdminNav; all other admin pages use this
+ * layout via the router.
  */
 export default function AppLayout() {
   const location = useLocation();
@@ -48,7 +47,6 @@ export default function AppLayout() {
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="px-4 pb-4 md:px-6 md:pb-6 lg:pt-6 w-full">
-          <Breadcrumbs />
           <Outlet />
         </div>
       </main>

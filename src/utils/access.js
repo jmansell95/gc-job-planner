@@ -10,9 +10,9 @@ import { SECTION_TO_MODULE, normalizePermissions, resolveModuleLevel, canWriteMo
 // assigned permission group). When a permission group IS assigned, these are
 // bypassed in favour of the group's per-module permissions.
 export const ROLE_SECTIONS = {
-  super_admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety-hub', 'fleet', 'vehicles', 'project-financials'],
-  admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety-hub', 'fleet', 'inventory', 'vehicles', 'project-financials'],
-  management: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'billing', 'safety-hub', 'fleet', 'inventory', 'vehicles', 'project-financials'],
+  super_admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety', 'safety-hub', 'assets', 'vehicles', 'project-financials'],
+  admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety', 'safety-hub', 'assets', 'vehicles', 'project-financials'],
+  management: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'billing', 'safety', 'safety-hub', 'assets', 'vehicles', 'project-financials'],
   user: ['overview', 'jobs', 'calendar', 'logistics', 'audit-trail'],
   read_only: ['overview', 'jobs', 'calendar', 'logistics', 'audit-trail'],
 };

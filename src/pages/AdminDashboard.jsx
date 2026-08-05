@@ -25,11 +25,13 @@ const SECTION_LABELS = {
   timesheets: 'Timesheets',
   teams: 'Teams',
   compliance: 'Compliance',
+  safety: 'Safety',
   'safety-hub': 'Safety Hub',
   'log-qc': 'Log Quality Control',
   billing: 'Billing',
   settings: 'Settings',
-  inventory: 'Asset Inventory',
+  assets: 'Asset Hub',
+  vehicles: 'Vehicles',
 };
 
 export default function AdminDashboard() {
