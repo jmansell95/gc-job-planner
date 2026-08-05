@@ -164,6 +164,8 @@ export default function VehicleMaintenanceManager() {
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
   const [showNumbers, setShowNumbers] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [autoRunning, setAutoRunning] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -230,11 +232,16 @@ export default function VehicleMaintenanceManager() {
     toast({ title: 'Booking deleted' });
   };
 
-  // Filter by vehicle + status
+  // Filter by vehicle + status + date range
   const vehicleFiltered = selectedVehicleId ? bookings.filter(b => b.vehicle_id === selectedVehicleId) : bookings;
-  const statusFiltered = statusFilter === 'all' ? vehicleFiltered
-    : statusFilter === 'overdue' ? vehicleFiltered.filter(b => ['requested', 'booked'].includes(b.status) && b.booking_date && b.booking_date < new Date().toISOString().slice(0, 10))
-    : vehicleFiltered.filter(b => b.status === statusFilter);
+  const dateFiltered = vehicleFiltered.filter(b => {
+    if (dateFrom && b.booking_date && b.booking_date < dateFrom) return false;
+    if (dateTo && b.booking_date && b.booking_date > dateTo) return false;
+    return true;
+  });
+  const statusFiltered = statusFilter === 'all' ? dateFiltered
+    : statusFilter === 'overdue' ? dateFiltered.filter(b => ['requested', 'booked'].includes(b.status) && b.booking_date && b.booking_date < new Date().toISOString().slice(0, 10))
+    : dateFiltered.filter(b => b.status === statusFilter);
 
   const upcoming = statusFiltered.filter(b => ['requested', 'booked', 'in_progress'].includes(b.status));
   const past = statusFiltered.filter(b => ['completed', 'cancelled'].includes(b.status));
@@ -366,8 +373,8 @@ export default function VehicleMaintenanceManager() {
       {/* Stats summary */}
       <StatsBar bookings={bookings} />
 
-      {/* Status filter pills */}
-      <div className="flex gap-1.5 mb-4 flex-wrap">
+      {/* Status filter pills + date range */}
+      <div className="flex gap-1.5 mb-4 flex-wrap items-center">
         {[
           { val: 'all', label: 'All' },
           { val: 'overdue', label: 'Overdue' },
@@ -381,6 +388,17 @@ export default function VehicleMaintenanceManager() {
             {opt.label}
           </button>
         ))}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-600 focus:outline-none focus:border-[#2E5A1A]" />
+          <span className="text-xs text-slate-400">→</span>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            className="px-2 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-600 focus:outline-none focus:border-[#2E5A1A]" />
+          {(dateFrom || dateTo) && (
+            <button onClick={() => { setDateFrom(''); setDateTo(''); }}
+              className="px-2 py-1.5 text-xs text-slate-400 hover:text-slate-600">Clear</button>
+          )}
+        </div>
       </div>
 
       {/* Selected vehicle context bar */}

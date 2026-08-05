@@ -25,6 +25,10 @@ export default async function(req: Request): Promise<Response> {
     const batchSize = Math.min(Number(body?.batch_size) || 3, 5);
     const offset = Number(body?.offset) || 0;
     const singleVehicleId = body?.vehicle_id || null;
+    // Only look up vehicles that have been synced from Geotab — their
+    // registration number is verified accurate. Manually-entered regs are
+    // skipped to avoid looking up wrong plates and pulling bad MOT data.
+    const geotabOnly = body?.geotab_only !== false;
 
     // Single-vehicle mode: synchronous, returns results
     if (singleVehicleId) {
@@ -38,7 +42,11 @@ export default async function(req: Request): Promise<Response> {
 
     // Batch mode — process N vehicles starting from offset
     const allVehicles = await base44.asServiceRole.entities.Vehicle.list('-created_date', 500);
-    const withReg = allVehicles.filter((v: any) => v.registration_number);
+    const withReg = allVehicles.filter((v: any) => {
+      if (!v.registration_number) return false;
+      if (geotabOnly && v.geotab_sync_status !== 'synced' && !v.geotab_device_id) return false;
+      return true;
+    });
     const batch = withReg.slice(offset, offset + batchSize);
 
     const results: any[] = [];
@@ -76,17 +84,19 @@ export default async function(req: Request): Promise<Response> {
 async function lookupAndSync(base44: any, vehicle: any): Promise<any> {
   const reg = vehicle.registration_number;
 
-  const prompt = `Look up the UK vehicle with registration plate "${reg}". 
-Search for this vehicle's details on public vehicle check websites (like DVLA vehicle enquiry, vehicle smart, or similar UK vehicle databases).
-Return the following information if available:
-- make: the vehicle manufacturer
-- model: the vehicle model name
-- fuelType: the fuel type (diesel, petrol, hybrid, electric, lpg, cng)
-- colour: the vehicle's registered colour
-- motExpiryDate: the MOT expiry date in YYYY-MM-DD format (or null if not available)
+  const prompt = `Look up the UK vehicle with registration plate "${reg}" on the DVLA vehicle enquiry service or vehicle smart.
+Return ONLY verified data from official UK vehicle databases. Do NOT guess or fabricate data.
+
+Return the following fields:
+- make: the vehicle manufacturer (string, or null if not found)
+- model: the vehicle model name (string, or null if not found)
+- fuelType: one of diesel, petrol, hybrid, electric, lpg, cng, unknown
+- colour: the vehicle's registered colour (string, or null if not found)
+- motExpiryDate: the MOT expiry date in YYYY-MM-DD format. ONLY return a date if the vehicle has a VALID, CURRENT MOT. If the MOT has expired or failed, return null. Do not return past dates.
+- motStatus: "valid" if the vehicle has a current valid MOT, "expired" if the MOT has lapsed, "unknown" if not found
 - year: the year of manufacture (number, or null)
 
-If you cannot find the vehicle or any specific field, return null for that field. Only return data you are confident about from the search results.`;
+CRITICAL: Only return a motExpiryDate if it is a FUTURE date (after today, ${new Date().toISOString().slice(0, 10)}). If the MOT has expired or you cannot confirm a valid MOT, set motExpiryDate to null and motStatus to "expired" or "unknown". Never fabricate a date.`;
 
   const llmRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
     prompt,
@@ -100,6 +110,7 @@ If you cannot find the vehicle or any specific field, return null for that field
         fuelType: { type: 'string', enum: ['diesel', 'petrol', 'hybrid', 'electric', 'lpg', 'cng', 'unknown'] },
         colour: { type: 'string' },
         motExpiryDate: { type: 'string' },
+        motStatus: { type: 'string', enum: ['valid', 'expired', 'unknown'] },
         year: { type: 'number' },
       },
     },
@@ -110,8 +121,25 @@ If you cannot find the vehicle or any specific field, return null for that field
   const model = data?.model || null;
   const fuelRaw = (data?.fuelType || 'unknown').toLowerCase();
   const colour = data?.colour || null;
-  const motExpiry = data?.motExpiryDate || null;
+  const motStatus = data?.motStatus || 'unknown';
+  let motExpiry = data?.motExpiryDate || null;
   const year = data?.year || null;
+
+  // ── MOT VALIDATION ──
+  // Only accept MOT expiry if: (1) it's a valid YYYY-MM-DD date, (2) it's
+  // in the future, and (3) the LLM confirmed motStatus as "valid". This
+  // prevents pulling expired/failed MOT dates and overwriting good data.
+  const todayStr = new Date().toISOString().slice(0, 10);
+  let motValid = false;
+  if (motExpiry && /^\d{4}-\d{2}-\d{2}$/.test(motExpiry)) {
+    if (motExpiry > todayStr && motStatus !== 'expired') {
+      motValid = true;
+    } else {
+      motExpiry = null; // reject expired/past dates
+    }
+  } else {
+    motExpiry = null;
+  }
 
   const fuelMap: Record<string, string> = {
     diesel: 'diesel', petrol: 'petrol', hybrid: 'hybrid',
@@ -121,25 +149,26 @@ If you cannot find the vehicle or any specific field, return null for that field
   };
   const fuelType = fuelMap[fuelRaw] || 'unknown';
 
-  // LLM web search results take priority over VIN-decoded values
+  // LLM web search results take priority over VIN-decoded values.
+  // Only update MOT expiry if we got a valid future date — never overwrite
+  // a good existing MOT expiry with null/bad data.
   const update: any = {};
   if (make) update.make = make;
   if (model) update.model = model;
   if (fuelType && fuelType !== 'unknown') update.fuel_type = fuelType;
   if (colour) update.color = colour;
-  if (motExpiry) update.mot_expiry = motExpiry;
+  if (motValid && motExpiry) update.mot_expiry = motExpiry;
   if (year) update.year = year;
 
   if (Object.keys(update).length > 0) {
     await base44.asServiceRole.entities.Vehicle.update(vehicle.id, update);
   }
 
-  // Record MOT history when a new MOT expiry is detected that differs from
-  // the previous one — this builds a pass/fail timeline over time. We treat
-  // a newly-discovered expiry as a "pass" (the vehicle has a valid MOT).
-  if (motExpiry && motExpiry !== vehicle.mot_expiry) {
+  // Record MOT history ONLY when we have a valid future MOT expiry that
+  // differs from the existing one. This prevents recording "fail" entries
+  // from bad LLM responses and builds a clean pass timeline over time.
+  if (motValid && motExpiry && motExpiry !== vehicle.mot_expiry) {
     try {
-      // Check if we already have a history record for this expiry date
       const existing = await base44.asServiceRole.entities.VehicleMOTHistory.filter({
         vehicle_id: vehicle.id,
         expiry_date: motExpiry,
@@ -157,5 +186,5 @@ If you cannot find the vehicle or any specific field, return null for that field
     } catch (_) { /* don't fail the sync if history recording fails */ }
   }
 
-  return { reg, updated: Object.keys(update), make, model, fuelType, colour, motExpiry, year };
+  return { reg, updated: Object.keys(update), make, model, fuelType, colour, motExpiry, motStatus, year };
 }

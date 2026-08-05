@@ -13,21 +13,15 @@ export default function GeotabReportModal({ onClose }) {
       const res = await base44.functions.invoke('getVehicleLocationHistory', {
         mode: 'report',
         limit: 2000,
+        from_date: fromDate || undefined,
+        to_date: toDate || undefined,
       });
       return res.data || res;
     },
   });
 
   const vehicles = report?.vehicles || [];
-
-  const filtered = useMemo(() => {
-    if (!fromDate && !toDate) return vehicles;
-    return vehicles.filter(v => {
-      if (fromDate && v.last_seen && v.last_seen < fromDate) return false;
-      if (toDate && v.last_seen && v.last_seen > toDate + 'T23:59:59') return false;
-      return true;
-    });
-  }, [vehicles, fromDate, toDate]);
+  const filtered = vehicles;
 
   const handleExport = () => {
     const headers = ['Registration', 'Vehicle Name', 'Total Readings', 'Distance (km)', 'Last Seen', 'Last Position', 'Speed (km/h)', 'Engine', 'Driver'];

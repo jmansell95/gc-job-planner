@@ -167,14 +167,39 @@ export default async function(req: Request): Promise<Response> {
       //   maximumSpeed: km/h (not maxSpeed)
       //   odometer: meters
       //   No startPoint/endPoint — coordinates come from LogRecord breadcrumbs
-      // Reverse geocode helper — uses free Nominatim (OpenStreetMap) API.
-      // Returns a short location label like "M1, Luton" or "High Street, Dartford".
-      // Cached per-request to avoid repeated lookups for the same coordinates.
+      // Reverse geocode helper — uses BigDataCloud's free reverse geocoding
+      // API (no rate limit, no API key required) as primary, with Nominatim
+      // (OpenStreetMap) as fallback. Returns a short location label like
+      // "High Street, Luton" or "M1, Dartford". Cached per-request.
       const geocodeCache: Record<string, string> = {};
       async function reverseGeocode(lat: number, lng: number): Promise<string> {
         if (lat == null || lng == null) return 'Unknown location';
         const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
         if (geocodeCache[key]) return geocodeCache[key];
+
+        // Primary: BigDataCloud (free, no rate limit, no API key)
+        try {
+          const res = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`,
+            { headers: { 'Accept': 'application/json' } }
+          ).catch(() => null);
+          if (res && res.ok) {
+            const json = await res.json().catch(() => null);
+            if (json) {
+              const road = json.streetName || json.principalSubdivision || '';
+              const suburb = json.locality || json.subLocality || json.neighbourhood || '';
+              const town = json.city || json.principalSubdivision || json.countryName || '';
+              const parts = [road, suburb, town].filter(Boolean);
+              const label = parts.length > 0 ? parts.join(', ') : (json.locality || json.city || 'Unknown location');
+              if (label && label !== 'Unknown location') {
+                geocodeCache[key] = label;
+                return label;
+              }
+            }
+          }
+        } catch (_) {}
+
+        // Fallback: Nominatim (OpenStreetMap)
         try {
           const res = await fetch(
             `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lng=${lng}&format=json&zoom=14&addressdetails=1`,
@@ -183,7 +208,6 @@ export default async function(req: Request): Promise<Response> {
           if (res && res.ok) {
             const json = await res.json().catch(() => null);
             const addr = json?.address || {};
-            // Build a short, human-readable label from the address components
             const road = addr.road || addr.pedestrian || addr.path || '';
             const suburb = addr.suburb || addr.neighbourhood || addr.hamlet || '';
             const town = addr.town || addr.city || addr.village || addr.county || '';
@@ -193,6 +217,7 @@ export default async function(req: Request): Promise<Response> {
             return label;
           }
         } catch (_) {}
+
         geocodeCache[key] = 'Unknown location';
         return 'Unknown location';
       }
@@ -272,31 +297,24 @@ export default async function(req: Request): Promise<Response> {
         // Detect stops within the trip
         const stops = detectStops(tripCrumbs, startTime, endTime);
 
-        // Reverse geocode start, end, and each stop (limited to keep API calls reasonable)
+        // Reverse geocode start and end only (BigDataCloud has no rate limit,
+        // so no sleep needed). Stops are geocoded without rate-limit delays too.
         let startLocation = 'Unknown location';
         let endLocation = 'Unknown location';
         if (startCrumb?.lat != null) {
           startLocation = await reverseGeocode(startCrumb.lat, startCrumb.lng);
-          await sleep(1100); // respect Nominatim 1 req/sec rate limit
         }
         if (endCrumb?.lat != null && endCrumb !== startCrumb) {
           endLocation = await reverseGeocode(endCrumb.lat, endCrumb.lng);
-          await sleep(1100);
         } else if (endCrumb?.lat != null) {
           endLocation = startLocation;
         }
 
-        // Geocode stops (max 3 per trip to respect rate limits)
+        // Geocode all stops (BigDataCloud has no rate limit)
         const geocodedStops: any[] = [];
-        for (let i = 0; i < Math.min(stops.length, 3); i++) {
-          const s = stops[i];
+        for (const s of stops) {
           const label = s.lat != null ? await reverseGeocode(s.lat, s.lng) : 'Unknown location';
           geocodedStops.push({ ...s, location: label });
-          await sleep(1100);
-        }
-        // Remaining stops without geocoding
-        for (let i = 3; i < stops.length; i++) {
-          geocodedStops.push({ ...stops[i], location: 'Unknown location' });
         }
 
         formattedTrips.push({
@@ -391,9 +409,18 @@ export default async function(req: Request): Promise<Response> {
     }
 
     if (mode === 'report') {
+      const fromDate = body.from_date;
+      const toDate = body.to_date;
       const allLogs = await base44.asServiceRole.entities.VehicleLocationLog.list('-timestamp', limit);
+      // Filter by date range server-side when provided
+      const dateFiltered = allLogs.filter((l: any) => {
+        const ts = l.timestamp || '';
+        if (fromDate && ts < fromDate) return false;
+        if (toDate && ts > toDate + 'T23:59:59') return false;
+        return true;
+      });
       const byVehicle: Record<string, any[]> = {};
-      for (const log of allLogs) {
+      for (const log of dateFiltered) {
         const vid = log.vehicle_id || log.registration_number;
         if (!byVehicle[vid]) byVehicle[vid] = [];
         byVehicle[vid].push(log);
