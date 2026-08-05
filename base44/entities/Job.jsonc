@@ -14,6 +14,14 @@
       "type": "string",
       "description": "Internal job reference or PO number"
     },
+    "depends_on_job_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "IDs of prerequisite jobs that must be completed (or cancelled) before this job can start. Used for job sequencing \u2014 the Job Dependency Manager shows a warning banner on the job detail when any dependency is not yet complete."
+    },
     "location": {
       "type": "string",
       "description": "Site location/address"

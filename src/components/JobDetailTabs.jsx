@@ -32,6 +32,7 @@ import DelayLogManager from '@/components/DelayLogManager';
 import RigCompliancePanel from '@/components/RigCompliancePanel';
 import JobHazardMap from '@/components/JobHazardMap';
 import JobContextView from '@/components/JobContextView';
+import JobDependencyManager from '@/components/JobDependencyManager';
 import TabStatRibbon from '@/components/TabStatRibbon';
 import { getJobTypeLabel } from '@/utils/jobTeams';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -104,7 +105,7 @@ export default function JobDetailTabs({
       </div>
 
       {/* ── Context Tab (multi-pane high-density view) ── */}
-      <TabsContent value="context" className="mt-0">
+      <TabsContent value="context" className="mt-0 space-y-4">
         <JobContextView
         job={job}
         primaryType={primaryType}
@@ -128,6 +129,7 @@ export default function JobDetailTabs({
         onProjectClick={onProjectClick}
         jobTypes={jobTypes}
         />
+        <JobDependencyManager job={job} />
       </TabsContent>
 
       {/* ── Schedule Tab ── */}
