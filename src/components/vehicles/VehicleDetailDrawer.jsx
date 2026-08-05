@@ -73,7 +73,8 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
     queryFn: async () => {
       const res = await base44.functions.invoke('getVehicleLocationHistory', { mode: 'live', limit: 500 });
       const data = res?.data ?? res;
-      return Array.isArray(data) ? data : (Array.isArray(data?.locations) ? data.locations : []);
+      const arr = Array.isArray(data) ? data : (Array.isArray(data?.vehicles) ? data.vehicles : (Array.isArray(data?.locations) ? data.locations : []));
+      return arr;
     },
     enabled: !!vehicle,
     refetchInterval: 30000,
