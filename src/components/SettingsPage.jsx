@@ -55,6 +55,7 @@ import GoogleMapsSettings from '@/components/settings/GoogleMapsSettings';
 import WhatsAppSettings from '@/components/settings/WhatsAppSettings';
 import AccountingSyncSettings from '@/components/settings/AccountingSyncSettings';
 import PaymentGatewaySettings from '@/components/settings/PaymentGatewaySettings';
+import CustomReportBuilder from '@/components/reports/CustomReportBuilder';
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -139,6 +140,7 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'safety-culture': return <SafetyCultureSettings />;
       case 'demo-data': return <DemoDataManager />;
       case 'system-guide': return <SystemLogicGuide />;
+      case 'custom-reports': return <CustomReportBuilder />;
       case 'expense-presets': return <ExpensePresetManager />;
       case 'concur-sync': return <ConcurSyncSettings />;
       case 'subcon-markup': return <SubconMarkupRules />;
