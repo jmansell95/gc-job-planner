@@ -189,13 +189,18 @@ function hasForceCompleteMarker(jobName) {
 // Determine job status from its assignment dates:
 //   force-complete marker  → completed (explicit planner override)
 //   no dates               → planning
+//   has subcontractors     → in_progress (subcon jobs stay active until [DONE])
 //   no activity in 30 days → completed (stale — not worked recently)
 //   any today/future        → in_progress (actively being worked)
-// The 30-day inactivity rule prevents old jobs with only historical dates from
-// being held open indefinitely just because they still appear in the planner.
-function determineJobStatus(dates, jobName) {
+// Subcontractor jobs don't follow the weekly rota pattern of direct staff —
+// a subcon crew can be on a job for months without a new rota entry being
+// added each week. So the 30-day stale rule only applies to direct-staff
+// jobs; subcon jobs remain active until the planner marks them [DONE].
+function determineJobStatus(dates, jobName, hasSubbies) {
   if (hasForceCompleteMarker(jobName)) return 'completed';
   if (!dates || dates.length === 0) return 'planning';
+  // Jobs with subcontractors stay active until explicitly marked complete.
+  if (hasSubbies) return 'in_progress';
   const sorted = [...dates].sort();
   const lastDate = sorted[sorted.length - 1];
   // Stale threshold: 30 days ago. If the last assignment was before this, the
@@ -1074,6 +1079,19 @@ export default async function(req) {
       }
     }
 
+    // Build a map of which master jobs have subcontractor/agency assignments.
+    // This feeds determineJobStatus so subcon-only jobs (like Kingsnorth Power
+    // Station) stay 'in_progress' instead of being marked 'completed' by the
+    // 30-day stale rule — subcon crews don't get weekly rota entries.
+    const jobHasSubbies = {};
+    for (const a of allAssignments) {
+      if (!a.job_name) continue;
+      const baseKey = keyToMaster[extractJobBaseKey(a.job_name)] || extractJobBaseKey(a.job_name);
+      if (a.is_subcontractor_section || a.is_agency_section) {
+        jobHasSubbies[baseKey] = true;
+      }
+    }
+
     const existingJobs = []; // After full wipe, no existing jobs
     const jobByName = new Map();
     const jobByReference = new Map();
@@ -1092,7 +1110,7 @@ export default async function(req) {
       const rawName = jobNameByBaseKey[baseKey];
       const parsed = parseJobName(rawName);
       const jobDates = (jobDatesByBaseKey[baseKey] || []).sort();
-      const jobStatus = determineJobStatus(jobDates, rawName);
+      const jobStatus = determineJobStatus(jobDates, rawName, jobHasSubbies[baseKey]);
 
       let job = null;
       if (parsed.job_reference) job = jobByReference.get(parsed.job_reference.toLowerCase());
@@ -1663,7 +1681,7 @@ export default async function(req) {
         name: parsed.name,
         reference: parsed.job_reference || '',
         location: parsed.location || '',
-        status: determineJobStatus(dates, rawName),
+        status: determineJobStatus(dates, rawName, jobHasSubbies[key]),
         start_date: dates.length ? dates[0] : '',
         end_date: dates.length ? dates[dates.length - 1] : '',
         assignment_count: dates.length,
