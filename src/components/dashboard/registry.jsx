@@ -1,4 +1,4 @@
-import { Truck, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Boxes, Sparkles, TrendingUp, HardHat, Activity, LayoutDashboard, MapPin, FileClock, FolderKanban, AlertTriangle, Scale, ClipboardCheck, Gauge, ShieldAlert, Brain, Navigation, AlertOctagon } from 'lucide-react';
+import { Truck, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Boxes, Sparkles, TrendingUp, HardHat, Activity, LayoutDashboard, MapPin, FileClock, FolderKanban, AlertTriangle, Scale, ClipboardCheck, Gauge, ShieldAlert, Brain, Navigation, AlertOctagon, Star, Leaf } from 'lucide-react';
 
 export const WIDGET_REGISTRY = {
   'executive-snapshot': { title: 'Executive Snapshot', icon: LayoutDashboard },
@@ -31,6 +31,9 @@ export const WIDGET_REGISTRY = {
   'staff-utilization': { title: 'Staff Utilization', icon: Users },
   'asset-utilization': { title: 'Asset Utilization', icon: Activity },
   'live-site-map': { title: 'Live Site Map', icon: MapPin },
+  'client-feedback': { title: 'Client Feedback', icon: Star },
+  'audit-score-trends': { title: 'Audit Score Trends', icon: ShieldCheck },
+  'environmental-impact': { title: 'Environmental Impact', icon: Leaf },
 };
 
 export const DEFAULT_WIDGET_ORDER = [
@@ -56,6 +59,9 @@ export const DEFAULT_WIDGET_ORDER = [
   'project-financials',
   'asset-utilization',
   'live-site-map',
+  'client-feedback',
+  'audit-score-trends',
+  'environmental-impact',
 ];
 
 // Sectioned layout for the dashboard. Widgets are grouped into labelled sections
@@ -65,7 +71,8 @@ export const DEFAULT_WIDGET_ORDER = [
 export const DASHBOARD_SECTIONS = [
   { id: 'overview', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'geo-heatmap', 'live-site-map'] },
   { id: 'performance', label: 'Performance & Financials', icon: TrendingUp, widgets: ['billing-readiness', 'outstanding-receivables', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'drilling-performance', 'rig-profitability', 'unbilled-wip', 'predictive-insights', 'staff-utilization'] },
-  { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard', 'asset-utilization'] },
+  { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard', 'asset-utilization', 'audit-score-trends', 'environmental-impact'] },
+  { id: 'feedback', label: 'Client & Quality', icon: Star, widgets: ['client-feedback'] },
   { id: 'alerts', label: 'Alerts', icon: AlertTriangle, widgets: ['profitability-alerts'] },
 ];
 
@@ -104,6 +111,9 @@ export const DEFAULT_WIDGET_SIZES = {
   'staff-utilization': 'md',
   'asset-utilization': 'md',
   'live-site-map': 'lg',
+  'client-feedback': 'md',
+  'audit-score-trends': 'md',
+  'environmental-impact': 'md',
 };
 
 // Widgets that require costing permission (admin / manager only).
@@ -120,5 +130,6 @@ export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview',
 export const VIEW_PROFILES = [
   { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'drilling-performance', 'live-site-map'] },
   { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['profitability-alerts', 'outstanding-receivables', 'billing-readiness', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip', 'predictive-insights', 'staff-utilization'] },
-  { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard', 'asset-utilization'] },
+  { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard', 'asset-utilization', 'audit-score-trends', 'environmental-impact'] },
+  { id: 'feedback', label: 'Client & Quality', icon: Star, widgets: ['client-feedback'] },
 ];

@@ -31,7 +31,7 @@ const CATEGORIES = [
       { priority: 'high', title: 'Availability calendar', desc: 'Month-grid calendar in the Staff Manager showing every active staff member × day. Approved absences (holiday, sick, personal, training) are color-coded with letter badges. Navigate months, jump to today, and see at a glance who is free before assigning.', status: 'done' },
       { priority: 'high', title: 'Auto-assign crew suggestions', desc: 'CrewSuggester component ranks all active staff by a composite score: team membership (40pts), availability — no approved absence overlap (30pts), valid certs — CSCS/CPCS/First Aid (20pts), and past rota experience (10pts). Shows badges for each factor and one-click assign.', status: 'done' },
       { priority: 'medium', title: 'Staff utilization analytics', desc: 'Staff Utilization widget on the dashboard shows billable vs non-billable hours per staff member for the current week, with an overall utilization rate and color-coded progress bars. Sits in the Performance & Financials section and the Financials view profile.', status: 'done' },
-      { priority: 'medium', title: 'Digital ID cards with QR codes', desc: 'Generate scannable ID cards for site access and contractor verification.' },
+      { priority: 'medium', title: 'Digital ID cards with QR codes', desc: 'ID Cards button in the Staff Manager opens a digital ID card generator. Select any active staff member to preview a branded, credit-card-sized ID with their photo, name, role, team, and a QR code encoding their identity details. Print the card or download the QR code for site access verification.', status: 'done' },
       { priority: 'low', title: 'Performance reviews & feedback', desc: 'Periodic review workflow with manager feedback, goals, and signed acknowledgements.' },
     ],
   },
@@ -80,8 +80,8 @@ const CATEGORIES = [
       { priority: 'high', title: 'RAMS document management', desc: 'RAMS Manager tab in the Compliance Hub shows all RAMS, method statements, and risk assessments across every job. JobDocument now tracks version numbers (current vs superseded), manager sign-off (who/when), and valid-until dates with expiry flags. Filter by signed/unsigned/expired, search by job or filename, one-click sign-off.', status: 'done' },
       { priority: 'high', title: 'Incident & near-miss reporting', desc: 'New Incidents tab in the Safety Hub for mobile-first incident reporting. Classify by type (near-miss, incident, accident, dangerous occurrence, environmental) and severity (low → critical). Captures description, immediate action, root cause, RIDDOR flag with reference tracking, and corrective actions. Expandable cards with full audit trail.', status: 'done' },
       { priority: 'medium', title: 'Toolbox talk delivery & sign-off', desc: 'Toolbox Talks tab in the Safety Hub lets supervisors schedule talks by category (drilling, groundworks, manual handling, plant, environmental, health), link to a job or yard, select attendees from active staff, and record delivery with duration and follow-up actions. Stats show total talks, delivered count, and total attendees.', status: 'done' },
-      { priority: 'medium', title: 'SafetyCulture audit score tracking', desc: 'Pull audit scores from SafetyCulture and display trends per site, per crew, per category.' },
-      { priority: 'low', title: 'Environmental impact reporting', desc: 'Track waste, carbon, and environmental compliance per job for client reporting.' },
+      { priority: 'medium', title: 'SafetyCulture audit score tracking', desc: 'Audit Score Trends widget on the dashboard shows pass rate, average score, and failed audit count from synced SafetyCulture data. Displays an improving/declining trend indicator and a breakdown by audit template type with per-type pass rates and average scores.', status: 'done' },
+      { priority: 'low', title: 'Environmental impact reporting', desc: 'Environmental Impact widget on the dashboard tracks waste (recycled vs landfill), carbon emissions (CO₂e), fuel, water, energy, spoil reuse rate, and environmental incidents across all jobs. Recycling rate and spoil reuse rate shown as progress bars. Data is recorded per job via the EnvironmentalReport entity.', status: 'done' },
     ],
   },
   {
@@ -121,7 +121,7 @@ const CATEGORIES = [
       { priority: 'high', title: 'Automated progress reports via email', desc: 'sendWeeklyProgressReport function compiles a per-job summary (status, schedule, meterage progress, milestones, recent site photos, billing totals) and emails it to the client contact. Scheduled automation runs every Monday at 8 AM for all portal-enabled, non-completed jobs. Can also be triggered manually for a single job.', status: 'done' },
       { priority: 'medium', title: 'Document sharing with version control', desc: 'Share reports, drawings, and certifications with version history and client download tracking.' },
       { priority: 'medium', title: 'Photo gallery with time-lapse', desc: 'Time-Lapse toggle on the Site Photos gallery shows all job photos in chronological order with a slider scrubber, auto-play, and a thumbnail strip. Overlay shows date, location, and caption for each frame.', status: 'done' },
-      { priority: 'low', title: 'Client feedback & rating system', desc: 'Collect client satisfaction ratings after job completion with NPS scoring.' },
+      { priority: 'low', title: 'Client feedback & rating system', desc: 'Client Feedback widget on the dashboard shows NPS scores, average star ratings, and promoter/passive/detractor breakdown. Feedback is collected via the client portal after job completion. Management can mark feedback as reviewed or actioned, with expandable cards showing full comments.', status: 'done' },
     ],
   },
   {

@@ -1,0 +1,76 @@
+{
+  "name": "ClientFeedback",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this feedback relates to."
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display)."
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Client who submitted the feedback."
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Client contact name (denormalised)."
+    },
+    "overall_rating": {
+      "type": "number",
+      "description": "Overall satisfaction rating from 1 (very dissatisfied) to 5 (very satisfied)."
+    },
+    "nps_score": {
+      "type": "number",
+      "description": "Net Promoter Score response: 0-6 = detractor, 7-8 = passive, 9-10 = promoter."
+    },
+    "communication_rating": {
+      "type": "number",
+      "description": "Rating for communication throughout the project (1-5)."
+    },
+    "quality_rating": {
+      "type": "number",
+      "description": "Rating for quality of work delivered (1-5)."
+    },
+    "timeliness_rating": {
+      "type": "number",
+      "description": "Rating for adherence to schedule (1-5)."
+    },
+    "value_rating": {
+      "type": "number",
+      "description": "Rating for value for money (1-5)."
+    },
+    "feedback_text": {
+      "type": "string",
+      "description": "Open-text feedback from the client \u2014 what went well, what could improve."
+    },
+    "would_recommend": {
+      "type": "boolean",
+      "description": "Whether the client would recommend GC to others."
+    },
+    "submitted_at": {
+      "type": "string",
+      "description": "ISO timestamp when the feedback was submitted."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "reviewed",
+        "actioned"
+      ],
+      "default": "new",
+      "description": "Internal follow-up status. 'new' = just submitted, 'reviewed' = read by management, 'actioned' = follow-up completed."
+    },
+    "response_note": {
+      "type": "string",
+      "description": "Internal note recording any follow-up action taken in response to the feedback."
+    }
+  },
+  "required": [
+    "job_id",
+    "overall_rating"
+  ]
+}

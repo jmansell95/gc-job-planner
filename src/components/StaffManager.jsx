@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, BellOff, ShieldCheck, Hotel, Truck, KeyRound, Link2, Calendar } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, BellOff, ShieldCheck, Hotel, Truck, KeyRound, Link2, Calendar, IdCard } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import StaffComplianceEditor from '@/components/staff/StaffComplianceEditor';
 import HotelBookingsManager from '@/components/staff/HotelBookingsManager';
@@ -12,6 +12,7 @@ import PrintReportButton from '@/components/PrintReportButton';
 import { CardGridSkeleton } from '@/components/StateViews';
 import StaffShiftEditor from '@/components/StaffShiftEditor';
 import AvailabilityCalendar from '@/components/staff/AvailabilityCalendar';
+import StaffIDCard from '@/components/staff/StaffIDCard';
 import { formatWorkerType } from '@/utils/format';
 import { format } from 'date-fns';
 import { useConfigLists } from '@/hooks/useConfigLists';
@@ -52,6 +53,7 @@ export default function StaffManager() {
   const [teamFilter, setTeamFilter] = useState('all');
   const [workerFilter, setWorkerFilter] = useState('all');
   const [showAvailability, setShowAvailability] = useState(false);
+  const [showIdCards, setShowIdCards] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', worker_type: 'direct_employee', team_id: '', default_vehicle_id: '', manager_id: '', email_notifications_enabled: true, delivery_dashboard_enabled: false, system_role: 'field' });
 
   const queryClient = useQueryClient();
@@ -300,6 +302,14 @@ export default function StaffManager() {
             >
               <Calendar className="w-4 h-4" /> {showAvailability ? 'Back to List' : 'Availability'}
             </button>
+            <button
+              onClick={() => setShowIdCards(!showIdCards)}
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg transition text-sm font-semibold ${
+                showIdCards ? 'bg-[#2E5A1A] text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-[#2E5A1A]/40'
+              }`}
+            >
+              <IdCard className="w-4 h-4" /> {showIdCards ? 'Back to List' : 'ID Cards'}
+            </button>
             <PrintReportButton buildHtml={buildStaffPrintHtml} label="Print" />
             <button onClick={resetForm} className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-semibold shadow-sm">
               <Plus className="w-4 h-4" /> Add Crew Member
@@ -311,6 +321,12 @@ export default function StaffManager() {
       {showAvailability && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
           <AvailabilityCalendar />
+        </div>
+      )}
+
+      {showIdCards && (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
+          <StaffIDCard />
         </div>
       )}
 

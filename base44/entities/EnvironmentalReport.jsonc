@@ -1,0 +1,77 @@
+{
+  "name": "EnvironmentalReport",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this environmental report covers."
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display)."
+    },
+    "report_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the environmental data was recorded for."
+    },
+    "waste_tonnage": {
+      "type": "number",
+      "description": "Waste generated (tonnes). Includes spoil, packaging, and general waste."
+    },
+    "waste_recycled_tonnage": {
+      "type": "number",
+      "description": "Portion of waste sent for recycling (tonnes). Used to calculate recycling rate."
+    },
+    "waste_to_landfill_tonnage": {
+      "type": "number",
+      "description": "Portion of waste sent to landfill (tonnes)."
+    },
+    "carbon_kg_co2e": {
+      "type": "number",
+      "description": "Carbon emissions in kg CO2 equivalent for the reporting period. Includes fuel, vehicle, and energy emissions."
+    },
+    "fuel_litres": {
+      "type": "number",
+      "description": "Fuel consumed (litres) \u2014 diesel for rigs, vehicles, generators."
+    },
+    "water_litres": {
+      "type": "number",
+      "description": "Water consumed (litres) for drilling, dust suppression, welfare."
+    },
+    "energy_kwh": {
+      "type": "number",
+      "description": "Electricity consumed (kWh) from site power or generators."
+    },
+    "spoil_tonnage": {
+      "type": "number",
+      "description": "Spoil / arisings generated from drilling and groundworks (tonnes)."
+    },
+    "spoil_reused_pct": {
+      "type": "number",
+      "description": "Percentage of spoil reused on site or recycled rather than sent to landfill."
+    },
+    "incidents": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of environmental incidents in the period (spills, pollution, contamination)."
+    },
+    "near_misses": {
+      "type": "number",
+      "default": 0,
+      "description": "Environmental near-misses recorded in the period."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes \u2014 mitigation measures, observations, improvement actions."
+    },
+    "recorded_by_name": {
+      "type": "string",
+      "description": "Name of the person who recorded this report."
+    }
+  },
+  "required": [
+    "job_id",
+    "report_date"
+  ]
+}

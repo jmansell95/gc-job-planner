@@ -35,6 +35,9 @@ import ComplianceExpiryWidget from '@/components/dashboard/ComplianceExpiryWidge
 import StaffUtilizationWidget from '@/components/dashboard/StaffUtilizationWidget';
 import AssetUtilizationWidget from '@/components/dashboard/AssetUtilizationWidget';
 import LiveSiteMapWidget from '@/components/dashboard/LiveSiteMapWidget';
+import ClientFeedbackWidget from '@/components/dashboard/ClientFeedbackWidget';
+import AuditScoreTrendsWidget from '@/components/dashboard/AuditScoreTrendsWidget';
+import EnvironmentalImpactWidget from '@/components/dashboard/EnvironmentalImpactWidget';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
@@ -168,6 +171,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'staff-utilization': return canViewCosts ? <StaffUtilizationWidget /> : null;
       case 'asset-utilization': return <AssetUtilizationWidget />;
       case 'live-site-map': return <LiveSiteMapWidget />;
+      case 'client-feedback': return <ClientFeedbackWidget />;
+      case 'audit-score-trends': return <AuditScoreTrendsWidget />;
+      case 'environmental-impact': return <EnvironmentalImpactWidget />;
       default: return null;
     }
   };
