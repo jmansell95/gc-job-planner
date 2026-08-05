@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Truck, ShieldCheck, ShieldAlert, ShieldX, Wrench, Gauge,
-  Satellite, Link2, Car, Hash, MapPin, Navigation,
+  Satellite, Link2, Car, Hash, MapPin, Navigation, Zap, Clock, Palette,
 } from 'lucide-react';
 import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
 import { differenceInDays } from 'date-fns';
@@ -39,10 +39,31 @@ function getVehicleStatus(v) {
   return { issues, level };
 }
 
+// Determine live motion status from the Geotab location data
+function getMotionStatus(liveLocation, geotabLive) {
+  if (!geotabLive) return { state: 'offline', label: 'Offline', color: 'slate', Icon: Satellite };
+  if (!liveLocation) return { state: 'no_data', label: 'No Signal', color: 'slate', Icon: Satellite };
+  const isMoving = liveLocation.ignition_on && (liveLocation.speed_kph || 0) > 0;
+  if (isMoving) return { state: 'moving', label: 'Moving', color: 'emerald', Icon: Navigation };
+  if (liveLocation.ignition_on) return { state: 'idle', label: 'Engine On', color: 'amber', Icon: Zap };
+  return { state: 'stopped', label: 'Stopped', color: 'slate', Icon: Clock };
+}
+
+const MOTION_STYLES = {
+  moving: { badge: 'bg-emerald-500 text-white', dot: 'bg-emerald-400', pulse: true },
+  idle: { badge: 'bg-amber-500 text-white', dot: 'bg-amber-400', pulse: true },
+  stopped: { badge: 'bg-slate-400 text-white', dot: 'bg-slate-300', pulse: false },
+  no_data: { badge: 'bg-slate-200 text-slate-500', dot: 'bg-slate-300', pulse: false },
+  offline: { badge: 'bg-slate-200 text-slate-500', dot: 'bg-slate-300', pulse: false },
+};
+
+const KM_TO_MI = 0.621371;
+
 /**
  * FleetVehicleCard — a single modern vehicle card for the Fleet tab.
- * Shows compliance status, spec, live GPS location, and maintenance booking
- * in one clean, self-contained card.
+ * Shows live motion status (moving/stopped/idle), compliance, full spec
+ * (make, model, year, colour, fuel, VIN), live GPS location, and next
+ * maintenance booking — all linked to Geotab (live) and Holman (compliance).
  */
 export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, driverName, onSelect, onBookMaintenance }) {
   const { issues, level } = getVehicleStatus(vehicle);
@@ -51,13 +72,25 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
   const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(' ');
   const geotabLive = vehicle.geotab_sync_status === 'synced';
   const holmanSynced = vehicle.holman_sync_status === 'synced';
+  const motion = getMotionStatus(liveLocation, geotabLive);
+  const motionStyle = MOTION_STYLES[motion.state];
+  const MotionIcon = motion.Icon;
+
+  // Speed in mph
+  const speedMph = liveLocation?.speed_kph ? Math.round(liveLocation.speed_kph * KM_TO_MI) : 0;
+  const isMoving = motion.state === 'moving';
+
+  // Last seen relative time
+  const lastSeen = liveLocation?.timestamp
+    ? new Date(liveLocation.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    : null;
 
   return (
     <div
       onClick={() => onSelect(vehicle)}
       className={`insight-card rounded-xl overflow-hidden relative cursor-pointer ${LEVEL_ACCENT[level]} before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1`}
     >
-      {/* ── Header: identity + status ── */}
+      {/* ── Header: identity + live motion + status ── */}
       <div className="px-4 pt-4 pb-3 pl-5">
         <div className="flex items-start justify-between gap-2 mb-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -66,7 +99,7 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
             </div>
             <div className="min-w-0">
               <p className="font-mono font-bold text-slate-900 truncate text-sm">{vehicle.registration_number}</p>
-              <p className="text-xs text-slate-500 truncate">{makeModel || vehicle.name}</p>
+              <p className="text-xs font-semibold text-slate-600 truncate">{makeModel || vehicle.name || '—'}</p>
             </div>
           </div>
           <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border ${badge.cls} flex-shrink-0`}>
@@ -74,11 +107,34 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
           </span>
         </div>
 
-        {/* Spec chips — single clean row */}
+        {/* Live motion status badge — prominent moving/stopped indicator */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ${motionStyle.badge}`}>
+            <span className={`relative w-2 h-2 rounded-full ${motionStyle.dot}`}>
+              {motionStyle.pulse && (
+                <span className={`absolute inset-0 rounded-full ${motionStyle.dot} animate-ping opacity-75`} />
+              )}
+            </span>
+            <MotionIcon className="w-3 h-3" /> {motion.label}
+            {isMoving && speedMph > 0 && <span className="ml-0.5">{speedMph} mph</span>}
+          </span>
+          {lastSeen && (
+            <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
+              <Clock className="w-2.5 h-2.5" /> {lastSeen}
+            </span>
+          )}
+        </div>
+
+        {/* Spec chips — make/model, year, colour, fuel, type, VIN, driver */}
         <div className="flex flex-wrap gap-1.5">
           {vehicle.year && (
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium flex items-center gap-1">
               <Car className="w-2.5 h-2.5" /> {vehicle.year}
+            </span>
+          )}
+          {vehicle.color && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium flex items-center gap-1">
+              <Palette className="w-2.5 h-2.5" /> {vehicle.color}
             </span>
           )}
           {vehicle.fuel_type && vehicle.fuel_type !== 'unknown' && (
