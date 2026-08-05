@@ -135,22 +135,7 @@ export default async function(req: Request): Promise<Response> {
       const logJson = logRes ? await logRes.json().catch(() => null) : null;
       const logs: any[] = Array.isArray(logJson?.result) ? logJson.result : [];
 
-      // Format trips
-      const formattedTrips = trips.map((t: any) => ({
-        trip_id: t.id,
-        start_time: t.start,
-        end_time: t.stop,
-        start_lat: t.startPoint?.latitude ? Number(t.startPoint.latitude) : null,
-        start_lng: t.startPoint?.longitude ? Number(t.startPoint.longitude) : null,
-        end_lat: t.endPoint?.latitude ? Number(t.endPoint.latitude) : null,
-        end_lng: t.endPoint?.longitude ? Number(t.endPoint.longitude) : null,
-        distance_km: t.distance ? Number(t.distance) / 1000 : 0,
-        duration_minutes: t.drivingDuration ? Math.round(Number(t.drivingDuration) / 60000) : 0,
-        max_speed_kph: t.maxSpeed ? Math.round(Number(t.maxSpeed)) : 0,
-        idle_minutes: t.idleDuration ? Math.round(Number(t.idleDuration) / 60000) : 0,
-      })).sort((a, b) => (b.start_time || '').localeCompare(a.start_time || ''));
-
-      // Format log breadcrumbs
+      // Format log breadcrumbs (defined first — trips reference these for coordinates)
       const formattedLogs = logs.map((l: any) => ({
         lat: l.latitude ? Number(l.latitude) : null,
         lng: l.longitude ? Number(l.longitude) : null,
@@ -159,6 +144,54 @@ export default async function(req: Request): Promise<Response> {
         timestamp: l.dateTime,
       })).filter((l: any) => l.lat !== null && l.lng !== null)
          .sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''));
+
+      // Parse Geotab duration: either a time string "HH:MM:SS.fffffff" or milliseconds
+      function parseDuration(val: any): number {
+        if (val == null) return 0;
+        if (typeof val === 'number') return Math.round(val / 60000);
+        const s = String(val);
+        const parts = s.split(':');
+        if (parts.length < 3) return 0;
+        const h = parseInt(parts[0], 10) || 0;
+        const m = parseInt(parts[1], 10) || 0;
+        const sec = parseFloat(parts[2]) || 0;
+        return Math.round(h * 60 + m + sec / 60);
+      }
+
+      const sortedLogs = formattedLogs;
+
+      // Format trips — Geotab Trip fields (verified from live API):
+      //   distance: KILOMETERS (not meters!)
+      //   drivingDuration: time string "HH:MM:SS.fffffff" (not ms)
+      //   idlingDuration: time string
+      //   maximumSpeed: km/h (not maxSpeed)
+      //   odometer: meters
+      //   No startPoint/endPoint — coordinates come from LogRecord breadcrumbs
+      const formattedTrips = trips.map((t: any) => {
+        const startTime = t.start;
+        const endTime = t.stop;
+        const tripCrumbs = sortedLogs.filter(b => {
+          const ts = b.timestamp;
+          return ts >= startTime && ts <= endTime;
+        });
+        const startCrumb = tripCrumbs[0];
+        const endCrumb = tripCrumbs[tripCrumbs.length - 1];
+        return {
+          trip_id: t.id,
+          start_time: startTime,
+          end_time: endTime,
+          start_lat: startCrumb?.lat ?? null,
+          start_lng: startCrumb?.lng ?? null,
+          end_lat: endCrumb?.lat ?? null,
+          end_lng: endCrumb?.lng ?? null,
+          distance_km: t.distance != null ? Number(t.distance) : 0,
+          duration_minutes: parseDuration(t.drivingDuration),
+          max_speed_kph: t.maximumSpeed != null ? Math.round(Number(t.maximumSpeed)) : (t.maxSpeed != null ? Math.round(Number(t.maxSpeed)) : 0),
+          idle_minutes: parseDuration(t.idlingDuration),
+          odometer_km: t.odometer != null ? Number(t.odometer) / 1000 : null,
+          average_speed_kph: t.averageSpeed != null ? Math.round(Number(t.averageSpeed)) : null,
+        };
+      }).sort((a, b) => (b.start_time || '').localeCompare(a.start_time || ''));
 
       return Response.json({
         ok: true,

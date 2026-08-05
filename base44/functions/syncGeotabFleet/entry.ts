@@ -205,6 +205,39 @@ export default async function(req: Request): Promise<Response> {
     const statusJson = statusRes ? await statusRes.json().catch(() => null) : null;
     const statuses: any[] = Array.isArray(statusJson?.result) ? statusJson.result : [];
 
+    // ── Fetch latest Trips (last 24h) to pull odometer readings ──
+    // DeviceStatusInfo does NOT include odometer — it only has lat/lng/speed/bearing.
+    // Odometer comes from the Trip type's `odometer` field (in meters).
+    const tripFromDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const tripRes = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'Get',
+        params: {
+          typeName: 'Trip',
+          credentials: creds,
+          search: { fromDate: tripFromDate },
+          resultsLimit: 2000,
+        },
+      }),
+    }).catch(() => null);
+    const tripJson = tripRes ? await tripRes.json().catch(() => null) : null;
+    const allTrips: any[] = Array.isArray(tripJson?.result) ? tripJson.result : [];
+
+    // Build map: device_id → latest odometer (meters) from the most recent trip
+    const latestOdometerByDevice: Record<string, number> = {};
+    for (const trip of allTrips) {
+      const devId = trip.device?.id;
+      if (!devId || trip.odometer == null) continue;
+      const odo = Number(trip.odometer);
+      if (isNaN(odo)) continue;
+      // Keep the trip with the latest start time per device
+      if (!latestOdometerByDevice[devId] || (trip.start || '') > (allTrips.find(t => t.device?.id === devId && t.odometer === latestOdometerByDevice[devId] * 1000)?.start || '')) {
+        latestOdometerByDevice[devId] = odo;
+      }
+    }
+
     // ── Load local vehicles and build lookup maps ──
     const vehicles = await base44.asServiceRole.entities.Vehicle.list('-created_date', 500);
     const regMap: Record<string, any> = {};
@@ -340,7 +373,10 @@ export default async function(req: Request): Promise<Response> {
         continue;
       }
 
-      const odometerKm = Number(st.odometer?.meters ? st.odometer.meters / 1000 : st.odometerKm) || 0;
+      // Odometer comes from the latest Trip (DeviceStatusInfo has no odometer field).
+      // Trip.odometer is in meters → convert to km.
+      const rawTripOdo = latestOdometerByDevice[deviceId];
+      const odometerKm = rawTripOdo != null ? Number(rawTripOdo) / 1000 : 0;
 
       await base44.asServiceRole.entities.VehicleLocationLog.create({
         vehicle_id: vehicle.id,
@@ -349,7 +385,7 @@ export default async function(req: Request): Promise<Response> {
         lat: Math.round(lat * 1e6) / 1e6,
         lng: Math.round(lng * 1e6) / 1e6,
         speed_kph: Number(st.speed) || 0,
-        heading: Number(st.heading) || 0,
+        heading: Number(st.bearing ?? st.heading) || 0,
         ignition_on: st.isDriving || st.ignitionOn || false,
         odometer_km: odometerKm,
         driver_name: st.driver?.name || st.driverName || '',

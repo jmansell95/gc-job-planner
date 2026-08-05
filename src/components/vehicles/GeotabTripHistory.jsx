@@ -170,12 +170,18 @@ export default function GeotabTripHistory({ vehicle }) {
                   </button>
                   {isExpanded && (
                     <div className="px-3 pb-3 pt-1 space-y-2 bg-slate-50/50">
-                      {trip.max_speed_kph > 0 && (
-                        <div className="flex items-center gap-4 text-[11px] text-slate-500">
+                      <div className="flex items-center gap-4 text-[11px] text-slate-500 flex-wrap">
+                        {trip.max_speed_kph > 0 && (
                           <span className="flex items-center gap-1"><Gauge className="w-3 h-3" /> Max: {trip.max_speed_kph} kph</span>
-                          {trip.idle_minutes > 0 && <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> Idle: {trip.idle_minutes}m</span>}
-                        </div>
-                      )}
+                        )}
+                        {trip.average_speed_kph != null && trip.average_speed_kph > 0 && (
+                          <span className="flex items-center gap-1"><Navigation className="w-3 h-3" /> Avg: {trip.average_speed_kph} kph</span>
+                        )}
+                        {trip.idle_minutes > 0 && <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> Idle: {trip.idle_minutes}m</span>}
+                        {trip.odometer_km != null && (
+                          <span className="flex items-center gap-1"><Gauge className="w-3 h-3" /> Odo: {trip.odometer_km.toLocaleString(undefined, { maximumFractionDigits: 1 })} km</span>
+                        )}
+                      </div>
                       <TripRouteMiniMap breadcrumbs={tripBreadcrumbs} start={trip} end={trip} />
                       <div className="flex items-center gap-3 text-[10px] text-slate-400">
                         <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-emerald-500" /> Start: {trip.start_lat?.toFixed(4)}, {trip.start_lng?.toFixed(4)}</span>
