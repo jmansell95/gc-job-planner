@@ -31,6 +31,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import SubcontractorOnboarding from './pages/SubcontractorOnboarding';
 import { StaffAssistantProvider } from '@/components/StaffAssistantChat';
 import { SchedulingAssistantProvider } from '@/components/SchedulingAssistantChat';
 import { DrillingIntelligenceProvider } from '@/components/DrillingIntelligenceChat';
@@ -39,7 +40,7 @@ import AppBaseUrlSync from '@/components/AppBaseUrlSync';
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
 
-  const isClientPortalRoute = window.location.pathname.includes('/client-portal/');
+  const isClientPortalRoute = window.location.pathname.includes('/client-portal/') || window.location.pathname.includes('/subcontractor-onboarding/');
 
   // Skip auth checks for public client portal routes
   if (!isClientPortalRoute && (isLoadingPublicSettings || isLoadingAuth)) {
@@ -95,6 +96,7 @@ const AuthenticatedApp = () => {
           <Route path="/asset-inventory" element={<Navigate to="/assets" replace />} />
         </Route>
         <Route path="/client-portal/:token" element={<ClientPortal />} />
+        <Route path="/subcontractor-onboarding/:token" element={<SubcontractorOnboarding />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
         </DrillingIntelligenceProvider>
