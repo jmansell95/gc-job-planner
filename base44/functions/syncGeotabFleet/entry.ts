@@ -33,6 +33,68 @@ function normalizeReg(reg: string): string {
   return (reg || '').toString().toUpperCase().replace(/\s+/g, '');
 }
 
+// VIN World Manufacturer Identifier (WMI) codes for common UK/EU vehicle
+// manufacturers. The first 3 characters of the VIN identify the manufacturer
+// globally — this works for all vehicles regardless of market.
+const WMI_TO_MAKE: Record<string, string> = {
+  // Land Rover / Jaguar
+  'LRW': 'Land Rover', 'LRV': 'Land Rover', 'LRU': 'Land Rover', 'LRT': 'Land Rover',
+  'SAJ': 'Jaguar', 'SAL': 'Land Rover',
+  // Ford
+  'WF0': 'Ford', 'WF1': 'Ford', '1FA': 'Ford', 'WFO': 'Ford',
+  // Vauxhall / Opel (GM) — W0V is used for both; UK market = Vauxhall
+  'W0V': 'Vauxhall', 'W0L': 'Opel', 'WOL': 'Opel', 'VX1': 'Vauxhall',
+  // Mercedes-Benz
+  'WDB': 'Mercedes-Benz', 'WDC': 'Mercedes-Benz', 'WDD': 'Mercedes-Benz', 'WDF': 'Mercedes-Benz',
+  // BMW
+  'WBA': 'BMW', 'WBS': 'BMW', 'WBW': 'BMW',
+  // Volkswagen
+  'WVW': 'Volkswagen', 'WV1': 'Volkswagen', 'WV2': 'Volkswagen',
+  // Audi
+  'WAU': 'Audi', 'WAV': 'Audi', 'WUA': 'Audi',
+  // Volvo
+  'YV1': 'Volvo', 'YV4': 'Volvo', '4V1': 'Volvo',
+  // Peugeot / Citroen
+  'VF3': 'Peugeot', 'VF7': 'Citroen', 'VF6': 'Renault',
+  // Iveco
+  'ZC1': 'Iveco', 'ZC2': 'Iveco', 'ZC3': 'Iveco',
+  // Renault
+  'VF1': 'Renault', 'VF6': 'Renault',
+  // Nissan
+  'SJN': 'Nissan', 'JN1': 'Nissan',
+  // Toyota
+  'JTN': 'Toyota', 'JTD': 'Toyota', 'NMT': 'Toyota',
+  // Leyland DAF
+  'SAL': 'Leyland', 'LDV': 'LDV',
+  // MAN
+  'WMA': 'MAN', 'WMK': 'MAN',
+  // Scania
+  'XTS': 'Scania',
+  // DAF
+  'SDB': 'DAF',
+  // Renault Trucks
+  'VFV': 'Renault Trucks',
+};
+
+// VIN model year codes (10th character). Standardised globally by ISO 3779.
+// Covers 2010–2030. Letters I, O, Q, U, Z are excluded to avoid confusion.
+const VIN_YEAR_CODES: Record<string, number> = {
+  A: 2010, B: 2011, C: 2012, D: 2013, E: 2014, F: 2015, G: 2016, H: 2017,
+  J: 2018, K: 2019, L: 2020, M: 2021, N: 2022, P: 2023, R: 2024, S: 2025,
+  T: 2026, V: 2027, W: 2028, X: 2029, Y: 2030,
+  1: 2031, 2: 2032, 3: 2033, 4: 2034, 5: 2035, 6: 2036, 7: 2037, 8: 2038, 9: 2039, 0: 2040,
+};
+
+function decodeVin(vin: string): { make?: string; year?: number } {
+  if (!vin || vin.length < 10) return {};
+  const wmi = vin.slice(0, 3).toUpperCase();
+  const yearChar = vin.slice(9, 10).toUpperCase();
+  return {
+    make: WMI_TO_MAKE[wmi],
+    year: VIN_YEAR_CODES[yearChar],
+  };
+}
+
 function mapFuelType(raw: string | number | undefined): string {
   if (raw === undefined || raw === null) return 'unknown';
   const s = String(raw).toLowerCase();
@@ -293,6 +355,16 @@ export default async function(req: Request): Promise<Response> {
         if (vt.name) detailUpdate.vehicle_type = vt.name;
       }
       if (vin) detailUpdate.vin = vin;
+
+      // Fallback: decode make and year from the VIN WMI (manufacturer) and
+      // 10th-character year code. This works globally without any external API
+      // call — the WMI and year code are standardised by ISO 3779.
+      if (vin && (!vt?.make || !vt?.year) && (!vehicle?.make || !vehicle?.year)) {
+        const decoded = decodeVin(vin);
+        if (decoded.make && !detailUpdate.make) detailUpdate.make = decoded.make;
+        if (decoded.year && !detailUpdate.year) detailUpdate.year = decoded.year;
+      }
+
       // Use Geotab device name as the vehicle name if local name is empty or generic
       if (d.name && (!vehicle || !vehicle.name)) {
         detailUpdate.name = d.name;
@@ -332,6 +404,12 @@ export default async function(req: Request): Promise<Response> {
         if (d.comment) {
           const colourMatch = d.comment.match(/colou?r[:\s]+([a-zA-Z]+)/i);
           if (colourMatch) createPayload.color = colourMatch[1].charAt(0).toUpperCase() + colourMatch[1].slice(1).toLowerCase();
+        }
+        // Fallback: decode make and year from the VIN WMI + year code
+        if (vin && (!vt?.make || !vt?.year)) {
+          const decoded = decodeVin(vin);
+          if (decoded.make && !createPayload.make) createPayload.make = decoded.make;
+          if (decoded.year && !createPayload.year) createPayload.year = decoded.year;
         }
         try {
           const created = await base44.entities.Vehicle.create(createPayload);

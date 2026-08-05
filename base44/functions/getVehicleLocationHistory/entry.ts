@@ -167,7 +167,81 @@ export default async function(req: Request): Promise<Response> {
       //   maximumSpeed: km/h (not maxSpeed)
       //   odometer: meters
       //   No startPoint/endPoint — coordinates come from LogRecord breadcrumbs
-      const formattedTrips = trips.map((t: any) => {
+      // Reverse geocode helper — uses free Nominatim (OpenStreetMap) API.
+      // Returns a short location label like "M1, Luton" or "High Street, Dartford".
+      // Cached per-request to avoid repeated lookups for the same coordinates.
+      const geocodeCache: Record<string, string> = {};
+      async function reverseGeocode(lat: number, lng: number): Promise<string> {
+        if (lat == null || lng == null) return 'Unknown location';
+        const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+        if (geocodeCache[key]) return geocodeCache[key];
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lng=${lng}&format=json&zoom=14&addressdetails=1`,
+            { headers: { 'User-Agent': 'GC-Mission-Control/1.0' } }
+          ).catch(() => null);
+          if (res && res.ok) {
+            const json = await res.json().catch(() => null);
+            const addr = json?.address || {};
+            // Build a short, human-readable label from the address components
+            const road = addr.road || addr.pedestrian || addr.path || '';
+            const suburb = addr.suburb || addr.neighbourhood || addr.hamlet || '';
+            const town = addr.town || addr.city || addr.village || addr.county || '';
+            const parts = [road, suburb, town].filter(Boolean);
+            const label = parts.length > 0 ? parts.join(', ') : (json?.display_name?.split(',').slice(0, 2).join(',') || 'Unknown location');
+            geocodeCache[key] = label;
+            return label;
+          }
+        } catch (_) {}
+        geocodeCache[key] = 'Unknown location';
+        return 'Unknown location';
+      }
+
+      // Detect stops within a trip — periods where speed = 0 for >= 2 minutes.
+      // Returns an array of stop events with location, duration, and arrival/departure times.
+      function detectStops(crumbs: any[], tripStart: string, tripEnd: string): any[] {
+        const stops: any[] = [];
+        let stopStart: any = null;
+        for (let i = 0; i < crumbs.length; i++) {
+          const crumb = crumbs[i];
+          const isStopped = (crumb.speed_kph || 0) === 0;
+          if (isStopped && !stopStart) {
+            stopStart = crumb;
+          } else if (!isStopped && stopStart) {
+            const durationMs = new Date(crumb.timestamp).getTime() - new Date(stopStart.timestamp).getTime();
+            if (durationMs >= 120000) { // 2+ minutes = a real stop
+              stops.push({
+                lat: stopStart.lat,
+                lng: stopStart.lng,
+                arrival_time: stopStart.timestamp,
+                departure_time: crumb.timestamp,
+                duration_minutes: Math.round(durationMs / 60000),
+              });
+            }
+            stopStart = null;
+          }
+        }
+        // Handle a stop at the end of the trip
+        if (stopStart) {
+          const durationMs = new Date(tripEnd).getTime() - new Date(stopStart.timestamp).getTime();
+          if (durationMs >= 120000) {
+            stops.push({
+              lat: stopStart.lat,
+              lng: stopStart.lng,
+              arrival_time: stopStart.timestamp,
+              departure_time: tripEnd,
+              duration_minutes: Math.round(durationMs / 60000),
+            });
+          }
+        }
+        return stops;
+      }
+
+      // Format trips with stop detection + reverse geocoding for start/end/stops.
+      // Geocoding is limited to the first/last point + detected stops to keep
+      // the request count reasonable (Nominatim rate-limits to 1 req/sec).
+      const formattedTrips: any[] = [];
+      for (const t of trips) {
         const startTime = t.start;
         const endTime = t.stop;
         const tripCrumbs = sortedLogs.filter(b => {
@@ -176,7 +250,29 @@ export default async function(req: Request): Promise<Response> {
         });
         const startCrumb = tripCrumbs[0];
         const endCrumb = tripCrumbs[tripCrumbs.length - 1];
-        return {
+
+        // Detect stops within the trip
+        const stops = detectStops(tripCrumbs, startTime, endTime);
+
+        // Reverse geocode start, end, and each stop (limited to keep API calls reasonable)
+        let startLocation = 'Unknown location';
+        let endLocation = 'Unknown location';
+        if (startCrumb?.lat != null) startLocation = await reverseGeocode(startCrumb.lat, startCrumb.lng);
+        if (endCrumb?.lat != null) endLocation = await reverseGeocode(endCrumb.lat, endCrumb.lng);
+
+        // Geocode stops (max 3 per trip to respect rate limits)
+        const geocodedStops: any[] = [];
+        for (let i = 0; i < Math.min(stops.length, 3); i++) {
+          const s = stops[i];
+          const label = s.lat != null ? await reverseGeocode(s.lat, s.lng) : 'Unknown location';
+          geocodedStops.push({ ...s, location: label });
+        }
+        // Remaining stops without geocoding
+        for (let i = 3; i < stops.length; i++) {
+          geocodedStops.push({ ...stops[i], location: 'Unknown location' });
+        }
+
+        formattedTrips.push({
           trip_id: t.id,
           start_time: startTime,
           end_time: endTime,
@@ -184,14 +280,19 @@ export default async function(req: Request): Promise<Response> {
           start_lng: startCrumb?.lng ?? null,
           end_lat: endCrumb?.lat ?? null,
           end_lng: endCrumb?.lng ?? null,
+          start_location: startLocation,
+          end_location: endLocation,
+          stops: geocodedStops,
+          stop_count: geocodedStops.length,
           distance_km: t.distance != null ? Number(t.distance) : 0,
           duration_minutes: parseDuration(t.drivingDuration),
           max_speed_kph: t.maximumSpeed != null ? Math.round(Number(t.maximumSpeed)) : (t.maxSpeed != null ? Math.round(Number(t.maxSpeed)) : 0),
           idle_minutes: parseDuration(t.idlingDuration),
           odometer_km: t.odometer != null ? Number(t.odometer) / 1000 : null,
           average_speed_kph: t.averageSpeed != null ? Math.round(Number(t.averageSpeed)) : null,
-        };
-      }).sort((a, b) => (b.start_time || '').localeCompare(a.start_time || ''));
+        });
+      }
+      formattedTrips.sort((a, b) => (b.start_time || '').localeCompare(a.start_time || ''));
 
       return Response.json({
         ok: true,
