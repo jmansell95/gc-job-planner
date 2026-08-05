@@ -398,7 +398,9 @@ function parseSheet(sheet, sheetName) {
     let hasAssignment = false;
     for (const colStr of Object.keys(colToDate)) {
       const c = Number(colStr);
-      if (row[c] && String(row[c]).trim()) { hasAssignment = true; break; }
+      // Use normalizeName to skip Date objects (1900-01-XX serial dates from
+      // XLSX cellDates:true conversion) — these are not job assignments.
+      if (row[c] && normalizeName(row[c])) { hasAssignment = true; break; }
     }
 
     // Check for section header
