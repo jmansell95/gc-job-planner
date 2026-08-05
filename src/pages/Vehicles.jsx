@@ -18,6 +18,7 @@ import FleetHealthRings from '@/components/vehicles/FleetHealthRings';
 import MileageReconciliationWidget from '@/components/vehicles/MileageReconciliationWidget';
 import VehicleUtilisationWidget from '@/components/vehicles/VehicleUtilisationWidget';
 import IdleVehiclesWidget from '@/components/vehicles/IdleVehiclesWidget';
+import PredictiveMaintenanceWidget from '@/components/vehicles/PredictiveMaintenanceWidget';
 import { Skeleton } from '@/components/StateViews';
 import { differenceInDays } from 'date-fns';
 
@@ -214,6 +215,11 @@ export default function Vehicles() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <VehicleUtilisationWidget />
                 <IdleVehiclesWidget />
+              </div>
+
+              {/* Predictive maintenance */}
+              <div className="mb-4">
+                <PredictiveMaintenanceWidget onSelectVehicle={(v) => setSelectedVehicle(v)} />
               </div>
 
               {/* Unified sync bar — Geotab + Holman + Reports */}
