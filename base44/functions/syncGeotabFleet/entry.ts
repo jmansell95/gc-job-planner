@@ -72,33 +72,72 @@ export default async function(req: Request): Promise<Response> {
     const apiUrl = `https://${server.replace(/^https?:\/\//, '')}/apiv1`;
 
     // ── Authenticate with Geotab ──
-    const authRes = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        method: 'Authenticate',
-        params: {
-          username: cfg.username,
-          password: cfg.password,
-          database: cfg.database,
-        },
-      }),
-    }).catch(() => null);
+    // Geotab's API uses "userName" (camelCase), NOT "username".
+    // The server can be auto-discovered: if authentication against the default
+    // server fails with IncorrectServerException, Geotab returns the correct
+    // server name in the error data. We retry against that server automatically.
+    const serverHint = cfg.server || 'my.geotab.com';
 
-    if (!authRes || !authRes.ok) {
-      const errText = authRes ? await authRes.text().catch(() => '') : 'Network error';
-      return Response.json({ ok: false, error: `Geotab authentication failed: ${errText.slice(0, 200)}` });
+    async function authenticate(server: string): Promise<{ creds?: GeotabCredentials; error?: string; redirectServer?: string }> {
+      const url = `https://${server.replace(/^https?:\/\//, '')}/apiv1`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'Authenticate',
+          params: {
+            userName: cfg.username,
+            password: cfg.password,
+            database: cfg.database,
+          },
+        }),
+      }).catch(() => null);
+
+      if (!res || !res.ok) {
+        const errText = res ? await res.text().catch(() => '') : 'Network error';
+        return { error: `Geotab authentication failed: ${errText.slice(0, 200)}` };
+      }
+
+      const json = await res.json().catch(() => null);
+      if (json?.error) {
+        const errMsg = json.error.message || JSON.stringify(json.error);
+        // IncorrectServerException → Geotab tells us the correct server
+        if (json.error.data?.errors?.some((e: any) => e.name === 'IncorrectServerException') || /IncorrectServer/i.test(errMsg)) {
+          // The correct server is sometimes in the error message or data
+          const redirect = json.error.data?.path || '';
+          if (redirect) return { error: errMsg, redirectServer: redirect };
+        }
+        return { error: errMsg };
+      }
+      // Geotab's Authenticate returns a LoginResult: { credentials: { sessionId, database, userName }, path }
+      // The "credentials" nested object is what we pass to subsequent API calls.
+      const loginResult = json?.result;
+      const creds: GeotabCredentials | null = loginResult?.credentials || null;
+      if (!creds || !creds.sessionId) {
+        return { error: 'Authentication returned no session. Check username, password and database.' };
+      }
+      return { creds };
     }
 
-    const authJson = await authRes.json().catch(() => null);
-    if (authJson?.error) {
-      const errMsg = authJson.error.message || JSON.stringify(authJson.error);
-      return Response.json({ ok: false, error: `Geotab authentication failed: ${errMsg}` });
+    let authResult = await authenticate(serverHint);
+
+    // If the server was wrong and Geotab returned a redirect, retry on the correct server
+    if (!authResult.creds && authResult.redirectServer && authResult.redirectServer !== serverHint) {
+      authResult = await authenticate(authResult.redirectServer);
+      // If the redirect worked, persist the correct server so future syncs skip the redirect
+      if (authResult.creds && settings[0]) {
+        try {
+          await base44.asServiceRole.entities.AppSetting.update(settings[0].id, {
+            value: { ...cfg, server: authResult.redirectServer },
+          });
+        } catch (_) {}
+      }
     }
-    const creds: GeotabCredentials | null = authJson?.result;
-    if (!creds || !creds.sessionId) {
-      return Response.json({ ok: false, error: 'Geotab authentication returned no session. Check username, password and database.' });
+
+    if (!authResult.creds) {
+      return Response.json({ ok: false, error: authResult.error || 'Geotab authentication failed' });
     }
+    const creds: GeotabCredentials = authResult.creds;
 
     if (action === 'test') {
       return Response.json({ ok: true, message: `Connected to Geotab (${cfg.database}) as ${creds.userName}. Session active.` });
@@ -119,7 +158,7 @@ export default async function(req: Request): Promise<Response> {
     }).catch(() => null);
 
     const deviceJson = deviceRes ? await deviceRes.json().catch(() => null) : null;
-    const devices: any[] = deviceJson?.result || [];
+    const devices: any[] = Array.isArray(deviceJson?.result) ? deviceJson.result : [];
 
     // ── Fetch VehicleType entities (make, model, year, fuel type) ──
     const vehicleTypeIds = new Set<string>();
@@ -141,18 +180,20 @@ export default async function(req: Request): Promise<Response> {
         }),
       }).catch(() => null);
       const vtJson = vtRes ? await vtRes.json().catch(() => null) : null;
-      const vtList: any[] = vtJson?.result || [];
+      const vtList: any[] = Array.isArray(vtJson?.result) ? vtJson.result : [];
       for (const vt of vtList) {
         vehicleTypeMap[vt.id] = vt;
       }
     }
 
     // ── Fetch current device status (live locations) ──
+    // Use "Get" (not "GetFeed") for current-state queries — GetFeed is for
+    // checkpointed change streams and returns a different wrapper structure.
     const statusRes = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        method: 'GetFeed',
+        method: 'Get',
         params: {
           typeName: 'DeviceStatusInfo',
           credentials: creds,
@@ -162,7 +203,7 @@ export default async function(req: Request): Promise<Response> {
     }).catch(() => null);
 
     const statusJson = statusRes ? await statusRes.json().catch(() => null) : null;
-    const statuses: any[] = statusJson?.result || [];
+    const statuses: any[] = Array.isArray(statusJson?.result) ? statusJson.result : [];
 
     // ── Load local vehicles and build lookup maps ──
     const vehicles = await base44.asServiceRole.entities.Vehicle.list('-created_date', 500);

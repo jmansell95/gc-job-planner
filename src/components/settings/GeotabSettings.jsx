@@ -126,7 +126,7 @@ export default function GeotabSettings() {
       <SettingsSectionHeader
         icon={Satellite}
         title="Geotab GPS Sync"
-        description="Connect Geotab to auto-import your entire fleet — vehicle details (make, model, VIN, year, fuel type) and live GPS locations are pulled automatically. New vehicles in Geotab are created here on sync; existing ones are enriched with full spec data. Powers the live map and fleet cards on the Vehicles page."
+        description="Connect Geotab to auto-import your entire fleet — vehicle details (make, model, VIN, year, fuel type) and live GPS locations are pulled automatically. New vehicles in Geotab are created here on sync; existing ones are enriched with full spec data. Powers the live map and fleet cards on the Vehicles page. If your server is wrong, the system auto-discovers the correct one on first sync."
       />
 
       {/* Connection status */}
@@ -158,27 +158,41 @@ export default function GeotabSettings() {
           <Settings2 className="w-4 h-4 text-[#2E5A1A]" />
           <h3 className="text-sm font-bold text-slate-800">Geotab API Credentials</h3>
         </div>
-        <p className="text-xs text-slate-500">Find these in your Geotab MyAdmin portal. The server is your Geotab server URL (e.g. <code className="bg-slate-100 px-1 rounded">my.geotab.com</code> or <code className="bg-slate-100 px-1 rounded">eu1.geotab.com</code>).</p>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-slate-600 space-y-1.5">
+          <p className="font-semibold text-blue-800">How to get these credentials:</p>
+          <ol className="list-decimal list-inside space-y-0.5 text-slate-600">
+            <li>Log in to your <a href="https://my.geotab.com" target="_blank" rel="noopener" className="text-blue-600 underline font-medium">Geotab MyAdmin portal</a></li>
+            <li>Go to <span className="font-medium">System Settings → Users</span> and create an API user (or use an existing one)</li>
+            <li>The <span className="font-medium">Database</span> is your company name in Geotab (case-sensitive — check it under <span className="font-medium">Administration → Database</span>)</li>
+            <li>The <span className="font-medium">Server</span> is the URL in your browser address bar when logged in (e.g. <code className="bg-slate-100 px-1 rounded">my.geotab.com</code>, <code className="bg-slate-100 px-1 rounded">my3.geotab.com</code>, <code className="bg-slate-100 px-1 rounded">my4.geotab.com</code>)</li>
+            <li>The <span className="font-medium">Username</span> is typically an email address</li>
+          </ol>
+          <p className="pt-1">Full API docs: <a href="https://developers.geotab.com/myGeotab/apiReference/methods/Authenticate/" target="_blank" rel="noopener" className="text-blue-600 underline font-medium">Geotab API Reference</a></p>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Geotab Server</label>
             <input type="text" value={config.server} onChange={e => setConfig({ ...config, server: e.target.value })}
               placeholder="my.geotab.com" className={`${inputCls} font-mono`} />
+            <p className="text-[10px] text-slate-400 mt-1">The server from your Geotab login URL. Wrong server = login fails.</p>
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Database / Company Name</label>
             <input type="text" value={config.database} onChange={e => setConfig({ ...config, database: e.target.value })}
               placeholder="Your Geotab database name" className={`${inputCls} font-mono`} />
+            <p className="text-[10px] text-slate-400 mt-1">Case-sensitive — must match exactly as shown in Geotab.</p>
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Username</label>
             <input type="text" value={config.username} onChange={e => setConfig({ ...config, username: e.target.value })}
               placeholder="your@email.com" className={`${inputCls} font-mono`} />
+            <p className="text-[10px] text-slate-400 mt-1">Usually an email address. Create an API user in Geotab MyAdmin.</p>
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Password</label>
             <input type="password" value={config.password} onChange={e => setConfig({ ...config, password: e.target.value })}
               placeholder="••••••••••••" className={`${inputCls} font-mono`} />
+            <p className="text-[10px] text-slate-400 mt-1">The API user's password (not your main account password unless they're the same).</p>
           </div>
         </div>
         <label className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer">
