@@ -17,7 +17,7 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [editingMeterage, setEditingMeterage] = useState(false);
   const [meterageVal, setMeterageVal] = useState(job.meterage || '');
-  const { isLocked, lockedInvoices } = useBillingLock(job.id);
+  const { isLocked, lockedInvoices, lockReason } = useBillingLock(job.id, job);
 
   const usingManual = job.actual_cost != null && job.actual_cost !== '';
   const usingJobMeterage = isDrillingJob && job.meterage != null && job.meterage !== '' && Number(job.meterage) > 0;
@@ -90,7 +90,7 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
       </div>
 
       <div className="px-5 py-4 space-y-4">
-        {isLocked && <BillingLockBanner lockedInvoices={lockedInvoices} />}
+        {isLocked && <BillingLockBanner lockedInvoices={lockedInvoices} lockReason={lockReason} job={job} />}
         {/* Tiles */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-slate-50 rounded-lg p-3">

@@ -68,7 +68,7 @@ export default function SubcontractorLogManager({ job }) {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [expanded, setExpanded] = useState(null);
-  const { isLocked, lockedInvoices } = useBillingLock(job.id);
+  const { isLocked, lockedInvoices, lockReason } = useBillingLock(job.id, job);
 
   const { data: contractors = [] } = useQuery({ queryKey: ['contractors'], queryFn: () => base44.entities.Contractor.list() });
   const { data: logs = [], isLoading } = useQuery({
@@ -224,7 +224,7 @@ export default function SubcontractorLogManager({ job }) {
         )}
       </div>
 
-      {isLocked && <BillingLockBanner lockedInvoices={lockedInvoices} />}
+      {isLocked && <BillingLockBanner lockedInvoices={lockedInvoices} lockReason={lockReason} job={job} />}
 
       {/* Inline form */}
       {showForm && (
