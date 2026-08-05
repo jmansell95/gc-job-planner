@@ -240,14 +240,32 @@ export default async function(req: Request): Promise<Response> {
       // Format trips with stop detection + reverse geocoding for start/end/stops.
       // Geocoding is limited to the first/last point + detected stops to keep
       // the request count reasonable (Nominatim rate-limits to 1 req/sec).
+      // A small delay is added between geocode calls to respect the rate limit.
+      const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
       const formattedTrips: any[] = [];
       for (const t of trips) {
         const startTime = t.start;
         const endTime = t.stop;
-        const tripCrumbs = sortedLogs.filter(b => {
+        // Widen the breadcrumb filter by 60 seconds on each side to catch
+        // logs that fall just outside the trip's official start/stop times
+        // (Geotab timestamps can differ by a few seconds between Trip and LogRecord).
+        const startMinus = new Date(new Date(startTime).getTime() - 60000).toISOString();
+        const endPlus = new Date(new Date(endTime).getTime() + 60000).toISOString();
+        let tripCrumbs = sortedLogs.filter(b => {
           const ts = b.timestamp;
-          return ts >= startTime && ts <= endTime;
+          return ts >= startMinus && ts <= endPlus;
         });
+        // Fallback: if still no crumbs, find the nearest log to the trip start time
+        if (tripCrumbs.length === 0 && sortedLogs.length > 0) {
+          let nearest = sortedLogs[0];
+          let minDiff = Math.abs(new Date(nearest.timestamp).getTime() - new Date(startTime).getTime());
+          for (const l of sortedLogs) {
+            const diff = Math.abs(new Date(l.timestamp).getTime() - new Date(startTime).getTime());
+            if (diff < minDiff) { minDiff = diff; nearest = l; }
+          }
+          // Only use if within 5 minutes of the trip start
+          if (minDiff < 5 * 60 * 1000) tripCrumbs = [nearest];
+        }
         const startCrumb = tripCrumbs[0];
         const endCrumb = tripCrumbs[tripCrumbs.length - 1];
 
@@ -257,8 +275,16 @@ export default async function(req: Request): Promise<Response> {
         // Reverse geocode start, end, and each stop (limited to keep API calls reasonable)
         let startLocation = 'Unknown location';
         let endLocation = 'Unknown location';
-        if (startCrumb?.lat != null) startLocation = await reverseGeocode(startCrumb.lat, startCrumb.lng);
-        if (endCrumb?.lat != null) endLocation = await reverseGeocode(endCrumb.lat, endCrumb.lng);
+        if (startCrumb?.lat != null) {
+          startLocation = await reverseGeocode(startCrumb.lat, startCrumb.lng);
+          await sleep(1100); // respect Nominatim 1 req/sec rate limit
+        }
+        if (endCrumb?.lat != null && endCrumb !== startCrumb) {
+          endLocation = await reverseGeocode(endCrumb.lat, endCrumb.lng);
+          await sleep(1100);
+        } else if (endCrumb?.lat != null) {
+          endLocation = startLocation;
+        }
 
         // Geocode stops (max 3 per trip to respect rate limits)
         const geocodedStops: any[] = [];
@@ -266,6 +292,7 @@ export default async function(req: Request): Promise<Response> {
           const s = stops[i];
           const label = s.lat != null ? await reverseGeocode(s.lat, s.lng) : 'Unknown location';
           geocodedStops.push({ ...s, location: label });
+          await sleep(1100);
         }
         // Remaining stops without geocoding
         for (let i = 3; i < stops.length; i++) {

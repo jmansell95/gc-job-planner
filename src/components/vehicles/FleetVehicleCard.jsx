@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Truck, ShieldCheck, ShieldAlert, ShieldX, Wrench, Gauge,
   Satellite, Link2, Car, Hash, MapPin, Navigation, Zap, Clock, Palette,
+  FileText, Loader2,
 } from 'lucide-react';
 import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
+import { generateVehicleReport } from '@/utils/vehiclePdfReport';
+import { base44 } from '@/api/base44Client';
 import { differenceInDays } from 'date-fns';
 
 const LEVEL_BADGE = {
@@ -66,6 +69,7 @@ const KM_TO_MI = 0.621371;
  * maintenance booking — all linked to Geotab (live) and Holman (compliance).
  */
 export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, driverName, onSelect, onBookMaintenance }) {
+  const [reportLoading, setReportLoading] = useState(false);
   const { issues, level } = getVehicleStatus(vehicle);
   const badge = LEVEL_BADGE[level];
   const StatusIcon = badge.Icon;
@@ -84,6 +88,30 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
   const lastSeen = liveLocation?.timestamp
     ? new Date(liveLocation.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
     : null;
+
+  // Download PDF report for this vehicle
+  const handleDownloadReport = async (e) => {
+    e.stopPropagation();
+    setReportLoading(true);
+    try {
+      // Fetch trip history (last 7 days) + maintenance bookings in parallel
+      const [tripRes, bookingRes] = await Promise.all([
+        geotabLive
+          ? base44.functions.invoke('getVehicleLocationHistory', {
+              mode: 'geotab_history', vehicle_id: vehicle.id,
+              from_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+              limit: 100,
+            })
+          : Promise.resolve({ data: { trips: [] } }),
+        base44.entities.VehicleMaintenanceBooking.filter({ vehicle_id: vehicle.id }, '-booking_date', 50),
+      ]);
+      const tripData = tripRes?.data || tripRes || {};
+      generateVehicleReport(vehicle, tripData, bookingRes || []);
+    } catch (_) {
+      generateVehicleReport(vehicle, { trips: [] }, []);
+    }
+    setReportLoading(false);
+  };
 
   return (
     <div
@@ -188,14 +216,23 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
         </button>
       )}
 
-      {/* ── Footer: mileage + sync sources + action ── */}
+      {/* ── Footer: mileage + sync sources + actions ── */}
       <div className="px-4 py-3 pl-5 flex items-center justify-between gap-2 text-[11px]">
-        <button
-          onClick={(e) => { e.stopPropagation(); onBookMaintenance(); }}
-          className="flex items-center gap-1 text-[#2E5A1A] font-medium hover:underline"
-        >
-          <Wrench className="w-3 h-3" /> Book Maintenance
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={(e) => { e.stopPropagation(); onBookMaintenance(); }}
+            className="flex items-center gap-1 text-[#2E5A1A] font-medium hover:underline"
+          >
+            <Wrench className="w-3 h-3" /> Book
+          </button>
+          <button
+            onClick={handleDownloadReport}
+            disabled={reportLoading}
+            className="flex items-center gap-1 text-blue-600 font-medium hover:underline disabled:opacity-50"
+          >
+            {reportLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />} PDF
+          </button>
+        </div>
         <div className="flex items-center gap-2">
           {vehicle.current_mileage != null && (
             <span className="flex items-center gap-1 text-slate-400">

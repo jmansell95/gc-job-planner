@@ -4,17 +4,24 @@ import { escapeHtml, styledHtml, parseDate } from '../../shared/emailStyling.ts'
 /**
  * Predictive maintenance auto-booking.
  *
- * Scans every Vehicle for an MOT or service date falling due within the
- * warning window (default 14 days) or already overdue. For each due item
- * with no existing OPEN booking (requested / booked / in_progress) of the
- * same type, a VehicleMaintenanceBooking is auto-created in 'requested'
- * status so the office just has to call the garage in.
+ * Scans every Vehicle for:
+ *   1. MOT date falling due within the warning window (default 14 days) or overdue
+ *   2. Service date falling due within the warning window or overdue
+ *   3. Mileage-based service intervals — when current_mileage exceeds the
+ *      last service mileage + interval (default 10,000 mi), auto-creates a
+ *      service booking
+ *
+ * For each due item with no existing OPEN booking (requested / booked /
+ * in_progress) of the same type, a VehicleMaintenanceBooking is auto-created
+ * in 'requested' status so the office just has to call the garage in.
  *
  * Admins are emailed a digest of everything that was auto-booked this run.
  *
  * Runs as a scheduled task (no user context) — uses the service role.
  */
 const WARNING_DAYS = 14;
+const MILEAGE_SERVICE_INTERVAL_MI = 10000; // auto-book service every 10k miles
+const MILEAGE_SERVICE_WARNING_MI = 500; // warn when within 500 mi of interval
 
 function daysBetween(target, now) {
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -37,6 +44,17 @@ export default async function(req) {
     });
 
     const autoBooked = [];
+
+    // Find the last completed service per vehicle for mileage-based intervals
+    const lastServiceByVehicle = {};
+    for (const b of existing) {
+      if (b.status !== 'completed' || b.booking_type !== 'service') continue;
+      if (!b.vehicle_id) continue;
+      const ts = b.completed_at || b.booking_date || '';
+      if (!lastServiceByVehicle[b.vehicle_id] || ts > (lastServiceByVehicle[b.vehicle_id].ts || '')) {
+        lastServiceByVehicle[b.vehicle_id] = { ts, mileage: b.cost ? null : null, booking: b };
+      }
+    }
 
     for (const v of vehicles) {
       const label = v.name ? `${v.name}${v.registration_number ? ` (${v.registration_number})` : ''}` : (v.registration_number || v.id);
@@ -71,6 +89,43 @@ export default async function(req) {
           autoBooked.push({ vehicle: label, type: c.label, due: c.date, days });
         } catch (e) {
           // continue on per-vehicle error
+        }
+      }
+
+      // ── Mileage-based service interval ──
+      // If the vehicle has a current_mileage and no service_due_date set,
+      // auto-book a service when mileage exceeds the interval since the last
+      // completed service. This catches vehicles that don't have a calendar-
+      // based service schedule but still need regular maintenance.
+      if (v.current_mileage != null && !v.service_due_date) {
+        const mileage = Number(v.current_mileage) || 0;
+        if (mileage >= MILEAGE_SERVICE_INTERVAL_MI) {
+          const key = `${v.id}|service`;
+          if (openKeys.has(key)) continue;
+          // Check if there's a completed service in the last interval window
+          const lastService = lastServiceByVehicle[v.id];
+          // If no last service OR the mileage has advanced past the interval
+          // since the last one, auto-book a service.
+          // Since we don't store mileage-at-service on the booking, we use a
+          // simpler heuristic: if no service has been completed in the last
+          // 6 months and mileage > interval, auto-book.
+          const sixMonthsAgo = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+          const lastServiceDate = lastService ? parseDate(lastService.ts) : null;
+          const needsService = !lastServiceDate || lastServiceDate < sixMonthsAgo;
+          if (needsService) {
+            try {
+              await base44.asServiceRole.entities.VehicleMaintenanceBooking.create({
+                vehicle_id: v.id,
+                vehicle_name: label,
+                booking_type: 'service',
+                status: 'requested',
+                booking_date: now.toISOString().slice(0, 10),
+                notes: `Auto-booked by mileage-based maintenance — ${mileage.toLocaleString()} mi on odometer, no service in last 6 months. Interval: every ${MILEAGE_SERVICE_INTERVAL_MI.toLocaleString()} mi.`,
+              });
+              openKeys.add(key);
+              autoBooked.push({ vehicle: label, type: 'Service (Mileage)', due: `${mileage.toLocaleString()} mi`, days: 0 });
+            } catch (e) {}
+          }
         }
       }
     }

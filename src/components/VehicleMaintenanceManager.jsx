@@ -4,9 +4,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Wrench, Phone, MapPin, Calendar, Clock, Trash2, Edit2, CheckCircle2,
   X, Truck, User, ArrowLeft, PhoneCall, CalendarClock, PoundSterling, AlertTriangle,
-  Check, ChevronRight, Activity, History,
+  Check, ChevronRight, Activity, History, Sparkles,
 } from 'lucide-react';
 import UsefulNumbersModal from '@/components/UsefulNumbersModal';
+import MaintenanceBookingModal from '@/components/vehicles/MaintenanceBookingModal';
 import { format, differenceInDays, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton, EmptyState } from '@/components/StateViews';
@@ -158,14 +159,12 @@ function dateLabel(dateStr) {
 }
 
 export default function VehicleMaintenanceManager() {
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editingBooking, setEditingBooking] = useState(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
   const [showNumbers, setShowNumbers] = useState(false);
-  const [adminName, setAdminName] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [autoRunning, setAutoRunning] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -176,55 +175,25 @@ export default function VehicleMaintenanceManager() {
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
 
-  React.useEffect(() => {
-    (async () => {
-      try { const res = await base44.functions.invoke('getMyStaffProfile'); setAdminName(res.data?.name || ''); } catch (_) {}
-    })();
-  }, []);
+  const handleEdit = (b) => {
+    setEditingBooking(b);
+    setShowModal(true);
+  };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
+  const handleRunAutoBook = async () => {
+    setAutoRunning(true);
     try {
-      const vehicle = vehicles.find(v => v.id === formData.vehicle_id);
-      const assignedStaff = staff.find(s => s.id === formData.assigned_staff_id);
-      const reportedByStaff = staff.find(s => s.id === formData.reported_by_staff_id);
-      const payload = {
-        ...formData,
-        cost: formData.cost ? parseFloat(formData.cost) : null,
-        vehicle_name: vehicle ? `${vehicle.name} (${vehicle.registration_number})` : '',
-        assigned_staff_name: assignedStaff?.name || '',
-        reported_by_staff_id: formData.reported_by_staff_id || null,
-        reported_by_staff_name: reportedByStaff?.name || '',
-        reported_at: formData.phone_booking && !editingId ? new Date().toISOString() : (formData.reported_at || undefined),
-        report_source: formData.phone_booking ? 'phone_call' : 'admin',
-        logged_by_name: adminName || undefined,
-      };
-      delete payload.phone_booking;
-      let result;
-      if (editingId) {
-        await base44.entities.VehicleMaintenanceBooking.update(editingId, payload);
-        result = { id: editingId };
-      } else {
-        result = await base44.entities.VehicleMaintenanceBooking.create(payload);
-      }
-      if (formData.assigned_staff_id) {
-        try { await base44.functions.invoke('notifyMaintenanceBooking', { booking_id: result.id }); } catch (_) {}
-      }
+      const res = await base44.functions.invoke('autoBookMaintenance', {});
+      const data = res?.data || res;
+      toast({
+        title: 'Auto-booking complete',
+        description: `Checked ${data.checked || 0} vehicles · ${data.autoBooked || 0} booking${data.autoBooked === 1 ? '' : 's'} auto-created.`,
+      });
       queryClient.invalidateQueries({ queryKey: ['maintenance-bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['vehicles-maintenance-bookings'] });
-      queryClient.invalidateQueries({ queryKey: ['vehicle-maintenance-bookings'] });
-      toast({ title: editingId ? 'Booking updated' : 'Booking created', description: formData.assigned_staff_id ? 'Assigned staff has been notified by email.' : 'No staff assigned — no email sent.' });
-      setFormData(emptyForm); setShowForm(false); setEditingId(null);
     } catch (err) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
-    setSaving(false);
-  };
-
-  const handleEdit = (b) => {
-    setFormData({ ...emptyForm, ...b, cost: b.cost || '', phone_booking: b.report_source === 'phone_call' });
-    setEditingId(b.id); setShowForm(true);
+    setAutoRunning(false);
   };
 
   const handleStatusChange = async (id, newStatus) => {
@@ -378,12 +347,16 @@ export default function VehicleMaintenanceManager() {
           <h2 className="text-xl font-bold text-slate-900">Maintenance Bookings</h2>
           <p className="text-sm text-slate-500">Book MOTs, services and repairs with Holman or other suppliers · manage dates and history</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={handleRunAutoBook} disabled={autoRunning}
+            className="flex items-center gap-2 px-3 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition text-sm font-medium shadow-sm disabled:opacity-50">
+            <Sparkles className="w-4 h-4" /> {autoRunning ? 'Scanning…' : 'Auto-Book'}
+          </button>
           <button onClick={() => setShowNumbers(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#2E5A1A] text-white rounded-lg hover:brightness-110 transition text-sm font-medium shadow-sm">
+            className="flex items-center gap-2 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg hover:brightness-110 transition text-sm font-medium shadow-sm">
             <PhoneCall className="w-4 h-4" /> Call Holman
           </button>
-          <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ ...emptyForm, vehicle_id: selectedVehicleId || '', phone_booking: true, reported_by_staff_id: selectedVehicleId ? (vehicles.find(v => v.id === selectedVehicleId)?.assigned_staff_id || '') : '' }); }}
+          <button onClick={() => { setEditingBooking(null); setShowModal(true); }}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
             <Plus className="w-4 h-4" /> Book Maintenance
           </button>
@@ -409,107 +382,6 @@ export default function VehicleMaintenanceManager() {
           </button>
         ))}
       </div>
-
-      {/* Booking form */}
-      {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl p-5 border border-emerald-200 mb-6 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-900">{editingId ? 'Edit Booking' : 'New Maintenance Booking'}</h3>
-            <button type="button" onClick={() => setShowForm(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5" /></button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Vehicle *</label>
-              <select value={formData.vehicle_id} onChange={e => setFormData({ ...formData, vehicle_id: e.target.value })} required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white">
-                <option value="">Select Vehicle</option>
-                {vehicles.map(v => <option key={v.id} value={v.id}>{v.name} ({v.registration_number})</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Booking Type *</label>
-              <select value={formData.booking_type} onChange={e => setFormData({ ...formData, booking_type: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white">
-                {BOOKING_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Booking Date *</label>
-              <input type="date" value={formData.booking_date} onChange={e => setFormData({ ...formData, booking_date: e.target.value })} required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Booking Time</label>
-              <input type="time" value={formData.booking_time} onChange={e => setFormData({ ...formData, booking_time: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Status</label>
-              <select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white">
-                {Object.entries(STATUS_CONFIG).map(([val, cfg]) => <option key={val} value={val}>{cfg.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Cost (£)</label>
-              <input type="number" step="0.01" value={formData.cost} onChange={e => setFormData({ ...formData, cost: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Supplier / Garage</label>
-              <input type="text" value={formData.supplier_name} onChange={e => setFormData({ ...formData, supplier_name: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Supplier Phone</label>
-              <input type="text" value={formData.supplier_phone} onChange={e => setFormData({ ...formData, supplier_phone: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-600 mb-1">Location / Address</label>
-              <input type="text" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Assign Driver / Staff</label>
-              <select value={formData.assigned_staff_id} onChange={e => setFormData({ ...formData, assigned_staff_id: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white">
-                <option value="">Unassigned</option>
-                {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="flex items-center gap-2 text-xs font-medium text-slate-600 mb-1 cursor-pointer">
-                <input type="checkbox" checked={formData.phone_booking} onChange={e => setFormData({ ...formData, phone_booking: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-                Logged over the phone (Holman call)
-              </label>
-              <p className="text-[11px] text-slate-400 mb-2">Tick this when you booked the work in by calling Holman — records who reported it and when.</p>
-            </div>
-            {formData.phone_booking && (
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-slate-600 mb-1">Reported by (who called / reported the fault)</label>
-                <select value={formData.reported_by_staff_id} onChange={e => setFormData({ ...formData, reported_by_staff_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white">
-                  <option value="">Select staff member</option>
-                  {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
-            )}
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-slate-600 mb-1">Notes</label>
-              <textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} rows={2}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm resize-none" />
-            </div>
-          </div>
-          <div className="flex gap-2 mt-5">
-            <button type="submit" disabled={saving} className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm disabled:opacity-50">
-              {saving ? 'Saving…' : editingId ? 'Update' : 'Create'} Booking
-            </button>
-            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm">Cancel</button>
-          </div>
-        </form>
-      )}
 
       {/* Selected vehicle context bar */}
       {selectedVehicleId && (() => {
@@ -581,7 +453,13 @@ export default function VehicleMaintenanceManager() {
       )}
 
       <UsefulNumbersModal open={showNumbers} onClose={() => setShowNumbers(false)}
-        onLogBooking={() => { setShowForm(true); setEditingId(null); setFormData({ ...emptyForm, vehicle_id: selectedVehicleId || '', phone_booking: true }); }} />
+        onLogBooking={() => { setEditingBooking(null); setShowModal(true); }} />
+      <MaintenanceBookingModal
+        open={showModal}
+        onClose={() => { setShowModal(false); setEditingBooking(null); }}
+        preselectVehicleId={selectedVehicleId}
+        editingBooking={editingBooking}
+      />
     </div>
   );
 }

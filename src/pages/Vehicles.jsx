@@ -10,6 +10,7 @@ import AdminNav from '@/components/AdminNav';
 import FleetSyncBar from '@/components/vehicles/FleetSyncBar';
 import FleetVehicleCard from '@/components/vehicles/FleetVehicleCard';
 import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
+import MaintenanceBookingModal from '@/components/vehicles/MaintenanceBookingModal';
 import UsefulNumbersModal from '@/components/UsefulNumbersModal';
 import VehicleDetailDrawer from '@/components/vehicles/VehicleDetailDrawer';
 import GeotabReportModal from '@/components/vehicles/GeotabReportModal';
@@ -45,6 +46,8 @@ export default function Vehicles() {
   const [showNumbers, setShowNumbers] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [showMaintModal, setShowMaintModal] = useState(false);
+  const [maintModalVehicleId, setMaintModalVehicleId] = useState(null);
 
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ['vehicles'],
@@ -261,7 +264,7 @@ export default function Vehicles() {
                       nextBooking={nextBookingByVehicle[v.id]}
                       driverName={staffByVehicle[v.assigned_staff_id]?.name || ''}
                       onSelect={setSelectedVehicle}
-                      onBookMaintenance={() => setView('maintenance')}
+                      onBookMaintenance={() => { setMaintModalVehicleId(v.id); setShowMaintModal(true); }}
                     />
                   ))}
                 </div>
@@ -274,6 +277,11 @@ export default function Vehicles() {
         </div>
       </main>
       <VehicleDetailDrawer vehicle={selectedVehicle} onClose={() => setSelectedVehicle(null)} />
+      <MaintenanceBookingModal
+        open={showMaintModal}
+        onClose={() => { setShowMaintModal(false); setMaintModalVehicleId(null); }}
+        preselectVehicleId={maintModalVehicleId}
+      />
       {showReport && <GeotabReportModal onClose={() => setShowReport(false)} />}
     </div>
   );

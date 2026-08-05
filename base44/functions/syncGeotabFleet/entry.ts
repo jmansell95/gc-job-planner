@@ -346,27 +346,41 @@ export default async function(req: Request): Promise<Response> {
         last_geotab_sync: now,
       };
 
-      // Pull details from Geotab Device + VehicleType
+      // Pull details from Geotab Device + VehicleType — always refresh from
+      // Geotab so updated VehicleType records propagate on every sync.
       if (vt) {
         if (vt.make) detailUpdate.make = vt.make;
         if (vt.model) detailUpdate.model = vt.model;
         if (vt.year) detailUpdate.year = Number(vt.year) || undefined;
-        if (vt.fuelType !== undefined) detailUpdate.fuel_type = mapFuelType(vt.fuelType);
+        if (vt.fuelType !== undefined && vt.fuelType !== null) detailUpdate.fuel_type = mapFuelType(vt.fuelType);
         if (vt.name) detailUpdate.vehicle_type = vt.name;
+        // Some Geotab setups store colour in the VehicleType's comment or name
+        if (vt.comment && (!vehicle || !vehicle.color)) {
+          const colourMatch = vt.comment.match(/colou?r[:\s]+([a-zA-Z]+)/i);
+          if (colourMatch) detailUpdate.color = colourMatch[1].charAt(0).toUpperCase() + colourMatch[1].slice(1).toLowerCase();
+        }
       }
       if (vin) detailUpdate.vin = vin;
 
       // Fallback: decode make and year from the VIN WMI (manufacturer) and
-      // 10th-character year code. This works globally without any external API
-      // call — the WMI and year code are standardised by ISO 3779.
-      if (vin && (!vt?.make || !vt?.year) && (!vehicle?.make || !vehicle?.year)) {
+      // 10th-character year code. Always run if Geotab VehicleType didn't
+      // provide make — the VIN WMI is the global standard.
+      if (vin && (!vt?.make || !vt?.year)) {
         const decoded = decodeVin(vin);
         if (decoded.make && !detailUpdate.make) detailUpdate.make = decoded.make;
         if (decoded.year && !detailUpdate.year) detailUpdate.year = decoded.year;
       }
+      // Infer fuel type from the VehicleType name if fuelType is still unknown
+      if (detailUpdate.fuel_type === 'unknown' || (!detailUpdate.fuel_type && (!vehicle || vehicle.fuel_type === 'unknown' || !vehicle.fuel_type))) {
+        const nameLower = (vt?.name || d.name || '').toLowerCase();
+        if (nameLower.includes('diesel')) detailUpdate.fuel_type = 'diesel';
+        else if (nameLower.includes('petrol')) detailUpdate.fuel_type = 'petrol';
+        else if (nameLower.includes('electric') || nameLower.includes('ev')) detailUpdate.fuel_type = 'electric';
+        else if (nameLower.includes('hybrid')) detailUpdate.fuel_type = 'hybrid';
+      }
 
       // Use Geotab device name as the vehicle name if local name is empty or generic
-      if (d.name && (!vehicle || !vehicle.name)) {
+      if (d.name && (!vehicle || !vehicle.name || vehicle.name === vehicle.registration_number)) {
         detailUpdate.name = d.name;
       }
       // If reg is present on Geotab but missing locally, fill it
@@ -379,6 +393,15 @@ export default async function(req: Request): Promise<Response> {
       if (d.comment && (!vehicle || !vehicle.color)) {
         const colourMatch = d.comment.match(/colou?r[:\s]+([a-zA-Z]+)/i);
         if (colourMatch) detailUpdate.color = colourMatch[1].charAt(0).toUpperCase() + colourMatch[1].slice(1).toLowerCase();
+      }
+      // Try to extract model from the device name if VehicleType didn't provide it
+      // (e.g. "Ford Transit Custom" → model = "Transit Custom" when make = "Ford")
+      if (!detailUpdate.model && (!vehicle || !vehicle.model) && d.name) {
+        const nameParts = d.name.trim().split(/\s+/);
+        const makeLower = (detailUpdate.make || vehicle?.make || '').toLowerCase();
+        if (makeLower && nameParts[0]?.toLowerCase() === makeLower && nameParts.length > 1) {
+          detailUpdate.model = nameParts.slice(1).join(' ');
+        }
       }
 
       if (!vehicle) {
@@ -499,6 +522,27 @@ export default async function(req: Request): Promise<Response> {
       } catch (_) {}
     }
 
+    // Build diagnostic info about what VehicleType data Geotab provided
+    const vtDiag = devices.slice(0, 3).map((d: any) => {
+      const vt = d.vehicleType?.id ? vehicleTypeMap[d.vehicleType.id] : null;
+      return {
+        device_id: d.id,
+        device_name: d.name,
+        license_plate: d.licensePlate || d.licenseNumber || '',
+        vin: d.vehicleIdentificationNumber || '',
+        comment: d.comment || '',
+        has_vehicle_type: !!d.vehicleType?.id,
+        vehicle_type_id: d.vehicleType?.id || '',
+        vt_make: vt?.make || null,
+        vt_model: vt?.model || null,
+        vt_year: vt?.year || null,
+        vt_fuel_type: vt?.fuelType ?? null,
+        vt_name: vt?.name || null,
+        vt_comment: vt?.comment || null,
+        vt_all_keys: vt ? Object.keys(vt).slice(0, 20) : [],
+      };
+    });
+
     return Response.json({
       ok: true,
       message: `Synced ${stored} location${stored === 1 ? '' : 's'} from Geotab · ${vehiclesCreated} new vehicle${vehiclesCreated === 1 ? '' : 's'} created · ${vehiclesUpdated} updated.`,
@@ -508,6 +552,8 @@ export default async function(req: Request): Promise<Response> {
       vehicles_updated: vehiclesUpdated,
       total_devices: devices.length,
       total_statuses: statuses.length,
+      vehicle_type_count: Object.keys(vehicleTypeMap).length,
+      diagnostics: vtDiag,
     });
   } catch (error) {
     const msg = (error && typeof error === 'object' && error.message) ? error.message : String(error);

@@ -3,13 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import {
   X, Truck, Gauge, CalendarClock, Wrench, Link2, Satellite,
   ShieldCheck, ShieldAlert, ShieldX, Hash, Fuel, Palette, Car, User, Users,
-  MapPin, Navigation, Clock, Activity, Zap, Radio, Database,
+  MapPin, Navigation, Clock, Activity, Zap, Radio, Database, FileText, Loader2,
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { differenceInDays } from 'date-fns';
 import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
 import TripTimelineEnhanced from '@/components/vehicles/TripTimelineEnhanced';
 import MaintenanceTimeline from '@/components/vehicles/MaintenanceTimeline';
+import { generateVehicleReport } from '@/utils/vehiclePdfReport';
 
 function getVehicleStatus(v) {
   const today = new Date();
@@ -74,6 +75,29 @@ function SpecTile({ icon: Icon, label, value, source, color }) {
 
 export default function VehicleDetailDrawer({ vehicle, onClose }) {
   const [activeTab, setActiveTab] = useState('live'); // 'live' | 'spec' | 'compliance'
+  const [reportLoading, setReportLoading] = useState(false);
+
+  const handleDownloadReport = async () => {
+    if (!vehicle) return;
+    setReportLoading(true);
+    try {
+      const [tripRes, bookingRes] = await Promise.all([
+        vehicle.geotab_device_id
+          ? base44.functions.invoke('getVehicleLocationHistory', {
+              mode: 'geotab_history', vehicle_id: vehicle.id,
+              from_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+              limit: 100,
+            })
+          : Promise.resolve({ data: { trips: [] } }),
+        base44.entities.VehicleMaintenanceBooking.filter({ vehicle_id: vehicle.id }, '-booking_date', 50),
+      ]);
+      const tripData = tripRes?.data || tripRes || {};
+      generateVehicleReport(vehicle, tripData, bookingRes || []);
+    } catch (_) {
+      generateVehicleReport(vehicle, { trips: [] }, []);
+    }
+    setReportLoading(false);
+  };
 
   const { data: staff = [] } = useQuery({
     queryKey: ['staff'],
@@ -145,9 +169,16 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
                 <p className="text-sm text-white/80 truncate">{makeModel || vehicle.name || 'Vehicle'}</p>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-white/15 rounded-lg transition flex-shrink-0">
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <button onClick={handleDownloadReport} disabled={reportLoading}
+                className="p-2 hover:bg-white/15 rounded-lg transition flex items-center gap-1.5 text-xs font-semibold text-white/90 disabled:opacity-50">
+                {reportLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                <span className="hidden sm:inline">PDF</span>
+              </button>
+              <button onClick={onClose} className="p-2 hover:bg-white/15 rounded-lg transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${badge.cls}`}>
