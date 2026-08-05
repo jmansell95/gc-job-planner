@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   RefreshCw, Loader2, Satellite, Link2, Link2Off, FileBarChart,
-  Check, AlertTriangle, Zap, Clock,
+  Check, AlertTriangle, Zap, Clock, Search,
 } from 'lucide-react';
 
 /**
@@ -16,6 +16,7 @@ export default function FleetSyncBar({ liveData, onShowReport }) {
   const [geotabSyncing, setGeotabSyncing] = useState(false);
   const [holmanSyncing, setHolmanSyncing] = useState(false);
   const [holmanTesting, setHolmanTesting] = useState(false);
+  const [specSyncing, setSpecSyncing] = useState(false);
   const [result, setResult] = useState(null);
 
   const trackedCount = liveData?.vehicles?.length || 0;
@@ -48,6 +49,20 @@ export default function FleetSyncBar({ liveData, onShowReport }) {
       setResult({ ok: false, msg: e.message || 'Holman sync failed' });
     }
     setHolmanSyncing(false);
+  };
+
+  const handleSpecSync = async () => {
+    setSpecSyncing(true);
+    setResult(null);
+    try {
+      const res = await base44.functions.invoke('syncVehicleSpecs', {});
+      const d = res.data || res;
+      setResult({ ok: !!d.ok, msg: d.message || d.error || 'Spec sync complete' });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    } catch (e) {
+      setResult({ ok: false, msg: e.message || 'Spec sync failed' });
+    }
+    setSpecSyncing(false);
   };
 
   const handleHolmanTest = async () => {
@@ -90,6 +105,10 @@ export default function FleetSyncBar({ liveData, onShowReport }) {
         <button onClick={handleHolmanSync} disabled={holmanSyncing}
           className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 disabled:opacity-50 transition">
           {holmanSyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />} Sync Holman
+        </button>
+        <button onClick={handleSpecSync} disabled={specSyncing}
+          className="flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold hover:bg-violet-700 disabled:opacity-50 transition">
+          {specSyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />} Sync Specs (DVLA)
         </button>
         <button onClick={handleHolmanTest} disabled={holmanTesting}
           className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition disabled:opacity-50">
