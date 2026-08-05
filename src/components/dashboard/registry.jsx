@@ -34,6 +34,8 @@ export const WIDGET_REGISTRY = {
   'client-feedback': { title: 'Client Feedback', icon: Star },
   'audit-score-trends': { title: 'Audit Score Trends', icon: ShieldCheck },
   'environmental-impact': { title: 'Environmental Impact', icon: Leaf },
+  'predictive-completion': { title: 'Completion Forecast', icon: Brain },
+  'benchmark-comparisons': { title: 'Benchmark Comparisons', icon: BarChart3 },
 };
 
 export const DEFAULT_WIDGET_ORDER = [
@@ -62,6 +64,8 @@ export const DEFAULT_WIDGET_ORDER = [
   'client-feedback',
   'audit-score-trends',
   'environmental-impact',
+  'predictive-completion',
+  'benchmark-comparisons',
 ];
 
 // Sectioned layout for the dashboard. Widgets are grouped into labelled sections
@@ -70,7 +74,7 @@ export const DEFAULT_WIDGET_ORDER = [
 // permission, so empty sections automatically collapse out of view.
 export const DASHBOARD_SECTIONS = [
   { id: 'overview', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'geo-heatmap', 'live-site-map'] },
-  { id: 'performance', label: 'Performance & Financials', icon: TrendingUp, widgets: ['billing-readiness', 'outstanding-receivables', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'drilling-performance', 'rig-profitability', 'unbilled-wip', 'predictive-insights', 'staff-utilization'] },
+  { id: 'performance', label: 'Performance & Financials', icon: TrendingUp, widgets: ['billing-readiness', 'outstanding-receivables', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'drilling-performance', 'rig-profitability', 'unbilled-wip', 'predictive-insights', 'staff-utilization', 'predictive-completion', 'benchmark-comparisons'] },
   { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard', 'asset-utilization', 'audit-score-trends', 'environmental-impact'] },
   { id: 'feedback', label: 'Client & Quality', icon: Star, widgets: ['client-feedback'] },
   { id: 'alerts', label: 'Alerts', icon: AlertTriangle, widgets: ['profitability-alerts'] },
@@ -114,6 +118,8 @@ export const DEFAULT_WIDGET_SIZES = {
   'client-feedback': 'md',
   'audit-score-trends': 'md',
   'environmental-impact': 'md',
+  'predictive-completion': 'lg',
+  'benchmark-comparisons': 'lg',
 };
 
 // Widgets that require costing permission (admin / manager only).
@@ -122,14 +128,14 @@ export const COST_WIDGETS = ['job-profitability', 'efficiency-snapshot', 'rig-pr
 // Widgets that show company-wide data (not specific to a job). These are hidden
 // when the dashboard is focused on a single job, since they don't reflect that
 // job's data. The remaining widgets already scope themselves via JobFilterContext.
-export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'ai-insights', 'geo-heatmap', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'field-priorities', 'cash-flow-forecast', 'drilling-performance', 'safety-dashboard', 'predictive-insights', 'profitability-alerts', 'staff-utilization'];
+export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'ai-insights', 'geo-heatmap', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'field-priorities', 'cash-flow-forecast', 'drilling-performance', 'safety-dashboard', 'predictive-insights', 'profitability-alerts', 'staff-utilization', 'predictive-completion', 'benchmark-comparisons'];
 
 // View profiles — quick-toggle scopes that surface only the widgets relevant to
 // one focus area, cutting scroll depth. Applied as an allow-list on top of the
 // user's saved widget order (saved customisation still respected within a profile).
 export const VIEW_PROFILES = [
   { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'drilling-performance', 'live-site-map'] },
-  { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['profitability-alerts', 'outstanding-receivables', 'billing-readiness', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip', 'predictive-insights', 'staff-utilization'] },
+  { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['profitability-alerts', 'outstanding-receivables', 'billing-readiness', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip', 'predictive-insights', 'staff-utilization', 'predictive-completion', 'benchmark-comparisons'] },
   { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard', 'asset-utilization', 'audit-score-trends', 'environmental-impact'] },
   { id: 'feedback', label: 'Client & Quality', icon: Star, widgets: ['client-feedback'] },
 ];

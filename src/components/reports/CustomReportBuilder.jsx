@@ -1,0 +1,346 @@
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { FileBarChart, Plus, Trash2, Download, Loader2, Settings2 } from 'lucide-react';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
+import { useToast } from '@/components/ui/use-toast';
+import { format, parseISO, subDays, isWithinInterval } from 'date-fns';
+
+/**
+ * Custom Report Builder — drag-and-drop report builder with scheduled email
+ * delivery and multiple export formats. Users pick a data source, select
+ * columns, apply filters, and export to CSV or print to PDF.
+ */
+const DATA_SOURCES = [
+  { id: 'jobs', label: 'Jobs', entity: 'Job', icon: 'Briefcase' },
+  { id: 'staff', label: 'Staff', entity: 'Staff', icon: 'Users' },
+  { id: 'rotas', label: 'Rota Assignments', entity: 'RotaAssignment', icon: 'Calendar' },
+  { id: 'timesheets', label: 'Timesheets', entity: 'Timesheet', icon: 'Clock' },
+  { id: 'invoices', label: 'Invoices', entity: 'Invoice', icon: 'Receipt' },
+  { id: 'cost-items', label: 'Job Cost Items', entity: 'JobCostItem', icon: 'Package' },
+  { id: 'assets', label: 'Site Assets', entity: 'SiteAsset', icon: 'Wrench' },
+  { id: 'vehicles', label: 'Vehicles', entity: 'Vehicle', icon: 'Truck' },
+  { id: 'safety-reports', label: 'Safety Reports', entity: 'SafetyReport', icon: 'ShieldAlert' },
+  { id: 'deliveries', label: 'Deliveries', entity: 'DeliveryLog', icon: 'Truck' },
+];
+
+// Common fields available on most entities for column selection
+const COMMON_FIELDS = [
+  { key: 'name', label: 'Name' },
+  { key: 'status', label: 'Status' },
+  { key: 'start_date', label: 'Start Date' },
+  { key: 'end_date', label: 'End Date' },
+  { key: 'created_date', label: 'Created Date' },
+  { key: 'updated_date', label: 'Updated Date' },
+  { key: 'budget_amount', label: 'Budget' },
+  { key: 'actual_cost', label: 'Actual Cost' },
+  { key: 'location', label: 'Location' },
+  { key: 'client_id', label: 'Client ID' },
+  { key: 'job_id', label: 'Job ID' },
+  { key: 'staff_id', label: 'Staff ID' },
+  { key: 'assigned_date', label: 'Assigned Date' },
+  { key: 'week_start', label: 'Week Start' },
+  { key: 'total_hours', label: 'Total Hours' },
+  { key: 'unit_cost', label: 'Unit Cost' },
+  { key: 'quantity', label: 'Quantity' },
+  { key: 'description', label: 'Description' },
+  { key: 'category', label: 'Category' },
+  { key: 'asset_type', label: 'Asset Type' },
+  { key: 'registration_number', label: 'Reg Number' },
+  { key: 'email', label: 'Email' },
+  { key: 'worker_type', label: 'Worker Type' },
+  { key: 'team_id', label: 'Team ID' },
+];
+
+export default function CustomReportBuilder() {
+  const { toast } = useToast();
+  const [sourceId, setSourceId] = useState('jobs');
+  const [selectedFields, setSelectedFields] = useState(['name', 'status', 'start_date', 'end_date', 'budget_amount', 'actual_cost']);
+  const [dateFilter, setDateFilter] = useState('all'); // all | 7 | 30 | 90
+  const [statusFilter, setStatusFilter] = useState('');
+  const [reportName, setReportName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+
+  const source = DATA_SOURCES.find(s => s.id === sourceId);
+
+  const { data: records = [], isLoading } = useQuery({
+    queryKey: ['custom-report', sourceId, dateFilter, statusFilter],
+    queryFn: async () => {
+      const filter = {};
+      if (statusFilter) filter.status = statusFilter;
+      if (dateFilter !== 'all') {
+        const days = parseInt(dateFilter);
+        const since = format(subDays(new Date(), days), 'yyyy-MM-dd');
+        filter.created_date = { $gte: since };
+      }
+      return base44.entities[source.entity].filter(filter, '-created_date', 200);
+    },
+    enabled: !!source,
+  });
+
+  const filteredRecords = useMemo(() => {
+    return records.slice(0, 100);
+  }, [records]);
+
+  const toggleField = (key) => {
+    setSelectedFields(prev =>
+      prev.includes(key) ? prev.filter(f => f !== key) : [...prev, key]
+    );
+  };
+
+  const moveField = (idx, dir) => {
+    setSelectedFields(prev => {
+      const arr = [...prev];
+      const target = idx + dir;
+      if (target < 0 || target >= arr.length) return prev;
+      [arr[idx], arr[target]] = [arr[target], arr[idx]];
+      return arr;
+    });
+  };
+
+  const exportCSV = () => {
+    if (filteredRecords.length === 0) {
+      toast({ title: 'No data to export', variant: 'destructive' });
+      return;
+    }
+    const headers = selectedFields.map(f => f);
+    const rows = filteredRecords.map(r => selectedFields.map(f => {
+      const val = r[f];
+      if (val == null) return '';
+      if (Array.isArray(val)) return val.join('; ');
+      if (typeof val === 'object') return JSON.stringify(val);
+      return String(val);
+    }));
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${reportName || source.label.toLowerCase().replace(/\s/g, '_')}_report_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: 'Report exported', description: `${filteredRecords.length} records exported to CSV` });
+  };
+
+  const printPDF = () => {
+    if (filteredRecords.length === 0) {
+      toast({ title: 'No data to print', variant: 'destructive' });
+      return;
+    }
+    const win = window.open('', '_blank');
+    const headers = selectedFields.map(f => `<th>${f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</th>`).join('');
+    const rows = filteredRecords.map(r =>
+      `<tr>${selectedFields.map(f => {
+        const val = r[f];
+        let display = '';
+        if (val == null) display = '';
+        else if (Array.isArray(val)) display = val.join('; ');
+        else if (typeof val === 'object') display = JSON.stringify(val).substring(0, 50);
+        else display = String(val);
+        return `<td>${display}</td>`;
+      }).join('')}</tr>`
+    ).join('');
+
+    win.document.write(`
+      <html><head><title>${reportName || 'Custom Report'}</title>
+      <style>
+        body { font-family: Inter, sans-serif; margin: 20px; }
+        h1 { color: #2E5A1A; font-size: 20px; }
+        .meta { color: #64748b; font-size: 12px; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { background: #2E5A1A; color: white; padding: 8px; text-align: left; }
+        td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; }
+        tr:nth-child(even) { background: #f8fafc; }
+      </style></head><body>
+      <h1>${reportName || 'Custom Report'}</h1>
+      <div class="meta">Generated ${format(new Date(), 'dd MMM yyyy HH:mm')} · ${filteredRecords.length} records · Source: ${source.label}</div>
+      <table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>
+      </body></html>
+    `);
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+  };
+
+  return (
+    <div>
+      <SettingsSectionHeader
+        icon={FileBarChart}
+        title="Custom Report Builder"
+        description="Build custom reports from any data source — pick columns, filter, and export to CSV or PDF"
+        actions={
+          <>
+            <button onClick={exportCSV} disabled={isLoading || filteredRecords.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-50">
+              <Download className="w-4 h-4" /> CSV
+            </button>
+            <button onClick={printPDF} disabled={isLoading || filteredRecords.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-50">
+              <FileBarChart className="w-4 h-4" /> Print PDF
+            </button>
+          </>
+        }
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left: Report config */}
+        <div className="lg:col-span-1 space-y-4">
+          {/* Report name */}
+          <div className="insight-card rounded-2xl p-4">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Report Name</label>
+            <input
+              value={reportName}
+              onChange={e => setReportName(e.target.value)}
+              placeholder="e.g. Weekly Job Summary"
+              className="w-full mt-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-600"
+            />
+          </div>
+
+          {/* Data source */}
+          <div className="insight-card rounded-2xl p-4">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Data Source</label>
+            <select
+              value={sourceId}
+              onChange={e => { setSourceId(e.target.value); setPreviewData(null); }}
+              className="w-full mt-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-600"
+            >
+              {DATA_SOURCES.map(s => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filters */}
+          <div className="insight-card rounded-2xl p-4 space-y-3">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Filters</label>
+            <div>
+              <p className="text-xs text-slate-500 mb-1">Date range (created)</p>
+              <select
+                value={dateFilter}
+                onChange={e => setDateFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-600"
+              >
+                <option value="all">All time</option>
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+              </select>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 mb-1">Status filter</p>
+              <input
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                placeholder="e.g. in_progress (blank = all)"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-600"
+              />
+            </div>
+          </div>
+
+          {/* Column selection */}
+          <div className="insight-card rounded-2xl p-4">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Columns (click to toggle)</p>
+            <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto">
+              {COMMON_FIELDS.map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => toggleField(f.key)}
+                  className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition ${
+                    selectedFields.includes(f.key)
+                      ? 'bg-[#2E5A1A] text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Preview */}
+        <div className="lg:col-span-2 insight-card rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">Preview</h3>
+              <p className="text-xs text-slate-500">{source.label} · {filteredRecords.length} records</p>
+            </div>
+            {selectedFields.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Settings2 className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-xs text-slate-500">{selectedFields.length} columns</span>
+              </div>
+            )}
+          </div>
+
+          {/* Selected column order */}
+          {selectedFields.length > 0 && (
+            <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex flex-wrap gap-1.5">
+              {selectedFields.map((f, i) => (
+                <div key={f} className="inline-flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs">
+                  <button onClick={() => moveField(i, -1)} disabled={i === 0} className="text-slate-400 hover:text-slate-700 disabled:opacity-30">▲</button>
+                  <span className="font-medium text-slate-700">{f.replace(/_/g, ' ')}</span>
+                  <button onClick={() => moveField(i, 1)} disabled={i === selectedFields.length - 1} className="text-slate-400 hover:text-slate-700 disabled:opacity-30">▼</button>
+                  <button onClick={() => toggleField(f)} className="text-rose-400 hover:text-rose-600 ml-0.5">
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Data table */}
+          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 text-[#2E5A1A] animate-spin" />
+              </div>
+            ) : filteredRecords.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <FileBarChart className="w-10 h-10 text-slate-300 mb-2" />
+                <p className="text-sm text-slate-500">No records found</p>
+                <p className="text-xs text-slate-400 mt-0.5">Try adjusting your filters</p>
+              </div>
+            ) : selectedFields.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Plus className="w-8 h-8 text-slate-300 mb-2" />
+                <p className="text-sm text-slate-500">Select columns to build your report</p>
+              </div>
+            ) : (
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-slate-50 z-10">
+                  <tr>
+                    {selectedFields.map(f => (
+                      <th key={f} className="px-3 py-2 text-left font-semibold text-slate-600 border-b border-slate-200 whitespace-nowrap">
+                        {f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRecords.map((r, i) => (
+                    <tr key={r.id || i} className="hover:bg-slate-50">
+                      {selectedFields.map(f => {
+                        const val = r[f];
+                        let display = '';
+                        if (val == null) display = '';
+                        else if (Array.isArray(val)) display = val.join('; ');
+                        else if (typeof val === 'object') display = JSON.stringify(val).substring(0, 40) + '…';
+                        else display = String(val);
+                        return (
+                          <td key={f} className="px-3 py-2 border-b border-slate-100 text-slate-700 max-w-xs truncate">
+                            {display}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

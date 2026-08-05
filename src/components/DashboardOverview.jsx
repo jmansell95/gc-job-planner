@@ -38,6 +38,8 @@ import LiveSiteMapWidget from '@/components/dashboard/LiveSiteMapWidget';
 import ClientFeedbackWidget from '@/components/dashboard/ClientFeedbackWidget';
 import AuditScoreTrendsWidget from '@/components/dashboard/AuditScoreTrendsWidget';
 import EnvironmentalImpactWidget from '@/components/dashboard/EnvironmentalImpactWidget';
+import PredictiveCompletionWidget from '@/components/dashboard/PredictiveCompletionWidget';
+import BenchmarkComparisonsWidget from '@/components/dashboard/BenchmarkComparisonsWidget';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
@@ -174,6 +176,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'client-feedback': return <ClientFeedbackWidget />;
       case 'audit-score-trends': return <AuditScoreTrendsWidget />;
       case 'environmental-impact': return <EnvironmentalImpactWidget />;
+      case 'predictive-completion': return <PredictiveCompletionWidget />;
+      case 'benchmark-comparisons': return <BenchmarkComparisonsWidget />;
       default: return null;
     }
   };
