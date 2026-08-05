@@ -82,7 +82,8 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
 
   const latestLoc = useMemo(() => {
     if (!vehicle) return null;
-    const forVehicle = liveLocations.filter(l => l.vehicle_id === vehicle.id);
+    const locs = Array.isArray(liveLocations) ? liveLocations : [];
+    const forVehicle = locs.filter(l => l.vehicle_id === vehicle.id);
     if (forVehicle.length === 0) return null;
     return forVehicle.reduce((a, b) => new Date(a.timestamp) > new Date(b.timestamp) ? a : b);
   }, [liveLocations, vehicle]);
