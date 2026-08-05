@@ -13,6 +13,7 @@ import { CardGridSkeleton } from '@/components/StateViews';
 import StaffShiftEditor from '@/components/StaffShiftEditor';
 import AvailabilityCalendar from '@/components/staff/AvailabilityCalendar';
 import StaffIDCard from '@/components/staff/StaffIDCard';
+import ICalFeedButton from '@/components/staff/ICalFeedButton';
 import { formatWorkerType } from '@/utils/format';
 import { format } from 'date-fns';
 import { useConfigLists } from '@/hooks/useConfigLists';
@@ -572,7 +573,8 @@ export default function StaffManager() {
                     </div>
                   )}
 
-                  <div className="flex gap-1 justify-end mt-auto">
+                  <div className="flex gap-1 justify-end mt-auto items-center">
+                    <ICalFeedButton staffId={member.id} staffName={member.name} className="mr-1" />
                     <button onClick={() => handleToggleDelivery(member)} className={`p-2 rounded-lg transition ${member.delivery_dashboard_enabled ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:bg-slate-100'}`} title="Delivery dashboard access"><Truck className="w-4 h-4" /></button>
                     <button onClick={() => handlePasswordReset(member)} disabled={resetLoading === member.id} className="p-2 rounded-lg transition text-amber-600 hover:bg-amber-50 disabled:opacity-50" title="Send password reset link"><KeyRound className="w-4 h-4" /></button>
                     <button onClick={() => setHotelStaff(member)} className="p-2 rounded-lg transition text-blue-600 hover:bg-blue-50" title="Hotel bookings"><Hotel className="w-4 h-4" /></button>

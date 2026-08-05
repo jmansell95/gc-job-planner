@@ -9,11 +9,13 @@ import TrainingManager from '@/components/TrainingManager';
 import TrainingGapAnalysis from '@/components/compliance/TrainingGapAnalysis';
 import SkillsMatrix from '@/components/compliance/SkillsMatrix';
 import RAMSManager from '@/components/compliance/RAMSManager';
+import AssetComplianceReport from '@/components/compliance/AssetComplianceReport';
 
 const tabs = [
   { id: 'tracking', label: 'Tracking', icon: ShieldCheck },
   { id: 'matrix', label: 'Skills Matrix', icon: Grid3x3 },
   { id: 'rams', label: 'RAMS', icon: FileCheck2 },
+  { id: 'asset_report', label: 'LOLER/PUWER/PAT', icon: FileCheck2 },
   { id: 'reports', label: 'Reports', icon: BarChart3 },
   { id: 'training', label: 'Training', icon: GraduationCap },
   { id: 'gaps', label: 'Training Gaps', icon: AlertTriangle },
@@ -90,6 +92,7 @@ export default function ComplianceManager() {
         {activeTab === 'tracking' && <ComplianceTracking />}
         {activeTab === 'matrix' && <SkillsMatrix />}
         {activeTab === 'rams' && <RAMSManager />}
+        {activeTab === 'asset_report' && <AssetComplianceReport />}
         {activeTab === 'reports' && <ComplianceReports />}
         {activeTab === 'training' && <TrainingManager />}
         {activeTab === 'gaps' && <TrainingGapAnalysis />}
