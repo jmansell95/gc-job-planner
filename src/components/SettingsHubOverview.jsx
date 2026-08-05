@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   Users, Briefcase, Truck, Building2, Receipt, Package, HardHat, Boxes, Mail,
-  Palette, Zap, Timer, Banknote, CalendarX, Tag, ListChecks, ShieldCheck,
+  Palette, Zap, Timer, Banknote, CalendarX, Tag, ListChecks, ShieldCheck, FileText,
   FlaskConical, Clock, ClipboardCheck, Scale, ArrowRight, Activity, BookOpen,
   Sparkles, QrCode, ArrowUpDown, TrendingUp, FileSpreadsheet, ScrollText,
   History, Gauge, Link2, Search, ChevronRight, GitBranch, Lock,
@@ -107,6 +107,7 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'gl-mapping', icon: FileSpreadsheet, label: 'GL Code Mapping', value: '—', sub: 'Map to SAP Concur GL', color: 'slate' },
       { id: 'billing-pipeline', icon: GitBranch, label: 'Billing Pipeline', value: '—', sub: 'Contract & retention lifecycle', color: 'indigo' },
       { id: 'billing-contracts', icon: ScrollText, label: 'Billing Contracts', value: '—', sub: 'Locked per-job terms', color: 'indigo' },
+      { id: 'purchase-orders', icon: FileText, label: 'Purchase Orders', value: '—', sub: 'POs & 3-way matching', color: 'blue' },
       { id: 'financial-audit', icon: History, label: 'Financial Audit Log', value: '—', sub: 'Tamper-evident history', color: 'rose' },
       { id: 'job-alerts', icon: Gauge, label: 'Job Budget Alerts', value: '—', sub: 'Budget & margin alerts', color: 'amber' },
     ]},

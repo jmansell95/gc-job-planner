@@ -1,0 +1,169 @@
+{
+  "name": "PurchaseOrder",
+  "type": "object",
+  "properties": {
+    "po_number": {
+      "type": "string",
+      "description": "Unique purchase order number (e.g. PO-2026-0042). Auto-generated sequentially per calendar year when the PO is created."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Linked job this PO is raised against. Blank for general/stock POs not tied to a specific job."
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display without joining Job records)."
+    },
+    "supplier_id": {
+      "type": "string",
+      "description": "Supplier this PO is issued to."
+    },
+    "supplier_name": {
+      "type": "string",
+      "description": "Supplier name (denormalised for display)."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sent",
+        "acknowledged",
+        "partially_received",
+        "received",
+        "closed",
+        "cancelled"
+      ],
+      "default": "draft",
+      "description": "PO lifecycle status. 'draft' = created but not sent; 'sent' = issued to supplier; 'acknowledged' = supplier confirmed; 'partially_received' = some goods received; 'received' = all goods received; 'closed' = matched and finalised; 'cancelled' = voided."
+    },
+    "order_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the PO was raised."
+    },
+    "sent_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the PO was sent to the supplier."
+    },
+    "expected_delivery_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Expected delivery date from the supplier."
+    },
+    "received_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date all goods were received."
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Item description"
+          },
+          "quantity": {
+            "type": "number",
+            "default": 1
+          },
+          "unit_cost": {
+            "type": "number",
+            "description": "Net cost per unit (excluding VAT)"
+          },
+          "unit_label": {
+            "type": "string",
+            "default": "each"
+          },
+          "vat_exempt": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "default": [],
+      "description": "Line items on this purchase order."
+    },
+    "subtotal": {
+      "type": "number",
+      "description": "Sum of all line item totals (quantity \u00d7 unit_cost), excluding VAT."
+    },
+    "vat_amount": {
+      "type": "number",
+      "description": "Total VAT on this PO."
+    },
+    "total": {
+      "type": "number",
+      "description": "Grand total including VAT."
+    },
+    "vat_rate": {
+      "type": "number",
+      "default": 20,
+      "description": "VAT rate (%) applied to this PO."
+    },
+    "linked_cost_item_ids": {
+      "type": "string",
+      "description": "Comma-separated JobCostItem IDs linked to this PO \u2014 used for three-way matching (PO \u2194 cost item \u2194 goods received)."
+    },
+    "invoice_number": {
+      "type": "string",
+      "description": "Supplier invoice number matched against this PO."
+    },
+    "invoice_amount": {
+      "type": "number",
+      "description": "Total amount on the matched supplier invoice."
+    },
+    "invoice_received": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the supplier invoice has been received for this PO."
+    },
+    "invoice_matched": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the supplier invoice matches the PO total (three-way match passed)."
+    },
+    "match_status": {
+      "type": "string",
+      "enum": [
+        "unmatched",
+        "matched",
+        "discrepancy"
+      ],
+      "default": "unmatched",
+      "description": "Three-way matching status. 'matched' = PO, goods received, and invoice all agree; 'discrepancy' = amounts or quantities don't match; 'unmatched' = invoice not yet received."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes about this PO."
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Name of the user who created this PO."
+    }
+  },
+  "required": [
+    "po_number",
+    "supplier_id"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

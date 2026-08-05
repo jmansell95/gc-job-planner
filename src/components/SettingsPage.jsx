@@ -40,6 +40,7 @@ import ConcurSyncSettings from '@/components/settings/ConcurSyncSettings';
 import SubconMarkupRules from '@/components/settings/SubconMarkupRules';
 import GLCodeMapping from '@/components/settings/GLCodeMapping';
 import BillingContractManager from '@/components/settings/BillingContractManager';
+import PurchaseOrderManager from '@/components/settings/PurchaseOrderManager';
 import BillingPipelineDashboard from '@/components/settings/BillingPipelineDashboard';
 import FinancialAuditLogViewer from '@/components/settings/FinancialAuditLogViewer';
 import BobHRSettings from '@/components/settings/BobHRSettings';
@@ -143,6 +144,7 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'subcon-markup': return <SubconMarkupRules />;
       case 'gl-mapping': return <GLCodeMapping />;
       case 'billing-contracts': return <BillingContractManager />;
+      case 'purchase-orders': return <PurchaseOrderManager />;
       case 'billing-pipeline': return <BillingPipelineDashboard onNavigate={setActiveTab} onSelectJob={onSelectJob} />;
       case 'financial-audit': return <FinancialAuditLogViewer />;
       case 'bob-hr': return <BobHRSettings />;
