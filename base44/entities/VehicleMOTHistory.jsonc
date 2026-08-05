@@ -1,0 +1,85 @@
+{
+  "name": "VehicleMOTHistory",
+  "type": "object",
+  "properties": {
+    "vehicle_id": {
+      "type": "string",
+      "description": "Vehicle this MOT record belongs to."
+    },
+    "registration_number": {
+      "type": "string",
+      "description": "Vehicle registration (denormalised for display without joining)."
+    },
+    "test_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the MOT test was conducted."
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "advisory",
+        "prs",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "MOT test result. 'pass' = passed with no issues, 'fail' = failed, 'advisory' = passed with advisories, 'prs' = passed with minor defects, 'unknown' = result not available."
+    },
+    "expiry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "MOT expiry date recorded at this test."
+    },
+    "odometer": {
+      "type": "number",
+      "description": "Odometer reading at the time of the MOT test (miles)."
+    },
+    "test_number": {
+      "type": "string",
+      "description": "DVLA MOT test number / reference."
+    },
+    "advisory_notes": {
+      "type": "string",
+      "description": "Advisory items or minor defects noted on the test."
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "dvla_lookup",
+        "manual",
+        "holman_sync"
+      ],
+      "default": "dvla_lookup",
+      "description": "How this MOT record was captured. 'dvla_lookup' = auto-captured during DVLA spec sync, 'manual' = entered by a user, 'holman_sync' = pulled from Holman."
+    },
+    "recorded_by_name": {
+      "type": "string",
+      "description": "Name of the user who manually entered this record (manual entries only)."
+    }
+  },
+  "required": [
+    "vehicle_id",
+    "test_date",
+    "result"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

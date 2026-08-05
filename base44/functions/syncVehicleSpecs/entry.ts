@@ -134,5 +134,28 @@ If you cannot find the vehicle or any specific field, return null for that field
     await base44.asServiceRole.entities.Vehicle.update(vehicle.id, update);
   }
 
+  // Record MOT history when a new MOT expiry is detected that differs from
+  // the previous one — this builds a pass/fail timeline over time. We treat
+  // a newly-discovered expiry as a "pass" (the vehicle has a valid MOT).
+  if (motExpiry && motExpiry !== vehicle.mot_expiry) {
+    try {
+      // Check if we already have a history record for this expiry date
+      const existing = await base44.asServiceRole.entities.VehicleMOTHistory.filter({
+        vehicle_id: vehicle.id,
+        expiry_date: motExpiry,
+      });
+      if (existing.length === 0) {
+        await base44.entities.VehicleMOTHistory.create({
+          vehicle_id: vehicle.id,
+          registration_number: reg,
+          test_date: new Date().toISOString().slice(0, 10),
+          result: 'pass',
+          expiry_date: motExpiry,
+          source: 'dvla_lookup',
+        });
+      }
+    } catch (_) { /* don't fail the sync if history recording fails */ }
+  }
+
   return { reg, updated: Object.keys(update), make, model, fuelType, colour, motExpiry, year };
 }

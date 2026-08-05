@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Truck, ShieldCheck, ShieldAlert, ShieldX, Wrench, Gauge,
   Satellite, Link2, Car, Hash, MapPin, Navigation, Zap, Clock, Palette,
-  FileText, Loader2,
+  FileText, Loader2, BadgeCheck,
 } from 'lucide-react';
 import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
 import { generateVehicleReport } from '@/utils/vehiclePdfReport';
@@ -74,6 +74,16 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
   const badge = LEVEL_BADGE[level];
   const StatusIcon = badge.Icon;
   const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(' ');
+
+  // MOT pass/fail badge — prominent green/red indicator based on MOT expiry
+  const motDays = vehicle.mot_expiry ? differenceInDays(new Date(vehicle.mot_expiry + 'T00:00:00'), new Date()) : null;
+  const motBadge = motDays == null
+    ? null
+    : motDays < 0
+      ? { label: 'MOT FAIL', cls: 'bg-red-500 text-white', Icon: ShieldX }
+      : motDays <= 30
+        ? { label: 'MOT DUE', cls: 'bg-amber-500 text-white', Icon: ShieldAlert }
+        : { label: 'MOT PASS', cls: 'bg-emerald-500 text-white', Icon: BadgeCheck };
   const geotabLive = vehicle.geotab_sync_status === 'synced';
   const holmanSynced = vehicle.holman_sync_status === 'synced';
   const motion = getMotionStatus(liveLocation, geotabLive);
@@ -130,9 +140,17 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
               <p className="text-xs font-semibold text-slate-600 truncate">{makeModel || vehicle.name || '—'}</p>
             </div>
           </div>
-          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border ${badge.cls} flex-shrink-0`}>
-            <StatusIcon className="w-3 h-3" /> {badge.label}
-          </span>
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border ${badge.cls}`}>
+              <StatusIcon className="w-3 h-3" /> {badge.label}
+            </span>
+            {motBadge && (
+              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${motBadge.cls}`}>
+                <motBadge.Icon className="w-3 h-3" /> {motBadge.label}
+                {motDays != null && motDays >= 0 && motDays <= 30 && <span className="opacity-80">({motDays}d)</span>}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Live motion status badge — prominent moving/stopped indicator */}

@@ -10,6 +10,7 @@ import { differenceInDays } from 'date-fns';
 import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
 import TripTimelineEnhanced from '@/components/vehicles/TripTimelineEnhanced';
 import MaintenanceTimeline from '@/components/vehicles/MaintenanceTimeline';
+import MOTHistoryTimeline from '@/components/vehicles/MOTHistoryTimeline';
 import { generateVehicleReport } from '@/utils/vehiclePdfReport';
 
 function getVehicleStatus(v) {
@@ -378,6 +379,16 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
                   <p className="text-xs text-slate-400 px-3 py-2">No compliance dates on record. Sync Holman to populate.</p>
                 )}
               </div>
+            </div>
+
+            {/* MOT history timeline */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-sm font-bold text-slate-800">MOT History</h3>
+                <span className="ml-auto text-[10px] text-slate-400">DVLA</span>
+              </div>
+              <MOTHistoryTimeline vehicleId={vehicle.id} />
             </div>
 
             {/* Maintenance timeline */}
