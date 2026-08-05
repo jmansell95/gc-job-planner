@@ -17,6 +17,7 @@ export default function FleetSyncBar({ liveData, onShowReport }) {
   const [holmanSyncing, setHolmanSyncing] = useState(false);
   const [holmanTesting, setHolmanTesting] = useState(false);
   const [specSyncing, setSpecSyncing] = useState(false);
+  const [specProgress, setSpecProgress] = useState(null);
   const [result, setResult] = useState(null);
 
   const trackedCount = liveData?.vehicles?.length || 0;
@@ -51,18 +52,38 @@ export default function FleetSyncBar({ liveData, onShowReport }) {
     setHolmanSyncing(false);
   };
 
+  // Batch-loop spec sync — works on published site (no background processing)
   const handleSpecSync = async () => {
     setSpecSyncing(true);
     setResult(null);
+    setSpecProgress({ done: 0, total: 0 });
     try {
-      const res = await base44.functions.invoke('syncVehicleSpecs', {});
-      const d = res.data || res;
-      setResult({ ok: !!d.ok, msg: d.message || d.error || 'Spec sync complete' });
+      let offset = 0;
+      let total = 0;
+      let processed = 0;
+      let remaining = 1;
+      let failures = 0;
+      while (remaining > 0) {
+        const res = await base44.functions.invoke('syncVehicleSpecs', { offset, batch_size: 3 });
+        const d = res.data || res;
+        if (!d.ok) throw new Error(d.error || 'Sync failed');
+        offset = d.offset;
+        remaining = d.remaining;
+        total = d.total;
+        processed += d.processed;
+        failures += d.results?.filter(r => !r.ok).length || 0;
+        setSpecProgress({ done: processed, total, failures });
+      }
+      const msg = failures > 0
+        ? `Spec sync complete — ${total} vehicles processed (${failures} failed)`
+        : `Spec sync complete — ${total} vehicles updated from DVLA lookup`;
+      setResult({ ok: true, msg });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
     } catch (e) {
       setResult({ ok: false, msg: e.message || 'Spec sync failed' });
     }
     setSpecSyncing(false);
+    setSpecProgress(null);
   };
 
   const handleHolmanTest = async () => {
@@ -120,6 +141,20 @@ export default function FleetSyncBar({ liveData, onShowReport }) {
           <FileBarChart className="w-3.5 h-3.5" /> Reports
         </button>
       </div>
+
+      {/* Spec sync progress bar */}
+      {specSyncing && specProgress && (
+        <div className="mx-3 mb-3">
+          <div className="flex items-center justify-between text-xs text-violet-600 font-semibold mb-1">
+            <span>Looking up DVLA specs...</span>
+            <span>{specProgress.done} / {specProgress.total}</span>
+          </div>
+          <div className="h-2 bg-violet-100 rounded-full overflow-hidden">
+            <div className="h-full bg-violet-500 rounded-full transition-all duration-300"
+              style={{ width: specProgress.total > 0 ? `${(specProgress.done / specProgress.total) * 100}%` : '0%' }} />
+          </div>
+        </div>
+      )}
 
       {result && (
         <div className={`mx-3 mb-3 flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${result.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>

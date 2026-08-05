@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { waitUntil } from 'base44:runtime';
 
 /**
  * Syncs vehicle specification data (make, model, fuel type, colour, MOT expiry)
@@ -7,8 +6,14 @@ import { waitUntil } from 'base44:runtime';
  * No external API keys required — uses the built-in InvokeLLM integration
  * with add_context_from_internet to search public vehicle data sources (DVLA).
  *
- * Processes in the background via waitUntil so the function returns immediately.
- * Pass vehicle_id to sync a single vehicle synchronously (returns results).
+ * Batch mode: processes a small batch per call (default 3) and returns progress.
+ * The frontend calls repeatedly until `done` is true. This avoids timeouts
+ * on published site (no waitUntil/background processing needed).
+ *
+ * Payload:
+ *   { vehicle_id?: string,  // single-vehicle synchronous mode
+ *     offset?: number,      // start index (default 0)
+ *     batch_size?: number } // vehicles per call (default 3)
  */
 export default async function(req: Request): Promise<Response> {
   try {
@@ -17,6 +22,8 @@ export default async function(req: Request): Promise<Response> {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json().catch(() => ({})) as any;
+    const batchSize = Math.min(Number(body?.batch_size) || 3, 5);
+    const offset = Number(body?.offset) || 0;
     const singleVehicleId = body?.vehicle_id || null;
 
     // Single-vehicle mode: synchronous, returns results
@@ -26,37 +33,37 @@ export default async function(req: Request): Promise<Response> {
         return Response.json({ ok: false, error: 'No registration number' }, { status: 400 });
       }
       const result = await lookupAndSync(base44, vehicle);
-      return Response.json({ ok: true, result });
+      return Response.json({ ok: true, result, done: true });
     }
 
-    // Batch mode: kick off background processing, return immediately
-    const vehicles = await base44.asServiceRole.entities.Vehicle.list('-created_date', 500);
-    const withReg = vehicles.filter((v: any) => v.registration_number);
+    // Batch mode — process N vehicles starting from offset
+    const allVehicles = await base44.asServiceRole.entities.Vehicle.list('-created_date', 500);
+    const withReg = allVehicles.filter((v: any) => v.registration_number);
+    const batch = withReg.slice(offset, offset + batchSize);
 
-    if (withReg.length === 0) {
-      return Response.json({ ok: true, message: 'No vehicles with registration numbers.', synced: 0 });
+    const results: any[] = [];
+    for (const vehicle of batch) {
+      try {
+        const r = await lookupAndSync(base44, vehicle);
+        results.push({ reg: r.reg, ok: true, updated: r.updated });
+      } catch (e: any) {
+        results.push({ reg: vehicle.registration_number, ok: false, error: e.message });
+      }
     }
 
-    // Process in background — 3 at a time to respect LLM rate limits
-    waitUntil((async () => {
-      const concurrency = 3;
-      let idx = 0;
-      const workers = Array.from({ length: concurrency }, async () => {
-        while (idx < withReg.length) {
-          const i = idx++;
-          try {
-            await lookupAndSync(base44, withReg[i]);
-          } catch (_) { /* swallow — background */ }
-        }
-      });
-      await Promise.all(workers);
-    })());
+    const newOffset = offset + batch.length;
+    const remaining = Math.max(0, withReg.length - newOffset);
+    const successCount = results.filter(r => r.ok).length;
 
     return Response.json({
       ok: true,
-      message: `Started background spec sync for ${withReg.length} vehicles. Check back in a few minutes — data will appear as vehicles are updated.`,
+      processed: results.length,
+      success: successCount,
+      offset: newOffset,
+      remaining,
       total: withReg.length,
-      background: true,
+      done: remaining === 0,
+      results,
     });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });

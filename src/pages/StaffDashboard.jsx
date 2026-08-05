@@ -27,6 +27,7 @@ import StaffHeader from '@/components/staff/StaffHeader';
 import StaffAlerts from '@/components/staff/StaffAlerts';
 import ActiveJobCard from '@/components/staff/ActiveJobCard';
 import IncentiveQuickLook from '@/components/staff/IncentiveQuickLook';
+import DrillingWeatherWidget from '@/components/DrillingWeatherWidget';
 import Breadcrumbs from '@/components/Breadcrumbs';
 
 export default function StaffDashboard() {
@@ -632,6 +633,18 @@ export default function StaffDashboard() {
                     </div>
                   )}
                   <ActiveJobCard {...cardProps(nextTodayAssignment)} />
+                  {(() => {
+                    const activeJob = jobs.find(j => j.id === nextTodayAssignment?.job_id);
+                    if (!activeJob?.site_lat || !activeJob?.site_lng) return null;
+                    return (
+                      <DrillingWeatherWidget
+                        lat={activeJob.site_lat}
+                        lng={activeJob.site_lng}
+                        locationName={activeJob.location}
+                        compact={false}
+                      />
+                    );
+                  })()}
                 </div>
               )}
               {/* Other jobs today — compact cards */}

@@ -33,6 +33,7 @@ import RigCompliancePanel from '@/components/RigCompliancePanel';
 import JobHazardMap from '@/components/JobHazardMap';
 import JobContextView from '@/components/JobContextView';
 import JobDependencyManager from '@/components/JobDependencyManager';
+import DrillingWeatherWidget from '@/components/DrillingWeatherWidget';
 import TabStatRibbon from '@/components/TabStatRibbon';
 import { getJobTypeLabel } from '@/utils/jobTeams';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -129,6 +130,14 @@ export default function JobDetailTabs({
         jobTypes={jobTypes}
         />
         <JobDependencyManager job={job} />
+        {(job.site_lat != null && job.site_lng != null) && (
+          <DrillingWeatherWidget
+            lat={job.site_lat}
+            lng={job.site_lng}
+            locationName={job.location}
+            compact={isDrillingJob ? false : true}
+          />
+        )}
       </TabsContent>
 
       {/* ── Schedule Tab ── */}
@@ -214,6 +223,14 @@ export default function JobDetailTabs({
           ]}
         />
         <JobHazardMap job={job} />
+        {(job.site_lat != null && job.site_lng != null) && (
+          <DrillingWeatherWidget
+            lat={job.site_lat}
+            lng={job.site_lng}
+            locationName={job.location}
+            compact={true}
+          />
+        )}
         <RigCompliancePanel job={job} />
       </TabsContent>
 
