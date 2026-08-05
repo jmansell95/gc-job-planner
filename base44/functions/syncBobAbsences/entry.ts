@@ -186,6 +186,34 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
+    // ── AVATAR BACKFILL: pull employee photos from Bob HR ──
+    // Bob HR's /employees endpoint returns profile photos. We fetch all
+    // employees and update Staff records that are missing avatar_url,
+    // fixing the placeholder '?' icons on the published site.
+    let avatarsUpdated = 0;
+    if (pullEnabled) {
+      try {
+        const empRes = await fetch(`${apiUrl}/employees?includeHuman=true`, { method: 'GET', headers });
+        if (empRes.ok) {
+          const empData = await empRes.json().catch(() => ({}));
+          const employees = empData.employees || empData || [];
+          for (const emp of employees) {
+            const email = (emp.email || emp.workEmail || emp.homeEmail || '').toLowerCase();
+            if (!email) continue;
+            const staffMember = staffByEmail[email];
+            if (!staffMember) continue;
+            const avatar = emp.avatar || emp.photo || emp.profilePhoto || emp.thumbnail || '';
+            if (avatar && !staffMember.avatar_url) {
+              await base44.asServiceRole.entities.Staff.update(staffMember.id, { avatar_url: avatar });
+              avatarsUpdated++;
+            }
+          }
+        }
+      } catch (e) {
+        errors.push({ kind: 'avatar', error: e.message });
+      }
+    }
+
     // Persist last sync timestamp
     if (action === 'scheduled' && settingsId) {
       try {
@@ -201,8 +229,9 @@ export default async function(req: Request): Promise<Response> {
       pull_skipped: pullSkipped,
       pushed,
       push_errors: pushErrors,
+      avatars_updated: avatarsUpdated,
       errors: errors.slice(0, 20),
-      message: `Sync complete — pulled ${pulled} from Bob HR, pushed ${pushed} to Bob HR${pushErrors ? ` · ${pushErrors} push error(s)` : ''}.`,
+      message: `Sync complete — pulled ${pulled} from Bob HR, pushed ${pushed} to Bob HR, ${avatarsUpdated} avatars updated${pushErrors ? ` · ${pushErrors} push error(s)` : ''}.`,
     });
   } catch (error) {
     return Response.json({ ok: false, error: error.message }, { status: 500 });

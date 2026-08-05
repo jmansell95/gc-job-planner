@@ -305,22 +305,22 @@ function parseSheet(sheet, sheetName) {
   // silently skipped, causing "no crews on site today".
   const dateCols = Object.keys(colToDate).map(Number).sort((a, b) => a - b);
   if (dateCols.length >= 1) {
-    // Fill between consecutive date columns — 1 day per column
+    // Fill between consecutive date columns — always 1 day per column.
+    // The planner is a daily grid: each column represents one working day.
+    // The previous stepDays calculation (dayDiff/colGap) produced fractional
+    // days and misaligned mid-week entries when headers were irregular or
+    // weekends were skipped. Always assuming 1 day/column is correct for
+    // the Team Planner layout and never skips mid-week assignments.
     for (let i = 0; i < dateCols.length - 1; i++) {
       const startCol = dateCols[i];
       const endCol = dateCols[i + 1];
       const colGap = endCol - startCol;
       const startDate = new Date(colToDate[startCol] + 'T00:00:00Z');
-      const endDate = new Date(colToDate[endCol] + 'T00:00:00Z');
-      const dayDiff = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
-      // If col gap matches day difference, fill 1 day per column.
-      // If not (merged/irregular cells), still assume 1 day per column as fallback.
-      const stepDays = (colGap === dayDiff && colGap > 0) ? 1 : (colGap > 0 ? dayDiff / colGap : 1);
       for (let offset = 1; offset < colGap; offset++) {
         const fillCol = startCol + offset;
         if (!colToDate[fillCol]) {
           const d = new Date(startDate);
-          d.setUTCDate(d.getUTCDate() + Math.round(offset * stepDays));
+          d.setUTCDate(d.getUTCDate() + offset);
           colToDate[fillCol] = d.toISOString().slice(0, 10);
         }
       }

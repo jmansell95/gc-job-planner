@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Truck, Loader2, Save, Check, AlertTriangle, RefreshCw, Link2, Link2Off,
-  Settings2, Webhook, Copy, Shield,
+  Settings2, Webhook, Copy, Shield, Fuel,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
@@ -46,6 +46,8 @@ export default function HolmanSettings() {
   const [testResult, setTestResult] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
+  const [fuelSyncing, setFuelSyncing] = useState(false);
+  const [fuelSyncResult, setFuelSyncResult] = useState(null);
   const [copied, setCopied] = useState(false);
 
   const genSecret = () => Array.from({ length: 32 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
@@ -118,6 +120,29 @@ export default function HolmanSettings() {
       setSyncResult({ ok: false, msg: e.message || 'Sync failed' });
     }
     setSyncing(false);
+  };
+
+  const handleSyncFuel = async () => {
+    setFuelSyncing(true);
+    setFuelSyncResult(null);
+    try {
+      const res = await base44.functions.invoke('syncHolmanFleet', { action: 'sync_fuel' });
+      const d = res.data || res;
+      setFuelSyncResult({
+        ok: !!d.ok,
+        msg: d.message || d.error || 'Fuel sync complete',
+        imported: d.imported || 0,
+        duplicate: d.duplicate || 0,
+        unmatched: d.unmatched || 0,
+        total: d.total || 0,
+      });
+      queryClient.invalidateQueries({ queryKey: ['holman-config'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles-maintenance-bookings'] });
+    } catch (e) {
+      setFuelSyncResult({ ok: false, msg: e.message || 'Fuel sync failed' });
+    }
+    setFuelSyncing(false);
   };
 
   const handleCopyWebhook = () => {
@@ -308,6 +333,40 @@ export default function HolmanSettings() {
             <p className="text-xs font-semibold text-slate-600 mb-1">Last sync</p>
             <p className="text-xs text-slate-500">{config.last_sync_summary || 'No summary'}</p>
             {config.last_sync_at && <p className="text-[11px] text-slate-400 mt-1">{new Date(config.last_sync_at).toLocaleString('en-GB')}</p>}
+          </div>
+        )}
+      </div>
+
+      {/* Fuel card sync */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Fuel className="w-4 h-4 text-[#2E5A1A]" />
+          <h3 className="text-sm font-bold text-slate-800">Fuel Card Transactions</h3>
+          <span className="ml-auto text-xs text-slate-400">Pull fuel card spend from Holman</span>
+        </div>
+        <p className="text-xs text-slate-500 mb-3">Fetches fuel card transactions from Holman and creates fuel card booking records for each transaction, matched to vehicles by registration or VIN. Transactions are deduplicated by reference number, and vehicle mileage is updated from odometer readings on the fuel receipt.</p>
+        <button onClick={handleSyncFuel} disabled={!connected || fuelSyncing}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-bold hover:bg-[#1c4a12] disabled:opacity-40 transition">
+          {fuelSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Fuel className="w-4 h-4" />} Sync Fuel Cards
+        </button>
+        {fuelSyncResult && (
+          <div className={`mt-3 rounded-lg px-3 py-2 text-xs ${fuelSyncResult.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+            <p className="flex items-start gap-2"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> {fuelSyncResult.msg}</p>
+            {fuelSyncResult.ok && fuelSyncResult.total > 0 && (
+              <div className="grid grid-cols-4 gap-2 mt-2 text-center">
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Total</p><p className="font-bold text-slate-700 tabular-nums">{fuelSyncResult.total}</p></div>
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Imported</p><p className="font-bold text-emerald-700 tabular-nums">{fuelSyncResult.imported}</p></div>
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Duplicate</p><p className="font-bold text-slate-500 tabular-nums">{fuelSyncResult.duplicate}</p></div>
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Unmatched</p><p className="font-bold text-amber-700 tabular-nums">{fuelSyncResult.unmatched}</p></div>
+              </div>
+            )}
+          </div>
+        )}
+        {config.last_fuel_sync_at && (
+          <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 mt-3">
+            <p className="text-xs font-semibold text-slate-600 mb-1">Last fuel sync</p>
+            <p className="text-xs text-slate-500">{config.last_fuel_sync_summary || 'No summary'}</p>
+            <p className="text-[11px] text-slate-400 mt-1">{new Date(config.last_fuel_sync_at).toLocaleString('en-GB')}</p>
           </div>
         )}
       </div>
