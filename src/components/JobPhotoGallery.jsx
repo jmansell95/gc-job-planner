@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Camera, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, Trash2, X, ChevronLeft, ChevronRight, Film } from 'lucide-react';
 import { format } from 'date-fns';
+import PhotoTimeLapseView from '@/components/jobs/PhotoTimeLapseView';
 
 export default function JobPhotoGallery({ job }) {
   const queryClient = useQueryClient();
   const [lightboxIdx, setLightboxIdx] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [showTimeLapse, setShowTimeLapse] = useState(false);
 
   const { data: photos = [] } = useQuery({
     queryKey: ['site-photos', job.id],
@@ -36,7 +38,18 @@ export default function JobPhotoGallery({ job }) {
         <Camera className="w-5 h-5 text-emerald-700" />
         <h2 className="font-semibold text-slate-900">Site Photos</h2>
         <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{photos.length}</span>
+        {photos.length > 1 && (
+          <button onClick={() => setShowTimeLapse(s => !s)}
+            className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition ${showTimeLapse ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+            <Film className="w-3.5 h-3.5" /> Time-Lapse
+          </button>
+        )}
       </div>
+      {showTimeLapse && photos.length > 1 && (
+        <div className="p-4 border-b border-slate-100 bg-slate-50">
+          <PhotoTimeLapseView jobId={job.id} />
+        </div>
+      )}
       {photos.length === 0 ? (
         <div className="px-5 py-8 text-center text-slate-400 text-sm">No photos uploaded for this job yet</div>
       ) : (

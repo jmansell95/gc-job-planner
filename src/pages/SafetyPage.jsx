@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, AlertTriangle, BarChart3 } from 'lucide-react';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
 import IncidentReporter from '@/components/safety/IncidentReporter';
+import RIDDORStatsPanel from '@/components/safety/RIDDORStatsPanel';
 
 export default function SafetyPage() {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export default function SafetyPage() {
   const tabs = [
     { id: 'checks', label: 'Safety Checks', icon: ShieldCheck },
     { id: 'incidents', label: 'Incidents & Near-Miss', icon: AlertTriangle },
+    { id: 'stats', label: 'H&S Statistics', icon: BarChart3 },
   ];
 
   return (
@@ -31,6 +33,13 @@ export default function SafetyPage() {
 
       {tab === 'checks' && <SafetyCultureCheckHub onNavigate={(section) => navigate('/admin', { state: { section } })} />}
       {tab === 'incidents' && <IncidentReporter />}
+      {tab === 'stats' && (
+        <div className="insight-card rounded-2xl p-4 md:p-5">
+          <h3 className="text-lg font-bold text-slate-900 mb-1">Health & Safety Statistics</h3>
+          <p className="text-sm text-slate-500 mb-4">RIDDOR-reportable incidents, near-miss trends, and audit performance</p>
+          <RIDDORStatsPanel />
+        </div>
+      )}
     </div>
   );
 }

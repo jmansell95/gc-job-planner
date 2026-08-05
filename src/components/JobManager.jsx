@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, FolderOpen } from 'lucide-react';
+import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, FolderOpen, Copy } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/dashboard/StatCard';
 import SearchFilterBar from '@/components/SearchFilterBar';
@@ -80,6 +80,7 @@ export default function JobManager({ onNavigateRota }) {
   const [selectedJob, setSelectedJob] = useState(null);
   const [showWizard, setShowWizard] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
+  const [cloningId, setCloningId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -117,6 +118,28 @@ export default function JobManager({ onNavigateRota }) {
     setShowWizard(false);
     setEditingJob(null);
     if (savedJob && !editingJob?.id) setCreatedJob(savedJob);
+  };
+
+  const handleClone = async (job) => {
+    const shiftStr = prompt(`Clone "${job.name}" — shift dates by how many days? (e.g. 7 = one week forward)`, '7');
+    if (shiftStr === null) return;
+    const shift = parseInt(shiftStr);
+    if (isNaN(shift)) { alert('Please enter a valid number of days.'); return; }
+    setCloningId(job.id);
+    try {
+      const res = await fetch('/api/functions/cloneJob', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_id: job.id, date_shift_days: shift }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Clone failed');
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      alert(`Cloned "${job.name}" → "${data.new_job_name}"\n${data.cost_items_copied} cost items, ${data.logistics_copied} logistics, ${data.milestones_copied} milestones copied.`);
+    } catch (e) {
+      alert('Could not clone job: ' + e.message);
+    }
+    setCloningId(null);
   };
 
   const handleDelete = async (id) => {
@@ -383,6 +406,7 @@ export default function JobManager({ onNavigateRota }) {
                     <button onClick={() => setSelectedJob(job)} className="flex items-center gap-1.5 text-sm font-medium text-[#2E5A1A] hover:text-[#1c4a12] transition"><Eye className="w-4 h-4" /> View Details</button>
                     <div className="flex gap-1">
                       <button onClick={() => handleEdit(job)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
+                      <button onClick={() => handleClone(job)} disabled={cloningId === job.id} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition disabled:opacity-50" title="Clone job"><Copy className="w-4 h-4" /></button>
                       <button onClick={() => handleDelete(job.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
