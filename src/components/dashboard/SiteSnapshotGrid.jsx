@@ -9,6 +9,7 @@ import {
 import { format } from 'date-fns';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import { getJobPrimaryType, getJobTypeLabel, getJobTypeColor } from '@/utils/jobTeams';
+import DisciplinePills from '@/components/disciplines/DisciplinePills';
 import { Skeleton } from '@/components/StateViews';
 
 const complianceConfig = {
@@ -272,6 +273,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                     {job.job_reference && (
                       <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full">{job.job_reference}</span>
                     )}
+                    <DisciplinePills job={job} size="sm" />
                   </div>
                   <h3 className="font-bold text-slate-900 text-sm leading-tight truncate">{job.name}</h3>
                   <p className="text-xs text-slate-400 truncate flex items-center gap-1 mt-0.5">

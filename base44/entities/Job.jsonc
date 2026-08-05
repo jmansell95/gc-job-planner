@@ -26,16 +26,107 @@
       "type": "number",
       "description": "Job site longitude (for Geotab GPS geofencing \u2014 auto-detects arrival/departure times for timesheets). Set manually or via the geocode button on the job form."
     },
+    "disciplines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "drilling",
+              "groundworks",
+              "enabling",
+              "enabling_works",
+              "depot",
+              "supervisor",
+              "coring",
+              "trial_pit"
+            ],
+            "description": "Discipline type key \u2014 matches JobType records. A job can have multiple disciplines active simultaneously (e.g. drilling + groundworks on the same site)."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planning",
+              "active",
+              "completed",
+              "on_hold"
+            ],
+            "default": "planning",
+            "description": "Per-discipline status. Each discipline tracks its own lifecycle independently \u2014 groundworks may be completed while drilling is still active."
+          },
+          "drilling_method": {
+            "type": "string",
+            "enum": [
+              "cp",
+              "rotary",
+              "mixed",
+              "not_applicable"
+            ],
+            "default": "not_applicable",
+            "description": "Drilling method for drilling disciplines only. 'cp' = cable percussion, 'rotary' = rotary drilling, 'mixed' = both, 'not_applicable' = non-drilling."
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Discipline-specific start date. Allows staggered starts (e.g. groundworks starts week 1, drilling starts week 3)."
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Discipline-specific end date."
+          },
+          "revenue_method": {
+            "type": "string",
+            "enum": [
+              "none",
+              "day_rate",
+              "meterage_rate",
+              "unit_rate",
+              "flat_fee"
+            ],
+            "default": "none",
+            "description": "How revenue is calculated for this discipline. Each discipline can be billed differently (e.g. drilling = meterage, groundworks = day rate)."
+          },
+          "unit_price": {
+            "type": "number",
+            "description": "Price per unit for unit-rate billing (this discipline only)."
+          },
+          "meterage_rate": {
+            "type": "number",
+            "description": "Per-metre drilling rate for this discipline (drilling only)."
+          },
+          "meterage_target": {
+            "type": "number",
+            "description": "Target total metres for this discipline."
+          },
+          "required_team_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Teams required for this discipline. Staff outside these teams see a soft warning when assigned."
+          }
+        }
+      },
+      "default": [],
+      "description": "Multi-discipline array \u2014 tracks each discipline (drilling, groundworks, enabling, etc.) as a separate entry with its own status, dates, revenue method, and required teams. A job with both drilling and groundworks will have two entries here, each independently managed. The legacy single-type fields (job_type, drilling_method, required_team_ids, revenue_method) are kept for backward compatibility and mirror the primary discipline."
+    },
+    "primary_discipline": {
+      "type": "string",
+      "description": "The key of the primary discipline (the main driver of the job). Points to a discipline type in the disciplines array. Used for dashboard color-coding and default filtering."
+    },
     "job_type": {
       "type": "string",
-      "description": "Job type key \u2014 matches the key field of a JobType record (e.g. groundworks, cp_drilling). Managed via Settings \u2192 Job Types. Falls back to the first required team's job_type when not set."
+      "description": "Legacy primary job type key \u2014 mirrors the primary discipline's type for backward compatibility. Managed via Settings \u2192 Job Types. Falls back to the first discipline's type when not set."
     },
     "required_team_ids": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Teams required for this job. Staff outside these teams can still be assigned but managers see a soft warning. Derived from the legacy job_type during migration."
+      "description": "Legacy teams required \u2014 mirrors the primary discipline's required_team_ids for backward compatibility."
     },
     "status": {
       "type": "string",
@@ -48,7 +139,49 @@
         "cancelled"
       ],
       "default": "planning",
-      "description": "Job status. New jobs start in 'planning', automatically move to 'in_progress' when the rota is published, then to 'decommissioning' when work finishes and equipment is being collected, and finally 'completed' once all items are returned."
+      "description": "Job status. New jobs start in 'planning', automatically move to 'in_progress' when the rota is published, then to 'decommissioning' when work finishes and equipment is being collected, and finally 'completed' once all items are returned and the site is cleared."
+    },
+    "decommissioning_started_at": {
+      "type": "string",
+      "description": "ISO timestamp when the job was moved to 'decommissioning' status. Set when the 'Finish Job' action is triggered \u2014 kicks off the logistics collection sweep."
+    },
+    "decommissioning_completed_at": {
+      "type": "string",
+      "description": "ISO timestamp when all assets were confirmed returned and the job moved to 'completed'."
+    },
+    "decommissioning_checklist": {
+      "type": "object",
+      "description": "Final inspection checklist completed during the decommissioning phase before the job can be marked completed.",
+      "properties": {
+        "photos_uploaded": {
+          "type": "boolean",
+          "default": false
+        },
+        "final_meters_recorded": {
+          "type": "boolean",
+          "default": false
+        },
+        "site_handback_confirmed": {
+          "type": "boolean",
+          "default": false
+        },
+        "all_assets_returned": {
+          "type": "boolean",
+          "default": false
+        },
+        "final_notes": {
+          "type": "string"
+        },
+        "handback_contact_name": {
+          "type": "string"
+        },
+        "completed_by_name": {
+          "type": "string"
+        },
+        "completed_at": {
+          "type": "string"
+        }
+      }
     },
     "status_reason": {
       "type": "string",
@@ -61,12 +194,12 @@
     "start_date": {
       "type": "string",
       "format": "date",
-      "description": "Job start date"
+      "description": "Job start date (overall \u2014 earliest of all discipline start dates)"
     },
     "end_date": {
       "type": "string",
       "format": "date",
-      "description": "Job end date"
+      "description": "Job end date (overall \u2014 latest of all discipline end dates)"
     },
     "client_id": {
       "type": "string",
@@ -169,11 +302,11 @@
     },
     "meterage_rate": {
       "type": "number",
-      "description": "Per-metre charge rate in GBP. When set, meterage revenue = total metres drilled \u00d7 this rate. Used for jobs billed on meterage instead of crew day rates."
+      "description": "Legacy per-metre charge rate \u2014 mirrors the primary drilling discipline's meterage_rate for backward compatibility."
     },
     "meterage_target": {
       "type": "number",
-      "description": "Target total metres to drill for this job. Used to track progress and completion percentage against the agreed scope."
+      "description": "Legacy target total metres \u2014 mirrors the primary drilling discipline's meterage_target."
     },
     "drilling_method": {
       "type": "string",
@@ -184,7 +317,7 @@
         "not_applicable"
       ],
       "default": "not_applicable",
-      "description": "Primary drilling method for this job \u2014 'cp' = cable percussion, 'rotary' = rotary drilling, 'mixed' = both methods on the same job, 'not_applicable' = non-drilling (groundworks, EV chargers). Used to auto-match per-metre drilling rates from the correct rate card section (CP Drilling vs Rotary Drilling subcategories) and to tag each borehole's revenue by method. When left as 'not_applicable' but rigs are assigned, the engine auto-detects from rig_type."
+      "description": "Legacy primary drilling method \u2014 mirrors the primary drilling discipline's drilling_method for backward compatibility."
     },
     "revenue_method": {
       "type": "string",
@@ -196,11 +329,11 @@
         "flat_fee"
       ],
       "default": "none",
-      "description": "How revenue is calculated for this job. 'none' = legacy markup-on-cost model (internal cost + markup %). 'day_rate' = sum of assigned crew day rates \u00d7 working days (from the schedule of rates). 'meterage_rate' = total metres drilled \u00d7 meterage_rate. 'unit_rate' = units completed \u00d7 unit_price. 'flat_fee' = single agreed project fee (client_charge). Set per job since billing terms vary \u2014 one drilling job may be day-rated while another is meteraged."
+      "description": "Legacy revenue method \u2014 mirrors the primary discipline's revenue_method for backward compatibility."
     },
     "unit_price": {
       "type": "number",
-      "description": "Price per unit in GBP for unit-rate billing (e.g. \u00a3/trial pit, \u00a3/core run, \u00a3/EV charger installed). Used when revenue_method is 'unit_rate'. Revenue = units completed \u00d7 this price."
+      "description": "Legacy unit price \u2014 mirrors the primary discipline's unit_price."
     },
     "markup_percentage": {
       "type": "number",

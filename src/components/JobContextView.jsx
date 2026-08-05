@@ -15,6 +15,34 @@ import { getTotalMetres } from '@/utils/geotechBilling';
 import LogReviewQuickStat from '@/components/investigation/LogReviewQuickStat';
 import PortalLinkManager from '@/components/PortalLinkManager';
 import QuickAssignStaffModal from '@/components/jobs/QuickAssignStaffModal';
+import DecommissioningBanner from '@/components/decommissioning/DecommissioningBanner';
+import FinishJobModal from '@/components/decommissioning/FinishJobModal';
+import DisciplinePills from '@/components/disciplines/DisciplinePills';
+
+// Finish Job button — opens the FinishJobModal to start decommissioning
+function FinishJobButton({ job }) {
+  const [showModal, setShowModal] = useState(false);
+  return (
+    <>
+      <div className="flex justify-center">
+        <button
+          onClick={() => setShowModal(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition shadow-sm"
+        >
+          <AlertTriangle className="w-4 h-4" />
+          Finish Job — Start Decommissioning
+        </button>
+      </div>
+      {showModal && (
+        <FinishJobModal
+          job={job}
+          onClose={() => setShowModal(false)}
+          onStarted={() => {/* parent will refresh via query invalidation */}}
+        />
+      )}
+    </>
+  );
+}
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const fmt2 = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -218,6 +246,12 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
       {job.status === 'planning' && (
         <SetupChecklist job={job} rotas={rotas} hotelBookings={hotelBookings} />
       )}
+
+      {/* Decommissioning banner — shown when job is in decommissioning */}
+      <DecommissioningBanner job={job} />
+
+      {/* Multi-discipline pills — at-a-glance visibility of all active disciplines */}
+      <DisciplinePills job={job} size="md" showStatus />
 
       {/* Main 3-pane grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
@@ -543,6 +577,11 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
         <LogReviewQuickStat job={job} />
         <PortalLinkManager job={job} />
       </div>
+
+      {/* Finish Job action — visible when job is in progress */}
+      {job.status === 'in_progress' && (
+        <FinishJobButton job={job} />
+      )}
 
       {/* Full notes */}
       {job.notes && (

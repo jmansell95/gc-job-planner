@@ -12,6 +12,7 @@ import PrintReportButton from '@/components/PrintReportButton';
 import JobCreatedModal from '@/components/JobCreatedModal';
 import ProjectManager from '@/components/ProjectManager';
 import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
+import DisciplinePills from '@/components/disciplines/DisciplinePills';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 
 const fmtDate = (d) => {
@@ -297,6 +298,7 @@ export default function JobManager({ onNavigateRota }) {
                       <div className="flex flex-wrap gap-1.5">
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${getJobTypeColor(primaryType, jobTypes).badge}`}>{getJobTypeLabel(primaryType, jobTypes)}</span>
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[job.status || 'planning']}`}>{statusLabels[job.status || 'planning']}</span>
+                        <DisciplinePills job={job} size="sm" />
                       </div>
                       {job.requisition_list_url && <FileText className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" title="Has requisition list" />}
                     </div>
