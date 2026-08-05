@@ -34,6 +34,7 @@ import JobHazardMap from '@/components/JobHazardMap';
 import JobContextView from '@/components/JobContextView';
 import JobDependencyManager from '@/components/JobDependencyManager';
 import DrillingWeatherWidget from '@/components/DrillingWeatherWidget';
+import FloodRiskWidget from '@/components/jobs/FloodRiskWidget';
 import TabStatRibbon from '@/components/TabStatRibbon';
 import { getJobTypeLabel } from '@/utils/jobTeams';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -131,12 +132,20 @@ export default function JobDetailTabs({
         />
         <JobDependencyManager job={job} />
         {(job.site_lat != null && job.site_lng != null) && (
-          <DrillingWeatherWidget
-            lat={job.site_lat}
-            lng={job.site_lng}
-            locationName={job.location}
-            compact={isDrillingJob ? false : true}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <DrillingWeatherWidget
+              lat={job.site_lat}
+              lng={job.site_lng}
+              locationName={job.location}
+              compact={isDrillingJob ? false : true}
+              rigType={job.drilling_method === 'cp' ? 'cp' : job.drilling_method === 'rotary' ? 'rotary' : undefined}
+            />
+            <FloodRiskWidget
+              lat={job.site_lat}
+              lng={job.site_lng}
+              locationName={job.location}
+            />
+          </div>
         )}
       </TabsContent>
 

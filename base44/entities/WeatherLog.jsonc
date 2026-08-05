@@ -1,0 +1,111 @@
+{
+  "name": "WeatherLog",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this weather snapshot was recorded for."
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display)."
+    },
+    "log_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this weather snapshot covers."
+    },
+    "site_lat": {
+      "type": "number",
+      "description": "Site latitude used for the weather fetch."
+    },
+    "site_lng": {
+      "type": "number",
+      "description": "Site longitude used for the weather fetch."
+    },
+    "temp_max": {
+      "type": "number",
+      "description": "Maximum temperature (\u00b0C) for the day."
+    },
+    "temp_min": {
+      "type": "number",
+      "description": "Minimum temperature (\u00b0C) for the day."
+    },
+    "precipitation_mm": {
+      "type": "number",
+      "description": "Total precipitation (mm) for the day."
+    },
+    "precipitation_probability": {
+      "type": "number",
+      "description": "Peak precipitation probability (%) for the day."
+    },
+    "wind_speed_max_mph": {
+      "type": "number",
+      "description": "Maximum wind speed (mph) for the day."
+    },
+    "wind_gusts_max_mph": {
+      "type": "number",
+      "description": "Maximum wind gusts (mph) for the day."
+    },
+    "weather_code": {
+      "type": "number",
+      "description": "WMO weather code for the day (Open-Meteo format)."
+    },
+    "weather_label": {
+      "type": "string",
+      "description": "Human-readable weather description (e.g. 'Heavy rain', 'Clear sky')."
+    },
+    "drilling_verdict": {
+      "type": "string",
+      "enum": [
+        "good",
+        "caution",
+        "stop"
+      ],
+      "description": "Drilling safety verdict for this day: 'good' = safe to drill, 'caution' = reduced operations, 'stop' = unsafe conditions."
+    },
+    "verdict_reasons": {
+      "type": "string",
+      "description": "Comma-separated reasons for the drilling verdict (e.g. 'High wind 28 mph, Heavy rain 12mm')."
+    },
+    "flood_risk_level": {
+      "type": "string",
+      "enum": [
+        "none",
+        "low",
+        "moderate",
+        "high",
+        "severe"
+      ],
+      "default": "none",
+      "description": "Flood risk level at the site on this date. 'none' = no flood warnings nearby, 'low'/'moderate'/'high'/'severe' = increasing EA flood warning severity."
+    },
+    "flood_warning_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of active EA flood warnings within 5km of the site."
+    }
+  },
+  "required": [
+    "job_id",
+    "log_date"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

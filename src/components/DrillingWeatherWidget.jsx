@@ -37,15 +37,25 @@ const WEATHER_CODE_MAP = {
   99: { label: 'Severe thunderstorm', icon: CloudLightning, color: 'text-purple-700', bg: 'bg-purple-100', grad: 'from-purple-200 to-purple-100' },
 };
 
-// Drilling-specific weather assessment
+// Rig-aware wind thresholds (mph).
+// CP (cable percussion) rigs have a tall exposed mast and are more sensitive
+// to wind — lower stop/caution thresholds. Rotary rigs are heavier and can
+// operate in slightly higher winds. Default thresholds apply when no rig
+// type is specified.
+const RIG_WIND_LIMITS = {
+  cp: { stopGust: 38, stopWind: 30, cautionGust: 30, cautionWind: 22 },
+  rotary: { stopGust: 45, stopWind: 38, cautionGust: 38, cautionWind: 28 },
+  default: { stopGust: 45, stopWind: 38, cautionGust: 35, cautionWind: 25 },
+};
+
+// Drilling-specific weather assessment with rig-aware wind thresholds.
 // Rules based on typical drilling rig operating limits:
-// - Wind > 38 mph (Force 8) → STOP (rigs can't operate safely)
-// - Wind > 25 mph (Force 6) → CAUTION (reduced operations)
+// - Wind (rig-specific thresholds) → STOP or CAUTION
 // - Thunderstorm → STOP (lightning risk with rig masts)
 // - Heavy rain (>8mm/day or >80% prob) → CAUTION (ground conditions, water ingress)
 // - Snow/Ice → STOP or CAUTION (ground conditions, freezing)
 // - Freezing temps < 0°C → CAUTION (ground frost, equipment)
-function assessDrillingConditions(day) {
+function assessDrillingConditions(day, rigType) {
   const windMs = day.wind_speed_10m_max || 0;
   const windMph = Math.round(windMs * 2.23694);
   const code = day.weather_code;
@@ -55,16 +65,19 @@ function assessDrillingConditions(day) {
   const gustMs = day.wind_gusts_10m_max || windMs;
   const gustMph = Math.round(gustMs * 2.23694);
 
+  const limits = RIG_WIND_LIMITS[rigType] || RIG_WIND_LIMITS.default;
+  const rigLabel = rigType === 'cp' ? 'CP rig' : rigType === 'rotary' ? 'Rotary rig' : 'Rig';
+
   const reasons = [];
   let level = 'good'; // good | caution | stop
 
-  // Wind limits
-  if (gustMph >= 45 || windMph >= 38) {
+  // Wind limits (rig-aware)
+  if (gustMph >= limits.stopGust || windMph >= limits.stopWind) {
     level = 'stop';
-    reasons.push(`High wind ${windMph} mph (gusts ${gustMph} mph) — rig operations unsafe`);
-  } else if (gustMph >= 35 || windMph >= 25) {
+    reasons.push(`High wind ${windMph} mph (gusts ${gustMph} mph) — ${rigLabel} operations unsafe`);
+  } else if (gustMph >= limits.cautionGust || windMph >= limits.cautionWind) {
     if (level !== 'stop') level = 'caution';
-    reasons.push(`Strong wind ${windMph} mph (gusts ${gustMph} mph) — reduced rig operations`);
+    reasons.push(`Strong wind ${windMph} mph (gusts ${gustMph} mph) — reduced ${rigLabel} operations`);
   }
 
   // Thunderstorm
@@ -112,11 +125,11 @@ const LEVEL_CONFIG = {
   stop: { label: 'Stop Work', icon: ShieldX, color: 'text-rose-600', bg: 'bg-rose-50', border: 'border-rose-200', dot: 'bg-rose-500' },
 };
 
-function DayForecastCard({ day, index, isToday }) {
+function DayForecastCard({ day, index, isToday, rigType }) {
   const [expanded, setExpanded] = useState(isToday);
   const wInfo = WEATHER_CODE_MAP[day.weather_code] || WEATHER_CODE_MAP[3];
   const Icon = wInfo.icon;
-  const assessment = assessDrillingConditions(day);
+  const assessment = assessDrillingConditions(day, rigType);
   const lvl = LEVEL_CONFIG[assessment.level];
   const LvIcon = lvl.icon;
   const date = new Date(day.date + 'T00:00:00');
@@ -207,7 +220,7 @@ function DayForecastCard({ day, index, isToday }) {
                     precipitation_probability_max: h.precipitation_probability,
                     precipitation_sum: h.precipitation,
                     temperature_2m_min: h.temperature_2m,
-                  });
+                  }, rigType);
                   const hLvl = LEVEL_CONFIG[hAssess.level];
                   return (
                     <div key={i} className="flex-shrink-0 w-12 bg-white rounded-lg p-1.5 border border-slate-100 text-center">
@@ -239,7 +252,7 @@ function DayForecastCard({ day, index, isToday }) {
  * - Hourly breakdown for today
  * - Visual color-coded days
  */
-export default function DrillingWeatherWidget({ lat, lng, locationName, compact }) {
+export default function DrillingWeatherWidget({ lat, lng, locationName, compact, rigType }) {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -309,8 +322,8 @@ export default function DrillingWeatherWidget({ lat, lng, locationName, compact 
   const overallVerdict = useMemo(() => {
     if (days.length === 0) return null;
     const today = days[0];
-    return assessDrillingConditions(today);
-  }, [days]);
+    return assessDrillingConditions(today, rigType);
+  }, [days, rigType]);
 
   if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) {
     return (
@@ -398,6 +411,16 @@ export default function DrillingWeatherWidget({ lat, lng, locationName, compact 
         </div>
       </div>
 
+      {/* Rig type indicator */}
+      {rigType && rigType !== 'default' && (
+        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 px-1">
+          <span className="font-semibold">Wind limits:</span>
+          <span className="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+            {rigType === 'cp' ? 'CP rig (conservative)' : 'Rotary rig (standard)'}
+          </span>
+        </div>
+      )}
+
       {/* Stop-work banner if today is stop level */}
       {overallVerdict?.level === 'stop' && (
         <div className="flex items-start gap-2 bg-rose-50 border-2 border-rose-200 rounded-xl px-3.5 py-3">
@@ -427,7 +450,7 @@ export default function DrillingWeatherWidget({ lat, lng, locationName, compact 
           </div>
           <div className="space-y-2">
             {days.map((day, i) => (
-              <DayForecastCard key={i} day={day} index={i} isToday={i === 0} />
+              <DayForecastCard key={i} day={day} index={i} isToday={i === 0} rigType={rigType} />
             ))}
           </div>
         </div>
