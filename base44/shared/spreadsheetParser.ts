@@ -91,14 +91,26 @@ export function cellToDate(cell) {
   } else {
     const s = String(cell).trim();
     if (!s) return null;
+    // ISO format: YYYY-MM-DD
     const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (isoMatch) {
       iso = `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
     } else {
-      const num = Number(s);
-      if (!isNaN(num) && num > 30000 && num < 80000) {
-        const d = new Date(Math.round((num - 25569) * 86400 * 1000));
-        iso = d.toISOString().slice(0, 10);
+      // UK text format: DD/MM/YYYY or D/M/YYYY (also DD/MM/YY)
+      const ukMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+      if (ukMatch) {
+        let day = ukMatch[1].padStart(2, '0');
+        let month = ukMatch[2].padStart(2, '0');
+        let year = ukMatch[3];
+        if (year.length === 2) year = '20' + year;
+        iso = `${year}-${month}-${day}`;
+      } else {
+        // Excel serial number
+        const num = Number(s);
+        if (!isNaN(num) && num > 30000 && num < 80000) {
+          const d = new Date(Math.round((num - 25569) * 86400 * 1000));
+          iso = d.toISOString().slice(0, 10);
+        }
       }
     }
   }

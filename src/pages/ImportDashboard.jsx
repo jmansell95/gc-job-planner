@@ -318,21 +318,53 @@ export default function ImportDashboard() {
               <CollapsibleSection title={`Sheets Parsed (${preview.sheet_breakdown.length})`} icon={FileSpreadsheet}>
                 <div className="space-y-2">
                   {preview.sheet_breakdown.map((s, i) => (
-                    <div key={i} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-slate-700">{s.sheet}</span>
-                        {s.is_plant && <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">Plant</span>}
-                        {s.is_legacy && <span className="text-xs bg-violet-100 text-violet-700 rounded-full px-2 py-0.5">Legacy</span>}
+                    <div key={i} className="bg-slate-50 rounded-lg px-3 py-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-slate-700">{s.sheet}</span>
+                          {s.is_plant && <span className="text-xs bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">Plant</span>}
+                          {s.is_legacy && <span className="text-xs bg-violet-100 text-violet-700 rounded-full px-2 py-0.5">Legacy</span>}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-500">
+                          <span>{s.assignments} assignments</span>
+                          <span>{s.sections} sections</span>
+                          {s.date_range ? (
+                            <span className="text-emerald-600 font-medium">{s.date_range.from} → {s.date_range.to}</span>
+                          ) : (
+                            <span className="text-amber-600">no dates</span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-slate-500">
-                        <span>{s.assignments} assignments</span>
-                        <span>{s.sections} sections</span>
-                        {s.date_range ? (
-                          <span className="text-emerald-600 font-medium">{s.date_range.from} → {s.date_range.to}</span>
-                        ) : (
-                          <span className="text-amber-600">no dates</span>
-                        )}
-                      </div>
+                      {s.diag && s.diag.dateHeaderRowIdx >= 0 && (
+                        <div className="mt-2 text-xs text-slate-500 border-t border-slate-200 pt-2">
+                          <p className="font-medium text-slate-600">Date header at row {s.diag.dateHeaderRowIdx} · {s.diag.dateColumnCount} columns mapped</p>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {(s.diag.allCols || s.diag.sampleCols || []).map((c, ci) => (
+                              <span key={ci} className="bg-blue-50 text-blue-700 rounded px-1.5 py-0.5 font-mono">{c.col}: {c.date}</span>
+                            ))}
+                          </div>
+                          {s.diag.rawHeaderRow && s.diag.rawHeaderRow.length > 0 && (
+                            <div className="mt-1.5">
+                              <p className="text-slate-400">Raw header row (first 20 cols):</p>
+                              <div className="flex flex-wrap gap-1 mt-0.5">
+                                {s.diag.rawHeaderRow.map((c, ci) => (
+                                  <span key={ci} className="bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 font-mono text-[10px]">{c.col}: {c.val === null ? '∅' : c.val}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {s.diag.rawFirstDataRow && s.diag.rawFirstDataRow.length > 0 && (
+                            <div className="mt-1.5">
+                              <p className="text-slate-400">Raw first data row (first 20 cols):</p>
+                              <div className="flex flex-wrap gap-1 mt-0.5">
+                                {s.diag.rawFirstDataRow.map((c, ci) => (
+                                  <span key={ci} className="bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 font-mono text-[10px]">{c.col}: {c.val === null ? '∅' : c.val}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

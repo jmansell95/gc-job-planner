@@ -339,6 +339,27 @@ function parseSheet(sheet, sheetName) {
         colToDate[c] = d.toISOString().slice(0, 10);
       }
     }
+    // Extrapolate BEFORE the first date column — fill columns that contain
+    // assignment data but precede the first date header, assuming 1 day per
+    // column going backwards.
+    const firstCol = dateCols[0];
+    const firstDate = new Date(colToDate[firstCol] + 'T00:00:00Z');
+    let minDataCol = firstCol;
+    for (let r = dateHeaderRowIdx + 1; r < rows.length; r++) {
+      if (!rows[r]) continue;
+      for (let c = 0; c < firstCol && c < (rows[r].length || 0); c++) {
+        if (rows[r][c] != null && String(rows[r][c]).trim()) {
+          if (c < minDataCol) minDataCol = c;
+        }
+      }
+    }
+    for (let c = firstCol - 1; c >= minDataCol; c--) {
+      if (!colToDate[c]) {
+        const d = new Date(firstDate);
+        d.setUTCDate(d.getUTCDate() - (firstCol - c));
+        colToDate[c] = d.toISOString().slice(0, 10);
+      }
+    }
   }
 
   const assignments = [];
@@ -504,13 +525,16 @@ function parseSheet(sheet, sheetName) {
     }
   }
 
-  // Attach diagnostics + sections to the first assignment for the caller
+  // Attach diagnostics + sections to the caller
   if (assignments.length > 0) {
     assignments[0]._sections = [...sectionsFound];
     assignments[0]._diag = {
       dateHeaderRowIdx,
       dateColumnCount: Object.keys(colToDate).length,
       sampleCols: Object.entries(colToDate).slice(0, 5).map(([c, d]) => ({ col: Number(c), date: d })),
+      allCols: Object.entries(colToDate).map(([c, d]) => ({ col: Number(c), date: d })),
+      rawHeaderRow: rows[dateHeaderRowIdx] ? rows[dateHeaderRowIdx].slice(0, 20).map((v, i) => ({ col: i, val: v instanceof Date ? v.toISOString().slice(0,10) : (v != null ? String(v).slice(0,30) : null) })) : [],
+      rawFirstDataRow: rows[dateHeaderRowIdx + 1] ? rows[dateHeaderRowIdx + 1].slice(0, 20).map((v, i) => ({ col: i, val: v instanceof Date ? v.toISOString().slice(0,10) : (v != null ? String(v).slice(0,30) : null) })) : [],
     };
   }
   return assignments;
