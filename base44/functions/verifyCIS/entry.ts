@@ -57,6 +57,79 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ ok: true, message: 'HMRC CIS credentials configured — ready to verify subcontractors.' });
     }
 
+    // Bulk verify-all mode — re-verify every subcontractor with a UTR.
+    // Used by the "Verify All" button and the monthly scheduled automation.
+    // Processes sequentially with a small delay to respect HMRC rate limits.
+    if (body.action === 'verify_all') {
+      const { cfg } = await getCisConfig(base44);
+      const token = await getHmrcToken(cfg.client_id, cfg.client_secret);
+      if (!token) {
+        return Response.json({ ok: false, error: 'HMRC CIS credentials not configured — enter them in Settings → CIS Verification.' }, { status: 400 });
+      }
+      const allContractors = await base44.asServiceRole.entities.Contractor.list('-created_date', 500);
+      const toVerify = allContractors.filter((c: any) => c.utr && c.contractor_type !== 'agency');
+      let verified = 0, failed = 0, skipped = 0;
+      const errors: any[] = [];
+      for (const c of toVerify) {
+        try {
+          const verifyRes = await fetch(`${HMRC_BASE}/cis/v1.0/verify`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              ...(cfg.tpp_id ? { 'Gov-Client-Connection-Method': 'WEB_APP_VIA_TPP' } : {}),
+            },
+            body: JSON.stringify({
+              subcontractor: {
+                utr: c.utr,
+                ...(c.nino ? { nino: c.nino } : {}),
+                ...(c.company_reg_number ? { crn: c.company_reg_number } : {}),
+              },
+              contractor: { utr: cfg.tpp_id || '' },
+            }),
+          });
+          if (!verifyRes.ok) {
+            failed++;
+            errors.push({ name: c.name, status: verifyRes.status });
+            await base44.asServiceRole.entities.Contractor.update(c.id, {
+              cis_status: 'failed',
+              cis_verified_at: new Date().toISOString(),
+              cis_verified_by: user?.full_name || 'system',
+            });
+            continue;
+          }
+          const verifyData = await verifyRes.json().catch(() => ({}));
+          const verificationNumber = verifyData.verificationNumber || verifyData.verification_number || '';
+          const deductionRate = Number(verifyData.deductionRate ?? verifyData.deduction_rate ?? -1);
+          const matched = verifyData.matched ?? verifyData.matchedStatus ?? true;
+          let cisStatus: string, taxRate: number;
+          if (!matched) { cisStatus = 'unknown'; taxRate = 30; }
+          else if (deductionRate === 0) { cisStatus = 'verified_gross'; taxRate = 0; }
+          else if (deductionRate === 20) { cisStatus = 'verified_gross'; taxRate = 20; }
+          else { cisStatus = 'verified_net'; taxRate = 30; }
+          await base44.asServiceRole.entities.Contractor.update(c.id, {
+            cis_status: cisStatus, cis_tax_rate: taxRate,
+            cis_verification_number: verificationNumber,
+            cis_verified_at: new Date().toISOString(),
+            cis_verified_by: user?.full_name || 'system',
+          });
+          verified++;
+          // Small delay to respect HMRC rate limits
+          await new Promise(r => setTimeout(r, 200));
+        } catch (e: any) {
+          failed++; errors.push({ name: c.name, error: e.message || String(e) });
+        }
+      }
+      skipped = allContractors.length - toVerify.length;
+      return Response.json({
+        ok: true, action: 'verify_all',
+        total: toVerify.length, verified, failed, skipped,
+        message: `Bulk verification complete — ${verified} verified, ${failed} failed, ${skipped} skipped (no UTR).`,
+        errors: errors.slice(0, 20),
+      });
+    }
+
     const contractorId = body.contractor_id;
     if (!contractorId) return Response.json({ ok: false, error: 'contractor_id is required' }, { status: 400 });
 

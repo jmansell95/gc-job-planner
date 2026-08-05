@@ -31,6 +31,8 @@ export default function CISSettings() {
   const [testResult, setTestResult] = useState(null);
   const [verifyingId, setVerifyingId] = useState(null);
   const [verifyMsg, setVerifyMsg] = useState({});
+  const [verifyingAll, setVerifyingAll] = useState(false);
+  const [bulkResult, setBulkResult] = useState(null);
 
   const { data: settingsRec } = useQuery({
     queryKey: ['cis-config'],
@@ -85,6 +87,22 @@ export default function CISSettings() {
       setVerifyMsg({ [contractorId]: { ok: false, msg: e.message } });
     }
     setVerifyingId(null);
+  };
+
+  const handleVerifyAll = async () => {
+    if (needingVerification.length === 0) return;
+    if (!confirm(`Verify all ${needingVerification.length} subcontractor(s) awaiting verification against HMRC? This may take a minute.`)) return;
+    setVerifyingAll(true);
+    setBulkResult(null);
+    try {
+      const res = await base44.functions.invoke('verifyCIS', { action: 'verify_all' });
+      const d = res.data || {};
+      setBulkResult({ ok: !!d.ok, msg: d.message || d.error || 'Unknown', errors: d.errors || [] });
+      refetch();
+    } catch (e) {
+      setBulkResult({ ok: false, msg: e.message || 'Bulk verification failed' });
+    }
+    setVerifyingAll(false);
   };
 
   return (
@@ -147,7 +165,22 @@ export default function CISSettings() {
           <UserX className="w-4 h-4 text-amber-600" />
           <h3 className="text-sm font-bold text-slate-800">Awaiting Verification</h3>
           <span className="ml-auto text-xs text-slate-400">{needingVerification.length} subcontractor(s) with a UTR</span>
+          {needingVerification.length > 0 && config.client_id && (
+            <button onClick={handleVerifyAll} disabled={verifyingAll} className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] disabled:opacity-50">
+              {verifyingAll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />} Verify All
+            </button>
+          )}
         </div>
+        {bulkResult && (
+          <div className={`mb-3 rounded-lg px-3 py-2 text-xs ${bulkResult.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+            <div className="flex items-start gap-2"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> {bulkResult.msg}</div>
+            {bulkResult.errors?.length > 0 && (
+              <div className="mt-1.5 text-[11px] text-slate-600 space-y-0.5">
+                {bulkResult.errors.slice(0, 5).map((e, i) => (<div key={i}>• {e.name}: {e.error || e.status}</div>))}
+              </div>
+            )}
+          </div>
+        )}
         {needingVerification.length === 0 ? (
           <p className="text-xs text-slate-400 py-4 text-center">No subcontractors awaiting verification.</p>
         ) : (

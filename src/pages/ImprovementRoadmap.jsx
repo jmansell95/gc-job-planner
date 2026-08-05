@@ -63,7 +63,7 @@ const CATEGORIES = [
       { priority: 'high', title: 'Automated invoice generation workflow', desc: 'Auto-generate draft invoices from approved timesheets and cost items with a manager approval gate.' },
       { priority: 'high', title: 'Cost forecasting', desc: 'Predict final job cost based on current burn rate, day rates, and remaining scope.' },
       { priority: 'high', title: 'Cash flow projection timeline', desc: 'Visual timeline of upcoming revenue (invoices due) and costs (supplier payments, payroll).' },
-      { priority: 'medium', title: 'CIS deduction automation', desc: 'Auto-calculate CIS deductions and submit to HMRC API with verification tracking.' },
+      { priority: 'medium', title: 'CIS deduction automation', desc: 'Auto-calculate CIS deductions and submit to HMRC API with verification tracking.', status: 'done' },
       { priority: 'medium', title: 'Purchase order management', desc: 'Create, track, and match POs against supplier invoices with three-way matching.' },
       { priority: 'medium', title: 'Retention release automation', desc: 'Automated retention eligibility detection and release reminders with client communication.' },
       { priority: 'low', title: 'Multi-currency support', desc: 'Handle international clients and suppliers with currency conversion and FX rate tracking.' },
