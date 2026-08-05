@@ -101,18 +101,18 @@ export const DEFAULT_WIDGET_SIZES = {
 };
 
 // Widgets that require costing permission (admin / manager only).
-export const COST_WIDGETS = ['job-profitability', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'cash-flow-forecast', 'profitability-alerts'];
+export const COST_WIDGETS = ['job-profitability', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'cash-flow-forecast', 'profitability-alerts', 'staff-utilization'];
 
 // Widgets that show company-wide data (not specific to a job). These are hidden
 // when the dashboard is focused on a single job, since they don't reflect that
 // job's data. The remaining widgets already scope themselves via JobFilterContext.
-export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'ai-insights', 'geo-heatmap', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'field-priorities', 'cash-flow-forecast', 'drilling-performance', 'safety-dashboard', 'predictive-insights', 'profitability-alerts'];
+export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'ai-insights', 'geo-heatmap', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'field-priorities', 'cash-flow-forecast', 'drilling-performance', 'safety-dashboard', 'predictive-insights', 'profitability-alerts', 'staff-utilization'];
 
 // View profiles — quick-toggle scopes that surface only the widgets relevant to
 // one focus area, cutting scroll depth. Applied as an allow-list on top of the
 // user's saved widget order (saved customisation still respected within a profile).
 export const VIEW_PROFILES = [
   { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'drilling-performance'] },
-  { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['profitability-alerts', 'outstanding-receivables', 'billing-readiness', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip', 'predictive-insights'] },
+  { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['profitability-alerts', 'outstanding-receivables', 'billing-readiness', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip', 'predictive-insights', 'staff-utilization'] },
   { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard'] },
 ];

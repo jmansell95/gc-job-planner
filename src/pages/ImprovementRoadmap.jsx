@@ -30,7 +30,7 @@ const CATEGORIES = [
       { priority: 'high', title: 'Skills & certifications matrix', desc: 'New Skills Matrix tab in the Compliance Manager showing every active staff member × qualification type (CSCS, CPCS, NPORS, First Aid, Driving Licence, DBS, Forklift) as a color-coded grid — green=compliant, amber=expiring ≤30d, red=expired, gray=missing. Searchable by name or job title with summary stats at the top.', status: 'done' },
       { priority: 'high', title: 'Availability calendar', desc: 'Month-grid calendar in the Staff Manager showing every active staff member × day. Approved absences (holiday, sick, personal, training) are color-coded with letter badges. Navigate months, jump to today, and see at a glance who is free before assigning.', status: 'done' },
       { priority: 'high', title: 'Auto-assign crew suggestions', desc: 'CrewSuggester component ranks all active staff by a composite score: team membership (40pts), availability — no approved absence overlap (30pts), valid certs — CSCS/CPCS/First Aid (20pts), and past rota experience (10pts). Shows badges for each factor and one-click assign.', status: 'done' },
-      { priority: 'medium', title: 'Staff utilization analytics', desc: 'Billable vs non-billable hours, utilization rate per person, and bench time tracking.' },
+      { priority: 'medium', title: 'Staff utilization analytics', desc: 'Staff Utilization widget on the dashboard shows billable vs non-billable hours per staff member for the current week, with an overall utilization rate and color-coded progress bars. Sits in the Performance & Financials section and the Financials view profile.', status: 'done' },
       { priority: 'medium', title: 'Digital ID cards with QR codes', desc: 'Generate scannable ID cards for site access and contractor verification.' },
       { priority: 'low', title: 'Performance reviews & feedback', desc: 'Periodic review workflow with manager feedback, goals, and signed acknowledgements.' },
     ],
@@ -77,7 +77,7 @@ const CATEGORIES = [
     color: 'rose',
     items: [
       { priority: 'high', title: 'Automated compliance expiry alerts', desc: 'Nightly automation (checkComplianceExpiry) emails admins about expired and soon-to-expire items across staff, vehicles, equipment, and company categories. New dashboard Compliance Expiry widget shows expired/expiring items grouped by category with day-countdown badges, filterable by status.', status: 'done' },
-      { priority: 'high', title: 'RAMS document management', desc: 'Store, version, and distribute Risk Assessments & Method Statements per job with sign-off tracking.' },
+      { priority: 'high', title: 'RAMS document management', desc: 'RAMS Manager tab in the Compliance Hub shows all RAMS, method statements, and risk assessments across every job. JobDocument now tracks version numbers (current vs superseded), manager sign-off (who/when), and valid-until dates with expiry flags. Filter by signed/unsigned/expired, search by job or filename, one-click sign-off.', status: 'done' },
       { priority: 'high', title: 'Incident & near-miss reporting', desc: 'New Incidents tab in the Safety Hub for mobile-first incident reporting. Classify by type (near-miss, incident, accident, dangerous occurrence, environmental) and severity (low → critical). Captures description, immediate action, root cause, RIDDOR flag with reference tracking, and corrective actions. Expandable cards with full audit trail.', status: 'done' },
       { priority: 'medium', title: 'Toolbox talk delivery & sign-off', desc: 'Schedule, deliver, and track toolbox talks with digital sign-off and attendance records.' },
       { priority: 'medium', title: 'SafetyCulture audit score tracking', desc: 'Pull audit scores from SafetyCulture and display trends per site, per crew, per category.' },
@@ -118,7 +118,7 @@ const CATEGORIES = [
     color: 'blue',
     items: [
       { priority: 'high', title: 'Online payment portal with Stripe', desc: 'Clients can pay invoices directly through the client portal via Stripe checkout. PortalPaymentButton creates a checkout session, stripeWebhook handles payment confirmation and marks invoices as paid. Stripe config stored in AppSetting.', status: 'done' },
-      { priority: 'high', title: 'Automated progress reports via email', desc: 'Schedule weekly progress summaries sent to clients with photos, milestones, and billing status.' },
+      { priority: 'high', title: 'Automated progress reports via email', desc: 'sendWeeklyProgressReport function compiles a per-job summary (status, schedule, meterage progress, milestones, recent site photos, billing totals) and emails it to the client contact. Scheduled automation runs every Monday at 8 AM for all portal-enabled, non-completed jobs. Can also be triggered manually for a single job.', status: 'done' },
       { priority: 'medium', title: 'Document sharing with version control', desc: 'Share reports, drawings, and certifications with version history and client download tracking.' },
       { priority: 'medium', title: 'Photo gallery with time-lapse', desc: 'Auto-organize site photos by date with a time-lapse view showing site progress over time.' },
       { priority: 'low', title: 'Client feedback & rating system', desc: 'Collect client satisfaction ratings after job completion with NPS scoring.' },
@@ -198,7 +198,7 @@ const CATEGORIES = [
     title: 'Reporting',
     color: 'amber',
     items: [
-      { priority: 'high', title: 'Scheduled report delivery', desc: 'Automate weekly/monthly report generation and email delivery to stakeholders.' },
+      { priority: 'high', title: 'Scheduled report delivery', desc: 'Weekly client progress reports are delivered automatically via a scheduled automation (Mondays 8 AM). The sendWeeklyProgressReport function handles generation and email delivery in one step.', status: 'done' },
       { priority: 'high', title: 'PDF / Excel / CSV export for all views', desc: 'Multiple export paths: generateRotaPDF (weekly schedule), generateJobReport (full job pack), WeeklyTimesheetPDF (payroll), PrintReportButton (staff list), BillingExportButton (invoices), GeotabReportModal (fleet data), JobPackReport (audit pack). All produce downloadable PDF/CSV files.', status: 'done' },
       { priority: 'medium', title: 'Compliance report generation', desc: 'Auto-generate LOLER/PUWER/PAT compliance reports and HSE submissions.' },
       { priority: 'medium', title: 'Health & safety statistics (RIDDOR)', desc: 'Track and report reportable incidents, near-misses, and safety KPIs.' },

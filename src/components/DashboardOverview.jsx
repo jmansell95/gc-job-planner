@@ -32,6 +32,7 @@ import PredictiveInsightsWidget from '@/components/dashboard/PredictiveInsightsW
 import TrafficHeatmapWidget from '@/components/dashboard/TrafficHeatmapWidget';
 import ProfitabilityAlertsWidget from '@/components/dashboard/ProfitabilityAlertsWidget';
 import ComplianceExpiryWidget from '@/components/dashboard/ComplianceExpiryWidget';
+import StaffUtilizationWidget from '@/components/dashboard/StaffUtilizationWidget';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
@@ -162,6 +163,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'traffic-heatmap': return <TrafficHeatmapWidget onNavigateToJob={onNavigate} />;
       case 'profitability-alerts': return canViewCosts ? <ProfitabilityAlertsWidget onSelectJob={openJobDrawer} /> : null;
       case 'compliance-expiry': return <ComplianceExpiryWidget onNavigate={onNavigate} />;
+      case 'staff-utilization': return canViewCosts ? <StaffUtilizationWidget /> : null;
       default: return null;
     }
   };
