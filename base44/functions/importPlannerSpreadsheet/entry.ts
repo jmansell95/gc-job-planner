@@ -282,31 +282,43 @@ function parseSheet(sheet, sheetName) {
     if (d) colToDate[c] = d;
   }
 
-  // If dates are weekly (every 7 columns), interpolate daily dates for the
-  // columns in between. This handles sheets that only show week-start dates
-  // in the header but have daily staff assignments in every column.
+  // Interpolate daily dates between date columns. The planner shows
+  // week-start dates in the header (e.g. every 7 columns) but staff
+  // assignments appear in every daily column. Without interpolation, only
+  // the columns with explicit date headers get mapped — daily assignments
+  // in between are silently skipped, causing "no crews on site today".
+  //
+  // For each pair of consecutive date columns, if the column gap matches
+  // the day difference (each column = one day), fill in the intermediate
+  // columns with the correct daily dates. This handles weekly headers
+  // (gap 7 = 7 days) robustly regardless of which pair is checked first.
   const dateCols = Object.keys(colToDate).map(Number).sort((a, b) => a - b);
   if (dateCols.length >= 2) {
-    const gap = dateCols[1] - dateCols[0];
-    if (gap === 7) {
-      // Weekly headers — fill in daily dates between each pair
-      for (let i = 0; i < dateCols.length - 1; i++) {
-        const startCol = dateCols[i];
-        const endCol = dateCols[i + 1];
-        const startDate = new Date(colToDate[startCol] + 'T00:00:00Z');
-        for (let offset = 1; offset < 7; offset++) {
+    let lastColGap = 0;
+    for (let i = 0; i < dateCols.length - 1; i++) {
+      const startCol = dateCols[i];
+      const endCol = dateCols[i + 1];
+      const colGap = endCol - startCol;
+      const startDate = new Date(colToDate[startCol] + 'T00:00:00Z');
+      const endDate = new Date(colToDate[endCol] + 'T00:00:00Z');
+      const dayDiff = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+      if (colGap === dayDiff && colGap > 1) {
+        lastColGap = colGap;
+        for (let offset = 1; offset < colGap; offset++) {
           const fillCol = startCol + offset;
-          if (fillCol < endCol && !colToDate[fillCol]) {
+          if (!colToDate[fillCol]) {
             const d = new Date(startDate);
             d.setUTCDate(d.getUTCDate() + offset);
             colToDate[fillCol] = d.toISOString().slice(0, 10);
           }
         }
       }
-      // Also fill the last week (6 days after the last weekly date)
+    }
+    // Extrapolate after the last date column (fill the final week)
+    if (lastColGap > 1) {
       const lastCol = dateCols[dateCols.length - 1];
       const lastDate = new Date(colToDate[lastCol] + 'T00:00:00Z');
-      for (let offset = 1; offset <= 6; offset++) {
+      for (let offset = 1; offset < lastColGap; offset++) {
         const fillCol = lastCol + offset;
         if (!colToDate[fillCol]) {
           const d = new Date(lastDate);
@@ -967,6 +979,26 @@ export default async function(req) {
       // Fuzzy fallback: match to already-created jobs with a similar name.
       // Handles variations across tabs (e.g. "EWR Site" → "I260124 - EWR")
       // so the same job isn't created twice under slightly different names.
+      if (!job && jobMap.size > 0) {
+        // First try canonical-key substring match — catches cases where
+        // one name is a subset of the other (e.g. "Holborn" vs "High Holborn")
+        // which the fuzzy string matcher misses because the full name
+        // includes a reference number that dilutes the similarity score.
+        const canonKey = extractJobBaseKey(rawName);
+        if (canonKey.length >= 4) {
+          for (const [existingKey, existingJob] of jobMap) {
+            if (existingKey === baseKey) continue;
+            if (existingKey.length < 4) continue;
+            if (canonKey.includes(existingKey) || existingKey.includes(canonKey)) {
+              const queryWords = new Set(canonKey.split(/\s+/).filter(w => w.length > 2));
+              const existingWords = new Set(existingKey.split(/\s+/).filter(w => w.length > 2));
+              let common = 0;
+              for (const w of queryWords) if (existingWords.has(w)) common++;
+              if (common > 0) { job = existingJob; jobMap.set(baseKey, job); break; }
+            }
+          }
+        }
+      }
       if (!job && jobMap.size > 0) {
         const fuzzy = fuzzyFindJob(rawName, [...jobMap.values()], 0.65);
         if (fuzzy) {

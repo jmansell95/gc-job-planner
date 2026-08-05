@@ -141,7 +141,7 @@ export function categorizeNonJobCell(cellValue) {
   if (/audit|bda/.test(lower)) return 'training';
 
   // Meetings / networking / concepts / other non-job activities
-  if (/meeting|^meet |networking|^wfh|working from home|sample run|^deliveries|^rigs$|^monitoring$|half day|ft visit|st marys axe visit|^3750$|rotary drilling|cable percussion|rail & infrastructure|^concept job|greenwich concept|hap regeneration|ads rotary/.test(lower)) return 'training';
+  if (/meeting|^meet |networking|^wfh|working from home|sample run|^deliveries|^rigs$|^monitoring$|half day|ft visit|st marys axe visit|^3750$|rotary drilling|cable percussion|rail & infrastructure|^concept job|greenwich concept|hap regeneration|ads rotary|geotechnica/.test(lower)) return 'training';
 
   return null;
 }
@@ -283,6 +283,7 @@ const NON_JOB_NAME_PATTERNS = [
   /^unassigned$|^spare$|^cover$|^relief$|^tba$/i,      // unassigned markers
   /^rig\s*repair$|^rig\s*maintenance$|^breakdown$/i,   // rig maintenance
   /^potholes$|^monitoring$|^deliveries$|^rigs$/i,     // overhead activities
+  /^geotechnica$/i,                                   // company name, not a job
 ];
 
 export function isLikelyRealJob(jobName) {
