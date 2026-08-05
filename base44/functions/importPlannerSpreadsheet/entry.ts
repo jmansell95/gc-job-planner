@@ -292,9 +292,14 @@ function parseSheet(sheet, sheetName) {
   // the day difference (each column = one day), fill in the intermediate
   // columns with the correct daily dates. This handles weekly headers
   // (gap 7 = 7 days) robustly regardless of which pair is checked first.
+  // Interpolate daily dates between date header columns. The planner shows
+  // week-start dates in the header (e.g. every 7 columns) but staff assignments
+  // appear in every daily column. Without interpolation, only columns with
+  // explicit date headers get mapped — daily assignments in between are
+  // silently skipped, causing "no crews on site today".
   const dateCols = Object.keys(colToDate).map(Number).sort((a, b) => a - b);
-  if (dateCols.length >= 2) {
-    let lastColGap = 0;
+  if (dateCols.length >= 1) {
+    // Fill between consecutive date columns — 1 day per column
     for (let i = 0; i < dateCols.length - 1; i++) {
       const startCol = dateCols[i];
       const endCol = dateCols[i + 1];
@@ -302,29 +307,36 @@ function parseSheet(sheet, sheetName) {
       const startDate = new Date(colToDate[startCol] + 'T00:00:00Z');
       const endDate = new Date(colToDate[endCol] + 'T00:00:00Z');
       const dayDiff = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
-      if (colGap === dayDiff && colGap > 1) {
-        lastColGap = colGap;
-        for (let offset = 1; offset < colGap; offset++) {
-          const fillCol = startCol + offset;
-          if (!colToDate[fillCol]) {
-            const d = new Date(startDate);
-            d.setUTCDate(d.getUTCDate() + offset);
-            colToDate[fillCol] = d.toISOString().slice(0, 10);
-          }
+      // If col gap matches day difference, fill 1 day per column.
+      // If not (merged/irregular cells), still assume 1 day per column as fallback.
+      const stepDays = (colGap === dayDiff && colGap > 0) ? 1 : (colGap > 0 ? dayDiff / colGap : 1);
+      for (let offset = 1; offset < colGap; offset++) {
+        const fillCol = startCol + offset;
+        if (!colToDate[fillCol]) {
+          const d = new Date(startDate);
+          d.setUTCDate(d.getUTCDate() + Math.round(offset * stepDays));
+          colToDate[fillCol] = d.toISOString().slice(0, 10);
         }
       }
     }
-    // Extrapolate after the last date column (fill the final week)
-    if (lastColGap > 1) {
-      const lastCol = dateCols[dateCols.length - 1];
-      const lastDate = new Date(colToDate[lastCol] + 'T00:00:00Z');
-      for (let offset = 1; offset < lastColGap; offset++) {
-        const fillCol = lastCol + offset;
-        if (!colToDate[fillCol]) {
-          const d = new Date(lastDate);
-          d.setUTCDate(d.getUTCDate() + offset);
-          colToDate[fillCol] = d.toISOString().slice(0, 10);
+    // Extrapolate after the last date column — fill all remaining columns
+    // that contain assignment data, assuming 1 day per column.
+    const lastCol = dateCols[dateCols.length - 1];
+    const lastDate = new Date(colToDate[lastCol] + 'T00:00:00Z');
+    let maxDataCol = lastCol;
+    for (let r = dateHeaderRowIdx + 1; r < rows.length; r++) {
+      if (!rows[r]) continue;
+      for (let c = lastCol + 1; c < rows[r].length; c++) {
+        if (rows[r][c] != null && String(rows[r][c]).trim()) {
+          if (c > maxDataCol) maxDataCol = c;
         }
+      }
+    }
+    for (let c = lastCol + 1; c <= maxDataCol; c++) {
+      if (!colToDate[c]) {
+        const d = new Date(lastDate);
+        d.setUTCDate(d.getUTCDate() + (c - lastCol));
+        colToDate[c] = d.toISOString().slice(0, 10);
       }
     }
   }
@@ -973,6 +985,51 @@ export default async function(req) {
       }
     }
 
+    // Pre-merge base keys by substring relationship so that "Holborn" and
+    // "High Holborn" consolidate into one master job. Without this, every
+    // unique base key becomes a separate job because jobMap is empty during
+    // the loop (full wipe) and the in-loop fuzzy match never fires.
+    const keyToMaster = {};
+    {
+      const sortedKeys = [...uniqueJobBaseKeys].sort((a, b) => b.length - a.length);
+      const masterKeys = [];
+      for (const key of sortedKeys) {
+        let master = null;
+        const keyWords = new Set(key.split(/\s+/).filter(w => w.length > 2));
+        for (const mk of masterKeys) {
+          if (mk === key) { master = mk; break; }
+          if (mk.includes(key) || key.includes(mk)) {
+            const mkWords = new Set(mk.split(/\s+/).filter(w => w.length > 2));
+            let common = 0;
+            for (const w of keyWords) if (mkWords.has(w)) common++;
+            if (common > 0) { master = mk; break; }
+          }
+        }
+        if (!master) { master = key; masterKeys.push(master); }
+        keyToMaster[key] = master;
+      }
+      // Merge data into master entries
+      const mergedName = {}, mergedDates = {}, mergedRef = {};
+      for (const key of uniqueJobBaseKeys) {
+        const master = keyToMaster[key];
+        const thisParsed = parseJobName(jobNameByBaseKey[key]);
+        const existingParsed = mergedName[master] ? parseJobName(mergedName[master]) : null;
+        if (!mergedName[master] || (thisParsed.job_reference && !existingParsed?.job_reference)) {
+          mergedName[master] = jobNameByBaseKey[key];
+        }
+        if (jobRefByBaseKey[key] && !mergedRef[master]) mergedRef[master] = jobRefByBaseKey[key];
+        if (!mergedDates[master]) mergedDates[master] = [];
+        mergedDates[master].push(...(jobDatesByBaseKey[key] || []));
+      }
+      uniqueJobBaseKeys.clear();
+      for (const mk of masterKeys) uniqueJobBaseKeys.add(mk);
+      for (const mk of masterKeys) {
+        jobNameByBaseKey[mk] = mergedName[mk];
+        jobDatesByBaseKey[mk] = mergedDates[mk];
+        jobRefByBaseKey[mk] = mergedRef[mk];
+      }
+    }
+
     const existingJobs = []; // After full wipe, no existing jobs
     const jobByName = new Map();
     const jobByReference = new Map();
@@ -1028,7 +1085,7 @@ export default async function(req) {
       }
 
       const jobCrewSections = teamAssignments
-        .filter(a => a.job_name && extractJobBaseKey(a.job_name) === baseKey)
+        .filter(a => a.job_name && (keyToMaster[extractJobBaseKey(a.job_name)] || extractJobBaseKey(a.job_name)) === baseKey)
         .map(a => a.crew_section).filter(Boolean);
       const mostCommonSection = getMostCommon(jobCrewSections);
       const drillingMethod = inferDrillingMethod(mostCommonSection);
@@ -1107,6 +1164,12 @@ export default async function(req) {
       if (jobRefByBaseKey[baseKey]) jobByRef.set(jobRefByBaseKey[baseKey], job);
       if (!jobByCanonName.has(baseKey)) jobByCanonName.set(baseKey, job);
       if (job.name) jobByNameKey.set(nameKey(job.name), job);
+      // Also map all original keys that were merged into this master
+      for (const [origKey, masterKey] of Object.entries(keyToMaster)) {
+        if (masterKey === baseKey && !jobByCanonName.has(origKey)) {
+          jobByCanonName.set(origKey, job);
+        }
+      }
     }
     function findJobForAssignment(jobName) {
       if (!jobName) return null;
@@ -1116,9 +1179,9 @@ export default async function(req) {
         const byRef = jobByRef.get(parsed.job_reference.toLowerCase());
         if (byRef) return byRef;
       }
-      // 2. Try canonical name key
+      // 2. Try canonical name key (or its merged master key)
       const canonKey = extractJobBaseKey(jobName);
-      const byCanon = jobByCanonName.get(canonKey);
+      const byCanon = jobByCanonName.get(canonKey) || jobByCanonName.get(keyToMaster[canonKey] || canonKey);
       if (byCanon) return byCanon;
       // 3. Try raw name key
       const byName = jobByNameKey.get(nameKey(jobName));
@@ -1549,7 +1612,7 @@ export default async function(req) {
       const rawName = jobNameByBaseKey[key];
       const parsed = parseJobName(rawName);
       const dates = (jobDatesByBaseKey[key] || []).sort();
-      const jAssignments = allAssignments.filter(a => a.job_name && extractJobBaseKey(a.job_name) === key);
+      const jAssignments = allAssignments.filter(a => a.job_name && (keyToMaster[extractJobBaseKey(a.job_name)] || extractJobBaseKey(a.job_name)) === key);
       const staffList = [...new Set(jAssignments.map(a => a.staff_name))];
       const sections = [...new Set(jAssignments.map(a => a.crew_section).filter(Boolean))];
       return {
@@ -1577,7 +1640,7 @@ export default async function(req) {
       if (!a.job_name || !a.date) continue;
       const job = findJobForAssignment(a.job_name);
       if (!job) continue;
-      const baseKey = extractJobBaseKey(a.job_name);
+      const baseKey = keyToMaster[extractJobBaseKey(a.job_name)] || extractJobBaseKey(a.job_name);
       const staffKey = nameKey(a.staff_name);
       const ciKey = `${baseKey}|${staffKey}`;
       if (!crewCostItemsByJobStaff.has(ciKey)) {
