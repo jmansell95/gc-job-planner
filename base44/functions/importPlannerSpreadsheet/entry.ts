@@ -634,7 +634,7 @@ export default async function(req) {
     let purgeSummary = { rotas_deleted: 0, staff_deleted: 0, teams_deleted: 0, jobs_deleted: 0, crews_deleted: 0, asset_assignments_deleted: 0, training_bookings_deleted: 0, absences_deleted: 0 };
     // Parallel fetch all entity lists — 9 round-trips collapsed into 1 batch
     // to avoid hitting the platform API rate limit on large datasets.
-    const [allRotas, allStaff, allTeams, allJobs, allCrews, allAssetAssignments, allCostItems, allTrainingBookings, allAbsences] = await Promise.all([
+    const [allRotas, allStaff, allTeams, allJobs, allCrews, allAssetAssignments, allCostItems, allTrainingBookings, allAbsences, allUsers] = await Promise.all([
       base44.asServiceRole.entities.RotaAssignment.list('-created_date', 5000),
       base44.asServiceRole.entities.Staff.list('-created_date', 5000),
       base44.asServiceRole.entities.Team.list('-created_date', 5000),
@@ -644,11 +644,18 @@ export default async function(req) {
       base44.asServiceRole.entities.JobCostItem.list('-created_date', 5000),
       base44.asServiceRole.entities.TrainingBooking.list('-created_date', 5000),
       base44.asServiceRole.entities.Absence.list('-created_date', 5000),
+      base44.asServiceRole.entities.User.list('-created_date', 5000),
     ]);
-    // Save existing user emails so we don't re-invite users who already have accounts
+    // Save existing user emails so we don't re-invite users who already have accounts.
+    // User accounts persist across the full wipe (only Staff records are deleted),
+    // so we check User emails directly — not Staff.user_id which gets wiped.
     const existingUserEmails = new Set();
-    for (const s of allStaff) {
-      if (s.user_id && s.email) existingUserEmails.add(s.email.toLowerCase());
+    const userIdByEmail = new Map();
+    for (const u of allUsers) {
+      if (u.email) {
+        existingUserEmails.add(u.email.toLowerCase());
+        userIdByEmail.set(u.email.toLowerCase(), u.id);
+      }
     }
     purgeSummary.rotas_deleted = allRotas.length;
     purgeSummary.staff_deleted = allStaff.length;
@@ -806,7 +813,11 @@ export default async function(req) {
       const staffAssignments = teamAssignments.filter(a => nameKey(a.staff_name) === key);
       const inSubSection = staffAssignments.some(a => a.is_subcontractor_section);
       const inAgencySection = staffAssignments.some(a => a.is_agency_section);
-      const subbie = isSubcontractor(name) || inSubSection;
+      // Worker type is determined by the section the person appears under,
+      // NOT by their name. Name-based company detection (isSubcontractor) was
+      // too aggressive — it flagged direct employees with company-like surnames
+      // (e.g. "John Drilling") as subcontractors.
+      const subbie = inSubSection;
       const agency = inAgencySection;
       const workerType = agency ? 'agency' : (subbie ? 'subcontractor' : 'direct_employee');
       const crewSectionCounts = staffAssignments.map(a => a.crew_section).filter(Boolean);
@@ -855,10 +866,15 @@ export default async function(req) {
       if (!staff) {
         const email = generateEmail(name, allKnownEmails);
         allKnownEmails.add(email.toLowerCase());
+        // Link to existing User account if one exists for this email.
+        // User accounts persist across the full wipe; only Staff records are deleted.
+        const existingUserId = userIdByEmail.get(email.toLowerCase());
         newStaffPayloads.push({
           name, email, worker_type: workerType,
           agency_id: agencyId || subbieContractorId, job_title: jobTitle || undefined,
           team_id: team.id, is_active: true,
+          user_id: existingUserId || undefined,
+          invite_sent: !!existingUserId,
         });
         newStaffKeys.push(key);
       } else {
@@ -1471,9 +1487,8 @@ export default async function(req) {
     // 8. Build full audit breakdown
     // -----------------------------------------------------------------------
     const subbieCount = [...uniqueStaffKeys].filter(k => {
-      const name = staffNameByKey[k];
       const inSub = teamAssignments.some(a => nameKey(a.staff_name) === k && a.is_subcontractor_section);
-      return isSubcontractor(name) || inSub;
+      return inSub;
     }).length;
 
     const agencyCount = [...uniqueStaffKeys].filter(k =>
@@ -1502,7 +1517,7 @@ export default async function(req) {
       const sections = [...new Set(sAssignments.map(a => a.crew_section).filter(Boolean))];
       const inSub = sAssignments.some(a => a.is_subcontractor_section);
       const inAgency = sAssignments.some(a => a.is_agency_section);
-      const subbie = isSubcontractor(name) || inSub;
+      const subbie = inSub;
       const agency = inAgency;
       const agencyNames = sAssignments.map(a => a.agency_name).filter(Boolean);
       const agencyName = agency ? (getMostCommon(agencyNames) || 'Unknown Agency') : '';

@@ -21,6 +21,7 @@ import HelpGuide from './pages/HelpGuide';
 import PresentationPack from './pages/PresentationPack';
 import RigHub from './pages/RigHub';
 import KeyLogBookDocs from './pages/KeyLogBookDocs';
+import ImprovementRoadmap from './pages/ImprovementRoadmap';
 import Vehicles from './pages/Vehicles';
 import PATTestingConsole from './pages/PATTestingConsole';
 import TimesheetsPage from './pages/TimesheetsPage';
@@ -89,6 +90,7 @@ const AuthenticatedApp = () => {
           </Route>
           <Route path="/rig-hub" element={<RouteGuard><RigHub /></RouteGuard>} />
           <Route path="/keylogbook-docs" element={<RouteGuard><KeyLogBookDocs /></RouteGuard>} />
+          <Route path="/roadmap" element={<RouteGuard><ImprovementRoadmap /></RouteGuard>} />
           <Route path="/vehicles" element={<RouteGuard><Vehicles /></RouteGuard>} />
         </Route>
         <Route path="/client-portal/:token" element={<ClientPortal />} />
