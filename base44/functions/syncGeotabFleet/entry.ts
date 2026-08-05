@@ -227,14 +227,16 @@ export default async function(req: Request): Promise<Response> {
 
     // Build map: device_id → latest odometer (meters) from the most recent trip
     const latestOdometerByDevice: Record<string, number> = {};
+    const latestTripStartByDevice: Record<string, string> = {};
     for (const trip of allTrips) {
       const devId = trip.device?.id;
       if (!devId || trip.odometer == null) continue;
       const odo = Number(trip.odometer);
       if (isNaN(odo)) continue;
-      // Keep the trip with the latest start time per device
-      if (!latestOdometerByDevice[devId] || (trip.start || '') > (allTrips.find(t => t.device?.id === devId && t.odometer === latestOdometerByDevice[devId] * 1000)?.start || '')) {
+      const tripStart = trip.start || '';
+      if (!latestOdometerByDevice[devId] || tripStart > latestTripStartByDevice[devId]) {
         latestOdometerByDevice[devId] = odo;
+        latestTripStartByDevice[devId] = tripStart;
       }
     }
 

@@ -15,6 +15,9 @@ function formatDuration(mins) {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+const KM_TO_MI = 0.621371;
+function kmToMi(km) { return (Number(km) || 0) * KM_TO_MI; }
+
 function TripRouteMiniMap({ breadcrumbs, start, end }) {
   // Filter to only valid coordinates (Geotab can return null lat/lng for some trips)
   const validCrumbs = (breadcrumbs || []).filter(b => b?.lat != null && b?.lng != null);
@@ -126,7 +129,7 @@ export default function GeotabTripHistory({ vehicle }) {
             </div>
             <div className="bg-emerald-50 rounded-lg p-2.5 border border-emerald-100">
               <p className="text-[10px] uppercase text-emerald-500 font-semibold flex items-center gap-1"><TrendingDown className="w-3 h-3" /> Distance</p>
-              <p className="text-lg font-bold text-emerald-700 tabular-nums mt-0.5">{totalDistance.toFixed(1)} <span className="text-[10px] font-normal">km</span></p>
+              <p className="text-lg font-bold text-emerald-700 tabular-nums mt-0.5">{kmToMi(totalDistance).toFixed(1)} <span className="text-[10px] font-normal">mi</span></p>
             </div>
             <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-200">
               <p className="text-[10px] uppercase text-slate-400 font-semibold flex items-center gap-1"><Clock className="w-3 h-3" /> Drive Time</p>
@@ -164,7 +167,7 @@ export default function GeotabTripHistory({ vehicle }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-3 text-[11px] flex-shrink-0">
-                      <span className="flex items-center gap-0.5 text-emerald-600 font-semibold"><TrendingDown className="w-3 h-3" />{trip.distance_km.toFixed(1)}km</span>
+                      <span className="flex items-center gap-0.5 text-emerald-600 font-semibold"><TrendingDown className="w-3 h-3" />{kmToMi(trip.distance_km).toFixed(1)}mi</span>
                       <span className="flex items-center gap-0.5 text-slate-500"><Clock className="w-3 h-3" />{formatDuration(trip.duration_minutes)}</span>
                     </div>
                   </button>
@@ -172,14 +175,14 @@ export default function GeotabTripHistory({ vehicle }) {
                     <div className="px-3 pb-3 pt-1 space-y-2 bg-slate-50/50">
                       <div className="flex items-center gap-4 text-[11px] text-slate-500 flex-wrap">
                         {trip.max_speed_kph > 0 && (
-                          <span className="flex items-center gap-1"><Gauge className="w-3 h-3" /> Max: {trip.max_speed_kph} kph</span>
+                          <span className="flex items-center gap-1"><Gauge className="w-3 h-3" /> Max: {Math.round(trip.max_speed_kph * KM_TO_MI)} mph</span>
                         )}
                         {trip.average_speed_kph != null && trip.average_speed_kph > 0 && (
-                          <span className="flex items-center gap-1"><Navigation className="w-3 h-3" /> Avg: {trip.average_speed_kph} kph</span>
+                          <span className="flex items-center gap-1"><Navigation className="w-3 h-3" /> Avg: {Math.round(trip.average_speed_kph * KM_TO_MI)} mph</span>
                         )}
                         {trip.idle_minutes > 0 && <span className="flex items-center gap-1"><Zap className="w-3 h-3" /> Idle: {trip.idle_minutes}m</span>}
                         {trip.odometer_km != null && (
-                          <span className="flex items-center gap-1"><Gauge className="w-3 h-3" /> Odo: {trip.odometer_km.toLocaleString(undefined, { maximumFractionDigits: 1 })} km</span>
+                          <span className="flex items-center gap-1"><Gauge className="w-3 h-3" /> Odo: {Math.round(kmToMi(trip.odometer_km)).toLocaleString()} mi</span>
                         )}
                       </div>
                       <TripRouteMiniMap breadcrumbs={tripBreadcrumbs} start={trip} end={trip} />

@@ -181,7 +181,7 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
                 </div>
                 <VehicleLocationMiniMap {...latestLoc} />
                 <div className="grid grid-cols-2 gap-2 mt-2">
-                  <InfoTile icon={Gauge} label="Speed" value={`${Math.round(latestLoc.speed_kph || 0)} kph`} color="bg-cyan-50" />
+                  <InfoTile icon={Gauge} label="Speed" value={`${Math.round((latestLoc.speed_kph || 0) * 0.621371)} mph`} color="bg-cyan-50" />
                   <InfoTile icon={Zap} label="Ignition" value={latestLoc.ignition_on ? 'ON' : 'OFF'} color={latestLoc.ignition_on ? 'bg-emerald-50' : 'bg-slate-50'} />
                 </div>
                 {vehicle.current_mileage != null && (

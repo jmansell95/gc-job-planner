@@ -64,7 +64,7 @@ export default function VehicleLocationMiniMap({ lat, lng, timestamp, ignition_o
 
       {speed_kph != null && speed_kph > 0 && (
         <span className="absolute bottom-1 right-1 bg-white/90 text-slate-600 text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
-          <Navigation className="w-2.5 h-2.5" /> {Math.round(speed_kph)} km/h
+          <Navigation className="w-2.5 h-2.5" /> {Math.round(speed_kph * 0.621371)} mph
         </span>
       )}
     </div>
