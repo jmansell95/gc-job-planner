@@ -29,6 +29,7 @@ export const settingsGroups = [
       { id: 'vehicles', label: 'Vehicles', icon: Truck, desc: 'Track vehicles, MOTs and service dates' },
       { id: 'holman-sync', label: 'Holman Fleet Sync', icon: Radio, desc: 'Connect Holman fleet management — auto-sync MOT, service dates & mileage via API and webhooks', roles: ['admin'] },
       { id: 'geotab-sync', label: 'Geotab GPS Sync', icon: Satellite, desc: 'Connect Geotab GPS tracking — live vehicle locations, staff tracking by registration & fleet reports', roles: ['admin'] },
+      { id: 'dvla-ves', label: 'DVLA Vehicle Enquiry', icon: Search, desc: 'Official DVLA API — accurate vehicle make, fuel type, colour, year & MOT expiry by registration plate', roles: ['admin'] },
       { id: 'job-types', label: 'Job Types', icon: Tag, desc: 'Manage job types and colours' },
       { id: 'dropdowns', label: 'Dropdown Manager', icon: ListChecks, desc: 'Add, rename, reorder or remove options in every dropdown — qualifications, asset types, revenue streams & more' },
       { id: 'automations', label: 'Automations', icon: Zap, desc: 'View and toggle background automations' },

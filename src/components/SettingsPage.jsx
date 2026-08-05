@@ -49,6 +49,7 @@ import PayrollExportSettings from '@/components/settings/PayrollExportSettings';
 import CISSettings from '@/components/settings/CISSettings';
 import HolmanSettings from '@/components/settings/HolmanSettings';
 import GeotabSettings from '@/components/settings/GeotabSettings';
+import DvlaSettings from '@/components/settings/DvlaSettings';
 import JobAlertSettings from '@/components/settings/JobAlertSettings';
 import IntegrationsHub from '@/components/settings/IntegrationsHub';
 import MetOfficeSettings from '@/components/settings/MetOfficeSettings';
@@ -68,6 +69,7 @@ const INTEGRATION_IDS = new Set([
   'geotab-sync', 'holman-sync', 'asset-panda', 'bob-hr', 'concur-sync',
   'safety-culture', 'ags-import', 'cis-verification', 'payroll-export',
   'met-office', 'google-maps', 'whatsapp', 'accounting-sync', 'payment-gateway',
+  'dvla-ves',
 ]);
 
 export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
@@ -157,6 +159,7 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'job-alerts': return <JobAlertSettings />;
       case 'holman-sync': return <HolmanSettings />;
       case 'geotab-sync': return <GeotabSettings />;
+      case 'dvla-ves': return <DvlaSettings />;
       case 'met-office': return <MetOfficeSettings />;
       case 'google-maps': return <GoogleMapsSettings />;
       case 'whatsapp': return <WhatsAppSettings />;

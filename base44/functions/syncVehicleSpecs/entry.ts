@@ -1,20 +1,28 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { validateMakeAgainstVin, decodeVin, AMBIGUOUS_WMIS } from '../../shared/vinDecoder.ts';
+import { getAppSettingValue } from '../../shared/appSettings.ts';
+
+const DVLA_VES_URL = 'https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles';
+const DVLA_VES_UAT_URL = 'https://uat.driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles';
 
 /**
- * Syncs vehicle specification data (make, model, fuel type, colour, MOT expiry)
- * by looking up each vehicle's registration number using LLM web search.
- * No external API keys required — uses the built-in InvokeLLM integration
- * with add_context_from_internet to search public vehicle data sources (DVLA).
+ * Syncs vehicle specification data (make, year, fuel type, colour, MOT expiry)
+ * by looking up each vehicle's registration number via the official DVLA
+ * Vehicle Enquiry Service (VES) API — the authoritative UK source of truth.
+ *
+ * Requires a DVLA VES API key stored in an AppSetting record (key: 'dvla_ves_config').
+ * Register at https://developer-portal.driver-vehicle-licensing.api.gov.uk/
  *
  * Batch mode: processes a small batch per call (default 3) and returns progress.
  * The frontend calls repeatedly until `done` is true. This avoids timeouts
  * on published site (no waitUntil/background processing needed).
  *
  * Payload:
- *   { vehicle_id?: string,  // single-vehicle synchronous mode
- *     offset?: number,      // start index (default 0)
- *     batch_size?: number } // vehicles per call (default 3)
+ *   { vehicle_id?: string,   // single-vehicle synchronous mode
+ *     offset?: number,       // start index (default 0)
+ *     batch_size?: number,   // vehicles per call (default 3)
+ *     geotab_only?: boolean,  // only look up Geotab-synced vehicles (default false)
+ *     force?: boolean,       // overwrite even a later existing MOT (default false)
+ *     test_mode?: boolean }  // use the DVLA UAT/test endpoint (default false)
  */
 export default async function(req: Request): Promise<Response> {
   try {
@@ -26,11 +34,19 @@ export default async function(req: Request): Promise<Response> {
     const batchSize = Math.min(Number(body?.batch_size) || 3, 5);
     const offset = Number(body?.offset) || 0;
     const singleVehicleId = body?.vehicle_id || null;
-    // Only look up vehicles that have been synced from Geotab — their
-    // registration number is verified accurate. Manually-entered regs are
-    // skipped to avoid looking up wrong plates and pulling bad MOT data.
-    const geotabOnly = body?.geotab_only !== false;
+    const geotabOnly = body?.geotab_only === true;
     const force = body?.force === true;
+    const testMode = body?.test_mode === true;
+
+    // Read the DVLA API key from AppSetting
+    const config = await getAppSettingValue(base44, 'dvla_ves_config', {});
+    const apiKey = config?.api_key;
+    if (!apiKey) {
+      return Response.json({
+        ok: false,
+        error: 'DVLA VES API key not configured. Add it in Settings → Integrations Hub → DVLA Vehicle Enquiry.',
+      }, { status: 400 });
+    }
 
     // Single-vehicle mode: synchronous, returns results
     if (singleVehicleId) {
@@ -38,7 +54,7 @@ export default async function(req: Request): Promise<Response> {
       if (!vehicle?.registration_number) {
         return Response.json({ ok: false, error: 'No registration number' }, { status: 400 });
       }
-      const result = await lookupAndSync(base44, vehicle, force);
+      const result = await lookupAndSync(base44, vehicle, apiKey, force, testMode);
       return Response.json({ ok: true, result, done: true });
     }
 
@@ -54,8 +70,8 @@ export default async function(req: Request): Promise<Response> {
     const results: any[] = [];
     for (const vehicle of batch) {
       try {
-        const r = await lookupAndSync(base44, vehicle, force);
-        results.push({ reg: r.reg, ok: true, updated: r.updated });
+        const r = await lookupAndSync(base44, vehicle, apiKey, force, testMode);
+        results.push({ reg: r.reg, ok: true, updated: r.updated, notFound: r.notFound });
       } catch (e: any) {
         results.push({ reg: vehicle.registration_number, ok: false, error: e.message });
       }
@@ -80,150 +96,94 @@ export default async function(req: Request): Promise<Response> {
   }
 }
 
+function titleCase(s: string): string {
+  if (!s) return s;
+  return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function mapFuelType(dvlaFuel: string): string {
+  if (!dvlaFuel) return 'unknown';
+  const f = dvlaFuel.toUpperCase();
+  if (f.includes('HYBRID')) return 'hybrid';
+  if (f.includes('ELECTRIC')) return 'electric';
+  if (f.includes('PETROL')) return 'petrol';
+  if (f.includes('DIESEL')) return 'diesel';
+  if (f.includes('LPG')) return 'lpg';
+  if (f.includes('CNG')) return 'cng';
+  return 'unknown';
+}
+
 /**
- * Looks up a single vehicle by registration via LLM web search and updates the record.
+ * Looks up a single vehicle by registration via the DVLA VES API and updates the record.
+ * DVLA is the authoritative source for make, year, fuel type, colour and MOT expiry.
+ * The DVLA VES API does NOT return model — model is never overwritten here.
  */
-async function lookupAndSync(base44: any, vehicle: any, force: boolean = false): Promise<any> {
-  const reg = vehicle.registration_number;
+async function lookupAndSync(base44: any, vehicle: any, apiKey: string, force: boolean, testMode: boolean): Promise<any> {
+  const reg = vehicle.registration_number.replace(/\s+/g, '').toUpperCase();
+  const url = testMode ? DVLA_VES_UAT_URL : DVLA_VES_URL;
 
-  const prompt = `Look up the UK vehicle with registration plate "${reg}" on the DVLA vehicle enquiry service or vehicle smart.
-Return ONLY verified data from official UK vehicle databases. Do NOT guess or fabricate data.
-
-Return the following fields:
-- make: the vehicle manufacturer (string, or null if not found)
-- model: the vehicle model name (string, or null if not found)
-- fuelType: one of diesel, petrol, hybrid, electric, lpg, cng, unknown
-- colour: the vehicle's registered colour (string, or null if not found)
-- motExpiryDate: the MOT expiry date in YYYY-MM-DD format. ONLY return a date if the vehicle has a VALID, CURRENT MOT. If the MOT has expired or failed, return null. Do not return past dates.
-- motStatus: "valid" if the vehicle has a current valid MOT, "expired" if the MOT has lapsed, "unknown" if not found
-- year: the year of manufacture (number, or null)
-
-CRITICAL: Only return a motExpiryDate if it is a FUTURE date (after today, ${new Date().toISOString().slice(0, 10)}). If the MOT has expired or you cannot confirm a valid MOT, set motExpiryDate to null and motStatus to "expired" or "unknown". Never fabricate a date.`;
-
-  const llmRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
-    prompt,
-    add_context_from_internet: true,
-    model: 'gemini_3_flash',
-    response_json_schema: {
-      type: 'object',
-      properties: {
-        make: { type: 'string' },
-        model: { type: 'string' },
-        fuelType: { type: 'string', enum: ['diesel', 'petrol', 'hybrid', 'electric', 'lpg', 'cng', 'unknown'] },
-        colour: { type: 'string' },
-        motExpiryDate: { type: 'string' },
-        motStatus: { type: 'string', enum: ['valid', 'expired', 'unknown'] },
-        year: { type: 'number' },
-      },
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ registrationNumber: reg }),
   });
 
-  const data = (llmRes as any)?.data ?? llmRes;
-  const llmMake = data?.make || null;
-  const llmModel = data?.model || null;
-  const fuelRaw = (data?.fuelType || 'unknown').toLowerCase();
-  const colour = data?.colour || null;
-  const motStatus = data?.motStatus || 'unknown';
-  let motExpiry = data?.motExpiryDate || null;
-  const year = data?.year || null;
-
-  // ── VIN CROSS-VALIDATION ──
-  // The LLM web search is unreliable for UK plates — it frequently returns
-  // "Tesla MODEL 3" for Ford, Vauxhall, and Land Rover plates. Cross-check
-  // the LLM make against the VIN WMI (unambiguous manufacturer code). If they
-  // disagree, trust the VIN WMI make and discard the LLM model (it's almost
-  // certainly wrong if the make was wrong). For ambiguous WMIs (LRW = Land
-  // Rover or Tesla Shanghai), trust the LLM.
-  let { make, trustModel } = validateMakeAgainstVin(llmMake, vehicle.vin);
-  let model = trustModel ? llmModel : null;
-
-  // ── TESLA MODEL SANITY CHECK ──
-  // The LLM frequently returns Tesla model names (MODEL S/3/X/Y) for non-Tesla
-  // vehicles. If the model is a Tesla model but the make isn't Tesla:
-  //  - For ambiguous WMIs (LRW = Land Rover or Tesla Shanghai) → correct the
-  //    make to Tesla (the model implies it's a Tesla, not a Land Rover).
-  //  - For unambiguous WMIs (Ford, Vauxhall, etc.) → discard the model (the
-  //    LLM returned the wrong vehicle entirely).
-  const TESLA_MODEL_RE = /\bmodel\s*[s3xy]\b/i;
-  if (model && TESLA_MODEL_RE.test(model) && make && make.toLowerCase() !== 'tesla') {
-    const decoded = decodeVin(vehicle.vin || '');
-    if (decoded.wmi && AMBIGUOUS_WMIS.has(decoded.wmi)) {
-      make = 'Tesla';
-    } else {
-      model = null;
-    }
+  if (res.status === 404) {
+    // Vehicle not found in DVLA — skip without failing the batch
+    return { reg, updated: [], make: null, fuelType: null, colour: null, motExpiry: null, motStatus: 'not_found', year: null, notFound: true };
   }
 
-  // ── MOT VALIDATION ──
-  // Only accept MOT expiry if: (1) it's a valid YYYY-MM-DD date, (2) it's
-  // in the future, and (3) the LLM confirmed motStatus as "valid". This
-  // prevents pulling expired/failed MOT dates and overwriting good data.
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw new Error(`DVLA API ${res.status}: ${errBody.slice(0, 200)}`);
+  }
+
+  const data = await res.json() as any;
+
+  const make = data.make ? titleCase(data.make) : null;
+  const year = data.yearOfManufacture || null;
+  const fuelType = mapFuelType(data.fuelType);
+  const colour = data.colour ? titleCase(data.colour) : null;
+  const motStatus = data.motStatus || null; // "Valid" | "Not valid" | "No details held by DVLA" | "No results returned"
+  let motExpiry = data.motExpiryDate || null;
+
+  // Only accept MOT expiry if DVLA confirms the MOT is Valid and the date is in the future
   const todayStr = new Date().toISOString().slice(0, 10);
   let motValid = false;
   if (motExpiry && /^\d{4}-\d{2}-\d{2}$/.test(motExpiry)) {
-    if (motExpiry > todayStr && motStatus !== 'expired') {
+    if (motStatus === 'Valid' && motExpiry > todayStr) {
       motValid = true;
     } else {
-      motExpiry = null; // reject expired/past dates
+      motExpiry = null;
     }
   } else {
     motExpiry = null;
   }
 
-  const fuelMap: Record<string, string> = {
-    diesel: 'diesel', petrol: 'petrol', hybrid: 'hybrid',
-    electric: 'electric', lpg: 'lpg', cng: 'cng',
-    'petrol/electric': 'hybrid', 'diesel/electric': 'hybrid',
-    unknown: 'unknown', '': 'unknown',
-  };
-  const fuelType = fuelMap[fuelRaw] || 'unknown';
-
-  // ── MANUAL OVERRIDE PROTECTION ──
-  // Never overwrite a field that a user has manually set. The LLM web search
-  // can return wrong make/model (e.g. "Tesla" for a Land Rover plate), so we
-  // only fill fields that are currently empty. This preserves manual
-  // corrections and stops bad lookups from clobbering good data.
-  // ── CONFIDENCE SCORING ──
-  // Stamp how confident the LLM lookup was so admins can review low-confidence
-  // vehicles. 'high' = make+model+year all returned, 'medium' = make+model,
-  // 'low' = partial (only one of make/model), 'none' = nothing returned.
-  let confidence: 'high' | 'medium' | 'low' | 'none' = 'none';
-  const hasMake = !!make;
-  const hasModel = !!model;
-  const hasYear = !!year;
-  if (hasMake && hasModel && hasYear) confidence = 'high';
-  else if (hasMake && hasModel) confidence = 'medium';
-  else if (hasMake || hasModel) confidence = 'low';
-
-  // Allow overwriting make/model/fuel when the existing data is unverified
-  // (confidence is 'none' or 'low' — meaning it came from VIN WMI or a
-  // previous low-confidence lookup). Protect 'high'/'medium' confidence data
-  // (manually verified or confirmed by a previous successful LLM lookup).
-  const canOverwriteSpec = force
-    || !vehicle.spec_lookup_confidence
-    || vehicle.spec_lookup_confidence === 'none'
-    || vehicle.spec_lookup_confidence === 'low';
-
+  // DVLA is the authoritative source — always update make/fuel/colour/year.
+  // Model is NOT returned by DVLA, so we never touch it.
   const update: any = {};
-  if (make && (!vehicle.make || canOverwriteSpec)) update.make = make;
-  if (model && (!vehicle.model || canOverwriteSpec)) update.model = model;
-  if (fuelType && fuelType !== 'unknown' && (!vehicle.fuel_type || vehicle.fuel_type === 'unknown' || canOverwriteSpec)) update.fuel_type = fuelType;
-  if (colour && (!vehicle.color || canOverwriteSpec)) update.color = colour;
-  // MOT: only update if we got a valid future date AND the existing expiry is
-  // earlier (or missing). Never overwrite a later manual MOT with an earlier
-  // LLM-sourced one.
-  if (motValid && motExpiry && (!vehicle.mot_expiry || motExpiry > vehicle.mot_expiry)) update.mot_expiry = motExpiry;
-  if (year && !vehicle.year) update.year = year;
-  // Always stamp the confidence so the review queue stays current.
-  update.spec_lookup_confidence = confidence;
+  if (make) update.make = make;
+  if (fuelType && fuelType !== 'unknown') update.fuel_type = fuelType;
+  if (colour) update.color = colour;
+  if (year) update.year = year;
+  if (motValid && motExpiry) {
+    // Don't overwrite a later existing MOT with an earlier one unless forced
+    if (force || !vehicle.mot_expiry || motExpiry > vehicle.mot_expiry) {
+      update.mot_expiry = motExpiry;
+    }
+  }
+  // Successful DVLA lookup = high confidence (authoritative source)
+  update.spec_lookup_confidence = 'high';
 
   if (Object.keys(update).length > 0) {
     await base44.asServiceRole.entities.Vehicle.update(vehicle.id, update);
   }
 
-  // Record MOT history ONLY when we have a valid future MOT expiry that
-  // differs from the existing one. This prevents recording "fail" entries
-  // from bad LLM responses and builds a clean pass timeline over time.
+  // Record MOT history when we have a valid future MOT that differs from existing
   if (motValid && motExpiry && motExpiry !== vehicle.mot_expiry) {
     try {
       const existing = await base44.asServiceRole.entities.VehicleMOTHistory.filter({
@@ -243,5 +203,5 @@ CRITICAL: Only return a motExpiryDate if it is a FUTURE date (after today, ${new
     } catch (_) { /* don't fail the sync if history recording fails */ }
   }
 
-  return { reg, updated: Object.keys(update), make, model, fuelType, colour, motExpiry, motStatus, year };
+  return { reg, updated: Object.keys(update), make, fuelType, colour, motExpiry, motStatus, year, notFound: false };
 }
