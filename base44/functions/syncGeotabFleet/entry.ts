@@ -91,6 +91,10 @@ export default async function(req: Request): Promise<Response> {
     }
 
     const authJson = await authRes.json().catch(() => null);
+    if (authJson?.error) {
+      const errMsg = authJson.error.message || JSON.stringify(authJson.error);
+      return Response.json({ ok: false, error: `Geotab authentication failed: ${errMsg}` });
+    }
     const creds: GeotabCredentials | null = authJson?.result;
     if (!creds || !creds.sessionId) {
       return Response.json({ ok: false, error: 'Geotab authentication returned no session. Check username, password and database.' });

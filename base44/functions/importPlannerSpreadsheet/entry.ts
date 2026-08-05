@@ -217,6 +217,7 @@ function isPlantPlannerSheet(sheetName) {
 //   • "Drillers" → Drilling team (latest)
 const TARGET_SHEET_PATTERNS = [
   /team\s*planner.*2026.*gw\+depot/i,
+  /team\s*planner.*2026.*drilling/i,
   /^drillers$/i,
 ];
 
@@ -372,8 +373,9 @@ function parseSheet(sheet, sheetName) {
   let currentSubcontractorName = '';
 
   // Pre-scan rows between the title row and the date header row for section
-  // headers (some sheets list sections above the date grid).
-  for (let r = 2; r < dateHeaderRowIdx; r++) {
+  // headers (some sheets list sections above the date grid). Start at row 1
+  // to catch section headers like "Cable" that appear in the first data row.
+  for (let r = 1; r < dateHeaderRowIdx; r++) {
     const row = rows[r];
     if (!row) continue;
     for (let c = 0; c < 6 && c < row.length; c++) {
