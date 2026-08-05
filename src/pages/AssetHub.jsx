@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
   Plus, Search, Boxes, ScanLine, X, TrendingUp, RefreshCw, Lock, Check,
-  CheckSquare, Upload, Database, Wrench as WrenchIcon,
+  CheckSquare, Upload, Database, MapPin,
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { rollupCompliance, daysUntil } from '@/utils/rigRollup';
@@ -16,7 +16,6 @@ import MasterCertificateVault from '@/components/righub/MasterCertificateVault';
 import CertificateVault from '@/components/righub/CertificateVault';
 import RecertActionModal from '@/components/righub/RecertActionModal';
 import AssetComplianceEditor from '@/components/AssetComplianceEditor';
-import FleetMaintenancePanel from '@/components/righub/FleetMaintenancePanel';
 import FleetHealthGauge from '@/components/righub/FleetHealthGauge';
 import FleetComplianceDonut from '@/components/righub/FleetComplianceDonut';
 import FleetSyncPanel from '@/components/righub/FleetSyncPanel';
@@ -25,6 +24,7 @@ import FleetUtilizationHeatmap from '@/components/righub/FleetUtilizationHeatmap
 import BulkAssetUpload from '@/components/righub/BulkAssetUpload';
 import SmartCertImport from '@/components/righub/SmartCertImport';
 import AssetInventoryGrid from '@/components/assethub/AssetInventoryGrid';
+import AssetDeploymentsPanel from '@/components/assethub/AssetDeploymentsPanel';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Skeleton } from '@/components/StateViews';
 
@@ -109,8 +109,8 @@ export default function AssetHub() {
     { id: 'inventory', label: 'Inventory', icon: Boxes, count: assets.length },
     { id: 'recert', label: 'Re-cert', icon: RefreshCw, badge: recertCount },
     { id: 'certificates', label: 'Certificates', icon: Lock },
+    { id: 'deployments', label: 'Deployments', icon: MapPin },
     { id: 'efficiency', label: 'Efficiency', icon: TrendingUp },
-    { id: 'maintenance', label: 'Maintenance', icon: WrenchIcon },
   ];
 
   const headerStats = [
@@ -246,8 +246,8 @@ export default function AssetHub() {
           onOpenEquip={setOpenEquip}
           onCertVault={setCertVaultRig}
         />
-      ) : view === 'maintenance' ? (
-        <ErrorBoundary><FleetMaintenancePanel /></ErrorBoundary>
+      ) : view === 'deployments' ? (
+        <ErrorBoundary><AssetDeploymentsPanel assets={assets} /></ErrorBoundary>
       ) : view === 'efficiency' ? (
         <ErrorBoundary><div className="space-y-4"><FleetUtilizationHeatmap assets={assets} /><DrillingEfficiencyPanel assets={assets} /></div></ErrorBoundary>
       ) : view === 'recert' ? (
