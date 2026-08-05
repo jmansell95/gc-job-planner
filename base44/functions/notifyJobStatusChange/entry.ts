@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { sendWhatsAppToStaff } from '../../shared/whatsappSend.ts';
 
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function linkBlock(baseUrl, path, label) {
@@ -71,8 +72,31 @@ Deno.serve(async (req) => {
       try { await base44.asServiceRole.integrations.Core.SendEmail({ to: u.email, subject, body: styledHtml(bodyHtml, cfg) }); notified++; } catch (e) {}
     }
 
+    // WhatsApp crew notification on job cancellation / hold
+    let waSent = 0;
+    if (newStatus === 'on_hold' || newStatus === 'cancelled') {
+      try {
+        const waCfgList = await base44.asServiceRole.entities.AppSetting.filter({ key: 'whatsapp_config' }, '-created_date', 1);
+        const waCfg = waCfgList?.[0]?.value || {};
+        if (waCfg.notify_job_cancelled && waCfg.phone_number_id && waCfg.api_token) {
+          const today = new Date().toISOString().slice(0, 10);
+          const rotas = await base44.asServiceRole.entities.RotaAssignment.filter({ job_id: data.id, assigned_date: today }, '-created_date', 50);
+          const staffIds = [...new Set(rotas.map(r => r.staff_id).filter(Boolean))];
+          if (staffIds.length > 0) {
+            const allStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 500);
+            const crew = allStaff.filter(s => staffIds.includes(s.id) && s.phone && s.is_active !== false);
+            if (crew.length > 0) {
+              const waText = `⚠️ JOB ${newStatus === 'cancelled' ? 'CANCELLED' : 'ON HOLD'}\n\n${data.name || 'Job'}\n${data.location || ''}\n\nYou are no longer required on site today. Contact your supervisor for reassignment.`;
+              const waResults = await sendWhatsAppToStaff(base44, crew, waText);
+              waSent = waResults.filter(r => r.ok).length;
+            }
+          }
+        }
+      } catch (e) { /* WhatsApp send failed — don't block the email notification */ }
+    }
+
     if (ac) { try { await base44.asServiceRole.entities.AutomationControl.update(ac.id, { last_run_at: new Date().toISOString(), last_run_status: 'success' }); } catch (e) {} }
-    return Response.json({ sent: true, notified });
+    return Response.json({ sent: true, notified, whatsapp_sent: waSent });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -37,6 +37,9 @@ export default function WhatsAppSettings() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [testPhone, setTestPhone] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
+  const [sendResult, setSendResult] = useState(null);
 
   const genSecret = () => Array.from({ length: 32 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
 
@@ -87,6 +90,25 @@ export default function WhatsAppSettings() {
       setTestResult({ ok: false, msg: e.message || 'Connection test failed' });
     }
     setTesting(false);
+  };
+
+  const handleSendTest = async () => {
+    setSendingTest(true);
+    setSendResult(null);
+    try {
+      const res = await base44.functions.invoke('sendCrewWhatsApp', { action: 'test', to: testPhone });
+      const data = res?.data ?? res;
+      setSendResult(data);
+      if (data.ok) {
+        toast({ title: 'Test message sent', description: 'WhatsApp message delivered successfully.' });
+      } else {
+        toast({ title: 'Send failed', description: data.error || 'Unknown error', variant: 'destructive' });
+      }
+    } catch (e) {
+      setSendResult({ ok: false, error: e.message || 'Failed to send' });
+      toast({ title: 'Send failed', description: e.message, variant: 'destructive' });
+    }
+    setSendingTest(false);
   };
 
   const handleCopyWebhook = () => {
@@ -187,6 +209,29 @@ export default function WhatsAppSettings() {
             </label>
           ))}
         </div>
+      </div>
+
+      {/* Send test message */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <Send className="w-4 h-4 text-[#2E5A1A]" />
+          <h3 className="text-sm font-bold text-slate-800">Send Test Message</h3>
+        </div>
+        <p className="text-xs text-slate-500">Verify outbound messaging by sending a test WhatsApp message to a crew member's phone. Use international format (e.g. 447123456789).</p>
+        <div className="flex gap-2">
+          <input type="tel" value={testPhone} onChange={e => setTestPhone(e.target.value)}
+            placeholder="447123456789" className={`${inputCls} font-mono`} />
+          <button onClick={handleSendTest} disabled={sendingTest || !connected || !testPhone}
+            className="flex items-center gap-1.5 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-bold hover:bg-[#1c4a12] disabled:opacity-50 transition flex-shrink-0">
+            {sendingTest ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Send Test
+          </button>
+        </div>
+        {sendResult && (
+          <div className={`flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${sendResult.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+            {sendResult.ok ? <Check className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> : <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />}
+            <p>{sendResult.ok ? `Message sent — ID: ${sendResult.message_id || 'confirmed'}` : sendResult.error || 'Send failed'}</p>
+          </div>
+        )}
       </div>
 
       {/* Webhook receiver */}
