@@ -22,6 +22,7 @@ import VendorInvoiceReconciliation from '@/components/financials/VendorInvoiceRe
 import BillingLifecycleHub from '@/components/billing/BillingLifecycleHub';
 import ProjectFinancialsDetail from '@/components/financials/ProjectFinancialsDetail';
 import BillingInsightPanel from '@/components/billing/BillingInsightPanel';
+import InvoiceDiscrepancyWidget from '@/components/billing/InvoiceDiscrepancyWidget';
 
 const fmt = (n) => '£' + (Math.round((n || 0) * 100) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -421,6 +422,13 @@ export default function BillingPage({ onSelectJob }) {
 
       {/* Predictive billing insights */}
       {!isLoading && <BillingInsightPanel rows={filtered} onSelectJob={onSelectJob} />}
+
+      {/* Invoice discrepancy check */}
+      {!isLoading && (
+        <div className="mb-5">
+          <InvoiceDiscrepancyWidget />
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="card-modern rounded-2xl p-4 mb-4">

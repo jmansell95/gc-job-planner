@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, HardHat, Mail, Phone, ShieldCheck, ShieldAlert, CheckCircle2, XCircle, Send, Loader2, FileText, Building2, Calendar, BadgeCheck } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SearchFilterBar from '@/components/SearchFilterBar';
+import CISBatchVerifyWidget from '@/components/contractors/CISBatchVerifyWidget';
 
 const ACCENT = '#2E5A1A';
 
@@ -183,6 +184,11 @@ export default function ContractorManager() {
           </button>
         }
       />
+
+      {/* CIS batch verification */}
+      <div className="mb-4 max-w-md">
+        <CISBatchVerifyWidget />
+      </div>
 
       {/* Status summary chips */}
       <div className="flex flex-wrap gap-2 mb-4">
