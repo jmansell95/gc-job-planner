@@ -56,6 +56,7 @@ export default function Vehicles() {
   const [view, setView] = useState('fleet'); // 'fleet' | 'maintenance' | 'livemap'
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [showNumbers, setShowNumbers] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
 
@@ -137,6 +138,11 @@ export default function Vehicles() {
   }, [staff]);
 
   const filtered = vehicles.filter(v => {
+    const hasGeotab = v.geotab_sync_status === 'synced' || !!v.geotab_device_id;
+    const hasHolman = v.holman_sync_status === 'synced' || !!v.holman_vehicle_id;
+    if (sourceFilter === 'geotab' && !hasGeotab) return false;
+    if (sourceFilter === 'holman' && !hasHolman) return false;
+    if (sourceFilter === 'both' && !(hasGeotab && hasHolman)) return false;
     if (statusFilter !== 'all') {
       const { level } = getVehicleStatus(v);
       if (statusFilter !== level) return false;
@@ -236,6 +242,20 @@ export default function Vehicles() {
                     <button key={opt.val} onClick={() => setStatusFilter(opt.val)}
                       className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-semibold transition ${statusFilter === opt.val ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
                       {opt.icon && <opt.icon className={`w-3.5 h-3.5 ${statusFilter === opt.val ? 'text-[#2E5A1A]' : opt.color}`} />}
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
+                  {[
+                    { val: 'all', label: 'All Sources' },
+                    { val: 'geotab', label: 'Geotab', icon: Satellite, color: 'text-cyan-600' },
+                    { val: 'holman', label: 'Holman', icon: Link2, color: 'text-blue-600' },
+                    { val: 'both', label: 'Both', icon: Truck, color: 'text-emerald-600' },
+                  ].map(opt => (
+                    <button key={opt.val} onClick={() => setSourceFilter(opt.val)}
+                      className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-semibold transition ${sourceFilter === opt.val ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
+                      {opt.icon && <opt.icon className={`w-3.5 h-3.5 ${sourceFilter === opt.val ? 'text-[#2E5A1A]' : opt.color}`} />}
                       {opt.label}
                     </button>
                   ))}

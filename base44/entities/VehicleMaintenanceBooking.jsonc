@@ -18,10 +18,11 @@
         "windscreen",
         "breakdown",
         "repair",
+        "fuel_card",
         "inspection",
         "other"
       ],
-      "description": "Type of maintenance booking. 'breakdown' = vehicle broken down / roadside assistance needed."
+      "description": "Type of maintenance booking. 'breakdown' = vehicle broken down / roadside assistance needed. 'fuel_card' = fuel card issue / replacement / query managed via Holman."
     },
     "status": {
       "type": "string",

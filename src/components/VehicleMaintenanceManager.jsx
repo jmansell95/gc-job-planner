@@ -13,6 +13,7 @@ const BOOKING_TYPES = [
   { value: 'service', label: 'Service' },
   { value: 'windscreen', label: 'Windscreen Repair' },
   { value: 'repair', label: 'Repair' },
+  { value: 'fuel_card', label: 'Fuel Card Issue' },
   { value: 'inspection', label: 'Inspection' },
   { value: 'other', label: 'Other' },
 ];
