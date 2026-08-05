@@ -337,3 +337,24 @@ export async function findOrCreateAgency(base44, agencyName, contractorMaps, dry
   contractorMaps.byNameKey.set(key, agency);
   return agency;
 }
+
+// Resolve or create a Subcontractor (Contractor with contractor_type='subcontractor').
+// Returns the contractor record (existing or newly created).
+// In dry_run mode, returns a temp object with a synthetic id.
+export async function findOrCreateSubcontractor(base44, subbieName, contractorMaps, dryRun) {
+  const key = nameKey(subbieName);
+  let subbie = contractorMaps.byNameKey.get(key);
+  if (subbie) return subbie;
+
+  if (dryRun) {
+    subbie = { id: `temp_subbie_${key}`, name: subbieName, contractor_type: 'subcontractor' };
+  } else {
+    subbie = await base44.asServiceRole.entities.Contractor.create({
+      name: subbieName,
+      contractor_type: 'subcontractor',
+      onboarding_status: 'approved',
+    });
+  }
+  contractorMaps.byNameKey.set(key, subbie);
+  return subbie;
+}

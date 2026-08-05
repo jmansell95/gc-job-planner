@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import * as XLSX from 'npm:xlsx@0.18.5';
-import { buildContractorMaps, findOrCreateAgency, buildAssetMaps, fuzzyFindAsset, assetRole, fuzzyFindStaff, fuzzyFindJob } from '../../shared/entityRegistry.ts';
+import { buildContractorMaps, findOrCreateAgency, findOrCreateSubcontractor, buildAssetMaps, fuzzyFindAsset, assetRole, fuzzyFindStaff, fuzzyFindJob } from '../../shared/entityRegistry.ts';
 import { findRigRateCardItem } from '../../shared/rigRateMatcher.ts';
 import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, looksLikeAssetName, normalizeName, nameKey, findProjectForJob, extractSiteName, isActualTrainingCourse, extractTrainingCourseTitle, inferTrainingCategory, isLikelyRealJob, canonicalJobKey } from '../../shared/spreadsheetParser.ts';
 
@@ -324,6 +324,7 @@ function parseSheet(sheet, sheetName) {
   let isSubSection = false;
   let isAgencySectionFlag = false;
   let currentAgencyName = '';
+  let currentSubcontractorName = '';
 
   // Pre-scan rows between the title row and the date header row for section
   // headers (some sheets list sections above the date grid).
@@ -337,6 +338,7 @@ function parseSheet(sheet, sheetName) {
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
         if (!isAgencySectionFlag) currentAgencyName = '';
+        currentSubcontractorName = '';
         if (currentSection) sectionsFound.add(currentSection);
       }
     }
@@ -363,6 +365,7 @@ function parseSheet(sheet, sheetName) {
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
         if (!isAgencySectionFlag) currentAgencyName = '';
+        currentSubcontractorName = '';
         if (currentSection) sectionsFound.add(currentSection);
         foundSection = true;
         break;
@@ -377,10 +380,34 @@ function parseSheet(sheet, sheetName) {
     let entityName = null;
     let isCompanyName = false;
     let isAssetName = false;
+    // Check for company names FIRST — company names like "PJ Drilling" match
+    // both looksLikePersonName and looksLikeCompanyName, but the company check
+    // is keyword-based and more specific. This applies to all sections since
+    // a name containing "Drilling" or "Ltd" is always a company, never a person.
     for (let c = 0; c < 6; c++) {
-      if (looksLikePersonName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = false; break; }
       if (looksLikeCompanyName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = true; break; }
-      if (looksLikeAssetName(row[c])) { entityName = normalizeName(row[c]); isAssetName = true; break; }
+    }
+    // In subcontractor sections, also check for subbie-specific abbreviations
+    // (e.g. "SI" = Site Investigations) that looksLikeCompanyName misses
+    if (!entityName && isSubSection) {
+      for (let c = 0; c < 6; c++) {
+        const val = row[c];
+        if (!val || val instanceof Date) continue;
+        const s = String(val).trim();
+        if (s.length < 2 || cellToDate(s) || isSectionHeader(s)) continue;
+        if (!/[a-zA-Z]/.test(s) || /\d/.test(s)) continue;
+        const words = s.toLowerCase().split(/\s+/);
+        if (words.some(w => ['si', 'geo', 'specialists'].includes(w))) {
+          entityName = normalizeName(s); isCompanyName = true; break;
+        }
+      }
+    }
+    if (!entityName) {
+      for (let c = 0; c < 6; c++) {
+        if (looksLikePersonName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = false; break; }
+        if (looksLikeCompanyName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = true; break; }
+        if (looksLikeAssetName(row[c])) { entityName = normalizeName(row[c]); isAssetName = true; break; }
+      }
     }
     if (!entityName) continue;
 
@@ -392,9 +419,17 @@ function parseSheet(sheet, sheetName) {
       continue;
     }
 
-    const entityIsSubbie = isSubSection || isCompanyName;
+    // Company names are always subcontractor companies — track and skip the row.
+    // Person names after a company name are linked to that contractor.
+    if (isCompanyName) {
+      currentSubcontractorName = entityName;
+      continue;
+    }
+
+    const entityIsSubbie = isSubSection || (!!currentSubcontractorName);
     const entityIsAgency = isAgencySectionFlag;
     const entityAgencyName = isAgencySectionFlag ? currentAgencyName : '';
+    const entitySubcontractorName = (!entityIsAgency && currentSubcontractorName) ? currentSubcontractorName : '';
 
     let hadAssignment = false;
     for (const [colStr, date] of Object.entries(colToDate)) {
@@ -425,6 +460,7 @@ function parseSheet(sheet, sheetName) {
         is_subcontractor_section: entityIsSubbie,
         is_agency_section: entityIsAgency,
         agency_name: entityAgencyName || undefined,
+        subcontractor_name: entitySubcontractorName || undefined,
         is_potential_asset: isAssetName,
       });
       hadAssignment = true;
@@ -438,6 +474,7 @@ function parseSheet(sheet, sheetName) {
         is_subcontractor_section: entityIsSubbie,
         is_agency_section: entityIsAgency,
         agency_name: entityAgencyName || undefined,
+        subcontractor_name: entitySubcontractorName || undefined,
         is_potential_asset: isAssetName,
       });
     }
@@ -596,6 +633,11 @@ export default async function(req) {
       base44.asServiceRole.entities.TrainingBooking.list('-created_date', 5000),
       base44.asServiceRole.entities.Absence.list('-created_date', 5000),
     ]);
+    // Save existing user emails so we don't re-invite users who already have accounts
+    const existingUserEmails = new Set();
+    for (const s of allStaff) {
+      if (s.user_id && s.email) existingUserEmails.add(s.email.toLowerCase());
+    }
     purgeSummary.rotas_deleted = allRotas.length;
     purgeSummary.staff_deleted = allStaff.length;
     purgeSummary.teams_deleted = allTeams.length;
@@ -785,12 +827,25 @@ export default async function(req) {
         }
       }
 
+      // Resolve the subcontractor company for subcontractor workers. The
+      // company name comes from the company-name row above the worker in the
+      // "Field Teams - Drilling Subbies" section.
+      let subbieContractorId = undefined;
+      if (subbie && !agency) {
+        const subbieNames = staffAssignments.map(a => a.subcontractor_name).filter(Boolean);
+        const subbieNameResolved = getMostCommon(subbieNames);
+        if (subbieNameResolved) {
+          const subbieRec = await findOrCreateSubcontractor(base44, subbieNameResolved, contractorMaps, dryRun);
+          subbieContractorId = subbieRec.id;
+        }
+      }
+
       if (!staff) {
         const email = generateEmail(name, allKnownEmails);
         allKnownEmails.add(email.toLowerCase());
         newStaffPayloads.push({
           name, email, worker_type: workerType,
-          agency_id: agencyId, job_title: jobTitle || undefined,
+          agency_id: agencyId || subbieContractorId, job_title: jobTitle || undefined,
           team_id: team.id, is_active: true,
         });
         newStaffKeys.push(key);
@@ -800,6 +855,7 @@ export default async function(req) {
         if (jobTitle && !staff.job_title) updates.job_title = jobTitle;
         if (!staff.worker_type) updates.worker_type = workerType;
         if (agency && agencyId && !staff.agency_id) updates.agency_id = agencyId;
+        if (subbie && !agency && subbieContractorId && !staff.agency_id) updates.agency_id = subbieContractorId;
         if (subbie && staff.team_id && staff.team_id !== subconTeam.id) updates.team_id = subconTeam.id;
         if (!staff.is_active) updates.is_active = true; // reactivate if returning
 
@@ -837,6 +893,19 @@ export default async function(req) {
     }
 
     const newStaff = newStaffKeys.map(k => staffMap.get(k));
+
+    // Invite direct staff who don't have user accounts yet
+    let usersInvited = 0;
+    if (!dryRun) {
+      for (const staff of newStaff) {
+        if (staff.worker_type === 'direct_employee' && staff.email && !existingUserEmails.has(staff.email.toLowerCase())) {
+          try {
+            await base44.users.inviteUser(staff.email, 'user');
+            usersInvited++;
+          } catch (e) { /* ignore — staff record still created */ }
+        }
+      }
+    }
 
     // Mark leavers as inactive
     let leaversMarked = 0;
@@ -1464,6 +1533,7 @@ export default async function(req) {
           job_id: job.id, job_base_key: baseKey, staff_key: staffKey,
           staff_name: a.staff_name,
           is_subcontractor: a.is_subcontractor_section || isSubcontractor(a.staff_name),
+          subcontractor_name: a.subcontractor_name,
           dates: [],
         });
       }
@@ -1478,7 +1548,8 @@ export default async function(req) {
       const job = jobMap.get(ci.job_base_key);
       if (!job) continue;
       if (ci.is_subcontractor) {
-        const contractor = contractorMaps.byNameKey.get(ci.staff_key);
+        const contractorKey = ci.subcontractor_name ? nameKey(ci.subcontractor_name) : ci.staff_key;
+        const contractor = contractorMaps.byNameKey.get(contractorKey);
         crewCostItemPayloads.push({
           job_id: job.id, category: 'contractor_supplied',
           contractor_id: contractor?.id || '',
@@ -1523,6 +1594,7 @@ export default async function(req) {
         direct_employees: uniqueStaffKeys.size - subbieCount - agencyCount,
         leavers_detected: leavers.length,
         leavers_marked_inactive: dryRun ? 0 : leaversMarked,
+        users_invited: dryRun ? 0 : usersInvited,
       },
       jobs: {
         total: uniqueJobBaseKeys.size,
@@ -1722,7 +1794,7 @@ export default async function(req) {
         rotas: { created: createdCount, duplicates_collapsed: duplicateRotaRows },
         rig_assignments: { created: rigAssignmentCount, total: dedupedRigAssignments.length },
         crew_cost_items: { created: crewCostItemsCreated, total: crewCostItemPayloads.length },
-        staff: { ...summary.staff, leavers_marked_inactive: leaversMarked },
+        staff: { ...summary.staff, leavers_marked_inactive: leaversMarked, users_invited: usersInvited },
         training: { ...summary.training, bookings_created: createdTrainingBookings },
         absences: { ...summary.absences, created: createdAbsences },
         completed_jobs_removed: completedJobsRemoved,
