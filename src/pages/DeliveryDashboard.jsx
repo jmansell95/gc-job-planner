@@ -15,6 +15,8 @@ import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } 
 import { saveOfflineDelivery, hasOfflineDelivery } from '@/utils/offlineSync';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import StaffHeader from '@/components/staff/StaffHeader';
+import SyncHUD from '@/components/staff/SyncHUD';
+import StaffAlerts from '@/components/staff/StaffAlerts';
 
 const listContainer = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
@@ -40,7 +42,16 @@ export default function DeliveryDashboard() {
   const [loading, setLoading] = useState(true);
   const [completeDelivery, setCompleteDelivery] = useState(null);
   const [autoExpandId, setAutoExpandId] = useState(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const on = () => setIsOnline(true);
+    const off = () => setIsOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, []);
 
   useEffect(() => {
     async function loadStaff() {
@@ -303,14 +314,17 @@ export default function DeliveryDashboard() {
   });
 
   return (
-    <div className="bg-slate-50 min-h-screen">
+    <div className="bg-gradient-to-b from-slate-50 to-slate-100/50 min-h-screen pb-20">
       <StaffHeader staff={staff} />
       <Breadcrumbs />
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-4 space-y-3">
+        <SyncHUD />
+        <StaffAlerts isOnline={isOnline} staff={staff} />
+
         {/* Page title + quick stats */}
-        <div className="mb-4 md:mb-6">
+        <div className="mb-1 md:mb-2">
           <h1 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">My Deliveries</h1>
           <div className="grid grid-cols-3 gap-2 md:gap-3">
             {[
