@@ -185,6 +185,15 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
     queryFn: () => base44.entities.SubcontractorLog.filter({ job_id: job.id }, '-date', 6),
   });
 
+  // Fetch contractors so we can show which company each subcontractor/agency worker is from
+  const hasExternalStaff = assignedStaff.some(st => (st.worker_type === 'subcontractor' || st.worker_type === 'agency') && st.agency_id);
+  const { data: contractors = [] } = useQuery({
+    queryKey: ['ctx-contractors'],
+    queryFn: () => base44.entities.Contractor.list('-created_date', 500),
+    enabled: hasExternalStaff,
+  });
+  const contractorById = new Map(contractors.map(c => [c.id, c]));
+
   const activityFeed = [
     ...recentLogs.map(l => ({ type: 'log', time: l.created_date || l.date, icon: Activity, iconColor: 'bg-blue-100 text-blue-600', title: l.borehole_ref ? l.borehole_ref + ' — ' + (l.log_type || '').replace(/_/g, ' ') : (l.log_type || '').replace(/_/g, ' '), subtitle: l.description || l.staff_name || 'Site log', badge: l.manager_review_status })),
     ...recentComments.map(c => ({ type: 'comment', time: c.created_date, icon: MessageSquare, iconColor: 'bg-slate-100 text-slate-600', title: c.author_name, subtitle: c.message, badge: c.is_client ? 'Client' : null })),
@@ -251,6 +260,12 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
               <div className="space-y-1">
                 {assignedStaff.slice(0, 6).map(st => {
                   const shifts = rotas.filter(r => r.staff_id === st.id).length;
+                  const wt = st.worker_type || 'direct_employee';
+                  const isExternal = wt === 'subcontractor' || wt === 'agency';
+                  const company = isExternal && st.agency_id ? contractorById.get(st.agency_id) : null;
+                  const companyName = company?.name || '';
+                  const badgeCls = wt === 'subcontractor' ? 'bg-orange-100 text-orange-700' : wt === 'agency' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700';
+                  const badgeLabel = wt === 'subcontractor' ? 'Subcon' : wt === 'agency' ? 'Agency' : 'Direct';
                   return (
                     <div key={st.id} className="flex items-center gap-2 py-1">
                       <div className="w-6 h-6 rounded-full bg-[#2E5A1A]/10 flex items-center justify-center text-[10px] font-bold text-[#2E5A1A] flex-shrink-0">
@@ -258,7 +273,13 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-medium text-slate-700 truncate">{st.name}</p>
+                        {isExternal && companyName && (
+                          <p className="text-[10px] text-slate-400 truncate flex items-center gap-1">
+                            <Building2 className="w-2.5 h-2.5" /> {companyName}
+                          </p>
+                        )}
                       </div>
+                      <span className={`text-[9px] font-semibold rounded-full px-1.5 py-0.5 flex-shrink-0 ${badgeCls}`}>{badgeLabel}</span>
                       <span className="text-[10px] text-slate-400 flex-shrink-0">{shifts} shift{shifts !== 1 ? 's' : ''}</span>
                     </div>
                   );
