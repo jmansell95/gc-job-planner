@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import ProjectSelect from '@/components/ProjectSelect';
 import SubcontractorAssignments from '@/components/SubcontractorAssignments';
+import DisciplineEditor from '@/components/disciplines/DisciplineEditor';
+import { getJobDisciplines, getPrimaryDisciplineType } from '@/utils/jobDisciplines';
 import { getJobTypeColor, getJobTypeLabel, isDrillingJobType } from '@/utils/jobTeams';
 
 const inputCls = "w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10 text-sm transition";
@@ -45,6 +47,7 @@ const emptyForm = {
   meterage: '', meterage_rate: '', meterage_target: '',
   unit_price: '', markup_percentage: '', vat_rate: 20,
   client_charge: '', client_charge_description: '',
+  disciplines: [],
 };
 
 export default function JobWizardModal({ open, onClose, onCreated, editingJob }) {
@@ -127,6 +130,30 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
       });
       // vat_rate defaults to 20 — keep it
       if (form.vat_rate) clean.vat_rate = parseFloat(form.vat_rate);
+
+      // Build the disciplines array from the editor. Each track inherits
+      // the job-level dates, revenue method, and drilling method as defaults.
+      // The first track is the primary — its type mirrors the legacy job_type
+      // and its drilling_method/revenue_method mirror the legacy fields.
+      if (Array.isArray(clean.disciplines) && clean.disciplines.length > 0) {
+        clean.disciplines = clean.disciplines.map((d, i) => ({
+          type: d.type,
+          status: d.status || 'planning',
+          drilling_method: i === 0 ? (clean.drilling_method || 'not_applicable') : (d.drilling_method || 'not_applicable'),
+          start_date: d.start_date || clean.start_date,
+          end_date: d.end_date || clean.end_date,
+          revenue_method: i === 0 ? (clean.revenue_method || 'none') : (d.revenue_method || 'none'),
+          unit_price: i === 0 ? (clean.unit_price ? parseFloat(clean.unit_price) : undefined) : d.unit_price,
+          meterage_rate: i === 0 ? (clean.meterage_rate ? parseFloat(clean.meterage_rate) : undefined) : d.meterage_rate,
+          meterage_target: i === 0 ? (clean.meterage_target ? parseFloat(clean.meterage_target) : undefined) : d.meterage_target,
+          required_team_ids: d.required_team_ids || [],
+        }));
+        clean.primary_discipline = clean.disciplines[0].type;
+        // Mirror primary discipline into legacy fields for backward compat
+        if (!clean.job_type) clean.job_type = clean.primary_discipline;
+      } else {
+        delete clean.disciplines;
+      }
       let saved;
       if (editingJob?.id) {
         saved = await base44.entities.Job.update(editingJob.id, clean);
@@ -284,6 +311,12 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">Reference</label>
                       <input type="text" value={form.job_reference || ''} onChange={e => set('job_reference', e.target.value)} placeholder="PO / quote no." className={inputCls} />
                     </div>
+                  </div>
+                  <div>
+                    <DisciplineEditor
+                      disciplines={form.disciplines || []}
+                      onChange={(disciplines) => set('disciplines', disciplines)}
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Client</label>
@@ -563,6 +596,9 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     <ReviewRow label="Teams" value={selectedTeamIds.map(id => teams.find(t => t.id === id)?.name).filter(Boolean).join(', ')} />
                     <ReviewRow label="Billing Method" value={methodLabel} highlight />
                     <ReviewRow label="Drilling Method" value={{ cp: 'Cable Percussion', rotary: 'Rotary', mixed: 'Mixed', not_applicable: 'N/A' }[form.drilling_method] || 'N/A'} />
+                    {(form.disciplines || []).length > 0 && (
+                      <ReviewRow label="Disciplines" value={(form.disciplines || []).map((d, i) => `${i === 0 ? '★ ' : ''}${d.type.replace(/_/g, ' ')}`).join(' · ')} highlight />
+                    )}
                     {form.revenue_method === 'meterage_rate' && <ReviewRow label="Metre Rate" value={form.meterage_rate ? `£${form.meterage_rate}/m` : 'Auto from rate card'} />}
                     {form.revenue_method === 'meterage_rate' && <ReviewRow label="Target" value={form.meterage_target ? `${form.meterage_target}m` : '—'} />}
                     {form.revenue_method === 'unit_rate' && <ReviewRow label="Unit Price" value={form.unit_price ? `£${form.unit_price}/unit` : '—'} />}

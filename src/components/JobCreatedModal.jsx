@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle2, Eye, CalendarClock, CalendarPlus, X } from 'lucide-react';
+import DisciplinePills from '@/components/disciplines/DisciplinePills';
 
 export default function JobCreatedModal({ job, onView, onBuildRota, onLater, onClose }) {
   if (!job) return null;
@@ -15,6 +16,9 @@ export default function JobCreatedModal({ job, onView, onBuildRota, onLater, onC
           </div>
           <h2 className="text-xl font-bold text-white">Job Created!</h2>
           <p className="text-emerald-100 text-sm mt-1">{job.name}</p>
+          {(job.disciplines || []).length > 0 && (
+            <div className="mt-2 flex justify-center"><DisciplinePills job={job} size="sm" /></div>
+          )}
         </div>
 
         <div className="px-6 py-5">
