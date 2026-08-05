@@ -82,7 +82,7 @@ export default function AdminDashboard() {
       setActiveSection('overview');
     }
     if (activeSection === 'safety') {
-      navigate('/safety');
+      navigate('/compliance');
       setActiveSection('overview');
     }
     if (activeSection === 'import') {

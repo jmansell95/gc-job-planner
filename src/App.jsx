@@ -27,7 +27,6 @@ import PATTestingConsole from './pages/PATTestingConsole';
 import TimesheetsPage from './pages/TimesheetsPage';
 import CompliancePage from './pages/CompliancePage';
 import BillingPage from './pages/BillingPage';
-import SafetyPage from './pages/SafetyPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -86,7 +85,7 @@ const AuthenticatedApp = () => {
             <Route path="/timesheets" element={<RouteGuard><TimesheetsPage /></RouteGuard>} />
             <Route path="/compliance" element={<RouteGuard><CompliancePage /></RouteGuard>} />
             <Route path="/billing" element={<RouteGuard><BillingPage /></RouteGuard>} />
-            <Route path="/safety" element={<RouteGuard><SafetyPage /></RouteGuard>} />
+            <Route path="/safety" element={<Navigate to="/compliance" replace />} />
             <Route path="/assets" element={<RouteGuard><AssetHub /></RouteGuard>} />
             <Route path="/vehicles" element={<RouteGuard><Vehicles /></RouteGuard>} />
             <Route path="/keylogbook-docs" element={<RouteGuard><KeyLogBookDocs /></RouteGuard>} />

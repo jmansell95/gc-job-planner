@@ -58,7 +58,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'assets', label: 'Asset Hub', icon: Wrench },
     { id: 'vehicles', label: 'Vehicles', icon: Car },
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck },
-    { id: 'safety', label: 'Safety', icon: ShieldAlert },
     { id: 'billing', label: 'Billing', icon: PoundSterling },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
