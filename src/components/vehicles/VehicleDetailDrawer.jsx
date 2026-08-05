@@ -1,13 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  X, Truck, Gauge, CalendarClock, Wrench, Link2, Link2Off, Satellite,
+  X, Truck, Gauge, CalendarClock, Wrench, Link2, Satellite,
   ShieldCheck, ShieldAlert, ShieldX, Hash, Fuel, Palette, Car, User, Users,
-  MapPin, Navigation, Clock, Activity,
+  MapPin, Navigation, Clock, Activity, Route, Zap, Settings, ChevronRight,
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { differenceInDays } from 'date-fns';
 import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
+import TripTimeline from '@/components/vehicles/TripTimeline';
+import MaintenanceTimeline from '@/components/vehicles/MaintenanceTimeline';
 
 function getVehicleStatus(v) {
   const today = new Date();
@@ -40,35 +42,22 @@ const FUEL_LABELS = {
   lpg: 'LPG', cng: 'CNG', unknown: 'Unknown',
 };
 
-function InfoRow({ icon: Icon, label, value, mono }) {
+function InfoTile({ icon: Icon, label, value, mono, color }) {
   if (!value && value !== 0) return null;
   return (
-    <div className="flex items-center gap-2.5 py-2 px-3 rounded-lg hover:bg-slate-50 transition">
-      <Icon className="w-4 h-4 text-slate-400 flex-shrink-0" />
-      <span className="text-xs text-slate-500 font-medium w-20 flex-shrink-0">{label}</span>
-      <span className={`text-sm text-slate-800 font-semibold truncate ${mono ? 'font-mono' : ''}`}>{value}</span>
-    </div>
-  );
-}
-
-function DateRow({ icon: Icon, label, dateStr }) {
-  if (!dateStr) return null;
-  const date = new Date(dateStr + 'T00:00:00');
-  const days = differenceInDays(date, new Date());
-  const tone = days < 0 ? 'text-red-600' : days <= 30 ? 'text-amber-600' : 'text-emerald-600';
-  return (
-    <div className="flex items-center gap-2.5 py-2 px-3 rounded-lg hover:bg-slate-50 transition">
-      <Icon className="w-4 h-4 text-slate-400 flex-shrink-0" />
-      <span className="text-xs text-slate-500 font-medium w-20 flex-shrink-0">{label}</span>
-      <span className={`text-sm font-semibold ${tone}`}>
-        {date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-        <span className="text-[11px] font-normal ml-1.5">({days < 0 ? `${Math.abs(days)}d ago` : `in ${days}d`})</span>
-      </span>
+    <div className={`rounded-lg p-2.5 ${color || 'bg-slate-50'}`}>
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <Icon className="w-3 h-3 text-slate-400" />
+        <span className="text-[10px] uppercase text-slate-400 font-semibold">{label}</span>
+      </div>
+      <p className={`text-sm font-bold text-slate-800 truncate ${mono ? 'font-mono' : ''}`}>{value}</p>
     </div>
   );
 }
 
 export default function VehicleDetailDrawer({ vehicle, onClose }) {
+  const [activeTab, setActiveTab] = useState('live'); // 'live' | 'compliance'
+
   const { data: staff = [] } = useQuery({
     queryKey: ['staff'],
     queryFn: () => base44.entities.Staff.list(),
@@ -104,8 +93,8 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
   const StatusIcon = badge.Icon;
   const assignedStaff = staff.find(s => s.id === vehicle.assigned_staff_id);
   const team = teams.find(t => t.id === vehicle.team_id);
-
   const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(' ') || '—';
+  const geotabLive = vehicle.geotab_sync_status === 'synced';
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
@@ -134,7 +123,7 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
             <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${badge.cls}`}>
               <StatusIcon className="w-3.5 h-3.5" /> {badge.label}
             </span>
-            {vehicle.geotab_sync_status === 'synced' && (
+            {geotabLive && (
               <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200">
                 <Satellite className="w-3.5 h-3.5" /> Geotab Live
               </span>
@@ -147,122 +136,188 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
           </div>
         </div>
 
-        {/* Live location */}
-        {latestLoc && (
-          <div className="px-5 py-4 border-b border-slate-100">
-            <div className="flex items-center gap-2 mb-2">
-              <Navigation className="w-4 h-4 text-[#2E5A1A]" />
-              <h3 className="text-sm font-bold text-slate-800">Live Position</h3>
-              <span className="ml-auto text-[11px] text-slate-400 flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {new Date(latestLoc.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
-            <VehicleLocationMiniMap {...latestLoc} />
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              <div className="bg-slate-50 rounded-lg p-2 text-center">
-                <p className="text-[10px] text-slate-400 uppercase font-semibold">Speed</p>
-                <p className="text-sm font-bold text-slate-700 tabular-nums">{Math.round(latestLoc.speed_kph || 0)} <span className="text-[10px] font-normal">kph</span></p>
-              </div>
-              <div className="bg-slate-50 rounded-lg p-2 text-center">
-                <p className="text-[10px] text-slate-400 uppercase font-semibold">Ignition</p>
-                <p className={`text-sm font-bold ${latestLoc.ignition_on ? 'text-emerald-600' : 'text-slate-400'}`}>
-                  {latestLoc.ignition_on ? 'ON' : 'OFF'}
-                </p>
-              </div>
-              <div className="bg-slate-50 rounded-lg p-2 text-center">
-                <p className="text-[10px] text-slate-400 uppercase font-semibold">Heading</p>
-                <p className="text-sm font-bold text-slate-700 tabular-nums">{Math.round(latestLoc.heading || 0)}°</p>
+        {/* Attention banner */}
+        {issues.length > 0 && (
+          <div className="mx-5 mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 flex items-start gap-2">
+            <ShieldAlert className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-xs font-bold text-rose-700">Action Required</p>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {issues.map((issue, i) => (
+                  <span key={i} className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${issue.severity === 'expired' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {issue.label} ({issue.days >= 0 ? `in ${issue.days}d` : `${Math.abs(issue.days)}d ago`})
+                  </span>
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {/* Vehicle specification */}
-        <div className="px-5 py-4 border-b border-slate-100">
-          <div className="flex items-center gap-2 mb-2">
-            <Car className="w-4 h-4 text-[#2E5A1A]" />
-            <h3 className="text-sm font-bold text-slate-800">Vehicle Specification</h3>
-          </div>
-          <div className="space-y-0.5">
-            <InfoRow icon={Car} label="Make / Model" value={makeModel} />
-            <InfoRow icon={CalendarClock} label="Year" value={vehicle.year || '—'} />
-            <InfoRow icon={Fuel} label="Fuel" value={FUEL_LABELS[vehicle.fuel_type] || vehicle.fuel_type || '—'} />
-            <InfoRow icon={Truck} label="Type" value={vehicle.vehicle_type || '—'} />
-            <InfoRow icon={Palette} label="Colour" value={vehicle.color || '—'} />
-            <InfoRow icon={Hash} label="VIN" value={vehicle.vin || '—'} mono />
-          </div>
+        {/* Tab switcher */}
+        <div className="mx-5 mt-4 flex p-1 bg-slate-100 rounded-lg">
+          <button onClick={() => setActiveTab('live')}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition ${activeTab === 'live' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-500'}`}>
+            <Satellite className="w-3.5 h-3.5" /> Live Ops
+          </button>
+          <button onClick={() => setActiveTab('compliance')}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition ${activeTab === 'compliance' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}>
+            <Wrench className="w-3.5 h-3.5" /> Compliance
+          </button>
         </div>
 
-        {/* Compliance */}
-        <div className="px-5 py-4 border-b border-slate-100">
-          <div className="flex items-center gap-2 mb-2">
-            <ShieldCheck className="w-4 h-4 text-[#2E5A1A]" />
-            <h3 className="text-sm font-bold text-slate-800">Compliance & Maintenance</h3>
-          </div>
-          {issues.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {issues.map((issue, i) => (
-                <span key={i} className={`text-xs px-2.5 py-1 rounded-full font-medium ${issue.severity === 'expired' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}`}>
-                  {issue.label} ({issue.days >= 0 ? `in ${issue.days}d` : `${Math.abs(issue.days)}d ago`})
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-emerald-600 font-medium mb-2 px-3">All compliance up to date</p>
-          )}
-          <div className="space-y-0.5">
-            <DateRow icon={ShieldCheck} label="MOT Due" dateStr={vehicle.mot_expiry} />
-            <DateRow icon={Wrench} label="Service" dateStr={vehicle.service_due_date} />
-            <DateRow icon={Activity} label="Last Service" dateStr={vehicle.last_service_date} />
-          </div>
-        </div>
-
-        {/* Assignment & capacity */}
-        <div className="px-5 py-4 border-b border-slate-100">
-          <div className="flex items-center gap-2 mb-2">
-            <User className="w-4 h-4 text-[#2E5A1A]" />
-            <h3 className="text-sm font-bold text-slate-800">Assignment & Capacity</h3>
-          </div>
-          <div className="space-y-0.5">
-            <InfoRow icon={User} label="Driver" value={assignedStaff?.name || 'Unassigned'} />
-            <InfoRow icon={Users} label="Team" value={team?.name || '—'} />
-            {vehicle.max_weight_kg != null && (
-              <InfoRow icon={Truck} label="Max Weight" value={`${Number(vehicle.max_weight_kg).toLocaleString()} kg`} />
-            )}
-            {vehicle.max_volume_m3 != null && (
-              <InfoRow icon={Truck} label="Max Volume" value={`${Number(vehicle.max_volume_m3).toLocaleString()} m³`} />
-            )}
-          </div>
-        </div>
-
-        {/* Telematics */}
-        <div className="px-5 py-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Satellite className="w-4 h-4 text-[#2E5A1A]" />
-            <h3 className="text-sm font-bold text-slate-800">Telematics & Mileage</h3>
-          </div>
-          <div className="space-y-0.5">
-            {vehicle.current_mileage != null && (
-              <InfoRow icon={Gauge} label="Mileage" value={`${Number(vehicle.current_mileage).toLocaleString()} mi`} />
-            )}
-            <InfoRow icon={Satellite} label="Geotab ID" value={vehicle.geotab_device_id || '—'} mono />
-            <InfoRow icon={Hash} label="Device S/N" value={vehicle.geotab_device_serial || '—'} mono />
-            {vehicle.last_geotab_sync && (
-              <div className="flex items-center gap-2.5 py-2 px-3 rounded-lg hover:bg-slate-50 transition">
-                <Clock className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="text-xs text-slate-500 font-medium w-20 flex-shrink-0">Last Sync</span>
-                <span className="text-sm text-slate-800 font-semibold">
-                  {new Date(vehicle.last_geotab_sync).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                </span>
+        {/* === LIVE OPERATIONS TAB (Geotab) === */}
+        {activeTab === 'live' && (
+          <div className="px-5 py-4 space-y-4">
+            {/* Live position */}
+            {latestLoc ? (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Navigation className="w-4 h-4 text-cyan-600" />
+                  <h3 className="text-sm font-bold text-slate-800">Live Position</h3>
+                  <span className="ml-auto text-[11px] text-slate-400 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {new Date(latestLoc.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <VehicleLocationMiniMap {...latestLoc} />
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  <InfoTile icon={Gauge} label="Speed" value={`${Math.round(latestLoc.speed_kph || 0)} kph`} color="bg-cyan-50" />
+                  <InfoTile icon={Zap} label="Ignition" value={latestLoc.ignition_on ? 'ON' : 'OFF'} color={latestLoc.ignition_on ? 'bg-emerald-50' : 'bg-slate-50'} />
+                  <InfoTile icon={Navigation} label="Heading" value={`${Math.round(latestLoc.heading || 0)}°`} color="bg-slate-50" />
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 bg-slate-50 rounded-xl">
+                <Satellite className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs text-slate-400">{geotabLive ? 'No live position data right now' : 'Not tracking via Geotab yet'}</p>
               </div>
             )}
-            {vehicle.holman_vehicle_id && (
-              <InfoRow icon={Link2} label="Holman ID" value={vehicle.holman_vehicle_id} mono />
-            )}
+
+            {/* Trip history */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Route className="w-4 h-4 text-cyan-600" />
+                <h3 className="text-sm font-bold text-slate-800">Trip History</h3>
+              </div>
+              <TripTimeline vehicleId={vehicle.id} />
+            </div>
+
+            {/* Telematics details */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Settings className="w-4 h-4 text-cyan-600" />
+                <h3 className="text-sm font-bold text-slate-800">Telematics Details</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {vehicle.current_mileage != null && (
+                  <InfoTile icon={Gauge} label="Mileage" value={`${Number(vehicle.current_mileage).toLocaleString()} mi`} color="bg-slate-50" />
+                )}
+                <InfoTile icon={Satellite} label="Geotab ID" value={vehicle.geotab_device_id || '—'} mono color="bg-slate-50" />
+                <InfoTile icon={Hash} label="Device S/N" value={vehicle.geotab_device_serial || '—'} mono color="bg-slate-50" />
+                {vehicle.last_geotab_sync && (
+                  <InfoTile icon={Clock} label="Last Sync" value={new Date(vehicle.last_geotab_sync).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} color="bg-slate-50" />
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* === COMPLIANCE TAB (Holman) === */}
+        {activeTab === 'compliance' && (
+          <div className="px-5 py-4 space-y-4">
+            {/* Vehicle specification */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Car className="w-4 h-4 text-blue-600" />
+                <h3 className="text-sm font-bold text-slate-800">Vehicle Specification</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <InfoTile icon={Car} label="Make / Model" value={makeModel} color="bg-blue-50" />
+                <InfoTile icon={CalendarClock} label="Year" value={vehicle.year || '—'} color="bg-slate-50" />
+                <InfoTile icon={Fuel} label="Fuel" value={FUEL_LABELS[vehicle.fuel_type] || vehicle.fuel_type || '—'} color="bg-slate-50" />
+                <InfoTile icon={Truck} label="Type" value={vehicle.vehicle_type || '—'} color="bg-slate-50" />
+                <InfoTile icon={Palette} label="Colour" value={vehicle.color || '—'} color="bg-slate-50" />
+                <InfoTile icon={Hash} label="VIN" value={vehicle.vin ? vehicle.vin.slice(-8) : '—'} mono color="bg-slate-50" />
+              </div>
+            </div>
+
+            {/* Key dates */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldCheck className="w-4 h-4 text-blue-600" />
+                <h3 className="text-sm font-bold text-slate-800">Key Compliance Dates</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                {[
+                  { label: 'MOT Due', date: vehicle.mot_expiry, icon: ShieldCheck },
+                  { label: 'Service Due', date: vehicle.service_due_date, icon: Wrench },
+                  { label: 'Last Service', date: vehicle.last_service_date, icon: Activity },
+                ].filter(d => d.date).map(d => {
+                  const date = new Date(d.date + 'T00:00:00');
+                  const days = differenceInDays(date, new Date());
+                  const tone = days < 0 ? 'rose' : days <= 30 ? 'amber' : 'emerald';
+                  const colors = COLOR_MAP[tone] || COLOR_MAP.slate;
+                  return (
+                    <div key={d.label} className={`flex items-center gap-3 p-3 rounded-lg ${colors.bg} border ${colors.border}`}>
+                      <d.icon className={`w-4 h-4 ${colors.text}`} />
+                      <div className="flex-1">
+                        <p className="text-[10px] uppercase font-semibold text-slate-400">{d.label}</p>
+                        <p className={`text-sm font-bold ${colors.text}`}>
+                          {date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <span className={`text-[11px] font-semibold ${colors.text}`}>
+                        {days < 0 ? `${Math.abs(days)}d ago` : `in ${days}d`}
+                      </span>
+                    </div>
+                  );
+                })}
+                {!vehicle.mot_expiry && !vehicle.service_due_date && !vehicle.last_service_date && (
+                  <p className="text-xs text-slate-400 px-3 py-2">No compliance dates on record.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Maintenance timeline */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Wrench className="w-4 h-4 text-blue-600" />
+                <h3 className="text-sm font-bold text-slate-800">Maintenance History</h3>
+                <span className="ml-auto text-[10px] text-slate-400">Holman</span>
+              </div>
+              <MaintenanceTimeline vehicleId={vehicle.id} />
+            </div>
+
+            {/* Assignment */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <User className="w-4 h-4 text-blue-600" />
+                <h3 className="text-sm font-bold text-slate-800">Assignment & Capacity</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <InfoTile icon={User} label="Driver" value={assignedStaff?.name || 'Unassigned'} color="bg-slate-50" />
+                <InfoTile icon={Users} label="Team" value={team?.name || '—'} color="bg-slate-50" />
+                {vehicle.max_weight_kg != null && (
+                  <InfoTile icon={Truck} label="Max Weight" value={`${Number(vehicle.max_weight_kg).toLocaleString()} kg`} color="bg-slate-50" />
+                )}
+                {vehicle.max_volume_m3 != null && (
+                  <InfoTile icon={Truck} label="Max Volume" value={`${Number(vehicle.max_volume_m3).toLocaleString()} m³`} color="bg-slate-50" />
+                )}
+                {vehicle.holman_vehicle_id && (
+                  <InfoTile icon={Link2} label="Holman ID" value={vehicle.holman_vehicle_id} mono color="bg-blue-50" />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+const COLOR_MAP = {
+  emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200' },
+  amber: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200' },
+  rose: { bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200' },
+  slate: { bg: 'bg-slate-50', text: 'text-slate-500', border: 'border-slate-200' },
+};

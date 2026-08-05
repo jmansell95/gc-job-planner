@@ -134,7 +134,7 @@ export default function HolmanSettings() {
       <SettingsSectionHeader
         icon={Truck}
         title="Holman Fleet Sync"
-        description="Connect Holman fleet management to automatically sync MOT, service dates and mileage into your vehicle records. Configure API credentials and set up the webhook receiver for real-time fleet events."
+        description="Holman manages fleet compliance and maintenance — MOTs, scheduled services, windscreen repairs, breakdowns, and fuel cards. Connect Holman to automatically sync these dates and events into your vehicle records. For live GPS tracking, use Geotab GPS Sync instead."
       />
 
       {/* Connection status */}
@@ -166,6 +166,21 @@ export default function HolmanSettings() {
           <Settings2 className="w-4 h-4 text-[#2E5A1A]" />
           <h3 className="text-sm font-bold text-slate-800">API Credentials</h3>
         </div>
+
+        {/* How to get Holman API access */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-slate-600 space-y-1.5">
+          <p className="font-semibold text-blue-800">How to get Holman API access:</p>
+          <ol className="list-decimal list-inside space-y-0.5 text-slate-600">
+            <li>Contact your <span className="font-medium">Holman account manager</span> and request API access for your fleet account. Holman does not publish self-service API keys — access is provisioned per customer.</li>
+            <li>Ask for the <span className="font-medium">API Base URL</span> (Holman will provide the correct endpoint for your region/account, e.g. <code className="bg-slate-100 px-1 rounded">https://api.holmanfleet.com</code> or a custom URL).</li>
+            <li>Request an <span className="font-medium">API Key</span> (a long alphanumeric token). This is your primary authentication credential.</li>
+            <li>If your Holman account uses <span className="font-medium">OAuth 2.0</span> instead of an API key, ask for a <span className="font-medium">Client ID</span> and <span className="font-medium">Client Secret</span> pair.</li>
+            <li>Ask for your <span className="font-medium">Account / Company ID</span> — Holman uses this to scope API calls to your specific fleet.</li>
+            <li>Request that Holman enable <span className="font-medium">webhook events</span> for your account (MOT expiry, service due, odometer updates, breakdown status, fuel card alerts). Give them the webhook URL below.</li>
+          </ol>
+          <p className="pt-1.5 border-t border-blue-100 mt-2">Holman API docs (provided after access is granted): <a href="https://www.holman.co.uk/fleet-management" target="_blank" rel="noopener" className="text-blue-600 underline font-medium">Holman Fleet Management</a> · Phone: <span className="font-medium">+44 (0)1582 470 600</span></p>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">API Base URL</label>
@@ -270,7 +285,7 @@ export default function HolmanSettings() {
           <h3 className="text-sm font-bold text-slate-800">Manual Fleet Sync</h3>
           <span className="ml-auto text-xs text-slate-400">Pull all vehicles from Holman now</span>
         </div>
-        <p className="text-xs text-slate-500 mb-3">Fetches the full fleet vehicle list from Holman and updates MOT expiry, service due dates, last service dates and mileage on matching local Vehicle records. Vehicles are matched by registration number, Holman fleet ID, or VIN.</p>
+        <p className="text-xs text-slate-500 mb-3">Fetches the full fleet vehicle list from Holman and updates MOT expiry, service due dates, last service dates, breakdown status, windscreen repair logs, and fuel card alerts on matching local Vehicle records. Vehicles are matched by registration number, Holman fleet ID, or VIN.</p>
         <button onClick={handleSync} disabled={!connected || syncing}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-bold hover:bg-[#1c4a12] disabled:opacity-40 transition">
           {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Sync Fleet Now

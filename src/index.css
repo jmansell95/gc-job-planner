@@ -313,6 +313,12 @@
 .leaflet-container { z-index: 1; }
 .hazard-map-marker { background: transparent; border: none; }
 
+/* Pulse animation for live map markers */
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0; transform: scale(1.8); }
+}
+
 /* Full-screen job modal on mobile: hide the default X close button
    (the JobDetail header already provides a Back button). */
 @media (max-width: 639px) {
