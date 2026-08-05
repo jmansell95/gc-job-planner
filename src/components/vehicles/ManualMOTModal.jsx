@@ -56,17 +56,32 @@ export default function ManualMOTModal({ open, onClose, vehicle }) {
       });
 
       // If the MOT failed, clear the vehicle's MOT expiry so compliance
-      // status reflects the failure (vehicle becomes non-compliant).
-      // If passed with an expiry date, update the vehicle's mot_expiry.
+      // status reflects the failure (vehicle becomes non-compliant), and
+      // auto-create a maintenance booking for the retest/repair.
       if (result === 'fail') {
         await base44.entities.Vehicle.update(vehicle.id, { mot_expiry: undefined });
+        // Auto-create a maintenance booking for the retest
+        await base44.entities.VehicleMaintenanceBooking.create({
+          vehicle_id: vehicle.id,
+          vehicle_name: vehicle.name,
+          booking_type: 'mot',
+          status: 'requested',
+          booking_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+          notes: `Auto-booked after MOT FAIL on ${testDate}.${advisoryNotes ? ` Failure reasons: ${advisoryNotes}` : ''} Booked for retest within 7 days.`,
+        });
       } else if ((result === 'pass' || result === 'prs' || result === 'advisory') && expiryDate) {
         await base44.entities.Vehicle.update(vehicle.id, { mot_expiry: expiryDate });
       }
 
       queryClient.invalidateQueries(['vehicle-mot-history', vehicle.id]);
       queryClient.invalidateQueries(['vehicles']);
-      toast({ title: `MOT ${result === 'pass' ? 'pass' : result} logged`, description: `${vehicle.registration_number} — ${testDate}` });
+      queryClient.invalidateQueries(['vehicles-maintenance-bookings']);
+      toast({
+        title: `MOT ${result === 'pass' ? 'pass' : result} logged`,
+        description: result === 'fail'
+          ? `${vehicle.registration_number} — retest booking auto-created`
+          : `${vehicle.registration_number} — ${testDate}`,
+      });
       onClose();
     } catch (err) {
       toast({ title: 'Failed to log MOT', description: err.message, variant: 'destructive' });
