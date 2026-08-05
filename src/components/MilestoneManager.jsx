@@ -17,6 +17,7 @@ export default function MilestoneManager({ job }) {
 
   const sorted = [...milestones].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   const completedCount = sorted.filter(m => m.completed).length;
+  const progressPct = sorted.length > 0 ? Math.round((completedCount / sorted.length) * 100) : 0;
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -48,12 +49,25 @@ export default function MilestoneManager({ job }) {
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-        <Target className="w-5 h-5 text-emerald-700" />
-        <h2 className="font-semibold text-slate-900">Milestones</h2>
-        <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
-          {completedCount}/{sorted.length}
-        </span>
+      <div className="px-5 py-4 border-b border-slate-100">
+        <div className="flex items-center gap-2 mb-3">
+          <Target className="w-5 h-5 text-emerald-700" />
+          <h2 className="font-semibold text-slate-900">Milestones</h2>
+          <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
+            {completedCount}/{sorted.length}
+          </span>
+        </div>
+        {sorted.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-slate-500">Job Progress</span>
+              <span className={`text-xs font-bold tabular-nums ${progressPct === 100 ? 'text-emerald-600' : progressPct >= 50 ? 'text-blue-600' : 'text-slate-600'}`}>{progressPct}%</span>
+            </div>
+            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className={`h-full rounded-full transition-all duration-500 ${progressPct === 100 ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : progressPct >= 50 ? 'bg-gradient-to-r from-blue-400 to-blue-600' : 'bg-gradient-to-r from-slate-400 to-slate-500'}`} style={{ width: `${progressPct}%` }} />
+            </div>
+          </div>
+        )}
       </div>
       <div className="px-5 py-4">
         {sorted.length > 0 && (

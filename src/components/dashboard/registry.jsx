@@ -29,6 +29,8 @@ export const WIDGET_REGISTRY = {
   'profitability-alerts': { title: 'Profitability Alerts', icon: AlertOctagon },
   'compliance-expiry': { title: 'Compliance Expiry', icon: ShieldAlert },
   'staff-utilization': { title: 'Staff Utilization', icon: Users },
+  'asset-utilization': { title: 'Asset Utilization', icon: Activity },
+  'live-site-map': { title: 'Live Site Map', icon: MapPin },
 };
 
 export const DEFAULT_WIDGET_ORDER = [
@@ -52,6 +54,8 @@ export const DEFAULT_WIDGET_ORDER = [
   'maintenance-quick-view',
   'safety-dashboard',
   'project-financials',
+  'asset-utilization',
+  'live-site-map',
 ];
 
 // Sectioned layout for the dashboard. Widgets are grouped into labelled sections
@@ -59,9 +63,9 @@ export const DEFAULT_WIDGET_ORDER = [
 // (global-only widgets are hidden when a specific job is focused) and by cost
 // permission, so empty sections automatically collapse out of view.
 export const DASHBOARD_SECTIONS = [
-  { id: 'overview', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'geo-heatmap'] },
+  { id: 'overview', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'geo-heatmap', 'live-site-map'] },
   { id: 'performance', label: 'Performance & Financials', icon: TrendingUp, widgets: ['billing-readiness', 'outstanding-receivables', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'drilling-performance', 'rig-profitability', 'unbilled-wip', 'predictive-insights', 'staff-utilization'] },
-  { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard'] },
+  { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard', 'asset-utilization'] },
   { id: 'alerts', label: 'Alerts', icon: AlertTriangle, widgets: ['profitability-alerts'] },
 ];
 
@@ -98,6 +102,8 @@ export const DEFAULT_WIDGET_SIZES = {
   'profitability-alerts': 'md',
   'compliance-expiry': 'md',
   'staff-utilization': 'md',
+  'asset-utilization': 'md',
+  'live-site-map': 'lg',
 };
 
 // Widgets that require costing permission (admin / manager only).
@@ -112,7 +118,7 @@ export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview',
 // one focus area, cutting scroll depth. Applied as an allow-list on top of the
 // user's saved widget order (saved customisation still respected within a profile).
 export const VIEW_PROFILES = [
-  { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'drilling-performance'] },
+  { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'drilling-performance', 'live-site-map'] },
   { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['profitability-alerts', 'outstanding-receivables', 'billing-readiness', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip', 'predictive-insights', 'staff-utilization'] },
-  { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard'] },
+  { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard', 'asset-utilization'] },
 ];

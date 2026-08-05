@@ -1,0 +1,120 @@
+{
+  "name": "ToolboxTalk",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this toolbox talk was delivered on (blank for yard/depot talks)."
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display)."
+    },
+    "title": {
+      "type": "string",
+      "description": "Title of the toolbox talk (e.g. 'Dust Suppression', 'Working Near Buried Services')."
+    },
+    "topic_category": {
+      "type": "string",
+      "enum": [
+        "general_safety",
+        "drilling",
+        "groundworks",
+        "manual_handling",
+        "plant_equipment",
+        "environmental",
+        "health_welfare",
+        "other"
+      ],
+      "default": "general_safety",
+      "description": "Category for grouping and filtering toolbox talks."
+    },
+    "description": {
+      "type": "string",
+      "description": "What was covered in the talk \u2014 key points, hazards discussed, controls reinforced."
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the toolbox talk is scheduled or was delivered."
+    },
+    "delivered_by_name": {
+      "type": "string",
+      "description": "Name of the person who delivered the talk (supervisor, manager, guest speaker)."
+    },
+    "delivered_by_id": {
+      "type": "string",
+      "description": "Staff member ID of the person who delivered the talk."
+    },
+    "attendee_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "IDs of staff members who attended the talk."
+    },
+    "attendee_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Names of attendees (denormalised for display without joining Staff records)."
+    },
+    "signature_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Digital signature image URLs captured from attendees confirming they understood the talk."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "delivered",
+        "cancelled"
+      ],
+      "default": "scheduled",
+      "description": "Lifecycle status. 'scheduled' = planned, 'delivered' = completed with sign-offs, 'cancelled' = didn't go ahead."
+    },
+    "duration_minutes": {
+      "type": "number",
+      "description": "How long the talk lasted in minutes."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes \u2014 questions raised, follow-up actions, observations."
+    },
+    "follow_up_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "assignee_id": {
+            "type": "string"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "completed": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "default": [],
+      "description": "Follow-up actions arising from the talk."
+    }
+  },
+  "required": [
+    "title",
+    "scheduled_date"
+  ]
+}
