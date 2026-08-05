@@ -5,16 +5,24 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 // and the live map on the Vehicles page.
 // ============================================================
 // Payload:
-//   { mode: "live" | "history" | "report",
+//   { mode: "live" | "history" | "report" | "geotab_history",
 //     vehicle_id?: string,
 //     registration_number?: string,
 //     from_date?: string (ISO),
 //     to_date?: string (ISO),
 //     limit?: number }
 //
-// "live"   → latest reading per vehicle (for the map view)
-// "history" → all readings for one vehicle (timeline)
-// "report"  → aggregated trip/distance summary per vehicle
+// "live"           → latest reading per vehicle (for the map view)
+// "history"        → all cached readings for one vehicle (timeline)
+// "report"         → aggregated trip/distance summary per vehicle
+// "geotab_history" → pulls trip history DIRECTLY from Geotab API
+//                    by registration number (not cached data)
+
+interface GeotabCredentials {
+  sessionId: string;
+  userName: string;
+  database: string;
+}
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -31,6 +39,142 @@ export default async function(req: Request): Promise<Response> {
     const vehicleMap: Record<string, any> = {};
     for (const v of vehicles) vehicleMap[v.id] = v;
 
+    // ── GEOTAB DIRECT HISTORY MODE ──
+    // Pulls trip history directly from the Geotab API (not cached data).
+    // Matches the vehicle by registration number or vehicle_id, then
+    // queries Geotab's Trip endpoint for the date range.
+    if (mode === 'geotab_history') {
+      const settings = await base44.asServiceRole.entities.AppSetting.filter({ key: 'geotab_config' });
+      const cfg = settings[0]?.value || {};
+      if (!cfg.username || !cfg.password || !cfg.database) {
+        return Response.json({ ok: false, error: 'Geotab credentials not configured. Add them in Settings → Geotab GPS Sync.' });
+      }
+
+      // Find the vehicle by reg or vehicle_id
+      let vehicle: any = null;
+      if (body.vehicle_id) {
+        vehicle = vehicleMap[body.vehicle_id];
+      } else if (body.registration_number) {
+        const regNorm = body.registration_number.toUpperCase().replace(/\s+/g, '');
+        vehicle = vehicles.find((v: any) => (v.registration_number || '').toUpperCase().replace(/\s+/g, '') === regNorm);
+      }
+      if (!vehicle) {
+        return Response.json({ ok: false, error: 'Vehicle not found. Provide a valid vehicle_id or registration_number.' });
+      }
+      if (!vehicle.geotab_device_id) {
+        return Response.json({ ok: false, error: 'This vehicle has no Geotab device linked. Sync from Geotab first.' });
+      }
+
+      const server = cfg.server || 'my.geotab.com';
+      const apiUrl = `https://${server.replace(/^https?:\/\//, '')}/apiv1`;
+
+      // Authenticate
+      const authRes = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'Authenticate',
+          params: { userName: cfg.username, password: cfg.password, database: cfg.database },
+        }),
+      }).catch(() => null);
+
+      if (!authRes || !authRes.ok) {
+        return Response.json({ ok: false, error: 'Geotab authentication failed' });
+      }
+      const authJson = await authRes.json().catch(() => null);
+      const creds: GeotabCredentials | null = authJson?.result?.credentials || null;
+      if (!creds?.sessionId) {
+        return Response.json({ ok: false, error: 'Geotab authentication returned no session' });
+      }
+
+      // Build date range (default: last 7 days)
+      const toDate = body.to_date ? new Date(body.to_date) : new Date();
+      const fromDate = body.from_date ? new Date(body.from_date) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+      // Fetch Trip records from Geotab
+      const tripRes = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'Get',
+          params: {
+            typeName: 'Trip',
+            credentials: creds,
+            search: {
+              deviceSearch: { id: vehicle.geotab_device_id },
+              fromDate: fromDate.toISOString(),
+              toDate: toDate.toISOString(),
+            },
+            resultsLimit: Math.min(limit, 500),
+          },
+        }),
+      }).catch(() => null);
+
+      const tripJson = tripRes ? await tripRes.json().catch(() => null) : null;
+      const trips: any[] = Array.isArray(tripJson?.result) ? tripJson.result : [];
+
+      // Also fetch LogRecord breadcrumbs for route detail (limited)
+      const logRes = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'Get',
+          params: {
+            typeName: 'LogRecord',
+            credentials: creds,
+            search: {
+              deviceSearch: { id: vehicle.geotab_device_id },
+              fromDate: fromDate.toISOString(),
+              toDate: toDate.toISOString(),
+            },
+            resultsLimit: Math.min(limit * 4, 2000),
+          },
+        }),
+      }).catch(() => null);
+
+      const logJson = logRes ? await logRes.json().catch(() => null) : null;
+      const logs: any[] = Array.isArray(logJson?.result) ? logJson.result : [];
+
+      // Format trips
+      const formattedTrips = trips.map((t: any) => ({
+        trip_id: t.id,
+        start_time: t.start,
+        end_time: t.stop,
+        start_lat: t.startPoint?.latitude ? Number(t.startPoint.latitude) : null,
+        start_lng: t.startPoint?.longitude ? Number(t.startPoint.longitude) : null,
+        end_lat: t.endPoint?.latitude ? Number(t.endPoint.latitude) : null,
+        end_lng: t.endPoint?.longitude ? Number(t.endPoint.longitude) : null,
+        distance_km: t.distance ? Number(t.distance) / 1000 : 0,
+        duration_minutes: t.drivingDuration ? Math.round(Number(t.drivingDuration) / 60000) : 0,
+        max_speed_kph: t.maxSpeed ? Math.round(Number(t.maxSpeed)) : 0,
+        idle_minutes: t.idleDuration ? Math.round(Number(t.idleDuration) / 60000) : 0,
+      })).sort((a, b) => (b.start_time || '').localeCompare(a.start_time || ''));
+
+      // Format log breadcrumbs
+      const formattedLogs = logs.map((l: any) => ({
+        lat: l.latitude ? Number(l.latitude) : null,
+        lng: l.longitude ? Number(l.longitude) : null,
+        speed_kph: l.speed ? Math.round(Number(l.speed)) : 0,
+        heading: l.heading ? Number(l.heading) : 0,
+        timestamp: l.dateTime,
+      })).filter((l: any) => l.lat !== null && l.lng !== null)
+         .sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''));
+
+      return Response.json({
+        ok: true,
+        mode: 'geotab_history',
+        vehicle_id: vehicle.id,
+        registration_number: vehicle.registration_number,
+        vehicle_name: vehicle.name,
+        date_range: { from: fromDate.toISOString(), to: toDate.toISOString() },
+        trips: formattedTrips,
+        trip_count: formattedTrips.length,
+        breadcrumbs: formattedLogs,
+        breadcrumb_count: formattedLogs.length,
+        total_distance_km: formattedTrips.reduce((sum: number, t: any) => sum + (t.distance_km || 0), 0),
+      });
+    }
+
     if (mode === 'live') {
       // Get the latest location log per vehicle
       const allLogs = await base44.asServiceRole.entities.VehicleLocationLog.list('-timestamp', limit);
@@ -44,7 +188,7 @@ export default async function(req: Request): Promise<Response> {
       }
       const results = Object.values(latestByVehicle).map((log: any) => ({
         vehicle_id: log.vehicle_id,
-        registration_number: log.registration_number,
+        registration_number: log.registration_number || vehicleMap[log.vehicle_id]?.registration_number || vehicleMap[log.vehicle_id]?.name || '',
         vehicle_name: log.vehicle_name || vehicleMap[log.vehicle_id]?.name || '',
         lat: log.lat,
         lng: log.lng,
@@ -54,7 +198,6 @@ export default async function(req: Request): Promise<Response> {
         odometer_km: log.odometer_km,
         driver_name: log.driver_name,
         timestamp: log.timestamp,
-        assigned_staff_name: vehicleMap[log.vehicle_id]?.assigned_staff_id || '',
       }));
       return Response.json({ ok: true, mode: 'live', count: results.length, vehicles: results });
     }
@@ -87,8 +230,6 @@ export default async function(req: Request): Promise<Response> {
     }
 
     if (mode === 'report') {
-      // Aggregated report: per-vehicle summary with total readings, distance,
-      // last seen, and current status
       const allLogs = await base44.asServiceRole.entities.VehicleLocationLog.list('-timestamp', limit);
       const byVehicle: Record<string, any[]> = {};
       for (const log of allLogs) {
@@ -121,7 +262,7 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ ok: true, mode: 'report', count: report.length, vehicles: report });
     }
 
-    return Response.json({ error: 'Invalid mode. Use "live", "history" or "report".' }, { status: 400 });
+    return Response.json({ error: 'Invalid mode. Use "live", "history", "report" or "geotab_history".' }, { status: 400 });
   } catch (error) {
     const msg = (error && typeof error === 'object' && error.message) ? error.message : String(error);
     return Response.json({ error: msg }, { status: 500 });

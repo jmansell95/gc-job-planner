@@ -225,7 +225,15 @@ export default async function(req: Request): Promise<Response> {
     // ── Sync vehicle details (create/update Vehicle records) ──
     for (const d of devices) {
       const deviceId = d.id;
-      const reg = normalizeReg(d.licensePlate || d.licenseNumber || '');
+      // Geotab often stores the reg plate as the device name when licensePlate is empty.
+      // Fall back to the device name if it looks like a UK reg (alphanumeric, 4-10 chars).
+      let reg = normalizeReg(d.licensePlate || d.licenseNumber || '');
+      if (!reg && d.name) {
+        const nameClean = d.name.replace(/\s+/g, '').toUpperCase();
+        if (/^[A-Z0-9]{4,10}$/.test(nameClean) && /\d/.test(nameClean) && /[A-Z]/.test(nameClean)) {
+          reg = nameClean;
+        }
+      }
       const vin = (d.vehicleIdentificationNumber || '').toString().trim();
       const vt = d.vehicleType?.id ? vehicleTypeMap[d.vehicleType.id] : null;
 
@@ -256,14 +264,21 @@ export default async function(req: Request): Promise<Response> {
       }
       // If reg is present on Geotab but missing locally, fill it
       if (reg && (!vehicle || !vehicle.registration_number)) {
-        detailUpdate.registration_number = d.licensePlate || d.licenseNumber || '';
+        detailUpdate.registration_number = reg;
+      }
+      // Pull comment/notes from the Geotab device record
+      if (d.comment) detailUpdate.notes = d.comment;
+      // Try to extract colour from the comment field (Geotab has no native colour field)
+      if (d.comment && (!vehicle || !vehicle.color)) {
+        const colourMatch = d.comment.match(/colou?r[:\s]+([a-zA-Z]+)/i);
+        if (colourMatch) detailUpdate.color = colourMatch[1].charAt(0).toUpperCase() + colourMatch[1].slice(1).toLowerCase();
       }
 
       if (!vehicle) {
         // Auto-create a new Vehicle record from this Geotab device
         const createPayload: any = {
           name: d.name || reg || `Geotab Vehicle ${deviceId.slice(0, 8)}`,
-          registration_number: d.licensePlate || d.licenseNumber || reg || '',
+          registration_number: reg || d.licensePlate || d.licenseNumber || '',
           geotab_device_id: deviceId,
           geotab_device_serial: d.serialNumber || '',
           geotab_sync_status: 'synced',
@@ -276,6 +291,12 @@ export default async function(req: Request): Promise<Response> {
           if (vt.year) createPayload.year = Number(vt.year) || undefined;
           if (vt.fuelType !== undefined) createPayload.fuel_type = mapFuelType(vt.fuelType);
           if (vt.name) createPayload.vehicle_type = vt.name;
+        }
+        if (d.comment) createPayload.notes = d.comment;
+        // Try to extract colour from comment
+        if (d.comment) {
+          const colourMatch = d.comment.match(/colou?r[:\s]+([a-zA-Z]+)/i);
+          if (colourMatch) createPayload.color = colourMatch[1].charAt(0).toUpperCase() + colourMatch[1].slice(1).toLowerCase();
         }
         try {
           const created = await base44.entities.Vehicle.create(createPayload);
@@ -323,7 +344,7 @@ export default async function(req: Request): Promise<Response> {
 
       await base44.asServiceRole.entities.VehicleLocationLog.create({
         vehicle_id: vehicle.id,
-        registration_number: vehicle.registration_number,
+        registration_number: vehicle.registration_number || reg || vehicle.name || '',
         vehicle_name: vehicle.name,
         lat: Math.round(lat * 1e6) / 1e6,
         lng: Math.round(lng * 1e6) / 1e6,

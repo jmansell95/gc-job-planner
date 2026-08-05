@@ -4,8 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import {
   Truck, ShieldCheck, ShieldAlert, ShieldX, Link2, Wrench, Search,
-  ExternalLink, PhoneCall, Gauge, MapPin, Satellite, Car, Hash,
-  Navigation, Clock, Sparkles, Route,
+  ExternalLink, PhoneCall, Gauge, MapPin, Satellite, Car, Hash, Sparkles,
 } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import AdminNav from '@/components/AdminNav';
@@ -331,29 +330,21 @@ export default function Vehicles() {
 
                         {/* Footer */}
                         <div className="px-4 py-3 pl-5 flex items-center justify-between gap-2 text-[11px]">
-                          <button onClick={(e) => { e.stopPropagation(); setView('maintenance'); }} className="flex items-center gap-1 text-[#2E5A1A] font-medium hover:underline">
-                            <Wrench className="w-3 h-3" /> Book Maintenance
-                          </button>
-                          <div className="flex items-center gap-2">
-                            {geotabLive && (
-                              <span className="flex items-center gap-1 text-cyan-600 font-medium"><Satellite className="w-3 h-3" /> Live</span>
-                            )}
-                            {v.holman_sync_status === 'synced' && (
-                              <span className="flex items-center gap-1 text-blue-600 font-medium"><Link2 className="w-3 h-3" /> Holman</span>
-                            )}
-                            {!geotabLive && v.holman_sync_status !== 'synced' && (
-                              <span className="flex items-center gap-1 text-slate-300">Not synced</span>
-                            )}
-                          </div>
+                         <button onClick={(e) => { e.stopPropagation(); setView('maintenance'); }} className="flex items-center gap-1 text-[#2E5A1A] font-medium hover:underline">
+                           <Wrench className="w-3 h-3" /> Book Maintenance
+                         </button>
+                         <div className="flex items-center gap-2">
+                           {v.current_mileage != null && (
+                             <span className="flex items-center gap-1 text-slate-400"><Gauge className="w-3 h-3" />{Number(v.current_mileage).toLocaleString()} mi</span>
+                           )}
+                           {geotabLive && (
+                             <span className="flex items-center gap-1 text-cyan-600 font-medium"><Satellite className="w-3 h-3" /> Live</span>
+                           )}
+                           {v.holman_sync_status === 'synced' && (
+                             <span className="flex items-center gap-1 text-blue-600 font-medium"><Link2 className="w-3 h-3" /> Holman</span>
+                           )}
+                         </div>
                         </div>
-
-                        {/* Mileage strip */}
-                        {v.current_mileage != null && (
-                          <div className="px-4 pb-3 pl-5 flex items-center gap-1.5 text-[10px] text-slate-400">
-                            <Gauge className="w-3 h-3" />
-                            <span>{Number(v.current_mileage).toLocaleString()} mi</span>
-                          </div>
-                        )}
                       </div>
                     );
                   })}

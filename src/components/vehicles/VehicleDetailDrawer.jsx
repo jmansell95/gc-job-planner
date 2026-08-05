@@ -3,12 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import {
   X, Truck, Gauge, CalendarClock, Wrench, Link2, Satellite,
   ShieldCheck, ShieldAlert, ShieldX, Hash, Fuel, Palette, Car, User, Users,
-  MapPin, Navigation, Clock, Activity, Route, Zap, Settings, ChevronRight,
+  MapPin, Navigation, Clock, Activity, Zap,
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { differenceInDays } from 'date-fns';
 import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
-import TripTimeline from '@/components/vehicles/TripTimeline';
+import GeotabTripHistory from '@/components/vehicles/GeotabTripHistory';
 import MaintenanceTimeline from '@/components/vehicles/MaintenanceTimeline';
 
 function getVehicleStatus(v) {
@@ -180,11 +180,15 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
                   </span>
                 </div>
                 <VehicleLocationMiniMap {...latestLoc} />
-                <div className="grid grid-cols-3 gap-2 mt-2">
+                <div className="grid grid-cols-2 gap-2 mt-2">
                   <InfoTile icon={Gauge} label="Speed" value={`${Math.round(latestLoc.speed_kph || 0)} kph`} color="bg-cyan-50" />
                   <InfoTile icon={Zap} label="Ignition" value={latestLoc.ignition_on ? 'ON' : 'OFF'} color={latestLoc.ignition_on ? 'bg-emerald-50' : 'bg-slate-50'} />
-                  <InfoTile icon={Navigation} label="Heading" value={`${Math.round(latestLoc.heading || 0)}°`} color="bg-slate-50" />
                 </div>
+                {vehicle.current_mileage != null && (
+                  <div className="mt-2">
+                    <InfoTile icon={Gauge} label="Odometer" value={`${Number(vehicle.current_mileage).toLocaleString()} mi`} color="bg-slate-50" />
+                  </div>
+                )}
               </div>
             ) : (
               <div className="text-center py-6 bg-slate-50 rounded-xl">
@@ -193,32 +197,8 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
               </div>
             )}
 
-            {/* Trip history */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Route className="w-4 h-4 text-cyan-600" />
-                <h3 className="text-sm font-bold text-slate-800">Trip History</h3>
-              </div>
-              <TripTimeline vehicleId={vehicle.id} />
-            </div>
-
-            {/* Telematics details */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Settings className="w-4 h-4 text-cyan-600" />
-                <h3 className="text-sm font-bold text-slate-800">Telematics Details</h3>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {vehicle.current_mileage != null && (
-                  <InfoTile icon={Gauge} label="Mileage" value={`${Number(vehicle.current_mileage).toLocaleString()} mi`} color="bg-slate-50" />
-                )}
-                <InfoTile icon={Satellite} label="Geotab ID" value={vehicle.geotab_device_id || '—'} mono color="bg-slate-50" />
-                <InfoTile icon={Hash} label="Device S/N" value={vehicle.geotab_device_serial || '—'} mono color="bg-slate-50" />
-                {vehicle.last_geotab_sync && (
-                  <InfoTile icon={Clock} label="Last Sync" value={new Date(vehicle.last_geotab_sync).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} color="bg-slate-50" />
-                )}
-              </div>
-            </div>
+            {/* Trip history — pulled directly from Geotab by reg number */}
+            <GeotabTripHistory vehicle={vehicle} />
           </div>
         )}
 
@@ -238,6 +218,8 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
                 <InfoTile icon={Truck} label="Type" value={vehicle.vehicle_type || '—'} color="bg-slate-50" />
                 <InfoTile icon={Palette} label="Colour" value={vehicle.color || '—'} color="bg-slate-50" />
                 <InfoTile icon={Hash} label="VIN" value={vehicle.vin ? vehicle.vin.slice(-8) : '—'} mono color="bg-slate-50" />
+                <InfoTile icon={User} label="Driver" value={assignedStaff?.name || 'Unassigned'} color="bg-slate-50" />
+                <InfoTile icon={Users} label="Team" value={team?.name || '—'} color="bg-slate-50" />
               </div>
             </div>
 
@@ -286,27 +268,6 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
                 <span className="ml-auto text-[10px] text-slate-400">Holman</span>
               </div>
               <MaintenanceTimeline vehicleId={vehicle.id} />
-            </div>
-
-            {/* Assignment */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <User className="w-4 h-4 text-blue-600" />
-                <h3 className="text-sm font-bold text-slate-800">Assignment & Capacity</h3>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <InfoTile icon={User} label="Driver" value={assignedStaff?.name || 'Unassigned'} color="bg-slate-50" />
-                <InfoTile icon={Users} label="Team" value={team?.name || '—'} color="bg-slate-50" />
-                {vehicle.max_weight_kg != null && (
-                  <InfoTile icon={Truck} label="Max Weight" value={`${Number(vehicle.max_weight_kg).toLocaleString()} kg`} color="bg-slate-50" />
-                )}
-                {vehicle.max_volume_m3 != null && (
-                  <InfoTile icon={Truck} label="Max Volume" value={`${Number(vehicle.max_volume_m3).toLocaleString()} m³`} color="bg-slate-50" />
-                )}
-                {vehicle.holman_vehicle_id && (
-                  <InfoTile icon={Link2} label="Holman ID" value={vehicle.holman_vehicle_id} mono color="bg-blue-50" />
-                )}
-              </div>
             </div>
           </div>
         )}

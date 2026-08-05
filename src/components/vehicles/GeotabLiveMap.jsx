@@ -14,16 +14,22 @@ const UK_CENTER = [52.3, -1.5];
 function VehicleMarker({ vehicle, onClick }) {
   const pos = [vehicle.lat, vehicle.lng];
   const colour = vehicle.ignition_on ? '#06b6d4' : '#94a3b8';
+  const heading = vehicle.heading || 0;
+  // Heading-aware arrow marker: rotates based on direction of travel
+  const arrowSvg = vehicle.ignition_on
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="white" style="transform:rotate(${heading}deg);transition:transform 0.3s"><path d="M12 2L4 22l8-6 8 6z"/></svg>`
+    : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="white"/></svg>`;
   const icon = window.L?.divIcon({
     html: `<div style="position:relative">
-      <div style="background:${colour};width:30px;height:30px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16H9m10 0h3v-7l-2-5H6L4 9v7h3"/><circle cx="7.5" cy="16.5" r="2.5"/><circle cx="17.5" cy="16.5" r="2.5"/></svg>
+      <div style="background:${colour};width:32px;height:32px;border-radius:50%;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center">
+        ${arrowSvg}
       </div>
-      ${vehicle.ignition_on ? '<div style="position:absolute;inset:-4px;border-radius:50%;border:2px solid ' + colour + ';opacity:0.4;animation:pulse 2s infinite"></div>' : ''}
+      ${vehicle.ignition_on ? '<div style="position:absolute;inset:-6px;border-radius:50%;border:2px solid ' + colour + ';opacity:0.35;animation:pulse 2s infinite"></div>' : ''}
+      <div style="position:absolute;top:-2px;left:50%;transform:translateX(-50%);background:${vehicle.ignition_on ? '#06b6d4' : '#64748b'};color:white;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;white-space:nowrap;font-family:monospace">${vehicle.registration_number || ''}</div>
     </div>`,
     className: 'hazard-map-marker',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
   });
   if (!icon) return <Marker position={pos}><Popup>{vehicle.registration_number}</Popup></Marker>;
   return (
@@ -58,13 +64,16 @@ export default function GeotabLiveMap() {
   });
 
   const { data: history } = useQuery({
-    queryKey: ['geotab-vehicle-history', selectedVehicle?.vehicle_id],
+    queryKey: ['geotab-vehicle-trail', selectedVehicle?.vehicle_id],
     queryFn: async () => {
       if (!selectedVehicle?.vehicle_id) return null;
+      // Pull last 24h of breadcrumbs directly from Geotab for the route trail
+      const fromDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const res = await base44.functions.invoke('getVehicleLocationHistory', {
-        mode: 'history',
+        mode: 'geotab_history',
         vehicle_id: selectedVehicle.vehicle_id,
-        limit: 200,
+        from_date: fromDate,
+        limit: 500,
       });
       return res.data || res;
     },
@@ -97,8 +106,8 @@ export default function GeotabLiveMap() {
   };
 
   const historyPath = useMemo(() => {
-    if (!history?.points) return [];
-    return history.points.map(p => [p.lat, p.lng]).reverse();
+    if (!history?.breadcrumbs) return [];
+    return history.breadcrumbs.filter(b => b.lat && b.lng).map(b => [b.lat, b.lng]);
   }, [history]);
 
   return (
@@ -266,19 +275,20 @@ export default function GeotabLiveMap() {
                 </div>
               )}
 
-              {/* Trip history route */}
-              {history && history.count > 0 && (
+              {/* Trip summary from Geotab */}
+              {history && history.trip_count > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <Route className="w-4 h-4 text-cyan-600" />
-                    <p className="text-xs font-bold text-slate-700">Location History ({history.count} points)</p>
+                    <p className="text-xs font-bold text-slate-700">Today's Trips ({history.trip_count})</p>
+                    <span className="ml-auto text-[11px] text-emerald-600 font-semibold">{(history.total_distance_km || 0).toFixed(1)} km</span>
                   </div>
                   <div className="max-h-40 overflow-y-auto space-y-1">
-                    {history.points.slice(0, 20).map((p, i) => (
+                    {history.trips.slice(0, 10).map((t, i) => (
                       <div key={i} className="flex items-center gap-2 text-[11px] text-slate-500 py-1 border-b border-slate-50">
-                        <MapPin className="w-3 h-3 text-slate-300 flex-shrink-0" />
-                        <span className="font-mono">{p.lat.toFixed(4)}, {p.lng.toFixed(4)}</span>
-                        <span className="ml-auto">{p.timestamp ? new Date(p.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                        <MapPin className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+                        <span className="font-medium text-slate-600">{new Date(t.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} → {new Date(t.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="ml-auto text-emerald-600 font-semibold">{(t.distance_km || 0).toFixed(1)}km</span>
                       </div>
                     ))}
                   </div>
