@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { validateMakeAgainstVin, decodeVin, AMBIGUOUS_WMIS } from '../../shared/vinDecoder.ts';
 
 /**
  * Syncs vehicle specification data (make, model, fuel type, colour, MOT expiry)
@@ -29,6 +30,7 @@ export default async function(req: Request): Promise<Response> {
     // registration number is verified accurate. Manually-entered regs are
     // skipped to avoid looking up wrong plates and pulling bad MOT data.
     const geotabOnly = body?.geotab_only !== false;
+    const force = body?.force === true;
 
     // Single-vehicle mode: synchronous, returns results
     if (singleVehicleId) {
@@ -36,7 +38,7 @@ export default async function(req: Request): Promise<Response> {
       if (!vehicle?.registration_number) {
         return Response.json({ ok: false, error: 'No registration number' }, { status: 400 });
       }
-      const result = await lookupAndSync(base44, vehicle);
+      const result = await lookupAndSync(base44, vehicle, force);
       return Response.json({ ok: true, result, done: true });
     }
 
@@ -52,7 +54,7 @@ export default async function(req: Request): Promise<Response> {
     const results: any[] = [];
     for (const vehicle of batch) {
       try {
-        const r = await lookupAndSync(base44, vehicle);
+        const r = await lookupAndSync(base44, vehicle, force);
         results.push({ reg: r.reg, ok: true, updated: r.updated });
       } catch (e: any) {
         results.push({ reg: vehicle.registration_number, ok: false, error: e.message });
@@ -81,7 +83,7 @@ export default async function(req: Request): Promise<Response> {
 /**
  * Looks up a single vehicle by registration via LLM web search and updates the record.
  */
-async function lookupAndSync(base44: any, vehicle: any): Promise<any> {
+async function lookupAndSync(base44: any, vehicle: any, force: boolean = false): Promise<any> {
   const reg = vehicle.registration_number;
 
   const prompt = `Look up the UK vehicle with registration plate "${reg}" on the DVLA vehicle enquiry service or vehicle smart.
@@ -117,13 +119,40 @@ CRITICAL: Only return a motExpiryDate if it is a FUTURE date (after today, ${new
   });
 
   const data = (llmRes as any)?.data ?? llmRes;
-  const make = data?.make || null;
-  const model = data?.model || null;
+  const llmMake = data?.make || null;
+  const llmModel = data?.model || null;
   const fuelRaw = (data?.fuelType || 'unknown').toLowerCase();
   const colour = data?.colour || null;
   const motStatus = data?.motStatus || 'unknown';
   let motExpiry = data?.motExpiryDate || null;
   const year = data?.year || null;
+
+  // ── VIN CROSS-VALIDATION ──
+  // The LLM web search is unreliable for UK plates — it frequently returns
+  // "Tesla MODEL 3" for Ford, Vauxhall, and Land Rover plates. Cross-check
+  // the LLM make against the VIN WMI (unambiguous manufacturer code). If they
+  // disagree, trust the VIN WMI make and discard the LLM model (it's almost
+  // certainly wrong if the make was wrong). For ambiguous WMIs (LRW = Land
+  // Rover or Tesla Shanghai), trust the LLM.
+  let { make, trustModel } = validateMakeAgainstVin(llmMake, vehicle.vin);
+  let model = trustModel ? llmModel : null;
+
+  // ── TESLA MODEL SANITY CHECK ──
+  // The LLM frequently returns Tesla model names (MODEL S/3/X/Y) for non-Tesla
+  // vehicles. If the model is a Tesla model but the make isn't Tesla:
+  //  - For ambiguous WMIs (LRW = Land Rover or Tesla Shanghai) → correct the
+  //    make to Tesla (the model implies it's a Tesla, not a Land Rover).
+  //  - For unambiguous WMIs (Ford, Vauxhall, etc.) → discard the model (the
+  //    LLM returned the wrong vehicle entirely).
+  const TESLA_MODEL_RE = /\bmodel\s*[s3xy]\b/i;
+  if (model && TESLA_MODEL_RE.test(model) && make && make.toLowerCase() !== 'tesla') {
+    const decoded = decodeVin(vehicle.vin || '');
+    if (decoded.wmi && AMBIGUOUS_WMIS.has(decoded.wmi)) {
+      make = 'Tesla';
+    } else {
+      model = null;
+    }
+  }
 
   // ── MOT VALIDATION ──
   // Only accept MOT expiry if: (1) it's a valid YYYY-MM-DD date, (2) it's
@@ -166,11 +195,20 @@ CRITICAL: Only return a motExpiryDate if it is a FUTURE date (after today, ${new
   else if (hasMake && hasModel) confidence = 'medium';
   else if (hasMake || hasModel) confidence = 'low';
 
+  // Allow overwriting make/model/fuel when the existing data is unverified
+  // (confidence is 'none' or 'low' — meaning it came from VIN WMI or a
+  // previous low-confidence lookup). Protect 'high'/'medium' confidence data
+  // (manually verified or confirmed by a previous successful LLM lookup).
+  const canOverwriteSpec = force
+    || !vehicle.spec_lookup_confidence
+    || vehicle.spec_lookup_confidence === 'none'
+    || vehicle.spec_lookup_confidence === 'low';
+
   const update: any = {};
-  if (make && !vehicle.make) update.make = make;
-  if (model && !vehicle.model) update.model = model;
-  if (fuelType && fuelType !== 'unknown' && (!vehicle.fuel_type || vehicle.fuel_type === 'unknown')) update.fuel_type = fuelType;
-  if (colour && !vehicle.color) update.color = colour;
+  if (make && (!vehicle.make || canOverwriteSpec)) update.make = make;
+  if (model && (!vehicle.model || canOverwriteSpec)) update.model = model;
+  if (fuelType && fuelType !== 'unknown' && (!vehicle.fuel_type || vehicle.fuel_type === 'unknown' || canOverwriteSpec)) update.fuel_type = fuelType;
+  if (colour && (!vehicle.color || canOverwriteSpec)) update.color = colour;
   // MOT: only update if we got a valid future date AND the existing expiry is
   // earlier (or missing). Never overwrite a later manual MOT with an earlier
   // LLM-sourced one.

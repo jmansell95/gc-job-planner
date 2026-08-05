@@ -61,7 +61,8 @@ export default function StaffManager() {
 
   const cleanPayload = (data) => {
     const cleaned = { ...data };
-    ['default_vehicle_id', 'manager_id', 'team_id', 'system_role'].forEach(k => {
+    // team_id is required — never strip it (let validation catch a missing crew)
+    ['default_vehicle_id', 'manager_id', 'system_role'].forEach(k => {
       if (cleaned[k] === '') delete cleaned[k];
     });
     return cleaned;
@@ -114,6 +115,13 @@ export default function StaffManager() {
     setSubmitting(true);
     try {
       const payload = cleanPayload(formData);
+      // Explicit validation before API call — gives a clear error message
+      // instead of a cryptic backend validation failure.
+      if (!payload.name?.trim() || !payload.email?.trim() || !payload.worker_type || !payload.team_id) {
+        toast({ title: 'Missing required fields', description: 'Name, email, worker type and crew are all required.', variant: 'destructive' });
+        setSubmitting(false);
+        return;
+      }
       if (editingId) {
         const original = staff.find(s => s.id === editingId);
         if (original && original.email && original.email.toLowerCase() !== (formData.email || '').toLowerCase()) {
