@@ -28,6 +28,7 @@ export const WIDGET_REGISTRY = {
   'traffic-heatmap': { title: 'Mission Command — Traffic Heatmap', icon: Navigation },
   'profitability-alerts': { title: 'Profitability Alerts', icon: AlertOctagon },
   'compliance-expiry': { title: 'Compliance Expiry', icon: ShieldAlert },
+  'staff-utilization': { title: 'Staff Utilization', icon: Users },
 };
 
 export const DEFAULT_WIDGET_ORDER = [
@@ -59,7 +60,7 @@ export const DEFAULT_WIDGET_ORDER = [
 // permission, so empty sections automatically collapse out of view.
 export const DASHBOARD_SECTIONS = [
   { id: 'overview', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'geo-heatmap'] },
-  { id: 'performance', label: 'Performance & Financials', icon: TrendingUp, widgets: ['billing-readiness', 'outstanding-receivables', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'drilling-performance', 'rig-profitability', 'unbilled-wip', 'predictive-insights'] },
+  { id: 'performance', label: 'Performance & Financials', icon: TrendingUp, widgets: ['billing-readiness', 'outstanding-receivables', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'drilling-performance', 'rig-profitability', 'unbilled-wip', 'predictive-insights', 'staff-utilization'] },
   { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard'] },
   { id: 'alerts', label: 'Alerts', icon: AlertTriangle, widgets: ['profitability-alerts'] },
 ];
@@ -96,6 +97,7 @@ export const DEFAULT_WIDGET_SIZES = {
   'traffic-heatmap': 'lg',
   'profitability-alerts': 'md',
   'compliance-expiry': 'md',
+  'staff-utilization': 'md',
 };
 
 // Widgets that require costing permission (admin / manager only).

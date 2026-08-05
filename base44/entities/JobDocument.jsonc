@@ -28,6 +28,37 @@
       "default": "other",
       "description": "Document category. Site maps and scope of work documents are shown to field staff on their assignment cards so they can review them before and during the job."
     },
+    "version": {
+      "type": "number",
+      "default": 1,
+      "description": "Version number for RAMS and method statements. Increments when a new revision is uploaded. The highest version is the current/approved one."
+    },
+    "superseded_by_version": {
+      "type": "number",
+      "description": "Version number that superseded this document. Null/blank for the current version."
+    },
+    "is_current_version": {
+      "type": "boolean",
+      "default": true,
+      "description": "True for the latest version of this document. Previous versions are set to false when a new revision is uploaded."
+    },
+    "signed_off_by": {
+      "type": "string",
+      "description": "Name of the person who signed off this RAMS/method statement as approved for use."
+    },
+    "signed_off_at": {
+      "type": "string",
+      "description": "ISO timestamp when the RAMS was signed off as approved for use."
+    },
+    "signed_off_by_id": {
+      "type": "string",
+      "description": "Staff/user ID of the person who signed off this RAMS."
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this RAMS version is valid until. Blank = no expiry. Used to flag RAMS that need review."
+    },
     "uploaded_by_name": {
       "type": "string",
       "description": "Who uploaded this document"

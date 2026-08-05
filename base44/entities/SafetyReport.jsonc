@@ -2,6 +2,15 @@
   "name": "SafetyReport",
   "type": "object",
   "properties": {
+    "report_type": {
+      "type": "string",
+      "enum": [
+        "safetyculture_audit",
+        "incident"
+      ],
+      "default": "safetyculture_audit",
+      "description": "How this report was created. 'safetyculture_audit' = synced from a SafetyCulture (iAuditor) webhook. 'incident' = manually reported by staff via the in-app incident form."
+    },
     "safetyculture_audit_id": {
       "type": "string",
       "description": "Unique audit ID from SafetyCulture (iAuditor). Used to de-duplicate incoming webhooks."
@@ -16,7 +25,7 @@
     },
     "auditor_name": {
       "type": "string",
-      "description": "Name of the person who conducted the audit (from SafetyCulture)"
+      "description": "Name of the person who conducted the audit (from SafetyCulture) or reported the incident (manual)."
     },
     "auditor_email": {
       "type": "string",
@@ -24,7 +33,7 @@
     },
     "job_id": {
       "type": "string",
-      "description": "Linked Job \u2014 auto-matched by site name / job reference when the audit metadata contains one."
+      "description": "Linked Job \u2014 auto-matched by site name / job reference when the audit metadata contains one, or selected manually for incident reports."
     },
     "job_name": {
       "type": "string",
@@ -36,11 +45,11 @@
     },
     "site_name": {
       "type": "string",
-      "description": "Site / location recorded on the audit"
+      "description": "Site / location recorded on the audit or where the incident occurred"
     },
     "conducted_at": {
       "type": "string",
-      "description": "ISO timestamp the audit was conducted (started)"
+      "description": "ISO timestamp the audit was conducted (started) or the incident occurred"
     },
     "completed_at": {
       "type": "string",
@@ -109,7 +118,7 @@
         }
       },
       "default": [],
-      "description": "Corrective actions raised by the audit, extracted from the SafetyCulture payload."
+      "description": "Corrective actions raised by the audit or incident, extracted from the SafetyCulture payload or entered manually."
     },
     "status": {
       "type": "string",
@@ -119,11 +128,66 @@
         "closed"
       ],
       "default": "open",
-      "description": "Internal follow-up status. 'open' = new audit with unresolved actions; 'actioned' = actions assigned/in progress; 'closed' = all actions resolved and verified."
+      "description": "Internal follow-up status. 'open' = new report with unresolved actions; 'actioned' = actions assigned/in progress; 'closed' = all actions resolved and verified."
     },
     "raw_payload": {
       "type": "string",
       "description": "JSON snapshot of the original SafetyCulture webhook payload, kept for audit traceability."
+    },
+    "incident_type": {
+      "type": "string",
+      "enum": [
+        "near_miss",
+        "incident",
+        "accident",
+        "dangerous_occurrence",
+        "environmental",
+        "other"
+      ],
+      "description": "Classification of the incident. 'near_miss' = no injury/damage but could have; 'incident' = injury or damage occurred; 'accident' = serious injury or major damage; 'dangerous_occurrence' = RIDDOR-reportable dangerous occurrence; 'environmental' = spill, pollution, or environmental damage."
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "description": "Severity rating. 'low' = minor/first aid only; 'medium' = medical treatment needed; 'high' = lost time injury or major damage; 'critical' = life-threatening or fatality."
+    },
+    "description": {
+      "type": "string",
+      "description": "What happened \u2014 a factual account of the incident including what was being done, what went wrong, and what happened next."
+    },
+    "immediate_action": {
+      "type": "string",
+      "description": "What immediate action was taken at the scene (first aid, area secured, equipment isolated, etc.)"
+    },
+    "root_cause": {
+      "type": "string",
+      "description": "Root cause analysis \u2014 the underlying reason the incident occurred (equipment failure, procedural, human factors, etc.)"
+    },
+    "reported_by_id": {
+      "type": "string",
+      "description": "Staff member who reported the incident (manual reports only)"
+    },
+    "photo_urls": {
+      "type": "string",
+      "description": "Comma-separated URLs of evidence photos uploaded with the incident report"
+    },
+    "riddor_reportable": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this incident is RIDDOR-reportable (over-7-day injury, specified dangerous occurrence, occupational disease, or fatality)."
+    },
+    "riddor_reference": {
+      "type": "string",
+      "description": "RIDDOR report reference number once submitted to the HSE."
+    },
+    "riddor_submitted_at": {
+      "type": "string",
+      "description": "ISO timestamp when the RIDDOR report was submitted to the HSE."
     }
   },
   "required": [

@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { PoundSterling, TrendingUp, TrendingDown, Edit2, Check, X, Calculator, RefreshCw, ChevronDown, ChevronUp, Ruler, AlertTriangle } from 'lucide-react';
 import { useBillingLock } from '@/hooks/useBillingLock';
 import BillingLockBanner from '@/components/billing/BillingLockBanner';
+import CostForecastWidget from '@/components/financials/CostForecastWidget';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -245,6 +246,17 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
             <span className="font-medium">
               {overBudget ? `${fmt(Math.abs(variance))} over budget` : `${fmt(variance)} remaining`}
             </span>
+          </div>
+        )}
+
+        {/* Cost forecast — projects final cost from daily burn rate */}
+        {job.start_date && job.end_date && job.status !== 'completed' && job.status !== 'cancelled' && (
+          <div className="border-t border-slate-100 pt-3">
+            <div className="flex items-center gap-2 mb-3">
+              <Calculator className="w-4 h-4 text-[#2E5A1A]" />
+              <p className="text-sm font-semibold text-slate-700">Cost Forecast</p>
+            </div>
+            <CostForecastWidget job={job} />
           </div>
         )}
       </div>
