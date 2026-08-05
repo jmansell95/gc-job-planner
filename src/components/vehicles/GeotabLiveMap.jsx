@@ -13,6 +13,8 @@ const UK_CENTER = [52.3, -1.5];
 
 function VehicleMarker({ vehicle, onClick }) {
   const pos = [vehicle.lat, vehicle.lng];
+  // Skip vehicles with no valid GPS fix — Leaflet throws on [undefined, undefined]
+  if (vehicle.lat == null || vehicle.lng == null) return null;
   const colour = vehicle.ignition_on ? '#06b6d4' : '#94a3b8';
   const heading = vehicle.heading || 0;
   // Heading-aware arrow marker: rotates based on direction of travel

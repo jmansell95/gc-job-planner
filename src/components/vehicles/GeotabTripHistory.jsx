@@ -16,28 +16,29 @@ function formatDuration(mins) {
 }
 
 function TripRouteMiniMap({ breadcrumbs, start, end }) {
-  if (!breadcrumbs || breadcrumbs.length < 2) {
-    // Just show start/end dots
-    if (!start || !end) return null;
-    return (
-      <div style={{ height: '120px' }} className="rounded-lg overflow-hidden border border-slate-200">
-        <MapContainer center={[start.lat, start.lng]} zoom={13} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} doubleClickZoom={false} dragging={false} touchZoom={false} zoomControl={false}>
-          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <CircleMarker center={[start.lat, start.lng]} pathOptions={{ color: '#10b981' }} radius={6} />
-          <CircleMarker center={[end.lat, end.lng]} pathOptions={{ color: '#ef4444' }} radius={6} />
-        </MapContainer>
-      </div>
-    );
-  }
-  const path = breadcrumbs.map(b => [b.lat, b.lng]);
-  const center = path[Math.floor(path.length / 2)] || [start?.lat || path[0][0], start?.lng || path[0][1]];
+  // Filter to only valid coordinates (Geotab can return null lat/lng for some trips)
+  const validCrumbs = (breadcrumbs || []).filter(b => b?.lat != null && b?.lng != null);
+  const startCoord = start?.lat != null && start?.lng != null ? [start.lat, start.lng] : null;
+  const endCoord = end?.lat != null && end?.lng != null ? [end.lat, end.lng] : null;
+
+  // Need at least one valid point to render a map
+  const fallback = validCrumbs.length > 0
+    ? [validCrumbs[0].lat, validCrumbs[0].lng]
+    : startCoord || endCoord;
+  if (!fallback) return null;
+
+  const path = validCrumbs.map(b => [b.lat, b.lng]);
+  const center = path.length > 0
+    ? path[Math.floor(path.length / 2)]
+    : fallback;
+
   return (
     <div style={{ height: '120px' }} className="rounded-lg overflow-hidden border border-slate-200">
       <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} doubleClickZoom={false} dragging={false} touchZoom={false} zoomControl={false}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        <Polyline positions={path} pathOptions={{ color: '#06b6d4', weight: 3, opacity: 0.7 }} />
-        {start && <CircleMarker center={[start.lat, start.lng]} pathOptions={{ color: '#10b981' }} radius={5}><Popup>Start</Popup></CircleMarker>}
-        {end && <CircleMarker center={[end.lat, end.lng]} pathOptions={{ color: '#ef4444' }} radius={5}><Popup>End</Popup></CircleMarker>}
+        {path.length >= 2 && <Polyline positions={path} pathOptions={{ color: '#06b6d4', weight: 3, opacity: 0.7 }} />}
+        {startCoord && <CircleMarker center={startCoord} pathOptions={{ color: '#10b981' }} radius={5}><Popup>Start</Popup></CircleMarker>}
+        {endCoord && <CircleMarker center={endCoord} pathOptions={{ color: '#ef4444' }} radius={5}><Popup>End</Popup></CircleMarker>}
       </MapContainer>
     </div>
   );
