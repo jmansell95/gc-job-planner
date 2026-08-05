@@ -17,6 +17,7 @@ const ROUTE_MAP = {
   '/presentation-pack': [{ label: 'Presentation Pack' }],
   '/rig-hub': [{ label: 'Admin', to: '/admin' }, { label: 'Rigs & Equipment' }],
   '/vehicles': [{ label: 'Admin', to: '/admin' }, { label: 'Vehicles' }],
+  '/asset-inventory': [{ label: 'Admin', to: '/admin' }, { label: 'Asset Inventory' }],
   '/pat-testing': [{ label: 'Admin', to: '/admin' }, { label: 'Rigs & Equipment', to: '/rig-hub' }, { label: 'PAT Testing' }],
   '/timesheets': [{ label: 'Admin', to: '/admin' }, { label: 'Timesheets' }],
   '/compliance': [{ label: 'Admin', to: '/admin' }, { label: 'Compliance' }],

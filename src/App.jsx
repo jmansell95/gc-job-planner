@@ -23,6 +23,7 @@ import RigHub from './pages/RigHub';
 import KeyLogBookDocs from './pages/KeyLogBookDocs';
 import ImprovementRoadmap from './pages/ImprovementRoadmap';
 import Vehicles from './pages/Vehicles';
+import AssetInventory from './pages/AssetInventory';
 import PATTestingConsole from './pages/PATTestingConsole';
 import TimesheetsPage from './pages/TimesheetsPage';
 import CompliancePage from './pages/CompliancePage';
@@ -92,6 +93,7 @@ const AuthenticatedApp = () => {
           <Route path="/keylogbook-docs" element={<RouteGuard><KeyLogBookDocs /></RouteGuard>} />
           <Route path="/roadmap" element={<RouteGuard><ImprovementRoadmap /></RouteGuard>} />
           <Route path="/vehicles" element={<RouteGuard><Vehicles /></RouteGuard>} />
+          <Route path="/asset-inventory" element={<RouteGuard><AssetInventory /></RouteGuard>} />
         </Route>
         <Route path="/client-portal/:token" element={<ClientPortal />} />
         <Route path="*" element={<PageNotFound />} />

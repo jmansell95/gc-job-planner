@@ -29,6 +29,7 @@ const SECTION_LABELS = {
   'log-qc': 'Log Quality Control',
   billing: 'Billing',
   settings: 'Settings',
+  inventory: 'Asset Inventory',
 };
 
 export default function AdminDashboard() {
@@ -64,6 +65,10 @@ export default function AdminDashboard() {
     }
     if (activeSection === 'vehicles') {
       navigate('/vehicles');
+      setActiveSection('overview');
+    }
+    if (activeSection === 'inventory') {
+      navigate('/asset-inventory');
       setActiveSection('overview');
     }
     if (activeSection === 'timesheets') {
