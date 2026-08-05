@@ -1940,17 +1940,11 @@ export default async function(req) {
       crewCostItemsCreated = crewCostItemPayloads.length;
     }
 
-    // Clean up: remove completed jobs and their rota assignments — only keep in-progress jobs
-    let completedJobsRemoved = 0;
-    if (!dryRun) {
-      const allCreatedJobs = await base44.asServiceRole.entities.Job.list('-created_date', 5000);
-      const completedJobs = allCreatedJobs.filter(j => j.status === 'completed');
-      for (const job of completedJobs) {
-        await base44.asServiceRole.entities.RotaAssignment.deleteMany({ job_id: job.id });
-        await base44.asServiceRole.entities.Job.delete(job.id);
-        completedJobsRemoved++;
-      }
-    }
+    // Completed jobs are preserved with their 'completed' status so they remain
+    // visible in the planner and job lists. Previously these were deleted, which
+    // caused real client jobs (e.g. "I260236 - Kingsnorth Power Station") to
+    // disappear when all their assignment dates were more than 30 days old.
+    const completedJobsRemoved = 0;
 
     return Response.json({
       status: 'success',
