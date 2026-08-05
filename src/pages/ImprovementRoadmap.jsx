@@ -13,6 +13,7 @@ const CATEGORIES = [
     title: 'Data Import & Sync',
     color: 'blue',
     items: [
+      { priority: 'high', title: 'Refined Import Deduplication & Staff Linking', desc: 'Cross-tab staff matching now handles nicknames (Jon→John, Bob→Robert), initials (J Smith→John Smith), and typos via a layered fuzzy matcher. The dry-run preview shows the match method and confidence score for every linked staff member so planners can verify deduplication before applying.', status: 'done' },
       { priority: 'high', title: 'Incremental (non-destructive) import mode', desc: 'Add a mode that merges new data instead of wiping everything. Lets you re-import without losing manual edits, photos, and custom fields.' },
       { priority: 'high', title: 'Import preview with undo/rollback', desc: 'Show a full diff before applying and keep a snapshot so you can roll back if the import produced unexpected results.' },
       { priority: 'medium', title: 'CSV import for bulk staff & jobs', desc: 'Quick-create multiple records from a simple CSV without the full planner spreadsheet rebuild.' },

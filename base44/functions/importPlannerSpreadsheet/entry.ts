@@ -785,6 +785,8 @@ export default async function(req) {
     const newStaffKeys = [];
     const staffUpdates = [];
     let staffFoundCount = 0;
+    // Track how each staff was linked across tabs: key → { method, matched_to, score }
+    const staffLinkMethods = {};
 
     // Track all known emails (DB + generated) to prevent email collisions
     const allKnownEmails = new Set();
@@ -800,13 +802,15 @@ export default async function(req) {
         staff = staffByEmail.get(email.toLowerCase());
       }
       // Fuzzy fallback: match to already-created staff with a similar name.
-      // Handles typos and variations across tabs (e.g. "Jon Smith" → "John Smith")
-      // so the same person isn't created twice under slightly different spellings.
+      // Handles typos and variations across tabs (e.g. "Jon Smith" → "John Smith",
+      // "J Smith" → "John Smith") so the same person isn't created twice under
+      // slightly different spellings, nicknames, or initials.
       if (!staff && staffMap.size > 0) {
         const fuzzy = fuzzyFindStaff(name, [...staffMap.values()], 0.70);
         if (fuzzy) {
           staff = fuzzy.staff;
           staffMap.set(key, staff);
+          staffLinkMethods[key] = { method: fuzzy.method, matched_to: fuzzy.staff.name, score: Math.round(fuzzy.score * 100) };
         }
       }
 
@@ -1534,6 +1538,7 @@ export default async function(req) {
         jobs: jobs.slice(0, 20),
         sections,
         status: newStaffKeys.includes(key) ? 'new' : 'existing',
+        linked_via: staffLinkMethods[key] || null,
         non_job_days: sAssignments.filter(a => a.non_job_type).map(a => ({ date: a.date, type: a.non_job_type, label: a.non_job_label })),
       };
     });
@@ -1639,6 +1644,13 @@ export default async function(req) {
         subcontractors: subbieCount,
         agency: agencyCount,
         direct_employees: uniqueStaffKeys.size - subbieCount - agencyCount,
+        linked_via_fuzzy: Object.keys(staffLinkMethods).length,
+        link_methods: {
+          nickname: Object.values(staffLinkMethods).filter(l => l.method === 'nickname').length,
+          initial: Object.values(staffLinkMethods).filter(l => l.method === 'initial').length,
+          token: Object.values(staffLinkMethods).filter(l => l.method === 'token').length,
+          levenshtein: Object.values(staffLinkMethods).filter(l => l.method === 'levenshtein').length,
+        },
         leavers_detected: leavers.length,
         leavers_marked_inactive: dryRun ? 0 : leaversMarked,
         users_invited: dryRun ? 0 : usersInvited,

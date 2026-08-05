@@ -122,12 +122,95 @@ function tokenSimilarity(a, b) {
   return intersection / union;
 }
 
+// Common nickname → formal name mapping. Used to match "Jon Smith" to
+// "John Smith" and "Bob Jones" to "Robert Jones" across spreadsheet tabs.
+// Keys and values are lowercase. A nickname matches its formal name (and
+// vice versa) so the same person appearing as "Jon" in one tab and "John"
+// in another consolidates into a single staff record.
+const NICKNAMES = {
+  bob: 'robert', rob: 'robert', bobby: 'robert',
+  bill: 'william', billy: 'william', will: 'william',
+  jim: 'james', jimmy: 'james',
+  jon: 'john', johnny: 'john', jack: 'john',
+  mike: 'michael', mick: 'michael',
+  dave: 'david', davey: 'david',
+  tom: 'thomas', tommy: 'thomas',
+  chris: 'christopher',
+  matt: 'matthew',
+  nick: 'nicholas',
+  tony: 'anthony',
+  steve: 'steven', stephen: 'steven',
+  andy: 'andrew', drew: 'andrew',
+  dan: 'daniel', danny: 'daniel',
+  joe: 'joseph', joey: 'joseph',
+  ed: 'edward', eddie: 'edward', ted: 'edward',
+  greg: 'gregory',
+  ben: 'benjamin',
+  sam: 'samuel',
+  alex: 'alexander',
+  pete: 'peter', petey: 'peter',
+  rich: 'richard', dick: 'richard', rick: 'richard',
+  charlie: 'charles', charley: 'charles',
+  harry: 'harold', hank: 'henry',
+  leo: 'leonard',
+};
+
+// Canonicalise a single token: map nicknames to their formal name so
+// "jon" and "john" both produce "john". Returns the original token if
+// no nickname mapping exists.
+function canonicalToken(token) {
+  const lower = token.toLowerCase();
+  return NICKNAMES[lower] || lower;
+}
+
+// Build a canonical key from a full name: nickname-normalised + initial-aware.
+// "Jon Smith" → "john smith", "J Smith" → "j smith", "John D Smith" → "john d smith".
+// Used as a second-pass dedup key when the primary nameKey doesn't match.
+function canonicalNameKey(name) {
+  const n = nameKey(name);
+  if (!n) return '';
+  return n.split(/\s+/).map(canonicalToken).join(' ');
+}
+
+// Initial-aware token similarity: like tokenSimilarity, but a single-letter
+// token (an initial like "j") matches any multi-letter token starting with
+// the same letter in the other name. This catches "J Smith" vs "John Smith"
+// which plain token similarity would score at 0.5 (only "smith" overlaps).
+function initialAwareTokenSimilarity(a, b) {
+  const tokensA = a.split(/\s+/).filter(Boolean);
+  const tokensB = b.split(/\s+/).filter(Boolean);
+  if (tokensA.length === 0 && tokensB.length === 0) return 1;
+  if (tokensA.length === 0 || tokensB.length === 0) return 0;
+
+  const canonA = tokensA.map(canonicalToken);
+  const canonB = tokensB.map(canonicalToken);
+  let matched = 0;
+  const usedB = new Set();
+  for (let i = 0; i < canonA.length; i++) {
+    for (let j = 0; j < canonB.length; j++) {
+      if (usedB.has(j)) continue;
+      const ta = canonA[i], tb = canonB[j];
+      if (ta === tb) { matched++; usedB.add(j); break; }
+      // Initial match: single-letter token matches a longer token's first letter
+      if (ta.length === 1 && tb.length > 1 && tb[0] === ta) { matched++; usedB.add(j); break; }
+      if (tb.length === 1 && ta.length > 1 && ta[0] === tb) { matched++; usedB.add(j); break; }
+    }
+  }
+  const union = canonA.length + canonB.length - matched;
+  return union > 0 ? matched / union : 1;
+}
+
 // Fuzzy match a staff name against a list of staff records.
-// Tries exact nameKey first, then falls back to token + Levenshtein similarity.
+// Matching layers (in order):
+//   1. Exact nameKey — "John Smith" = "John Smith"
+//   2. Canonical key (nickname-normalised) — "Jon Smith" = "John Smith"
+//   3. Initial-aware token similarity — "J Smith" ≈ "John Smith"
+//   4. Token + Levenshtein similarity — handles typos & word order
 // Returns { staff, score, method } or null if no match above threshold.
 export function fuzzyFindStaff(queryName, staffList, threshold = 0.65) {
   const queryKey = nameKey(queryName);
   if (!queryKey) return null;
+  const queryCanon = canonicalNameKey(queryName);
 
   let bestMatch = null;
   let bestScore = 0;
@@ -138,19 +221,27 @@ export function fuzzyFindStaff(queryName, staffList, threshold = 0.65) {
     const staffKey = nameKey(s.name);
     if (!staffKey) continue;
 
-    // Exact key match — instant winner
+    // 1. Exact key match — instant winner
     if (queryKey === staffKey) return { staff: s, score: 1, method: 'exact' };
 
-    // Token similarity (handles word order, missing/extra words)
+    // 2. Canonical (nickname-normalised) key match — "Jon Smith" = "John Smith"
+    const staffCanon = canonicalNameKey(s.name);
+    if (queryCanon && staffCanon && queryCanon === staffCanon) {
+      if (0.98 > bestScore) { bestScore = 0.98; bestMatch = s; bestMethod = 'nickname'; }
+      continue;
+    }
+
+    // 3. Initial-aware token similarity (handles "J Smith" ≈ "John Smith")
+    const initTokSim = initialAwareTokenSimilarity(queryKey, staffKey);
+    // 4. Standard token + Levenshtein similarity (handles typos & word order)
     const tokSim = tokenSimilarity(queryKey, staffKey);
-    // String similarity (handles typos within words)
     const strSim = stringSimilarity(queryKey, staffKey);
-    const score = Math.max(tokSim, strSim);
+    const score = Math.max(initTokSim, tokSim, strSim);
 
     if (score > bestScore) {
       bestScore = score;
       bestMatch = s;
-      bestMethod = tokSim >= strSim ? 'token' : 'levenshtein';
+      bestMethod = initTokSim >= tokSim && initTokSim >= strSim ? 'initial' : (tokSim >= strSim ? 'token' : 'levenshtein');
     }
   }
 
