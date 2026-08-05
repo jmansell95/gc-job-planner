@@ -355,7 +355,9 @@ export default function SubcontractorOnboarding() {
         </form>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          Ground Control · Sub-contractor Onboarding Portal
+          {branding?.footer_text || 'Ground Control'} · Sub-contractor Onboarding Portal
+          {branding?.support_phone && <span className="block mt-1">📞 {branding.support_phone}</span>}
+          {branding?.support_email && <span className="block">✉️ {branding.support_email}</span>}
         </p>
       </div>
     </div>

@@ -16,6 +16,15 @@ import PortalSiteStatus from '@/components/PortalSiteStatus';
 import PortalPaymentButton from '@/components/dashboard/PortalPaymentButton';
 import { formatJobType } from '@/utils/format';
 
+// Lighten/darken a hex colour by a percentage (-100..100)
+function shadeHex(hex, percent) {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const r = Math.max(0, Math.min(255, (num >> 16) + Math.round(255 * percent / 100)));
+  const g = Math.max(0, Math.min(255, ((num >> 8) & 0xff) + Math.round(255 * percent / 100)));
+  const b = Math.max(0, Math.min(255, (num & 0xff) + Math.round(255 * percent / 100)));
+  return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+}
+
 const jobTypeBadges = {
   groundworks: 'bg-emerald-100 text-emerald-700',
   cp_drilling: 'bg-amber-100 text-amber-700',
@@ -163,12 +172,14 @@ export default function ClientPortal() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Hero header */}
-      <div className="hero-gradient text-white relative overflow-hidden">
+      {/* Hero header — uses portal branding accent colour when configured */}
+      <div className={`text-white relative overflow-hidden ${branding?.accent_color ? '' : 'hero-gradient'}`} style={branding?.accent_color ? { background: `linear-gradient(135deg, ${branding.accent_color} 0%, ${shadeHex(branding.accent_color, -22)} 100%)` } : undefined}>
         <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 md:py-9 relative z-10">
           <div className="flex items-center gap-2 mb-3">
-            <Building2 className="w-5 h-5 text-emerald-200" />
-            <span className="text-emerald-100 text-sm font-medium tracking-wide">Client Portal</span>
+            {branding?.show_logo && branding?.logo_url
+              ? <img src={branding.logo_url} alt="logo" className="h-7 max-w-28 object-contain" />
+              : <Building2 className="w-5 h-5 text-emerald-200" />}
+            <span className="text-emerald-100 text-sm font-medium tracking-wide">{branding?.welcome_subtitle || 'Client Portal'}</span>
             {running && (
               <span className="ml-auto inline-flex items-center gap-1.5 text-xs bg-white/15 backdrop-blur px-2.5 py-1 rounded-full font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" /> Live
@@ -571,7 +582,7 @@ export default function ClientPortal() {
         )}
 
         <div className="text-center text-xs text-slate-400 py-4">
-          Powered by GC Job Planner · Updated {format(new Date(), 'dd MMM yyyy HH:mm')}
+          {branding?.footer_text || 'Powered by GC Job Planner'} · Updated {format(new Date(), 'dd MMM yyyy HH:mm')}
         </div>
       </motion.div>
     </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, Loader2, Link2, Link2Off, AlertTriangle, Check } from 'lucide-react';
+import { RefreshCw, Loader2, Link2, Link2Off, AlertTriangle, Check, Fuel } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function HolmanSyncBar() {
@@ -9,6 +9,7 @@ export default function HolmanSyncBar() {
   const queryClient = useQueryClient();
   const [syncing, setSyncing] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [syncingFuel, setSyncingFuel] = useState(false);
   const [result, setResult] = useState(null);
 
   const handleSync = async () => {
@@ -23,6 +24,21 @@ export default function HolmanSyncBar() {
       setResult({ ok: false, msg: e.message || 'Sync failed' });
     }
     setSyncing(false);
+  };
+
+  const handleSyncFuel = async () => {
+    setSyncingFuel(true);
+    setResult(null);
+    try {
+      const res = await base44.functions.invoke('syncHolmanFleet', { action: 'sync_fuel' });
+      const d = res.data || res;
+      setResult({ ok: !!d.ok, msg: d.message || d.error || 'Fuel sync complete', imported: d.imported || 0, duplicate: d.duplicate || 0, unmatched: d.unmatched || 0 });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['maintenance-bookings'] });
+    } catch (e) {
+      setResult({ ok: false, msg: e.message || 'Fuel sync failed' });
+    }
+    setSyncingFuel(false);
   };
 
   const handleTest = async () => {
@@ -52,6 +68,10 @@ export default function HolmanSyncBar() {
       <button onClick={handleSync} disabled={syncing}
         className="flex items-center gap-1.5 px-3.5 py-2 bg-[#2E5A1A] text-white rounded-lg text-xs font-bold hover:bg-[#1c4a12] disabled:opacity-50 transition">
         {syncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />} Sync Now
+      </button>
+      <button onClick={handleSyncFuel} disabled={syncingFuel}
+        className="flex items-center gap-1.5 px-3 py-2 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 disabled:opacity-50 transition">
+        {syncingFuel ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Fuel className="w-3.5 h-3.5" />} Sync Fuel
       </button>
       {result && (
         <div className={`w-full flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${result.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
