@@ -185,8 +185,8 @@ export default function ContractorManager() {
         }
       />
 
-      {/* CIS batch verification */}
-      <div className="mb-4 max-w-md">
+      {/* CIS batch verification hub */}
+      <div className="mb-4">
         <CISBatchVerifyWidget />
       </div>
 
