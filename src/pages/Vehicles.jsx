@@ -3,17 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Truck, ShieldCheck, ShieldAlert, ShieldX, Link2, Wrench, Search,
-  ExternalLink, PhoneCall, Gauge, MapPin, Satellite, Car, Hash, Sparkles,
+  Truck, Wrench, Search, ExternalLink, PhoneCall, Sparkles,
 } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import AdminNav from '@/components/AdminNav';
-import HolmanSyncBar from '@/components/vehicles/HolmanSyncBar';
+import FleetSyncBar from '@/components/vehicles/FleetSyncBar';
+import FleetVehicleCard from '@/components/vehicles/FleetVehicleCard';
 import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
 import UsefulNumbersModal from '@/components/UsefulNumbersModal';
-import GeotabLiveMap from '@/components/vehicles/GeotabLiveMap';
-import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
 import VehicleDetailDrawer from '@/components/vehicles/VehicleDetailDrawer';
+import GeotabReportModal from '@/components/vehicles/GeotabReportModal';
 import FleetHealthRings from '@/components/vehicles/FleetHealthRings';
 import { Skeleton } from '@/components/StateViews';
 import { differenceInDays } from 'date-fns';
@@ -37,27 +36,14 @@ function getVehicleStatus(v) {
   return { issues, level };
 }
 
-const LEVEL_BADGE = {
-  compliant: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  warning: 'bg-amber-50 text-amber-700 border-amber-200',
-  expired: 'bg-red-50 text-red-700 border-red-200',
-  unknown: 'bg-slate-50 text-slate-500 border-slate-200',
-};
-
-const LEVEL_ACCENT = {
-  compliant: 'before:bg-emerald-500',
-  warning: 'before:bg-amber-500',
-  expired: 'before:bg-red-500',
-  unknown: 'before:bg-slate-300',
-};
-
 export default function Vehicles() {
   const navigate = useNavigate();
-  const [view, setView] = useState('fleet'); // 'fleet' | 'maintenance' | 'livemap'
+  const [view, setView] = useState('fleet'); // 'fleet' | 'maintenance'
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [showNumbers, setShowNumbers] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
 
   const { data: vehicles = [], isLoading } = useQuery({
@@ -76,15 +62,16 @@ export default function Vehicles() {
   });
 
   // Live GPS locations from Geotab
-  const { data: liveLocations = [] } = useQuery({
+  const { data: liveData } = useQuery({
     queryKey: ['geotab-live-locations-fleet'],
     queryFn: async () => {
       const res = await base44.functions.invoke('getVehicleLocationHistory', { mode: 'live', limit: 500 });
-      const data = res?.data ?? res;
-      return Array.isArray(data) ? data : (Array.isArray(data?.locations) ? data.locations : []);
+      return res?.data ?? res;
     },
     refetchInterval: 60000,
   });
+
+  const liveLocations = liveData?.vehicles || [];
 
   const latestByVehicle = useMemo(() => {
     const map = {};
@@ -129,7 +116,6 @@ export default function Vehicles() {
     return { total: vehicles.length, compliant, warning, expired, holmanSynced, geotabSynced, activeBookings: activeBookingCount };
   }, [vehicles, activeBookingCount]);
 
-  // Fuzzy search across reg, name, VIN, driver name, make/model
   const q = search.toLowerCase().trim();
   const staffByVehicle = useMemo(() => {
     const map = {};
@@ -191,10 +177,6 @@ export default function Vehicles() {
                     className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'fleet' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}>
                     <Truck className="w-3.5 h-3.5 inline mr-1" /> Fleet
                   </button>
-                  <button onClick={() => setView('livemap')}
-                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'livemap' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}>
-                    <MapPin className="w-3.5 h-3.5 inline mr-1" /> Live Map
-                  </button>
                   <button onClick={() => setView('maintenance')}
                     className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'maintenance' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}>
                     <Wrench className="w-3.5 h-3.5 inline mr-1" /> Maintenance
@@ -210,8 +192,6 @@ export default function Vehicles() {
 
           {view === 'maintenance' ? (
             <VehicleMaintenanceManager />
-          ) : view === 'livemap' ? (
-            <GeotabLiveMap />
           ) : (
             <>
               {/* Fleet health rings */}
@@ -219,9 +199,9 @@ export default function Vehicles() {
                 <FleetHealthRings stats={stats} />
               </div>
 
-              {/* Sync bar */}
+              {/* Unified sync bar — Geotab + Holman + Reports */}
               <div className="mb-4">
-                <HolmanSyncBar />
+                <FleetSyncBar liveData={liveData} onShowReport={() => setShowReport(true)} />
               </div>
 
               {/* Search & filters */}
@@ -234,14 +214,13 @@ export default function Vehicles() {
                 </div>
                 <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
                   {[
-                    { val: 'all', label: 'All', icon: null },
-                    { val: 'compliant', label: 'OK', icon: ShieldCheck, color: 'text-emerald-600' },
-                    { val: 'warning', label: 'Attention', icon: ShieldAlert, color: 'text-amber-600' },
-                    { val: 'expired', label: 'Critical', icon: ShieldX, color: 'text-rose-600' },
+                    { val: 'all', label: 'All' },
+                    { val: 'compliant', label: 'OK' },
+                    { val: 'warning', label: 'Attention' },
+                    { val: 'expired', label: 'Critical' },
                   ].map(opt => (
                     <button key={opt.val} onClick={() => setStatusFilter(opt.val)}
-                      className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-semibold transition ${statusFilter === opt.val ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
-                      {opt.icon && <opt.icon className={`w-3.5 h-3.5 ${statusFilter === opt.val ? 'text-[#2E5A1A]' : opt.color}`} />}
+                      className={`px-3 py-1.5 rounded-md text-sm font-semibold transition ${statusFilter === opt.val ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
                       {opt.label}
                     </button>
                   ))}
@@ -249,13 +228,12 @@ export default function Vehicles() {
                 <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
                   {[
                     { val: 'all', label: 'All Sources' },
-                    { val: 'geotab', label: 'Geotab', icon: Satellite, color: 'text-cyan-600' },
-                    { val: 'holman', label: 'Holman', icon: Link2, color: 'text-blue-600' },
-                    { val: 'both', label: 'Both', icon: Truck, color: 'text-emerald-600' },
+                    { val: 'geotab', label: 'Geotab' },
+                    { val: 'holman', label: 'Holman' },
+                    { val: 'both', label: 'Both' },
                   ].map(opt => (
                     <button key={opt.val} onClick={() => setSourceFilter(opt.val)}
-                      className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-semibold transition ${sourceFilter === opt.val ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
-                      {opt.icon && <opt.icon className={`w-3.5 h-3.5 ${sourceFilter === opt.val ? 'text-[#2E5A1A]' : opt.color}`} />}
+                      className={`px-3 py-1.5 rounded-md text-sm font-semibold transition ${sourceFilter === opt.val ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
                       {opt.label}
                     </button>
                   ))}
@@ -266,7 +244,7 @@ export default function Vehicles() {
               {/* Fleet grid */}
               {isLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-48 w-full rounded-xl" />)}
+                  {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-56 w-full rounded-xl" />)}
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="bg-white rounded-xl border border-slate-200 p-10 text-center">
@@ -275,99 +253,17 @@ export default function Vehicles() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {filtered.map(v => {
-                    const { issues, level } = getVehicleStatus(v);
-                    const nb = nextBookingByVehicle[v.id];
-                    const loc = latestByVehicle[v.id];
-                    const makeModel = [v.make, v.model].filter(Boolean).join(' ');
-                    const driver = staffByVehicle[v.assigned_staff_id]?.name || '';
-                    const geotabLive = v.geotab_sync_status === 'synced';
-
-                    return (
-                      <div key={v.id}
-                        onClick={() => setSelectedVehicle(v)}
-                        className={`insight-card rounded-xl overflow-hidden relative cursor-pointer ${LEVEL_ACCENT[level]} before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1`}>
-                        {/* Card header */}
-                        <div className="px-4 pt-4 pb-3 pl-5">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${geotabLive ? 'stat-gradient-cyan' : 'stat-gradient-slate'}`}>
-                                <Truck className="w-5 h-5 text-white" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="font-mono font-bold text-slate-900 truncate">{v.registration_number}</p>
-                                <p className="text-xs text-slate-500 truncate">{makeModel || v.name}</p>
-                              </div>
-                            </div>
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border ${LEVEL_BADGE[level]} flex-shrink-0`}>
-                              {level === 'compliant' && <ShieldCheck className="w-3 h-3" />}
-                              {level === 'warning' && <ShieldAlert className="w-3 h-3" />}
-                              {level === 'expired' && <ShieldX className="w-3 h-3" />}
-                              {level === 'compliant' ? 'OK' : level === 'unknown' ? 'No Data' : level === 'expired' ? 'Critical' : 'Attention'}
-                            </span>
-                          </div>
-
-                          {/* Spec chips */}
-                          <div className="flex flex-wrap gap-1.5">
-                            {v.year && <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium flex items-center gap-1"><Car className="w-2.5 h-2.5" /> {v.year}</span>}
-                            {v.fuel_type && v.fuel_type !== 'unknown' && <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">{v.fuel_type.charAt(0).toUpperCase() + v.fuel_type.slice(1)}</span>}
-                            {v.vehicle_type && <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">{v.vehicle_type}</span>}
-                            {v.vin && <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-mono flex items-center gap-1"><Hash className="w-2.5 h-2.5" /> {v.vin.slice(-6)}</span>}
-                            {driver && <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">{driver}</span>}
-                          </div>
-
-                          {/* Issue badges or status chips */}
-                          {issues.length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              {issues.map((issue, i) => (
-                                <span key={i} className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${issue.severity === 'expired' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'}`}>
-                                  {issue.label}{issue.days >= 0 ? ` (${issue.days}d)` : ''}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                              {v.mot_expiry && <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium">MOT: {new Date(v.mot_expiry + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}</span>}
-                              {v.service_due_date && <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium">Service: {new Date(v.service_due_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}</span>}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Live location snapshot */}
-                        <div className="px-4 pb-3 pl-5">
-                          <VehicleLocationMiniMap {...(loc || {})} />
-                        </div>
-
-                        {/* Next booking banner */}
-                        {nb && (
-                          <button onClick={(e) => { e.stopPropagation(); setView('maintenance'); }}
-                            className="w-full flex items-center gap-2 px-4 py-2 bg-violet-50 border-y border-violet-100 text-left hover:bg-violet-100 transition">
-                            <Wrench className="w-3.5 h-3.5 text-violet-600 flex-shrink-0" />
-                            <span className="text-[11px] font-semibold text-violet-700 truncate flex-1">{nb.booking_type ? nb.booking_type.charAt(0).toUpperCase() + nb.booking_type.slice(1) : 'Booking'} booked</span>
-                            <span className="text-[11px] text-violet-600 font-medium flex-shrink-0">{nb.booking_date ? new Date(nb.booking_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'TBC'}</span>
-                          </button>
-                        )}
-
-                        {/* Footer */}
-                        <div className="px-4 py-3 pl-5 flex items-center justify-between gap-2 text-[11px]">
-                         <button onClick={(e) => { e.stopPropagation(); setView('maintenance'); }} className="flex items-center gap-1 text-[#2E5A1A] font-medium hover:underline">
-                           <Wrench className="w-3 h-3" /> Book Maintenance
-                         </button>
-                         <div className="flex items-center gap-2">
-                           {v.current_mileage != null && (
-                             <span className="flex items-center gap-1 text-slate-400"><Gauge className="w-3 h-3" />{Number(v.current_mileage).toLocaleString()} mi</span>
-                           )}
-                           {geotabLive && (
-                             <span className="flex items-center gap-1 text-cyan-600 font-medium"><Satellite className="w-3 h-3" /> Live</span>
-                           )}
-                           {v.holman_sync_status === 'synced' && (
-                             <span className="flex items-center gap-1 text-blue-600 font-medium"><Link2 className="w-3 h-3" /> Holman</span>
-                           )}
-                         </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {filtered.map(v => (
+                    <FleetVehicleCard
+                      key={v.id}
+                      vehicle={v}
+                      liveLocation={latestByVehicle[v.id]}
+                      nextBooking={nextBookingByVehicle[v.id]}
+                      driverName={staffByVehicle[v.assigned_staff_id]?.name || ''}
+                      onSelect={setSelectedVehicle}
+                      onBookMaintenance={() => setView('maintenance')}
+                    />
+                  ))}
                 </div>
               )}
             </>
@@ -378,6 +274,7 @@ export default function Vehicles() {
         </div>
       </main>
       <VehicleDetailDrawer vehicle={selectedVehicle} onClose={() => setSelectedVehicle(null)} />
+      {showReport && <GeotabReportModal onClose={() => setShowReport(false)} />}
     </div>
   );
 }
