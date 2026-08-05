@@ -39,6 +39,54 @@
       "type": "boolean",
       "default": true,
       "description": "Whether this job type is available for new jobs"
+    },
+    "default_revenue_method": {
+      "type": "string",
+      "enum": [
+        "none",
+        "day_rate",
+        "meterage_rate",
+        "unit_rate",
+        "flat_fee"
+      ],
+      "default": "none",
+      "description": "Template default \u2014 pre-fills the billing method when a new job is created from this type."
+    },
+    "default_drilling_method": {
+      "type": "string",
+      "enum": [
+        "cp",
+        "rotary",
+        "mixed",
+        "not_applicable"
+      ],
+      "default": "not_applicable",
+      "description": "Template default \u2014 pre-fills the drilling method when a new job is created from this type."
+    },
+    "default_markup_percentage": {
+      "type": "number",
+      "default": 0,
+      "description": "Template default \u2014 pre-fills the markup % when revenue method is 'none' (markup on cost)."
+    },
+    "default_budget_amount": {
+      "type": "number",
+      "description": "Template default \u2014 pre-fills the job budget (GBP) when a new job is created from this type."
+    },
+    "default_duration_days": {
+      "type": "number",
+      "description": "Template default \u2014 when set, the job end date is auto-calculated as start date + this many days."
+    },
+    "default_team_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Template default \u2014 pre-selects these teams when a new job is created from this type."
+    },
+    "default_notes": {
+      "type": "string",
+      "description": "Template default \u2014 pre-fills the job notes field with standard scope or requirements text."
     }
   },
   "required": [

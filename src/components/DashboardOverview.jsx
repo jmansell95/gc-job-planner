@@ -30,6 +30,8 @@ import DrillingPerformanceWidget from '@/components/dashboard/DrillingPerformanc
 import SafetyDashboardWidget from '@/components/dashboard/SafetyDashboardWidget';
 import PredictiveInsightsWidget from '@/components/dashboard/PredictiveInsightsWidget';
 import TrafficHeatmapWidget from '@/components/dashboard/TrafficHeatmapWidget';
+import ProfitabilityAlertsWidget from '@/components/dashboard/ProfitabilityAlertsWidget';
+import ComplianceExpiryWidget from '@/components/dashboard/ComplianceExpiryWidget';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
@@ -158,6 +160,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'safety-dashboard': return <SafetyDashboardWidget />;
       case 'predictive-insights': return <PredictiveInsightsWidget />;
       case 'traffic-heatmap': return <TrafficHeatmapWidget onNavigateToJob={onNavigate} />;
+      case 'profitability-alerts': return canViewCosts ? <ProfitabilityAlertsWidget onSelectJob={openJobDrawer} /> : null;
+      case 'compliance-expiry': return <ComplianceExpiryWidget onNavigate={onNavigate} />;
       default: return null;
     }
   };

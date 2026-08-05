@@ -27,7 +27,7 @@ const CATEGORIES = [
     title: 'Staff Management',
     color: 'emerald',
     items: [
-      { priority: 'high', title: 'Skills & certifications matrix', desc: 'Track every ticket, certification, and competency per staff member with expiry alerts and gap analysis.' },
+      { priority: 'high', title: 'Skills & certifications matrix', desc: 'New Skills Matrix tab in the Compliance Manager showing every active staff member × qualification type (CSCS, CPCS, NPORS, First Aid, Driving Licence, DBS, Forklift) as a color-coded grid — green=compliant, amber=expiring ≤30d, red=expired, gray=missing. Searchable by name or job title with summary stats at the top.', status: 'done' },
       { priority: 'high', title: 'Availability calendar', desc: 'Show leave, training, and availability at a glance so planners can see who is free before assigning.' },
       { priority: 'high', title: 'Auto-assign crew suggestions', desc: 'Suggest the best crew for a job based on skills, location, availability, and past performance.' },
       { priority: 'medium', title: 'Staff utilization analytics', desc: 'Billable vs non-billable hours, utilization rate per person, and bench time tracking.' },
@@ -46,8 +46,8 @@ const CATEGORIES = [
       { priority: 'high', title: 'Discipline Pills on Job Cards', desc: 'At-a-glance colored pill strips showing all active disciplines on every job card and context view for instant multi-discipline visibility.', status: 'done' },
       { priority: 'high', title: 'Billing Lockdown on Decommissioning/Completed', desc: 'Cost items, sub-contractor logs, and equipment can no longer be added once a job is decommissioning or completed. The billing lock banner now shows the reason (invoice issued vs job finalised) and the Add buttons are disabled until the job is reactivated.', status: 'done' },
       { priority: 'high', title: 'Multi-Discipline Job Wizard', desc: 'The New Job wizard now supports stacking multiple discipline tracks (drilling + groundworks + enabling) with a primary discipline marker. Each track inherits job-level dates and billing as defaults; the primary mirrors into legacy fields for backward compat.', status: 'done' },
-      { priority: 'high', title: 'Job templates with defaults', desc: 'Pre-configured job types that auto-populate teams, equipment, cost items, and billing rules.' },
-      { priority: 'high', title: 'Real-time profitability alerts', desc: 'Live margin warnings when a job approaches budget overrun, with email/push notifications.' },
+      { priority: 'high', title: 'Job templates with defaults', desc: 'Job Types now carry template defaults (billing method, drilling method, markup %, budget, duration, teams, notes). The New Job wizard shows a template picker on step 1 — selecting one pre-fills the entire form. Duration auto-calculates the end date from the start date. Template defaults are configured in Settings → Job Types.', status: 'done' },
+      { priority: 'high', title: 'Real-time profitability alerts', desc: 'Inline budget overrun banner on the Job Costing panel (amber ≥10%, rose ≥25%) plus a dashboard Profitability Alerts widget that runs the full checkJobBudgetAlerts engine — budget overrun, low margin, negative profit, and predictive margin-drop from daily burn rate. Nightly automation emails a digest to admins.', status: 'done' },
       { priority: 'medium', title: 'Job dependencies & sequencing', desc: 'Link jobs that must complete before others start, with automatic scheduling updates.' },
       { priority: 'medium', title: 'Milestone-based progress tracking', desc: 'Auto-calculate completion percentage from milestones and drilling progress.' },
       { priority: 'medium', title: 'Multi-site job grouping', desc: 'Group related jobs under a project with shared resource allocation and cross-site reporting.' },
@@ -76,7 +76,7 @@ const CATEGORIES = [
     title: 'Compliance & Safety',
     color: 'rose',
     items: [
-      { priority: 'high', title: 'Automated compliance expiry alerts', desc: 'LOLER, PUWER, PAT expiry warnings with escalating alerts at 30/14/7/0 days.' },
+      { priority: 'high', title: 'Automated compliance expiry alerts', desc: 'Nightly automation (checkComplianceExpiry) emails admins about expired and soon-to-expire items across staff, vehicles, equipment, and company categories. New dashboard Compliance Expiry widget shows expired/expiring items grouped by category with day-countdown badges, filterable by status.', status: 'done' },
       { priority: 'high', title: 'RAMS document management', desc: 'Store, version, and distribute Risk Assessments & Method Statements per job with sign-off tracking.' },
       { priority: 'high', title: 'Incident & near-miss reporting', desc: 'Mobile-first incident reporting with photo evidence, RIDDOR classification, and corrective actions.' },
       { priority: 'medium', title: 'Toolbox talk delivery & sign-off', desc: 'Schedule, deliver, and track toolbox talks with digital sign-off and attendance records.' },

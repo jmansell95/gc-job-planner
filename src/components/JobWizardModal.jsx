@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import {
   X, ChevronLeft, ChevronRight, Check, Briefcase, CalendarDays, Users, MapPin,
   FileText, Sparkles, Loader2, FolderOpen, PoundSterling, Target, AlertTriangle,
-  HardHat, Receipt, Percent, Building2, Phone, Ruler, FileCheck2, ArrowRightLeft,
+  HardHat, Receipt, Percent, Building2, Phone, Ruler, FileCheck2, ArrowRightLeft, LayoutTemplate,
 } from 'lucide-react';
 import ProjectSelect from '@/components/ProjectSelect';
 import SubcontractorAssignments from '@/components/SubcontractorAssignments';
@@ -102,6 +102,30 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
   const selectedTeamIds = Array.isArray(form.required_team_ids) ? form.required_team_ids : [];
   const toggleTeam = (id) => set('required_team_ids', selectedTeamIds.includes(id) ? selectedTeamIds.filter(t => t !== id) : [...selectedTeamIds, id]);
+
+  // Apply a job type template — pre-fills the form with the type's defaults
+  const applyTemplate = (jobType) => {
+    if (!jobType) return;
+    setForm(prev => {
+      const updated = {
+        ...prev,
+        job_type: jobType.key,
+        drilling_method: jobType.default_drilling_method || prev.drilling_method,
+        revenue_method: jobType.default_revenue_method || prev.revenue_method,
+        markup_percentage: jobType.default_markup_percentage != null ? String(jobType.default_markup_percentage) : prev.markup_percentage,
+        budget_amount: jobType.default_budget_amount != null ? String(jobType.default_budget_amount) : prev.budget_amount,
+        required_team_ids: (jobType.default_team_ids && jobType.default_team_ids.length > 0) ? jobType.default_team_ids : prev.required_team_ids,
+        notes: jobType.default_notes || prev.notes,
+      };
+      // Auto-calculate end date from duration if start date is set
+      if (jobType.default_duration_days && prev.start_date) {
+        const end = new Date(prev.start_date + 'T00:00:00');
+        end.setDate(end.getDate() + Number(jobType.default_duration_days));
+        updated.end_date = end.toISOString().slice(0, 10);
+      }
+      return updated;
+    });
+  };
 
   const isDrilling = isDrillingJobType(form.job_type, jobTypes) || form.drilling_method !== 'not_applicable' || teams.some(t => selectedTeamIds.includes(t.id) && isDrillingJobType(t.job_type, jobTypes));
 
@@ -299,10 +323,44 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Location <span className="text-red-500">*</span></label>
                     <input type="text" value={form.location} onChange={e => set('location', e.target.value)} placeholder="Site address" className={inputCls} />
                   </div>
+                  {/* Template picker — pre-fills the form from Job Type defaults */}
+                  {jobTypes.filter(jt => jt.is_active !== false).length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        <span className="inline-flex items-center gap-1.5"><LayoutTemplate className="w-3.5 h-3.5 text-[#2E5A1A]" /> Start from a template</span>
+                        <span className="text-xs text-slate-400 font-normal">· pre-fills billing, teams & defaults</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {jobTypes.filter(jt => jt.is_active !== false).sort((a, b) => (a.order || 0) - (b.order || 0)).map(jt => {
+                          const selected = form.job_type === jt.key;
+                          const hasDefaults = jt.default_revenue_method || jt.default_budget_amount || (jt.default_team_ids && jt.default_team_ids.length > 0);
+                          return (
+                            <button
+                              type="button"
+                              key={jt.id}
+                              onClick={() => applyTemplate(jt)}
+                              className={`inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border transition font-medium ${
+                                selected
+                                  ? 'bg-[#2E5A1A] text-white border-[#2E5A1A]'
+                                  : 'bg-white border-slate-200 text-slate-600 hover:border-[#2E5A1A]/40'
+                              }`}
+                            >
+                              {jt.label}
+                              {hasDefaults && <span className={`w-1.5 h-1.5 rounded-full ${selected ? 'bg-white' : 'bg-[#2E5A1A]'}`} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">Job Type</label>
-                      <select value={form.job_type || ''} onChange={e => set('job_type', e.target.value)} className={inputCls}>
+                      <select value={form.job_type || ''} onChange={e => {
+                        const jt = jobTypes.find(t => t.key === e.target.value);
+                        set('job_type', e.target.value);
+                        if (jt) applyTemplate(jt);
+                      }} className={inputCls}>
                         <option value="">Select Type</option>
                         {jobTypes.map(jt => <option key={jt.id} value={jt.key}>{jt.label}</option>)}
                       </select>

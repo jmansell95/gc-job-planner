@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Check, Tag } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, Tag, LayoutTemplate } from 'lucide-react';
 import { JOB_TYPE_COLORS } from '@/utils/jobTeams';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 const COLOR_OPTIONS = Object.keys(JOB_TYPE_COLORS);
 
-const emptyForm = { key: '', label: '', color: 'slate', is_drilling: false, order: 0 };
+const emptyForm = { key: '', label: '', color: 'slate', is_drilling: false, order: 0, default_revenue_method: 'none', default_drilling_method: 'not_applicable', default_markup_percentage: '', default_budget_amount: '', default_duration_days: '', default_notes: '' };
 
 function slugify(s) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
@@ -31,7 +31,15 @@ export default function JobTypeManager() {
   };
 
   const handleEdit = (jt) => {
-    setFormData({ key: jt.key, label: jt.label, color: jt.color || 'slate', is_drilling: !!jt.is_drilling, order: jt.order || 0 });
+    setFormData({
+      key: jt.key, label: jt.label, color: jt.color || 'slate', is_drilling: !!jt.is_drilling, order: jt.order || 0,
+      default_revenue_method: jt.default_revenue_method || 'none',
+      default_drilling_method: jt.default_drilling_method || 'not_applicable',
+      default_markup_percentage: jt.default_markup_percentage != null ? String(jt.default_markup_percentage) : '',
+      default_budget_amount: jt.default_budget_amount != null ? String(jt.default_budget_amount) : '',
+      default_duration_days: jt.default_duration_days != null ? String(jt.default_duration_days) : '',
+      default_notes: jt.default_notes || '',
+    });
     setEditingId(jt.id);
     setShowForm(true);
   };
@@ -101,6 +109,52 @@ export default function JobTypeManager() {
               <input type="checkbox" checked={formData.is_drilling} onChange={(e) => setFormData({ ...formData, is_drilling: e.target.checked })} className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
               <span className="text-sm text-slate-700">Drilling type <span className="text-xs text-slate-400">· shows meterage fields on jobs</span></span>
             </label>
+          </div>
+
+          {/* Template defaults — pre-fill new jobs created from this type */}
+          <div className="border-t border-slate-100 pt-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <LayoutTemplate className="w-4 h-4 text-[#2E5A1A]" />
+              <p className="text-sm font-bold text-slate-800">Template Defaults</p>
+              <span className="text-xs text-slate-400">· pre-fills new jobs created from this type</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Default Billing Method</label>
+                <select value={formData.default_revenue_method} onChange={(e) => setFormData({ ...formData, default_revenue_method: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600">
+                  <option value="none">Markup on Cost</option>
+                  <option value="day_rate">Day Rate</option>
+                  <option value="meterage_rate">Meterage Rate</option>
+                  <option value="unit_rate">Unit Rate</option>
+                  <option value="flat_fee">Flat Fee</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Default Drilling Method</label>
+                <select value={formData.default_drilling_method} onChange={(e) => setFormData({ ...formData, default_drilling_method: e.target.value })} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600">
+                  <option value="not_applicable">N/A</option>
+                  <option value="cp">Cable Percussion</option>
+                  <option value="rotary">Rotary</option>
+                  <option value="mixed">Mixed</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Default Markup %</label>
+                <input type="number" min="0" step="0.1" value={formData.default_markup_percentage} onChange={(e) => setFormData({ ...formData, default_markup_percentage: e.target.value })} placeholder="0" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Default Budget (GBP)</label>
+                <input type="number" min="0" step="0.01" value={formData.default_budget_amount} onChange={(e) => setFormData({ ...formData, default_budget_amount: e.target.value })} placeholder="0.00" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Default Duration (days)</label>
+                <input type="number" min="0" step="1" value={formData.default_duration_days} onChange={(e) => setFormData({ ...formData, default_duration_days: e.target.value })} placeholder="e.g. 5" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Default Notes</label>
+                <input type="text" value={formData.default_notes} onChange={(e) => setFormData({ ...formData, default_notes: e.target.value })} placeholder="Standard scope text..." className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+              </div>
+            </div>
           </div>
           <div className="flex gap-3 pt-2 border-t border-slate-100">
             <button type="submit" className="px-5 py-2.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">{editingId ? 'Update' : 'Add'} Type</button>

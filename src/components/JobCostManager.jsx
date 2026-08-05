@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { PoundSterling, TrendingUp, TrendingDown, Edit2, Check, X, Calculator, RefreshCw, ChevronDown, ChevronUp, Ruler } from 'lucide-react';
+import { PoundSterling, TrendingUp, TrendingDown, Edit2, Check, X, Calculator, RefreshCw, ChevronDown, ChevronUp, Ruler, AlertTriangle } from 'lucide-react';
 import { useBillingLock } from '@/hooks/useBillingLock';
 import BillingLockBanner from '@/components/billing/BillingLockBanner';
 
@@ -26,6 +26,7 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
   const variance = budget - actualCost;
   const pct = budget > 0 ? Math.min(100, Math.round((actualCost / budget) * 100)) : 0;
   const overBudget = actualCost > budget && budget > 0;
+  const overrunPct = budget > 0 ? Math.round(((actualCost - budget) / budget) * 100) : 0;
 
   const saveBudget = async () => {
     setSaving(true);
@@ -91,6 +92,21 @@ export default function JobCostManager({ job, totalCost, staffCosts, isDrillingJ
 
       <div className="px-5 py-4 space-y-4">
         {isLocked && <BillingLockBanner lockedInvoices={lockedInvoices} lockReason={lockReason} job={job} />}
+        {/* Inline profitability alert — budget overrun */}
+        {overBudget && !isLocked && (
+          <div className={`flex items-start gap-2.5 rounded-xl px-3.5 py-3 border ${overrunPct >= 25 ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200'}`}>
+            <AlertTriangle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${overrunPct >= 25 ? 'text-rose-600' : 'text-amber-600'}`} />
+            <div className="flex-1">
+              <p className={`text-sm font-bold ${overrunPct >= 25 ? 'text-rose-700' : 'text-amber-700'}`}>
+                {overrunPct >= 25 ? 'Critical budget overrun' : 'Budget overrun detected'}
+              </p>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Cost is {overrunPct}% over the agreed budget ({fmt(actualCost)} vs {fmt(budget)}).{' '}
+                {overrunPct >= 25 ? 'Immediate management review recommended.' : 'Monitor closely to protect margin.'}
+              </p>
+            </div>
+          </div>
+        )}
         {/* Tiles */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-slate-50 rounded-lg p-3">

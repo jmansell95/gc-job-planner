@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { ShieldCheck, BarChart3, GraduationCap, AlertTriangle, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { ShieldCheck, BarChart3, GraduationCap, AlertTriangle, CheckCircle2, XCircle, Clock, Grid3x3 } from 'lucide-react';
 import PillTabs from '@/components/PillTabs';
 import ComplianceTracking from '@/components/compliance/ComplianceTracking';
 import ComplianceReports from '@/components/compliance/ComplianceReports';
 import TrainingManager from '@/components/TrainingManager';
 import TrainingGapAnalysis from '@/components/compliance/TrainingGapAnalysis';
+import SkillsMatrix from '@/components/compliance/SkillsMatrix';
 
 const tabs = [
   { id: 'tracking', label: 'Tracking', icon: ShieldCheck },
+  { id: 'matrix', label: 'Skills Matrix', icon: Grid3x3 },
   { id: 'reports', label: 'Reports', icon: BarChart3 },
   { id: 'training', label: 'Training', icon: GraduationCap },
   { id: 'gaps', label: 'Training Gaps', icon: AlertTriangle },
@@ -84,6 +86,7 @@ export default function ComplianceManager() {
       {/* Content */}
       <div className="insight-card rounded-2xl p-4 md:p-5">
         {activeTab === 'tracking' && <ComplianceTracking />}
+        {activeTab === 'matrix' && <SkillsMatrix />}
         {activeTab === 'reports' && <ComplianceReports />}
         {activeTab === 'training' && <TrainingManager />}
         {activeTab === 'gaps' && <TrainingGapAnalysis />}
