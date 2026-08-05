@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, ShieldCheck, AlertTriangle, BarChart3, HardHat } from 'lucide-react';
+import PageHeader from '@/components/PageHeader';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
 import IncidentReporter from '@/components/safety/IncidentReporter';
 import RIDDORStatsPanel from '@/components/safety/RIDDORStatsPanel';
@@ -18,9 +19,13 @@ export default function SafetyPage() {
   ];
 
   return (
-    <div>
-      {/* Tab bar */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1 mb-4">
+    <div className="space-y-4">
+      <PageHeader
+        icon={ShieldAlert}
+        title="Safety Hub"
+        subtitle="Safety checks, incident reporting, RIDDOR stats & toolbox talks"
+      />
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">
         {tabs.map(t => {
           const Icon = t.icon;
           const active = tab === t.id;

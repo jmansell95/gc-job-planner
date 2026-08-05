@@ -5,6 +5,7 @@ import {
   Globe, Truck, BarChart3, Plug, Smartphone, Settings, FileText,
   Zap, ChevronDown, ChevronRight, CheckCircle2, Circle, AlertCircle
 } from 'lucide-react';
+import PageHeader from '@/components/PageHeader';
 
 const CATEGORIES = [
   {
@@ -251,35 +252,17 @@ export default function ImprovementRoadmap() {
   const highCount = CATEGORIES.reduce((sum, c) => sum + c.items.filter(i => i.priority === 'high').length, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Hero Header */}
-      <div className="hero-gradient text-white">
-        <div className="max-w-6xl mx-auto px-5 py-12 sm:py-16">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center">
-              <Rocket className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Improvement Roadmap</h1>
-              <p className="text-white/70 text-sm">GC Mission Control — everything you could improve next</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-3 mt-6">
-            <div className="bg-white/10 backdrop-blur rounded-xl px-4 py-2.5 flex items-center gap-2">
-              <span className="text-2xl font-bold tabular-nums">{totalItems}</span>
-              <span className="text-white/70 text-xs">Total Ideas</span>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-xl px-4 py-2.5 flex items-center gap-2">
-              <span className="text-2xl font-bold tabular-nums text-rose-200">{highCount}</span>
-              <span className="text-white/70 text-xs">High Priority</span>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-xl px-4 py-2.5 flex items-center gap-2">
-              <span className="text-2xl font-bold tabular-nums">{CATEGORIES.length}</span>
-              <span className="text-white/70 text-xs">Categories</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        icon={Rocket}
+        title="Improvement Roadmap"
+        subtitle="GC Mission Control — everything you could improve next"
+        stats={[
+          { label: 'Total Ideas', value: totalItems, icon: Rocket },
+          { label: 'High Priority', value: highCount, icon: AlertCircle },
+          { label: 'Categories', value: CATEGORIES.length, icon: ChevronRight },
+        ]}
+      />
 
       {/* Filter Bar */}
       <div className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-slate-100">

@@ -11,13 +11,17 @@ const ROUTE_SECTION_MAP = {
   '/subcontractor': 'scheduling',
   '/deliveries': 'logistics',
   '/admin/logistics': 'logistics',
-  '/pat-testing': 'fleet',
+  '/pat-testing': 'assets',
+  '/assets': 'assets',
+  '/vehicles': 'vehicles',
   '/timesheets': 'timesheets',
   '/compliance': 'compliance',
   '/billing': 'billing',
   '/safety': 'safety',
   '/help': 'overview',
   '/presentation-pack': 'overview',
+  '/keylogbook-docs': 'overview',
+  '/roadmap': 'overview',
 };
 
 /**

@@ -9,7 +9,7 @@ import {
 import { daysUntil, ASSET_TYPE_META } from '@/utils/rigRollup';
 import { Skeleton } from '@/components/StateViews';
 import PATTestForm from '@/components/pat/PATTestForm';
-import Breadcrumbs from '@/components/Breadcrumbs';
+import PageHeader from '@/components/PageHeader';
 import { safeFormat } from '@/utils/format';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -86,50 +86,24 @@ export default function PATTestingConsole() {
   const sessionFailed = sessionLog.filter(s => s.result === 'fail').length;
 
   return (
-    <div className="bg-slate-50">
-      <Breadcrumbs />
-      {/* Stats bar */}
-      <div className="hero-gradient text-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-                <Plug className="w-5 h-5 text-white" />
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-lg font-bold text-white truncate">PAT Testing Console</h1>
-                <p className="text-xs text-white/70 truncate">Portable appliance testing queue & labels</p>
-              </div>
-            </div>
-            <button onClick={handleSync} disabled={syncing}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 rounded-lg text-sm font-medium transition flex-shrink-0 disabled:opacity-60">
-              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? 'Syncing…' : 'Sync Panda'}
-            </button>
-          </div>
-
-          {/* Stat tiles */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3">
-            {[
-              { key: 'all', label: 'Total', value: counts.total, icon: Plug },
-              { key: 'overdue', label: 'Overdue', value: counts.overdue, icon: ShieldX },
-              { key: 'due_soon', label: 'Due Soon', value: counts.due_soon, icon: ShieldAlert },
-              { key: 'unknown', label: 'No Date', value: counts.unknown, icon: HelpCircle },
-              { key: 'ok', label: 'Compliant', value: counts.ok, icon: ShieldCheck },
-            ].map(s => {
-              const SIcon = s.icon;
-              const active = bucket === s.key;
-              return (
-                <button key={s.key} onClick={() => setBucket(active ? 'all' : s.key)}
-                  className={`bg-white/10 backdrop-blur-sm rounded-xl p-2.5 sm:p-3.5 ring-1 ring-white/15 text-left transition ${active ? 'ring-2 ring-white/60' : ''}`}>
-                  <SIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white/80 mb-1" />
-                  <p className="text-xl sm:text-2xl font-bold tabular-nums leading-none">{s.value}</p>
-                  <p className="text-[10px] sm:text-[11px] text-white/70 font-medium mt-1">{s.label}</p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        icon={Plug}
+        title="PAT Testing Console"
+        subtitle="Portable appliance testing queue & labels"
+        stats={[
+          { key: 'all', label: 'Total', value: counts.total, icon: Plug, onClick: () => setBucket(bucket === 'all' ? 'all' : 'all'), active: bucket === 'all' },
+          { key: 'overdue', label: 'Overdue', value: counts.overdue, icon: ShieldX, onClick: () => setBucket(bucket === 'overdue' ? 'all' : 'overdue'), active: bucket === 'overdue' },
+          { key: 'due_soon', label: 'Due Soon', value: counts.due_soon, icon: ShieldAlert, onClick: () => setBucket(bucket === 'due_soon' ? 'all' : 'due_soon'), active: bucket === 'due_soon' },
+          { key: 'unknown', label: 'No Date', value: counts.unknown, icon: HelpCircle, onClick: () => setBucket(bucket === 'unknown' ? 'all' : 'unknown'), active: bucket === 'unknown' },
+          { key: 'ok', label: 'Compliant', value: counts.ok, icon: ShieldCheck, onClick: () => setBucket(bucket === 'ok' ? 'all' : 'ok'), active: bucket === 'ok' },
+        ]}
+        actions={
+          <button onClick={handleSync} disabled={syncing} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 rounded-lg text-sm font-medium transition flex-shrink-0 disabled:opacity-60">
+            <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? 'Syncing…' : 'Sync Panda'}
+          </button>
+        }
+      />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 space-y-4">
         {/* Session progress */}

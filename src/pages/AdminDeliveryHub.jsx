@@ -7,6 +7,7 @@ import DeliveryBoard from '@/components/admin/DeliveryBoard';
 import DeliveryTable from '@/components/admin/DeliveryTable';
 import RouteOptimizeBar from '@/components/delivery/RouteOptimizeBar';
 import { Skeleton, EmptyState } from '@/components/StateViews';
+import PageHeader from '@/components/PageHeader';
 
 const typeFilters = [
   { value: 'all', label: 'All Types', icon: Filter },
@@ -79,42 +80,19 @@ export default function AdminDeliveryHub() {
     };
   }, [deliveries]);
 
-  const statCards = [
-    { label: "Today's Tasks", value: stats.today, icon: Clock, gradient: 'stat-gradient-blue' },
-    { label: 'In Transit', value: stats.inTransit, icon: PlayCircle, gradient: 'stat-gradient-cyan' },
-    { label: 'Completed', value: stats.completed, icon: CheckCircle2, gradient: 'stat-gradient-emerald' },
-    { label: 'Overdue', value: stats.overdue, icon: AlertTriangle, gradient: 'stat-gradient-amber' },
-  ];
-
   return (
     <div className="space-y-5">
-      {/* Stat cards */}
-      <div className="hero-gradient relative overflow-hidden rounded-2xl">
-        <div className="relative px-4 md:px-6 py-3 md:py-4">
-          <div className="flex items-center gap-3 mb-3 md:mb-4">
-            <div className="w-10 h-10 rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-              <Truck className="w-5 h-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-lg font-bold text-white truncate">Logistics Hub</h1>
-              <p className="text-xs text-white/70 truncate">Delivery board, collections & route optimisation</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3">
-            {statCards.map(s => (
-              <div key={s.label} className="bg-white/10 backdrop-blur-sm rounded-xl px-3.5 py-3 ring-1 ring-white/15">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className={`w-7 h-7 rounded-lg ${s.gradient} flex items-center justify-center`}>
-                    <s.icon className="w-4 h-4 text-white" />
-                  </div>
-                  <p className="text-[10px] md:text-xs font-medium text-emerald-100 uppercase tracking-wide">{s.label}</p>
-                </div>
-                <p className="text-2xl font-bold text-white">{s.value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={Truck}
+        title="Logistics Hub"
+        subtitle="Delivery board, collections & route optimisation"
+        stats={[
+          { label: "Today", value: stats.today, icon: Clock },
+          { label: 'In Transit', value: stats.inTransit, icon: PlayCircle },
+          { label: 'Completed', value: stats.completed, icon: CheckCircle2 },
+          { label: 'Overdue', value: stats.overdue, icon: AlertTriangle },
+        ]}
+      />
 
       {/* Filter bar */}
       <div className="bg-white rounded-2xl border border-slate-200 p-3 md:p-4 space-y-3">

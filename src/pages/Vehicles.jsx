@@ -4,9 +4,9 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import {
   Truck, Wrench, Search, ExternalLink, PhoneCall, Sparkles,
+  ShieldCheck, ShieldAlert, ShieldX, Satellite,
 } from 'lucide-react';
-import Breadcrumbs from '@/components/Breadcrumbs';
-import AdminNav from '@/components/AdminNav';
+import PageHeader from '@/components/PageHeader';
 import FleetSyncBar from '@/components/vehicles/FleetSyncBar';
 import FleetVehicleCard from '@/components/vehicles/FleetVehicleCard';
 import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
@@ -153,49 +153,32 @@ export default function Vehicles() {
   });
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50/20 to-slate-100/80">
-      <AdminNav activeSection="vehicles" setActiveSection={(s) => { if (s === 'vehicles') return; navigate('/admin', { state: { section: s } }); }} />
-      <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] lg:pt-0 lg:pb-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        <div className="px-4 pb-4 md:px-6 md:pb-6 lg:pt-6 w-full">
-          <Breadcrumbs />
-
-          {/* Action bar */}
-          <div className="hero-gradient rounded-2xl text-white shadow-lg overflow-hidden mb-4">
-            <div className="px-4 md:px-5 py-3 flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-                  <Truck className="w-5 h-5 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <h1 className="text-lg font-bold text-white truncate flex items-center gap-2">
-                    Fleet Command
-                    <Sparkles className="w-4 h-4 text-white/60" />
-                  </h1>
-                  <p className="text-xs text-white/70 truncate">Live tracking · Maintenance · Trip history</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button onClick={() => setShowNumbers(true)}
-                  className="inline-flex items-center gap-1.5 px-2.5 md:px-3 py-2 bg-white/15 hover:bg-white/25 text-white rounded-lg font-semibold text-xs transition">
-                  <PhoneCall className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Numbers</span>
-                </button>
+    <div className="min-h-screen">
+      <main className="overflow-auto">
+        <div className="w-full">
+          <PageHeader
+            icon={Truck}
+            title="Fleet Command"
+            subtitle="Live tracking · Maintenance · Trip history"
+            stats={[
+              { label: 'Total', value: stats.total, icon: Truck },
+              { label: 'Compliant', value: stats.compliant, icon: ShieldCheck },
+              { label: 'Attention', value: stats.warning, icon: ShieldAlert },
+              { label: 'Critical', value: stats.expired, icon: ShieldX },
+              { label: 'Geotab', value: stats.geotabSynced, icon: Satellite },
+              { label: 'Bookings', value: stats.activeBookings, icon: Wrench },
+            ]}
+            actions={
+              <>
+                <button onClick={() => setShowNumbers(true)} className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-white/15 hover:bg-white/25 text-white rounded-lg font-semibold text-xs transition"><PhoneCall className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Numbers</span></button>
                 <div className="flex p-1 bg-white/10 rounded-lg gap-0.5">
-                  <button onClick={() => setView('fleet')}
-                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'fleet' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}>
-                    <Truck className="w-3.5 h-3.5 inline mr-1" /> Fleet
-                  </button>
-                  <button onClick={() => setView('maintenance')}
-                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'maintenance' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}>
-                    <Wrench className="w-3.5 h-3.5 inline mr-1" /> Maintenance
-                  </button>
+                  <button onClick={() => setView('fleet')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'fleet' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}><Truck className="w-3.5 h-3.5 inline mr-1" /> Fleet</button>
+                  <button onClick={() => setView('maintenance')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'maintenance' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}><Wrench className="w-3.5 h-3.5 inline mr-1" /> Maintenance</button>
                 </div>
-                <button onClick={() => navigate('/admin', { state: { section: 'settings', settingsTab: 'vehicles' } })}
-                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 bg-white text-[#2E5A1A] rounded-lg font-semibold text-xs hover:bg-white/90 transition shadow-sm">
-                  <ExternalLink className="w-3.5 h-3.5" /> Manage
-                </button>
-              </div>
-            </div>
-          </div>
+                <button onClick={() => navigate('/admin', { state: { section: 'settings', settingsTab: 'vehicles' } })} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 bg-white text-[#2E5A1A] rounded-lg font-semibold text-xs hover:bg-white/90 transition shadow-sm"><ExternalLink className="w-3.5 h-3.5" /> Manage</button>
+              </>
+            }
+          />
 
           {view === 'maintenance' ? (
             <VehicleMaintenanceManager />

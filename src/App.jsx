@@ -19,11 +19,10 @@ import DeliveryDashboard from './pages/DeliveryDashboard';
 import AdminDeliveryHub from './pages/AdminDeliveryHub';
 import HelpGuide from './pages/HelpGuide';
 import PresentationPack from './pages/PresentationPack';
-import RigHub from './pages/RigHub';
+import AssetHub from './pages/AssetHub';
 import KeyLogBookDocs from './pages/KeyLogBookDocs';
 import ImprovementRoadmap from './pages/ImprovementRoadmap';
 import Vehicles from './pages/Vehicles';
-import AssetInventory from './pages/AssetInventory';
 import PATTestingConsole from './pages/PATTestingConsole';
 import TimesheetsPage from './pages/TimesheetsPage';
 import CompliancePage from './pages/CompliancePage';
@@ -88,12 +87,13 @@ const AuthenticatedApp = () => {
             <Route path="/compliance" element={<RouteGuard><CompliancePage /></RouteGuard>} />
             <Route path="/billing" element={<RouteGuard><BillingPage /></RouteGuard>} />
             <Route path="/safety" element={<RouteGuard><SafetyPage /></RouteGuard>} />
+            <Route path="/assets" element={<RouteGuard><AssetHub /></RouteGuard>} />
+            <Route path="/vehicles" element={<RouteGuard><Vehicles /></RouteGuard>} />
+            <Route path="/keylogbook-docs" element={<RouteGuard><KeyLogBookDocs /></RouteGuard>} />
+            <Route path="/roadmap" element={<RouteGuard><ImprovementRoadmap /></RouteGuard>} />
           </Route>
-          <Route path="/rig-hub" element={<RouteGuard><RigHub /></RouteGuard>} />
-          <Route path="/keylogbook-docs" element={<RouteGuard><KeyLogBookDocs /></RouteGuard>} />
-          <Route path="/roadmap" element={<RouteGuard><ImprovementRoadmap /></RouteGuard>} />
-          <Route path="/vehicles" element={<RouteGuard><Vehicles /></RouteGuard>} />
-          <Route path="/asset-inventory" element={<RouteGuard><AssetInventory /></RouteGuard>} />
+          <Route path="/rig-hub" element={<Navigate to="/assets" replace />} />
+          <Route path="/asset-inventory" element={<Navigate to="/assets" replace />} />
         </Route>
         <Route path="/client-portal/:token" element={<ClientPortal />} />
         <Route path="*" element={<PageNotFound />} />

@@ -59,16 +59,12 @@ export default function AdminDashboard() {
       navigate('/deliveries');
       setActiveSection('overview');
     }
-    if (activeSection === 'fleet') {
-      navigate('/rig-hub');
+    if (activeSection === 'assets') {
+      navigate('/assets');
       setActiveSection('overview');
     }
     if (activeSection === 'vehicles') {
       navigate('/vehicles');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'inventory') {
-      navigate('/asset-inventory');
       setActiveSection('overview');
     }
     if (activeSection === 'timesheets') {

@@ -3,6 +3,7 @@ import { Download, FileText, ArrowLeft } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
+import PageHeader from '@/components/PageHeader';
 
 export default function KeyLogBookDocs() {
   const navigate = useNavigate();
@@ -276,57 +277,42 @@ export default function KeyLogBookDocs() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center px-4 py-10">
-      <div className="w-full max-w-3xl">
-        <button onClick={() => navigate('/admin')} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-[#2E5A1A] mb-6 transition">
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-        </button>
-
-        <div className="hero-gradient rounded-2xl text-white shadow-lg p-6 mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center">
-              <FileText className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">GC Mission Control</h1>
-              <p className="text-sm text-white/70">KeyLogBook Webhook Integration Specification</p>
-            </div>
-          </div>
-          <p className="text-sm text-white/80 mt-3">
-            This document defines the webhook integration between KeyLogBook and GC Mission Control.
-            Download the PDF and share it with the KeyLogBook development team to implement automated data push.
-          </p>
+    <div className="max-w-3xl mx-auto space-y-4">
+      <PageHeader
+        icon={FileText}
+        title="KeyLogBook Integration"
+        subtitle="Webhook integration specification for automated data push"
+        actions={
           <button onClick={generatePDF}
-            className="mt-4 inline-flex items-center gap-2 px-5 py-3 bg-white text-[#2E5A1A] rounded-lg font-semibold text-sm hover:bg-white/90 active:scale-95 transition shadow-sm">
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white text-[#2E5A1A] rounded-lg font-semibold text-sm hover:bg-white/90 active:scale-95 transition shadow-sm">
             <Download className="w-4 h-4" /> Download PDF
           </button>
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5 text-sm text-slate-700">
-          <section>
-            <h2 className="font-bold text-slate-900 text-base mb-1.5">1. Overview</h2>
-            <p className="text-slate-600">GC Mission Control ingests real-time borehole log data and driller daily remarks from KeyLogBook via a single webhook endpoint, supporting two streams: parsed driller remarks (pending manager review) and structured borehole records (read-only technical data).</p>
-          </section>
-          <section>
-            <h2 className="font-bold text-slate-900 text-base mb-1.5">2. Webhook Endpoint</h2>
-            <p className="font-mono text-xs bg-slate-100 px-3 py-2 rounded-lg">POST https://[your-app-domain].base44.app/api/functions/receiveKeyLogBookData</p>
-          </section>
-          <section>
-            <h2 className="font-bold text-slate-900 text-base mb-1.5">3. Authentication</h2>
-            <p className="text-slate-600">Shared secret via header <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">x-klb-signature</code> or query param <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">?secret=</code>.</p>
-          </section>
-          <section>
-            <h2 className="font-bold text-slate-900 text-base mb-1.5">4. Key Payload Fields</h2>
-            <ul className="text-slate-600 space-y-1 list-disc pl-5">
-              <li><strong>job_reference</strong> — string, matches our Job reference</li>
-              <li><strong>date</strong> — YYYY-MM-DD</li>
-              <li><strong>remarks</strong> — driller daily remarks (primary value stream)</li>
-              <li><strong>boreholes</strong> — structured borehole records array</li>
-              <li><strong>logs</strong> — structured log entries array</li>
-            </ul>
-          </section>
-          <p className="text-xs text-slate-400 pt-2 border-t border-slate-100">Click "Download PDF" above to generate the full specification document.</p>
-        </div>
+        }
+      />
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-5 text-sm text-slate-700">
+        <section>
+          <h2 className="font-bold text-slate-900 text-base mb-1.5">1. Overview</h2>
+          <p className="text-slate-600">GC Mission Control ingests real-time borehole log data and driller daily remarks from KeyLogBook via a single webhook endpoint, supporting two streams: parsed driller remarks (pending manager review) and structured borehole records (read-only technical data).</p>
+        </section>
+        <section>
+          <h2 className="font-bold text-slate-900 text-base mb-1.5">2. Webhook Endpoint</h2>
+          <p className="font-mono text-xs bg-slate-100 px-3 py-2 rounded-lg">POST https://[your-app-domain].base44.app/api/functions/receiveKeyLogBookData</p>
+        </section>
+        <section>
+          <h2 className="font-bold text-slate-900 text-base mb-1.5">3. Authentication</h2>
+          <p className="text-slate-600">Shared secret via header <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">x-klb-signature</code> or query param <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">?secret=</code>.</p>
+        </section>
+        <section>
+          <h2 className="font-bold text-slate-900 text-base mb-1.5">4. Key Payload Fields</h2>
+          <ul className="text-slate-600 space-y-1 list-disc pl-5">
+            <li><strong>job_reference</strong> — string, matches our Job reference</li>
+            <li><strong>date</strong> — YYYY-MM-DD</li>
+            <li><strong>remarks</strong> — driller daily remarks (primary value stream)</li>
+            <li><strong>boreholes</strong> — structured borehole records array</li>
+            <li><strong>logs</strong> — structured log entries array</li>
+          </ul>
+        </section>
+        <p className="text-xs text-slate-400 pt-2 border-t border-slate-100">Click "Download PDF" above to generate the full specification document.</p>
       </div>
     </div>
   );

@@ -4,13 +4,12 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { HardHat, Send, CheckCircle2, Clock, LogOut, HelpCircle, Loader2 } from 'lucide-react';
-import Logo from '@/components/Logo';
 import SubcontractorLogForm from '@/components/staff/SubcontractorLogForm';
 import SubconDelayReport from '@/components/subcontractors/SubconDelayReport';
 import SyncHUD from '@/components/staff/SyncHUD';
 import WeeklyProgress from '@/components/staff/WeeklyProgress';
 import { useToast } from '@/components/ui/use-toast';
-import Breadcrumbs from '@/components/Breadcrumbs';
+import PageHeader from '@/components/PageHeader';
 
 // Sub-contractor "Lite" portal — a minimalist daily logging interface.
 // Sub-contractors log their day (including metres drilled), see their weekly
@@ -79,27 +78,16 @@ export default function SubcontractorDashboard() {
     .reduce((sum, l) => sum + (l.units_completed || 0), 0);
 
   return (
-    <div className="bg-slate-50">
-      <Breadcrumbs />
-      {/* Header */}
-      <div className="mesh-bg relative overflow-hidden">
-        <div className="relative max-w-2xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <Logo variant="full" height={48} />
-            <div className="flex gap-1.5">
-              <button onClick={() => navigate('/help')} type="button"
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                <HelpCircle className="w-4 h-4" /> Help
-              </button>
-              <button onClick={handleLogout} type="button"
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation">
-                <LogOut className="w-4 h-4" /> Logout
-              </button>
-            </div>
-          </div>
-          <p className="text-white/85 text-sm text-center">Welcome, {staff.name.split(' ')[0]}</p>
-        </div>
-      </div>
+    <div className="bg-slate-50 space-y-4">
+      <PageHeader
+        icon={HardHat}
+        title={`Welcome, ${staff.name.split(' ')[0]}`}
+        subtitle="Sub-contractor daily logging portal"
+        stats={[
+          { label: 'Today', value: `${meterageToday.toFixed(1)}m`, icon: CheckCircle2 },
+          { label: 'Total Logs', value: sentLogs.length, icon: Send },
+        ]}
+      />
 
       <div className="max-w-2xl mx-auto px-4 pt-5 space-y-4" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
         {/* Sync HUD — persistent confidence indicator */}
