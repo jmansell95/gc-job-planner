@@ -25,12 +25,46 @@ export interface RateCardItemLike {
   is_active?: boolean;
 }
 
-const norm = (s: unknown): string => String(s || '').toLowerCase().trim();
+const norm = (s: unknown): string => String(s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+
+// Light stemmer — collapses common suffixes so "excavator"↔"excavate",
+// "dumping"↔"dump", "tracked"↔"track" all match.
+function stem(t: string): string {
+  let s = t;
+  for (const suf of ['isation', 'ization', 'ation', 'ising', 'izing', 'ing', 'ied', 'ed', 'er', 'es', 's']) {
+    if (s.length > suf.length + 2 && s.endsWith(suf)) {
+      const st = s.slice(0, -suf.length);
+      if (st.length >= 3) return st;
+    }
+  }
+  return s;
+}
+
+function tokenize(s: string): string[] {
+  return norm(s).split(' ').filter((t) => t.length >= 3).map(stem).filter((t) => t.length >= 3);
+}
+
+// Recall-based score: fraction of the description's tokens found in the rate item.
+// Requires at least 2 matched tokens and recall ≥ 0.5 for a confident match.
+function scoreMatch(activityDesc: string, rateDesc: string): number {
+  const activityTokens = tokenize(activityDesc);
+  if (activityTokens.length === 0) return 0;
+  const rateTokenSet = new Set(tokenize(rateDesc));
+  if (rateTokenSet.size === 0) return 0;
+  let hits = 0;
+  for (const t of activityTokens) {
+    if (rateTokenSet.has(t)) hits++;
+  }
+  if (hits === 0) return 0;
+  if (hits < 2) return 0;
+  const recall = hits / activityTokens.length;
+  return recall >= 0.5 ? recall : recall * 0.5;
+}
 
 /**
  * Find the best-matching supplier rate card item for a plant hire description.
  * Searches only the given supplier's rate card.
- * Matching: exact → contains (either direction) → keyword overlap.
+ * Matching: exact → contains (either direction) → recall-based fuzzy match.
  */
 export function findSupplierRateCardItem(
   supplierId: string,
@@ -45,23 +79,26 @@ export function findSupplierRateCardItem(
   if (pool.length === 0) return null;
   const desc = norm(description);
 
+  // 1. Exact match
   let m = pool.find((r) => norm(r.description) === desc);
   if (m) return m;
+  // 2. Contains (either direction)
   m = pool.find((r) => { const d = norm(r.description); return d && d.includes(desc); });
   if (m) return m;
   m = pool.find((r) => { const d = norm(r.description); return d && desc.includes(d); });
   if (m) return m;
 
-  // keyword overlap
-  const descWords = new Set(desc.split(/\W+/).filter((w) => w.length > 2));
+  // 3. Recall-based fuzzy match (same algorithm as projectRateMatcher)
   let best: RateCardItemLike | null = null;
   let bestScore = 0;
   for (const r of pool) {
-    const words = norm(r.description).split(/\W+/).filter((w) => w.length > 2);
-    const score = words.reduce((s, w) => s + (descWords.has(w) ? 1 : 0), 0);
-    if (score > bestScore) { bestScore = score; best = r; }
+    const score = scoreMatch(description, r.description || '');
+    if (score > bestScore) {
+      bestScore = score;
+      best = r;
+    }
   }
-  return bestScore > 0 ? best : null;
+  return bestScore >= 0.5 ? best : null;
 }
 
 /**

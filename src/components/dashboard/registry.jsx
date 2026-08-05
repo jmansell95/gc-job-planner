@@ -38,6 +38,7 @@ export const WIDGET_REGISTRY = {
   'benchmark-comparisons': { title: 'Benchmark Comparisons', icon: BarChart3 },
   'site-weather': { title: 'Site Weather Conditions', icon: CloudSun },
   'config-health': { title: 'Configuration Health', icon: Settings2 },
+  'missing-rates': { title: 'Missing Day Rates', icon: PoundSterling },
 };
 
 export const DEFAULT_WIDGET_ORDER = [
@@ -70,6 +71,7 @@ export const DEFAULT_WIDGET_ORDER = [
   'benchmark-comparisons',
   'site-weather',
   'config-health',
+  'missing-rates',
 ];
 
 // Sectioned layout for the dashboard. Widgets are grouped into labelled sections
@@ -82,7 +84,7 @@ export const DASHBOARD_SECTIONS = [
   { id: 'compliance', label: 'Compliance & Fleet', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard', 'asset-utilization', 'audit-score-trends', 'environmental-impact'] },
   { id: 'feedback', label: 'Client & Quality', icon: Star, widgets: ['client-feedback'] },
   { id: 'alerts', label: 'Alerts', icon: AlertTriangle, widgets: ['profitability-alerts'] },
-  { id: 'system', label: 'System & Settings', icon: Settings2, widgets: ['config-health'] },
+  { id: 'system', label: 'System & Settings', icon: Settings2, widgets: ['config-health', 'missing-rates'] },
 ];
 
 // Map of widget id -> section id (derived from DASHBOARD_SECTIONS).
@@ -127,6 +129,7 @@ export const DEFAULT_WIDGET_SIZES = {
   'benchmark-comparisons': 'lg',
   'site-weather': 'lg',
   'config-health': 'md',
+  'missing-rates': 'md',
 };
 
 // Widgets that require costing permission (admin / manager only).
@@ -135,13 +138,13 @@ export const COST_WIDGETS = ['job-profitability', 'efficiency-snapshot', 'rig-pr
 // Widgets that show company-wide data (not specific to a job). These are hidden
 // when the dashboard is focused on a single job, since they don't reflect that
 // job's data. The remaining widgets already scope themselves via JobFilterContext.
-export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'ai-insights', 'geo-heatmap', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'field-priorities', 'cash-flow-forecast', 'drilling-performance', 'safety-dashboard', 'predictive-insights', 'profitability-alerts', 'staff-utilization', 'predictive-completion', 'benchmark-comparisons', 'site-weather', 'config-health'];
+export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'ai-insights', 'geo-heatmap', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'field-priorities', 'cash-flow-forecast', 'drilling-performance', 'safety-dashboard', 'predictive-insights', 'profitability-alerts', 'staff-utilization', 'predictive-completion', 'benchmark-comparisons', 'site-weather', 'config-health', 'missing-rates'];
 
 // View profiles — quick-toggle scopes that surface only the widgets relevant to
 // one focus area, cutting scroll depth. Applied as an allow-list on top of the
 // user's saved widget order (saved customisation still respected within a profile).
 export const VIEW_PROFILES = [
-  { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'drilling-performance', 'live-site-map', 'site-weather', 'config-health'] },
+  { id: 'operations', label: 'Operations', icon: Activity, widgets: ['executive-snapshot', 'field-crews', 'field-priorities', 'job-assets', 'delivery-stats', 'traffic-heatmap', 'drilling-performance', 'live-site-map', 'site-weather', 'config-health', 'missing-rates'] },
   { id: 'financials', label: 'Financials', icon: PoundSterling, widgets: ['profitability-alerts', 'outstanding-receivables', 'billing-readiness', 'cash-flow-forecast', 'financial-reconciliation', 'project-financials', 'subcon-margin-guard', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip', 'predictive-insights', 'staff-utilization', 'predictive-completion', 'benchmark-comparisons'] },
   { id: 'compliance', label: 'Compliance', icon: ShieldCheck, widgets: ['compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'safety-dashboard', 'asset-utilization', 'audit-score-trends', 'environmental-impact'] },
   { id: 'feedback', label: 'Client & Quality', icon: Star, widgets: ['client-feedback'] },

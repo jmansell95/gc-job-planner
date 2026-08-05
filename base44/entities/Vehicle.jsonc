@@ -124,6 +124,17 @@
     "last_holman_sync": {
       "type": "string",
       "description": "ISO timestamp of the last successful Holman sync for this vehicle."
+    },
+    "spec_lookup_confidence": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low",
+        "none"
+      ],
+      "default": "none",
+      "description": "Confidence level of the last LLM web-search spec lookup. 'high' = make+model+year all returned, 'medium' = make+model only, 'low' = partial/uncertain data, 'none' = no lookup performed. Low-confidence vehicles should be manually reviewed."
     }
   },
   "required": [

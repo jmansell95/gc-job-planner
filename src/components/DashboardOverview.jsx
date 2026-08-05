@@ -42,6 +42,7 @@ import PredictiveCompletionWidget from '@/components/dashboard/PredictiveComplet
 import BenchmarkComparisonsWidget from '@/components/dashboard/BenchmarkComparisonsWidget';
 import SiteWeatherOverviewWidget from '@/components/dashboard/SiteWeatherOverviewWidget';
 import ConfigurationHealthWidget from '@/components/dashboard/ConfigurationHealthWidget';
+import MissingRatesWidget from '@/components/dashboard/MissingRatesWidget';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import CommandJobModal from '@/components/dashboard/CommandJobModal';
@@ -182,6 +183,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'benchmark-comparisons': return <BenchmarkComparisonsWidget />;
       case 'site-weather': return <SiteWeatherOverviewWidget onSelectJob={openJobDrawer} />;
       case 'config-health': return <ConfigurationHealthWidget />;
+      case 'missing-rates': return <MissingRatesWidget />;
       default: return null;
     }
   };

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Truck, ShieldCheck, ShieldAlert, ShieldX, Wrench, Gauge,
   Satellite, Link2, Car, Hash, MapPin, Navigation, Zap, Clock, Palette,
-  FileText, Loader2, BadgeCheck,
+  FileText, Loader2, BadgeCheck, AlertTriangle,
 } from 'lucide-react';
 import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
 import { generateVehicleReport } from '@/utils/vehiclePdfReport';
@@ -198,6 +198,11 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
           )}
           {driverName && (
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">{driverName}</span>
+          )}
+          {vehicle.spec_lookup_confidence === 'low' && (
+            <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium" title="Spec lookup returned partial data — review make/model manually">
+              <AlertTriangle className="w-2.5 h-2.5" /> Review spec
+            </span>
           )}
         </div>
 

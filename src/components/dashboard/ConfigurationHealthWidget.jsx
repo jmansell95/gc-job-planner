@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Settings2, CheckCircle2, AlertCircle, XCircle, Link2, Loader2, ArrowRight } from 'lucide-react';
+import { Settings2, CheckCircle2, AlertCircle, XCircle, Link2, Loader2, ArrowRight, ImagePlus } from 'lucide-react';
 import WidgetShell from '@/components/dashboard/WidgetShell';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/components/ui/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Integrations / settings areas to surface as health checks on the dashboard.
 // Each checks for a config record or connection state so admins see at a glance
@@ -25,8 +27,11 @@ const CHECKS = [
 
 export default function ConfigurationHealthWidget() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [avatarSyncing, setAvatarSyncing] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -51,6 +56,23 @@ export default function ConfigurationHealthWidget() {
 
   const connected = results.filter(r => r.status === 'connected').length;
   const total = results.length;
+
+  const handleAvatarBackfill = async () => {
+    setAvatarSyncing(true);
+    try {
+      const res = await base44.functions.invoke('syncBobAbsences', { action: 'sync' });
+      const d = res.data || res;
+      toast({
+        title: d.ok ? 'Avatar backfill complete' : 'Backfill failed',
+        description: d.message || d.error || '',
+        variant: d.ok ? 'default' : 'destructive',
+      });
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+    } catch (e) {
+      toast({ title: 'Backfill failed', description: e.message, variant: 'destructive' });
+    }
+    setAvatarSyncing(false);
+  };
 
   return (
     <WidgetShell icon={Settings2} title="Configuration Health" subtitle={`${connected}/${total} integrations & settings connected`}>
@@ -80,10 +102,17 @@ export default function ConfigurationHealthWidget() {
             })}
           </div>
 
-          <button onClick={() => navigate('/admin?tab=settings')}
-            className="w-full mt-2 flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-semibold hover:bg-emerald-100 transition">
-            <Link2 className="w-4 h-4" /> Open Settings <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            <button onClick={() => navigate('/admin?tab=settings')}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-semibold hover:bg-emerald-100 transition">
+              <Link2 className="w-4 h-4" /> Settings <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={handleAvatarBackfill} disabled={avatarSyncing}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-100 transition disabled:opacity-50">
+              {avatarSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
+              {avatarSyncing ? 'Syncing…' : 'Backfill Avatars'}
+            </button>
+          </div>
         </div>
       )}
     </WidgetShell>

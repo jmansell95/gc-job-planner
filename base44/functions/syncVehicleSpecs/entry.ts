@@ -154,6 +154,18 @@ CRITICAL: Only return a motExpiryDate if it is a FUTURE date (after today, ${new
   // can return wrong make/model (e.g. "Tesla" for a Land Rover plate), so we
   // only fill fields that are currently empty. This preserves manual
   // corrections and stops bad lookups from clobbering good data.
+  // ── CONFIDENCE SCORING ──
+  // Stamp how confident the LLM lookup was so admins can review low-confidence
+  // vehicles. 'high' = make+model+year all returned, 'medium' = make+model,
+  // 'low' = partial (only one of make/model), 'none' = nothing returned.
+  let confidence: 'high' | 'medium' | 'low' | 'none' = 'none';
+  const hasMake = !!make;
+  const hasModel = !!model;
+  const hasYear = !!year;
+  if (hasMake && hasModel && hasYear) confidence = 'high';
+  else if (hasMake && hasModel) confidence = 'medium';
+  else if (hasMake || hasModel) confidence = 'low';
+
   const update: any = {};
   if (make && !vehicle.make) update.make = make;
   if (model && !vehicle.model) update.model = model;
@@ -164,6 +176,8 @@ CRITICAL: Only return a motExpiryDate if it is a FUTURE date (after today, ${new
   // LLM-sourced one.
   if (motValid && motExpiry && (!vehicle.mot_expiry || motExpiry > vehicle.mot_expiry)) update.mot_expiry = motExpiry;
   if (year && !vehicle.year) update.year = year;
+  // Always stamp the confidence so the review queue stays current.
+  update.spec_lookup_confidence = confidence;
 
   if (Object.keys(update).length > 0) {
     await base44.asServiceRole.entities.Vehicle.update(vehicle.id, update);
