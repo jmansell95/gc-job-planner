@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { ShieldCheck, ShieldX, ShieldAlert, Calendar, Gauge, Loader2, History } from 'lucide-react';
+import { ShieldCheck, ShieldX, ShieldAlert, Calendar, Gauge, Loader2, History, Plus } from 'lucide-react';
+import ManualMOTModal from '@/components/vehicles/ManualMOTModal';
 
 const RESULT_META = {
   pass: { label: 'PASS', Icon: ShieldCheck, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
@@ -21,12 +22,15 @@ const SOURCE_LABEL = {
  * MOTHistoryTimeline — shows the MOT test history for a vehicle as a
  * vertical timeline with pass/fail badges, test dates, and expiry dates.
  */
-export default function MOTHistoryTimeline({ vehicleId }) {
+export default function MOTHistoryTimeline({ vehicleId, vehicle }) {
+  const [showManualModal, setShowManualModal] = useState(false);
   const { data: history = [], isLoading } = useQuery({
     queryKey: ['vehicle-mot-history', vehicleId],
     queryFn: () => base44.entities.VehicleMOTHistory.filter({ vehicle_id: vehicleId }, '-test_date', 50),
     enabled: !!vehicleId,
   });
+
+  const latestResult = history[0]?.result;
 
   if (isLoading) {
     return (
@@ -38,15 +42,34 @@ export default function MOTHistoryTimeline({ vehicleId }) {
 
   if (history.length === 0) {
     return (
-      <div className="text-center py-4 bg-slate-50 rounded-lg">
-        <History className="w-6 h-6 text-slate-300 mx-auto mb-1.5" />
-        <p className="text-xs text-slate-400">No MOT history recorded yet.</p>
-        <p className="text-[10px] text-slate-400 mt-0.5">Run a DVLA spec sync to capture MOT data automatically.</p>
-      </div>
+      <>
+        <div className="text-center py-4 bg-slate-50 rounded-lg">
+          <History className="w-6 h-6 text-slate-300 mx-auto mb-1.5" />
+          <p className="text-xs text-slate-400">No MOT history recorded yet.</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Run a DVLA spec sync to capture MOT data automatically.</p>
+        </div>
+        <button onClick={() => setShowManualModal(true)}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition">
+          <Plus className="w-3.5 h-3.5" /> Log MOT Result Manually
+        </button>
+        <ManualMOTModal open={showManualModal} onClose={() => setShowManualModal(false)} vehicle={vehicle} />
+      </>
     );
   }
 
   return (
+    <>
+    <div className="flex items-center justify-between mb-2">
+      {latestResult === 'fail' && (
+        <span className="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">
+          ⚠️ Latest MOT: FAILED
+        </span>
+      )}
+      <button onClick={() => setShowManualModal(true)}
+        className="ml-auto flex items-center gap-1 px-2 py-1 bg-white border border-slate-200 text-slate-600 rounded-lg text-[11px] font-semibold hover:bg-slate-50 transition">
+        <Plus className="w-3 h-3" /> Log MOT
+      </button>
+    </div>
     <div className="relative">
       {/* Vertical line */}
       <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-slate-200" />
@@ -99,5 +122,7 @@ export default function MOTHistoryTimeline({ vehicleId }) {
         })}
       </div>
     </div>
+    <ManualMOTModal open={showManualModal} onClose={() => setShowManualModal(false)} vehicle={vehicle} />
+    </>
   );
 }

@@ -122,6 +122,14 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
     refetchInterval: 30000,
   });
 
+  // Latest MOT record — used to detect a failed MOT (which clears mot_expiry)
+  const { data: motHistory = [] } = useQuery({
+    queryKey: ['vehicle-mot-history', vehicle?.id],
+    queryFn: () => base44.entities.VehicleMOTHistory.filter({ vehicle_id: vehicle.id }, '-test_date', 1),
+    enabled: !!vehicle,
+  });
+  const latestMOTFailed = motHistory[0]?.result === 'fail';
+
   const latestLoc = useMemo(() => {
     if (!vehicle) return null;
     const locs = Array.isArray(liveLocations) ? liveLocations : [];
@@ -145,6 +153,17 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
     if (field) return geotabLive ? 'Geotab' : null;
     return null;
   };
+
+  // Spec confidence: count how many key spec fields are populated
+  const specFields = [vehicle.make, vehicle.model, vehicle.year, vehicle.fuel_type, vehicle.color, vehicle.vehicle_type, vehicle.vin];
+  const filledSpecs = specFields.filter(Boolean).length;
+  const specConfidence = filledSpecs >= 6 ? 'verified' : filledSpecs >= 3 ? 'partial' : 'unknown';
+  const SPEC_CONFIDENCE = {
+    verified: { label: 'Spec Verified', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', Icon: ShieldCheck },
+    partial: { label: 'Partial Spec', cls: 'bg-amber-50 text-amber-700 border-amber-200', Icon: ShieldAlert },
+    unknown: { label: 'No Spec Data', cls: 'bg-slate-50 text-slate-500 border-slate-200', Icon: ShieldX },
+  };
+  const confidenceMeta = SPEC_CONFIDENCE[specConfidence];
 
   // Live motion status
   const isMoving = latestLoc?.ignition_on && (latestLoc?.speed_kph || 0) > 0;
@@ -225,6 +244,17 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
           </div>
         )}
 
+        {/* ── MOT Failed banner — do not use vehicle ── */}
+        {latestMOTFailed && (
+          <div className="mx-5 mt-3 rounded-xl border border-red-300 bg-red-100 p-3 flex items-center gap-2">
+            <ShieldX className="w-5 h-5 text-red-600 flex-shrink-0" />
+            <div>
+              <p className="text-xs font-bold text-red-800">MOT Failed — Do Not Use</p>
+              <p className="text-[11px] text-red-600">This vehicle must not be driven until a retest is passed. Log a retest in the Maintenance tab.</p>
+            </div>
+          </div>
+        )}
+
         {/* ── Tab switcher ── */}
         <div className="mx-5 mt-4 flex p-1 bg-slate-100 rounded-lg">
           <button onClick={() => setActiveTab('live')}
@@ -298,6 +328,9 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
               <div className="flex items-center gap-2 mb-2">
                 <Car className="w-4 h-4 text-blue-600" />
                 <h3 className="text-sm font-bold text-slate-800">Vehicle Specification</h3>
+                <span className={`ml-auto inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${confidenceMeta.cls}`}>
+                  <confidenceMeta.Icon className="w-3 h-3" /> {confidenceMeta.label}
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <SpecTile icon={Car} label="Make" value={vehicle.make || '—'} source={specSource(vehicle.make)} color="bg-blue-50 border-blue-200" />
@@ -388,7 +421,7 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
                 <h3 className="text-sm font-bold text-slate-800">MOT History</h3>
                 <span className="ml-auto text-[10px] text-slate-400">DVLA</span>
               </div>
-              <MOTHistoryTimeline vehicleId={vehicle.id} />
+              <MOTHistoryTimeline vehicleId={vehicle.id} vehicle={vehicle} />
             </div>
 
             {/* Maintenance timeline */}

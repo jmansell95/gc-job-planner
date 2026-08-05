@@ -15,6 +15,7 @@ import UsefulNumbersModal from '@/components/UsefulNumbersModal';
 import VehicleDetailDrawer from '@/components/vehicles/VehicleDetailDrawer';
 import GeotabReportModal from '@/components/vehicles/GeotabReportModal';
 import FleetHealthRings from '@/components/vehicles/FleetHealthRings';
+import MileageReconciliationWidget from '@/components/vehicles/MileageReconciliationWidget';
 import { Skeleton } from '@/components/StateViews';
 import { differenceInDays } from 'date-fns';
 
@@ -200,6 +201,11 @@ export default function Vehicles() {
               {/* Fleet health rings */}
               <div className="mb-4">
                 <FleetHealthRings stats={stats} />
+              </div>
+
+              {/* Mileage reconciliation */}
+              <div className="mb-4">
+                <MileageReconciliationWidget />
               </div>
 
               {/* Unified sync bar — Geotab + Holman + Reports */}
