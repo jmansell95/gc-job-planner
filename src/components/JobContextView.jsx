@@ -16,33 +16,7 @@ import LogReviewQuickStat from '@/components/investigation/LogReviewQuickStat';
 import PortalLinkManager from '@/components/PortalLinkManager';
 import QuickAssignStaffModal from '@/components/jobs/QuickAssignStaffModal';
 import DecommissioningBanner from '@/components/decommissioning/DecommissioningBanner';
-import FinishJobModal from '@/components/decommissioning/FinishJobModal';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
-
-// Finish Job button — opens the FinishJobModal to start decommissioning
-function FinishJobButton({ job }) {
-  const [showModal, setShowModal] = useState(false);
-  return (
-    <>
-      <div className="flex justify-center">
-        <button
-          onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition shadow-sm"
-        >
-          <AlertTriangle className="w-4 h-4" />
-          Finish Job — Start Decommissioning
-        </button>
-      </div>
-      {showModal && (
-        <FinishJobModal
-          job={job}
-          onClose={() => setShowModal(false)}
-          onStarted={() => {/* parent will refresh via query invalidation */}}
-        />
-      )}
-    </>
-  );
-}
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const fmt2 = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -67,16 +41,6 @@ function VitalsField({ label, icon: Icon, children }) {
         <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">{label}</p>
         <div className="text-sm text-slate-800 font-medium">{children}</div>
       </div>
-    </div>
-  );
-}
-
-function MetricChip({ icon: Icon, value, label, color = 'text-slate-700' }) {
-  return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/70 rounded-lg border border-slate-200/60">
-      <Icon className={'w-3.5 h-3.5 ' + color} />
-      <span className="font-bold text-slate-900 text-sm tabular-nums">{value}</span>
-      <span className="text-slate-500 text-[11px]">{label}</span>
     </div>
   );
 }
@@ -503,14 +467,6 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2">
-            <MetricChip icon={Users} value={assignedStaff.length} label={assignedStaff.length === 1 ? 'crew' : 'crew'} color="text-[#2E5A1A]" />
-            <MetricChip icon={Clock} value={rotas.length} label={rotas.length === 1 ? 'shift' : 'shifts'} color="text-blue-600" />
-            {isDrillingJob && reconciledTotalMetres > 0 && <MetricChip icon={Mountain} value={reconciledTotalMetres.toFixed(1) + 'm'} label="drilled" color="text-amber-600" />}
-            {canSeeCosts && s.profit != null && <MetricChip icon={TrendingUp} value={fmt(s.profit)} label="profit" color={s.profit >= 0 ? 'text-emerald-600' : 'text-red-500'} />}
-            {recentSubcon.length > 0 && <MetricChip icon={ArrowRightLeft} value={recentSubcon.length} label="sub-con logs" color="text-orange-600" />}
-            {recentCosts.length > 0 && <MetricChip icon={Receipt} value={recentCosts.length} label="expenses" color="text-violet-600" />}
-          </div>
         </div>
 
         {/* RIGHT PANE: Recent Activity Feed */}
@@ -577,11 +533,6 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
         <LogReviewQuickStat job={job} />
         <PortalLinkManager job={job} />
       </div>
-
-      {/* Finish Job action — visible when job is in progress */}
-      {job.status === 'in_progress' && (
-        <FinishJobButton job={job} />
-      )}
 
       {/* Full notes */}
       {job.notes && (

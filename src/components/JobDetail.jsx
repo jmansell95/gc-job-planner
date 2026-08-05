@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Edit2, AlertCircle, FileBarChart, Sparkles,
+  ArrowLeft, Edit2, AlertCircle, FileBarChart, Sparkles, PackageCheck, AlertTriangle,
 } from 'lucide-react';
+import FinishJobModal from '@/components/decommissioning/FinishJobModal';
 import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
 import JobWizardModal from '@/components/JobWizardModal';
@@ -41,6 +42,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const queryClient = useQueryClient();
   const [showEditWizard, setShowEditWizard] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showFinishModal, setShowFinishModal] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
 
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
@@ -134,6 +136,13 @@ export default function JobDetail({ job: initialJob, onBack }) {
     queryClient.invalidateQueries({ queryKey: ['jobs'] });
   };
 
+  const handleDecomStarted = () => {
+    queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    queryClient.invalidateQueries({ queryKey: ['job-cost-items', job.id] });
+    queryClient.invalidateQueries({ queryKey: ['rotas-for-job', job.id] });
+    setJob(prev => ({ ...prev, status: 'decommissioning' }));
+  };
+
   const handleProjectJobSelect = (sib) => { setJob(sib); window.scrollTo(0, 0); };
 
   const buildJobPrintHtml = () => {
@@ -170,6 +179,17 @@ export default function JobDetail({ job: initialJob, onBack }) {
           Back to Jobs
         </button>
         <div className="flex items-center gap-1.5">
+          {job.status === 'in_progress' && (
+            <button onClick={() => setShowFinishModal(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition text-sm font-semibold shadow-sm hover:shadow-md">
+              <AlertTriangle className="w-4 h-4" /> <span className="hidden sm:inline">Finish Job</span>
+            </button>
+          )}
+          {job.status === 'decommissioning' && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-100 text-amber-800 rounded-lg text-sm font-semibold border border-amber-200">
+              <PackageCheck className="w-4 h-4" /> Decommissioning
+            </span>
+          )}
           <button onClick={() => setShowStatusModal(true)}
             className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition text-sm font-medium shadow-sm">
             <AlertCircle className="w-4 h-4" /> <span className="hidden sm:inline">Status</span>
@@ -185,6 +205,14 @@ export default function JobDetail({ job: initialJob, onBack }) {
           </button>
         </div>
       </div>
+
+      {showFinishModal && (
+        <FinishJobModal
+          job={job}
+          onClose={() => setShowFinishModal(false)}
+          onStarted={handleDecomStarted}
+        />
+      )}
 
       {/* Modern gradient hero header */}
       <JobDetailHero
