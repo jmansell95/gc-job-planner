@@ -12,6 +12,7 @@ import PrintReportButton from '@/components/PrintReportButton';
 import JobCreatedModal from '@/components/JobCreatedModal';
 import ProjectManager from '@/components/ProjectManager';
 import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
+import { hasDiscipline, getJobDisciplines, getDisciplineConfig } from '@/utils/jobDisciplines';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 
@@ -84,6 +85,7 @@ export default function JobManager({ onNavigateRota }) {
   const [typeFilter, setTypeFilter] = useState('all');
   const [clientFilter, setClientFilter] = useState('all');
   const [projectFilter, setProjectFilter] = useState('all');
+  const [disciplineFilter, setDisciplineFilter] = useState('all');
   const [createdJob, setCreatedJob] = useState(null);
   const [view, setView] = useState('jobs'); // 'jobs' | 'projects'
 
@@ -153,7 +155,8 @@ export default function JobManager({ onNavigateRota }) {
     const matchesProject = projectFilter === 'all' || (projectFilter === 'standalone' ? !job.project_id : job.project_id === projectFilter);
     const primaryType = getJobPrimaryType(job, teams);
     const matchesType = typeFilter === 'all' || primaryType === typeFilter;
-    return matchesSearch && matchesStatus && matchesClient && matchesProject && matchesType;
+    const matchesDiscipline = disciplineFilter === 'all' || hasDiscipline(job, disciplineFilter);
+    return matchesSearch && matchesStatus && matchesClient && matchesProject && matchesType && matchesDiscipline;
   });
 
   // Summary stats — reflect the current filter context
@@ -269,6 +272,37 @@ export default function JobManager({ onNavigateRota }) {
               },
             ]}
           />
+          {/* Discipline filter strip — click to filter jobs by discipline */}
+          {(() => {
+            const allDisciplines = new Set();
+            jobs.forEach(j => getJobDisciplines(j).forEach(d => allDisciplines.add(d.type)));
+            const types = [...allDisciplines];
+            if (types.length < 2) return null;
+            return (
+              <div className="flex flex-wrap items-center gap-1.5 mb-4">
+                <button
+                  onClick={() => setDisciplineFilter('all')}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${disciplineFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                >
+                  All Disciplines
+                </button>
+                {types.map(t => {
+                  const cfg = getDisciplineConfig(t);
+                  const active = disciplineFilter === t;
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setDisciplineFilter(active ? 'all' : t)}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-full transition inline-flex items-center gap-1.5 ${cfg.badge} ${active ? 'ring-2 ring-offset-1' : 'hover:opacity-80'}`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                      {cfg.label}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </>
       )}
 
@@ -298,7 +332,7 @@ export default function JobManager({ onNavigateRota }) {
                       <div className="flex flex-wrap gap-1.5">
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${getJobTypeColor(primaryType, jobTypes).badge}`}>{getJobTypeLabel(primaryType, jobTypes)}</span>
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[job.status || 'planning']}`}>{statusLabels[job.status || 'planning']}</span>
-                        <DisciplinePills job={job} size="sm" />
+                        <DisciplinePills job={job} size="sm" onFilter={setDisciplineFilter} />
                       </div>
                       {job.requisition_list_url && <FileText className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" title="Has requisition list" />}
                     </div>

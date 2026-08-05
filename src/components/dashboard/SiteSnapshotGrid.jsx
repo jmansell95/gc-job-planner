@@ -9,6 +9,7 @@ import {
 import { format } from 'date-fns';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import { getJobPrimaryType, getJobTypeLabel, getJobTypeColor } from '@/utils/jobTeams';
+import { hasDiscipline, getJobDisciplines, getDisciplineConfig } from '@/utils/jobDisciplines';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
 import { Skeleton } from '@/components/StateViews';
 
@@ -91,7 +92,7 @@ function RigCard({ rigAsset, assetMap, costItems, jobId }) {
 }
 
 export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
-  const { selectedJobId } = useJobFilter();
+  const { selectedJobId, disciplineFilter, setDisciplineFilter } = useJobFilter();
   const isAll = selectedJobId === 'all';
 
   const { data: jobs = [], isLoading } = useQuery({ queryKey: ['jobs'], queryFn: () => base44.entities.Job.list() });
@@ -120,9 +121,13 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
   (assets || []).forEach(a => { assetMap[a.id] = a; });
 
   // Only show active sites (in_progress, decommissioning) unless a specific job is focused
-  const scopedJobs = isAll
+  let scopedJobs = isAll
     ? jobs.filter(j => j.status === 'in_progress' || j.status === 'decommissioning')
     : jobs.filter(j => j.id === selectedJobId);
+  // Apply global discipline filter (clicking a discipline pill filters the grid)
+  if (disciplineFilter !== 'all') {
+    scopedJobs = scopedJobs.filter(j => hasDiscipline(j, disciplineFilter));
+  }
 
   const logsByJob = {};
   invLogs.forEach(l => {
@@ -231,6 +236,38 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
         <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">{scopedJobs.length} {scopedJobs.length === 1 ? 'Site' : 'Sites'}</span>
       </div>
 
+      {/* Discipline filter strip — click to filter the grid by discipline */}
+      {(() => {
+        const allDisciplines = new Set();
+        jobs.forEach(j => getJobDisciplines(j).forEach(d => allDisciplines.add(d.type)));
+        const types = [...allDisciplines];
+        if (types.length < 2) return null;
+        return (
+          <div className="flex flex-wrap items-center gap-1.5 mb-3 px-1">
+            <button
+              onClick={() => setDisciplineFilter('all')}
+              className={`text-[11px] font-semibold px-2.5 py-1 rounded-full transition ${disciplineFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              All
+            </button>
+            {types.map(t => {
+              const cfg = getDisciplineConfig(t);
+              const active = disciplineFilter === t;
+              return (
+                <button
+                  key={t}
+                  onClick={() => setDisciplineFilter(active ? 'all' : t)}
+                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-full transition inline-flex items-center gap-1 ${active ? 'ring-2 ring-offset-1 ' + cfg.badge : cfg.badge + ' hover:opacity-80'}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                  {cfg.label}
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {scopedJobs.map(job => {
           const jobAssets = assetsByJob[job.id] || [];
@@ -273,7 +310,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                     {job.job_reference && (
                       <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded-full">{job.job_reference}</span>
                     )}
-                    <DisciplinePills job={job} size="sm" />
+                    <DisciplinePills job={job} size="sm" onFilter={setDisciplineFilter} />
                   </div>
                   <h3 className="font-bold text-slate-900 text-sm leading-tight truncate">{job.name}</h3>
                   <p className="text-xs text-slate-400 truncate flex items-center gap-1 mt-0.5">
