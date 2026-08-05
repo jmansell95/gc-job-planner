@@ -216,8 +216,8 @@ function isPlantPlannerSheet(sheetName) {
 //   • "Team Planner 2026_GW+Depot" → Groundworkers and Depot Staff
 //   • "Drillers" → Drilling team (latest)
 const TARGET_SHEET_PATTERNS = [
-  /team\s*planner.*2026.*(gw|depot|drill)/i,
-  /driller/i,
+  /team\s*planner.*2026.*gw\+depot/i,
+  /^drillers$/i,
 ];
 
 function isTargetSheet(sheetName) {
@@ -496,10 +496,10 @@ export default async function(req) {
       const sheet = workbook.Sheets[sheetName];
       if (!sheet) continue;
       const isTarget = isTargetSheet(sheetName);
+      if (!isTarget) continue; // Only process target tabs — skip all others
       sheetNames.push(sheetName);
-      if (!isTarget) legacySheetNames.push(sheetName);
       const sheetAssignments = parseSheet(sheet, sheetName);
-      for (const a of sheetAssignments) a.is_legacy = !isTarget;
+      for (const a of sheetAssignments) a.is_legacy = false;
       if (sheetAssignments.length > 0 && sheetAssignments[0]._sections) {
         for (const s of sheetAssignments[0]._sections) allSectionsDetected.add(s);
       }
@@ -511,7 +511,7 @@ export default async function(req) {
       sheetBreakdown.push({
         sheet: sheetName,
         is_plant: isPlantPlannerSheet(sheetName),
-        is_legacy: !isTarget,
+        is_legacy: false,
         assignments: sheetAssignments.length,
         sections: [...new Set(sheetAssignments.map(a => a.crew_section).filter(Boolean))],
         date_range: sheetDates.length ? { from: sheetDates[0], to: sheetDates[sheetDates.length - 1] } : null,
@@ -1702,6 +1702,18 @@ export default async function(req) {
       crewCostItemsCreated = crewCostItemPayloads.length;
     }
 
+    // Clean up: remove completed jobs and their rota assignments — only keep in-progress jobs
+    let completedJobsRemoved = 0;
+    if (!dryRun) {
+      const allCreatedJobs = await base44.asServiceRole.entities.Job.list('-created_date', 5000);
+      const completedJobs = allCreatedJobs.filter(j => j.status === 'completed');
+      for (const job of completedJobs) {
+        await base44.asServiceRole.entities.RotaAssignment.deleteMany({ job_id: job.id });
+        await base44.asServiceRole.entities.Job.delete(job.id);
+        completedJobsRemoved++;
+      }
+    }
+
     return Response.json({
       status: 'success',
       dry_run: false,
@@ -1713,6 +1725,7 @@ export default async function(req) {
         staff: { ...summary.staff, leavers_marked_inactive: leaversMarked },
         training: { ...summary.training, bookings_created: createdTrainingBookings },
         absences: { ...summary.absences, created: createdAbsences },
+        completed_jobs_removed: completedJobsRemoved,
       },
       sheet_breakdown: sheetBreakdown,
       staff_breakdown: staffBreakdown,
