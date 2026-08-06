@@ -42,7 +42,6 @@ import ConfigurationHealthWidget from '@/components/dashboard/ConfigurationHealt
 import MissingRatesWidget from '@/components/dashboard/MissingRatesWidget';
 import SiteReadinessGate from '@/components/safety/SiteReadinessGate';
 import OffHireReconciliationWidget from '@/components/logistics/OffHireReconciliationWidget';
-import CrewDeploymentWidget from '@/components/dashboard/CrewDeploymentWidget';
 import DeliveryStats from '@/components/DeliveryStats';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
 import { canViewCostings } from '@/utils/access';
@@ -126,7 +125,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'geo-heatmap': return <GeotechnicalHeatmapWidget />;
       case 'unbilled-wip': return canViewCosts ? <UnbilledLiabilityWidget /> : null;
       case 'project-financials': return canViewCosts ? <ProjectFinancialsWidget onNavigate={onNavigate} /> : null;
-      case 'crew-deployment': return <CrewDeploymentWidget todaysRotas={todaysRotas} staff={staff} jobs={scopedJobs} vehicles={vehicles} onSelectJob={openJobDrawer} onNavigate={onNavigate} />;
       case 'charts': return <ChartsWidget jobs={scopedJobs} staff={staff} rotas={scopedRotas} weekDays={weekDays} />;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
       case 'job-assets': return <JobAssetsWidget onSelectJob={openJobDrawer} />;

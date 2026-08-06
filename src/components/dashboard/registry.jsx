@@ -70,7 +70,6 @@ export const SECONDARY_WIDGETS = [
 // and toggle visibility via the Customize button; order is persisted to
 // localStorage. This replaces the old primary/secondary split.
 export const DEFAULT_WIDGETS = [
-  'crew-deployment',
   'site-readiness',
   'off-hire-recon',
 ];

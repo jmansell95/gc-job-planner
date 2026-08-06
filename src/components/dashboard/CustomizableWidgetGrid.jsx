@@ -11,9 +11,13 @@ function loadOrder() {
     const saved = localStorage.getItem(ORDER_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
+      // Filter out stale widget IDs that no longer exist in the registry —
+      // old saved orders from previous app versions contained widget IDs
+      // that have since been removed, causing blank panels on the dashboard.
+      const valid = parsed.filter(id => WIDGET_REGISTRY[id]);
       // Merge any new default widgets not yet in the saved order
-      const newWidgets = DEFAULT_WIDGETS.filter(id => !parsed.includes(id));
-      return [...parsed, ...newWidgets];
+      const newWidgets = DEFAULT_WIDGETS.filter(id => !valid.includes(id));
+      return [...valid, ...newWidgets];
     }
   } catch {}
   return [...DEFAULT_WIDGETS];
@@ -123,7 +127,10 @@ export default function CustomizableWidgetGrid({ renderWidget, canShowWidget }) 
               ref={provided.innerRef}
               className="flex flex-wrap gap-4"
             >
-              {visibleWidgets.map((widgetId, index) => (
+              {visibleWidgets.map((widgetId, index) => {
+                const content = renderWidget(widgetId);
+                if (!content) return null;
+                return (
                 <Draggable
                   key={widgetId}
                   draggableId={widgetId}
@@ -144,11 +151,12 @@ export default function CustomizableWidgetGrid({ renderWidget, canShowWidget }) 
                           <GripVertical className="w-3 h-3" /> Drag
                         </div>
                       )}
-                      {renderWidget(widgetId)}
+                      {content}
                     </div>
                   )}
                 </Draggable>
-              ))}
+                );
+              })}
               {provided.placeholder}
             </div>
           )}
