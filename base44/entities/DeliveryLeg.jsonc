@@ -1,0 +1,164 @@
+{
+  "name": "DeliveryLeg",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this delivery is ultimately destined for (the final delivery leg's job). Blank for collection-only legs that haven't been assigned a destination yet."
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display without joining)."
+    },
+    "job_cost_item_id": {
+      "type": "string",
+      "description": "The JobCostItem (rig/gear) being moved in this leg. Links the delivery chain to the billable item on the job."
+    },
+    "asset_id": {
+      "type": "string",
+      "description": "SiteAsset being moved (denormalised from the JobCostItem for quick lookup)."
+    },
+    "asset_name": {
+      "type": "string",
+      "description": "Asset name (denormalised for display)."
+    },
+    "leg_type": {
+      "type": "string",
+      "enum": [
+        "collect",
+        "transfer",
+        "deliver"
+      ],
+      "description": "Type of leg. 'collect' = pick up gear from supplier/depot/another site. 'transfer' = hand gear from one driver to another at an intermediate point (yard, layby). 'deliver' = final delivery to the job site."
+    },
+    "leg_sequence": {
+      "type": "number",
+      "description": "Order of this leg in the chain (1 = first leg, 2 = second, etc.). Used to reconstruct the full delivery chain from collection through transfers to final delivery."
+    },
+    "from_location": {
+      "type": "string",
+      "description": "Where the gear is being collected from. For 'collect' legs: supplier yard, depot, or another site. For 'transfer' legs: the handover point. For 'deliver' legs: the last transfer point or depot."
+    },
+    "to_location": {
+      "type": "string",
+      "description": "Where the gear is being delivered to. For 'collect' legs: the depot or transfer point. For 'transfer' legs: the next handover point. For 'deliver' legs: the final job site."
+    },
+    "from_location_type": {
+      "type": "string",
+      "enum": [
+        "supplier",
+        "depot",
+        "site",
+        "layby",
+        "other"
+      ],
+      "default": "depot",
+      "description": "Type of origin location. 'supplier' = hired from a supplier, 'depot' = GC yard/depot, 'site' = another job site, 'layby' = roadside transfer point."
+    },
+    "to_location_type": {
+      "type": "string",
+      "enum": [
+        "depot",
+        "site",
+        "layby",
+        "other"
+      ],
+      "default": "site",
+      "description": "Type of destination location. 'depot' = GC yard/depot, 'site' = job site, 'layby' = roadside transfer point."
+    },
+    "driver_id": {
+      "type": "string",
+      "description": "Staff member driving this leg."
+    },
+    "driver_name": {
+      "type": "string",
+      "description": "Driver name (denormalised for display without joining Staff records)."
+    },
+    "vehicle_id": {
+      "type": "string",
+      "description": "Vehicle used for this leg."
+    },
+    "vehicle_name": {
+      "type": "string",
+      "description": "Vehicle name/registration (denormalised for display)."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_transit",
+        "complete"
+      ],
+      "default": "pending",
+      "description": "Leg status. 'pending' = scheduled but not started. 'in_transit' = driver has collected the gear and is en route. 'complete' = gear has been delivered/handed over and confirmed with photo + signature."
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this leg is scheduled to happen."
+    },
+    "scheduled_time": {
+      "type": "string",
+      "description": "Scheduled time (HH:MM) for this leg."
+    },
+    "collected_at": {
+      "type": "string",
+      "description": "ISO timestamp when the driver confirmed collection (gear picked up from origin)."
+    },
+    "delivered_at": {
+      "type": "string",
+      "description": "ISO timestamp when the driver confirmed delivery/handover (gear dropped off at destination)."
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "Photo proof of collection/delivery/handover. Captured by the driver at the point of confirmation."
+    },
+    "signature_url": {
+      "type": "string",
+      "description": "Signature of the receiving party (site contact, next driver) confirming handover. Required for 'deliver' legs; optional for transfers."
+    },
+    "handover_to_driver_id": {
+      "type": "string",
+      "description": "For 'transfer' legs: the driver who receives the gear from this driver. Links to the next leg in the chain."
+    },
+    "handover_to_driver_name": {
+      "type": "string",
+      "description": "Name of the receiving driver (denormalised for display)."
+    },
+    "gps_lat": {
+      "type": "number",
+      "description": "GPS latitude captured at the point of collection/delivery/handover confirmation."
+    },
+    "gps_lng": {
+      "type": "number",
+      "description": "GPS longitude captured at the point of collection/delivery/handover confirmation."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Driver notes about this leg (condition of gear, access issues, delays, site contact details)."
+    }
+  },
+  "required": [
+    "leg_type",
+    "driver_id",
+    "scheduled_date"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

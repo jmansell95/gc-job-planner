@@ -1,9 +1,10 @@
-import { Truck, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Boxes, Sparkles, TrendingUp, HardHat, Activity, LayoutDashboard, MapPin, FileClock, FolderKanban, AlertTriangle, Scale, ClipboardCheck, Gauge, ShieldAlert, Brain, Navigation, AlertOctagon, Star, Leaf, CloudSun, Settings2 } from 'lucide-react';
+import { Truck, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Boxes, Sparkles, TrendingUp, HardHat, Activity, LayoutDashboard, MapPin, FileClock, FolderKanban, AlertTriangle, Scale, ClipboardCheck, Gauge, ShieldAlert, Brain, Navigation, AlertOctagon, Star, Leaf, CloudSun, Settings2, Warehouse } from 'lucide-react';
 
 export const WIDGET_REGISTRY = {
   'executive-snapshot': { title: 'Executive Snapshot', icon: LayoutDashboard },
   'delivery-stats': { title: 'Deliveries & Collections', icon: Truck },
   'compliance-overview': { title: 'Compliance Overview', icon: ShieldCheck },
+  'yard-control': { title: 'Yard Control', icon: Warehouse },
   'field-crews': { title: 'Field Crews Today', icon: Users },
   'charts': { title: 'Weekly Trends', icon: BarChart3 },
   'maintenance-quick-view': { title: 'Fleet Compliance', icon: CalendarClock },
@@ -66,6 +67,7 @@ export const SECONDARY_WIDGETS = [
 // localStorage. This replaces the old primary/secondary split.
 export const DEFAULT_WIDGETS = [
   'field-crews',
+  'yard-control',
   'field-priorities',
   'live-site-map',
   'site-weather',
