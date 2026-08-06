@@ -97,6 +97,44 @@ export default async function(req) {
       }
     }
 
+    // 5. Also create DeliveryLeg records for the multi-leg chain model.
+    //    Each on-site gear item gets a 'collect' leg from the site back to
+    //    the depot (or supplier for hired equipment). Managers can then add
+    //    transfer/deliver legs in the Delivery Chain Builder if the return
+    //    trip requires multiple drivers.
+    const deliveryLegs = [];
+    for (const item of onSiteItems) {
+      if (existingCollectionKeys.has(item.id)) continue;
+      const isHired = item.category === 'hired_equipment' && item.supplier_id;
+      deliveryLegs.push({
+        job_id: job_id,
+        job_name: job.name,
+        job_cost_item_id: item.id,
+        asset_id: item.site_asset_id || '',
+        asset_name: item.description || '',
+        leg_type: 'collect',
+        leg_sequence: 1,
+        from_location: job.location || 'Site',
+        to_location: isHired ? 'Supplier' : 'Depot',
+        from_location_type: 'site',
+        to_location_type: isHired ? 'supplier' : 'depot',
+        driver_id: '',
+        driver_name: '',
+        status: 'pending',
+        scheduled_date: now.slice(0, 10),
+        notes: `Auto-generated during decommissioning — collect ${item.description} from ${job.name}`,
+      });
+    }
+
+    let legsCreated = 0;
+    if (deliveryLegs.length > 0) {
+      for (let i = 0; i < deliveryLegs.length; i += 400) {
+        const batch = deliveryLegs.slice(i, i + 400);
+        await base44.asServiceRole.entities.DeliveryLeg.bulkCreate(batch);
+        legsCreated += batch.length;
+      }
+    }
+
     return Response.json({
       status: 'success',
       job_id,
@@ -104,6 +142,7 @@ export default async function(req) {
       new_status: 'decommissioning',
       on_site_items_found: onSiteItems.length,
       collection_tasks_created: created,
+      delivery_legs_created: legsCreated,
       skipped_duplicates: onSiteItems.length - created,
     });
   } catch (error) {

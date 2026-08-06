@@ -77,6 +77,20 @@ export default function DriverLegChainView({ staffId }) {
         delivered_at: new Date().toISOString(),
         ...(gps ? { gps_lat: gps.lat, gps_lng: gps.lng } : {}),
       });
+
+      // Auto-update linked gear location based on leg type
+      if (leg.job_cost_item_id) {
+        const newLocation = leg.leg_type === 'deliver' ? 'site' : (leg.leg_type === 'collect' ? 'depot' : 'in_transit');
+        try {
+          await base44.entities.JobCostItem.update(leg.job_cost_item_id, {
+            current_location: newLocation,
+            location_updated_at: new Date().toISOString(),
+          });
+        } catch (e) {
+          console.error('Gear location update error:', e);
+        }
+      }
+
       toast({ title: 'Delivered', description: `Leg ${leg.leg_sequence} — gear delivered to ${leg.to_location}` });
       queryClient.invalidateQueries({ queryKey: ['my-delivery-legs'] });
     } catch (e) {

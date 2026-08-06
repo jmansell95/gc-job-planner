@@ -33,6 +33,7 @@ export default function DeliveryChainBuilder() {
   const [selectedJobId, setSelectedJobId] = useState('');
   const [legs, setLegs] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [selectedGearId, setSelectedGearId] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -46,7 +47,18 @@ export default function DeliveryChainBuilder() {
     enabled: !!selectedJobId,
   });
 
+  const { data: costItems = [] } = useQuery({
+    queryKey: ['job-cost-items-chain', selectedJobId],
+    queryFn: () => base44.entities.JobCostItem.filter({ job_id: selectedJobId }),
+    enabled: !!selectedJobId,
+  });
+
   const selectedJob = jobs.find(j => j.id === selectedJobId);
+  const gearItems = (costItems || []).filter(c =>
+    c.site_asset_id && c.site_asset_id.trim() !== '' &&
+    (c.hire_status || 'active') === 'active'
+  );
+  const selectedGear = gearItems.find(g => g.id === selectedGearId);
   const sortedExisting = [...(existingLegs || [])].sort((a, b) => (a.leg_sequence || 0) - (b.leg_sequence || 0));
 
   const addLeg = () => {
@@ -94,6 +106,9 @@ export default function DeliveryChainBuilder() {
         return {
           job_id: selectedJobId,
           job_name: selectedJob?.name || '',
+          job_cost_item_id: selectedGearId || '',
+          asset_id: selectedGear ? selectedGear.site_asset_id || '' : '',
+          asset_name: selectedGear ? selectedGear.description || '' : '',
           leg_type: l.leg_type,
           leg_sequence: i + 1,
           from_location: l.from_location,
@@ -115,6 +130,7 @@ export default function DeliveryChainBuilder() {
       await base44.entities.DeliveryLeg.bulkCreate(payloads);
       toast({ title: 'Delivery chain created', description: `${payloads.length} leg${payloads.length !== 1 ? 's' : ''} saved for ${selectedJob?.name}` });
       setLegs([]);
+      setSelectedGearId('');
       queryClient.invalidateQueries({ queryKey: ['delivery-legs-job'] });
     } catch (e) {
       toast({ title: 'Could not save chain', description: e.message, variant: 'destructive' });
@@ -130,7 +146,7 @@ export default function DeliveryChainBuilder() {
         <label className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 block">Select Job</label>
         <select
           value={selectedJobId}
-          onChange={e => { setSelectedJobId(e.target.value); setLegs([]); }}
+          onChange={e => { setSelectedJobId(e.target.value); setLegs([]); setSelectedGearId(''); }}
           className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
         >
           <option value="">— Choose a job —</option>
@@ -139,6 +155,24 @@ export default function DeliveryChainBuilder() {
           ))}
         </select>
       </div>
+
+      {/* Gear selector */}
+      {selectedJobId && gearItems.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 block">Gear to Move (optional)</label>
+          <select
+            value={selectedGearId}
+            onChange={e => setSelectedGearId(e.target.value)}
+            className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+          >
+            <option value="">— Unlinked (no gear tracking) —</option>
+            {gearItems.map(g => (
+              <option key={g.id} value={g.id}>{g.description || 'Gear'}{g.reference_number ? ` · ${g.reference_number}` : ''}</option>
+            ))}
+          </select>
+          <p className="text-xs text-slate-400 mt-1.5">All legs in this chain will be linked to the selected gear — its location auto-updates as drivers complete each leg.</p>
+        </div>
+      )}
 
       {/* Existing chains for this job */}
       {selectedJobId && (
