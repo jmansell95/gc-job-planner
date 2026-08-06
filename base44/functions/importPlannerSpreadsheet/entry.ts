@@ -1537,44 +1537,86 @@ export default async function(req) {
     }
 
     // -----------------------------------------------------------------------
-    // 7. Build desired rota set
+    // 7. Build desired rota set — ONE assignment per staff per date
     // -----------------------------------------------------------------------
-    const desiredKeys = new Set();
-    const rotasToCreate = [];
-    const nonJobDays = [];
+    // Enforces strict single-location assignment: one person cannot be
+    // assigned to a job AND on leave on the same day. When the same person
+    // has multiple entries on the same date (from appearing in multiple
+    // sections or carry-forward from merged cells), the winner is picked
+    // by priority:
+    //   • Non-carried-forward entries beat carried-forward entries
+    //   • Absences (sick > annual_leave > training) beat job assignments
+    //   • Job assignments beat yard/depot
+    // This matches reality: if someone is on holiday/sick, they're not at
+    // work — any job entry on that day is a stale carry-forward or error.
+    const TYPE_PRIORITY = { sick: 50, annual_leave: 45, training: 40, job: 30, yard_depot: 20 };
+    function rotaPriority(a) {
+      const base = a.non_job_type ? (TYPE_PRIORITY[a.non_job_type] || 5) : TYPE_PRIORITY.job;
+      return base + (a.carried_forward ? 0 : 100);
+    }
+
+    const desiredByStaffDate = {}; // key: staff_id|date → { a, priority, staff, job }
     let duplicateRotaRows = 0;
-    const nonJobCounts = { annual_leave: 0, sick: 0, training: 0, yard_depot: 0 };
+    const conflicts = [];
     for (const a of teamAssignments) {
       if (!a.date) continue;
       const staff = staffMap.get(nameKey(a.staff_name));
       if (!staff) continue;
+      // Resolve job for job entries (skip if unresolvable)
+      let resolvedJob = null;
+      if (!a.non_job_type && a.job_name) {
+        resolvedJob = findJobForAssignment(a.job_name);
+        if (!resolvedJob) continue;
+      }
+      if (!a.non_job_type && !a.job_name) continue;
+
+      const dateKey = `${staff.id}|${a.date}`;
+      const priority = rotaPriority(a);
+      if (!desiredByStaffDate[dateKey]) {
+        desiredByStaffDate[dateKey] = { a, priority, staff, job: resolvedJob };
+      } else {
+        const prev = desiredByStaffDate[dateKey];
+        duplicateRotaRows++;
+        // Record the resolved conflict
+        const winnerIsNew = priority > prev.priority;
+        const winnerA = winnerIsNew ? a : prev.a;
+        const droppedA = winnerIsNew ? prev.a : a;
+        const winnerLabel = winnerA.non_job_type ? (winnerA.non_job_label || winnerA.non_job_type) : winnerA.job_name;
+        const droppedLabel = droppedA.non_job_type ? (droppedA.non_job_label || droppedA.non_job_type) : droppedA.job_name;
+        conflicts.push({
+          staff_id: staff.id,
+          staff_name: staff.name,
+          date: a.date,
+          winner: winnerLabel,
+          dropped: droppedLabel,
+          winner_type: winnerA.non_job_type || 'job',
+          dropped_type: droppedA.non_job_type || 'job',
+          conflict_note: `Had "${droppedLabel}" and "${winnerLabel}" on ${a.date} — kept "${winnerLabel}"`,
+        });
+        if (winnerIsNew) {
+          desiredByStaffDate[dateKey] = { a, priority, staff, job: resolvedJob };
+        }
+      }
+    }
+
+    const rotasToCreate = [];
+    const nonJobDays = [];
+    const nonJobCounts = { annual_leave: 0, sick: 0, training: 0, yard_depot: 0 };
+    for (const { a, staff, job } of Object.values(desiredByStaffDate)) {
       if (a.non_job_type) {
-        const key = `${staff.id}|${a.date}|${a.non_job_type}`;
-        if (desiredKeys.has(key)) { duplicateRotaRows++; continue; }
-        desiredKeys.add(key);
         rotasToCreate.push({
           staff_id: staff.id, assigned_date: a.date,
           week_start: getWeekStart(a.date),
-          // Legacy (prehistoric) data is always historical → completed
           status: (a.is_legacy || a.date < TODAY) ? 'completed' : 'assigned',
           assignment_type: a.non_job_type,
           non_job_label: a.non_job_label || undefined,
         });
         nonJobCounts[a.non_job_type]++;
         nonJobDays.push({ staff_id: staff.id, staff_name: staff.name, date: a.date, type: a.non_job_type, label: a.non_job_label });
-      } else if (a.job_name) {
-        const job = findJobForAssignment(a.job_name);
-        if (!job) continue;
-        const key = `${staff.id}|${a.date}|${job.id}`;
-        if (desiredKeys.has(key)) { duplicateRotaRows++; continue; }
-        desiredKeys.add(key);
+      } else if (job) {
         rotasToCreate.push({
           staff_id: staff.id, job_id: job.id, assigned_date: a.date,
           week_start: getWeekStart(a.date),
-          // Legacy (prehistoric) data is always historical → completed.
-          // Past shifts are done; today's and future shifts are planned.
-          // The dashboard "Crews On Site Today" widget filters by assigned_date
-          // === today, so today's assignments appear there regardless of status.
           status: (a.is_legacy || a.date < TODAY) ? 'completed' : 'assigned',
         });
       }
@@ -1594,53 +1636,13 @@ export default async function(req) {
     }
 
     // -----------------------------------------------------------------------
-    // 7a. Global Rota Registry — Conflict Detection
+    // 7a. Conflict Reporting (conflicts resolved in step 7)
     // -----------------------------------------------------------------------
-    // Detect double-bookings: a staff member assigned to multiple jobs or
-    // yard/depot on the same date. Non-job types (annual_leave, sick, training)
-    // don't conflict with each other but DO conflict with job/yard_depot.
-    // Conflicting assignments are flagged with has_conflict + conflict_note so
-    // the Weekly Rota Builder can show warnings and managers can resolve them.
-    const workRotasByStaffDate = {};
-    for (const r of rotasToCreate) {
-      if (r.assignment_type !== 'job' && r.assignment_type !== 'yard_depot') continue;
-      const key = `${r.staff_id}|${r.assigned_date}`;
-      if (!workRotasByStaffDate[key]) workRotasByStaffDate[key] = [];
-      workRotasByStaffDate[key].push(r);
-    }
-
-    const conflicts = [];
-    for (const [key, assignments] of Object.entries(workRotasByStaffDate)) {
-      if (assignments.length < 2) continue;
-      const [staffId, date] = key.split('|');
-      const staff = [...staffMap.values()].find(s => s.id === staffId);
-      const staffName = staff?.name || 'Unknown';
-      const conflictDescs = assignments.map(a => {
-        if (a.assignment_type === 'yard_depot') return a.non_job_label || 'Yard/Depot';
-        const job = [...jobMap.values()].find(j => j.id === a.job_id);
-        return job?.name || 'Unknown Job';
-      });
-      const note = `Assigned to ${conflictDescs.join(' AND ')} on ${date}`;
-      for (const a of assignments) {
-        a.has_conflict = true;
-        a.conflict_note = note;
-      }
-      conflicts.push({
-        staff_id: staffId,
-        staff_name: staffName,
-        date,
-        assignments: assignments.map((a, i) => ({
-          assignment_type: a.assignment_type,
-          job_id: a.job_id || '',
-          job_name: conflictDescs[i],
-          non_job_label: a.non_job_label || '',
-        })),
-        conflict_note: note,
-      });
-    }
-
+    // Conflicts were detected and resolved during deduplication in step 7.
+    // The `conflicts` array contains details of each resolved conflict so
+    // the dry-run preview can show what was kept and what was dropped.
     if (conflicts.length > 0) {
-      warnings.push(`⚠ ${conflicts.length} rota conflict(s) detected — staff double-booked on the same date. Review before applying.`);
+      warnings.push(`${conflicts.length} rota conflict(s) resolved — staff had multiple entries on the same date. The highest-priority assignment was kept; the rest were dropped.`);
     }
 
     // -----------------------------------------------------------------------
