@@ -155,64 +155,26 @@ export default async function(req: Request): Promise<Response> {
       .concat(cfg.group_filter_id ? [cfg.group_filter_id] : [])
       .filter((id: string, i: number, arr: string[]) => id && arr.indexOf(id) === i);
 
-    let devices: any[] = [];
-    if (groupFilterIds.length > 0) {
-      // Fetch devices for each group separately (Geotab groupSearch takes one id)
-      for (const gid of groupFilterIds) {
-        const groupDeviceRes = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            method: 'Get',
-            params: {
-              typeName: 'Device',
-              credentials: creds,
-              search: { groupSearch: { id: gid } },
-              resultsLimit: 1000,
-            },
-          }),
-        }).catch(() => null);
-        const groupDeviceJson = groupDeviceRes ? await groupDeviceRes.json().catch(() => null) : null;
-        const groupDevices: any[] = Array.isArray(groupDeviceJson?.result) ? groupDeviceJson.result : [];
-        devices = devices.concat(groupDevices);
-      }
-      // Deduplicate by device id (a device may appear in multiple groups)
-      const seen = new Set<string>();
-      devices = devices.filter((d: any) => {
-        if (seen.has(d.id)) return false;
-        seen.add(d.id);
-        return true;
-      });
+    // Fetch all devices once, then filter client-side by group membership.
+    // (Geotab's groupSearch parameter doesn't reliably filter in all setups.)
+    const allDeviceRes = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'Get',
+        params: { typeName: 'Device', credentials: creds, resultsLimit: 1000 },
+      }),
+    }).catch(() => null);
+    const allDeviceJson = allDeviceRes ? await allDeviceRes.json().catch(() => null) : null;
+    const allDevices: any[] = Array.isArray(allDeviceJson?.result) ? allDeviceJson.result : [];
 
-      // Fallback: if groupSearch returned no results (some Geotab setups don't
-      // support it), fetch all and filter client-side by checking the groups array.
-      if (devices.length === 0) {
-        const allDeviceRes = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            method: 'Get',
-            params: { typeName: 'Device', credentials: creds, resultsLimit: 1000 },
-          }),
-        }).catch(() => null);
-        const allDeviceJson = allDeviceRes ? await allDeviceRes.json().catch(() => null) : null;
-        const allDevices: any[] = Array.isArray(allDeviceJson?.result) ? allDeviceJson.result : [];
-        devices = allDevices.filter((d: any) =>
-          (d.groups || []).some((g: any) => groupFilterIds.includes(g.id || g))
-        );
-      }
+    let devices: any[];
+    if (groupFilterIds.length > 0) {
+      devices = allDevices.filter((d: any) =>
+        (d.groups || []).some((g: any) => groupFilterIds.includes(g.id || g))
+      );
     } else {
-      // No group filter — sync all devices
-      const deviceRes = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method: 'Get',
-          params: { typeName: 'Device', credentials: creds, resultsLimit: 1000 },
-        }),
-      }).catch(() => null);
-      const deviceJson = deviceRes ? await deviceRes.json().catch(() => null) : null;
-      devices = Array.isArray(deviceJson?.result) ? deviceJson.result : [];
+      devices = allDevices;
     }
 
     // ── Fetch VehicleType entities (make, model, year, fuel type) ──
