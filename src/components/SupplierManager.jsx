@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Package, Plus, Edit2, Trash2, Mail, Phone, Search,
+  Package, Plus, Edit2, Trash2, Mail, Phone, Search, Wrench,
   Upload, FileSpreadsheet, Loader2, RefreshCw
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
@@ -11,7 +11,19 @@ import { format } from 'date-fns';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
-const blank = { name: '', contact_name: '', contact_email: '', contact_phone: '', notes: '' };
+const blank = { name: '', contact_name: '', contact_email: '', contact_phone: '', notes: '', is_maintenance_provider: false, emergency_mobile: '', technical_email: '', portal_login_url: '', maintenance_services: [], account_number: '' };
+
+const MAINT_SERVICE_OPTS = [
+  { value: 'mot', label: 'MOT' },
+  { value: 'service', label: 'Service' },
+  { value: 'breakdown', label: 'Breakdown' },
+  { value: 'windscreen', label: 'Windscreen' },
+  { value: 'tyre_repair', label: 'Tyre Repair' },
+  { value: 'repair', label: 'General Repair' },
+  { value: 'fuel_card', label: 'Fuel Card' },
+  { value: 'inspection', label: 'Inspection' },
+  { value: 'risk_master', label: 'Risk Master' },
+];
 
 export default function SupplierManager() {
   const queryClient = useQueryClient();
@@ -34,7 +46,12 @@ export default function SupplierManager() {
 
   const startAdd = () => { setForm(blank); setEditingId(null); setAdding(true); };
   const startEdit = (s) => {
-    setForm({ name: s.name, contact_name: s.contact_name || '', contact_email: s.contact_email || '', contact_phone: s.contact_phone || '', notes: s.notes || '' });
+    setForm({
+      name: s.name, contact_name: s.contact_name || '', contact_email: s.contact_email || '', contact_phone: s.contact_phone || '', notes: s.notes || '',
+      is_maintenance_provider: s.is_maintenance_provider || false, emergency_mobile: s.emergency_mobile || '',
+      technical_email: s.technical_email || '', portal_login_url: s.portal_login_url || '',
+      maintenance_services: s.maintenance_services || [], account_number: s.account_number || '',
+    });
     setEditingId(s.id); setAdding(true);
   };
 
@@ -137,6 +154,54 @@ export default function SupplierManager() {
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Notes</label>
               <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows="2" className={inputCls} />
             </div>
+
+            {/* Maintenance provider section */}
+            <div className="sm:col-span-2 border-t border-slate-100 pt-4 mt-1">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-3 cursor-pointer">
+                <input type="checkbox" checked={form.is_maintenance_provider} onChange={(e) => setForm({ ...form, is_maintenance_provider: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                Maintenance Provider
+                <span className="text-xs text-slate-400 font-normal">(Show in Maintenance Hub & booking dropdown)</span>
+              </label>
+              {form.is_maintenance_provider && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Emergency Mobile (24/7)</label>
+                    <input value={form.emergency_mobile} onChange={(e) => setForm({ ...form, emergency_mobile: e.target.value })} placeholder="e.g. 07xxx xxx xxx" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Technical / Alerts Email</label>
+                    <input type="email" value={form.technical_email} onChange={(e) => setForm({ ...form, technical_email: e.target.value })} placeholder="e.g. service@holman.co.uk" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Portal Login URL</label>
+                    <input value={form.portal_login_url} onChange={(e) => setForm({ ...form, portal_login_url: e.target.value })} placeholder="https://..." className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Account Number</label>
+                    <input value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value })} className={inputCls} />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Services Offered</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {MAINT_SERVICE_OPTS.map(opt => {
+                        const active = form.maintenance_services.includes(opt.value);
+                        return (
+                          <button key={opt.value} type="button" onClick={() => {
+                            const next = active
+                              ? form.maintenance_services.filter(v => v !== opt.value)
+                              : [...form.maintenance_services, opt.value];
+                            setForm({ ...form, maintenance_services: next });
+                          }} className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition ${active ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300'}`}>
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex gap-2">
             <button type="submit" disabled={saving} className="px-4 py-2 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition disabled:opacity-50">{editingId ? 'Update' : 'Add'} Supplier</button>
@@ -177,6 +242,12 @@ export default function SupplierManager() {
               <div className="space-y-1 text-xs text-slate-500 mb-3">
                 {s.contact_email && <div className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {s.contact_email}</div>}
                 {s.contact_phone && <div className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> {s.contact_phone}</div>}
+                {s.is_maintenance_provider && (
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <Wrench className="w-3.5 h-3.5" /> Maintenance Provider
+                    {s.maintenance_services?.length > 0 && <span className="text-slate-400 font-normal">· {s.maintenance_services.length} services</span>}
+                  </div>
+                )}
               </div>
 
               {/* Rate card section */}

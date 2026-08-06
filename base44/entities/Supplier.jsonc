@@ -38,6 +38,46 @@
       "type": "number",
       "default": 0,
       "description": "Number of rate card line items currently linked to this supplier (set automatically after ingest)."
+    },
+    "is_maintenance_provider": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this supplier is a vehicle maintenance provider (Holman, tyre specialist, windscreen specialist, etc.). Flags them to appear in the Maintenance Hub provider directory and the booking modal supplier picker."
+    },
+    "emergency_mobile": {
+      "type": "string",
+      "description": "24/7 emergency mobile number for breakdowns and urgent call-outs. Shown as a click-to-call button in the Maintenance Hub provider directory."
+    },
+    "technical_email": {
+      "type": "string",
+      "description": "Email address for sending automated service alert / booking request emails. Used by the maintenance booking workflow to CC the provider when a booking is created or updated."
+    },
+    "portal_login_url": {
+      "type": "string",
+      "description": "Direct URL to the provider's repair management / booking portal (e.g. Holman's online portal). Shown as a quick-jump link in the Maintenance Hub."
+    },
+    "maintenance_services": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "mot",
+          "service",
+          "breakdown",
+          "windscreen",
+          "tyre_repair",
+          "repair",
+          "fuel_card",
+          "inspection",
+          "risk_master"
+        ]
+      },
+      "default": [],
+      "description": "Maintenance services this provider offers. Used to filter the provider directory and auto-suggest the right provider when a booking type is selected."
+    },
+    "account_number": {
+      "type": "string",
+      "description": "Account number or reference with this supplier (e.g. Holman fleet account number). Shown on the provider card for quick reference when calling."
     }
   },
   "required": [

@@ -16,13 +16,15 @@
         "mot",
         "service",
         "windscreen",
+        "tyre_repair",
         "breakdown",
         "repair",
         "fuel_card",
         "inspection",
+        "risk_master",
         "other"
       ],
-      "description": "Type of maintenance booking. 'breakdown' = vehicle broken down / roadside assistance needed. 'fuel_card' = fuel card issue / replacement / query managed via Holman."
+      "description": "Type of maintenance booking. 'breakdown' = vehicle broken down / roadside assistance needed. 'fuel_card' = fuel card issue / replacement / query. 'tyre_repair' = tyre replacement or puncture repair. 'risk_master' = Risk Master assistance (Holman risk management service). 'inspection' = general vehicle inspection / audit."
     },
     "status": {
       "type": "string",
@@ -34,7 +36,7 @@
         "cancelled"
       ],
       "default": "requested",
-      "description": "Booking status. 'requested' = needs to be called in to Holman, 'booked' = confirmed with date/time, 'completed' = work done."
+      "description": "Booking status. 'requested' = needs to be called in to the provider, 'booked' = confirmed with date/time, 'completed' = work done."
     },
     "booking_date": {
       "type": "string",
@@ -44,6 +46,10 @@
     "booking_time": {
       "type": "string",
       "description": "Time of the booking appointment (HH:MM)"
+    },
+    "supplier_id": {
+      "type": "string",
+      "description": "Linked Supplier record for the maintenance provider handling this booking (Holman, tyre specialist, etc.). Set when a provider is picked from the dropdown in the booking modal."
     },
     "supplier_name": {
       "type": "string",
@@ -75,7 +81,7 @@
     },
     "reported_at": {
       "type": "string",
-      "description": "ISO timestamp of when the issue was reported / the call was made to Holman."
+      "description": "ISO timestamp of when the issue was reported / the call was made to the provider."
     },
     "report_source": {
       "type": "string",
@@ -86,7 +92,7 @@
         "admin"
       ],
       "default": "admin",
-      "description": "How this booking was logged. 'phone_call' = admin logged a call made to Holman over the phone, 'staff_portal' = crew member reported it from their schedule, 'holman_sync' = pulled from Holman automatically, 'admin' = created directly in the dashboard."
+      "description": "How this booking was logged. 'phone_call' = admin logged a call made to the provider over the phone, 'staff_portal' = crew member reported it from their schedule, 'holman_sync' = pulled from Holman automatically, 'admin' = created directly in the dashboard."
     },
     "logged_by_name": {
       "type": "string",

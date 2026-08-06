@@ -4,10 +4,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Wrench, Phone, MapPin, Calendar, Clock, Trash2, Edit2, CheckCircle2,
   X, Truck, User, ArrowLeft, PhoneCall, CalendarClock, PoundSterling, AlertTriangle,
-  Check, ChevronRight, Activity, History, Sparkles,
+  Check, ChevronRight, Activity, History, Sparkles, ShieldCheck,
 } from 'lucide-react';
 import UsefulNumbersModal from '@/components/UsefulNumbersModal';
 import MaintenanceBookingModal from '@/components/vehicles/MaintenanceBookingModal';
+import MaintenanceProviderDirectory from '@/components/vehicles/MaintenanceProviderDirectory';
 import { format, differenceInDays, isToday, isTomorrow, isThisWeek } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { Skeleton, EmptyState } from '@/components/StateViews';
@@ -17,9 +18,11 @@ const BOOKING_TYPES = [
   { value: 'mot', label: 'MOT', icon: CheckCircle2, color: 'emerald' },
   { value: 'service', label: 'Service', icon: Wrench, color: 'blue' },
   { value: 'windscreen', label: 'Windscreen', icon: AlertTriangle, color: 'amber' },
-  { value: 'repair', label: 'Repair', icon: Wrench, color: 'violet' },
+  { value: 'tyre_repair', label: 'Tyre Repair', icon: Wrench, color: 'orange' },
+  { value: 'repair', label: 'General Repair', icon: Wrench, color: 'violet' },
   { value: 'fuel_card', label: 'Fuel Card', icon: PoundSterling, color: 'cyan' },
   { value: 'inspection', label: 'Inspection', icon: Check, color: 'teal' },
+  { value: 'risk_master', label: 'Risk Master', icon: ShieldCheck, color: 'indigo' },
   { value: 'other', label: 'Other', icon: Wrench, color: 'slate' },
 ];
 
@@ -39,6 +42,8 @@ const TYPE_COLOR_MAP = {
   violet: 'bg-violet-50 text-violet-600 border-violet-200',
   cyan: 'bg-cyan-50 text-cyan-600 border-cyan-200',
   teal: 'bg-teal-50 text-teal-600 border-teal-200',
+  orange: 'bg-orange-50 text-orange-600 border-orange-200',
+  indigo: 'bg-indigo-50 text-indigo-600 border-indigo-200',
   slate: 'bg-slate-50 text-slate-600 border-slate-200',
 };
 
@@ -169,6 +174,7 @@ export default function VehicleMaintenanceManager() {
   const [showModal, setShowModal] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
+  const [preselectProvider, setPreselectProvider] = useState(null);
   const [showNumbers, setShowNumbers] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
@@ -373,7 +379,7 @@ export default function VehicleMaintenanceManager() {
           </button>
           <button onClick={() => setShowNumbers(true)}
             className="flex items-center gap-2 px-3 py-2.5 bg-[#2E5A1A] text-white rounded-xl hover:brightness-110 transition text-sm font-bold shadow-sm">
-            <PhoneCall className="w-4 h-4" /> Call Holman
+            <PhoneCall className="w-4 h-4" /> Provider Directory
           </button>
           <button onClick={() => { setEditingBooking(null); setShowModal(true); }}
             className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 transition text-sm font-bold shadow-sm">
@@ -384,6 +390,15 @@ export default function VehicleMaintenanceManager() {
 
       {/* Stats summary */}
       <StatsBar bookings={bookings} />
+
+      {/* Provider directory — click-to-call, send alert, portal jump */}
+      <MaintenanceProviderDirectory
+        onBookWithProvider={(p) => {
+          setEditingBooking(null);
+          setPreselectProvider(p);
+          setShowModal(true);
+        }}
+      />
 
       {/* Status filter pills + date range */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 mb-4 flex gap-1.5 flex-wrap items-center">
@@ -486,9 +501,10 @@ export default function VehicleMaintenanceManager() {
         onLogBooking={() => { setEditingBooking(null); setShowModal(true); }} />
       <MaintenanceBookingModal
         open={showModal}
-        onClose={() => { setShowModal(false); setEditingBooking(null); }}
+        onClose={() => { setShowModal(false); setEditingBooking(null); setPreselectProvider(null); }}
         preselectVehicleId={selectedVehicleId}
         editingBooking={editingBooking}
+        preselectProvider={preselectProvider}
       />
     </div>
   );
