@@ -127,7 +127,7 @@ export default async function(req: Request): Promise<Response> {
               fromDate: fromDate.toISOString(),
               toDate: toDate.toISOString(),
             },
-            resultsLimit: Math.min(limit * 4, 2000),
+            resultsLimit: 5000,
           },
         }),
       }).catch(() => null);
@@ -280,19 +280,35 @@ export default async function(req: Request): Promise<Response> {
           const ts = b.timestamp;
           return ts >= startMinus && ts <= endPlus;
         });
-        // Fallback: if still no crumbs, find the nearest log to the trip start time
+        // Fallback: if still no crumbs, find the nearest logs to the trip
+        // start AND end times independently. Geotab Trip records don't
+        // contain coordinates — they come from LogRecord breadcrumbs. If
+        // the breadcrumb timestamps don't fall within the trip window
+        // (common for short trips or sparse logging), we grab the closest
+        // breadcrumb to each endpoint so we still get start/end locations.
         if (tripCrumbs.length === 0 && sortedLogs.length > 0) {
-          let nearest = sortedLogs[0];
-          let minDiff = Math.abs(new Date(nearest.timestamp).getTime() - new Date(startTime).getTime());
+          let nearestStart = null;
+          let minDiffStart = Infinity;
+          let nearestEnd = null;
+          let minDiffEnd = Infinity;
           for (const l of sortedLogs) {
-            const diff = Math.abs(new Date(l.timestamp).getTime() - new Date(startTime).getTime());
-            if (diff < minDiff) { minDiff = diff; nearest = l; }
+            const ts = new Date(l.timestamp).getTime();
+            const diffStart = Math.abs(ts - new Date(startTime).getTime());
+            const diffEnd = Math.abs(ts - new Date(endTime).getTime());
+            if (diffStart < minDiffStart) { minDiffStart = diffStart; nearestStart = l; }
+            if (diffEnd < minDiffEnd) { minDiffEnd = diffEnd; nearestEnd = l; }
           }
-          // Only use if within 5 minutes of the trip start
-          if (minDiff < 5 * 60 * 1000) tripCrumbs = [nearest];
+          // Use if within 10 minutes of the respective endpoint
+          if (nearestStart && minDiffStart < 10 * 60 * 1000) {
+            if (nearestEnd && nearestEnd !== nearestStart && minDiffEnd < 10 * 60 * 1000) {
+              tripCrumbs = [nearestStart, nearestEnd];
+            } else {
+              tripCrumbs = [nearestStart];
+            }
+          }
         }
         const startCrumb = tripCrumbs[0];
-        const endCrumb = tripCrumbs[tripCrumbs.length - 1];
+        const endCrumb = tripCrumbs.length > 1 ? tripCrumbs[tripCrumbs.length - 1] : tripCrumbs[0];
 
         // Detect stops within the trip
         const stops = detectStops(tripCrumbs, startTime, endTime);

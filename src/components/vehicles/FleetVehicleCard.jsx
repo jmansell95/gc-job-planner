@@ -30,15 +30,19 @@ function getVehicleStatus(v) {
     const d = differenceInDays(new Date(v.mot_expiry + 'T00:00:00'), today);
     if (d < 0) issues.push({ label: 'MOT Expired', severity: 'expired', days: d });
     else if (d <= 30) issues.push({ label: 'MOT Due', severity: 'warning', days: d });
+  } else if (v.mot_status === 'not_valid') {
+    issues.push({ label: 'MOT Invalid', severity: 'expired', days: null });
   }
   if (v.service_due_date) {
     const d = differenceInDays(new Date(v.service_due_date + 'T00:00:00'), today);
     if (d < 0) issues.push({ label: 'Service Overdue', severity: 'expired', days: d });
     else if (d <= 30) issues.push({ label: 'Service Due', severity: 'warning', days: d });
   }
+  const hasComplianceData = v.mot_expiry || v.service_due_date ||
+    v.mot_status === 'valid' || v.mot_status === 'not_valid';
   const level = issues.find(i => i.severity === 'expired') ? 'expired'
     : issues.find(i => i.severity === 'warning') ? 'warning'
-    : (v.mot_expiry || v.service_due_date ? 'compliant' : 'unknown');
+    : (hasComplianceData ? 'compliant' : 'unknown');
   return { issues, level };
 }
 
@@ -73,23 +77,45 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
   const StatusIcon = badge.Icon;
   const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(' ');
 
+  // MOT badge — uses expiry date when available, falls back to DVLA mot_status
   const motDays = vehicle.mot_expiry ? differenceInDays(new Date(vehicle.mot_expiry + 'T00:00:00'), new Date()) : null;
-  const motBadge = motDays == null
-    ? null
-    : motDays < 0
+  let motBadge;
+  if (motDays != null) {
+    motBadge = motDays < 0
       ? { label: 'MOT EXPIRED', cls: 'bg-red-500 text-white', Icon: ShieldX }
       : motDays <= 30
         ? { label: 'MOT DUE', cls: 'bg-amber-500 text-white', Icon: ShieldAlert }
         : { label: 'MOT OK', cls: 'bg-emerald-500 text-white', Icon: BadgeCheck };
+  } else if (vehicle.mot_status === 'valid') {
+    motBadge = { label: 'MOT OK', cls: 'bg-emerald-500 text-white', Icon: BadgeCheck };
+  } else if (vehicle.mot_status === 'not_valid') {
+    motBadge = { label: 'MOT FAIL', cls: 'bg-red-500 text-white', Icon: ShieldX };
+  } else if (vehicle.mot_status === 'no_details') {
+    motBadge = { label: 'MOT N/A', cls: 'bg-slate-300 text-slate-700', Icon: ShieldX };
+  } else if (vehicle.mot_status === 'not_found') {
+    motBadge = { label: 'MOT ?', cls: 'bg-amber-500 text-white', Icon: ShieldAlert };
+  } else {
+    motBadge = null;
+  }
 
+  // Tax badge — uses due date when available, falls back to DVLA tax_status
   const taxDays = vehicle.tax_due_date ? differenceInDays(new Date(vehicle.tax_due_date + 'T00:00:00'), new Date()) : null;
-  const taxBadge = taxDays == null
-    ? null
-    : taxDays < 0
+  let taxBadge;
+  if (taxDays != null) {
+    taxBadge = taxDays < 0
       ? { label: 'TAX EXPIRED', cls: 'bg-red-500 text-white', Icon: Receipt }
       : taxDays <= 30
         ? { label: 'TAX DUE', cls: 'bg-amber-500 text-white', Icon: Receipt }
         : { label: 'TAXED', cls: 'bg-emerald-500 text-white', Icon: Receipt };
+  } else if (vehicle.tax_status === 'taxed') {
+    taxBadge = { label: 'TAXED', cls: 'bg-emerald-500 text-white', Icon: Receipt };
+  } else if (vehicle.tax_status === 'sorn') {
+    taxBadge = { label: 'SORN', cls: 'bg-slate-400 text-white', Icon: Receipt };
+  } else if (vehicle.tax_status === 'untaxed') {
+    taxBadge = { label: 'UNTAXED', cls: 'bg-red-500 text-white', Icon: Receipt };
+  } else {
+    taxBadge = null;
+  }
 
   const geotabLive = vehicle.geotab_sync_status === 'synced';
   const holmanSynced = vehicle.holman_sync_status === 'synced';
@@ -223,6 +249,16 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
               <AlertTriangle className="w-2.5 h-2.5" /> Review spec
             </span>
           )}
+          {vehicle.engine_capacity_cc && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+              {vehicle.engine_capacity_cc}cc
+            </span>
+          )}
+          {vehicle.co2_emissions_g_km && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium" title="CO2 emissions">
+              {vehicle.co2_emissions_g_km}g/km
+            </span>
+          )}
         </div>
 
         {/* Compliance alerts */}
@@ -281,13 +317,18 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
               <Gauge className="w-3 h-3" />{Number(vehicle.current_mileage).toLocaleString()} mi
             </span>
           )}
+          {vehicle.last_dvla_sync && (
+            <span className="flex items-center gap-1 text-slate-400 font-medium" title={`DVLA synced ${new Date(vehicle.last_dvla_sync).toLocaleDateString('en-GB')}`}>
+              <BadgeCheck className="w-3 h-3" /> DVLA
+            </span>
+          )}
           {geotabLive && (
-            <span className="flex items-center gap-1 text-cyan-600 font-semibold">
+            <span className="flex items-center gap-1 text-cyan-600 font-semibold" title={vehicle.last_geotab_sync ? `Geotab synced ${new Date(vehicle.last_geotab_sync).toLocaleString('en-GB')}` : 'Geotab live'}>
               <Satellite className="w-3 h-3" /> Live
             </span>
           )}
           {holmanSynced && (
-            <span className="flex items-center gap-1 text-blue-600 font-semibold">
+            <span className="flex items-center gap-1 text-blue-600 font-semibold" title={vehicle.last_holman_sync ? `Holman synced ${new Date(vehicle.last_holman_sync).toLocaleString('en-GB')}` : 'Holman synced'}>
               <Link2 className="w-3 h-3" /> Holman
             </span>
           )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
@@ -7,6 +7,7 @@ import {
   Square, Activity, Timer,
 } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup } from 'react-leaflet';
+import { batchReverseGeocode } from '@/utils/reverseGeocode';
 
 const KM_TO_MI = 0.621371;
 function kmToMi(km) { return (Number(km) || 0) * KM_TO_MI; }
@@ -222,6 +223,7 @@ function TripCard({ trip, breadcrumbs, isExpanded, onToggle }) {
 export default function TripTimelineEnhanced({ vehicle }) {
   const [expanded, setExpanded] = useState(null);
   const [days, setDays] = useState(7);
+  const [geocodedTrips, setGeocodedTrips] = useState({});
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['geotab-trip-history-enhanced', vehicle?.id, days],
@@ -238,6 +240,46 @@ export default function TripTimelineEnhanced({ vehicle }) {
     enabled: !!vehicle?.id && !!vehicle?.geotab_device_id,
   });
 
+  // Frontend geocoding fallback — the backend function's external geocoding
+  // calls can fail in the edge runtime. When the backend returns "Unknown
+  // location" for trip start/end points, we geocode the coordinates here in
+  // the browser where BigDataCloud is reliably accessible.
+  const trips = data?.trips || [];
+  useEffect(() => {
+    const needsGeocoding = trips.some(t =>
+      (t.start_location === 'Unknown location' || !t.start_location) && t.start_lat != null
+    );
+    if (!needsGeocoding) return;
+    let cancelled = false;
+    (async () => {
+      const coords = [];
+      for (const t of trips) {
+        if (t.start_lat != null) coords.push({ lat: t.start_lat, lng: t.start_lng });
+        if (t.end_lat != null) coords.push({ lat: t.end_lat, lng: t.end_lng });
+        for (const s of (t.stops || [])) {
+          if (s.lat != null) coords.push({ lat: s.lat, lng: s.lng });
+        }
+      }
+      if (coords.length === 0) return;
+      const labels = await batchReverseGeocode(coords);
+      if (cancelled) return;
+      const updated = {};
+      for (const t of trips) {
+        const sKey = t.start_lat != null ? `${Number(t.start_lat).toFixed(4)},${Number(t.start_lng).toFixed(4)}` : null;
+        const eKey = t.end_lat != null ? `${Number(t.end_lat).toFixed(4)},${Number(t.end_lng).toFixed(4)}` : null;
+        const startLoc = sKey && labels[sKey] ? labels[sKey] : t.start_location;
+        const endLoc = eKey && labels[eKey] ? labels[eKey] : t.end_location;
+        const stopLocs = (t.stops || []).map(s => {
+          const stKey = s.lat != null ? `${Number(s.lat).toFixed(4)},${Number(s.lng).toFixed(4)}` : null;
+          return stKey && labels[stKey] ? { ...s, location: labels[stKey] } : s;
+        });
+        updated[t.trip_id] = { start_location: startLoc, end_location: endLoc, stops: stopLocs };
+      }
+      if (!cancelled) setGeocodedTrips(updated);
+    })();
+    return () => { cancelled = true; };
+  }, [trips]);
+
   if (!vehicle?.geotab_device_id) {
     return (
       <div className="text-center py-4 bg-slate-50 rounded-xl">
@@ -247,7 +289,6 @@ export default function TripTimelineEnhanced({ vehicle }) {
     );
   }
 
-  const trips = data?.trips || [];
   const breadcrumbs = data?.breadcrumbs || [];
   const totalDistance = data?.total_distance_km || 0;
   const totalIdle = trips.reduce((sum, t) => sum + (t.idle_minutes || 0), 0);
@@ -316,15 +357,21 @@ export default function TripTimelineEnhanced({ vehicle }) {
 
           {/* Trip list */}
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
-            {trips.map((trip, i) => (
-              <TripCard
-                key={trip.trip_id || i}
-                trip={trip}
-                breadcrumbs={breadcrumbs}
-                isExpanded={expanded === i}
-                onToggle={() => setExpanded(expanded === i ? null : i)}
-              />
-            ))}
+            {trips.map((trip, i) => {
+              const geo = geocodedTrips[trip.trip_id];
+              const mergedTrip = geo
+                ? { ...trip, start_location: geo.start_location, end_location: geo.end_location, stops: geo.stops }
+                : trip;
+              return (
+                <TripCard
+                  key={trip.trip_id || i}
+                  trip={mergedTrip}
+                  breadcrumbs={breadcrumbs}
+                  isExpanded={expanded === i}
+                  onToggle={() => setExpanded(expanded === i ? null : i)}
+                />
+              );
+            })}
           </div>
         </>
       )}
