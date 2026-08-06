@@ -61,6 +61,16 @@ export const SECONDARY_WIDGETS = [
   'site-weather',
 ];
 
+// The unified list of widgets shown on the dashboard. Users can reorder
+// and toggle visibility via the Customize button; order is persisted to
+// localStorage. This replaces the old primary/secondary split.
+export const DEFAULT_WIDGETS = [
+  'field-crews',
+  'field-priorities',
+  'live-site-map',
+  'site-weather',
+];
+
 // Widgets that require costing permission (admin / manager only).
 export const COST_WIDGETS = ['job-profitability', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'cash-flow-forecast', 'profitability-alerts', 'staff-utilization'];
 

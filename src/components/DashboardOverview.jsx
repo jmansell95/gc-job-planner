@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Briefcase, Grid3x3, Calendar, MapPin, ChevronDown, ChevronUp, Percent, ClipboardCheck, ShieldAlert, Sparkles } from 'lucide-react';
+import { Users, Briefcase, Grid3x3, Calendar, MapPin, Percent, ClipboardCheck, ShieldAlert } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
-import WidgetCard from '@/components/dashboard/WidgetCard';
-import { PRIMARY_WIDGETS, SECONDARY_WIDGETS, COST_WIDGETS, GLOBAL_ONLY_WIDGETS } from '@/components/dashboard/registry';
+import { COST_WIDGETS, GLOBAL_ONLY_WIDGETS } from '@/components/dashboard/registry';
+import CustomizableWidgetGrid from '@/components/dashboard/CustomizableWidgetGrid';
 import { FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
 import ExecutiveSnapshotWidget from '@/components/dashboard/ExecutiveSnapshotWidget';
@@ -54,7 +54,6 @@ import CommandJobModal from '@/components/dashboard/CommandJobModal';
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [drawerJob, setDrawerJob] = useState(null);
   const [modalJob, setModalJob] = useState(null);
-  const [showMore, setShowMore] = useState(false);
   const { selectedJobId } = useJobFilter();
   const isAllJobs = selectedJobId === 'all';
 
@@ -160,8 +159,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   };
 
   const canShowWidget = (id) => (canViewCosts || !COST_WIDGETS.includes(id)) && (isAllJobs || !GLOBAL_ONLY_WIDGETS.includes(id));
-  const primaryWidgets = PRIMARY_WIDGETS.filter(canShowWidget);
-  const secondaryWidgets = SECONDARY_WIDGETS.filter(canShowWidget);
   const selectedJob = !isAllJobs ? jobs.find(j => j.id === selectedJobId) : null;
 
   return (
@@ -245,52 +242,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         <SiteSnapshotGrid onSelectJob={openJobDrawer} onNavigate={onNavigate} />
       )}
 
-      {/* Primary widgets — the operational heartbeat, always visible */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        {primaryWidgets.map((widgetId) => (
-          <div key={widgetId}>
-            <WidgetCard widgetId={widgetId}>
-              {renderWidget(widgetId)}
-            </WidgetCard>
-          </div>
-        ))}
-      </div>
-
-      {/* Show More Insights — secondary widgets, hidden by default */}
-      {secondaryWidgets.length > 0 && (
-        <>
-          <button
-            onClick={() => setShowMore(!showMore)}
-            className="w-full mb-4 inline-flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition shadow-sm"
-          >
-            <Sparkles className="w-4 h-4 text-[#2E5A1A]" />
-            {showMore ? 'Show Less' : 'Show More Insights'}
-            {showMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-
-          <AnimatePresence>
-            {showMore && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
-              >
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                  {secondaryWidgets.map((widgetId) => (
-                    <div key={widgetId}>
-                      <WidgetCard widgetId={widgetId}>
-                        {renderWidget(widgetId)}
-                      </WidgetCard>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </>
-      )}
+      {/* Customizable widget grid — drag to reorder, toggle visibility */}
+      <CustomizableWidgetGrid renderWidget={renderWidget} canShowWidget={canShowWidget} />
 
       {/* Job Quick Drawer — slide-out drill-down without leaving the dashboard */}
       <JobQuickDrawer job={drawerJob} onClose={() => setDrawerJob(null)} onOpenFullDetails={onSelectJob} />
