@@ -183,6 +183,18 @@ function motDateToIso(dotDate: string): string | null {
   return null;
 }
 
+/** Case-insensitive lookup of a value on an object by any of the given key names.
+ *  Handles APIs that return PascalCase (Make, MotStatus), camelCase (make, motStatus),
+ *  or snake_case (mot_status) — all without the caller listing every variant. */
+function getField(obj: any, ...keys: string[]): any {
+  if (!obj || typeof obj !== 'object') return null;
+  const lower = keys.map(k => k.toLowerCase());
+  for (const k of Object.keys(obj)) {
+    if (lower.includes(k.toLowerCase())) return obj[k];
+  }
+  return null;
+}
+
 /** Safely extracts a date string and normalises to ISO YYYY-MM-DD. */
 function normaliseDate(val: any): string | null {
   if (!val) return null;
@@ -259,37 +271,51 @@ async function lookupRapidAPI(base44: any, vehicle: any, config: any, force: boo
   }
 
   const raw = await res.json() as any;
-  // Some APIs wrap the data in an array or a nested object — unwrap it
-  const data = Array.isArray(raw) ? raw[0] : (raw.data && Array.isArray(raw.data) ? raw.data[0] : (raw.data || raw));
+  // Some APIs wrap the data in an array or a nested object — unwrap it.
+  // UK Vehicle Data wraps in { data: { ... } }; others return flat or arrays.
+  let data: any = raw;
+  if (Array.isArray(raw)) {
+    data = raw[0];
+  } else if (raw && typeof raw === 'object') {
+    // Look for the first object-valued property that looks like vehicle data
+    // (contains a make/model/registration-ish field), falling back to raw.data.
+    const wrapperKeys = ['data', 'vehicle', 'result', 'items', 'response'];
+    for (const wk of wrapperKeys) {
+      const inner = raw[wk];
+      if (Array.isArray(inner)) { data = inner[0]; break; }
+      if (inner && typeof inner === 'object') { data = inner; break; }
+    }
+  }
 
   const update: any = { last_dvla_sync: new Date().toISOString() };
 
-  // ── Map fields flexibly ──
-  const make = data.make || data.Make || data.manufacturer;
+  // ── Map fields (case-insensitive — handles PascalCase, camelCase, snake_case) ──
+  const make = getField(data, 'make', 'manufacturer', 'makeName');
   if (make) update.make = titleCase(String(make));
 
-  const model = data.model || data.Model || data.modelName;
+  const model = getField(data, 'model', 'modelName', 'modelVariant', 'derivative');
   if (model) update.model = titleCase(String(model));
 
-  const year = data.year || data.yearOfManufacture || data.Year || data.registrationYear;
+  const year = getField(data, 'year', 'yearOfManufacture', 'registrationYear', 'manufactureYear');
   if (year) update.year = Number(year);
 
-  const fuel = data.fuelType || data.fuel_type || data.FuelType || data.fuel;
+  const fuel = getField(data, 'fuelType', 'fuel', 'fuelTypeDescription');
   if (fuel) update.fuel_type = mapFuelType(String(fuel));
 
-  const colour = data.colour || data.color || data.Colour;
+  const colour = getField(data, 'colour', 'color');
   if (colour) update.color = titleCase(String(colour));
 
-  const engineCap = data.engineCapacity || data.engine_capacity || data.EngineCapacity || data.cc;
+  const engineCap = getField(data, 'engineCapacity', 'engineCc', 'cc', 'cubicCapacity');
   if (engineCap) update.engine_capacity_cc = Number(engineCap);
 
-  const co2 = data.co2Emissions || data.co2_emissions || data.CO2Emissions || data.emissions;
+  const co2 = getField(data, 'co2Emissions', 'co2', 'emissions', 'co2Emission');
   if (co2) update.co2_emissions_g_km = Number(co2);
 
-  // MOT — could be flat or nested in a mot object
-  const motObj = data.mot || data.MOT || data.Mot || {};
-  const motStatusRaw = data.motStatus || data.mot_status || motObj.status || motObj.motStatus;
-  const motExpiryRaw = data.motExpiryDate || data.mot_expiry || data.motExpiry || motObj.expiryDate || motObj.expiry || motObj.dueDate;
+  // MOT — could be flat or nested in a mot/MOT object
+  const motObj = getField(data, 'mot', 'MOT') || {};
+  const motStatusRaw = getField(data, 'motStatus', 'mot_status') || getField(motObj, 'status', 'motStatus');
+  const motExpiryRaw = getField(data, 'motExpiryDate', 'mot_expiry', 'motExpiry', 'motDueDate')
+    || getField(motObj, 'expiryDate', 'expiry', 'dueDate');
   if (motStatusRaw) update.mot_status = mapMotStatus(String(motStatusRaw));
   const motExpiry = normaliseDate(motExpiryRaw);
   if (motExpiry) {
@@ -301,20 +327,22 @@ async function lookupRapidAPI(base44: any, vehicle: any, config: any, force: boo
   }
 
   // Tax — could be flat or nested in a tax object
-  const taxObj = data.tax || data.Tax || {};
-  const taxStatusRaw = data.taxStatus || data.tax_status || taxObj.status || taxObj.taxStatus;
-  const taxDueRaw = data.taxDueDate || data.tax_due_date || data.taxDue || taxObj.dueDate || taxObj.due;
+  const taxObj = getField(data, 'tax', 'ved') || {};
+  const taxStatusRaw = getField(data, 'taxStatus', 'tax_status', 'vedStatus')
+    || getField(taxObj, 'status', 'taxStatus');
+  const taxDueRaw = getField(data, 'taxDueDate', 'tax_due_date', 'taxDue', 'vedDueDate')
+    || getField(taxObj, 'dueDate', 'due');
   if (taxStatusRaw) update.tax_status = mapTaxStatus(String(taxStatusRaw));
   const taxDue = normaliseDate(taxDueRaw);
   if (taxDue && /^\d{4}-\d{2}-\d{2}$/.test(taxDue)) update.tax_due_date = taxDue;
 
-  // First used date
-  const firstUsed = data.firstUsedDate || data.first_used_date || data.firstRegistrationDate;
+  // First used / registration date
+  const firstUsed = getField(data, 'firstUsedDate', 'first_used_date', 'firstRegistrationDate', 'dateOfFirstRegistration', 'firstRegDate');
   const firstUsedIso = normaliseDate(firstUsed);
   if (firstUsedIso) update.first_used_date = firstUsedIso;
 
   // Mileage / odometer
-  const odometer = data.odometer || data.mileage || data.currentMileage || data.Odometer;
+  const odometer = getField(data, 'odometer', 'mileage', 'currentMileage', 'odometerValue', 'odometerReading');
   if (odometer && !isNaN(Number(odometer))) {
     const odo = Number(odometer);
     if (!vehicle.current_mileage || odo > vehicle.current_mileage) {
@@ -322,33 +350,37 @@ async function lookupRapidAPI(base44: any, vehicle: any, config: any, force: boo
     }
   }
 
-  // Vehicle type
-  const vType = data.vehicleType || data.type || data.bodyType;
+  // Vehicle type / body
+  const vType = getField(data, 'vehicleType', 'type', 'bodyType', 'bodyStyle', 'vehicleClass');
   if (vType) update.vehicle_type = String(vType);
+
+  // VIN / chassis (some APIs return it)
+  const vin = getField(data, 'vin', 'chassisNumber', 'chassis');
+  if (vin && !vehicle.vin) update.vin = String(vin).toUpperCase();
 
   // ── MOT test history (if the API returns it) ──
   let motTestsRecorded = 0;
-  const motTests = data.motTests || data.motHistory || data.MOTTests || motObj.tests;
+  const motTests = getField(data, 'motTests', 'motHistory', 'MOTTests', 'motTestList') || getField(motObj, 'tests', 'history');
   if (Array.isArray(motTests)) {
     for (const test of motTests) {
       try {
-        const testNumber = test.motTestNumber || test.testNumber || null;
-        const completedDate = normaliseDate(test.completedDate || test.testDate || test.date);
+        const testNumber = getField(test, 'motTestNumber', 'testNumber', 'testNumberFull');
+        const completedDate = normaliseDate(getField(test, 'completedDate', 'testDate', 'date', 'completedDate'));
         if (!completedDate) continue;
         const dedupQuery: any = { vehicle_id: vehicle.id, test_date: completedDate };
         if (testNumber) dedupQuery.test_number = testNumber;
         const existing = await base44.asServiceRole.entities.VehicleMOTHistory.filter(dedupQuery);
         if (existing.length > 0) continue;
 
-        const result = mapTestResult(test.testResult || test.result);
-        const testOdo = test.odometerValue || test.odometer || test.mileage;
-        const expiryDate = normaliseDate(test.motTestExpiryDate || test.expiryDate);
+        const result = mapTestResult(getField(test, 'testResult', 'result', 'status'));
+        const testOdo = getField(test, 'odometerValue', 'odometer', 'mileage', 'odometerReading');
+        const expiryDate = normaliseDate(getField(test, 'motTestExpiryDate', 'expiryDate', 'expiryDateTest'));
 
         let advisoryNotes = '';
-        const rfrs = test.rfrAndAdvisoryDetails || test.advisories || test.advisoryNotes;
+        const rfrs = getField(test, 'rfrAndAdvisoryDetails', 'advisories', 'advisoryNotes', 'reasonsForFailure', 'defects');
         if (Array.isArray(rfrs) && rfrs.length > 0) {
           advisoryNotes = rfrs
-            .map((rfr: any) => typeof rfr === 'string' ? rfr : `${rfr.rfrType || rfr.type || 'NOTE'}: ${rfr.rfrDesc || rfr.description || ''}`.trim())
+            .map((rfr: any) => typeof rfr === 'string' ? rfr : `${getField(rfr, 'rfrType', 'type') || 'NOTE'}: ${getField(rfr, 'rfrDesc', 'description') || ''}`.trim())
             .filter((s: string) => s)
             .join(' | ');
         }
