@@ -267,6 +267,11 @@ async function lookupRapidAPI(base44: any, vehicle: any, config: any, force: boo
 
   if (!res.ok) {
     const errBody = await res.text().catch(() => '');
+    // RapidAPI returns 403 "You are not subscribed to this API" when the API key
+    // has no active subscription for the endpoint identified by x-rapidapi-host.
+    if (res.status === 403 && errBody.includes('not subscribed')) {
+      throw new Error('Your RapidAPI key is not subscribed to this API. Go to the API page on RapidAPI, open the Pricing tab, and subscribe to a plan (a free Basic tier is usually available), then re-run the sync.');
+    }
     throw new Error(`API ${res.status}: ${errBody.slice(0, 200)}`);
   }
 
