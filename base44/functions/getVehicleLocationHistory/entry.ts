@@ -113,27 +113,43 @@ export default async function(req: Request): Promise<Response> {
       const tripJson = tripRes ? await tripRes.json().catch(() => null) : null;
       const trips: any[] = Array.isArray(tripJson?.result) ? tripJson.result : [];
 
-      // Also fetch LogRecord breadcrumbs for route detail (limited)
-      const logRes = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method: 'Get',
-          params: {
-            typeName: 'LogRecord',
-            credentials: creds,
-            search: {
-              deviceSearch: { id: vehicle.geotab_device_id },
-              fromDate: fromDate.toISOString(),
-              toDate: toDate.toISOString(),
+      // Fetch LogRecord breadcrumbs ONLY for days that contain trips. Fetching
+      // all logs for a 7-day range requires 7 Geotab API calls (~17s each =
+      // 2+ minutes). By extracting the unique trip dates first and fetching
+      // logs only for those days, we cut the number of API calls from 7 to
+      // typically 2-3, reducing total time from 2+ minutes to ~30-45 seconds.
+      const logs: any[] = [];
+      const dayMs = 24 * 60 * 60 * 1000;
+      const tripDays = new Set<string>();
+      for (const t of trips) {
+        if (t.start) tripDays.add(new Date(t.start).toISOString().slice(0, 10));
+        if (t.stop) tripDays.add(new Date(t.stop).toISOString().slice(0, 10));
+      }
+      for (const dayStr of tripDays) {
+        const dayStart = new Date(dayStr + 'T00:00:00.000Z');
+        const dayEnd = new Date(Math.min(dayStart.getTime() + dayMs, toDate.getTime()));
+        const logRes = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            method: 'Get',
+            params: {
+              typeName: 'LogRecord',
+              credentials: creds,
+              search: {
+                deviceSearch: { id: vehicle.geotab_device_id },
+                fromDate: dayStart.toISOString(),
+                toDate: dayEnd.toISOString(),
+              },
+              resultsLimit: 5000,
             },
-            resultsLimit: 5000,
-          },
-        }),
-      }).catch(() => null);
-
-      const logJson = logRes ? await logRes.json().catch(() => null) : null;
-      const logs: any[] = Array.isArray(logJson?.result) ? logJson.result : [];
+          }),
+        }).catch(() => null);
+        const logJson = logRes ? await logRes.json().catch(() => null) : null;
+        if (Array.isArray(logJson?.result)) {
+          logs.push(...logJson.result);
+        }
+      }
 
       // Format log breadcrumbs (defined first — trips reference these for coordinates)
       const formattedLogs = logs.map((l: any) => ({
@@ -167,60 +183,11 @@ export default async function(req: Request): Promise<Response> {
       //   maximumSpeed: km/h (not maxSpeed)
       //   odometer: meters
       //   No startPoint/endPoint — coordinates come from LogRecord breadcrumbs
-      // Reverse geocode helper — uses BigDataCloud's free reverse geocoding
-      // API (no rate limit, no API key required) as primary, with Nominatim
-      // (OpenStreetMap) as fallback. Returns a short location label like
-      // "High Street, Luton" or "M1, Dartford". Cached per-request.
-      const geocodeCache: Record<string, string> = {};
-      async function reverseGeocode(lat: number, lng: number): Promise<string> {
-        if (lat == null || lng == null) return 'Unknown location';
-        const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-        if (geocodeCache[key]) return geocodeCache[key];
-
-        // Primary: BigDataCloud (free, no rate limit, no API key)
-        try {
-          const res = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`,
-            { headers: { 'Accept': 'application/json' } }
-          ).catch(() => null);
-          if (res && res.ok) {
-            const json = await res.json().catch(() => null);
-            if (json) {
-              const road = json.streetName || json.principalSubdivision || '';
-              const suburb = json.locality || json.subLocality || json.neighbourhood || '';
-              const town = json.city || json.principalSubdivision || json.countryName || '';
-              const parts = [road, suburb, town].filter(Boolean);
-              const label = parts.length > 0 ? parts.join(', ') : (json.locality || json.city || 'Unknown location');
-              if (label && label !== 'Unknown location') {
-                geocodeCache[key] = label;
-                return label;
-              }
-            }
-          }
-        } catch (_) {}
-
-        // Fallback: Nominatim (OpenStreetMap)
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lng=${lng}&format=json&zoom=14&addressdetails=1`,
-            { headers: { 'User-Agent': 'GC-Mission-Control/1.0' } }
-          ).catch(() => null);
-          if (res && res.ok) {
-            const json = await res.json().catch(() => null);
-            const addr = json?.address || {};
-            const road = addr.road || addr.pedestrian || addr.path || '';
-            const suburb = addr.suburb || addr.neighbourhood || addr.hamlet || '';
-            const town = addr.town || addr.city || addr.village || addr.county || '';
-            const parts = [road, suburb, town].filter(Boolean);
-            const label = parts.length > 0 ? parts.join(', ') : (json?.display_name?.split(',').slice(0, 2).join(',') || 'Unknown location');
-            geocodeCache[key] = label;
-            return label;
-          }
-        } catch (_) {}
-
-        geocodeCache[key] = 'Unknown location';
-        return 'Unknown location';
-      }
+      // Reverse geocoding is handled by the FRONTEND (TripTimelineEnhanced.jsx)
+      // using BigDataCloud, which works reliably in the browser but fails
+      // intermittently in the edge runtime. Returning raw coordinates here
+      // and letting the frontend geocode them avoids 2+ minute timeouts on
+      // 7-day ranges (one geocode call per trip endpoint that mostly fails).
 
       // Detect stops within a trip — periods where speed = 0 for >= 2 minutes.
       // Returns an array of stop events with location, duration, and arrival/departure times.
@@ -313,26 +280,9 @@ export default async function(req: Request): Promise<Response> {
         // Detect stops within the trip
         const stops = detectStops(tripCrumbs, startTime, endTime);
 
-        // Reverse geocode start and end only (BigDataCloud has no rate limit,
-        // so no sleep needed). Stops are geocoded without rate-limit delays too.
-        let startLocation = 'Unknown location';
-        let endLocation = 'Unknown location';
-        if (startCrumb?.lat != null) {
-          startLocation = await reverseGeocode(startCrumb.lat, startCrumb.lng);
-        }
-        if (endCrumb?.lat != null && endCrumb !== startCrumb) {
-          endLocation = await reverseGeocode(endCrumb.lat, endCrumb.lng);
-        } else if (endCrumb?.lat != null) {
-          endLocation = startLocation;
-        }
-
-        // Geocode all stops (BigDataCloud has no rate limit)
-        const geocodedStops: any[] = [];
-        for (const s of stops) {
-          const label = s.lat != null ? await reverseGeocode(s.lat, s.lng) : 'Unknown location';
-          geocodedStops.push({ ...s, location: label });
-        }
-
+        // Geocoding is handled by the frontend — return raw coordinates only.
+        // The frontend (TripTimelineEnhanced) geocodes via BigDataCloud in the
+        // browser where it works reliably, replacing "Unknown location" labels.
         formattedTrips.push({
           trip_id: t.id,
           start_time: startTime,
@@ -341,10 +291,10 @@ export default async function(req: Request): Promise<Response> {
           start_lng: startCrumb?.lng ?? null,
           end_lat: endCrumb?.lat ?? null,
           end_lng: endCrumb?.lng ?? null,
-          start_location: startLocation,
-          end_location: endLocation,
-          stops: geocodedStops,
-          stop_count: geocodedStops.length,
+          start_location: 'Unknown location',
+          end_location: 'Unknown location',
+          stops: stops.map(s => ({ ...s, location: 'Unknown location' })),
+          stop_count: stops.length,
           distance_km: t.distance != null ? Number(t.distance) : 0,
           duration_minutes: parseDuration(t.drivingDuration),
           max_speed_kph: t.maximumSpeed != null ? Math.round(Number(t.maximumSpeed)) : (t.maxSpeed != null ? Math.round(Number(t.maxSpeed)) : 0),
