@@ -160,14 +160,6 @@ export default function Vehicles() {
             icon={Truck}
             title="Fleet Command"
             subtitle="Live tracking · Maintenance · Trip history"
-            stats={[
-              { label: 'Total', value: stats.total, icon: Truck },
-              { label: 'Compliant', value: stats.compliant, icon: ShieldCheck },
-              { label: 'Attention', value: stats.warning, icon: ShieldAlert },
-              { label: 'Critical', value: stats.expired, icon: ShieldX },
-              { label: 'Geotab', value: stats.geotabSynced, icon: Satellite },
-              { label: 'Bookings', value: stats.activeBookings, icon: Wrench },
-            ]}
             actions={
               <>
                 <button onClick={() => setShowNumbers(true)} className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-white/15 hover:bg-white/25 text-white rounded-lg font-semibold text-xs transition"><PhoneCall className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Numbers</span></button>
