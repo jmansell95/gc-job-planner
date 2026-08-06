@@ -9,6 +9,7 @@ import DeliveryCard from '@/components/delivery/DeliveryCard';
 import DeliveryCompleteModal from '@/components/delivery/DeliveryCompleteModal';
 import MissionTimeline from '@/components/delivery/MissionTimeline';
 import RouteOptimizeBar from '@/components/delivery/RouteOptimizeBar';
+import DriverLegChainView from '@/components/logistics/DriverLegChainView';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/lib/AuthContext';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
@@ -342,6 +343,9 @@ export default function DeliveryDashboard() {
             ))}
           </div>
         </div>
+
+        {/* My Delivery Chain — multi-leg gear movements */}
+        <DriverLegChainView staffId={staff?.id} />
 
         {/* My Deliveries Today heading */}
         <div className="flex items-center gap-2.5 mb-3 md:mb-4">
