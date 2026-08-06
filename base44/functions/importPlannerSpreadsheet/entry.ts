@@ -221,9 +221,14 @@ function determineJobStatus(dates, jobName, hasSubbies, allDates) {
   const thisWeekEnd = wsDate.toISOString().slice(0, 10);
   // Check current week using ALL dates (including carry-forward) — a merged
   // cell means the planner intends the person to be on that job all week.
+  // Also include the previous week: a job that ended last Sunday may still
+  // be active (rota for this week may not have been entered yet).
   const checkDates = allDates || dates;
-  const hasThisWeek = checkDates.some(d => d >= thisWeekStart && d <= thisWeekEnd);
-  if (hasThisWeek) return 'in_progress';
+  const prevWeekStartDate = new Date(thisWeekStart + 'T00:00:00Z');
+  prevWeekStartDate.setUTCDate(prevWeekStartDate.getUTCDate() - 7);
+  const prevWeekStart = prevWeekStartDate.toISOString().slice(0, 10);
+  const hasRecent = checkDates.some(d => d >= prevWeekStart && d <= thisWeekEnd);
+  if (hasRecent) return 'in_progress';
   // Subcontractor jobs: 4-week grace period (subcon crews don't get weekly
   // rota entries, so the job may still be active without a rota this week).
   if (hasSubbies) {
