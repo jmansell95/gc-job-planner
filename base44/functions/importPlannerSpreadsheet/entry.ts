@@ -288,6 +288,27 @@ function parseSheet(sheet, sheetName) {
     if (d) colToDate[c] = d;
   }
 
+  // Fix duplicate/misaligned dates: the planner sometimes shows the week-start
+  // date on every column instead of unique daily dates. When the date difference
+  // between consecutive date columns doesn't match the column gap, replace with
+  // the correct incrementing daily date (1 day per column).
+  {
+    const dCols = Object.keys(colToDate).map(Number).sort((a, b) => a - b);
+    for (let i = 1; i < dCols.length; i++) {
+      const prevCol = dCols[i - 1];
+      const currCol = dCols[i];
+      const colGap = currCol - prevCol;
+      const prevDate = new Date(colToDate[prevCol] + 'T00:00:00Z');
+      const currDate = new Date(colToDate[currCol] + 'T00:00:00Z');
+      const dateDiff = Math.round((currDate.getTime() - prevDate.getTime()) / 86400000);
+      if (dateDiff !== colGap) {
+        const d = new Date(prevDate);
+        d.setUTCDate(d.getUTCDate() + colGap);
+        colToDate[currCol] = d.toISOString().slice(0, 10);
+      }
+    }
+  }
+
   // Interpolate daily dates between date columns. The planner shows
   // week-start dates in the header (e.g. every 7 columns) but staff
   // assignments appear in every daily column. Without interpolation, only

@@ -74,8 +74,7 @@ export default function CustomizableWidgetGrid({ renderWidget, canShowWidget }) 
   return (
     <div className="mb-4">
       {/* Customize bar */}
-      <div className="flex items-center justify-between mb-3 px-1">
-        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Widgets</h2>
+      <div className="flex items-center justify-end mb-3 px-1">
         <div className="flex items-center gap-2">
           {customize && (
             <button

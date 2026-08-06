@@ -210,7 +210,6 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
           <Radio className="w-4 h-4 text-white" />
         </div>
         <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Top 3 Active Sites</h2>
-        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">{scopedJobs.length} {scopedJobs.length === 1 ? 'Site' : 'Sites'}</span>
       </div>
 
       {/* Discipline filter strip */}
