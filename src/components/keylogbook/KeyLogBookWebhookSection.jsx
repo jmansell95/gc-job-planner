@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { CANONICAL_APP_BASE_URL } from '@/utils/appBaseUrl';
 import { useToast } from '@/components/ui/use-toast';
 import {
   Webhook, KeyRound, Link2, ToggleLeft, ToggleRight, Activity,
@@ -46,7 +47,7 @@ export default function KeyLogBookWebhookSection() {
   }, [config]);
 
   // Build the webhook URL from the app base URL
-  const appBaseUrl = appSetting?.app_base_url || '';
+  const appBaseUrl = CANONICAL_APP_BASE_URL;
   const webhookUrl = appBaseUrl
     ? `${appBaseUrl.replace(/\/$/, '')}/functions/receiveKeyLogBookData`
     : '';

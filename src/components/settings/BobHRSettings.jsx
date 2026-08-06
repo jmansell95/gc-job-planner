@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { buildWebhookUrl } from '@/utils/appBaseUrl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Users, Loader2, Save, Check, AlertTriangle, RefreshCw, Link2, Link2Off,
@@ -131,7 +132,7 @@ export default function BobHRSettings() {
   };
 
   const copyWebhookUrl = () => {
-    const fullUrl = window.location.origin + WEBHOOK_RELATIVE;
+    const fullUrl = buildWebhookUrl(WEBHOOK_RELATIVE);
     const secret = config.webhook_secret ? `?secret=${config.webhook_secret}` : '';
     navigator.clipboard.writeText(fullUrl + secret);
     setCopied(true);
@@ -259,7 +260,7 @@ export default function BobHRSettings() {
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Webhook URL</label>
             <div className="flex items-center gap-2">
-              <input readOnly value={window.location.origin + WEBHOOK_RELATIVE}
+              <input readOnly value={buildWebhookUrl(WEBHOOK_RELATIVE)}
                 className={`${inputCls} bg-slate-50 font-mono text-xs`} />
               <button onClick={copyWebhookUrl} className="flex items-center gap-1.5 px-3 py-2.5 bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-200 transition flex-shrink-0">
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />} {copied ? 'Copied' : 'Copy'}

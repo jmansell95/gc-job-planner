@@ -145,7 +145,7 @@ export default function KeyLogBookDocs() {
 
     // === 2. ENDPOINT ===
     addHeading('2. Webhook Endpoint');
-    addKeyValue('URL', 'https://[your-app-domain].base44.app/api/functions/receiveKeyLogBookData');
+    addKeyValue('URL', 'https://gc-mission-control.base44.app/api/functions/receiveKeyLogBookData');
     addKeyValue('Method', 'POST');
     addKeyValue('Content-Type', 'application/json');
     y += 6;
@@ -296,7 +296,7 @@ export default function KeyLogBookDocs() {
         </section>
         <section>
           <h2 className="font-bold text-slate-900 text-base mb-1.5">2. Webhook Endpoint</h2>
-          <p className="font-mono text-xs bg-slate-100 px-3 py-2 rounded-lg">POST https://[your-app-domain].base44.app/api/functions/receiveKeyLogBookData</p>
+          <p className="font-mono text-xs bg-slate-100 px-3 py-2 rounded-lg">POST https://gc-mission-control.base44.app/api/functions/receiveKeyLogBookData</p>
         </section>
         <section>
           <h2 className="font-bold text-slate-900 text-base mb-1.5">3. Authentication</h2>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { buildWebhookUrl } from '@/utils/appBaseUrl';
 import { ShieldAlert, Loader2, Save, ExternalLink, CheckCircle2, XCircle, FileWarning, Copy, ChevronDown, ChevronUp, Webhook, KeyRound, BookOpen, AlertCircle } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
@@ -58,8 +59,7 @@ export default function SafetyCultureSettings() {
     queryFn: () => base44.entities.SafetyReport.list('-created_date', 50),
   });
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const webhookUrl = origin + '/api/functions/receiveSafetyCultureData';
+  const webhookUrl = buildWebhookUrl('/api/functions/receiveSafetyCultureData');
   const isConfigured = !!(form?.webhook_secret);
   const [expandedPayload, setExpandedPayload] = useState(null);
 

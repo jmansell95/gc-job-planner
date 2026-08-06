@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { buildWebhookUrl } from '@/utils/appBaseUrl';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   FileSpreadsheet, Loader2, Save, Check, AlertTriangle, RefreshCw, Link2, Link2Off,
@@ -56,7 +57,7 @@ export default function AccountingSyncSettings() {
   }, [settingsRec]);
 
   const configId = settingsRec?.[0]?.id;
-  const webhookUrl = typeof window !== 'undefined' ? `${window.location.origin}${WEBHOOK_RELATIVE}` : '';
+  const webhookUrl = buildWebhookUrl(WEBHOOK_RELATIVE);
   const connected = config.provider === 'xero'
     ? !!(config.xero_client_id && config.xero_client_secret)
     : config.provider === 'sage'

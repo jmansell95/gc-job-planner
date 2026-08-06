@@ -102,7 +102,7 @@ export default function GlobalBrandingSettings() {
               <span className="inline-flex items-center gap-1"><Globe className="w-3.5 h-3.5 text-slate-400" /> App base URL</span>
             </label>
             <input type="text" value={cfg.app_base_url || ''} onChange={(e) => setDraft({ ...cfg, app_base_url: e.target.value })}
-              placeholder="https://your-app.base44.app" className={inputCls} />
+              placeholder="https://gc-mission-control.base44.app" className={inputCls} />
             <p className="text-xs text-slate-400 mt-1">Public URL used to build links inside email alerts (e.g. "View your schedule").</p>
           </div>
 
