@@ -290,6 +290,7 @@ export const JOB_NAME_NOISE_SUFFIXES = [
 const NON_JOB_NAME_PATTERNS = [
   /^rig\s*\d/i, /^cp\s*rig/i, /^rotary\s*rig/i, /^rig\s+\d/i,
   /^r\d{1,3}$/i, /^t[-_]?\d+/i, /^gc[-_]r/i,            // asset tags / rig IDs
+  /^sn\d+/i, /^geo\s*\d+/i, /^mi\d+$/i,                 // asset serials (SN5765, GEO 205, Mi8)
   /^tbc$|^tba$|^tbd$|^n\/a$|^na$|^none$|^unknown$/i,   // placeholders
   /^\d+$/,                                              // pure numbers
   /^unassigned$|^spare$|^cover$|^relief$|^tba$/i,      // unassigned markers
@@ -307,6 +308,21 @@ const ROLE_HEADER_KEYWORDS = [
   'asistant', 'assistant driller', 'operative', 'operatives', 'opratives',
   'full name', 'rig type', 'plant number', 'rig type & plant number',
   'optratives', 'operatives full name',
+  'asset id', 'asset id/sn', 'job title', 'labourers', 'labourer',
+];
+
+// Building/site indicator words — when present in a name, it's a real job/site
+// (e.g. "Kingsnorth Power Station", "Beatrice Tate School") not a person name.
+// Used to protect real jobs from the person-name filter below.
+const BUILDING_SITE_KEYWORDS = [
+  'school', 'station', 'hospital', 'college', 'university', 'centre', 'center',
+  'bridge', 'tunnel', 'extension', 'road', 'street', 'lane', 'avenue', 'drive',
+  'place', 'way', 'grove', 'close', 'view', 'hill', 'park', 'green', 'gardens',
+  'estate', 'court', 'house', 'farm', 'mill', 'factory', 'works', 'wharf',
+  'quay', 'docks', 'port', 'airport', 'hall', 'plaza', 'tower', 'phase',
+  'package', 'project', 'site', 'depot', 'yard', 'warehouse', 'building',
+  'construction', 'development', 'regeneration', 'infrastructure', 'rail',
+  'underground', 'overground', 'thamesmead', 'london', 'parliament',
 ];
 
 export function isLikelyRealJob(jobName) {
@@ -322,6 +338,10 @@ export function isLikelyRealJob(jobName) {
   for (const kw of ROLE_HEADER_KEYWORDS) {
     if (lower === kw || lower.includes(kw)) return false;
   }
+  // Person names in date columns (e.g. "Richard Horsman") — not job names.
+  // But protect real jobs that contain building/site keywords (e.g.
+  // "Kingsnorth Power Station" looks like a person name but is a real job).
+  if (looksLikePersonName(s) && !BUILDING_SITE_KEYWORDS.some(kw => lower.includes(kw))) return false;
   return true;
 }
 

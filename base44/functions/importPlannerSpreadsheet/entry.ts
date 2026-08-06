@@ -200,10 +200,14 @@ function hasForceCompleteMarker(jobName) {
 function determineJobStatus(dates, jobName, hasSubbies) {
   if (hasForceCompleteMarker(jobName)) return 'completed';
   if (!dates || dates.length === 0) return 'planning';
+  // Jobs with subcontractors stay active until explicitly marked complete.
+  // Subcon crews don't follow the weekly rota pattern of direct staff — a
+  // subcon crew can be on a job for months without a new rota entry being
+  // added each week, so subcon jobs remain active until marked [DONE].
+  if (hasSubbies) return 'in_progress';
   const sorted = [...dates].sort();
   const lastDate = sorted[sorted.length - 1];
   // Only jobs with assignments today or in the future are "in_progress".
-  // This applies to both direct-staff and subcontractor jobs — no overrides.
   if (lastDate >= TODAY) return 'in_progress';
   return 'completed';
 }
@@ -218,7 +222,6 @@ function isPlantPlannerSheet(sheetName) {
 //   • "Drillers" → Drilling team (latest)
 const TARGET_SHEET_PATTERNS = [
   /team\s*planner.*2026.*gw\+depot/i,
-  /team\s*planner.*2026.*drilling/i,
   /^drillers$/i,
 ];
 
@@ -427,15 +430,19 @@ function parseSheet(sheet, sheetName) {
     // a company name (subcontractor), or a rig/equipment name (plant).
     // Rig names often contain digits (asset numbers) which the person/company
     // checks reject, so looksLikeAssetName is the fallback that captures them.
+    // Track which column the entity name was found in so it can be skipped
+    // when reading date columns — prevents the staff/asset name from being
+    // treated as a job name in sheets where date columns start at col 0.
     let entityName = null;
     let isCompanyName = false;
     let isAssetName = false;
+    let entityNameCol = -1;
     // Check for company names FIRST — company names like "PJ Drilling" match
     // both looksLikePersonName and looksLikeCompanyName, but the company check
     // is keyword-based and more specific. This applies to all sections since
     // a name containing "Drilling" or "Ltd" is always a company, never a person.
     for (let c = 0; c < 6; c++) {
-      if (looksLikeCompanyName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = true; break; }
+      if (looksLikeCompanyName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = true; entityNameCol = c; break; }
     }
     // In subcontractor sections, also check for subbie-specific abbreviations
     // (e.g. "SI" = Site Investigations) that looksLikeCompanyName misses
@@ -448,15 +455,15 @@ function parseSheet(sheet, sheetName) {
         if (!/[a-zA-Z]/.test(s) || /\d/.test(s)) continue;
         const words = s.toLowerCase().split(/\s+/);
         if (words.some(w => ['si', 'geo', 'specialists'].includes(w))) {
-          entityName = normalizeName(s); isCompanyName = true; break;
+          entityName = normalizeName(s); isCompanyName = true; entityNameCol = c; break;
         }
       }
     }
     if (!entityName) {
       for (let c = 0; c < 6; c++) {
-        if (looksLikePersonName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = false; break; }
-        if (looksLikeCompanyName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = true; break; }
-        if (looksLikeAssetName(row[c])) { entityName = normalizeName(row[c]); isAssetName = true; break; }
+        if (looksLikePersonName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = false; entityNameCol = c; break; }
+        if (looksLikeCompanyName(row[c])) { entityName = normalizeName(row[c]); isCompanyName = true; entityNameCol = c; break; }
+        if (looksLikeAssetName(row[c])) { entityName = normalizeName(row[c]); isAssetName = true; entityNameCol = c; break; }
       }
     }
     if (!entityName) continue;
@@ -484,6 +491,11 @@ function parseSheet(sheet, sheetName) {
     let hadAssignment = false;
     for (const [colStr, date] of Object.entries(colToDate)) {
       const c = Number(colStr);
+      // Skip the entity name column — its cell value is the staff/asset name,
+      // not a job name. In sheets where date columns start at col 0 (Drillers),
+      // the name column overlaps with a date column and would otherwise be
+      // treated as a job name, creating false Job entities from person names.
+      if (c === entityNameCol) continue;
       const cellVal = row[c];
       if (!cellVal) continue;
       const jobName = normalizeName(cellVal);
