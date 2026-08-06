@@ -5,10 +5,8 @@ import { base44 } from '@/api/base44Client';
 // email functions can build "View your schedule" / "Open planner" links.
 export default function AppBaseUrlSync() {
   useEffect(() => {
-    let origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
     if (!origin) return;
-    // Normalise legacy subdomain to the rebranded GC Mission Control slug
-    origin = origin.replace(/gc-job-planner/gi, 'gc-mission-control');
     (async () => {
       try {
         const list = await base44.entities.AppSetting.filter({ key: 'global' });
