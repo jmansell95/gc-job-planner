@@ -692,16 +692,15 @@ function parseSheet(sheet, sheetName) {
     }
   }
 
-  // Attach diagnostics + sections to the caller
+  // Attach diagnostics + sections to the caller. Keep diagnostics minimal —
+  // the full allCols/rawHeaderRow/rawFirstDataRow were bloating the dry-run
+  // response past 1MB, causing the published site to fail loading the page.
   if (assignments.length > 0) {
     assignments[0]._sections = [...sectionsFound];
     assignments[0]._diag = {
       dateHeaderRowIdx,
       dateColumnCount: Object.keys(colToDate).length,
       sampleCols: Object.entries(colToDate).slice(0, 5).map(([c, d]) => ({ col: Number(c), date: d })),
-      allCols: Object.entries(colToDate).map(([c, d]) => ({ col: Number(c), date: d })),
-      rawHeaderRow: rows[dateHeaderRowIdx] ? rows[dateHeaderRowIdx].slice(0, 20).map((v, i) => ({ col: i, val: v instanceof Date ? v.toISOString().slice(0,10) : (v != null ? String(v).slice(0,30) : null) })) : [],
-      rawFirstDataRow: rows[dateHeaderRowIdx + 1] ? rows[dateHeaderRowIdx + 1].slice(0, 20).map((v, i) => ({ col: i, val: v instanceof Date ? v.toISOString().slice(0,10) : (v != null ? String(v).slice(0,30) : null) })) : [],
     };
   }
   return assignments;
@@ -1876,7 +1875,7 @@ export default async function(req) {
         sections,
         status: newStaffKeys.includes(key) ? 'new' : 'existing',
         linked_via: staffLinkMethods[key] || null,
-        non_job_days: sAssignments.filter(a => a.non_job_type).map(a => ({ date: a.date, type: a.non_job_type, label: a.non_job_label })),
+        non_job_days: sAssignments.filter(a => a.non_job_type).map(a => ({ date: a.date, type: a.non_job_type, label: a.non_job_label })).slice(0, 14),
       };
     });
 
@@ -1970,7 +1969,6 @@ export default async function(req) {
       sheet_breakdown: sheetBreakdown.map(s => ({
         sheet: s.sheet, assignments: s.assignments,
         date_range: s.date_range, sections: s.sections.length,
-        diag: s.diag,
       })),
       purge: purgeSummary,
       staff: {
@@ -2063,11 +2061,17 @@ export default async function(req) {
         status: 'success',
         dry_run: true,
         summary,
-        sheet_breakdown: sheetBreakdown,
+        sheet_breakdown: sheetBreakdown.map(s => ({
+          sheet: s.sheet, is_plant: s.is_plant, is_legacy: s.is_legacy,
+          assignments: s.assignments,
+          sections: s.sections,
+          date_range: s.date_range,
+          diag: s.diag,
+        })),
         staff_breakdown: staffBreakdown,
         jobs_breakdown: jobsBreakdown,
         leavers,
-        conflicts,
+        conflicts: conflicts.slice(0, 50),
         new_staff: newStaff.map(s => ({
           name: s.name, email: s.email, job_title: s.job_title,
           worker_type: s.worker_type,
@@ -2082,7 +2086,7 @@ export default async function(req) {
         staff_updates: staffUpdates,
         job_updates: jobUpdates,
         new_teams: newTeamNames,
-        new_rig_assignments: dedupedRigAssignments.map(ra => ({
+        new_rig_assignments: dedupedRigAssignments.slice(0, 100).map(ra => ({
           job_name: ra.job_name, asset_name: ra.asset_name, asset_type: ra.asset_type,
           role: ra.role, rig_type: ra.rig_type, assigned_date: ra.assigned_date,
           is_rig: ra.is_rig, unit_cost: ra.unit_cost || 0, unit_label: ra.unit_label || 'day',
