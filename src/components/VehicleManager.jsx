@@ -7,6 +7,16 @@ import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SearchFilterBar from '@/components/SearchFilterBar';
 import { TableSkeleton } from '@/components/StateViews';
 
+/** Safely parse a date string that may be YYYY-MM-DD or a full ISO timestamp.
+ *  Appending 'T00:00:00' to a value that already contains 'T' produces an
+ *  invalid date — this handles both shapes. */
+function safeDate(val) {
+  if (!val) return null;
+  const s = String(val);
+  const d = new Date(s.includes('T') ? s : s + 'T00:00:00');
+  return isNaN(d.getTime()) ? null : d;
+}
+
 const emptyForm = {
   name: '', registration_number: '', vin: '', assigned_staff_id: '', team_id: '',
   mot_expiry: '', service_due_date: '', last_service_date: '',
@@ -17,16 +27,16 @@ function getMaintenanceStatus(vehicle) {
   const today = new Date();
   const issues = [];
   if (vehicle.mot_expiry) {
-    const d = new Date(vehicle.mot_expiry + 'T00:00:00');
-    if (!isNaN(d.getTime())) {
+    const d = safeDate(vehicle.mot_expiry);
+    if (d) {
       const days = differenceInDays(d, today);
       if (days < 0) issues.push({ label: 'MOT Expired', severity: 'expired', days });
       else if (days <= 30) issues.push({ label: 'MOT Due', severity: 'warning', days });
     }
   }
   if (vehicle.service_due_date) {
-    const d = new Date(vehicle.service_due_date + 'T00:00:00');
-    if (!isNaN(d.getTime())) {
+    const d = safeDate(vehicle.service_due_date);
+    if (d) {
       const days = differenceInDays(d, today);
       if (days < 0) issues.push({ label: 'Service Overdue', severity: 'expired', days });
       else if (days <= 30) issues.push({ label: 'Service Due', severity: 'warning', days });
@@ -277,7 +287,7 @@ export default function VehicleManager() {
                     ))}
                     {v.max_weight_kg && <span className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full flex items-center gap-1"><Weight className="w-3 h-3" />{Number(v.max_weight_kg).toLocaleString()} kg</span>}
                     {v.max_volume_m3 && <span className="bg-purple-50 text-purple-600 px-2.5 py-1 rounded-full">{Number(v.max_volume_m3)} m³</span>}
-                    {issues.length === 0 && v.mot_expiry && !isNaN(new Date(v.mot_expiry + 'T00:00:00').getTime()) && <span className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full">MOT: {format(new Date(v.mot_expiry + 'T00:00:00'), 'dd MMM yy')}</span>}
+                    {issues.length === 0 && safeDate(v.mot_expiry) && <span className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full">MOT: {format(safeDate(v.mot_expiry), 'dd MMM yy')}</span>}
                   </div>
                 </div>
               );
