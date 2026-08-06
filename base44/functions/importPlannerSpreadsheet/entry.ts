@@ -190,12 +190,13 @@ function hasForceCompleteMarker(jobName) {
 //   force-complete marker  → completed (explicit planner override)
 //   no dates               → planning
 //   has subcontractors     → in_progress (subcon jobs stay active until [DONE])
-//   no activity in 30 days → completed (stale — not worked recently)
-//   any today/future        → in_progress (actively being worked)
+//   last date in the past  → completed (job has finished)
+//   last date today/future → in_progress (actively being worked)
+// A job is only "active" if it has assignments dated today or later.
+// Past jobs are completed — no 30-day grace window.
 // Subcontractor jobs don't follow the weekly rota pattern of direct staff —
 // a subcon crew can be on a job for months without a new rota entry being
-// added each week. So the 30-day stale rule only applies to direct-staff
-// jobs; subcon jobs remain active until the planner marks them [DONE].
+// added each week, so subcon jobs remain active until marked [DONE].
 function determineJobStatus(dates, jobName, hasSubbies) {
   if (hasForceCompleteMarker(jobName)) return 'completed';
   if (!dates || dates.length === 0) return 'planning';
@@ -203,13 +204,10 @@ function determineJobStatus(dates, jobName, hasSubbies) {
   if (hasSubbies) return 'in_progress';
   const sorted = [...dates].sort();
   const lastDate = sorted[sorted.length - 1];
-  // Stale threshold: 30 days ago. If the last assignment was before this, the
-  // job hasn't been worked on in over a month → mark as completed.
-  const staleThreshold = new Date(TODAY + 'T00:00:00Z');
-  staleThreshold.setUTCDate(staleThreshold.getUTCDate() - 30);
-  const staleThresholdStr = staleThreshold.toISOString().slice(0, 10);
-  if (lastDate < staleThresholdStr) return 'completed';
-  return 'in_progress';
+  // Only jobs with assignments today or in the future are "in_progress".
+  // All jobs whose last assignment is in the past → completed.
+  if (lastDate >= TODAY) return 'in_progress';
+  return 'completed';
 }
 
 function isPlantPlannerSheet(sheetName) {
