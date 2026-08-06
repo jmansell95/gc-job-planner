@@ -7,26 +7,22 @@ const DVLA_MOT_HISTORY_URL = 'https://history-mot.api.gov.uk/v1/trade/vehicles/r
 
 /**
  * Syncs vehicle specification data by looking up each vehicle's registration
- * number against two official DVLA APIs — the authoritative UK source of truth.
+ * number against a configurable vehicle data provider.
  *
- * 1. Vehicle Enquiry Service (VES) — returns make, year, fuel type, colour,
- *    MOT status/expiry, tax status/due date, engine capacity, CO2 emissions.
- *    NOTE: VES does NOT return the model name.
+ * Supports two providers (selected in Settings → Integrations Hub):
  *
- * 2. MOT History Service — returns the full MOT test history (every test with
- *    pass/fail/PRS result, odometer reading, advisory & failure notes) AND the
- *    model name (which VES lacks). This populates the VehicleMOTHistory entity.
+ * 1. "rapidapi" — Any RapidAPI vehicle data endpoint. The user provides:
+ *    - api_key      → x-rapidapi-key header
+ *    - request_url  → full URL with {reg} placeholder (e.g. https://...?reg={reg})
+ *    - host         → x-rapidapi-host header (auto-derived from request_url if blank)
+ *    The response is mapped flexibly to handle common UK vehicle data API shapes
+ *    (flat fields, nested mot/tax objects, or arrays).
  *
- * Both APIs use the registration number as the lookup key — exactly like the
- * public "check MOT and tax" service on the DVLA website.
- *
- * Requires DVLA API keys stored in an AppSetting record (key: 'dvla_ves_config'):
- *   - api_key            → VES API key (x-api-key header)
- *   - mot_history_api_key → MOT History API key (x-api-key header, separate key)
+ * 2. "dvla" — Official DVLA Vehicle Enquiry Service + MOT History Service.
+ *    Requires DVLA-issued API keys (currently closed to new registrations).
  *
  * Batch mode: processes a small batch per call (default 3) and returns progress.
- * The frontend calls repeatedly until `done` is true. This avoids timeouts on
- * the published site (no waitUntil/background processing needed).
+ * The frontend calls repeatedly until `done` is true.
  *
  * Payload:
  *   { vehicle_id?: string,    // single-vehicle synchronous mode
@@ -34,8 +30,8 @@ const DVLA_MOT_HISTORY_URL = 'https://history-mot.api.gov.uk/v1/trade/vehicles/r
  *     batch_size?: number,    // vehicles per call (default 3, max 5)
  *     geotab_only?: boolean,  // only look up Geotab-synced vehicles (default false)
  *     force?: boolean,        // overwrite even a later existing MOT (default false)
- *     include_mot_history?: boolean, // call the MOT History API too (default true)
- *     test_mode?: boolean }   // use the DVLA UAT/test VES endpoint (default false)
+ *     include_mot_history?: boolean, // DVLA only — call the MOT History API too
+ *     test_mode?: boolean }   // DVLA only — use the UAT/test VES endpoint
  */
 export default async function(req: Request): Promise<Response> {
   try {
@@ -49,18 +45,28 @@ export default async function(req: Request): Promise<Response> {
     const singleVehicleId = body?.vehicle_id || null;
     const geotabOnly = body?.geotab_only === true;
     const force = body?.force === true;
-    const includeMotHistory = body?.include_mot_history !== false; // default true
+    const includeMotHistory = body?.include_mot_history !== false;
     const testMode = body?.test_mode === true;
 
-    // Read the DVLA API keys from AppSetting
+    // Read the vehicle data API config from AppSetting
     const config = await getAppSettingValue(base44, 'dvla_ves_config', {});
-    const vesApiKey = config?.api_key;
-    const motHistoryApiKey = config?.mot_history_api_key;
-    if (!vesApiKey) {
-      return Response.json({
-        ok: false,
-        error: 'DVLA VES API key not configured. Add it in Settings → Integrations Hub → DVLA Vehicle Enquiry.',
-      }, { status: 400 });
+    const provider = (config.provider || 'rapidapi').toLowerCase();
+
+    if (provider === 'rapidapi') {
+      if (!config.api_key || !config.request_url) {
+        return Response.json({
+          ok: false,
+          error: 'Vehicle Data API not configured. Add your RapidAPI key and request URL in Settings → Integrations Hub → Vehicle Data API.',
+        }, { status: 400 });
+      }
+    } else {
+      // DVLA provider
+      if (!config.api_key) {
+        return Response.json({
+          ok: false,
+          error: 'DVLA VES API key not configured. Add it in Settings → Integrations Hub → Vehicle Data API.',
+        }, { status: 400 });
+      }
     }
 
     // Single-vehicle mode: synchronous, returns results
@@ -69,7 +75,9 @@ export default async function(req: Request): Promise<Response> {
       if (!vehicle?.registration_number) {
         return Response.json({ ok: false, error: 'No registration number' }, { status: 400 });
       }
-      const result = await lookupAndSync(base44, vehicle, vesApiKey, motHistoryApiKey, force, testMode, includeMotHistory);
+      const result = provider === 'rapidapi'
+        ? await lookupRapidAPI(base44, vehicle, config, force)
+        : await lookupDvla(base44, vehicle, config, force, testMode, includeMotHistory);
       return Response.json({ ok: true, result, done: true });
     }
 
@@ -85,8 +93,13 @@ export default async function(req: Request): Promise<Response> {
     const results: any[] = [];
     for (const vehicle of batch) {
       try {
-        const r = await lookupAndSync(base44, vehicle, vesApiKey, motHistoryApiKey, force, testMode, includeMotHistory);
-        results.push({ reg: r.reg, ok: true, updated: r.updated, notFound: r.notFound, motTests: r.motTests, model: r.model });
+        const r = provider === 'rapidapi'
+          ? await lookupRapidAPI(base44, vehicle, config, force)
+          : await lookupDvla(base44, vehicle, config, force, testMode, includeMotHistory);
+        results.push({
+          reg: r.reg, ok: true, updated: r.updated, notFound: r.notFound,
+          motTests: r.motTests, model: r.model, make: r.make,
+        });
       } catch (e: any) {
         results.push({ reg: vehicle.registration_number, ok: false, error: e.message });
       }
@@ -111,16 +124,20 @@ export default async function(req: Request): Promise<Response> {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────
+
 function titleCase(s: string): string {
   if (!s) return s;
   return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function mapFuelType(dvlaFuel: string): string {
-  if (!dvlaFuel) return 'unknown';
-  const f = dvlaFuel.toUpperCase();
+function mapFuelType(fuel: string): string {
+  if (!fuel) return 'unknown';
+  const f = fuel.toUpperCase();
   if (f.includes('HYBRID')) return 'hybrid';
-  if (f.includes('ELECTRIC')) return 'electric';
+  if (f.includes('ELECTRIC') || f.includes('EV')) return 'electric';
   if (f.includes('PETROL')) return 'petrol';
   if (f.includes('DIESEL')) return 'diesel';
   if (f.includes('LPG')) return 'lpg';
@@ -128,22 +145,31 @@ function mapFuelType(dvlaFuel: string): string {
   return 'unknown';
 }
 
-function mapMotStatus(dvlaMotStatus: string): string {
-  if (!dvlaMotStatus) return 'unknown';
-  const s = dvlaMotStatus.toLowerCase();
-  if (s.includes('valid')) return 'valid';
-  if (s.includes('not valid')) return 'not_valid';
-  if (s.includes('no details')) return 'no_details';
-  if (s.includes('no results')) return 'no_details';
+function mapMotStatus(status: string): string {
+  if (!status) return 'unknown';
+  const s = status.toLowerCase();
+  if (s.includes('valid') || s.includes('pass')) return 'valid';
+  if (s.includes('not valid') || s.includes('fail') || s.includes('expired')) return 'not_valid';
+  if (s.includes('no details') || s.includes('no results')) return 'no_details';
   return 'unknown';
 }
 
-function mapTaxStatus(dvlaTaxStatus: string): string {
-  if (!dvlaTaxStatus) return 'unknown';
-  const s = dvlaTaxStatus.toLowerCase();
+function mapTaxStatus(status: string): string {
+  if (!status) return 'unknown';
+  const s = status.toLowerCase();
   if (s.includes('sorn')) return 'sorn';
   if (s.includes('taxed') || s.includes('valid')) return 'taxed';
-  if (s.includes('untaxed') || s.includes('not taxed')) return 'untaxed';
+  if (s.includes('untaxed') || s.includes('not taxed') || s.includes('expired')) return 'untaxed';
+  return 'unknown';
+}
+
+function mapTestResult(result: string): string {
+  if (!result) return 'unknown';
+  const r = result.toUpperCase();
+  if (r === 'PASSED' || r === 'PASS') return 'pass';
+  if (r === 'FAILED' || r === 'FAIL') return 'fail';
+  if (r === 'PRS') return 'prs';
+  if (r.includes('ADVISORY')) return 'advisory';
   return 'unknown';
 }
 
@@ -152,53 +178,60 @@ function motDateToIso(dotDate: string): string | null {
   if (!dotDate) return null;
   const m = dotDate.match(/^(\d{4})\.(\d{2})\.(\d{2})/);
   if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-  // Already ISO or another format — try a direct parse
   const d = new Date(dotDate);
   if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
   return null;
 }
 
-function mapTestResult(dvlaResult: string): string {
-  if (!dvlaResult) return 'unknown';
-  const r = dvlaResult.toUpperCase();
-  if (r === 'PASSED') return 'pass';
-  if (r === 'FAILED') return 'fail';
-  if (r === 'PRS') return 'prs';
-  return 'unknown';
+/** Safely extracts a date string and normalises to ISO YYYY-MM-DD. */
+function normaliseDate(val: any): string | null {
+  if (!val) return null;
+  const s = String(val);
+  // Already ISO
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  // DVLA dot format
+  const dot = motDateToIso(s);
+  if (dot) return dot;
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  return null;
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// RapidAPI provider — flexible lookup for any RapidAPI vehicle data endpoint
+// ─────────────────────────────────────────────────────────────────────
+
 /**
- * Looks up a single vehicle by registration via the DVLA VES API (specs + tax)
- * and the DVLA MOT History API (full test history + model), then updates the record.
- * DVLA is the authoritative source for make, year, fuel type, colour, MOT & tax.
+ * Looks up a single vehicle via a configurable RapidAPI endpoint.
+ * The request_url contains a {reg} placeholder which is replaced with the
+ * registration number. Headers x-rapidapi-key and x-rapidapi-host are added.
+ * The response is mapped flexibly to handle common UK vehicle data API shapes.
  */
-async function lookupAndSync(
-  base44: any,
-  vehicle: any,
-  vesApiKey: string,
-  motHistoryApiKey: string | null,
-  force: boolean,
-  testMode: boolean,
-  includeMotHistory: boolean,
-): Promise<any> {
+async function lookupRapidAPI(base44: any, vehicle: any, config: any, force: boolean): Promise<any> {
   const reg = vehicle.registration_number.replace(/\s+/g, '').toUpperCase();
-  const vesUrl = testMode ? DVLA_VES_UAT_URL : DVLA_VES_URL;
 
-  // --- 1. VES lookup (specs + tax + MOT status) ---
-  const vesRes = await fetch(vesUrl, {
-    method: 'POST',
-    headers: {
-      'x-api-key': vesApiKey,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ registrationNumber: reg }),
-  });
+  // Build the URL — replace {reg} placeholder
+  let url = config.request_url;
+  if (!url.includes('{reg}')) {
+    // If no placeholder, append registration as a query param
+    url += (url.includes('?') ? '&' : '?') + 'registration={reg}';
+  }
+  url = url.replace('{reg}', encodeURIComponent(reg));
 
-  let motTestsRecorded = 0;
-  let modelFromHistory: string | null = null;
+  // Derive host from the URL if not explicitly set
+  let host = config.host;
+  if (!host) {
+    try { host = new URL(url).host; } catch (_) { host = ''; }
+  }
 
-  if (vesRes.status === 404) {
-    // Vehicle not found in DVLA — mark as not found but still try MOT history if we have a key
+  const headers: Record<string, string> = {
+    'x-rapidapi-key': config.api_key,
+  };
+  if (host) headers['x-rapidapi-host'] = host;
+
+  const res = await fetch(url, { method: 'GET', headers });
+
+  if (res.status === 404) {
     const update: any = {
       mot_status: 'not_found',
       tax_status: 'not_found',
@@ -206,7 +239,175 @@ async function lookupAndSync(
       last_dvla_sync: new Date().toISOString(),
     };
     await base44.asServiceRole.entities.Vehicle.update(vehicle.id, update);
-    return { reg, updated: Object.keys(update), make: null, fuelType: null, colour: null, motExpiry: null, motStatus: 'not_found', taxStatus: 'not_found', year: null, model: null, motTests: 0, notFound: true };
+    return { reg, updated: Object.keys(update), make: null, model: null, motTests: 0, notFound: true };
+  }
+
+  if (!res.ok) {
+    const errBody = await res.text().catch(() => '');
+    throw new Error(`API ${res.status}: ${errBody.slice(0, 200)}`);
+  }
+
+  const raw = await res.json() as any;
+  // Some APIs wrap the data in an array or a nested object — unwrap it
+  const data = Array.isArray(raw) ? raw[0] : (raw.data && Array.isArray(raw.data) ? raw.data[0] : (raw.data || raw));
+
+  const update: any = { last_dvla_sync: new Date().toISOString() };
+
+  // ── Map fields flexibly ──
+  const make = data.make || data.Make || data.manufacturer;
+  if (make) update.make = titleCase(String(make));
+
+  const model = data.model || data.Model || data.modelName;
+  if (model) update.model = titleCase(String(model));
+
+  const year = data.year || data.yearOfManufacture || data.Year || data.registrationYear;
+  if (year) update.year = Number(year);
+
+  const fuel = data.fuelType || data.fuel_type || data.FuelType || data.fuel;
+  if (fuel) update.fuel_type = mapFuelType(String(fuel));
+
+  const colour = data.colour || data.color || data.Colour;
+  if (colour) update.color = titleCase(String(colour));
+
+  const engineCap = data.engineCapacity || data.engine_capacity || data.EngineCapacity || data.cc;
+  if (engineCap) update.engine_capacity_cc = Number(engineCap);
+
+  const co2 = data.co2Emissions || data.co2_emissions || data.CO2Emissions || data.emissions;
+  if (co2) update.co2_emissions_g_km = Number(co2);
+
+  // MOT — could be flat or nested in a mot object
+  const motObj = data.mot || data.MOT || data.Mot || {};
+  const motStatusRaw = data.motStatus || data.mot_status || motObj.status || motObj.motStatus;
+  const motExpiryRaw = data.motExpiryDate || data.mot_expiry || data.motExpiry || motObj.expiryDate || motObj.expiry || motObj.dueDate;
+  if (motStatusRaw) update.mot_status = mapMotStatus(String(motStatusRaw));
+  const motExpiry = normaliseDate(motExpiryRaw);
+  if (motExpiry) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (force || !vehicle.mot_expiry || motExpiry > vehicle.mot_expiry) {
+      update.mot_expiry = motExpiry;
+    }
+    if (!update.mot_status) update.mot_status = motExpiry > todayStr ? 'valid' : 'not_valid';
+  }
+
+  // Tax — could be flat or nested in a tax object
+  const taxObj = data.tax || data.Tax || {};
+  const taxStatusRaw = data.taxStatus || data.tax_status || taxObj.status || taxObj.taxStatus;
+  const taxDueRaw = data.taxDueDate || data.tax_due_date || data.taxDue || taxObj.dueDate || taxObj.due;
+  if (taxStatusRaw) update.tax_status = mapTaxStatus(String(taxStatusRaw));
+  const taxDue = normaliseDate(taxDueRaw);
+  if (taxDue && /^\d{4}-\d{2}-\d{2}$/.test(taxDue)) update.tax_due_date = taxDue;
+
+  // First used date
+  const firstUsed = data.firstUsedDate || data.first_used_date || data.firstRegistrationDate;
+  const firstUsedIso = normaliseDate(firstUsed);
+  if (firstUsedIso) update.first_used_date = firstUsedIso;
+
+  // Mileage / odometer
+  const odometer = data.odometer || data.mileage || data.currentMileage || data.Odometer;
+  if (odometer && !isNaN(Number(odometer))) {
+    const odo = Number(odometer);
+    if (!vehicle.current_mileage || odo > vehicle.current_mileage) {
+      update.current_mileage = odo;
+    }
+  }
+
+  // Vehicle type
+  const vType = data.vehicleType || data.type || data.bodyType;
+  if (vType) update.vehicle_type = String(vType);
+
+  // ── MOT test history (if the API returns it) ──
+  let motTestsRecorded = 0;
+  const motTests = data.motTests || data.motHistory || data.MOTTests || motObj.tests;
+  if (Array.isArray(motTests)) {
+    for (const test of motTests) {
+      try {
+        const testNumber = test.motTestNumber || test.testNumber || null;
+        const completedDate = normaliseDate(test.completedDate || test.testDate || test.date);
+        if (!completedDate) continue;
+        const dedupQuery: any = { vehicle_id: vehicle.id, test_date: completedDate };
+        if (testNumber) dedupQuery.test_number = testNumber;
+        const existing = await base44.asServiceRole.entities.VehicleMOTHistory.filter(dedupQuery);
+        if (existing.length > 0) continue;
+
+        const result = mapTestResult(test.testResult || test.result);
+        const testOdo = test.odometerValue || test.odometer || test.mileage;
+        const expiryDate = normaliseDate(test.motTestExpiryDate || test.expiryDate);
+
+        let advisoryNotes = '';
+        const rfrs = test.rfrAndAdvisoryDetails || test.advisories || test.advisoryNotes;
+        if (Array.isArray(rfrs) && rfrs.length > 0) {
+          advisoryNotes = rfrs
+            .map((rfr: any) => typeof rfr === 'string' ? rfr : `${rfr.rfrType || rfr.type || 'NOTE'}: ${rfr.rfrDesc || rfr.description || ''}`.trim())
+            .filter((s: string) => s)
+            .join(' | ');
+        }
+
+        await base44.entities.VehicleMOTHistory.create({
+          vehicle_id: vehicle.id,
+          registration_number: reg,
+          test_date: completedDate,
+          result,
+          expiry_date: expiryDate,
+          odometer: testOdo && !isNaN(Number(testOdo)) ? Number(testOdo) : null,
+          test_number: testNumber,
+          advisory_notes: advisoryNotes || undefined,
+          source: 'dvla_lookup',
+        });
+        motTestsRecorded++;
+      } catch (_) { /* skip individual test failures */ }
+    }
+  }
+
+  update.spec_lookup_confidence = 'high';
+
+  await base44.asServiceRole.entities.Vehicle.update(vehicle.id, update);
+
+  return {
+    reg,
+    updated: Object.keys(update),
+    make: update.make || null,
+    model: update.model || null,
+    motTests: motTestsRecorded,
+    notFound: false,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// DVLA provider — official DVLA VES + MOT History (existing logic preserved)
+// ─────────────────────────────────────────────────────────────────────
+
+async function lookupDvla(
+  base44: any,
+  vehicle: any,
+  config: any,
+  force: boolean,
+  testMode: boolean,
+  includeMotHistory: boolean,
+): Promise<any> {
+  const vesApiKey = config.api_key;
+  const motHistoryApiKey = config.mot_history_api_key;
+  const reg = vehicle.registration_number.replace(/\s+/g, '').toUpperCase();
+  const vesUrl = testMode ? DVLA_VES_UAT_URL : DVLA_VES_URL;
+
+  // --- 1. VES lookup (specs + tax + MOT status) ---
+  const vesRes = await fetch(vesUrl, {
+    method: 'POST',
+    headers: { 'x-api-key': vesApiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ registrationNumber: reg }),
+  });
+
+  let motTestsRecorded = 0;
+  let modelFromHistory: string | null = null;
+
+  if (vesRes.status === 404) {
+    const update: any = {
+      mot_status: 'not_found',
+      tax_status: 'not_found',
+      spec_lookup_confidence: 'low',
+      last_dvla_sync: new Date().toISOString(),
+    };
+    await base44.asServiceRole.entities.Vehicle.update(vehicle.id, update);
+    return { reg, updated: Object.keys(update), make: null, model: null, motTests: 0, notFound: true };
   }
 
   if (!vesRes.ok) {
@@ -227,7 +428,6 @@ async function lookupAndSync(
   const engineCapacity = vesData.engineCapacity ? Number(vesData.engineCapacity) : null;
   const co2Emissions = vesData.co2Emissions ? Number(vesData.co2Emissions) : null;
 
-  // Only accept MOT expiry if DVLA confirms the MOT is Valid and the date is in the future
   const todayStr = new Date().toISOString().slice(0, 10);
   let motValid = false;
   if (motExpiry && /^\d{4}-\d{2}-\d{2}$/.test(motExpiry)) {
@@ -240,8 +440,6 @@ async function lookupAndSync(
     motExpiry = null;
   }
 
-  // DVLA is the authoritative source — always update make/fuel/colour/year/tax.
-  // Model is NOT returned by VES — we pull it from the MOT History API below.
   const update: any = { last_dvla_sync: new Date().toISOString() };
   if (make) update.make = make;
   if (fuelType && fuelType !== 'unknown') update.fuel_type = fuelType;
@@ -257,7 +455,6 @@ async function lookupAndSync(
       update.mot_expiry = motExpiry;
     }
   }
-  // Successful DVLA VES lookup = high confidence (authoritative source)
   update.spec_lookup_confidence = 'high';
 
   // --- 2. MOT History lookup (full test history + model) ---
@@ -269,7 +466,6 @@ async function lookupAndSync(
       });
       if (motRes.ok) {
         const motData = await motRes.json() as any;
-        // MOT History API returns the model (VES does not)
         if (motData.model) {
           modelFromHistory = titleCase(motData.model);
           update.model = modelFromHistory;
@@ -278,7 +474,6 @@ async function lookupAndSync(
           const firstUsed = motDateToIso(motData.firstUsedDate);
           if (firstUsed) update.first_used_date = firstUsed;
         }
-        // Use the MOT History expiry date as a fallback if VES didn't give a valid one
         if (!motValid && motData.motTestExpiryDate) {
           const histExpiry = motDateToIso(motData.motTestExpiryDate);
           if (histExpiry && (force || !vehicle.mot_expiry || histExpiry > vehicle.mot_expiry)) {
@@ -286,14 +481,12 @@ async function lookupAndSync(
             update.mot_status = histExpiry > todayStr ? 'valid' : 'not_valid';
           }
         }
-        // Record every MOT test into VehicleMOTHistory (de-duplicated by test number)
         if (Array.isArray(motData.motTests)) {
           for (const test of motData.motTests) {
             try {
               const testNumber = test.motTestNumber || null;
               const completedDate = motDateToIso(test.completedDate);
               if (!completedDate) continue;
-              // De-duplicate: skip if we already have this test (by test_number or date+result)
               const dedupQuery: any = { vehicle_id: vehicle.id, test_date: completedDate };
               if (testNumber) dedupQuery.test_number = testNumber;
               const existing = await base44.asServiceRole.entities.VehicleMOTHistory.filter(dedupQuery);
@@ -303,7 +496,6 @@ async function lookupAndSync(
               const odometer = test.odometerValue ? Number(test.odometerValue) : null;
               const expiryDate = motDateToIso(test.motTestExpiryDate);
 
-              // Build advisory / failure notes from rfrAndAdvisoryDetails
               let advisoryNotes = '';
               if (Array.isArray(test.rfrAndAdvisoryDetails) && test.rfrAndAdvisoryDetails.length > 0) {
                 advisoryNotes = test.rfrAndAdvisoryDetails
@@ -325,19 +517,16 @@ async function lookupAndSync(
               });
               motTestsRecorded++;
 
-              // Update current_mileage from the most recent test with an odometer reading
               if (odometer && !isNaN(odometer) && (!vehicle.current_mileage || odometer > vehicle.current_mileage)) {
                 update.current_mileage = odometer;
               }
-            } catch (_) { /* don't fail the whole sync if one test record fails */ }
+            } catch (_) { /* skip individual test failures */ }
           }
         }
       } else if (motRes.status !== 404) {
-        // Log but don't fail — MOT history is a bonus on top of VES
         console.warn(`MOT History API ${motRes.status} for ${reg}`);
       }
     } catch (e) {
-      // MOT history failure should not fail the VES sync
       console.warn(`MOT History lookup failed for ${reg}: ${e.message}`);
     }
   }
@@ -350,13 +539,6 @@ async function lookupAndSync(
     reg,
     updated: Object.keys(update),
     make,
-    fuelType,
-    colour,
-    motExpiry: update.mot_expiry || motExpiry,
-    motStatus: update.mot_status || motStatus,
-    taxStatus,
-    taxDueDate,
-    year,
     model: modelFromHistory,
     motTests: motTestsRecorded,
     notFound: false,

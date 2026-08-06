@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import {
   Truck, ShieldCheck, ShieldAlert, ShieldX, Wrench, Gauge,
-  Satellite, Link2, Car, Hash, MapPin, Navigation, Zap, Clock, Palette,
-  FileText, Loader2, BadgeCheck, AlertTriangle,
+  Satellite, Link2, Car, Hash, Navigation, Zap, Clock, Palette,
+  FileText, Loader2, BadgeCheck, AlertTriangle, Receipt,
 } from 'lucide-react';
 import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
 import { generateVehicleReport } from '@/utils/vehiclePdfReport';
@@ -42,7 +42,6 @@ function getVehicleStatus(v) {
   return { issues, level };
 }
 
-// Determine live motion status from the Geotab location data
 function getMotionStatus(liveLocation, geotabLive) {
   if (!geotabLive) return { state: 'offline', label: 'Offline', color: 'slate', Icon: Satellite };
   if (!liveLocation) return { state: 'no_data', label: 'No Signal', color: 'slate', Icon: Satellite };
@@ -63,10 +62,9 @@ const MOTION_STYLES = {
 const KM_TO_MI = 0.621371;
 
 /**
- * FleetVehicleCard — a single modern vehicle card for the Fleet tab.
- * Shows live motion status (moving/stopped/idle), compliance, full spec
- * (make, model, year, colour, fuel, VIN), live GPS location, and next
- * maintenance booking — all linked to Geotab (live) and Holman (compliance).
+ * FleetVehicleCard — modern, colourful vehicle card for the Fleet tab.
+ * Features a gradient header strip, live motion indicator, spec chips,
+ * compliance alerts, mini-map, and quick-action footer.
  */
 export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, driverName, onSelect, onBookMaintenance }) {
   const [reportLoading, setReportLoading] = useState(false);
@@ -75,36 +73,40 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
   const StatusIcon = badge.Icon;
   const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(' ');
 
-  // MOT pass/fail badge — prominent green/red indicator based on MOT expiry
   const motDays = vehicle.mot_expiry ? differenceInDays(new Date(vehicle.mot_expiry + 'T00:00:00'), new Date()) : null;
   const motBadge = motDays == null
     ? null
     : motDays < 0
-      ? { label: 'MOT FAIL', cls: 'bg-red-500 text-white', Icon: ShieldX }
+      ? { label: 'MOT EXPIRED', cls: 'bg-red-500 text-white', Icon: ShieldX }
       : motDays <= 30
         ? { label: 'MOT DUE', cls: 'bg-amber-500 text-white', Icon: ShieldAlert }
-        : { label: 'MOT PASS', cls: 'bg-emerald-500 text-white', Icon: BadgeCheck };
+        : { label: 'MOT OK', cls: 'bg-emerald-500 text-white', Icon: BadgeCheck };
+
+  const taxDays = vehicle.tax_due_date ? differenceInDays(new Date(vehicle.tax_due_date + 'T00:00:00'), new Date()) : null;
+  const taxBadge = taxDays == null
+    ? null
+    : taxDays < 0
+      ? { label: 'TAX EXPIRED', cls: 'bg-red-500 text-white', Icon: Receipt }
+      : taxDays <= 30
+        ? { label: 'TAX DUE', cls: 'bg-amber-500 text-white', Icon: Receipt }
+        : { label: 'TAXED', cls: 'bg-emerald-500 text-white', Icon: Receipt };
+
   const geotabLive = vehicle.geotab_sync_status === 'synced';
   const holmanSynced = vehicle.holman_sync_status === 'synced';
   const motion = getMotionStatus(liveLocation, geotabLive);
   const motionStyle = MOTION_STYLES[motion.state];
   const MotionIcon = motion.Icon;
 
-  // Speed in mph
   const speedMph = liveLocation?.speed_kph ? Math.round(liveLocation.speed_kph * KM_TO_MI) : 0;
   const isMoving = motion.state === 'moving';
-
-  // Last seen relative time
   const lastSeen = liveLocation?.timestamp
     ? new Date(liveLocation.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
     : null;
 
-  // Download PDF report for this vehicle
   const handleDownloadReport = async (e) => {
     e.stopPropagation();
     setReportLoading(true);
     try {
-      // Fetch trip history (last 7 days) + maintenance bookings in parallel
       const [tripRes, bookingRes] = await Promise.all([
         geotabLive
           ? base44.functions.invoke('getVehicleLocationHistory', {
@@ -123,37 +125,54 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
     setReportLoading(false);
   };
 
+  // Gradient strip colour based on compliance level
+  const stripGradient = level === 'expired' ? 'from-red-500 to-rose-600'
+    : level === 'warning' ? 'from-amber-500 to-orange-600'
+    : level === 'compliant' ? 'from-emerald-500 to-teal-600'
+    : 'from-slate-400 to-slate-500';
+
   return (
     <div
       onClick={() => onSelect(vehicle)}
-      className={`insight-card rounded-xl overflow-hidden relative cursor-pointer ${LEVEL_ACCENT[level]} before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1`}
+      className="insight-card rounded-2xl overflow-hidden relative cursor-pointer group"
     >
-      {/* ── Header: identity + live motion + status ── */}
-      <div className="px-4 pt-4 pb-3 pl-5">
+      {/* Top gradient strip — colour-coded by compliance */}
+      <div className={`h-1.5 bg-gradient-to-r ${stripGradient}`} />
+
+      {/* ── Header: identity + status badges ── */}
+      <div className="px-4 pt-4 pb-3">
         <div className="flex items-start justify-between gap-2 mb-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${geotabLive ? 'stat-gradient-cyan' : 'stat-gradient-slate'}`}>
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md ${geotabLive ? 'stat-gradient-cyan' : 'stat-gradient-slate'}`}>
               <Truck className="w-5 h-5 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="font-mono font-bold text-slate-900 truncate text-sm">{vehicle.registration_number}</p>
+              <p className="font-mono font-bold text-slate-900 truncate text-base tracking-tight">{vehicle.registration_number}</p>
               <p className="text-xs font-semibold text-slate-600 truncate">{makeModel || vehicle.name || '—'}</p>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-1 flex-shrink-0">
-            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border ${badge.cls}`}>
-              <StatusIcon className="w-3 h-3" /> {badge.label}
-            </span>
-            {motBadge && (
-              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${motBadge.cls}`}>
-                <motBadge.Icon className="w-3 h-3" /> {motBadge.label}
-                {motDays != null && motDays >= 0 && motDays <= 30 && <span className="opacity-80">({motDays}d)</span>}
-              </span>
-            )}
-          </div>
+          <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border ${badge.cls} flex-shrink-0`}>
+            <StatusIcon className="w-3 h-3" /> {badge.label}
+          </span>
         </div>
 
-        {/* Live motion status badge — prominent moving/stopped indicator */}
+        {/* MOT + Tax badges row */}
+        <div className="flex flex-wrap gap-1.5 mb-2.5">
+          {motBadge && (
+            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${motBadge.cls}`}>
+              <motBadge.Icon className="w-3 h-3" /> {motBadge.label}
+              {motDays != null && motDays >= 0 && motDays <= 30 && <span className="opacity-80">({motDays}d)</span>}
+            </span>
+          )}
+          {taxBadge && (
+            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${taxBadge.cls}`}>
+              <taxBadge.Icon className="w-3 h-3" /> {taxBadge.label}
+              {taxDays != null && taxDays >= 0 && taxDays <= 30 && <span className="opacity-80">({taxDays}d)</span>}
+            </span>
+          )}
+        </div>
+
+        {/* Live motion status badge */}
         <div className="flex items-center gap-2 mb-2">
           <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ${motionStyle.badge}`}>
             <span className={`relative w-2 h-2 rounded-full ${motionStyle.dot}`}>
@@ -171,7 +190,7 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
           )}
         </div>
 
-        {/* Spec chips — make/model, year, colour, fuel, type, VIN, driver */}
+        {/* Spec chips */}
         <div className="flex flex-wrap gap-1.5">
           {vehicle.year && (
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium flex items-center gap-1">
@@ -206,7 +225,7 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
           )}
         </div>
 
-        {/* Compliance alerts — only show if there are issues */}
+        {/* Compliance alerts */}
         {issues.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {issues.map((issue, i) => (
@@ -219,7 +238,7 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
       </div>
 
       {/* ── Live location snapshot ── */}
-      <div className="px-4 pb-3 pl-5">
+      <div className="px-4 pb-3">
         <VehicleLocationMiniMap {...(liveLocation || {})} />
       </div>
 
@@ -227,7 +246,7 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
       {nextBooking && (
         <button
           onClick={(e) => { e.stopPropagation(); onBookMaintenance(); }}
-          className="w-full flex items-center gap-2 px-4 py-2 bg-violet-50 border-y border-violet-100 text-left hover:bg-violet-100 transition"
+          className="w-full flex items-center gap-2 px-4 py-2.5 bg-violet-50 border-y border-violet-100 text-left hover:bg-violet-100 transition"
         >
           <Wrench className="w-3.5 h-3.5 text-violet-600 flex-shrink-0" />
           <span className="text-[11px] font-semibold text-violet-700 truncate flex-1">
@@ -240,35 +259,35 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
       )}
 
       {/* ── Footer: mileage + sync sources + actions ── */}
-      <div className="px-4 py-3 pl-5 flex items-center justify-between gap-2 text-[11px]">
+      <div className="px-4 py-3 flex items-center justify-between gap-2 text-[11px]">
         <div className="flex items-center gap-3">
           <button
             onClick={(e) => { e.stopPropagation(); onBookMaintenance(); }}
-            className="flex items-center gap-1 text-[#2E5A1A] font-medium hover:underline"
+            className="flex items-center gap-1 text-[#2E5A1A] font-semibold hover:underline"
           >
             <Wrench className="w-3 h-3" /> Book
           </button>
           <button
             onClick={handleDownloadReport}
             disabled={reportLoading}
-            className="flex items-center gap-1 text-blue-600 font-medium hover:underline disabled:opacity-50"
+            className="flex items-center gap-1 text-blue-600 font-semibold hover:underline disabled:opacity-50"
           >
             {reportLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />} PDF
           </button>
         </div>
         <div className="flex items-center gap-2">
           {vehicle.current_mileage != null && (
-            <span className="flex items-center gap-1 text-slate-400">
+            <span className="flex items-center gap-1 text-slate-400 font-medium">
               <Gauge className="w-3 h-3" />{Number(vehicle.current_mileage).toLocaleString()} mi
             </span>
           )}
           {geotabLive && (
-            <span className="flex items-center gap-1 text-cyan-600 font-medium">
+            <span className="flex items-center gap-1 text-cyan-600 font-semibold">
               <Satellite className="w-3 h-3" /> Live
             </span>
           )}
           {holmanSynced && (
-            <span className="flex items-center gap-1 text-blue-600 font-medium">
+            <span className="flex items-center gap-1 text-blue-600 font-semibold">
               <Link2 className="w-3 h-3" /> Holman
             </span>
           )}

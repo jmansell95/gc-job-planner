@@ -8,13 +8,13 @@ import {
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import FleetSyncBar from '@/components/vehicles/FleetSyncBar';
+import FleetQuickStats from '@/components/vehicles/FleetQuickStats';
 import FleetVehicleCard from '@/components/vehicles/FleetVehicleCard';
 import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
 import MaintenanceBookingModal from '@/components/vehicles/MaintenanceBookingModal';
 import UsefulNumbersModal from '@/components/UsefulNumbersModal';
 import VehicleDetailDrawer from '@/components/vehicles/VehicleDetailDrawer';
 import GeotabReportModal from '@/components/vehicles/GeotabReportModal';
-import FleetHealthRings from '@/components/vehicles/FleetHealthRings';
 import MileageReconciliationWidget from '@/components/vehicles/MileageReconciliationWidget';
 import VehicleUtilisationWidget from '@/components/vehicles/VehicleUtilisationWidget';
 import IdleVehiclesWidget from '@/components/vehicles/IdleVehiclesWidget';
@@ -184,18 +184,19 @@ export default function Vehicles() {
             <VehicleMaintenanceManager />
           ) : (
             <>
-              {/* Fleet health rings */}
+              {/* Modern quick stats ribbon */}
               <div className="mb-4">
-                <FleetHealthRings stats={stats} />
+                <FleetQuickStats stats={stats} />
               </div>
 
-              {/* Mileage reconciliation */}
+              {/* Unified sync bar — Geotab + Holman + Specs + Reports */}
               <div className="mb-4">
+                <FleetSyncBar liveData={liveData} onShowReport={() => setShowReport(true)} />
+              </div>
+
+              {/* Mileage reconciliation + Utilisation + Idle */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
                 <MileageReconciliationWidget />
-              </div>
-
-              {/* Utilisation + idle vehicles */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <VehicleUtilisationWidget />
                 <IdleVehiclesWidget />
               </div>
@@ -203,11 +204,6 @@ export default function Vehicles() {
               {/* Predictive maintenance */}
               <div className="mb-4">
                 <PredictiveMaintenanceWidget onSelectVehicle={(v) => setSelectedVehicle(v)} />
-              </div>
-
-              {/* Unified sync bar — Geotab + Holman + Reports */}
-              <div className="mb-4">
-                <FleetSyncBar liveData={liveData} onShowReport={() => setShowReport(true)} />
               </div>
 
               {/* Search & filters */}
