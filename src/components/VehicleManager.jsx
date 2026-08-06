@@ -271,7 +271,7 @@ export default function VehicleManager() {
                     ))}
                     {v.max_weight_kg && <span className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full flex items-center gap-1"><Weight className="w-3 h-3" />{Number(v.max_weight_kg).toLocaleString()} kg</span>}
                     {v.max_volume_m3 && <span className="bg-purple-50 text-purple-600 px-2.5 py-1 rounded-full">{Number(v.max_volume_m3)} m³</span>}
-                    {issues.length === 0 && v.mot_expiry && <span className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full">MOT: {format(new Date(v.mot_expiry + 'T00:00:00'), 'dd MMM yy')}</span>}
+                    {issues.length === 0 && v.mot_expiry && !isNaN(new Date(v.mot_expiry + 'T00:00:00').getTime()) && <span className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full">MOT: {format(new Date(v.mot_expiry + 'T00:00:00'), 'dd MMM yy')}</span>}
                   </div>
                 </div>
               );
