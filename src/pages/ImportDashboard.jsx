@@ -697,12 +697,14 @@ export default function ImportDashboard() {
                       <span className="font-medium text-slate-700">{c.staff_name}</span>
                       <span className="text-xs text-rose-600 font-medium">{c.date}</span>
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {c.assignments.map((a, j) => (
-                        <span key={j} className={`text-xs rounded-full px-2.5 py-1 font-medium ${a.assignment_type === 'yard_depot' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {a.assignment_type === 'yard_depot' ? `🏭 ${a.non_job_label || 'Yard/Depot'}` : `📍 ${a.job_name}`}
-                        </span>
-                      ))}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={`text-xs rounded-full px-2.5 py-1 font-medium ${c.winner_type === 'yard_depot' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                        ✓ {c.winner_type === 'yard_depot' ? `🏭 ${c.winner}` : `📍 ${c.winner}`}
+                      </span>
+                      <span className="text-xs text-slate-400">over</span>
+                      <span className={`text-xs rounded-full px-2.5 py-1 font-medium line-through opacity-70 ${c.dropped_type === 'yard_depot' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {c.dropped_type === 'yard_depot' ? `🏭 ${c.dropped}` : `📍 ${c.dropped}`}
+                      </span>
                     </div>
                   </div>
                 ))}
