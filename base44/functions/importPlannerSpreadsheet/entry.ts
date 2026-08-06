@@ -307,6 +307,20 @@ function parseSheet(sheet, sheetName) {
         colToDate[currCol] = d.toISOString().slice(0, 10);
       }
     }
+    // Safety net: if ALL date columns still map to the same date (e.g. the
+    // planner put "03/08/2026" on every column header), force them to increment
+    // 1 day per column starting from the first date. This is the most common
+    // cause of "all assignments on Monday, none on Thursday".
+    const allDates = Object.values(colToDate);
+    if (allDates.length > 1 && allDates.every(d => d === allDates[0])) {
+      const baseDate = new Date(allDates[0] + 'T00:00:00Z');
+      const firstCol = dCols[0];
+      for (const c of dCols) {
+        const d = new Date(baseDate);
+        d.setUTCDate(d.getUTCDate() + (c - firstCol));
+        colToDate[c] = d.toISOString().slice(0, 10);
+      }
+    }
   }
 
   // Interpolate daily dates between date columns. The planner shows
@@ -388,6 +402,39 @@ function parseSheet(sheet, sheetName) {
       }
     }
   }
+
+  // Final safety net: scan all data rows for columns that have assignment data
+  // but no date mapping. Fill them with incrementing dates from the nearest
+  // known date column. This catches edge cases where the header row has gaps
+  // or non-standard date formats that cellToDate missed.
+  {
+    const knownCols = Object.keys(colToDate).map(Number).sort((a, b) => a - b);
+    if (knownCols.length > 0) {
+      for (let r = dateHeaderRowIdx + 1; r < rows.length; r++) {
+        if (!rows[r]) continue;
+        for (let c = 0; c < rows[r].length; c++) {
+          if (colToDate[c]) continue;
+          const val = rows[r][c];
+          if (val == null || !String(val).trim()) continue;
+          // This column has data but no date — find the nearest known date
+          // column and extrapolate 1 day per column.
+          let nearestCol = knownCols[0];
+          for (const kc of knownCols) {
+            if (kc < c) nearestCol = kc;
+            else break;
+          }
+          const baseDate = new Date(colToDate[nearestCol] + 'T00:00:00Z');
+          const d = new Date(baseDate);
+          d.setUTCDate(d.getUTCDate() + (c - nearestCol));
+          colToDate[c] = d.toISOString().slice(0, 10);
+        }
+      }
+    }
+  }
+
+  // Diagnostic log — shows the final column→date mapping so we can verify
+  // the interpolation is producing the correct daily dates.
+  console.log('[importPlannerSpreadsheet] colToDate after all fixes:', JSON.stringify(colToDate));
 
   const assignments = [];
   const sectionsFound = new Set();

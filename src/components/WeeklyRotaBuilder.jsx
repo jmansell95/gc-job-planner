@@ -324,10 +324,10 @@ export default function WeeklyRotaBuilder() {
     const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
     const StatusIcon = status.icon;
     return (
-      <div key={assignment.id} className={`group relative px-2.5 py-2 rounded-lg text-xs border-l-[3px] cursor-pointer hover:shadow-sm transition ${assignment.is_overtime ? 'border-l-amber-400 ring-1 ring-amber-200/60' : ''} ${colors.bg} ${colors.border}`}
+      <div key={assignment.id} className={`group relative px-2.5 py-2 rounded-lg text-xs border-l-[3px] cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all duration-150 ${assignment.is_overtime ? 'border-l-amber-400 ring-1 ring-amber-200/60' : ''} ${colors.bg} ${colors.border}`}
         onClick={() => handleEditAssignment(assignment)}>
         <div className="flex items-start justify-between gap-1 mb-1">
-          <span className="font-semibold text-slate-900 truncate flex-1">{job?.name || 'Unknown'}</span>
+          <span className="font-bold text-slate-900 truncate flex-1 leading-tight">{job?.name || 'Unknown'}</span>
           {assignment.is_overtime && (
             <span className="text-[9px] px-1 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold whitespace-nowrap flex-shrink-0">
               OT{assignment.rate_multiplier ? ` ${Number(assignment.rate_multiplier)}x` : ''}
@@ -532,20 +532,75 @@ export default function WeeklyRotaBuilder() {
 
       <RotaWarningsPanel warnings={rotaWarnings} />
 
+      {/* Today's Crew Summary — quick at-a-glance strip showing who's on site today */}
+      {(() => {
+        const todayRotas = rotas.filter(r => r.assigned_date === todayStr && (!r.assignment_type || r.assignment_type === 'job'));
+        const todayCrew = [...new Set(todayRotas.map(r => r.staff_id))];
+        const todayJobs = [...new Set(todayRotas.map(r => r.job_id).filter(Boolean))];
+        const todayLeave = rotas.filter(r => r.assigned_date === todayStr && r.assignment_type && r.assignment_type !== 'job');
+        return (
+          <div className="mb-4 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-emerald-700 to-emerald-600">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-white" />
+                <h3 className="text-sm font-bold text-white">Today's Crew</h3>
+                <span className="text-[11px] text-emerald-100">{format(new Date(), 'EEEE dd MMM')}</span>
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-white/90"><strong className="text-white">{todayCrew.length}</strong> on site</span>
+                <span className="text-white/90"><strong className="text-white">{todayJobs.length}</strong> jobs</span>
+                {todayLeave.length > 0 && <span className="text-amber-200"><strong className="text-amber-100">{todayLeave.length}</strong> off</span>}
+              </div>
+            </div>
+            {todayRotas.length === 0 ? (
+              <div className="px-4 py-3 text-sm text-slate-400 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-slate-300" />
+                No crew assigned for today — add shifts in the grid below or import from the planner.
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-50">
+                {todayRotas.map(a => {
+                  const member = staff.find(s => s.id === a.staff_id);
+                  const job = jobs.find(j => j.id === a.job_id);
+                  const colors = jobTypeColors[getJobPrimaryType(job, teams)] || jobTypeColors.depot;
+                  const status = statusConfig[a.status || 'assigned'] || statusConfig.assigned;
+                  const StatusIcon = status.icon;
+                  return (
+                    <div key={a.id} className="flex items-center gap-3 px-4 py-2 hover:bg-slate-50/50 transition cursor-pointer" onClick={() => handleEditAssignment(a)}>
+                      <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-emerald-700 font-bold text-xs">{member?.name?.charAt(0) || '?'}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-900 truncate">{member?.name || 'Unknown'}</p>
+                        <p className="text-xs text-slate-500 truncate">{job?.name || '—'}</p>
+                      </div>
+                      {job?.location && <span className="hidden sm:flex items-center gap-0.5 text-xs text-slate-400 truncate max-w-[120px]"><MapPin className="w-3 h-3" />{job.location}</span>}
+                      <span className={`inline-flex items-center gap-0.5 text-xs ${status.text} flex-shrink-0`}><StatusIcon className="w-3 h-3" />{status.label}</span>
+                      {a.briefing_signed && <ClipboardCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Per-day capacity strip */}
       <div className="hidden lg:flex gap-2 mb-3 pl-[180px]">
         {days.map(day => {
           const dayStr = format(day, 'yyyy-MM-dd');
           const dayRotas = rotas.filter(r => r.assigned_date === dayStr && (!r.assignment_type || r.assignment_type === 'job'));
+          const dayCrew = [...new Set(dayRotas.map(r => r.staff_id))].length;
           const overlaps = dayRotas.length > 1
             ? dayRotas.filter(r => r.start_time && r.end_time && dayRotas.some(o => o.id !== r.id && o.staff_id === r.staff_id && o.start_time && o.end_time && (() => { const a = r.start_time.replace(':',''), b = r.end_time.replace(':',''), c = o.start_time.replace(':',''), d = o.end_time.replace(':',''); return a < d && c < b; })())).length
             : 0;
           const isToday = dayStr === todayStr;
           return (
-            <div key={dayStr} className={`flex-1 min-w-[130px] rounded-lg border px-2 py-1.5 text-center ${isToday ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
-              <p className={`text-[10px] font-bold uppercase ${isToday ? 'text-emerald-700' : 'text-slate-400'}`}>{format(day, 'EEE')}</p>
-              <p className="text-sm font-bold text-slate-800 leading-tight">{dayRotas.length}</p>
-              <p className="text-[9px] text-slate-400">shifts</p>
+            <div key={dayStr} className={`flex-1 min-w-[130px] rounded-xl border px-2.5 py-2 text-center transition ${isToday ? 'border-emerald-500 bg-emerald-50 shadow-sm ring-1 ring-emerald-200' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-wide ${isToday ? 'text-emerald-700' : 'text-slate-400'}`}>{format(day, 'EEE')}</p>
+              <p className={`text-lg font-bold leading-tight ${isToday ? 'text-emerald-700' : 'text-slate-800'}`}>{dayRotas.length}</p>
+              <p className="text-[9px] text-slate-400">{dayCrew} crew · shifts</p>
               {overlaps > 0 && <p className="text-[9px] text-red-600 font-semibold mt-0.5">⚠ {overlaps} clash</p>}
             </div>
           );
@@ -595,14 +650,14 @@ export default function WeeklyRotaBuilder() {
         <div className="overflow-x-auto">
           <DragDropContext onDragEnd={onDragEnd}><table className="w-full border-collapse min-w-[800px]">
             <thead>
-              <tr className="bg-gradient-to-r from-emerald-800 to-emerald-700 text-white">
-                <th className="px-4 py-3 text-left font-semibold text-sm w-44 sticky left-0 z-10 bg-gradient-to-r from-emerald-800 to-emerald-700">Staff</th>
+              <tr className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-emerald-700 text-white">
+                <th className="px-4 py-3.5 text-left font-semibold text-sm w-44 sticky left-0 z-10 bg-gradient-to-r from-emerald-900 to-emerald-800 border-r border-white/10">Staff</th>
                 {days.map(day => {
                   const isToday = format(day, 'yyyy-MM-dd') === todayStr;
                   return (
-                    <th key={day.toISOString()} className={`px-3 py-3 text-center font-semibold text-sm whitespace-nowrap ${isToday ? 'bg-emerald-600 ring-2 ring-emerald-400 ring-inset' : ''} ${isDateLocked(format(day, 'yyyy-MM-dd')) ? 'opacity-50' : ''}`}>
-                      <div className="text-xs font-normal opacity-80">{format(day, 'EEE')}</div>
-                      <div>{format(day, 'dd')}</div>
+                    <th key={day.toISOString()} className={`px-3 py-3.5 text-center font-semibold text-sm whitespace-nowrap transition ${isToday ? 'bg-emerald-600 ring-2 ring-emerald-400 ring-inset' : 'hover:bg-emerald-800/50'} ${isDateLocked(format(day, 'yyyy-MM-dd')) ? 'opacity-50' : ''}`}>
+                      <div className="text-[11px] font-normal opacity-75 uppercase tracking-wide">{format(day, 'EEE')}</div>
+                      <div className="text-base font-bold">{format(day, 'dd')}</div>
                     </th>
                   );
                 })}
@@ -610,8 +665,8 @@ export default function WeeklyRotaBuilder() {
             </thead>
             <tbody>
               {filteredStaff.map((member, idx) => (
-                <tr key={member.id} className={`border-b border-slate-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
-                  <td className="px-4 py-3 sticky left-0 z-10 bg-inherit border-r border-slate-100">
+                <tr key={member.id} className={`border-b border-slate-100 transition hover:bg-emerald-50/30 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
+                  <td className="px-4 py-3 sticky left-0 z-10 bg-inherit border-r border-slate-200">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
                         <span className="text-emerald-700 font-bold text-xs">{member.name.charAt(0)}</span>
@@ -697,10 +752,13 @@ export default function WeeklyRotaBuilder() {
           const isToday = dayStr === todayStr;
           const dayAssignments = rotas.filter(r => r.assigned_date === dayStr && (!r.assignment_type || r.assignment_type === 'job') && filteredStaff.some(s => s.id === r.staff_id));
           return (
-            <div key={dayStr} className={`bg-white rounded-xl border shadow-sm overflow-hidden ${isToday ? 'border-emerald-400' : 'border-slate-200'}`}>
-              <div className={`px-4 py-2.5 flex items-center justify-between ${isToday ? 'bg-emerald-700 text-white' : 'bg-slate-50 border-b border-slate-100'}`}>
-                <span className={`font-semibold text-sm ${isToday ? 'text-white' : 'text-slate-800'}`}>{format(day, 'EEEE')}</span>
-                <span className={`text-xs ${isToday ? 'text-emerald-100' : 'text-slate-500'}`}>{format(day, 'dd MMM')} · {dayAssignments.length}</span>
+            <div key={dayStr} className={`bg-white rounded-xl border shadow-sm overflow-hidden ${isToday ? 'border-emerald-400 ring-1 ring-emerald-200' : 'border-slate-200'}`}>
+              <div className={`px-4 py-3 flex items-center justify-between ${isToday ? 'bg-gradient-to-r from-emerald-700 to-emerald-600 text-white' : 'bg-slate-50 border-b border-slate-100'}`}>
+                <div className="flex items-center gap-2">
+                  {isToday && <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />}
+                  <span className={`font-bold text-sm ${isToday ? 'text-white' : 'text-slate-800'}`}>{format(day, 'EEEE')}</span>
+                </div>
+                <span className={`text-xs font-medium ${isToday ? 'text-emerald-100' : 'text-slate-500'}`}>{format(day, 'dd MMM')} · {dayAssignments.length} shifts</span>
               </div>
               {dayAssignments.length === 0 ? (
                 <p className="px-4 py-3 text-xs text-slate-400">No assignments</p>
@@ -723,8 +781,8 @@ export default function WeeklyRotaBuilder() {
                               <span className="text-emerald-700 font-bold text-xs">{member?.name?.charAt(0) || '?'}</span>
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-slate-900 truncate">{member?.name || 'Unknown'}</p>
-                              <p className="text-xs text-slate-600 truncate">{job?.name || '—'}</p>
+                              <p className="text-sm font-semibold text-slate-900 truncate">{member?.name || 'Unknown'}</p>
+                              <p className="text-xs text-slate-500 truncate font-medium">{job?.name || '—'}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
