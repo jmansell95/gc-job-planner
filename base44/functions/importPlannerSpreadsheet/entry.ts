@@ -200,12 +200,10 @@ function hasForceCompleteMarker(jobName) {
 function determineJobStatus(dates, jobName, hasSubbies) {
   if (hasForceCompleteMarker(jobName)) return 'completed';
   if (!dates || dates.length === 0) return 'planning';
-  // Jobs with subcontractors stay active until explicitly marked complete.
-  if (hasSubbies) return 'in_progress';
   const sorted = [...dates].sort();
   const lastDate = sorted[sorted.length - 1];
   // Only jobs with assignments today or in the future are "in_progress".
-  // All jobs whose last assignment is in the past → completed.
+  // This applies to both direct-staff and subcontractor jobs — no overrides.
   if (lastDate >= TODAY) return 'in_progress';
   return 'completed';
 }

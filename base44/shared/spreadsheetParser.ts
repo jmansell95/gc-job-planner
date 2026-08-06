@@ -298,6 +298,17 @@ const NON_JOB_NAME_PATTERNS = [
   /^geotechnica$/i,                                   // company name, not a job
 ];
 
+// Role titles and column-header text that appear in spreadsheet date cells
+// but are NOT job/site names. These are labels mistakenly placed in the grid
+// (e.g. "Drilling Supervisor/Lead Driller", "Rig Type & Plant Number",
+// "Operatives Full Name") that would otherwise be created as fake Job entities.
+const ROLE_HEADER_KEYWORDS = [
+  'supervisor', 'lead driller', 'drilling supervisor', 'working drilling',
+  'asistant', 'assistant driller', 'operative', 'operatives', 'opratives',
+  'full name', 'rig type', 'plant number', 'rig type & plant number',
+  'optratives', 'operatives full name',
+];
+
 export function isLikelyRealJob(jobName) {
   if (!jobName) return false;
   const s = String(jobName).trim();
@@ -306,6 +317,10 @@ export function isLikelyRealJob(jobName) {
   // Pure rig/asset names, placeholders, and overhead markers
   for (const pattern of NON_JOB_NAME_PATTERNS) {
     if (pattern.test(lower)) return false;
+  }
+  // Role titles and column headers — not job names
+  for (const kw of ROLE_HEADER_KEYWORDS) {
+    if (lower === kw || lower.includes(kw)) return false;
   }
   return true;
 }
