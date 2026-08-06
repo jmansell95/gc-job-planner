@@ -45,6 +45,7 @@ export default function StaffDashboard() {
   const [showNextJobPrompt, setShowNextJobPrompt] = useState(false);
   const [showAdHocVisit, setShowAdHocVisit] = useState(false);
   const [activeTab, setActiveTab] = useState('today');
+  const [showComplianceAlert, setShowComplianceAlert] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -481,13 +482,16 @@ export default function StaffDashboard() {
   // Staff only see assignments from the latest published (non-superseded) rota week.
   // When a new draft is created, old weeks are superseded and staff see nothing until
   // the new rota is published/sent to them.
+  // Admins bypass this — they see all assignments regardless of publish status so
+  // they can review the schedule even while a draft is being prepared.
   const visibleWeekStarts = rotaWeeks.filter(w => w.status === 'published' && !w.superseded).map(w => w.week_start);
   const hasAnyRotaWeeks = rotaWeeks.length > 0;
   const cancelledJobIds = new Set(jobs.filter(j => j.status === 'cancelled').map(j => j.id));
   const onHoldJobIds = new Set(jobs.filter(j => j.status === 'on_hold').map(j => j.id));
-  const visibleAssignments = (hasAnyRotaWeeks ? assignments.filter(a => visibleWeekStarts.includes(a.week_start)) : assignments)
+  const isAdminUser = staff?.is_admin || isPlatformAdmin;
+  const visibleAssignments = (isAdminUser ? assignments : (hasAnyRotaWeeks ? assignments.filter(a => visibleWeekStarts.includes(a.week_start)) : assignments))
     .filter(a => !cancelledJobIds.has(a.job_id));
-  const scheduleLocked = hasAnyRotaWeeks && visibleWeekStarts.length === 0;
+  const scheduleLocked = !isAdminUser && hasAnyRotaWeeks && visibleWeekStarts.length === 0;
 
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const todaysAssignments = visibleAssignments.filter(a => a.assigned_date === todayStr);
@@ -551,7 +555,7 @@ export default function StaffDashboard() {
           {/* Consolidated alert — single line */}
           <StaffAlerts isOnline={isOnline} staff={staff} />
 
-          {/* Compliance alert */}
+          {/* Compliance alert — collapsed by default, expand to view */}
           {(() => {
             const myItems = myCompliance.filter(i => i.reference_id === staff?.id || i.reference_name === staff?.name);
             const expired = myItems.filter(i => {
@@ -567,18 +571,27 @@ export default function StaffDashboard() {
             const hasCSCS = myItems.some(i => i.qualification_type === 'cscs_card' || /cscs/i.test(i.title));
             if (expired.length === 0 && expiring.length === 0 && hasCSCS) return null;
             const isUrgent = expired.length > 0 || !hasCSCS;
+            const summaryLabel = expired.length > 0 ? `${expired.length} compliance item${expired.length > 1 ? 's' : ''} expired` : expiring.length > 0 ? `${expiring.length} item${expiring.length > 1 ? 's' : ''} expiring soon` : 'CSCS card not on file';
             return (
-              <button onClick={() => navigate('/staff-profile')} type="button"
-                className={`w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm text-left transition ${isUrgent ? 'bg-red-50 border border-red-200 text-red-900' : 'bg-amber-50 border border-amber-200 text-amber-900'}`}>
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isUrgent ? 'bg-red-100' : 'bg-amber-100'}`}>
-                  <AlertTriangle className={`w-5 h-5 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-bold">{expired.length > 0 ? `${expired.length} compliance item${expired.length > 1 ? 's' : ''} expired` : expiring.length > 0 ? `${expiring.length} item${expiring.length > 1 ? 's' : ''} expiring soon` : 'CSCS card not on file'}</p>
-                  <p className="text-xs opacity-80 mt-0.5">Tap to view in your profile.</p>
-                </div>
-                <ShieldCheck className={`w-5 h-5 flex-shrink-0 ${isUrgent ? 'text-red-400' : 'text-amber-400'}`} />
-              </button>
+              <div className={`rounded-2xl border overflow-hidden ${isUrgent ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+                <button onClick={() => setShowComplianceAlert(v => !v)} type="button"
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition ${isUrgent ? 'text-red-900' : 'text-amber-900'}`}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isUrgent ? 'bg-red-100' : 'bg-amber-100'}`}>
+                    <AlertTriangle className={`w-5 h-5 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold">{summaryLabel}</p>
+                    <p className="text-xs opacity-80 mt-0.5">{showComplianceAlert ? 'Tap to collapse' : 'Tap to expand details'}</p>
+                  </div>
+                  <ShieldCheck className={`w-5 h-5 flex-shrink-0 ${isUrgent ? 'text-red-400' : 'text-amber-400'}`} />
+                </button>
+                {showComplianceAlert && (
+                  <button onClick={() => navigate('/staff-profile')} type="button"
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold border-t transition ${isUrgent ? 'text-red-700 bg-red-100/50 hover:bg-red-100 border-red-200' : 'text-amber-700 bg-amber-100/50 hover:bg-amber-100 border-amber-200'}`}>
+                    View in profile
+                  </button>
+                )}
+              </div>
             );
           })()}
 
