@@ -532,12 +532,19 @@ export default function WeeklyRotaBuilder() {
 
       <RotaWarningsPanel warnings={rotaWarnings} />
 
-      {/* Today's Crew Summary — quick at-a-glance strip showing who's on site today */}
+      {/* Today's Crew Summary — compact job-grouped view showing who's on site today */}
       {(() => {
         const todayRotas = rotas.filter(r => r.assigned_date === todayStr && (!r.assignment_type || r.assignment_type === 'job'));
         const todayCrew = [...new Set(todayRotas.map(r => r.staff_id))];
-        const todayJobs = [...new Set(todayRotas.map(r => r.job_id).filter(Boolean))];
         const todayLeave = rotas.filter(r => r.assigned_date === todayStr && r.assignment_type && r.assignment_type !== 'job');
+        // Group rotas by job for a compact grouped layout
+        const byJob = {};
+        todayRotas.forEach(r => {
+          const jid = r.job_id || 'unassigned';
+          if (!byJob[jid]) byJob[jid] = [];
+          byJob[jid].push(r);
+        });
+        const jobGroups = Object.entries(byJob);
         return (
           <div className="mb-4 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-emerald-700 to-emerald-600">
@@ -548,7 +555,7 @@ export default function WeeklyRotaBuilder() {
               </div>
               <div className="flex items-center gap-3 text-xs">
                 <span className="text-white/90"><strong className="text-white">{todayCrew.length}</strong> on site</span>
-                <span className="text-white/90"><strong className="text-white">{todayJobs.length}</strong> jobs</span>
+                <span className="text-white/90"><strong className="text-white">{jobGroups.length}</strong> jobs</span>
                 {todayLeave.length > 0 && <span className="text-amber-200"><strong className="text-amber-100">{todayLeave.length}</strong> off</span>}
               </div>
             </div>
@@ -558,25 +565,36 @@ export default function WeeklyRotaBuilder() {
                 No crew assigned for today — add shifts in the grid below or import from the planner.
               </div>
             ) : (
-              <div className="divide-y divide-slate-50">
-                {todayRotas.map(a => {
-                  const member = staff.find(s => s.id === a.staff_id);
-                  const job = jobs.find(j => j.id === a.job_id);
+              <div className="p-3 space-y-2">
+                {jobGroups.map(([jid, group]) => {
+                  const job = jobs.find(j => j.id === jid);
                   const colors = jobTypeColors[getJobPrimaryType(job, teams)] || jobTypeColors.depot;
-                  const status = statusConfig[a.status || 'assigned'] || statusConfig.assigned;
-                  const StatusIcon = status.icon;
                   return (
-                    <div key={a.id} className="flex items-center gap-3 px-4 py-2 hover:bg-slate-50/50 transition cursor-pointer" onClick={() => handleEditAssignment(a)}>
-                      <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-emerald-700 font-bold text-xs">{member?.name?.charAt(0) || '?'}</span>
+                    <div key={jid} className={`rounded-lg border ${colors.border} ${colors.bg} px-3 py-2`}>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className={`w-2 h-2 rounded-full ${colors.dot}`} />
+                        <p className="text-sm font-bold text-slate-800 truncate flex-1">{job?.name || 'Unassigned'}</p>
+                        {job?.location && <span className="hidden sm:flex items-center gap-0.5 text-xs text-slate-400 truncate max-w-[140px]"><MapPin className="w-3 h-3" />{job.location}</span>}
+                        <span className="text-[10px] font-bold text-slate-500 bg-white/70 rounded-full px-1.5 py-0.5 flex-shrink-0">{group.length}</span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-slate-900 truncate">{member?.name || 'Unknown'}</p>
-                        <p className="text-xs text-slate-500 truncate">{job?.name || '—'}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {group.map(a => {
+                          const member = staff.find(s => s.id === a.staff_id);
+                          const status = statusConfig[a.status || 'assigned'] || statusConfig.assigned;
+                          const StatusIcon = status.icon;
+                          return (
+                            <button key={a.id} onClick={() => handleEditAssignment(a)}
+                              className="inline-flex items-center gap-1.5 bg-white border border-slate-200 rounded-full pl-1 pr-2.5 py-1 hover:shadow-sm hover:border-emerald-300 transition group">
+                              <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                                <span className="text-emerald-700 font-bold text-[10px]">{member?.name?.charAt(0) || '?'}</span>
+                              </span>
+                              <span className="text-xs font-medium text-slate-700 leading-none">{member?.name || 'Unknown'}</span>
+                              <StatusIcon className={`w-3 h-3 ${status.text}`} />
+                              {a.briefing_signed && <ClipboardCheck className="w-3 h-3 text-emerald-500" />}
+                            </button>
+                          );
+                        })}
                       </div>
-                      {job?.location && <span className="hidden sm:flex items-center gap-0.5 text-xs text-slate-400 truncate max-w-[120px]"><MapPin className="w-3 h-3" />{job.location}</span>}
-                      <span className={`inline-flex items-center gap-0.5 text-xs ${status.text} flex-shrink-0`}><StatusIcon className="w-3 h-3" />{status.label}</span>
-                      {a.briefing_signed && <ClipboardCheck className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />}
                     </div>
                   );
                 })}
