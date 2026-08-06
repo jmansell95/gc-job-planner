@@ -123,11 +123,12 @@ export default function StaffCommand() {
     if (!m.email) { toast({ title: 'No email on file', variant: 'destructive' }); return; }
     setInviteLoading(m.id);
     try {
-      await base44.users.inviteUser(m.email, 'user');
+      const role = groupToPlatformRole(m.permission_group_id, permissionGroups);
+      await base44.users.inviteUser(m.email, role);
       await base44.entities.Staff.update(m.id, { invite_sent: true });
       queryClient.invalidateQueries({ queryKey: ['users-list'] });
       queryClient.invalidateQueries({ queryKey: ['staff'] });
-      toast({ title: 'Invite sent', description: m.email });
+      toast({ title: 'App invite sent', description: m.email });
     } catch (err) {
       toast({ title: 'Could not send invite', description: err?.message, variant: 'destructive' });
     }
@@ -275,6 +276,7 @@ export default function StaffCommand() {
             <div className="p-5 max-h-[calc(100vh-340px)] overflow-y-auto">
               {tab === 'profile' && (
                 <ProfileTab staff={selected} user={selectedUser} teams={teams} permissionGroups={permissionGroups} vehicles={vehicles} staffList={staff} workerTypeOptions={workerTypeOptions}
+                  onInvite={() => handleInvite(selected)} inviteLoading={inviteLoading === selected.id}
                   onResetPassword={() => handlePasswordReset(selected)} resetLoading={resetLoading === selected.id}
                   onDelete={() => handleDelete(selected)} />
               )}
@@ -333,7 +335,7 @@ export default function StaffCommand() {
   );
 }
 
-function ProfileTab({ staff: m, user, teams, permissionGroups, vehicles, staffList, workerTypeOptions, onResetPassword, resetLoading, onDelete }) {
+function ProfileTab({ staff: m, user, teams, permissionGroups, vehicles, staffList, workerTypeOptions, onInvite, inviteLoading, onResetPassword, resetLoading, onDelete }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [form, setForm] = useState(m);
@@ -446,6 +448,9 @@ function ProfileTab({ staff: m, user, teams, permissionGroups, vehicles, staffLi
       <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-100">
         <button type="submit" disabled={saving} className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-50">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Save Changes
+        </button>
+        <button type="button" onClick={onInvite} disabled={inviteLoading} className="inline-flex items-center gap-1.5 px-3 py-2 text-blue-700 bg-blue-50 rounded-lg text-sm font-medium hover:bg-blue-100 transition disabled:opacity-50">
+          {inviteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Send App Invite
         </button>
         <button type="button" onClick={onResetPassword} disabled={resetLoading} className="inline-flex items-center gap-1.5 px-3 py-2 text-amber-700 bg-amber-50 rounded-lg text-sm font-medium hover:bg-amber-100 transition disabled:opacity-50">
           {resetLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />} Reset Password

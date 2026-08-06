@@ -995,18 +995,9 @@ export default async function(req) {
 
     const newStaff = newStaffKeys.map(k => staffMap.get(k));
 
-    // Invite direct staff who don't have user accounts yet
-    let usersInvited = 0;
-    if (!dryRun) {
-      for (const staff of newStaff) {
-        if (staff.worker_type === 'direct_employee' && staff.email && !existingUserEmails.has(staff.email.toLowerCase())) {
-          try {
-            await base44.users.inviteUser(staff.email, 'user');
-            usersInvited++;
-          } catch (e) { /* ignore — staff record still created */ }
-        }
-      }
-    }
+    // Invitations are no longer sent automatically during import.
+    // Admins send app invites manually from Staff Command → Profile tab.
+    const usersInvited = 0;
 
     // Mark leavers as inactive
     let leaversMarked = 0;
