@@ -55,7 +55,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [drawerJob, setDrawerJob] = useState(null);
   const [modalJob, setModalJob] = useState(null);
   const [showMore, setShowMore] = useState(false);
-  const [collapseAllKey, setCollapseAllKey] = useState(0);
   const { selectedJobId } = useJobFilter();
   const isAllJobs = selectedJobId === 'all';
 
@@ -220,9 +219,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                   </span>
                 </div>
               )}
-              <button onClick={() => setCollapseAllKey(k => k + 1)} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm" title="Collapse all widgets">
-                <ChevronDown className="w-4 h-4 rotate-180" /> Collapse All
-              </button>
             </div>
           </div>
         </div>
@@ -252,8 +248,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       {/* Primary widgets — the operational heartbeat, always visible */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         {primaryWidgets.map((widgetId) => (
-          <div key={`${widgetId}-${collapseAllKey}`}>
-            <WidgetCard widgetId={widgetId} customizeMode={false}>
+          <div key={widgetId}>
+            <WidgetCard widgetId={widgetId}>
               {renderWidget(widgetId)}
             </WidgetCard>
           </div>
@@ -283,8 +279,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
               >
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                   {secondaryWidgets.map((widgetId) => (
-                    <div key={`${widgetId}-${collapseAllKey}`}>
-                      <WidgetCard widgetId={widgetId} customizeMode={false}>
+                    <div key={widgetId}>
+                      <WidgetCard widgetId={widgetId}>
                         {renderWidget(widgetId)}
                       </WidgetCard>
                     </div>
