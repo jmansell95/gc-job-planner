@@ -33,7 +33,9 @@ export async function reverseGeocode(lat, lng) {
     // network error — fall through
   }
 
-  cache.set(key, 'Unknown location');
+  // Do NOT cache failures — BigDataCloud may have had a transient hiccup.
+  // If we cache 'Unknown location', that coordinate is poisoned for the whole
+  // session and won't recover even after the API comes back.
   return 'Unknown location';
 }
 
