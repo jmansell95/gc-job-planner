@@ -123,7 +123,7 @@ export default function SystemLogicGuide() {
       doc.setTextColor(SLATE_700);
       doc.setFontSize(10);
       const intro = doc.splitTextToSize(
-        'This guide explains every statistic, rule and automation in the Ground Control Job Planner. It is the reference document for anyone who needs to understand what the system is doing and why — from new managers to auditors to the board.',
+        'This guide explains every statistic, rule and automation in the Ground Control Mission Control. It is the reference document for anyone who needs to understand what the system is doing and why — from new managers to auditors to the board.',
         pageW - margin * 2
       );
       doc.text(intro, margin, y);
