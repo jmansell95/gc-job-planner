@@ -48,7 +48,7 @@ export default async function(req) {
     if (job.project_manager) {
       try {
         const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'milestone_push' });
-        const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+        const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' };
         if (cfg.enabled !== false) {
           const tok = {
             milestone: summary,

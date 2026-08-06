@@ -23,9 +23,9 @@ function linkBlock(baseUrl, path, label) {
 }
 function styledHtml(rawBodyHtml, cfg) {
   const accent = (cfg && cfg.accent_color) || '#0e7a4f';
-  const bannerTitle = (cfg && cfg.banner_title) || 'GC Job Planner';
+  const bannerTitle = (cfg && cfg.banner_title) || 'GC Mission Control';
   const showBanner = !(cfg && cfg.show_banner === false);
-  const footer = (cfg && cfg.footer_text) || 'GC Job Planner';
+  const footer = (cfg && cfg.footer_text) || 'GC Mission Control';
   const banner = showBanner
     ? '<tr><td style="background:' + accent + ';padding:18px 24px"><h1 style="margin:0;color:#ffffff;font-size:18px;font-family:Arial,Helvetica,sans-serif;letter-spacing:0.3px">' + escapeHtml(bannerTitle) + '</h1></td></tr>'
     : '';
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
       to: recipientEmail,
       subject,
       body: styledHtml(bodyHtml, cfg),
-      from_name: 'GC Job Planner'
+      from_name: 'GC Mission Control'
     });
 
     return Response.json({ success: true, message: 'Schedule emailed to ' + recipientEmail });

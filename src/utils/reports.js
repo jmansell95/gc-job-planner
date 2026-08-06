@@ -190,7 +190,7 @@ export function reportHtmlFragment(report, meta) {
   return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:760px;margin:0 auto;">
     <div style="background:linear-gradient(135deg,#065f46,#047857);padding:20px 24px;border-radius:12px 12px 0 0;color:#fff;">
       <h1 style="margin:0;font-size:20px;">${esc(report.title)}</h1>
-      <p style="margin:4px 0 0;font-size:13px;opacity:.9;">GC Job Planner · ${range} · ${esc(staffLabel)}</p>
+      <p style="margin:4px 0 0;font-size:13px;opacity:.9;">GC Mission Control · ${range} · ${esc(staffLabel)}</p>
     </div>
     <div style="padding:16px 0;">${reportTableHtml(report)}</div>
     <p style="font-size:11px;color:#94a3b8;text-align:center;margin-top:16px;">Generated ${format(new Date(), 'dd MMM yyyy HH:mm')}</p>

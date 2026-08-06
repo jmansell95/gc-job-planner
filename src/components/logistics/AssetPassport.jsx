@@ -125,7 +125,7 @@ export default function AssetPassport({ asset, onClose, allAssets = [], onEdit }
           </div>
 
           {/* Compliance panel (now managed here) */}
-          <Panel title="Compliance & Safety" source="Managed in GC Job Planner" icon={compMeta.Icon} iconTint="bg-white border-slate-200">
+          <Panel title="Compliance & Safety" source="Managed in GC Mission Control" icon={compMeta.Icon} iconTint="bg-white border-slate-200">
             <div className="flex items-center justify-between mb-2">
               <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${compMeta.tone}`}>
                 <compMeta.Icon className="w-3.5 h-3.5" /> {compMeta.label}

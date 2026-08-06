@@ -538,7 +538,7 @@ Deno.serve(async (req) => {
     ${boreholeTable}
     ${pitTable}
 
-    <div class="footer"><span>Generated ${genDate} · ${rotas.length} assignments · ${validStaff.length} staff · ${costItems.length} cost items · ${hotelRows.length} hotel bookings · ${chargeableDeliveries.length} deliveries</span><span class="footer-brand">GC Job Planner — Billing Export</span></div>
+    <div class="footer"><span>Generated ${genDate} · ${rotas.length} assignments · ${validStaff.length} staff · ${costItems.length} cost items · ${hotelRows.length} hotel bookings · ${chargeableDeliveries.length} deliveries</span><span class="footer-brand">GC Mission Control — Billing Export</span></div>
     </body></html>`;
 
     return Response.json({

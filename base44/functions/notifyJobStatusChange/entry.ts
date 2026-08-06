@@ -9,9 +9,9 @@ function linkBlock(baseUrl, path, label) {
 }
 function styledHtml(rawBodyHtml, cfg) {
   const accent = (cfg && cfg.accent_color) || '#0e7a4f';
-  const bannerTitle = (cfg && cfg.banner_title) || 'GC Job Planner';
+  const bannerTitle = (cfg && cfg.banner_title) || 'GC Mission Control';
   const showBanner = !(cfg && cfg.show_banner === false);
-  const footer = (cfg && cfg.footer_text) || 'GC Job Planner';
+  const footer = (cfg && cfg.footer_text) || 'GC Mission Control';
   const banner = showBanner
     ? '<tr><td style="background:' + accent + ';padding:18px 24px"><h1 style="margin:0;color:#ffffff;font-size:18px;font-family:Arial,Helvetica,sans-serif;letter-spacing:0.3px">' + escapeHtml(bannerTitle) + '</h1></td></tr>'
     : '';
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     if (admins.length === 0) return Response.json({ skipped: true, reason: 'No admins' });
 
     const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'job_status_change' });
-    const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+    const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' };
     if (cfg.enabled === false) return Response.json({ skipped: true, reason: 'Email alert disabled' });
 
     const oldLabel = statusLabels[oldStatus] || oldStatus || '—';
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
         .replace(/\{old_status\}/g, oldLabel).replace(/\{new_status\}/g, newLabel);
     } else {
       const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
-      text = intro + 'A job status has changed:\n\nJob: ' + (data.name || '—') + '\nLocation: ' + (data.location || '—') + '\nStatus: ' + oldLabel + ' -> ' + newLabel + '\n\nView the job in the planner.\n\nGC Job Planner';
+      text = intro + 'A job status has changed:\n\nJob: ' + (data.name || '—') + '\nLocation: ' + (data.location || '—') + '\nStatus: ' + oldLabel + ' -> ' + newLabel + '\n\nView the job in the planner.\n\nGC Mission Control';
     }
     const subject = cfg.subject ? cfg.subject.replace(/\{job_name\}/g, data.name || 'Job') : 'Job status updated: ' + (data.name || 'Job');
 

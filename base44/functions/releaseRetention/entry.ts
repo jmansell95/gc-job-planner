@@ -133,7 +133,7 @@ export default async function(req: Request): Promise<Response> {
             await base44.integrations.Core.SendEmail({
               to,
               subject: 'Retention Release — ' + released.length + ' final invoice' + (released.length === 1 ? '' : 's') + ' raised',
-              body: styledHtml(bodyHtml, { banner_title: 'GC Job Planner — Retention Release', accent_color: '#2E5A1A' }),
+              body: styledHtml(bodyHtml, { banner_title: 'GC Mission Control — Retention Release', accent_color: '#2E5A1A' }),
             });
           }
         }

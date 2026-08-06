@@ -96,9 +96,9 @@ Deno.serve(async (req) => {
     var emailHtml =
       '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">' +
       '<table align="center" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:100%;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 6px 24px rgba(15,42,31,0.08)">' +
-      '<tr><td style="background:#0e7a4f;padding:18px 24px"><h1 style="margin:0;color:#fff;font-size:18px">GC Job Planner</h1></td></tr>' +
+      '<tr><td style="background:#0e7a4f;padding:18px 24px"><h1 style="margin:0;color:#fff;font-size:18px">GC Mission Control</h1></td></tr>' +
       '<tr><td style="padding:24px;color:#1e293b;font-size:14px;line-height:1.6">' + bodyHtml + '</td></tr>' +
-      '<tr><td style="padding:14px 24px;background:#f8fafc;color:#64748b;font-size:12px;border-top:1px solid #e2e8f0;text-align:center">GC Job Planner</td></tr>' +
+      '<tr><td style="padding:14px 24px;background:#f8fafc;color:#64748b;font-size:12px;border-top:1px solid #e2e8f0;text-align:center">GC Mission Control</td></tr>' +
       '</table></body></html>';
 
     var subject = 'Asset Compliance Alert \u2014 ' + alerts.length + ' non-compliant asset' + (alerts.length !== 1 ? 's' : '') + ' on active jobs';

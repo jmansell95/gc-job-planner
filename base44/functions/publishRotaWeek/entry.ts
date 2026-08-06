@@ -35,9 +35,9 @@ async function getAppBaseUrl(base44) {
 
 function buildEmail(staff, rotas, jobs, vehicles, cfg, weekStart, baseUrl) {
   const accent = (cfg && cfg.accent_color) || '#0e7a4f';
-  const bannerTitle = (cfg && cfg.banner_title) || 'GC Job Planner';
+  const bannerTitle = (cfg && cfg.banner_title) || 'GC Mission Control';
   const showBanner = !(cfg && cfg.show_banner === false);
-  const footer = (cfg && cfg.footer_text) || 'GC Job Planner';
+  const footer = (cfg && cfg.footer_text) || 'GC Mission Control';
   const weekLabel = fmtWeek(weekStart);
   const assignmentCount = rotas.length;
 
@@ -84,9 +84,9 @@ function buildEmail(staff, rotas, jobs, vehicles, cfg, weekStart, baseUrl) {
 
 function buildManagerEmail(rotas, jobs, vehicles, cfg, weekStart, baseUrl) {
   const accent = (cfg && cfg.accent_color) || '#0e7a4f';
-  const bannerTitle = (cfg && cfg.banner_title) || 'GC Job Planner';
+  const bannerTitle = (cfg && cfg.banner_title) || 'GC Mission Control';
   const showBanner = !(cfg && cfg.show_banner === false);
-  const footer = (cfg && cfg.footer_text) || 'GC Job Planner';
+  const footer = (cfg && cfg.footer_text) || 'GC Mission Control';
   const weekLabel = fmtWeek(weekStart);
   let rows = '';
   for (const r of rotas) {
@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
       if (myRotas.length === 0) continue;
       const { html, subject } = buildEmail(s, myRotas, jobs, vehicles, effectiveCfg, weekStart, baseUrl);
       try {
-        await base44.asServiceRole.integrations.Core.SendEmail({ to: s.email, subject, body: html, from_name: 'GC Job Planner' });
+        await base44.asServiceRole.integrations.Core.SendEmail({ to: s.email, subject, body: html, from_name: 'GC Mission Control' });
         emailed++;
       } catch (e) {
         skipped++;
@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
         const { html: mgrHtml, subject: mgrSubject } = buildManagerEmail(withNames, jobs, vehicles, effectiveCfg, weekStart, baseUrl);
         for (const email of recipients) {
           try {
-            await base44.asServiceRole.integrations.Core.SendEmail({ to: email, subject: mgrSubject, body: mgrHtml, from_name: 'GC Job Planner' });
+            await base44.asServiceRole.integrations.Core.SendEmail({ to: email, subject: mgrSubject, body: mgrHtml, from_name: 'GC Mission Control' });
             copies++;
           } catch (e) {}
         }

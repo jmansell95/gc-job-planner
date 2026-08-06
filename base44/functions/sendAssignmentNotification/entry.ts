@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-const DEFAULT_ASSIGNMENT_TEMPLATE = "Hi {staff_name},\n\nYou have a new shift:\n\nJob: {job_name}\nLocation: {location}\nDate: {date}\nType: {job_type}\n{notes}\n\nPlease review the details and check your app for the full schedule.\n\nGC Job Planner";
+const DEFAULT_ASSIGNMENT_TEMPLATE = "Hi {staff_name},\n\nYou have a new shift:\n\nJob: {job_name}\nLocation: {location}\nDate: {date}\nType: {job_type}\n{notes}\n\nPlease review the details and check your app for the full schedule.\n\nGC Mission Control";
 
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function linkBlock(baseUrl, path, label) {
@@ -10,9 +10,9 @@ function linkBlock(baseUrl, path, label) {
 }
 function styledHtml(rawBodyHtml, cfg) {
   const accent = (cfg && cfg.accent_color) || '#0e7a4f';
-  const bannerTitle = (cfg && cfg.banner_title) || 'GC Job Planner';
+  const bannerTitle = (cfg && cfg.banner_title) || 'GC Mission Control';
   const showBanner = !(cfg && cfg.show_banner === false);
-  const footer = (cfg && cfg.footer_text) || 'GC Job Planner';
+  const footer = (cfg && cfg.footer_text) || 'GC Mission Control';
   const banner = showBanner
     ? '<tr><td style="background:' + accent + ';padding:18px 24px"><h1 style="margin:0;color:#ffffff;font-size:18px;font-family:Arial,Helvetica,sans-serif;letter-spacing:0.3px">' + escapeHtml(bannerTitle) + '</h1></td></tr>'
     : '';

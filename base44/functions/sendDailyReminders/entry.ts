@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     const baseUrl = await getAppBaseUrl(base44);
     const dailyCfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'daily_reminder' });
-    const dailyCfg = dailyCfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+    const dailyCfg = dailyCfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' };
     if (dailyCfg.enabled === false) return Response.json({ skipped: true, reason: 'Email alert disabled' });
     let notified = 0;
     const skipped = [];
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
           .replace(/\{assignment_list\}/g, lines);
       } else {
         const intro = dailyCfg.intro_message ? dailyCfg.intro_message + '\n\n' : '';
-        bodyText = intro + `Hello ${member.name},\n\nHere is your schedule for today (${todayStr}):\n\n${lines}\n\nHave a safe shift.\n\nGC Job Planner`;
+        bodyText = intro + `Hello ${member.name},\n\nHere is your schedule for today (${todayStr}):\n\n${lines}\n\nHave a safe shift.\n\nGC Mission Control`;
       }
       const bodyHtml = escapeHtml(bodyText).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/staff-schedule', 'View your schedule');
 
@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
           const reg = vehicle ? ' · ' + vehicle.registration_number : '';
           return '   • ' + staffName + ' — ' + jobName + (location ? ' — ' + location : '') + time + reg;
         }).join('\n');
-        const bodyText = 'Daily schedule overview for ' + todayStr + ':\n\n' + lines + '\n\nGC Job Planner';
+        const bodyText = 'Daily schedule overview for ' + todayStr + ':\n\n' + lines + '\n\nGC Mission Control';
         const bodyHtml = escapeHtml(bodyText).replace(/\n/g, '<br>') + linkBlock(baseUrl, '/admin', 'Open planner');
         for (const email of recipients) {
           try {

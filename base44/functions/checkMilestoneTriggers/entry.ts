@@ -177,7 +177,7 @@ export default async function(req: Request): Promise<Response> {
             await base44.integrations.Core.SendEmail({
               to,
               subject: 'Milestone Auto-Invoice — ' + raised.length + ' draft' + (raised.length === 1 ? '' : 's') + ' raised',
-              body: styledHtml(bodyHtml, { banner_title: 'GC Job Planner — Milestone Invoice Digest', accent_color: '#2E5A1A' }),
+              body: styledHtml(bodyHtml, { banner_title: 'GC Mission Control — Milestone Invoice Digest', accent_color: '#2E5A1A' }),
             });
           }
         }

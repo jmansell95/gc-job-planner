@@ -86,7 +86,7 @@ Keep it realistic for the UK construction industry.`;
     // Notify admins so they can confirm/arrange — uses the email template system
     try {
       const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'training_request' });
-      const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+      const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' };
       if (cfg.enabled !== false) {
         let recipients = [];
         if (cfg.recipient_emails) {
@@ -114,7 +114,7 @@ Keep it realistic for the UK construction industry.`;
             .replace(/\{request_text\}/g, tok.request_text);
         } else {
           const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
-          text = intro + `A staff member has requested training via the self-service portal:\n\nStaff: ${tok.staff_name}\nSuggested course: ${tok.course_title}\nProvider: ${tok.provider}\nDate: ${tok.suggested_date}\n\nRequest: ${tok.request_text}\n\nPlease review and confirm the booking in the Training Manager (Admin → Training).\n\nGC Job Planner`;
+          text = intro + `A staff member has requested training via the self-service portal:\n\nStaff: ${tok.staff_name}\nSuggested course: ${tok.course_title}\nProvider: ${tok.provider}\nDate: ${tok.suggested_date}\n\nRequest: ${tok.request_text}\n\nPlease review and confirm the booking in the Training Manager (Admin → Training).\n\nGC Mission Control`;
         }
 
         const subject = cfg.subject

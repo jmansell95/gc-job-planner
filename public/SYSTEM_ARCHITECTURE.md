@@ -1,4 +1,4 @@
-# GC Job Planner — System Architecture
+# GC Mission Control — System Architecture
 
 **Last updated:** August 2026  
 **Version:** Phase 0-2 Roadmap
@@ -259,7 +259,7 @@
 
 ```
                     ┌─────────────────┐
-                    │  GC Job Planner │
+                    │  GC Mission Control │
                     │   (Base44)      │
                     └────┬───────┬────┘
                          │       │

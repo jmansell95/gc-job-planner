@@ -582,7 +582,7 @@ export default function ClientPortal() {
         )}
 
         <div className="text-center text-xs text-slate-400 py-4">
-          {branding?.footer_text || 'Powered by GC Job Planner'} · Updated {format(new Date(), 'dd MMM yyyy HH:mm')}
+          {branding?.footer_text || 'Powered by GC Mission Control'} · Updated {format(new Date(), 'dd MMM yyyy HH:mm')}
         </div>
       </motion.div>
     </div>

@@ -1,4 +1,4 @@
-# GC Job Planner — Security & System Summary
+# GC Mission Control — Security & System Summary
 
 **Last updated:** August 2026  
 **Document owner:** Ground Control IT  
@@ -8,7 +8,7 @@
 
 ## 1. Platform Overview
 
-The GC Job Planner is a full-stack operations platform built on Base44 (backend-as-a-service) with a React + Tailwind CSS frontend. It manages the complete job lifecycle for Ground Control's geotechnical and groundworks operations: weekly staff allocation, job provisioning, timesheet approval, financial lifecycle management, asset tracking, compliance, and client portal access.
+The GC Mission Control is a full-stack operations platform built on Base44 (backend-as-a-service) with a React + Tailwind CSS frontend. It manages the complete job lifecycle for Ground Control's geotechnical and groundworks operations: weekly staff allocation, job provisioning, timesheet approval, financial lifecycle management, asset tracking, compliance, and client portal access.
 
 **Tech stack:**
 - Frontend: React 18 + Vite + Tailwind CSS + shadcn/ui

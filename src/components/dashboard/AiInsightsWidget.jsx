@@ -90,7 +90,7 @@ export default function AiInsightsWidget() {
     const summary = insights?.summary ? `<p class="summary">${insights.summary.replace(/</g, '&lt;')}</p>` : '';
     const html = `<!DOCTYPE html><html><head><title>Weekly Insights — ${format(weekStart, 'dd MMM yyyy')}</title>
 <style>body{font-family:Arial,sans-serif;margin:24px;color:#111;max-width:700px}h1{font-size:22px;margin:0 0 4px}.sub{color:#666;font-size:12px;margin-bottom:16px}.summary{background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:12px 14px;font-size:14px;font-weight:600;color:#065f46;margin-bottom:18px}ol{list-style:none;padding:0;margin:0}li{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #e2e8f0;font-size:13px;line-height:1.5}.num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#047857;color:#fff;font-size:11px;font-weight:bold;display:flex;align-items:center;justify-content:center}.foot{margin-top:20px;padding-top:12px;border-top:1px solid #e2e8f0;color:#999;font-size:10px}@media print{body{margin:10mm}}</style></head><body>
-<h1>Weekly Insights</h1><p class="sub">Week of ${format(weekStart, 'dd MMMM yyyy')} · GC Job Planner</p>${summary}<ol>${steps}</ol><div class="foot">Generated ${format(new Date(), 'dd MMM yyyy HH:mm')}</div></body></html>`;
+<h1>Weekly Insights</h1><p class="sub">Week of ${format(weekStart, 'dd MMMM yyyy')} · GC Mission Control</p>${summary}<ol>${steps}</ol><div class="foot">Generated ${format(new Date(), 'dd MMM yyyy HH:mm')}</div></body></html>`;
     const win = window.open('', '_blank');
     win.document.write(html);
     win.document.close();

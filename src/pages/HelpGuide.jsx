@@ -66,7 +66,7 @@ export default function HelpGuide() {
     const html = `
       <html>
       <head>
-        <title>GC Job Planner — Help Guide</title>
+        <title>GC Mission Control — Help Guide</title>
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #1e293b; }
           h1 { color: #2E5A1A; border-bottom: 2px solid #d1fae5; padding-bottom: 10px; }
@@ -82,7 +82,7 @@ export default function HelpGuide() {
         </style>
       </head>
       <body>
-        <h1>GC Job Planner — Help Guide</h1>
+        <h1>GC Mission Control — Help Guide</h1>
         <p>Generated on ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
         ${filtered.map(t => `
           <div class="topic">

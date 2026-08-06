@@ -93,7 +93,7 @@ export default function GlobalBrandingSettings() {
               <span className="inline-flex items-center gap-1"><Building2 className="w-3.5 h-3.5 text-slate-400" /> Company name</span>
             </label>
             <input type="text" value={cfg.company_name || ''} onChange={(e) => setDraft({ ...cfg, company_name: e.target.value })}
-              placeholder="GC Job Planner" className={inputCls} />
+              placeholder="GC Mission Control" className={inputCls} />
             <p className="text-xs text-slate-400 mt-1">Used as the default banner title and footer across all emails.</p>
           </div>
 
@@ -125,7 +125,7 @@ export default function GlobalBrandingSettings() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">Default banner title</label>
               <input type="text" value={cfg.default_banner_title || ''} onChange={(e) => setDraft({ ...cfg, default_banner_title: e.target.value })}
-                placeholder="GC Job Planner" className={inputCls} />
+                placeholder="GC Mission Control" className={inputCls} />
             </div>
 
             <div>
@@ -146,7 +146,7 @@ export default function GlobalBrandingSettings() {
                 <span className="inline-flex items-center gap-1"><Type className="w-3.5 h-3.5 text-slate-400" /> Default footer text</span>
               </label>
               <input type="text" value={cfg.default_footer_text || ''} onChange={(e) => setDraft({ ...cfg, default_footer_text: e.target.value })}
-                placeholder="GC Job Planner" className={inputCls} />
+                placeholder="GC Mission Control" className={inputCls} />
             </div>
           </div>
 

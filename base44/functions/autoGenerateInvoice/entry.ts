@@ -288,7 +288,7 @@ export default async function(req) {
       if (created.length > 0) {
         const baseUrl = await getAppBaseUrl(base44);
         const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'auto_invoice_digest' });
-        const cfg = cfgList[0] || { accent_color: '#2E5A1A', banner_title: 'GC Job Planner — Auto-Invoice Digest', show_banner: true, footer_text: 'GC Job Planner' };
+        const cfg = cfgList[0] || { accent_color: '#2E5A1A', banner_title: 'GC Mission Control — Auto-Invoice Digest', show_banner: true, footer_text: 'GC Mission Control' };
         if (cfg.enabled !== false) {
           let recipients = [];
           if (cfg.recipient_emails) {
@@ -309,7 +309,7 @@ export default async function(req) {
               .replace(/\{invoice_list\}/g, invoiceList);
           } else {
             const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
-            text = intro + 'The Auto-Invoice Engine created ' + created.length + ' new draft invoice' + (created.length === 1 ? '' : 's') + ' from approved work today:\n\n' + invoiceList + '\n\nReview and mark them sent from the Billing panel once checked.\n\nGC Job Planner';
+            text = intro + 'The Auto-Invoice Engine created ' + created.length + ' new draft invoice' + (created.length === 1 ? '' : 's') + ' from approved work today:\n\n' + invoiceList + '\n\nReview and mark them sent from the Billing panel once checked.\n\nGC Mission Control';
           }
 
           const subject = cfg.subject

@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
       @media print{body{padding:12px}.header,.summary-card,th,tr:nth-child(even) td{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
     </style></head><body>
     ${bodyContent}
-    <div class="footer"><span>Generated ${genDate}</span><span class="footer-brand">GC Job Planner</span></div>
+    <div class="footer"><span>Generated ${genDate}</span><span class="footer-brand">GC Mission Control</span></div>
     </body></html>`;
 
     return Response.json({

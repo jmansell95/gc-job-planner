@@ -18,9 +18,9 @@ export default function CustomTemplateModal({ onClose, onCreated }) {
     template: '',
     recipient_emails: '',
     accent_color: '#0e7a4f',
-    banner_title: 'GC Job Planner',
+    banner_title: 'GC Mission Control',
     show_banner: true,
-    footer_text: 'GC Job Planner',
+    footer_text: 'GC Mission Control',
   });
 
   const handleSave = async () => {

@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
 
     const baseUrl = await getAppBaseUrl(base44);
     const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'timesheet_summary' });
-    const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+    const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' };
     if (cfg.enabled === false) return Response.json({ skipped: true, reason: 'Email alert disabled' });
 
     const fmtRows = (rows) => rows.length > 0
@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
         'SUBMITTED (' + submitted.length + '):\n' + fmtRows(submitted) + '\n\n' +
         'IN PROGRESS (' + inProgress.length + '):\n' + fmtRows(inProgress) + '\n\n' +
         'NOT STARTED (' + notStarted.length + '):\n' + fmtRows(notStarted) + '\n\n' +
-        'Review and approve pending timesheets in the Timesheets page.\n\nGC Job Planner';
+        'Review and approve pending timesheets in the Timesheets page.\n\nGC Mission Control';
     }
     const subject = cfg.subject
       ? cfg.subject.replace(/\{date\}/g, todayStr)

@@ -8,9 +8,9 @@ function linkBlock(baseUrl, path, label) {
 }
 function styledHtml(rawBodyHtml, cfg) {
   const accent = (cfg && cfg.accent_color) || '#0e7a4f';
-  const bannerTitle = (cfg && cfg.banner_title) || 'GC Job Planner';
+  const bannerTitle = (cfg && cfg.banner_title) || 'GC Mission Control';
   const showBanner = !(cfg && cfg.show_banner === false);
-  const footer = (cfg && cfg.footer_text) || 'GC Job Planner';
+  const footer = (cfg && cfg.footer_text) || 'GC Mission Control';
   const banner = showBanner
     ? '<tr><td style="background:' + accent + ';padding:18px 24px"><h1 style="margin:0;color:#ffffff;font-size:18px;font-family:Arial,Helvetica,sans-serif;letter-spacing:0.3px">' + escapeHtml(bannerTitle) + '</h1></td></tr>'
     : '';
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     const reason = (abs.reason || '').replace(/_/g, ' ');
 
     const cfgList = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key: 'absence_request' });
-    const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+    const cfg = cfgList[0] || { accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' };
     if (cfg.enabled === false) return Response.json({ skipped: true, reason: 'Email alert disabled' });
 
     const notesStr = abs.notes || '';
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
         .replace(/\{notes\}/g, notesStr);
     } else {
       const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
-      text = intro + 'An absence request has been submitted:\n\nStaff: ' + staffName + '\nFrom: ' + (abs.start_date || '—') + '\nTo: ' + (abs.end_date || '—') + '\nReason: ' + reason + (notesStr ? '\nNotes: ' + notesStr : '') + '\n\nReview and respond in the planner.\n\nGC Job Planner';
+      text = intro + 'An absence request has been submitted:\n\nStaff: ' + staffName + '\nFrom: ' + (abs.start_date || '—') + '\nTo: ' + (abs.end_date || '—') + '\nReason: ' + reason + (notesStr ? '\nNotes: ' + notesStr : '') + '\n\nReview and respond in the planner.\n\nGC Mission Control';
     }
     const subject = cfg.subject ? cfg.subject.replace(/\{staff_name\}/g, staffName) : 'Absence request: ' + staffName;
 

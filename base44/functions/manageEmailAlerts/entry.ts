@@ -1,30 +1,30 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const DEFAULTS = [
-  { alert_key: 'vehicle_maintenance', enabled: true, recipient_emails: '', days_before_warning: 30, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'assignment_notification', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'staff_schedule', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'staff_invitation', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'absence_request', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'job_status_change', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'new_job', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'timesheet_submitted', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'maintenance_booking', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'training_booking', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'daily_reminder', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'compliance_expiry', enabled: true, recipient_emails: '', days_before_warning: 30, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'daily_standup', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'timesheet_summary', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'milestone_push', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'training_request', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'auto_invoice_digest', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
+  { alert_key: 'vehicle_maintenance', enabled: true, recipient_emails: '', days_before_warning: 30, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'assignment_notification', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'staff_schedule', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'staff_invitation', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'absence_request', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'job_status_change', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'new_job', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'timesheet_submitted', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'maintenance_booking', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'training_booking', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'daily_reminder', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'compliance_expiry', enabled: true, recipient_emails: '', days_before_warning: 30, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'daily_standup', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'timesheet_summary', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'milestone_push', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'training_request', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'auto_invoice_digest', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
   // === New system templates (previously missing from the editor) ===
-  { alert_key: 'auto_maintenance_booking', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'asset_compliance_alert', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'job_budget_alert', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'retention_status', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'monthly_statement', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' },
-  { alert_key: 'retention_release', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' }
+  { alert_key: 'auto_maintenance_booking', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'asset_compliance_alert', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'job_budget_alert', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'retention_status', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'monthly_statement', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' },
+  { alert_key: 'retention_release', enabled: true, recipient_emails: '', days_before_warning: null, subject: '', intro_message: '', template: '', accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' }
 ];
 
 function escapeHtml(s) {
@@ -40,9 +40,9 @@ function linkBlock(baseUrl, path, label) {
 }
 function styledHtml(rawBodyHtml, cfg) {
   const accent = (cfg && cfg.accent_color) || '#0e7a4f';
-  const bannerTitle = (cfg && cfg.banner_title) || 'GC Job Planner';
+  const bannerTitle = (cfg && cfg.banner_title) || 'GC Mission Control';
   const showBanner = !(cfg && cfg.show_banner === false);
-  const footer = (cfg && cfg.footer_text) || 'GC Job Planner';
+  const footer = (cfg && cfg.footer_text) || 'GC Mission Control';
   const banner = showBanner
     ? '<tr><td style="background:' + accent + ';padding:18px 24px"><h1 style="margin:0;color:#ffffff;font-size:18px;font-family:Arial,Helvetica,sans-serif;letter-spacing:0.3px">' + escapeHtml(bannerTitle) + '</h1></td></tr>'
     : '';
@@ -305,9 +305,9 @@ Deno.serve(async (req) => {
         intro_message: intro_message || '',
         template: template || '',
         accent_color: accent_color || '#0e7a4f',
-        banner_title: banner_title || 'GC Job Planner',
+        banner_title: banner_title || 'GC Mission Control',
         show_banner: show_banner !== false,
-        footer_text: footer_text || 'GC Job Planner',
+        footer_text: footer_text || 'GC Mission Control',
         custom_name: custom_name || '',
         custom_description: custom_description || '',
         custom_tokens: custom_tokens || ''
@@ -344,9 +344,9 @@ Deno.serve(async (req) => {
         intro_message: '',
         template: template || '',
         accent_color: accent_color || '#0e7a4f',
-        banner_title: banner_title || 'GC Job Planner',
+        banner_title: banner_title || 'GC Mission Control',
         show_banner: show_banner !== false,
-        footer_text: footer_text || 'GC Job Planner'
+        footer_text: footer_text || 'GC Mission Control'
       };
       const created = await base44.asServiceRole.entities.EmailAlertSetting.create(data);
       return Response.json({ saved: true, setting: created });
@@ -366,7 +366,7 @@ Deno.serve(async (req) => {
       const { alert_key } = body;
       if (!alert_key) return Response.json({ error: 'alert_key required' }, { status: 400 });
       const existing = await base44.asServiceRole.entities.EmailAlertSetting.filter({ alert_key });
-      const cfg = existing[0] || { accent_color: '#0e7a4f', banner_title: 'GC Job Planner', show_banner: true, footer_text: 'GC Job Planner' };
+      const cfg = existing[0] || { accent_color: '#0e7a4f', banner_title: 'GC Mission Control', show_banner: true, footer_text: 'GC Mission Control' };
       if (!cfg.template) {
         const msg = 'No template configured. This alert will not send until you add a template under this tab.';
         return Response.json({ html: styledHtml('<p style="font-size:14px;color:#94a3b8">' + escapeHtml(msg) + '</p>', cfg) });
@@ -446,11 +446,11 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Invitation email is disabled. Enable it in Email Alerts.' }, { status: 400 });
       }
       const name = staff_name || (email.split('@')[0] || 'there');
-      const defaultTemplate = 'Hi {staff_name},\n\nYou have been invited to join the GC Job Planner app. Use the login link sent to {email} to set up your account and start viewing your schedule and logging timesheets.\n\nGC Job Planner';
+      const defaultTemplate = 'Hi {staff_name},\n\nYou have been invited to join the GC Mission Control app. Use the login link sent to {email} to set up your account and start viewing your schedule and logging timesheets.\n\nGC Mission Control';
       const template = (cfg && cfg.template) ? cfg.template : defaultTemplate;
       const subject = (cfg && cfg.subject)
         ? cfg.subject.replace(/\{staff_name\}/g, name).replace(/\{email\}/g, email)
-        : 'You are invited to GC Job Planner';
+        : 'You are invited to GC Mission Control';
       const text = template.replace(/\{staff_name\}/g, name).replace(/\{email\}/g, email);
       const baseUrl = await getAppBaseUrl(base44);
       const bodyHtml = textToHtml(text) + linkBlock(baseUrl, '', 'Open the app');
@@ -465,11 +465,11 @@ Deno.serve(async (req) => {
       return Response.json({
         settings: {
           app_base_url: cfg.app_base_url || '',
-          company_name: cfg.company_name || 'GC Job Planner',
+          company_name: cfg.company_name || 'GC Mission Control',
           default_accent_color: cfg.default_accent_color || '#0e7a4f',
-          default_banner_title: cfg.default_banner_title || 'GC Job Planner',
+          default_banner_title: cfg.default_banner_title || 'GC Mission Control',
           default_show_banner: cfg.default_show_banner !== false,
-          default_footer_text: cfg.default_footer_text || 'GC Job Planner'
+          default_footer_text: cfg.default_footer_text || 'GC Mission Control'
         }
       });
     }
@@ -480,11 +480,11 @@ Deno.serve(async (req) => {
       const data = {
         key: 'global',
         app_base_url: app_base_url || '',
-        company_name: company_name || 'GC Job Planner',
+        company_name: company_name || 'GC Mission Control',
         default_accent_color: default_accent_color || '#0e7a4f',
-        default_banner_title: default_banner_title || 'GC Job Planner',
+        default_banner_title: default_banner_title || 'GC Mission Control',
         default_show_banner: default_show_banner !== false,
-        default_footer_text: default_footer_text || 'GC Job Planner'
+        default_footer_text: default_footer_text || 'GC Mission Control'
       };
       let saved;
       if (list[0]) {
