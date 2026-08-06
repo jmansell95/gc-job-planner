@@ -172,7 +172,7 @@ export default function ImportDashboard() {
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
               <StatTile icon={Users} label="Staff" total={preview.summary.staff.total} sub={`${preview.summary.staff.new} new`} color="blue" />
               <StatTile icon={Briefcase} label="Jobs" total={preview.summary.jobs.total} sub={`${preview.summary.jobs.new} new`} color="emerald" />
-              <StatTile icon={CalendarDays} label="Rotas" total={preview.summary.rotas.to_create} sub={`${preview.summary.rotas.duplicates_collapsed} dupes`} color="amber" />
+              <StatTile icon={CalendarDays} label="Rotas" total={preview.summary.rotas.to_create} sub={`${preview.summary.rotas.carried_forward || 0} merged`} color="amber" />
               <StatTile icon={UserX} label="Leavers" total={preview.summary.staff.leavers_detected} sub="not in file" color="rose" />
               <StatTile icon={CheckCircle2} label="Completed Jobs" total={preview.summary.jobs.completed} sub="past dates" color="slate" />
               <StatTile icon={Clock} label="In Progress" total={preview.summary.jobs.in_progress} sub="today/future" color="teal" />

@@ -558,33 +558,67 @@ function parseSheet(sheet, sheetName) {
     const entitySubcontractorName = (!entityIsAgency && currentSubcontractorName) ? currentSubcontractorName : '';
 
     let hadAssignment = false;
-    for (const [colStr, date] of Object.entries(colToDate)) {
-      const c = Number(colStr);
+    // Iterate date columns in ORDER (sorted by column number) so carry-forward
+    // propagates left→right. The Team Planner uses merged cells — only the
+    // first cell (Monday) has the job name; Tue–Fri are empty/null. Without
+    // carry-forward, only one assignment is created (Monday), causing "all
+    // assignments on Monday". We carry forward the last JOB name (not non-job
+    // entries like Off/Sick/Training) into empty cells.
+    const sortedDateCols = Object.entries(colToDate).map(([c, d]) => [Number(c), d] as [number, string]).sort((a, b) => a[0] - b[0]);
+    let lastJobName = null;      // last real job name (for carry-forward)
+    let lastNonJobType = null;   // last non-job type (NOT carried forward)
+    let lastNonJobLabel = null;
+    for (const [c, date] of sortedDateCols) {
       // Skip the entity name column — its cell value is the staff/asset name,
       // not a job name. In sheets where date columns start at col 0 (Drillers),
       // the name column overlaps with a date column and would otherwise be
       // treated as a job name, creating false Job entities from person names.
       if (c === entityNameCol) continue;
       const cellVal = row[c];
-      if (!cellVal) continue;
-      const jobName = normalizeName(cellVal);
-      if (!jobName || jobName.length < 1) continue;
-      if (jobName.length === 1) continue;
-      let nonJobType = categorizeNonJobCell(jobName);
+      const rawJobName = cellVal ? normalizeName(cellVal) : '';
+      const hasCell = rawJobName && rawJobName.length >= 2;
+
+      let jobName = null;
+      let nonJobType = null;
+      let nonJobLabel = null;
       let filteredAsNonJob = false;
-      // Second-layer filter: cells that pass categorizeNonJobCell but still
-      // aren't real client jobs (rig names, placeholders, overhead markers)
-      // are treated as non-job overhead days so they don't create Job entities.
-      if (!nonJobType && !isLikelyRealJob(jobName)) {
-        nonJobType = 'training'; // overhead/internal — same bucket as yard/depot
-        filteredAsNonJob = true;
+      let carriedForward = false;
+
+      if (hasCell) {
+        // Cell has a value — parse it
+        jobName = rawJobName;
+        nonJobType = categorizeNonJobCell(jobName);
+        if (!nonJobType && !isLikelyRealJob(jobName)) {
+          nonJobType = 'training';
+          filteredAsNonJob = true;
+        }
+        // Track for carry-forward: only real jobs are carried forward, not
+        // non-job entries (Off, Sick, Training, Yard/Depot-as-overhead).
+        if (!nonJobType) {
+          lastJobName = jobName;
+        } else {
+          lastJobName = null; // non-job entry breaks the carry-forward chain
+        }
+        lastNonJobType = nonJobType;
+        lastNonJobLabel = nonJobType ? jobName : null;
+      } else {
+        // Cell is empty — carry forward the last job name (merged cell case).
+        // Only carry forward real jobs, not non-job entries or nothing.
+        if (lastJobName) {
+          jobName = lastJobName;
+          carriedForward = true;
+        } else {
+          continue; // nothing to carry forward
+        }
       }
+
       assignments.push({
         staff_name: entityName,
         job_name: nonJobType ? null : jobName,
         non_job_type: nonJobType || undefined,
         non_job_label: nonJobType ? jobName : undefined,
         filtered_as_non_job: filteredAsNonJob,
+        carried_forward: carriedForward,
         date,
         crew_section: currentSection, raw_crew_section: rawSection,
         sheet_name: sheetName,
@@ -1521,6 +1555,16 @@ export default async function(req) {
     if (duplicateRotaRows > 0) {
       warnings.push(`${duplicateRotaRows} duplicate rota row(s) collapsed into single entries.`);
     }
+    const carriedForwardCount = allAssignments.filter(a => a.carried_forward).length;
+    if (carriedForwardCount > 0) {
+      warnings.push(`${carriedForwardCount} assignment(s) carried forward from merged cells (empty Tue–Fri cells filled with Monday's job name).`);
+    }
+    // Warn if all rota assignments landed on a single date — indicates the
+    // date-to-column mapping failed to spread across the week.
+    const uniqueDates = [...new Set(rotasToCreate.map(r => r.assigned_date).filter(Boolean))];
+    if (rotasToCreate.length > 5 && uniqueDates.length === 1) {
+      warnings.push(`⚠ ALL ${rotasToCreate.length} rota assignments are on ${uniqueDates[0]} — the date column mapping did not spread across the week. Check the diagnostic below.`);
+    }
 
     // -----------------------------------------------------------------------
     // 7b. Create Training Courses + Bookings from training-type assignments
@@ -1868,6 +1912,7 @@ export default async function(req) {
       rotas: {
         to_create: rotasToCreate.length,
         duplicates_collapsed: duplicateRotaRows,
+        carried_forward: allAssignments.filter(a => a.carried_forward).length,
       },
       non_job_assignments: nonJobCounts,
       training: {

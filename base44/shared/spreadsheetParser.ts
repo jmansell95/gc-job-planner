@@ -146,8 +146,10 @@ export function categorizeNonJobCell(cellValue) {
   // Training courses (first aid, SSSTS, IOSH, ROLO, CAT&Genny, inductions, medicals, etc.)
   if (/training|first aid|sssts|iosh|rolo|cat&genny|cscs|breathing|asbestos|confined space|induction|orientation|medical|course|refresher|learning|streetworks|cpd/.test(lower)) return 'training';
 
-  // Overheads / yard / depot / internal work (not client jobs)
-  if (/^yard|^depot|^dartford|^home$|^leeds depot|overhead|^internal|^driving|^warehouse|rig repair|cp rig|rig maintenance|collecting rigs|potholes|site visit|internal works|internal job|internal site|^fuel$|^van$|^mot$|^service$|breakdown|holman|geotab|^site$/.test(lower)) return 'training';
+  // Overheads / internal work (not client jobs). NOTE: yard/depot/dartford
+  // are NOT training — they are treated as job assignments to a Yard/Depot
+  // job so staff show as working at the yard, not on a training course.
+  if (/^home$|overhead|^internal|^driving|rig repair|cp rig|rig maintenance|collecting rigs|potholes|site visit|internal works|internal job|internal site|^fuel$|^van$|^mot$|^service$|breakdown|holman|geotab|^site$/.test(lower)) return 'training';
 
   // Audits
   if (/audit|bda/.test(lower)) return 'training';
