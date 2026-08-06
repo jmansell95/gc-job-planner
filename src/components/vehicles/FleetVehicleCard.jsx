@@ -49,6 +49,9 @@ function getVehicleStatus(v) {
 function getMotionStatus(liveLocation, geotabLive) {
   if (!geotabLive) return { state: 'offline', label: 'Offline', color: 'slate', Icon: Satellite };
   if (!liveLocation) return { state: 'no_data', label: 'No Signal', color: 'slate', Icon: Satellite };
+  // Fresh Geotab DeviceStatusInfo overlay sets is_driving_now when the vehicle
+  // is actively driving — trust this over potentially stale cached logs.
+  if (liveLocation.is_driving_now) return { state: 'moving', label: 'Moving', color: 'emerald', Icon: Navigation };
   const isMoving = liveLocation.ignition_on && (liveLocation.speed_kph || 0) > 0;
   if (isMoving) return { state: 'moving', label: 'Moving', color: 'emerald', Icon: Navigation };
   if (liveLocation.ignition_on) return { state: 'idle', label: 'Engine On', color: 'amber', Icon: Zap };
@@ -77,10 +80,14 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
   const StatusIcon = badge.Icon;
   const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(' ');
 
-  // MOT badge — uses expiry date when available (populated by Holman sync)
-  const motDays = vehicle.mot_expiry ? differenceInDays(new Date(vehicle.mot_expiry + 'T00:00:00'), new Date()) : null;
+  // MOT badge — only show when Holman is synced (authoritative source).
+  // Guard against "null" / "None" strings from old DVLA syncs.
+  const geotabLive = vehicle.geotab_sync_status === 'synced';
+  const holmanSynced = vehicle.holman_sync_status === 'synced';
+  const motExpiry = (vehicle.mot_expiry && vehicle.mot_expiry !== 'null' && vehicle.mot_expiry !== 'None') ? vehicle.mot_expiry : null;
+  const motDays = motExpiry ? differenceInDays(new Date(motExpiry + 'T00:00:00'), new Date()) : null;
   let motBadge;
-  if (motDays != null) {
+  if (motDays != null && !isNaN(motDays)) {
     motBadge = motDays < 0
       ? { label: 'MOT EXPIRED', cls: 'bg-red-500 text-white', Icon: ShieldX }
       : motDays <= 30
@@ -89,9 +96,6 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
   } else {
     motBadge = null;
   }
-
-  const geotabLive = vehicle.geotab_sync_status === 'synced';
-  const holmanSynced = vehicle.holman_sync_status === 'synced';
   const motion = getMotionStatus(liveLocation, geotabLive);
   const motionStyle = MOTION_STYLES[motion.state];
   const MotionIcon = motion.Icon;

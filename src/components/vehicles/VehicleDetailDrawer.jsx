@@ -16,19 +16,27 @@ import { generateVehicleReport } from '@/utils/vehiclePdfReport';
 function getVehicleStatus(v) {
   const today = new Date();
   const issues = [];
-  if (v.mot_expiry) {
-    const d = differenceInDays(new Date(v.mot_expiry + 'T00:00:00'), today);
-    if (d < 0) issues.push({ label: 'MOT Expired', severity: 'expired', days: d });
-    else if (d <= 30) issues.push({ label: 'MOT Due', severity: 'warning', days: d });
+  // Guard against "null" / "None" strings from old syncs; only trust Holman-synced data
+  const holmanSynced = v.holman_sync_status === 'synced';
+  const motExpiry = (v.mot_expiry && v.mot_expiry !== 'null' && v.mot_expiry !== 'None') ? v.mot_expiry : null;
+  if (motExpiry) {
+    const d = differenceInDays(new Date(motExpiry + 'T00:00:00'), today);
+    if (!isNaN(d)) {
+      if (d < 0) issues.push({ label: 'MOT Expired', severity: 'expired', days: d });
+      else if (d <= 30) issues.push({ label: 'MOT Due', severity: 'warning', days: d });
+    }
   }
-  if (v.service_due_date) {
+  if (v.service_due_date && v.service_due_date !== 'null' && v.service_due_date !== 'None') {
     const d = differenceInDays(new Date(v.service_due_date + 'T00:00:00'), today);
-    if (d < 0) issues.push({ label: 'Service Overdue', severity: 'expired', days: d });
-    else if (d <= 30) issues.push({ label: 'Service Due', severity: 'warning', days: d });
+    if (!isNaN(d)) {
+      if (d < 0) issues.push({ label: 'Service Overdue', severity: 'expired', days: d });
+      else if (d <= 30) issues.push({ label: 'Service Due', severity: 'warning', days: d });
+    }
   }
+  const hasComplianceData = holmanSynced && (motExpiry || v.service_due_date);
   const level = issues.find(i => i.severity === 'expired') ? 'expired'
     : issues.find(i => i.severity === 'warning') ? 'warning'
-    : (v.mot_expiry || v.service_due_date ? 'compliant' : 'unknown');
+    : (hasComplianceData ? 'compliant' : 'unknown');
   return { issues, level };
 }
 

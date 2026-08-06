@@ -321,7 +321,7 @@ export default async function(req: Request): Promise<Response> {
     }
 
     if (mode === 'live') {
-      // Get the latest location log per vehicle
+      // Get the latest location log per vehicle (cached)
       const allLogs = await base44.asServiceRole.entities.VehicleLocationLog.list('-timestamp', limit);
       const latestByVehicle: Record<string, any> = {};
       for (const log of allLogs) {
@@ -331,19 +331,79 @@ export default async function(req: Request): Promise<Response> {
           latestByVehicle[vid] = log;
         }
       }
-      const results = Object.values(latestByVehicle).map((log: any) => ({
-        vehicle_id: log.vehicle_id,
-        registration_number: log.registration_number || vehicleMap[log.vehicle_id]?.registration_number || vehicleMap[log.vehicle_id]?.name || '',
-        vehicle_name: log.vehicle_name || vehicleMap[log.vehicle_id]?.name || '',
-        lat: log.lat,
-        lng: log.lng,
-        speed_kph: log.speed_kph,
-        heading: log.heading,
-        ignition_on: log.ignition_on,
-        odometer_km: log.odometer_km,
-        driver_name: log.driver_name,
-        timestamp: log.timestamp,
-      }));
+
+      // ── FRESH GEOTAB STATUS OVERLAY ──
+      // Cached logs can be stale (sync runs every few minutes). Fetch the
+      // current driving/ignition status directly from Geotab in a single
+      // DeviceStatusInfo API call so the fleet map reflects reality right now.
+      let freshStatusByDeviceId: Record<string, { isDriving: boolean; isIgnitionOn: boolean }> = {};
+      try {
+        const settings = await base44.asServiceRole.entities.AppSetting.filter({ key: 'geotab_config' });
+        const cfg = settings[0]?.value || {};
+        if (cfg.username && cfg.password && cfg.database) {
+          const server = cfg.server || 'my.geotab.com';
+          const apiUrl = `https://${server.replace(/^https?:\/\//, '')}/apiv1`;
+          const authRes = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              method: 'Authenticate',
+              params: { userName: cfg.username, password: cfg.password, database: cfg.database },
+            }),
+          });
+          const authJson = authRes.ok ? await authRes.json().catch(() => null) : null;
+          const creds = authJson?.result?.credentials;
+          if (creds?.sessionId) {
+            const statusRes = await fetch(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                method: 'Get',
+                params: {
+                  typeName: 'DeviceStatusInfo',
+                  credentials: creds,
+                  resultsLimit: 500,
+                },
+              }),
+            });
+            const statusJson = statusRes.ok ? await statusRes.json().catch(() => null) : null;
+            const statusList: any[] = Array.isArray(statusJson?.result) ? statusJson.result : [];
+            for (const s of statusList) {
+              const devId = s.device?.id;
+              if (!devId) continue;
+              freshStatusByDeviceId[devId] = {
+                isDriving: !!s.isDriving,
+                isIgnitionOn: s.isDriving || (s.engineState === 'on') || false,
+              };
+            }
+          }
+        }
+      } catch (_) {
+        // Geotab overlay is best-effort — fall back to cached logs silently
+      }
+
+      const results = Object.values(latestByVehicle).map((log: any) => {
+        const vehicle = vehicleMap[log.vehicle_id];
+        const fresh = vehicle?.geotab_device_id ? freshStatusByDeviceId[vehicle.geotab_device_id] : null;
+        // If Geotab says the vehicle is driving RIGHT NOW, override the cached
+        // ignition/speed so the card shows "Moving" instead of stale "Stopped".
+        const ignition_on = fresh?.isDriving ? true : (fresh?.isIgnitionOn ?? log.ignition_on);
+        const speed_kph = fresh?.isDriving ? Math.max(log.speed_kph || 0, 5) : log.speed_kph;
+        return {
+          vehicle_id: log.vehicle_id,
+          registration_number: log.registration_number || vehicle?.registration_number || vehicle?.name || '',
+          vehicle_name: log.vehicle_name || vehicle?.name || '',
+          lat: log.lat,
+          lng: log.lng,
+          speed_kph,
+          heading: log.heading,
+          ignition_on,
+          odometer_km: log.odometer_km,
+          driver_name: log.driver_name,
+          timestamp: log.timestamp,
+          is_driving_now: fresh?.isDriving || false,
+        };
+      });
       return Response.json({ ok: true, mode: 'live', count: results.length, vehicles: results });
     }
 
