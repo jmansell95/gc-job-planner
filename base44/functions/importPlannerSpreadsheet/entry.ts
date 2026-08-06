@@ -237,8 +237,9 @@ function parseJobName(rawName) {
     return { name, job_reference: isMatch[1].trim(), location: isMatch[2].trim() };
   }
   // "REF - LOCATION" separator when left side looks like a job reference
-  // (1-3 letters followed by 4-6 digits, e.g. "I260124 - EWR")
-  const dashMatch = name.match(/^([A-Za-z]{1,3}\d{4,6})\s*[-–—]\s*(.+)$/);
+  // (1-3 letters followed by optional dash then 4-6 digits, e.g. "I260124 - EWR"
+  // or "PRJ-001034 - Parliament")
+  const dashMatch = name.match(/^([A-Za-z]{1,3}-?\d{4,6})\s*[-–—]\s*(.+)$/);
   if (dashMatch) {
     const ref = dashMatch[1].trim();
     // Strip quantity suffix from location (e.g., "EWR - 3 No. 2 Monday" → "EWR")

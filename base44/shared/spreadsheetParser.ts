@@ -163,7 +163,7 @@ export function categorizeNonJobCell(cellValue) {
 // Window Sampling" matches the "Hayes" project.
 export function normalizeForProjectMatching(name) {
   return String(name || '').toLowerCase().trim()
-    .replace(/[a-z]{1,2}\d{6}(?:\/\d+)?/g, '')   // remove references like I260XXX
+    .replace(/[a-z]{1,3}-?\d{4,6}(?:\/\d+)?/g, '')   // remove references like I260XXX, PRJ-001034
     .replace(/inv\s*\d+/g, '')                    // remove INV 12345
     .replace(/window sampling|concrete coring|demob|de-mob|mob|mobilised|monitoring|half day|one person|cancelled|morning|aft|afternoon|saturday night/g, '')
     .replace(/[()]/g, '').replace(/\?+/g, '').replace(/^- /g, '').replace(/\s+/g, ' ').trim();
@@ -351,8 +351,9 @@ export function isLikelyRealJob(jobName) {
 // site consolidate into one master job.
 export function canonicalJobKey(jobName) {
   const name = normalizeName(jobName);
-  // Extract location after reference if present (e.g. "I260124 - EWR" → "EWR")
-  const dashMatch = name.match(/^[A-Za-z]{1,3}\d{4,6}\s*[-–—]\s*(.+)$/);
+  // Extract location after reference if present (e.g. "I260124 - EWR" → "EWR",
+  // "PRJ-001034 - Parliament" → "Parliament")
+  const dashMatch = name.match(/^[A-Za-z]{1,3}-?\d{4,6}\s*[-–—]\s*(.+)$/);
   let base = dashMatch ? dashMatch[1] : name;
   // Strip quantity suffix: " - N No. <anything>" or " - NNo. <anything>"
   base = base.replace(/\s*[-–—]\s*\d+\s*No\.?\s*.*$/i, '').trim();
