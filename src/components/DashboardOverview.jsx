@@ -83,6 +83,14 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     queryFn: () => base44.entities.RotaAssignment.filter({ week_start: weekStartStr })
   });
 
+  // Direct fetch of today's rotas by assigned_date — more reliable than
+  // filtering the week_start set, which breaks if any rota is missing week_start
+  // or if the assigned_date is stored as a full timestamp.
+  const { data: todayRotasRaw = [] } = useQuery({
+    queryKey: ['rotas-today', todayStr],
+    queryFn: () => base44.entities.RotaAssignment.filter({ assigned_date: todayStr })
+  });
+
   // Fetch current user's profile + saved dashboard layout
   const { data: profile } = useQuery({
     queryKey: ['my-staff-profile'],
@@ -122,9 +130,10 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const scopedTimesheets = isAllJobs ? timesheets : timesheets.filter(t => t.job_id === selectedJobId);
   const scopedDeliveries = isAllJobs ? deliveries : deliveries.filter(d => d.job_id === selectedJobId);
   const scopedRotas = isAllJobs ? thisWeekRotas : thisWeekRotas.filter(r => r.job_id === selectedJobId);
+  const scopedTodayRotas = isAllJobs ? todayRotasRaw : todayRotasRaw.filter(r => r.job_id === selectedJobId);
 
   const activeJobs = scopedJobs.filter(j => (j.status || 'planning') === 'in_progress');
-  const todaysRotas = scopedRotas.filter(r => r.assigned_date === todayStr);
+  const todaysRotas = scopedTodayRotas.filter(r => (r.assigned_date || '').slice(0, 10) === todayStr);
   const staffToday = [...new Set(todaysRotas.map(r => r.staff_id))].length;
   const pendingTs = scopedTimesheets.filter(t => t.status === 'submitted').length;
   const activeStaff = staff.filter(s => s.is_active !== false).length;
