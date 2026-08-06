@@ -1,4 +1,4 @@
-import { Truck, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Boxes, Sparkles, TrendingUp, HardHat, Activity, LayoutDashboard, MapPin, FileClock, FolderKanban, AlertTriangle, Scale, ClipboardCheck, Gauge, ShieldAlert, Brain, Navigation, AlertOctagon, Star, Leaf, CloudSun, Settings2, Warehouse } from 'lucide-react';
+import { Truck, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Boxes, Sparkles, TrendingUp, HardHat, Activity, LayoutDashboard, MapPin, FileClock, FolderKanban, AlertTriangle, Scale, ClipboardCheck, Gauge, ShieldAlert, Brain, Navigation, AlertOctagon, Star, Leaf, CloudSun, Settings2, Warehouse, RotateCcw } from 'lucide-react';
 
 export const WIDGET_REGISTRY = {
   'executive-snapshot': { title: 'Executive Snapshot', icon: LayoutDashboard },
@@ -40,6 +40,7 @@ export const WIDGET_REGISTRY = {
   'config-health': { title: 'Configuration Health', icon: Settings2 },
   'missing-rates': { title: 'Missing Day Rates', icon: PoundSterling },
   'site-readiness': { title: 'Site Readiness Gate', icon: ShieldCheck },
+  'off-hire-recon': { title: 'Off-Hire Reconciliation', icon: RotateCcw },
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -71,6 +72,7 @@ export const DEFAULT_WIDGETS = [
   'yard-control',
   'field-priorities',
   'site-readiness',
+  'off-hire-recon',
   'live-site-map',
   'site-weather',
 ];
