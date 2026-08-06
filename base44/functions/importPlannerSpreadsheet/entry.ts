@@ -98,6 +98,14 @@ function isDepotSection(name) {
   return DEPOT_ALIASES.some(a => lower === a || lower.includes(a));
 }
 
+const YARD_DEPOT_EXACT_TEXTS = ['yard', 'depot', 'yard/depot', 'yard - depot', 'yard depot', 'warehouse', 'dartford depot', 'dartford yard', 'yard duty', 'depot duty'];
+
+function isYardDepotText(text) {
+  if (!text) return false;
+  const lower = normalizeName(text).toLowerCase().trim();
+  return YARD_DEPOT_EXACT_TEXTS.includes(lower);
+}
+
 function isNonWorkSection(name) {
   if (!name) return false;
   const lower = normalizeName(name).toLowerCase().trim();
@@ -587,24 +595,40 @@ function parseSheet(sheet, sheetName) {
       if (hasCell) {
         // Cell has a value — parse it
         jobName = rawJobName;
-        nonJobType = categorizeNonJobCell(jobName);
-        if (!nonJobType && !isLikelyRealJob(jobName)) {
-          nonJobType = 'training';
-          filteredAsNonJob = true;
+        // Yard/Depot detection: depot section OR cell text is yard/depot keyword.
+        // Yard/Depot is a non-job, non-billable assignment — staff are on the bench
+        // at the depot/yard, available for reassignment. No Job entity is created.
+        if (isDepotSection(currentSection) || isYardDepotText(jobName)) {
+          nonJobType = 'yard_depot';
+          nonJobLabel = jobName;
+        } else {
+          nonJobType = categorizeNonJobCell(jobName);
+          if (!nonJobType && !isLikelyRealJob(jobName)) {
+            nonJobType = 'training';
+            filteredAsNonJob = true;
+          }
         }
         // Track for carry-forward: only real jobs are carried forward, not
-        // non-job entries (Off, Sick, Training, Yard/Depot-as-overhead).
+        // non-job entries (Off, Sick, Training, Yard/Depot).
         if (!nonJobType) {
           lastJobName = jobName;
+          lastNonJobType = null;
+          lastNonJobLabel = null;
         } else {
-          lastJobName = null; // non-job entry breaks the carry-forward chain
+          lastJobName = null;
+          lastNonJobType = nonJobType;
+          lastNonJobLabel = nonJobType ? jobName : null;
         }
-        lastNonJobType = nonJobType;
-        lastNonJobLabel = nonJobType ? jobName : null;
       } else {
-        // Cell is empty — carry forward the last job name (merged cell case).
-        // Only carry forward real jobs, not non-job entries or nothing.
-        if (lastJobName) {
+        // Cell is empty — carry forward.
+        if (isDepotSection(currentSection)) {
+          // In a depot section, empty cells = yard/depot duty (merged cell pattern).
+          nonJobType = 'yard_depot';
+          nonJobLabel = lastNonJobLabel || 'Yard/Depot';
+          jobName = null;
+          carriedForward = true;
+        } else if (lastJobName) {
+          // Carry forward the last real job name (merged cell case).
           jobName = lastJobName;
           carriedForward = true;
         } else {
@@ -1516,7 +1540,7 @@ export default async function(req) {
     const rotasToCreate = [];
     const nonJobDays = [];
     let duplicateRotaRows = 0;
-    const nonJobCounts = { annual_leave: 0, sick: 0, training: 0 };
+    const nonJobCounts = { annual_leave: 0, sick: 0, training: 0, yard_depot: 0 };
     for (const a of teamAssignments) {
       if (!a.date) continue;
       const staff = staffMap.get(nameKey(a.staff_name));
@@ -1564,6 +1588,56 @@ export default async function(req) {
     const uniqueDates = [...new Set(rotasToCreate.map(r => r.assigned_date).filter(Boolean))];
     if (rotasToCreate.length > 5 && uniqueDates.length === 1) {
       warnings.push(`⚠ ALL ${rotasToCreate.length} rota assignments are on ${uniqueDates[0]} — the date column mapping did not spread across the week. Check the diagnostic below.`);
+    }
+
+    // -----------------------------------------------------------------------
+    // 7a. Global Rota Registry — Conflict Detection
+    // -----------------------------------------------------------------------
+    // Detect double-bookings: a staff member assigned to multiple jobs or
+    // yard/depot on the same date. Non-job types (annual_leave, sick, training)
+    // don't conflict with each other but DO conflict with job/yard_depot.
+    // Conflicting assignments are flagged with has_conflict + conflict_note so
+    // the Weekly Rota Builder can show warnings and managers can resolve them.
+    const workRotasByStaffDate = {};
+    for (const r of rotasToCreate) {
+      if (r.assignment_type !== 'job' && r.assignment_type !== 'yard_depot') continue;
+      const key = `${r.staff_id}|${r.assigned_date}`;
+      if (!workRotasByStaffDate[key]) workRotasByStaffDate[key] = [];
+      workRotasByStaffDate[key].push(r);
+    }
+
+    const conflicts = [];
+    for (const [key, assignments] of Object.entries(workRotasByStaffDate)) {
+      if (assignments.length < 2) continue;
+      const [staffId, date] = key.split('|');
+      const staff = [...staffMap.values()].find(s => s.id === staffId);
+      const staffName = staff?.name || 'Unknown';
+      const conflictDescs = assignments.map(a => {
+        if (a.assignment_type === 'yard_depot') return a.non_job_label || 'Yard/Depot';
+        const job = [...jobMap.values()].find(j => j.id === a.job_id);
+        return job?.name || 'Unknown Job';
+      });
+      const note = `Assigned to ${conflictDescs.join(' AND ')} on ${date}`;
+      for (const a of assignments) {
+        a.has_conflict = true;
+        a.conflict_note = note;
+      }
+      conflicts.push({
+        staff_id: staffId,
+        staff_name: staffName,
+        date,
+        assignments: assignments.map((a, i) => ({
+          assignment_type: a.assignment_type,
+          job_id: a.job_id || '',
+          job_name: conflictDescs[i],
+          non_job_label: a.non_job_label || '',
+        })),
+        conflict_note: note,
+      });
+    }
+
+    if (conflicts.length > 0) {
+      warnings.push(`⚠ ${conflicts.length} rota conflict(s) detected — staff double-booked on the same date. Review before applying.`);
     }
 
     // -----------------------------------------------------------------------
@@ -1675,6 +1749,7 @@ export default async function(req) {
     const ABSENCE_REASON_MAP = { annual_leave: 'holiday', sick: 'sick', training: 'training' };
     const absencesByStaffTypeWeek = {};
     for (const d of nonJobDays) {
+      if (d.type === 'yard_depot') continue; // yard/depot is not an absence
       const ws = getWeekStart(d.date);
       const key = `${d.staff_id}|${d.type}|${ws}`;
       if (!absencesByStaffTypeWeek[key]) absencesByStaffTypeWeek[key] = [];
@@ -1915,6 +1990,7 @@ export default async function(req) {
         carried_forward: allAssignments.filter(a => a.carried_forward).length,
       },
       non_job_assignments: nonJobCounts,
+      rota_conflicts: conflicts.length,
       training: {
         courses_new: newCoursePayloads.length,
         courses_matched: trainingCoursesMatched,
@@ -1966,6 +2042,7 @@ export default async function(req) {
         staff_breakdown: staffBreakdown,
         jobs_breakdown: jobsBreakdown,
         leavers,
+        conflicts,
         new_staff: newStaff.map(s => ({
           name: s.name, email: s.email, job_title: s.job_title,
           worker_type: s.worker_type,
@@ -2093,6 +2170,7 @@ export default async function(req) {
       sheet_breakdown: sheetBreakdown,
       staff_breakdown: staffBreakdown,
       jobs_breakdown: jobsBreakdown,
+      conflicts,
       new_staff: newStaff.map(s => ({
         name: s.name, email: s.email, job_title: s.job_title,
         worker_type: s.worker_type,

@@ -4,7 +4,7 @@
   "properties": {
     "job_id": {
       "type": "string",
-      "description": "Assigned job. Blank for non-job assignments (annual_leave, sick, training)."
+      "description": "Assigned job. Blank for non-job assignments (annual_leave, sick, training, yard_depot)."
     },
     "staff_id": {
       "type": "string",
@@ -30,14 +30,24 @@
         "job",
         "annual_leave",
         "sick",
-        "training"
+        "training",
+        "yard_depot"
       ],
       "default": "job",
-      "description": "Type of day. 'job' = normal job assignment (requires job_id), 'annual_leave' = annual leave/holiday/day off (Off, Golf day, Holiday, AL), 'sick' = sick leave, 'training' = training course day. Non-job types have no job_id."
+      "description": "Type of day. 'job' = normal job assignment (requires job_id), 'annual_leave' = annual leave/holiday/day off (Off, Golf day, Holiday, AL), 'sick' = sick leave, 'training' = training course day, 'yard_depot' = yard/depot duty (non-billable \u2014 staff are on the bench at the depot/yard, available for reassignment to jobs or delivery legs). Non-job types have no job_id."
     },
     "non_job_label": {
       "type": "string",
-      "description": "Original cell text from the planner for non-job days (e.g. 'Off', 'Golf day', 'Training course - First Aid'). Stored for audit/display so managers can see exactly what was written in the spreadsheet."
+      "description": "Original cell text from the planner for non-job days (e.g. 'Off', 'Golf day', 'Training course - First Aid', 'Yard', 'Depot'). Stored for audit/display so managers can see exactly what was written in the spreadsheet."
+    },
+    "has_conflict": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this assignment conflicts with another assignment on the same date \u2014 the staff member is double-booked (e.g. assigned to a job AND yard/depot on the same day, or two different jobs on the same day). Set by the Global Rota Registry conflict detector during import."
+    },
+    "conflict_note": {
+      "type": "string",
+      "description": "Human-readable description of the conflict (e.g. 'Assigned to EWR and Yard/Depot on 2026-08-06'). Shown as a warning in the rota builder and dashboard."
     },
     "status": {
       "type": "string",

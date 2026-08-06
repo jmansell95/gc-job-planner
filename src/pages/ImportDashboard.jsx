@@ -5,7 +5,7 @@ import {
   UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle,
   Users, Briefcase, CalendarDays, Trash2, HardHat, AlertCircle, RefreshCw,
   ChevronDown, ChevronRight, MapPin, Building2, UserX, Layers, Clock,
-  Palmtree, Thermometer, GraduationCap, Building, Filter
+  Palmtree, Thermometer, GraduationCap, Building, Filter, Warehouse
 } from 'lucide-react';
 import ImportCompleteModal from '@/components/import/ImportCompleteModal';
 
@@ -254,8 +254,8 @@ export default function ImportDashboard() {
             )}
 
             {/* Non-job days (Annual Leave / Sick / Training) */}
-            {preview.summary.non_job_assignments && (preview.summary.non_job_assignments.annual_leave + preview.summary.non_job_assignments.sick + preview.summary.non_job_assignments.training) > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            {preview.summary.non_job_assignments && (preview.summary.non_job_assignments.annual_leave + preview.summary.non_job_assignments.sick + preview.summary.non_job_assignments.training + (preview.summary.non_job_assignments.yard_depot || 0)) > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
                 <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0">
                     <Palmtree className="w-5 h-5 text-teal-600" />
@@ -281,6 +281,15 @@ export default function ImportDashboard() {
                   <div>
                     <p className="text-sm font-bold text-violet-900">Training: {preview.summary.non_job_assignments.training}</p>
                     <p className="text-xs text-violet-700">training course days</p>
+                  </div>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <Warehouse className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-amber-900">Yard/Depot: {preview.summary.non_job_assignments.yard_depot || 0}</p>
+                    <p className="text-xs text-amber-700">bench days (non-billable)</p>
                   </div>
                 </div>
               </div>
@@ -443,8 +452,8 @@ export default function ImportDashboard() {
                     {s.non_job_days?.length > 0 && (
                       <div className="text-xs mt-1 flex flex-wrap gap-1">
                         {s.non_job_days.map((d, i) => (
-                          <span key={i} className={`rounded-full px-2 py-0.5 font-medium ${d.type === 'annual_leave' ? 'bg-teal-100 text-teal-700' : d.type === 'sick' ? 'bg-rose-100 text-rose-700' : 'bg-violet-100 text-violet-700'}`}>
-                            {d.date}: {d.type === 'annual_leave' ? 'AL' : d.type === 'sick' ? 'Sick' : 'Training'}{d.label && d.label !== d.type ? ` (${d.label})` : ''}
+                          <span key={i} className={`rounded-full px-2 py-0.5 font-medium ${d.type === 'annual_leave' ? 'bg-teal-100 text-teal-700' : d.type === 'sick' ? 'bg-rose-100 text-rose-700' : d.type === 'yard_depot' ? 'bg-amber-100 text-amber-700' : 'bg-violet-100 text-violet-700'}`}>
+                            {d.date}: {d.type === 'annual_leave' ? 'AL' : d.type === 'sick' ? 'Sick' : d.type === 'yard_depot' ? 'Yard' : 'Training'}{d.label && d.label !== d.type ? ` (${d.label})` : ''}
                           </span>
                         ))}
                       </div>
@@ -665,6 +674,40 @@ export default function ImportDashboard() {
                 ))}
               </div>
             </CollapsibleSection>
+          )}
+
+          {/* Rota Conflicts — Global Rota Registry */}
+          {preview.conflicts?.length > 0 && (
+            <div className="insight-card rounded-2xl p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center">
+                  <AlertCircle className="w-4 h-4 text-rose-600" />
+                </div>
+                <h3 className="text-base font-semibold text-slate-800">
+                  Rota Conflicts ({preview.conflicts.length})
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mb-3">
+                These staff are double-booked on the same date — assigned to multiple jobs or yard/depot simultaneously. Review and resolve in the Weekly Rota Builder after import.
+              </p>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {preview.conflicts.map((c, i) => (
+                  <div key={i} className="bg-rose-50 border border-rose-200 rounded-lg px-3 py-2.5 text-sm">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-medium text-slate-700">{c.staff_name}</span>
+                      <span className="text-xs text-rose-600 font-medium">{c.date}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {c.assignments.map((a, j) => (
+                        <span key={j} className={`text-xs rounded-full px-2.5 py-1 font-medium ${a.assignment_type === 'yard_depot' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {a.assignment_type === 'yard_depot' ? `🏭 ${a.non_job_label || 'Yard/Depot'}` : `📍 ${a.job_name}`}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Confirm bar */}
