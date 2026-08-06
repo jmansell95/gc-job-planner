@@ -46,7 +46,7 @@ export default function MOTHistoryTimeline({ vehicleId, vehicle }) {
         <div className="text-center py-4 bg-slate-50 rounded-lg">
           <History className="w-6 h-6 text-slate-300 mx-auto mb-1.5" />
           <p className="text-xs text-slate-400">No MOT history recorded yet.</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Run a DVLA spec sync to capture MOT data automatically.</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Sync Holman to capture MOT data automatically.</p>
         </div>
         <button onClick={() => setShowManualModal(true)}
           className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-semibold hover:bg-slate-50 transition">

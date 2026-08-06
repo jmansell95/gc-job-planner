@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   RefreshCw, Loader2, Satellite, Link2, Link2Off, FileBarChart,
-  Check, AlertTriangle, Zap, Clock, Search,
+  Check, AlertTriangle, Zap, Clock,
 } from 'lucide-react';
 
 /**
@@ -16,8 +16,6 @@ export default function FleetSyncBar({ liveData, onShowReport }) {
   const [geotabSyncing, setGeotabSyncing] = useState(false);
   const [holmanSyncing, setHolmanSyncing] = useState(false);
   const [holmanTesting, setHolmanTesting] = useState(false);
-  const [specSyncing, setSpecSyncing] = useState(false);
-  const [specProgress, setSpecProgress] = useState(null);
   const [result, setResult] = useState(null);
 
   const trackedCount = liveData?.vehicles?.length || 0;
@@ -50,40 +48,6 @@ export default function FleetSyncBar({ liveData, onShowReport }) {
       setResult({ ok: false, msg: e.message || 'Holman sync failed' });
     }
     setHolmanSyncing(false);
-  };
-
-  // Batch-loop spec sync — works on published site (no background processing)
-  const handleSpecSync = async () => {
-    setSpecSyncing(true);
-    setResult(null);
-    setSpecProgress({ done: 0, total: 0 });
-    try {
-      let offset = 0;
-      let total = 0;
-      let processed = 0;
-      let remaining = 1;
-      let failures = 0;
-      while (remaining > 0) {
-        const res = await base44.functions.invoke('syncVehicleSpecs', { offset, batch_size: 3 });
-        const d = res.data || res;
-        if (!d.ok) throw new Error(d.error || 'Sync failed');
-        offset = d.offset;
-        remaining = d.remaining;
-        total = d.total;
-        processed += d.processed;
-        failures += d.results?.filter(r => !r.ok).length || 0;
-        setSpecProgress({ done: processed, total, failures });
-      }
-      const msg = failures > 0
-        ? `Spec sync complete — ${total} vehicles processed (${failures} failed)`
-        : `Spec sync complete — ${total} vehicles updated from DVLA lookup`;
-      setResult({ ok: true, msg });
-      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-    } catch (e) {
-      setResult({ ok: false, msg: e.message || 'Spec sync failed' });
-    }
-    setSpecSyncing(false);
-    setSpecProgress(null);
   };
 
   const handleHolmanTest = async () => {
@@ -127,10 +91,6 @@ export default function FleetSyncBar({ liveData, onShowReport }) {
           className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 disabled:opacity-50 transition">
           {holmanSyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2 className="w-3.5 h-3.5" />} Sync Holman
         </button>
-        <button onClick={handleSpecSync} disabled={specSyncing}
-          className="flex items-center gap-1.5 px-3 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold hover:bg-violet-700 disabled:opacity-50 transition">
-          {specSyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />} Sync Specs (DVLA)
-        </button>
         <button onClick={handleHolmanTest} disabled={holmanTesting}
           className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition disabled:opacity-50">
           {holmanTesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2Off className="w-3.5 h-3.5" />} Test Holman
@@ -141,20 +101,6 @@ export default function FleetSyncBar({ liveData, onShowReport }) {
           <FileBarChart className="w-3.5 h-3.5" /> Reports
         </button>
       </div>
-
-      {/* Spec sync progress bar */}
-      {specSyncing && specProgress && (
-        <div className="mx-3 mb-3">
-          <div className="flex items-center justify-between text-xs text-violet-600 font-semibold mb-1">
-            <span>Looking up DVLA specs...</span>
-            <span>{specProgress.done} / {specProgress.total}</span>
-          </div>
-          <div className="h-2 bg-violet-100 rounded-full overflow-hidden">
-            <div className="h-full bg-violet-500 rounded-full transition-all duration-300"
-              style={{ width: specProgress.total > 0 ? `${(specProgress.done / specProgress.total) * 100}%` : '0%' }} />
-          </div>
-        </div>
-      )}
 
       {result && (
         <div className={`mx-3 mb-3 flex items-start gap-2 rounded-lg px-3 py-2 text-xs ${result.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>

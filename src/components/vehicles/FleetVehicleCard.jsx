@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Truck, ShieldCheck, ShieldAlert, ShieldX, Wrench, Gauge,
   Satellite, Link2, Car, Hash, Navigation, Zap, Clock, Palette,
-  FileText, Loader2, BadgeCheck, AlertTriangle, Receipt,
+  FileText, Loader2, BadgeCheck, AlertTriangle,
 } from 'lucide-react';
 import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
 import { generateVehicleReport } from '@/utils/vehiclePdfReport';
@@ -77,7 +77,7 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
   const StatusIcon = badge.Icon;
   const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(' ');
 
-  // MOT badge — uses expiry date when available, falls back to DVLA mot_status
+  // MOT badge — uses expiry date when available (populated by Holman sync)
   const motDays = vehicle.mot_expiry ? differenceInDays(new Date(vehicle.mot_expiry + 'T00:00:00'), new Date()) : null;
   let motBadge;
   if (motDays != null) {
@@ -86,35 +86,8 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
       : motDays <= 30
         ? { label: 'MOT DUE', cls: 'bg-amber-500 text-white', Icon: ShieldAlert }
         : { label: 'MOT OK', cls: 'bg-emerald-500 text-white', Icon: BadgeCheck };
-  } else if (vehicle.mot_status === 'valid') {
-    motBadge = { label: 'MOT OK', cls: 'bg-emerald-500 text-white', Icon: BadgeCheck };
-  } else if (vehicle.mot_status === 'not_valid') {
-    motBadge = { label: 'MOT FAIL', cls: 'bg-red-500 text-white', Icon: ShieldX };
-  } else if (vehicle.mot_status === 'no_details') {
-    motBadge = { label: 'MOT N/A', cls: 'bg-slate-300 text-slate-700', Icon: ShieldX };
-  } else if (vehicle.mot_status === 'not_found') {
-    motBadge = { label: 'MOT ?', cls: 'bg-amber-500 text-white', Icon: ShieldAlert };
   } else {
     motBadge = null;
-  }
-
-  // Tax badge — uses due date when available, falls back to DVLA tax_status
-  const taxDays = vehicle.tax_due_date ? differenceInDays(new Date(vehicle.tax_due_date + 'T00:00:00'), new Date()) : null;
-  let taxBadge;
-  if (taxDays != null) {
-    taxBadge = taxDays < 0
-      ? { label: 'TAX EXPIRED', cls: 'bg-red-500 text-white', Icon: Receipt }
-      : taxDays <= 30
-        ? { label: 'TAX DUE', cls: 'bg-amber-500 text-white', Icon: Receipt }
-        : { label: 'TAXED', cls: 'bg-emerald-500 text-white', Icon: Receipt };
-  } else if (vehicle.tax_status === 'taxed') {
-    taxBadge = { label: 'TAXED', cls: 'bg-emerald-500 text-white', Icon: Receipt };
-  } else if (vehicle.tax_status === 'sorn') {
-    taxBadge = { label: 'SORN', cls: 'bg-slate-400 text-white', Icon: Receipt };
-  } else if (vehicle.tax_status === 'untaxed') {
-    taxBadge = { label: 'UNTAXED', cls: 'bg-red-500 text-white', Icon: Receipt };
-  } else {
-    taxBadge = null;
   }
 
   const geotabLive = vehicle.geotab_sync_status === 'synced';
@@ -188,12 +161,6 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
             <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${motBadge.cls}`}>
               <motBadge.Icon className="w-3 h-3" /> {motBadge.label}
               {motDays != null && motDays >= 0 && motDays <= 30 && <span className="opacity-80">({motDays}d)</span>}
-            </span>
-          )}
-          {taxBadge && (
-            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${taxBadge.cls}`}>
-              <taxBadge.Icon className="w-3 h-3" /> {taxBadge.label}
-              {taxDays != null && taxDays >= 0 && taxDays <= 30 && <span className="opacity-80">({taxDays}d)</span>}
             </span>
           )}
         </div>

@@ -25,19 +25,13 @@ function getVehicleStatus(v) {
     const d = differenceInDays(new Date(v.mot_expiry + 'T00:00:00'), today);
     if (d < 0) issues.push({ label: 'MOT Expired', severity: 'expired', days: d });
     else if (d <= 30) issues.push({ label: 'MOT Due', severity: 'warning', days: d });
-  } else if (v.mot_status === 'not_valid') {
-    issues.push({ label: 'MOT Invalid', severity: 'expired', days: null });
   }
   if (v.service_due_date) {
     const d = differenceInDays(new Date(v.service_due_date + 'T00:00:00'), today);
     if (d < 0) issues.push({ label: 'Service Overdue', severity: 'expired', days: d });
     else if (d <= 30) issues.push({ label: 'Service Due', severity: 'warning', days: d });
   }
-  // A vehicle is "compliant" if we have ANY compliance data — either dates
-  // OR a DVLA-confirmed status (mot_status 'valid' counts even without an
-  // explicit expiry date, since DVLA confirmed the MOT is in date).
-  const hasComplianceData = v.mot_expiry || v.service_due_date ||
-    v.mot_status === 'valid' || v.mot_status === 'not_valid';
+  const hasComplianceData = v.mot_expiry || v.service_due_date;
   const level = issues.find(i => i.severity === 'expired') ? 'expired'
     : issues.find(i => i.severity === 'warning') ? 'warning'
     : (hasComplianceData ? 'compliant' : 'unknown');

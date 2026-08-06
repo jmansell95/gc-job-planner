@@ -122,14 +122,6 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
     refetchInterval: 30000,
   });
 
-  // Latest MOT record — used to detect a failed MOT (which clears mot_expiry)
-  const { data: motHistory = [] } = useQuery({
-    queryKey: ['vehicle-mot-history', vehicle?.id],
-    queryFn: () => base44.entities.VehicleMOTHistory.filter({ vehicle_id: vehicle.id }, '-test_date', 1),
-    enabled: !!vehicle,
-  });
-  const latestMOTFailed = motHistory[0]?.result === 'fail';
-
   const latestLoc = useMemo(() => {
     if (!vehicle) return null;
     const locs = Array.isArray(liveLocations) ? liveLocations : [];
@@ -240,17 +232,6 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
                   </span>
                 ))}
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── MOT Failed banner — do not use vehicle ── */}
-        {latestMOTFailed && (
-          <div className="mx-5 mt-3 rounded-xl border border-red-300 bg-red-100 p-3 flex items-center gap-2">
-            <ShieldX className="w-5 h-5 text-red-600 flex-shrink-0" />
-            <div>
-              <p className="text-xs font-bold text-red-800">MOT Failed — Do Not Use</p>
-              <p className="text-[11px] text-red-600">This vehicle must not be driven until a retest is passed. Log a retest in the Maintenance tab.</p>
             </div>
           </div>
         )}
@@ -419,7 +400,7 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
               <div className="flex items-center gap-2 mb-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
                 <h3 className="text-sm font-bold text-slate-800">MOT History</h3>
-                <span className="ml-auto text-[10px] text-slate-400">DVLA</span>
+                <span className="ml-auto text-[10px] text-slate-400">Holman</span>
               </div>
               <MOTHistoryTimeline vehicleId={vehicle.id} vehicle={vehicle} />
             </div>
