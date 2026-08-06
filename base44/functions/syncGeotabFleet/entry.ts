@@ -290,13 +290,15 @@ export default async function(req: Request): Promise<Response> {
       // (syncVehicleSpecs) is the authority for make/model, so we don't
       // overwrite verified data here. Year and fuel_type always refresh.
       if (vt) {
-        if (vt.make && (!vehicle || !vehicle.make)) detailUpdate.make = vt.make;
-        if (vt.model && (!vehicle || !vehicle.model)) detailUpdate.model = vt.model;
+        // Geotab is the authoritative source for make, model, year, fuel type
+        // and vehicle type — always overwrite from Geotab when available.
+        if (vt.make) detailUpdate.make = vt.make;
+        if (vt.model) detailUpdate.model = vt.model;
         if (vt.year) detailUpdate.year = Number(vt.year) || undefined;
         if (vt.fuelType !== undefined && vt.fuelType !== null) detailUpdate.fuel_type = mapFuelType(vt.fuelType);
         if (vt.name) detailUpdate.vehicle_type = vt.name;
-        // Some Geotab setups store colour in the VehicleType's comment or name
-        if (vt.comment && (!vehicle || !vehicle.color)) {
+        // Colour from Geotab comment is a fallback only — DVLA is authoritative
+        if (vt.comment && (!vehicle || !vehicle.color) && !detailUpdate.color) {
           const colourMatch = vt.comment.match(/colou?r[:\s]+([a-zA-Z]+)/i);
           if (colourMatch) detailUpdate.color = colourMatch[1].charAt(0).toUpperCase() + colourMatch[1].slice(1).toLowerCase();
         }
@@ -309,11 +311,11 @@ export default async function(req: Request): Promise<Response> {
       // this later. Year always refreshes from VIN.
       if (vin && (!vt?.make || !vt?.year)) {
         const decoded = decodeVin(vin);
-        if (decoded.make && !detailUpdate.make && (!vehicle || !vehicle.make)) detailUpdate.make = decoded.make;
+        if (decoded.make && !detailUpdate.make) detailUpdate.make = decoded.make;
         if (decoded.year && !detailUpdate.year) detailUpdate.year = decoded.year;
       }
       // Infer fuel type from the VehicleType name if fuelType is still unknown
-      if (detailUpdate.fuel_type === 'unknown' || (!detailUpdate.fuel_type && (!vehicle || vehicle.fuel_type === 'unknown' || !vehicle.fuel_type))) {
+      if (detailUpdate.fuel_type === 'unknown' || !detailUpdate.fuel_type) {
         const nameLower = (vt?.name || d.name || '').toLowerCase();
         if (nameLower.includes('diesel')) detailUpdate.fuel_type = 'diesel';
         else if (nameLower.includes('petrol')) detailUpdate.fuel_type = 'petrol';
@@ -339,7 +341,7 @@ export default async function(req: Request): Promise<Response> {
       // Try to extract model from the device name if neither VehicleType nor
       // the existing record provided it (e.g. "Ford Transit Custom" → model =
       // "Transit Custom" when make = "Ford"). Don't overwrite existing model.
-      if (!detailUpdate.model && (!vehicle || !vehicle.model) && d.name) {
+      if (!detailUpdate.model && d.name) {
         const nameParts = d.name.trim().split(/\s+/);
         const makeLower = (detailUpdate.make || vehicle?.make || '').toLowerCase();
         if (makeLower && nameParts[0]?.toLowerCase() === makeLower && nameParts.length > 1) {

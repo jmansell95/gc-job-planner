@@ -3,9 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Search, Loader2, Save, Check, AlertTriangle, RefreshCw, Link2, Link2Off,
-  Settings2, ExternalLink, KeyRound, Car, FileText, BadgeCheck,
-  Gauge, Fuel, Palette, Calendar, ShieldCheck, Receipt, History, Zap,
-  Sparkles, Database, Cloud,
+  Settings2, KeyRound, ShieldCheck, Receipt, History, Palette,
+  Gauge, Database,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
@@ -13,13 +12,7 @@ import { useToast } from '@/components/ui/use-toast';
 const inputCls = "w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-600/10";
 
 const DEFAULT_CONFIG = {
-  provider: 'rapidapi',
   api_key: '',
-  request_url: '',
-  host: '',
-  method: 'GET',
-  body_template: '',
-  // DVLA legacy fields (kept for backward compat)
   mot_history_api_key: '',
   use_test_environment: false,
   last_sync_at: null,
@@ -27,14 +20,11 @@ const DEFAULT_CONFIG = {
   last_sync_summary: '',
 };
 
-// What a typical RapidAPI vehicle data endpoint returns
-const RAPIDAPI_CAPABILITIES = [
-  { icon: Car, label: 'Make & Model', color: 'text-violet-600 bg-violet-50' },
-  { icon: Calendar, label: 'Year of Manufacture', color: 'text-blue-600 bg-blue-50' },
-  { icon: Fuel, label: 'Fuel Type', color: 'text-amber-600 bg-amber-50' },
-  { icon: Palette, label: 'Colour', color: 'text-pink-600 bg-pink-50' },
+// What DVLA provides (Geotab handles make, model, year, fuel type, vehicle type)
+const DVLA_CAPABILITIES = [
   { icon: ShieldCheck, label: 'MOT Status & Expiry', color: 'text-emerald-600 bg-emerald-50' },
   { icon: Receipt, label: 'Tax (VED) Status & Due Date', color: 'text-teal-600 bg-teal-50' },
+  { icon: Palette, label: 'Colour', color: 'text-pink-600 bg-pink-50' },
   { icon: Gauge, label: 'Engine Capacity & CO₂', color: 'text-indigo-600 bg-indigo-50' },
   { icon: History, label: 'MOT Test History', color: 'text-rose-600 bg-rose-50' },
 ];
@@ -62,16 +52,13 @@ export default function DvlaSettings() {
   }, [settingsRec]);
 
   const configId = settingsRec?.[0]?.id;
-  const isRapidApi = config.provider === 'rapidapi';
-  const connected = isRapidApi
-    ? !!(config.api_key && config.request_url)
-    : !!config.api_key;
+  const connected = !!config.api_key;
 
   const handleSave = async () => {
     setSaving(true);
     setSaved(false);
     try {
-      const payload = { key: 'dvla_ves_config', label: 'Vehicle Data API Configuration', value: config };
+      const payload = { key: 'dvla_ves_config', label: 'DVLA Vehicle Data API Configuration', value: config };
       if (configId) await base44.entities.AppSetting.update(configId, payload);
       else await base44.entities.AppSetting.create(payload);
       queryClient.invalidateQueries({ queryKey: ['dvla-ves-config'] });
@@ -103,7 +90,7 @@ export default function DvlaSettings() {
           ok: true,
           msg: first?.notFound
             ? `Connection OK — reg "${first.reg}" not found (expected for test plates)`
-            : `Connection OK — looked up "${first?.reg}": ${first?.make || 'unknown'}${first?.model ? ' ' + first.model : ''}${first?.motTests ? ` · ${first.motTests} MOT tests recorded` : ''}`,
+            : `Connection OK — looked up "${first?.reg}"${first?.motTests ? ` · ${first.motTests} MOT tests recorded` : ''}`,
         });
       }
     } catch (e) {
@@ -153,7 +140,7 @@ export default function DvlaSettings() {
         last_sync_summary: summary,
       };
       setConfig(updatedConfig);
-      const payload = { key: 'dvla_ves_config', label: 'Vehicle Data API Configuration', value: updatedConfig };
+      const payload = { key: 'dvla_ves_config', label: 'DVLA Vehicle Data API Configuration', value: updatedConfig };
       if (configId) await base44.entities.AppSetting.update(configId, payload);
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       queryClient.invalidateQueries({ queryKey: ['dvla-ves-config'] });
@@ -168,8 +155,8 @@ export default function DvlaSettings() {
     <div className="space-y-4">
       <SettingsSectionHeader
         icon={Search}
-        title="Vehicle Data API"
-        description="Look up any vehicle by registration plate and pull its full profile — make, model, year, fuel type, colour, MOT status + history, tax status, and emissions. Configure your API provider below and click Sync."
+        title="DVLA Vehicle Data API"
+        description="Pulls MOT status, tax status, colour, emissions and MOT test history by registration plate. Vehicle specs (make, model, year, fuel type) come from Geotab."
       />
 
       {/* Connection status — colourful hero banner */}
@@ -184,8 +171,8 @@ export default function DvlaSettings() {
             </p>
             <p className="text-sm text-slate-600 mt-0.5">
               {connected
-                ? `Provider: ${isRapidApi ? 'RapidAPI Vehicle Data' : 'DVLA Official'} — every vehicle can be profiled by registration plate.`
-                : 'Enter your API key and request URL below to enable vehicle lookups by registration plate.'}
+                ? 'DVLA Vehicle Enquiry Service — MOT, tax and compliance data for every vehicle.'
+                : 'Enter your DVLA VES API key below to enable MOT and tax lookups by registration plate.'}
             </p>
           </div>
           <button onClick={handleTest} disabled={testing || !connected}
@@ -205,15 +192,15 @@ export default function DvlaSettings() {
       <div className="bg-white border border-violet-200 rounded-2xl p-5">
         <div className="flex items-center gap-2.5 mb-4">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm">
-            <Zap className="w-5 h-5 text-white" />
+            <ShieldCheck className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900">What Gets Synced</h3>
-            <p className="text-xs text-slate-500">Vehicle profile data pulled live by registration plate</p>
+            <h3 className="text-sm font-bold text-slate-900">What DVLA Syncs</h3>
+            <p className="text-xs text-slate-500">MOT, tax and compliance data pulled live by registration plate</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {RAPIDAPI_CAPABILITIES.map(cap => {
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {DVLA_CAPABILITIES.map(cap => {
             const Icon = cap.icon;
             return (
               <div key={cap.label} className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
@@ -225,159 +212,61 @@ export default function DvlaSettings() {
             );
           })}
         </div>
+        <div className="mt-3 flex items-center gap-2 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-emerald-100">
+            <Database className="w-3.5 h-3.5 text-emerald-600" />
+          </div>
+          <p className="text-xs text-emerald-700">
+            <strong>Make, model, year, fuel type and vehicle type</strong> are pulled from Geotab during the Geotab fleet sync — no API key needed for those.
+          </p>
+        </div>
       </div>
 
       {/* API credentials */}
       <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-5">
         <div className="flex items-center gap-2">
           <Settings2 className="w-4 h-4 text-violet-600" />
-          <h3 className="text-sm font-bold text-slate-800">API Configuration</h3>
+          <h3 className="text-sm font-bold text-slate-800">DVLA API Configuration</h3>
         </div>
 
-        {/* Provider selector */}
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-700">
+          ⚠ DVLA is currently not accepting new VES API registrations while they upgrade their systems. If you already have keys, enter them below.
+        </div>
+
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">Provider</label>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setConfig({ ...config, provider: 'rapidapi' })}
-              className={`flex items-center gap-2.5 p-3 rounded-xl border-2 transition text-left ${isRapidApi ? 'border-violet-500 bg-violet-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
-            >
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isRapidApi ? 'bg-gradient-to-br from-violet-500 to-purple-600' : 'bg-slate-100'}`}>
-                <Cloud className={`w-4.5 h-4.5 ${isRapidApi ? 'text-white' : 'text-slate-400'}`} />
-              </div>
-              <div className="min-w-0">
-                <p className={`text-sm font-bold ${isRapidApi ? 'text-violet-900' : 'text-slate-600'}`}>RapidAPI</p>
-                <p className="text-[11px] text-slate-400">Any RapidAPI vehicle data endpoint</p>
-              </div>
-            </button>
-            <button
-              onClick={() => setConfig({ ...config, provider: 'dvla' })}
-              className={`flex items-center gap-2.5 p-3 rounded-xl border-2 transition text-left ${!isRapidApi ? 'border-violet-500 bg-violet-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
-            >
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${!isRapidApi ? 'bg-gradient-to-br from-violet-500 to-purple-600' : 'bg-slate-100'}`}>
-                <Database className={`w-4.5 h-4.5 ${!isRapidApi ? 'text-white' : 'text-slate-400'}`} />
-              </div>
-              <div className="min-w-0">
-                <p className={`text-sm font-bold ${!isRapidApi ? 'text-violet-900' : 'text-slate-600'}`}>DVLA Official</p>
-                <p className="text-[11px] text-slate-400">VES + MOT History (requires DVLA keys)</p>
-              </div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-violet-500" /> DVLA VES API Key
+            {config.api_key && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+          </label>
+          <div className="relative">
+            <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input type={showKey ? 'text' : 'password'} value={config.api_key} onChange={e => setConfig({ ...config, api_key: e.target.value })}
+              placeholder="Your DVLA-issued VES x-api-key" className={`${inputCls} pl-9 pr-16 font-mono`} />
+            <button type="button" onClick={() => setShowKey(!showKey)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600 rounded text-xs font-medium">
+              {showKey ? 'Hide' : 'Show'}
             </button>
           </div>
         </div>
 
-        {isRapidApi ? (
-          <>
-            {/* RapidAPI config */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3.5 text-xs text-slate-600 space-y-1.5">
-              <p className="font-semibold text-blue-800 flex items-center gap-1.5"><ExternalLink className="w-3.5 h-3.5" /> How to set up your RapidAPI integration:</p>
-              <ol className="list-decimal list-inside space-y-0.5 text-slate-600 ml-1">
-                <li>Subscribe to a vehicle data API on <a href="https://rapidapi.com" target="_blank" rel="noopener" className="text-blue-600 underline font-medium">RapidAPI</a> (e.g. UK Vehicle Data, Car Data)</li>
-                <li>Copy your <strong>API key</strong> from the RapidAPI dashboard</li>
-                <li>Copy the <strong>request URL</strong> from the API's Endpoints tab — use <code className="bg-slate-100 px-1 rounded">{'{reg}'}</code> as the registration placeholder</li>
-                <li>Paste both below and click Save, then Sync</li>
-              </ol>
-              <p className="pt-1.5 text-slate-500">Example URL: <code className="bg-slate-100 px-1 rounded text-[11px]">https://uk-vehicle-data1.p.rapidapi.com/vehicles?reg={'{reg}'}</code></p>
-            </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" /> DVLA MOT History API Key <span className="text-slate-400 font-normal">(optional)</span>
+          </label>
+          <p className="text-[11px] text-slate-400 mb-2">Separate key for full MOT test history and first used dates. VES alone doesn't return MOT history.</p>
+          <div className="relative">
+            <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input type={showKey ? 'text' : 'password'} value={config.mot_history_api_key} onChange={e => setConfig({ ...config, mot_history_api_key: e.target.value })}
+              placeholder="Your DVLA-issued MOT History x-api-key" className={`${inputCls} pl-9 font-mono`} />
+          </div>
+        </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-violet-500" /> RapidAPI Key
-                {connected && <BadgeCheck className="w-3.5 h-3.5 text-emerald-500" />}
-              </label>
-              <p className="text-[11px] text-slate-400 mb-2">Your RapidAPI x-rapidapi-key (found on the API's dashboard under "Headers").</p>
-              <div className="relative">
-                <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input type={showKey ? 'text' : 'password'} value={config.api_key} onChange={e => setConfig({ ...config, api_key: e.target.value })}
-                  placeholder="your-rapidapi-key-here" className={`${inputCls} pl-9 pr-16 font-mono`} />
-                <button type="button" onClick={() => setShowKey(!showKey)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600 rounded text-xs font-medium">
-                  {showKey ? 'Hide' : 'Show'}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-violet-500" /> Request URL
-              </label>
-              <p className="text-[11px] text-slate-400 mb-2">The full API endpoint URL. Use <code className="bg-slate-100 px-1 rounded">{'{reg}'}</code> where the registration number should go — the sync replaces it automatically.</p>
-              <div className="relative">
-                <ExternalLink className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input type="text" value={config.request_url} onChange={e => setConfig({ ...config, request_url: e.target.value })}
-                  placeholder="https://your-api.p.rapidapi.com/lookup?reg={reg}" className={`${inputCls} pl-9 font-mono`} />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">RapidAPI Host <span className="text-slate-400 font-normal">(optional)</span></label>
-              <p className="text-[11px] text-slate-400 mb-2">The x-rapidapi-host header value. Auto-derived from the request URL if left blank.</p>
-              <input type="text" value={config.host} onChange={e => setConfig({ ...config, host: e.target.value })}
-                placeholder="auto-detected from URL" className={`${inputCls} font-mono`} />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">HTTP Method</label>
-              <p className="text-[11px] text-slate-400 mb-2">Most RapidAPI vehicle endpoints use GET with the reg in the URL. The <strong>UK Vehicle Data</strong> API uses POST with a JSON body — pick POST for that one.</p>
-              <div className="flex gap-2">
-                <button onClick={() => setConfig({ ...config, method: 'GET' })}
-                  className={`flex-1 px-3 py-2.5 rounded-lg border-2 text-sm font-semibold transition ${config.method !== 'POST' ? 'border-violet-500 bg-violet-50 text-violet-900' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}>
-                  GET <span className="text-[11px] font-normal block">reg in URL</span>
-                </button>
-                <button onClick={() => setConfig({ ...config, method: 'POST' })}
-                  className={`flex-1 px-3 py-2.5 rounded-lg border-2 text-sm font-semibold transition ${config.method === 'POST' ? 'border-violet-500 bg-violet-50 text-violet-900' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}>
-                  POST <span className="text-[11px] font-normal block">reg in body</span>
-                </button>
-              </div>
-            </div>
-
-            {config.method === 'POST' && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Request Body Template</label>
-                <p className="text-[11px] text-slate-400 mb-2">JSON body sent with each lookup. Use <code className="bg-slate-100 px-1 rounded">{'{reg}'}</code> where the registration goes — it's replaced automatically. Default works for the UK Vehicle Data API.</p>
-                <input type="text" value={config.body_template || ''} onChange={e => setConfig({ ...config, body_template: e.target.value })}
-                  placeholder='{"vrm": "{reg}"}' className={`${inputCls} font-mono`} />
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            {/* DVLA config — legacy fields */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-700">
-              ⚠ DVLA is currently not accepting new VES API registrations while they upgrade their systems. If you already have keys, enter them below.
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-violet-500" /> DVLA VES API Key
-                {config.api_key && <BadgeCheck className="w-3.5 h-3.5 text-emerald-500" />}
-              </label>
-              <div className="relative">
-                <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input type={showKey ? 'text' : 'password'} value={config.api_key} onChange={e => setConfig({ ...config, api_key: e.target.value })}
-                  placeholder="Your DVLA-issued VES x-api-key" className={`${inputCls} pl-9 pr-16 font-mono`} />
-                <button type="button" onClick={() => setShowKey(!showKey)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600 rounded text-xs font-medium">
-                  {showKey ? 'Hide' : 'Show'}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" /> DVLA MOT History API Key <span className="text-slate-400 font-normal">(optional)</span>
-              </label>
-              <p className="text-[11px] text-slate-400 mb-2">Separate key for full MOT test history and model names. VES alone doesn't return the model.</p>
-              <div className="relative">
-                <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input type={showKey ? 'text' : 'password'} value={config.mot_history_api_key} onChange={e => setConfig({ ...config, mot_history_api_key: e.target.value })}
-                  placeholder="Your DVLA-issued MOT History x-api-key" className={`${inputCls} pl-9 font-mono`} />
-              </div>
-            </div>
-            <label className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
-              <input type="checkbox" checked={config.use_test_environment} onChange={e => setConfig({ ...config, use_test_environment: e.target.checked })} className="w-4 h-4 accent-violet-600" />
-              <div>
-                <p className="text-sm font-medium text-slate-700">Use DVLA test environment (UAT)</p>
-                <p className="text-[11px] text-slate-400">Tick this only while testing with DVLA's predefined mock registration numbers.</p>
-              </div>
-            </label>
-          </>
-        )}
+        <label className="flex items-center gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+          <input type="checkbox" checked={config.use_test_environment} onChange={e => setConfig({ ...config, use_test_environment: e.target.checked })} className="w-4 h-4 accent-violet-600" />
+          <div>
+            <p className="text-sm font-medium text-slate-700">Use DVLA test environment (UAT)</p>
+            <p className="text-[11px] text-slate-400">Tick this only while testing with DVLA's predefined mock registration numbers.</p>
+          </div>
+        </label>
 
         <div className="flex items-center gap-2">
           <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-violet-700 hover:to-purple-700 disabled:opacity-50 transition shadow-sm">
@@ -395,18 +284,18 @@ export default function DvlaSettings() {
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900">Sync All Vehicles</h3>
-            <p className="text-xs text-slate-500">Looks up every vehicle by registration plate and updates its full profile</p>
+            <p className="text-xs text-slate-500">Looks up every vehicle by registration plate and updates MOT, tax, colour and emissions</p>
           </div>
         </div>
         <p className="text-xs text-slate-600 mb-4">
-          Queries the vehicle data API for each vehicle's registration and updates make, model, year, fuel type, colour, MOT status + history, tax status, and emissions. Vehicles not found are skipped.
+          Queries the DVLA VES API for each vehicle's registration and updates MOT status, tax status, colour, engine capacity, CO₂ emissions and MOT test history. Vehicles not found are skipped.
         </p>
         <button onClick={handleSync} disabled={!connected || syncing}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-violet-700 hover:to-purple-700 disabled:opacity-40 transition shadow-sm">
           {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
           {syncing ? (syncProgress ? `Syncing… ${syncProgress.processed}/${syncProgress.total}` : 'Syncing…') : 'Sync All Vehicles'}
         </button>
-        {!connected && <p className="text-[11px] text-amber-600 mt-2 text-center font-medium">Save your API key and request URL first to enable sync.</p>}
+        {!connected && <p className="text-[11px] text-amber-600 mt-2 text-center font-medium">Save your DVLA API key first to enable sync.</p>}
         {syncing && syncProgress && (
           <div className="mt-3">
             <div className="h-2 bg-violet-100 rounded-full overflow-hidden">
