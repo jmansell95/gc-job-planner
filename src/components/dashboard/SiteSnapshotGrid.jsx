@@ -36,6 +36,7 @@ function RigCard({ rigAsset, assetMap, costItems, jobId }) {
   const comp = complianceConfig[rigAsset.compliance_status] || complianceConfig.unknown;
   const CompIcon = comp.icon;
   const linkedIds = rigAsset.linked_equipment_ids || [];
+  const onSite = rigAsset.on_site;
 
   const linkedOnJob = linkedIds
     .map(id => {
@@ -47,43 +48,56 @@ function RigCard({ rigAsset, assetMap, costItems, jobId }) {
     .filter(Boolean);
 
   return (
-    <div className="bg-slate-50 rounded-xl border border-slate-200/80 overflow-hidden">
-      <div className="flex items-center gap-2.5 px-3 py-2">
-        <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-          <Cog className="w-4 h-4 text-blue-600" />
+    <div className="rounded-xl border border-slate-200/80 bg-gradient-to-br from-slate-50 to-white overflow-hidden">
+      {/* Top row: icon + rig name (prominent, full width) */}
+      <div className="flex items-center gap-2.5 px-3 pt-2.5 pb-2">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${onSite ? 'bg-emerald-100' : 'bg-blue-100'}`}>
+          <Cog className={`w-4 h-4 ${onSite ? 'text-emerald-600' : 'text-blue-600'}`} />
         </div>
-        <span className="text-xs font-semibold text-slate-800 truncate flex-1">{rigAsset.asset_name}</span>
-        {rigAsset.serial_number && (
-          <span className="text-[10px] font-mono text-slate-400 flex-shrink-0">#{rigAsset.serial_number}</span>
-        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-slate-800 leading-tight truncate">{rigAsset.asset_name}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            {rigAsset.serial_number && (
+              <span className="text-[10px] font-mono text-slate-400">#{rigAsset.serial_number}</span>
+            )}
+            {onSite && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />On site
+              </span>
+            )}
+          </div>
+        </div>
         <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-semibold ring-1 ${comp.cls} flex-shrink-0`}>
           <CompIcon className="w-3 h-3" />{comp.label}
         </span>
-        {linkedOnJob.length > 0 && (
+      </div>
+      {/* Linked gear toggle */}
+      {linkedOnJob.length > 0 && (
+        <>
           <button
             onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-            className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 hover:text-blue-800 px-1.5 py-0.5 rounded-md hover:bg-blue-100 transition flex-shrink-0"
+            className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100/60 transition border-t border-slate-200/60"
           >
-            <Link2 className="w-3 h-3" />
-            {linkedOnJob.length}
-            <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            <Link2 className="w-3.5 h-3.5 text-slate-400" />
+            {linkedOnJob.length} linked {linkedOnJob.length === 1 ? 'item' : 'items'}
+            <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${expanded ? 'rotate-180' : ''}`} />
           </button>
-        )}
-      </div>
-      {expanded && linkedOnJob.length > 0 && (
-        <div className="px-3 pb-2.5 pt-1 space-y-1.5 border-t border-slate-200/60">
-          {linkedOnJob.map(({ asset, costItem }) => {
-            const GearIcon = gearTypeIcon[asset.asset_type] || Package;
-            return (
-              <div key={asset.id} className="flex items-center gap-2 text-xs text-slate-600">
-                <GearIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                <span className="font-medium truncate flex-1">{asset.name}</span>
-                {asset.serial_number && <span className="text-[10px] font-mono text-slate-400">#{asset.serial_number}</span>}
-                {(costItem.current_location || 'yard') === 'site' && <span className="w-2 h-2 rounded-full bg-emerald-500" title="On site" />}
-              </div>
-            );
-          })}
-        </div>
+          {expanded && (
+            <div className="px-3 pb-2.5 pt-1 space-y-1.5 bg-slate-50/50 border-t border-slate-200/60">
+              {linkedOnJob.map(({ asset, costItem }) => {
+                const GearIcon = gearTypeIcon[asset.asset_type] || Package;
+                return (
+                  <div key={asset.id} className="flex items-center gap-2 text-xs text-slate-600">
+                    <GearIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                    <span className="font-medium truncate flex-1">{asset.name}</span>
+                    {asset.serial_number && <span className="text-[10px] font-mono text-slate-400">#{asset.serial_number}</span>}
+                    {(costItem.current_location || 'yard') === 'site' && <span className="w-2 h-2 rounded-full bg-emerald-500" title="On site" />}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -275,9 +289,9 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
               <div className={`absolute left-0 top-0 bottom-0 w-1 ${job.status === 'in_progress' ? 'bg-emerald-500' : 'bg-orange-500'}`} />
 
               {/* Header */}
-              <div className="flex items-start justify-between gap-2 mb-4 pl-2">
+              <div className="flex items-start justify-between gap-2 mb-3 pl-2">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${st.cls}`}>
                       <span className={`w-1.5 h-1.5 rounded-full bg-white/80 ${job.status === 'in_progress' ? 'animate-pulse' : ''}`} />
                       {st.label}
@@ -287,7 +301,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                       <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">{job.job_reference}</span>
                     )}
                   </div>
-                  <h3 className="font-bold text-slate-900 text-base leading-tight truncate">{job.name}</h3>
+                  <h3 className="font-bold text-slate-900 text-base leading-snug line-clamp-2">{job.name}</h3>
                   <p className="text-xs text-slate-400 truncate flex items-center gap-1 mt-1">
                     <MapPin className="w-3.5 h-3.5 flex-shrink-0" /> {job.location || 'No location'}
                   </p>
@@ -295,46 +309,41 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                 <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-[#2E5A1A] group-hover:translate-x-0.5 transition flex-shrink-0 mt-1" />
               </div>
 
-              {/* Stats row — clean, minimal */}
-              <div className="flex items-center gap-3 mb-4 pl-2 text-xs">
-                <div className="flex items-center gap-1.5 text-slate-600">
+              {/* Stats row */}
+              <div className="flex items-center gap-2 mb-3 pl-2">
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 text-xs">
                   <Cog className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="font-semibold">{jobRigs.length}</span>
+                  <span className="font-bold text-slate-700">{jobRigs.length}</span>
                   <span className="text-slate-400">{jobRigs.length === 1 ? 'Rig' : 'Rigs'}</span>
                 </div>
-                <div className="w-px h-3.5 bg-slate-200" />
-                <div className="flex items-center gap-1.5 text-slate-600">
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 text-xs">
                   <Wrench className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="font-semibold">{jobGear.length}</span>
+                  <span className="font-bold text-slate-700">{jobGear.length}</span>
                   <span className="text-slate-400">Gear</span>
                 </div>
-                <div className="w-px h-3.5 bg-slate-200" />
-                <div className="flex items-center gap-1.5 text-slate-600">
+                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 text-xs">
                   <Users className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="font-semibold">{crewToday.length}</span>
+                  <span className="font-bold text-slate-700">{crewToday.length}</span>
                   <span className="text-slate-400">Crew</span>
                 </div>
                 {activityCount > 0 && (
-                  <>
-                    <div className="w-px h-3.5 bg-slate-200" />
-                    <div className="flex items-center gap-1.5 text-slate-600">
-                      <Activity className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="font-semibold">{activityCount}</span>
-                      <span className="text-slate-400">Logs</span>
-                    </div>
-                  </>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 text-xs">
+                    <Activity className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="font-bold text-slate-700">{activityCount}</span>
+                    <span className="text-slate-400">Logs</span>
+                  </div>
                 )}
               </div>
 
               {/* Rigs */}
               {jobRigs.length > 0 ? (
-                <div className="space-y-2 mb-4 pl-2" onClick={(e) => e.stopPropagation()}>
+                <div className="space-y-2 mb-3 pl-2" onClick={(e) => e.stopPropagation()}>
                   {jobRigs.map(r => (
                     <RigCard key={r.id} rigAsset={r} assetMap={assetMap} costItems={activeAssetItems} jobId={job.id} />
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2.5 mb-4 pl-4">
+                <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2.5 mb-3 pl-4">
                   <Cog className="w-4 h-4 text-slate-300 flex-shrink-0" />
                   <span className="text-xs text-slate-400">No rig assigned</span>
                 </div>
@@ -393,7 +402,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
 
               {/* Quick actions */}
               {onNavigate && (
-                <div className="mt-4 pl-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                <div className="mt-3 pl-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
                   <button type="button" onClick={() => onNavigate('scheduling')}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#2E5A1A] bg-[#2E5A1A]/8 hover:bg-[#2E5A1A]/15 transition">
                     <CalendarClock className="w-3.5 h-3.5" /> Rota
