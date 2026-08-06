@@ -41,6 +41,7 @@ import SiteWeatherOverviewWidget from '@/components/dashboard/SiteWeatherOvervie
 import ConfigurationHealthWidget from '@/components/dashboard/ConfigurationHealthWidget';
 import MissingRatesWidget from '@/components/dashboard/MissingRatesWidget';
 import YardControlWidget from '@/components/dashboard/YardControlWidget';
+import SiteReadinessGate from '@/components/safety/SiteReadinessGate';
 import DeliveryStats from '@/components/DeliveryStats';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
 import { canViewCostings } from '@/utils/access';
@@ -156,6 +157,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'site-weather': return <SiteWeatherOverviewWidget onSelectJob={openJobDrawer} />;
       case 'config-health': return <ConfigurationHealthWidget />;
       case 'missing-rates': return <MissingRatesWidget />;
+      case 'site-readiness': return <SiteReadinessGate jobId={isAllJobs ? null : selectedJobId} />;
       default: return null;
     }
   };

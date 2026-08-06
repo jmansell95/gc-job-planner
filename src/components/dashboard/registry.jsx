@@ -39,6 +39,7 @@ export const WIDGET_REGISTRY = {
   'site-weather': { title: 'Site Weather Conditions', icon: CloudSun },
   'config-health': { title: 'Configuration Health', icon: Settings2 },
   'missing-rates': { title: 'Missing Day Rates', icon: PoundSterling },
+  'site-readiness': { title: 'Site Readiness Gate', icon: ShieldCheck },
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -69,6 +70,7 @@ export const DEFAULT_WIDGETS = [
   'field-crews',
   'yard-control',
   'field-priorities',
+  'site-readiness',
   'live-site-map',
   'site-weather',
 ];
