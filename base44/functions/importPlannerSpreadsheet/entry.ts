@@ -579,12 +579,24 @@ function parseSheet(sheet, sheetName) {
     let lastJobName = null;      // last real job name (for carry-forward)
     let lastNonJobType = null;   // last non-job type (NOT carried forward)
     let lastNonJobLabel = null;
+    let prevWeekStart = null;    // track week boundaries for carry-forward reset
     for (const [c, date] of sortedDateCols) {
       // Skip the entity name column — its cell value is the staff/asset name,
       // not a job name. In sheets where date columns start at col 0 (Drillers),
       // the name column overlaps with a date column and would otherwise be
       // treated as a job name, creating false Job entities from person names.
       if (c === entityNameCol) continue;
+      // Reset carry-forward at week boundaries — don't extend a job or depot
+      // duty past the end of the week it was written in. Without this, a
+      // single "EWR" on Monday Jan 5 carries forward to every empty cell for
+      // the entire year, making the job appear active until 2027-01-03.
+      const currentWeekStart = getWeekStart(date);
+      if (prevWeekStart && currentWeekStart !== prevWeekStart) {
+        lastJobName = null;
+        lastNonJobType = null;
+        lastNonJobLabel = null;
+      }
+      prevWeekStart = currentWeekStart;
       const cellVal = row[c];
       const rawJobName = cellVal ? normalizeName(cellVal) : '';
       const hasCell = rawJobName && rawJobName.length >= 2;
@@ -598,15 +610,23 @@ function parseSheet(sheet, sheetName) {
       if (hasCell) {
         // Cell has a value — parse it
         jobName = rawJobName;
-        // Yard/Depot detection: depot section OR cell text is yard/depot keyword.
-        // Yard/Depot is a non-job, non-billable assignment — staff are on the bench
-        // at the depot/yard, available for reassignment. No Job entity is created.
-        if (isDepotSection(currentSection) || isYardDepotText(jobName)) {
+        // Check non-job categories FIRST in all sections — depot staff on
+        // holiday, sick, or working from home should be categorised correctly,
+        // not forced to yard_depot. This also lets job names (e.g. "PRJ-001034
+        // - Parliament") in depot sections create real job assignments.
+        nonJobType = categorizeNonJobCell(jobName);
+        if (!nonJobType && isYardDepotText(jobName)) {
           nonJobType = 'yard_depot';
           nonJobLabel = jobName;
-        } else {
-          nonJobType = categorizeNonJobCell(jobName);
-          if (!nonJobType && !isLikelyRealJob(jobName)) {
+        }
+        if (!nonJobType && !isLikelyRealJob(jobName)) {
+          // Unknown text that isn't a real job — filter as training (overhead)
+          // in non-depot sections. In depot sections, default to yard_depot
+          // since it's likely depot-related text (e.g. "rig repair", "fuel").
+          if (isDepotSection(currentSection)) {
+            nonJobType = 'yard_depot';
+            nonJobLabel = jobName;
+          } else {
             nonJobType = 'training';
             filteredAsNonJob = true;
           }

@@ -146,16 +146,21 @@ export function categorizeNonJobCell(cellValue) {
   // Training courses (first aid, SSSTS, IOSH, ROLO, CAT&Genny, inductions, medicals, etc.)
   if (/training|first aid|sssts|iosh|rolo|cat&genny|cscs|breathing|asbestos|confined space|induction|orientation|medical|course|refresher|learning|streetworks|cpd/.test(lower)) return 'training';
 
+  // Working from home — non-billable but available (same category as depot
+  // duty). "Home" / "WFH" / "Working from home" means the staff member is
+  // working but not on a client site, so yard_depot is the right category.
+  if (/^home$|^wfh$|working from home/.test(lower)) return 'yard_depot';
+
   // Overheads / internal work (not client jobs). NOTE: yard/depot/dartford
   // are NOT training — they are treated as job assignments to a Yard/Depot
   // job so staff show as working at the yard, not on a training course.
-  if (/^home$|overhead|^internal|^driving|rig repair|cp rig|rig maintenance|collecting rigs|potholes|site visit|internal works|internal job|internal site|^fuel$|^van$|^mot$|^service$|breakdown|holman|geotab|^site$/.test(lower)) return 'training';
+  if (/overhead|^internal|^driving|rig repair|cp rig|rig maintenance|collecting rigs|potholes|site visit|internal works|internal job|internal site|^fuel$|^van$|^mot$|^service$|breakdown|holman|geotab|^site$/.test(lower)) return 'training';
 
   // Audits
   if (/audit|bda/.test(lower)) return 'training';
 
   // Meetings / networking / concepts / other non-job activities
-  if (/meeting|^meet |networking|^wfh|working from home|sample run|^deliveries|^rigs$|^monitoring$|half day|ft visit|st marys axe visit|^3750$|rotary drilling|cable percussion|rail & infrastructure|^concept job|greenwich concept|hap regeneration|ads rotary|geotechnica/.test(lower)) return 'training';
+  if (/meeting|^meet |networking|sample run|^deliveries|^rigs$|^monitoring$|half day|ft visit|st marys axe visit|^3750$|rotary drilling|cable percussion|rail & infrastructure|^concept job|greenwich concept|hap regeneration|ads rotary|geotechnica/.test(lower)) return 'training';
 
   return null;
 }
@@ -297,6 +302,7 @@ const NON_JOB_NAME_PATTERNS = [
   /^\d+$/,                                              // pure numbers
   /^unassigned$|^spare$|^cover$|^relief$|^tba$/i,      // unassigned markers
   /^rig\s*repair$|^rig\s*maintenance$|^breakdown$/i,   // rig maintenance
+  /^awaiting\s+refit/i, /^awaiting\s+paint/i, /^awaiting\s+repair/i, // rig status
   /^potholes$|^monitoring$|^deliveries$|^rigs$/i,     // overhead activities
   /^geotechnica$/i,                                   // company name, not a job
   /^messenza$/i,                                       // company name, not a job
