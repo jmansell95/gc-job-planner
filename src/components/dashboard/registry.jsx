@@ -41,6 +41,7 @@ export const WIDGET_REGISTRY = {
   'missing-rates': { title: 'Missing Day Rates', icon: PoundSterling },
   'site-readiness': { title: 'Site Readiness Gate', icon: ShieldCheck },
   'off-hire-recon': { title: 'Off-Hire Reconciliation', icon: RotateCcw },
+  'site-command-cards': { title: 'Site Command Cards', icon: HardHat },
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -73,6 +74,7 @@ export const DEFAULT_WIDGETS = [
   'field-priorities',
   'site-readiness',
   'off-hire-recon',
+  'site-command-cards',
   'live-site-map',
   'site-weather',
 ];
@@ -83,4 +85,4 @@ export const COST_WIDGETS = ['job-profitability', 'efficiency-snapshot', 'rig-pr
 // Widgets that show company-wide data (not specific to a job). These are hidden
 // when the dashboard is focused on a single job, since they don't reflect that
 // job's data.
-export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'ai-insights', 'geo-heatmap', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'field-priorities', 'cash-flow-forecast', 'drilling-performance', 'safety-dashboard', 'predictive-insights', 'profitability-alerts', 'staff-utilization', 'predictive-completion', 'benchmark-comparisons', 'site-weather', 'config-health', 'missing-rates'];
+export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'ai-insights', 'geo-heatmap', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'field-priorities', 'cash-flow-forecast', 'drilling-performance', 'safety-dashboard', 'predictive-insights', 'profitability-alerts', 'staff-utilization', 'predictive-completion', 'benchmark-comparisons', 'site-weather', 'config-health', 'missing-rates', 'site-command-cards'];
