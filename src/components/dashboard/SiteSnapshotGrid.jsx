@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   MapPin, Cog, ShieldCheck, ShieldAlert, ShieldX,
-  ChevronRight, AlertTriangle, Activity, Radio, ClipboardList, CalendarClock, ChevronDown, Link2, Wrench, Package, Anchor, Users
+  ChevronRight, AlertTriangle, Activity, Radio, ClipboardList, CalendarClock, ChevronDown, Link2, Wrench, Package, Anchor, Users, Briefcase
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
@@ -173,7 +173,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm">
             <Radio className="w-4 h-4 text-white" />
           </div>
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Live Site Activity</h2>
+          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Top 3 Active Sites</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map(i => <Skeleton key={i} className="h-52 rounded-2xl" />)}
@@ -189,7 +189,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm">
             <Radio className="w-4 h-4 text-white" />
           </div>
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Live Site Activity</h2>
+          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Top 3 Active Sites</h2>
         </div>
         <div className="insight-card rounded-2xl p-10 text-center">
           <Radio className="w-10 h-10 text-slate-200 mx-auto mb-3" />
@@ -209,7 +209,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm">
           <Radio className="w-4 h-4 text-white" />
         </div>
-        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Live Site Activity</h2>
+        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Top 3 Active Sites</h2>
         <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">{scopedJobs.length} {scopedJobs.length === 1 ? 'Site' : 'Sites'}</span>
       </div>
 
@@ -246,7 +246,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
       })()}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {scopedJobs.map(job => {
+        {scopedJobs.slice(0, 3).map(job => {
           const jobAssets = assetsByJob[job.id] || [];
           const jobRigs = jobAssets.filter(a => a.asset_type === 'rig');
           const jobGear = jobAssets.filter(a => a.asset_type !== 'rig');
@@ -409,6 +409,18 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
           );
         })}
       </div>
+
+      {/* View All Jobs bar */}
+      {onNavigate && scopedJobs.length > 0 && (
+        <button
+          onClick={() => onNavigate('jobs')}
+          className="w-full mt-4 inline-flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-[#2E5A1A]/30 transition shadow-sm group"
+        >
+          <Briefcase className="w-4 h-4 text-[#2E5A1A] group-hover:scale-110 transition" />
+          View All Jobs
+          <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#2E5A1A] group-hover:translate-x-0.5 transition" />
+        </button>
+      )}
     </motion.div>
   );
 }

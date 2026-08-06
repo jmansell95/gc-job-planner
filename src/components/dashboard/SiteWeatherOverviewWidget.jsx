@@ -4,8 +4,9 @@ import { base44 } from '@/api/base44Client';
 import {
   Cloud, CloudRain, CloudSnow, Sun, CloudSun, CloudFog, CloudLightning,
   Wind, Droplets, MapPin, Loader2, ShieldAlert, ShieldCheck, ShieldX,
-  ChevronRight, AlertTriangle, Navigation,
+  ChevronRight, AlertTriangle,
 } from 'lucide-react';
+import WidgetShell from '@/components/dashboard/WidgetShell';
 
 const WEATHER_CODE_MAP = {
   0: { label: 'Clear', icon: Sun, color: 'text-amber-500' },
@@ -195,30 +196,28 @@ export default function SiteWeatherOverviewWidget({ onSelectJob }) {
   const hasStop = summary.stop > 0;
   const hasCaution = summary.caution > 0;
 
+  const summaryBadges = (
+    <div className="flex items-center gap-1.5">
+      {summary.stop > 0 && (
+        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
+          <ShieldX className="w-3 h-3" /> {summary.stop} Stop
+        </span>
+      )}
+      {summary.caution > 0 && (
+        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">
+          <ShieldAlert className="w-3 h-3" /> {summary.caution} Caution
+        </span>
+      )}
+      {summary.good > 0 && (
+        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">
+          <ShieldCheck className="w-3 h-3" /> {summary.good} Good
+        </span>
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-3">
-      {/* Header with summary */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Navigation className="w-4 h-4 text-cyan-600" />
-        <h3 className="text-sm font-bold text-slate-800">Site Weather Conditions</h3>
-        <div className="flex items-center gap-1.5 ml-auto">
-          {summary.stop > 0 && (
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
-              <ShieldX className="w-3 h-3" /> {summary.stop} Stop
-            </span>
-          )}
-          {summary.caution > 0 && (
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold">
-              <ShieldAlert className="w-3 h-3" /> {summary.caution} Caution
-            </span>
-          )}
-          {summary.good > 0 && (
-            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">
-              <ShieldCheck className="w-3 h-3" /> {summary.good} Good
-            </span>
-          )}
-        </div>
-      </div>
+    <WidgetShell icon={CloudSun} title="Site Weather Conditions" action={summaryBadges}>
 
       {/* Stop-work alert banner */}
       {hasStop && (
@@ -269,6 +268,6 @@ export default function SiteWeatherOverviewWidget({ onSelectJob }) {
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Caution</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500" /> Stop work</span>
       </div>
-    </div>
+    </WidgetShell>
   );
 }
