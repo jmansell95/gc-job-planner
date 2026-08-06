@@ -104,7 +104,7 @@ export default function HelpGuide() {
   const categories = Object.keys(groupedByCategory);
 
   return (
-    <div className="bg-slate-50 min-h-screen">
+    <div className="page-bg-vibrant min-h-screen">
       {/* Header */}
       <div className="hero-gradient relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-3 md:py-4">

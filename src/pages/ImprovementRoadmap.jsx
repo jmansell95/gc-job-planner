@@ -9,6 +9,25 @@ import PageHeader from '@/components/PageHeader';
 
 const CATEGORIES = [
   {
+    id: 'visual-ux',
+    icon: Zap,
+    title: 'Visual & UX Modernization',
+    color: 'violet',
+    items: [
+      { priority: 'high', title: 'Vibrant Design Token System', desc: 'Enhanced global CSS with vibrant glassmorphism, neon glow shadows, animated mesh-gradient page backgrounds, gradient text utilities, and 16 saturated stat-tile gradients. Every page now uses page-bg-vibrant for a cohesive, colorful foundation that cascades automatically.', status: 'done' },
+      { priority: 'high', title: 'Modal-first forms across all pages', desc: 'Convert all create/edit flows from page navigations to full-screen slide-over panels or centered dialogs so users stay in context. Reduces cognitive load and keeps the dashboard visible behind the form.' },
+      { priority: 'high', title: 'Micro-animations & entrance effects', desc: 'Added float, slide-up, pop-in, and gradient-shift keyframe animations. Cards animate in on mount, hero icons float gently, modals pop in with spring physics. Framer-motion page transitions already in place.', status: 'done' },
+      { priority: 'high', title: 'Mobile-first field staff experience', desc: 'All field staff pages (Staff Dashboard, Delivery Dashboard, Staff Profile) use the vibrant page background, colorful gradient quick-link tiles with glow shadows, and larger 12px loading spinners. Touch targets remain ≥40px with active:scale feedback.' },
+      { priority: 'medium', title: 'Drag-and-drop interactive rota timeline', desc: 'Replace static rota lists with a Google-Calendar-style drag-and-drop timeline where managers assign staff to jobs by dragging cards across the week grid.' },
+      { priority: 'medium', title: 'Availability heatmap overlays on rota', desc: 'Overlay absence, training, and yard/depot status as colored background highlights on the rota grid so managers see availability conflicts instantly before assigning.' },
+      { priority: 'medium', title: 'Real-time route path map for deliveries', desc: 'Add a live route path line on a leaflet map connecting collection → transfer → delivery legs, rather than just showing breadcrumb points.' },
+      { priority: 'medium', title: 'One-click bulk delivery reconciliation', desc: 'Add a Fast-Approve bulk action bar for deliveries, allowing administrators to sign off on multiple legs at once based on photo/signature verification.' },
+      { priority: 'medium', title: 'Staff performance graph dashboard', desc: 'Add a graphical KPI dashboard to the Profile page summarizing meterage drilled, on-time arrivals, briefing sign-offs, and qualification expiry with charts.' },
+      { priority: 'low', title: 'Dark mode toggle', desc: 'Full dark theme with automatic system preference detection, using the .dark CSS tokens already defined in index.css.' },
+      { priority: 'low', title: 'Customizable dashboard color themes', desc: 'Let each user pick from preset color themes (emerald, blue, violet, amber) that recolor their dashboard accents and stat tiles.' },
+    ],
+  },
+  {
     id: 'data-import',
     icon: Plug,
     title: 'Data Import & Sync',
@@ -265,13 +284,13 @@ export default function ImprovementRoadmap() {
       />
 
       {/* Filter Bar */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-slate-100">
+      <div className="sticky top-0 z-10 glass border-b border-slate-100/80">
         <div className="max-w-6xl mx-auto px-5 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
           <span className="text-xs font-semibold text-slate-400 whitespace-nowrap">Filter:</span>
           {['all', 'high', 'medium', 'low'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className={`text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition ${
-                filter === f ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                filter === f ? 'command-gradient text-white glow-brand' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
               }`}>
               {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1) + ' Priority'}
             </button>

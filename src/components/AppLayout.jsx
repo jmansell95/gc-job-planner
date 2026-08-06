@@ -40,7 +40,7 @@ export default function AppLayout() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-100/80">
+    <div className="flex flex-col lg:flex-row min-h-screen page-bg-vibrant">
       <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} />
       <main
         className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] lg:pt-0"

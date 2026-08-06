@@ -123,8 +123,8 @@ export default function StaffProfile() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <div className="w-10 h-10 border-4 border-emerald-100 border-t-emerald-700 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen page-bg-vibrant">
+        <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -148,9 +148,9 @@ export default function StaffProfile() {
   const canAccessAdmin = isOfficeStaff(staff, staff.is_admin);
 
   return (
-    <div className="bg-slate-50 min-h-screen">
+    <div className="page-bg-vibrant min-h-screen">
       {/* Header with Quick Actions bar */}
-      <div className="hero-gradient relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div className="hero-vibrant relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-5">
           <div className="flex items-center gap-3 mb-4">
             <ProfileAvatar name={staff.name} avatarUrl={staff.avatar_url} size={48} />

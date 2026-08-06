@@ -94,7 +94,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             <button key={item.id} type="button" onClick={() => setActiveSection(item.id)}
               className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
                 isActive
-                  ? 'bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white shadow-lg ring-1 ring-[#8DC63F]/30'
+                  ? 'command-gradient text-white shadow-lg glow-brand ring-1 ring-[#8DC63F]/30'
                   : 'text-white/75 hover:bg-white/10 hover:text-white'
               }`}>
               <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? 'text-[#8DC63F]' : ''}`} />
@@ -153,7 +153,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     <>
       {/* Mobile Top Header — hamburger + brand + actions */}
       <header className="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-white/10 shadow-sm relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="absolute inset-0 mesh-bg" />
+        <div className="absolute inset-0 hero-vibrant" />
         <div className="relative z-10 h-14 flex items-center justify-between gap-2 px-3">
           <div className="flex items-center gap-1 min-w-0">
             <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" type="button"
@@ -199,7 +199,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
       {/* Desktop Sidebar */}
       <nav className="hidden lg:flex sticky top-0 h-screen w-64 border-r border-black/10 flex-col relative overflow-hidden">
-        <div className="absolute inset-0 mesh-bg" />
+        <div className="absolute inset-0 hero-vibrant" />
         <div className="relative z-10 flex flex-col h-full">
           {desktopNav}
         </div>

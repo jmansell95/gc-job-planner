@@ -28,7 +28,7 @@ export default function StaffHeader({ staff, onShowSchedule }) {
   const firstName = staff?.name?.split(' ')[0] || 'Team';
 
   return (
-    <div className="hero-gradient relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <div className="hero-vibrant relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       {/* Decorative leaf accent */}
       <div className="absolute -top-12 -right-8 w-40 h-40 rounded-full bg-[#8DC63F]/10 blur-2xl pointer-events-none" />
       <div className="absolute -bottom-16 -left-10 w-32 h-32 rounded-full bg-[#8DC63F]/8 blur-2xl pointer-events-none" />

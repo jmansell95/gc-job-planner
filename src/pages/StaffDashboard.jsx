@@ -431,8 +431,8 @@ export default function StaffDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <div className="w-10 h-10 border-4 border-orange-100 border-t-[#F5821F] rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen page-bg-vibrant">
+        <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -543,7 +543,7 @@ export default function StaffDashboard() {
     };
 
   return (
-    <div className="bg-gradient-to-b from-slate-50 to-slate-100/50 min-h-screen pb-20">
+    <div className="page-bg-vibrant min-h-screen pb-20">
       <StaffHeader staff={staff} onShowSchedule={() => setShowScheduleSummary(true)} />
       <Breadcrumbs />
 
@@ -720,34 +720,34 @@ export default function StaffDashboard() {
           <div className="grid grid-cols-2 gap-3.5">
             {staff.delivery_dashboard_enabled && (
               <button onClick={() => navigate('/deliveries')} type="button"
-                className="insight-card flex flex-col items-center gap-3 p-5 rounded-2xl hover:shadow-md transition touch-manipulation">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-                  <Truck className="w-7 h-7 text-blue-600" />
+                className="stat-gradient-blue rounded-2xl flex flex-col items-center gap-3 p-5 hover:scale-[1.03] active:scale-95 transition touch-manipulation glow-blue">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <Truck className="w-7 h-7 text-white" />
                 </div>
-                <span className="text-base font-semibold text-slate-700">Deliveries</span>
+                <span className="text-base font-bold text-white">Deliveries</span>
               </button>
             )}
             <button onClick={() => navigate('/staff-profile')} type="button"
-              className="insight-card flex flex-col items-center gap-3 p-5 rounded-2xl hover:shadow-md transition touch-manipulation">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
-                <UserCircle className="w-7 h-7 text-purple-600" />
-              </div>
-              <span className="text-base font-semibold text-slate-700">Profile</span>
-            </button>
+              className="stat-gradient-violet rounded-2xl flex flex-col items-center gap-3 p-5 hover:scale-[1.03] active:scale-95 transition touch-manipulation">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <UserCircle className="w-7 h-7 text-white" />
+                </div>
+                <span className="text-base font-bold text-white">Profile</span>
+              </button>
             <button onClick={() => setShowScheduleSummary(true)} type="button"
-              className="insight-card flex flex-col items-center gap-3 p-5 rounded-2xl hover:shadow-md transition touch-manipulation">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center">
-                <CalendarDays className="w-7 h-7 text-emerald-600" />
-              </div>
-              <span className="text-base font-semibold text-slate-700">Schedule</span>
-            </button>
+              className="stat-gradient-emerald rounded-2xl flex flex-col items-center gap-3 p-5 hover:scale-[1.03] active:scale-95 transition touch-manipulation glow-emerald">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <CalendarDays className="w-7 h-7 text-white" />
+                </div>
+                <span className="text-base font-bold text-white">Schedule</span>
+              </button>
             <button onClick={() => navigate('/help')} type="button"
-              className="insight-card flex flex-col items-center gap-3 p-5 rounded-2xl hover:shadow-md transition touch-manipulation">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100 flex items-center justify-center">
-                <HelpCircle className="w-7 h-7 text-amber-600" />
-              </div>
-              <span className="text-base font-semibold text-slate-700">Help</span>
-            </button>
+              className="stat-gradient-amber rounded-2xl flex flex-col items-center gap-3 p-5 hover:scale-[1.03] active:scale-95 transition touch-manipulation glow-amber">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <HelpCircle className="w-7 h-7 text-white" />
+                </div>
+                <span className="text-base font-bold text-white">Help</span>
+              </button>
           </div>
 
         </div>

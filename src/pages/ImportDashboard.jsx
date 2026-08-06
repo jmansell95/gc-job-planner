@@ -86,7 +86,7 @@ export default function ImportDashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="page-bg-vibrant min-h-screen p-4 md:p-6 space-y-6">
       {/* Upload Card */}
       <div className="insight-card rounded-2xl p-6">
         <h2 className="text-lg font-semibold text-slate-800 mb-1">1. Upload Spreadsheet</h2>

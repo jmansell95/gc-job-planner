@@ -25,8 +25,8 @@ function SectionHeader({ icon: Icon, title, count, tone = 'dark' }) {
   const textTone = tone === 'muted' ? 'text-slate-400' : 'text-slate-900';
   return (
     <div className="flex items-center gap-2.5 mb-3 md:mb-4">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tone === 'muted' ? 'bg-slate-100' : 'bg-emerald-50'}`}>
-        <Icon className={`w-4 h-4 ${tone === 'muted' ? 'text-slate-400' : 'text-emerald-700'}`} />
+      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tone === 'muted' ? 'bg-slate-100' : 'stat-gradient-emerald'}`}>
+        <Icon className={`w-4 h-4 ${tone === 'muted' ? 'text-slate-400' : 'text-white'}`} />
       </div>
       <h2 className={`text-lg md:text-xl font-bold ${textTone}`}>{title}</h2>
       <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${tone === 'muted' ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'}`}>{count}</span>
@@ -265,8 +265,8 @@ export default function DeliveryDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <div className="w-10 h-10 border-4 border-emerald-100 border-t-emerald-700 rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen page-bg-vibrant">
+        <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -315,7 +315,7 @@ export default function DeliveryDashboard() {
   });
 
   return (
-    <div className="bg-gradient-to-b from-slate-50 to-slate-100/50 min-h-screen pb-20">
+    <div className="page-bg-vibrant min-h-screen pb-20">
       <StaffHeader staff={staff} />
       <Breadcrumbs />
 
@@ -326,19 +326,20 @@ export default function DeliveryDashboard() {
 
         {/* Page title + quick stats */}
         <div className="mb-1 md:mb-2">
-          <h1 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">My Deliveries</h1>
+          <h1 className="text-xl md:text-2xl font-bold gradient-text-brand mb-3">My Deliveries</h1>
           <div className="grid grid-cols-3 gap-2 md:gap-3">
             {[
-              { label: 'Today', value: todays.length, icon: Clock },
-              { label: 'Upcoming', value: upcoming.length, icon: Calendar },
-              { label: 'Done', value: deliveries.filter(d => d.status === 'completed').length, icon: CheckCircle2 }
+              { label: 'Today', value: todays.length, icon: Clock, gradient: 'stat-gradient-amber' },
+              { label: 'Upcoming', value: upcoming.length, icon: Calendar, gradient: 'stat-gradient-blue' },
+              { label: 'Done', value: deliveries.filter(d => d.status === 'completed').length, icon: CheckCircle2, gradient: 'stat-gradient-emerald' }
             ].map(stat => (
-              <div key={stat.label} className="bg-white rounded-xl border border-slate-200 px-3 py-2.5 shadow-sm">
-                <div className="flex items-center gap-1.5">
-                  <stat.icon className="w-3.5 h-3.5 text-emerald-600" />
-                  <p className="text-[10px] md:text-xs font-medium text-slate-500 uppercase tracking-wide">{stat.label}</p>
+              <div key={stat.label} className={`${stat.gradient} rounded-xl px-3 py-2.5 shadow-sm text-white relative overflow-hidden`}>
+                <div className="absolute top-0 right-0 w-12 h-12 bg-white/10 rounded-full -mr-4 -mt-4" />
+                <div className="flex items-center gap-1.5 relative">
+                  <stat.icon className="w-3.5 h-3.5 text-white/80" />
+                  <p className="text-[10px] md:text-xs font-medium text-white/80 uppercase tracking-wide">{stat.label}</p>
                 </div>
-                <p className="text-xl md:text-2xl font-bold text-slate-900 mt-0.5">{stat.value}</p>
+                <p className="text-xl md:text-2xl font-bold text-white mt-0.5 relative">{stat.value}</p>
               </div>
             ))}
           </div>
@@ -349,8 +350,8 @@ export default function DeliveryDashboard() {
 
         {/* My Deliveries Today heading */}
         <div className="flex items-center gap-2.5 mb-3 md:mb-4">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-            <Clock className="w-4 h-4 text-emerald-600" />
+          <div className="w-8 h-8 rounded-lg stat-gradient-amber flex items-center justify-center glow-amber">
+            <Clock className="w-4 h-4 text-white" />
           </div>
           <h2 className="text-lg md:text-xl font-bold text-slate-900">My Deliveries Today</h2>
         </div>
