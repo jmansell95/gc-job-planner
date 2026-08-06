@@ -227,10 +227,13 @@ function isPlantPlannerSheet(sheetName) {
 // Target sheet patterns — only these tabs are imported. All other tabs
 // are treated as prehistoric/legacy data and skipped.
 //   • "Team Planner 2026_GW+Depot" → Groundworkers and Depot Staff
-//   • "Drillers" → Drilling team (latest)
+//   • "Team Planner 2026_Drilling" → Drilling team (2026)
+// Note: the sheet name contains "Drilling" not "Drillers" — the old
+// /drillers/i pattern missed this tab entirely, causing all drilling
+// staff to be skipped from the rota import.
 const TARGET_SHEET_PATTERNS = [
   /team\s*planner.*2026.*gw\+depot/i,
-  /drillers/i,
+  /team\s*planner.*2026.*drilling/i,
 ];
 
 function isTargetSheet(sheetName) {
