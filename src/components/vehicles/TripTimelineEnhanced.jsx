@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import {
   Route, Loader2, Calendar, Clock, Gauge, MapPin, ChevronDown, ChevronRight,
   Navigation, Zap, TrendingDown, RefreshCw, AlertCircle, Circle, Flag,
-  Square, Activity, Timer,
+  Square, Activity, Timer, ExternalLink,
 } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup } from 'react-leaflet';
 import { batchReverseGeocode } from '@/utils/reverseGeocode';
@@ -78,7 +78,15 @@ function StopCard({ stop, index }) {
           <span className="text-[10px] text-slate-400">·</span>
           <span className="text-[10px] font-semibold text-slate-500">{formatDuration(stop.duration_minutes)}</span>
         </div>
-        <p className="text-xs text-slate-600 mt-0.5 truncate">{stop.location || 'Unknown location'}</p>
+        <div className="flex items-center gap-1 mt-0.5">
+          <p className="text-xs text-slate-600 truncate flex-1">{stop.location || 'Unknown location'}</p>
+          {stop.lat != null && (
+            <a href={`https://www.google.com/maps?q=${stop.lat},${stop.lng}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+              className="text-blue-500 hover:text-blue-700 flex-shrink-0">
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+        </div>
         <p className="text-[10px] text-slate-400 mt-0.5">
           {formatTime(stop.arrival_time)} → {formatTime(stop.departure_time)}
         </p>
@@ -119,9 +127,19 @@ function TripCard({ trip, breadcrumbs, isExpanded, onToggle }) {
           {/* Start → End location summary */}
           <div className="flex items-center gap-1.5 mt-1 text-[11px] text-slate-500">
             <MapPin className="w-3 h-3 text-emerald-500 flex-shrink-0" />
-            <span className="truncate">{trip.start_location || 'Unknown'}</span>
+            {trip.start_lat != null ? (
+              <a href={`https://www.google.com/maps?q=${trip.start_lat},${trip.start_lng}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                className="truncate hover:text-blue-600 hover:underline">{trip.start_location || 'Unknown'}</a>
+            ) : (
+              <span className="truncate">{trip.start_location || 'Unknown'}</span>
+            )}
             <Navigation className="w-2.5 h-2.5 text-slate-300 flex-shrink-0" />
-            <span className="truncate">{trip.end_location || 'Unknown'}</span>
+            {trip.end_lat != null ? (
+              <a href={`https://www.google.com/maps?q=${trip.end_lat},${trip.end_lng}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                className="truncate hover:text-blue-600 hover:underline">{trip.end_location || 'Unknown'}</a>
+            ) : (
+              <span className="truncate">{trip.end_location || 'Unknown'}</span>
+            )}
           </div>
         </div>
         {/* Quick stats */}
@@ -175,7 +193,15 @@ function TripCard({ trip, breadcrumbs, isExpanded, onToggle }) {
                   <Circle className="w-3 h-3 text-emerald-500" />
                   <span className="text-xs font-bold text-emerald-700">Start</span>
                 </div>
-                <p className="text-xs text-slate-600 mt-0.5 truncate">{trip.start_location || 'Unknown location'}</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <p className="text-xs text-slate-600 truncate flex-1">{trip.start_location || 'Unknown location'}</p>
+                  {trip.start_lat != null && (
+                    <a href={`https://www.google.com/maps?q=${trip.start_lat},${trip.start_lng}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                      className="text-blue-500 hover:text-blue-700 flex-shrink-0">
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
                 <p className="text-[10px] text-slate-400 mt-0.5">{formatTime(trip.start_time)}</p>
               </div>
             </div>
@@ -193,7 +219,15 @@ function TripCard({ trip, breadcrumbs, isExpanded, onToggle }) {
                   <Flag className="w-3 h-3 text-rose-500" />
                   <span className="text-xs font-bold text-rose-700">End</span>
                 </div>
-                <p className="text-xs text-slate-600 mt-0.5 truncate">{trip.end_location || 'Unknown location'}</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <p className="text-xs text-slate-600 truncate flex-1">{trip.end_location || 'Unknown location'}</p>
+                  {trip.end_lat != null && (
+                    <a href={`https://www.google.com/maps?q=${trip.end_lat},${trip.end_lng}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                      className="text-blue-500 hover:text-blue-700 flex-shrink-0">
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
                 <p className="text-[10px] text-slate-400 mt-0.5">{formatTime(trip.end_time)}</p>
               </div>
             </div>

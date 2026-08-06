@@ -15,6 +15,7 @@ import MaintenanceBookingModal from '@/components/vehicles/MaintenanceBookingMod
 import UsefulNumbersModal from '@/components/UsefulNumbersModal';
 import VehicleDetailDrawer from '@/components/vehicles/VehicleDetailDrawer';
 import GeotabReportModal from '@/components/vehicles/GeotabReportModal';
+import FleetSyncButtons from '@/components/vehicles/FleetSyncButtons';
 import { Skeleton } from '@/components/StateViews';
 import { differenceInDays } from 'date-fns';
 
@@ -222,6 +223,12 @@ export default function Vehicles() {
               <div className="mb-4">
                 <FleetQuickStats stats={stats} />
               </div>
+
+              {/* Sync bar — prominent, always visible */}
+              <FleetSyncButtons
+                liveData={liveData}
+                onShowReport={() => setShowReport(true)}
+              />
 
               {/* Fleet insights — compact visual widgets in a collapsible panel */}
               <FleetInsightsPanel
