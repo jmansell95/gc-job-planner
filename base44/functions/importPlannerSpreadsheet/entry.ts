@@ -1469,6 +1469,19 @@ export default async function(req) {
     }
     let newProjectsCreated = 0;
     const unmatchedSiteNames = Object.keys(unmatchedSiteGroups);
+    // Build a preview map of job → project name (for dry-run display).
+    // In dry-run mode, projects aren't created yet, so we resolve the project
+    // name each job WILL be grouped under: existing match by site name, or
+    // the extracted site name for a new auto-created project.
+    const jobProjectNamePreview = {}; // baseKey → { project_name, is_new }
+    for (const [key, job] of jobMap) {
+      const existingMatch = findProjectForJob(job.name, allProjects);
+      if (existingMatch) {
+        jobProjectNamePreview[key] = { project_name: existingMatch.name, is_new: false };
+      } else {
+        jobProjectNamePreview[key] = { project_name: extractSiteName(job.name), is_new: true };
+      }
+    }
     if (unmatchedSiteNames.length > 0 && !dryRun) {
       const newProjectPayloads = unmatchedSiteNames.map(name => ({ name, status: 'active' }));
       const createdProjects = await base44.asServiceRole.entities.Project.bulkCreate(newProjectPayloads);
@@ -1917,7 +1930,7 @@ export default async function(req) {
       };
     });
 
-    // Per-job breakdown: name, ref, location, status, dates, staff count
+    // Per-job breakdown: name, ref, location, status, dates, staff count, project
     const jobsBreakdown = [...uniqueJobBaseKeys].map(key => {
       const job = jobMap.get(key);
       const rawName = jobNameByBaseKey[key];
@@ -1927,6 +1940,7 @@ export default async function(req) {
       const jAssignments = allAssignments.filter(a => a.job_name && (keyToMaster[extractJobBaseKey(a.job_name)] || extractJobBaseKey(a.job_name)) === key);
       const staffList = [...new Set(jAssignments.map(a => a.staff_name))];
       const sections = [...new Set(jAssignments.map(a => a.crew_section).filter(Boolean))];
+      const projectPreview = jobProjectNamePreview[key] || {};
       return {
         name: parsed.name,
         reference: parsed.job_reference || '',
@@ -1939,6 +1953,8 @@ export default async function(req) {
         drilling_method: job?.drilling_method || inferDrillingMethod(sections[0]),
         crew_sections: sections,
         status_new: newJobKeys.includes(key) ? 'new' : 'existing',
+        project_name: projectPreview.project_name || '',
+        project_is_new: projectPreview.is_new || false,
       };
     });
 

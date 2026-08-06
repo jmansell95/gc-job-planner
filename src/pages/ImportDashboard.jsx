@@ -469,6 +469,46 @@ export default function ImportDashboard() {
             </CollapsibleSection>
           )}
 
+          {/* Projects breakdown — jobs grouped by project */}
+          {preview.jobs_breakdown?.length > 0 && (() => {
+            const projectGroups = {};
+            preview.jobs_breakdown.forEach(j => {
+              const pname = j.project_name || 'Standalone (no project)';
+              if (!projectGroups[pname]) projectGroups[pname] = { jobs: [], is_new: j.project_is_new };
+              projectGroups[pname].jobs.push(j);
+            });
+            const projectNames = Object.keys(projectGroups);
+            if (projectNames.length === 0 || (projectNames.length === 1 && projectNames[0] === 'Standalone (no project)')) return null;
+            return (
+              <CollapsibleSection title={`Projects Breakdown (${projectNames.length} projects)`} icon={Layers} defaultOpen={false}>
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {projectNames.map((pname, pi) => {
+                    const group = projectGroups[pname];
+                    return (
+                      <div key={pi} className="bg-violet-50 border border-violet-200 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Layers className="w-3.5 h-3.5 text-violet-600" />
+                          <span className="text-sm font-semibold text-violet-900">{pname}</span>
+                          {group.is_new && <span className="text-xs bg-violet-200 text-violet-800 rounded-full px-2 py-0.5 font-medium">NEW</span>}
+                          <span className="text-xs text-violet-600 ml-auto">{group.jobs.length} job{group.jobs.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="space-y-1">
+                          {group.jobs.map((j, ji) => (
+                            <div key={ji} className="flex items-center gap-2 text-xs bg-white rounded px-2 py-1.5 border border-violet-100">
+                              <span className="font-medium text-slate-700 truncate flex-1">{j.name}</span>
+                              {j.location && <span className="text-slate-400 inline-flex items-center gap-0.5"><MapPin className="w-3 h-3" />{j.location}</span>}
+                              <StatusBadge status={j.status} />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CollapsibleSection>
+            );
+          })()}
+
           {/* Jobs breakdown */}
           {preview.jobs_breakdown?.length > 0 && (
             <CollapsibleSection title={`Jobs Breakdown (${preview.jobs_breakdown.length})`} icon={Briefcase} defaultOpen={false}>
@@ -489,11 +529,16 @@ export default function ImportDashboard() {
                       <span>👷 {j.staff_count} staff</span>
                       <span>📋 {j.assignment_count} assignments</span>
                     </div>
-                    {j.crew_sections.length > 0 && (
-                      <div className="text-xs text-slate-400 mt-1">
-                        Sections: {j.crew_sections.join(', ')}
-                      </div>
-                    )}
+                    <div className="text-xs mt-1 flex flex-wrap gap-1.5">
+                      {j.project_name && (
+                        <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 font-medium ${j.project_is_new ? 'bg-violet-100 text-violet-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                          <Layers className="w-3 h-3" /> {j.project_name}{j.project_is_new ? ' (new)' : ''}
+                        </span>
+                      )}
+                      {j.crew_sections.length > 0 && (
+                        <span className="text-slate-400">Sections: {j.crew_sections.join(', ')}</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
