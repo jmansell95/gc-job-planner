@@ -49,8 +49,6 @@ export const WIDGET_REGISTRY = {
 export const PRIMARY_WIDGETS = [
   'field-crews',
   'field-priorities',
-  'delivery-stats',
-  'compliance-overview',
 ];
 
 // ═══════════════════════════════════════════════════════════════════
@@ -59,18 +57,8 @@ export const PRIMARY_WIDGETS = [
 //  needed for day-to-day operational awareness.
 // ═══════════════════════════════════════════════════════════════════
 export const SECONDARY_WIDGETS = [
-  'job-assets',
   'live-site-map',
-  'drilling-performance',
   'site-weather',
-  'billing-readiness',
-  'unbilled-wip',
-  'outstanding-receivables',
-  'cash-flow-forecast',
-  'maintenance-quick-view',
-  'asset-utilization',
-  'missing-rates',
-  'config-health',
 ];
 
 // Widgets that require costing permission (admin / manager only).
