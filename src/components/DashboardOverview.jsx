@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Calendar, Settings2, Check, Eye, MapPin, ArrowRight, ShieldAlert, Percent, Timer, HardHat, User, ChevronDown } from 'lucide-react';
+import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Calendar, Settings2, Check, Eye, MapPin, ArrowRight, ShieldAlert, Percent, Timer, ChevronDown } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
 import DeliveryStats from '@/components/DeliveryStats';
 import WidgetCard from '@/components/dashboard/WidgetCard';
-import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES, DASHBOARD_SECTIONS, WIDGET_TO_SECTION, COST_WIDGETS, GLOBAL_ONLY_WIDGETS, VIEW_PROFILES } from '@/components/dashboard/registry';
+import { WIDGET_REGISTRY, DEFAULT_WIDGET_ORDER, DEFAULT_WIDGET_SIZES, DASHBOARD_SECTIONS, WIDGET_TO_SECTION, COST_WIDGETS, GLOBAL_ONLY_WIDGETS } from '@/components/dashboard/registry';
 import { FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
 import ExecutiveSnapshotWidget from '@/components/dashboard/ExecutiveSnapshotWidget';
@@ -50,8 +50,6 @@ import { canViewCostings } from '@/utils/access';
 import { useAuth } from '@/lib/AuthContext';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
-import PulseRibbon from '@/components/dashboard/PulseRibbon';
-import CommandCentreTabs from '@/components/dashboard/CommandCentreTabs';
 import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
 
 export default function DashboardOverview({ onNavigate, onSelectJob }) {
@@ -61,7 +59,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [layoutId, setLayoutId] = useState(null);
   const [drawerJob, setDrawerJob] = useState(null);
   const [modalJob, setModalJob] = useState(null);
-  const [viewProfile, setViewProfile] = useState('operations');
   const [collapseAllKey, setCollapseAllKey] = useState(0);
   const queryClient = useQueryClient();
   const { selectedJobId } = useJobFilter();
@@ -272,13 +269,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   const hiddenWidgets = DEFAULT_WIDGET_ORDER.filter(id => !widgetOrder.includes(id));
 
-  // Active view profile — allow-list of widgets to surface for the current focus.
-  const profileWidgets = (VIEW_PROFILES.find(p => p.id === viewProfile) || VIEW_PROFILES[0]).widgets;
-
   // Hide cost-gated widgets from users who can't view financials.
   // Hide global-only widgets when the dashboard is focused on a single job.
-  // Apply the active view profile on top so only that focus area's widgets show.
-  const canShowWidget = (id) => (canViewCosts || !COST_WIDGETS.includes(id)) && (isAllJobs || !GLOBAL_ONLY_WIDGETS.includes(id)) && profileWidgets.includes(id);
+  const canShowWidget = (id) => (canViewCosts || !COST_WIDGETS.includes(id)) && (isAllJobs || !GLOBAL_ONLY_WIDGETS.includes(id));
   const visibleOrder = widgetOrder.filter(canShowWidget);
   const visibleHidden = hiddenWidgets.filter(canShowWidget);
 
@@ -387,75 +380,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
       <JobSelectorBar />
 
-      {/* Workforce Composition — direct / subcontractor / agency breakdown */}
-      {!customizeMode && isAllJobs && viewProfile === 'operations' && (() => {
-        const direct = staff.filter(s => s.is_active !== false && (!s.worker_type || s.worker_type === 'direct_employee')).length;
-        const subbies = staff.filter(s => s.is_active !== false && s.worker_type === 'subcontractor').length;
-        const agency = staff.filter(s => s.is_active !== false && s.worker_type === 'agency').length;
-        const total = direct + subbies + agency;
-        if (total === 0) return null;
-        return (
-          <div className="mb-4 insight-card rounded-2xl p-4 md:p-5">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm icon-tile-glow">
-                <Users className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-bold text-slate-900">Workforce Composition</h3>
-                <p className="text-xs text-slate-500">{total} active {total === 1 ? 'person' : 'people'} across all crews</p>
-              </div>
-            </div>
-            <div className="flex h-3 rounded-full overflow-hidden bg-slate-100 mb-3 shadow-inner">
-              {direct > 0 && <div className="stat-gradient-emerald transition-all duration-500" style={{ width: `${(direct / total) * 100}%` }} title={`Direct: ${direct}`} />}
-              {subbies > 0 && <div className="stat-gradient-orange transition-all duration-500" style={{ width: `${(subbies / total) * 100}%` }} title={`Sub-Contractor: ${subbies}`} />}
-              {agency > 0 && <div className="stat-gradient-blue transition-all duration-500" style={{ width: `${(agency / total) * 100}%` }} title={`Agency: ${agency}`} />}
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-xl p-3 bg-emerald-50 border border-emerald-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-6 h-6 rounded-lg stat-gradient-emerald flex items-center justify-center"><User className="w-3 h-3 text-white" /></div>
-                  <span className="text-xs font-bold text-emerald-700">Direct</span>
-                </div>
-                <p className="text-2xl font-bold text-slate-900 tabular-nums leading-none">{direct}</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">{total > 0 ? Math.round((direct / total) * 100) : 0}% of workforce</p>
-              </div>
-              <div className="rounded-xl p-3 bg-orange-50 border border-orange-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-6 h-6 rounded-lg stat-gradient-orange flex items-center justify-center"><HardHat className="w-3 h-3 text-white" /></div>
-                  <span className="text-xs font-bold text-orange-700">Sub-Contractor</span>
-                </div>
-                <p className="text-2xl font-bold text-slate-900 tabular-nums leading-none">{subbies}</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">{total > 0 ? Math.round((subbies / total) * 100) : 0}% of workforce</p>
-              </div>
-              <div className="rounded-xl p-3 bg-blue-50 border border-blue-200">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-6 h-6 rounded-lg stat-gradient-blue flex items-center justify-center"><Briefcase className="w-3 h-3 text-white" /></div>
-                  <span className="text-xs font-bold text-blue-700">Agency</span>
-                </div>
-                <p className="text-2xl font-bold text-slate-900 tabular-nums leading-none">{agency}</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">{total > 0 ? Math.round((agency / total) * 100) : 0}% of workforce</p>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* Command Centre Tabs — full-width focus switcher (Operations / Financials / Compliance) */}
-      {!customizeMode && (
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 min-w-0">
-            <CommandCentreTabs activeId={viewProfile} onChange={setViewProfile} className="mb-0" />
-          </div>
-        </div>
-      )}
-
-      {/* At-a-glance intelligence — surfaces critical items needing attention (Operations only) */}
-      {!customizeMode && isAllJobs && viewProfile === 'operations' && (
-        <PulseRibbon onNavigate={onNavigate} />
-      )}
-
-      {/* Live Site Activity — visual snapshot grid of active sites (Operations only) */}
-      {!customizeMode && isAllJobs && viewProfile === 'operations' && (
+      {/* Live Site Activity — visual snapshot grid of active sites */}
+      {!customizeMode && isAllJobs && (
         <SiteSnapshotGrid onSelectJob={openJobDrawer} onNavigate={onNavigate} />
       )}
 

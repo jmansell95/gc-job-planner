@@ -10,14 +10,19 @@ import {
  * Fleet page header. Replaces the old buried sync bar inside Fleet Insights.
  * Gradient background makes it impossible to miss.
  */
-export default function FleetSyncButtons({ liveData, onShowReport }) {
+export default function FleetSyncButtons({ liveData, onShowReport, vehicles = [] }) {
   const queryClient = useQueryClient();
   const [geotabSyncing, setGeotabSyncing] = useState(false);
   const [holmanSyncing, setHolmanSyncing] = useState(false);
   const [result, setResult] = useState(null);
 
-  const trackedCount = liveData?.vehicles?.length || 0;
-  const movingCount = liveData?.vehicles?.filter(v => v.ignition_on).length || 0;
+  // Only count Geotab devices that match actual Vehicle records in our DB.
+  // The Geotab database can contain devices not in our system, so filtering
+  // by vehicle_id prevents inflated "tracked" counts.
+  const vehicleIds = new Set(vehicles.map(v => v.id));
+  const trackedVehicles = (liveData?.vehicles || []).filter(v => v.vehicle_id && vehicleIds.has(v.vehicle_id));
+  const trackedCount = trackedVehicles.length;
+  const movingCount = trackedVehicles.filter(v => v.ignition_on).length;
   const stoppedCount = trackedCount - movingCount;
 
   const handleGeotabSync = async () => {

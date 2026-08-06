@@ -227,6 +227,7 @@ export default function Vehicles() {
               {/* Sync bar — prominent, always visible */}
               <FleetSyncButtons
                 liveData={liveData}
+                vehicles={vehicles}
                 onShowReport={() => setShowReport(true)}
               />
 
