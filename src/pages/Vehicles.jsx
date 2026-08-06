@@ -7,18 +7,14 @@ import {
   ShieldCheck, ShieldAlert, ShieldX, Satellite,
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import FleetSyncBar from '@/components/vehicles/FleetSyncBar';
 import FleetQuickStats from '@/components/vehicles/FleetQuickStats';
 import FleetVehicleCard from '@/components/vehicles/FleetVehicleCard';
+import FleetInsightsPanel from '@/components/vehicles/FleetInsightsPanel';
 import VehicleMaintenanceManager from '@/components/VehicleMaintenanceManager';
 import MaintenanceBookingModal from '@/components/vehicles/MaintenanceBookingModal';
 import UsefulNumbersModal from '@/components/UsefulNumbersModal';
 import VehicleDetailDrawer from '@/components/vehicles/VehicleDetailDrawer';
 import GeotabReportModal from '@/components/vehicles/GeotabReportModal';
-import MileageReconciliationWidget from '@/components/vehicles/MileageReconciliationWidget';
-import VehicleUtilisationWidget from '@/components/vehicles/VehicleUtilisationWidget';
-import IdleVehiclesWidget from '@/components/vehicles/IdleVehiclesWidget';
-import PredictiveMaintenanceWidget from '@/components/vehicles/PredictiveMaintenanceWidget';
 import { Skeleton } from '@/components/StateViews';
 import { differenceInDays } from 'date-fns';
 
@@ -183,29 +179,7 @@ export default function Vehicles() {
             <VehicleMaintenanceManager />
           ) : (
             <>
-              {/* Modern quick stats ribbon */}
-              <div className="mb-4">
-                <FleetQuickStats stats={stats} />
-              </div>
-
-              {/* Unified sync bar — Geotab + Holman + Specs + Reports */}
-              <div className="mb-4">
-                <FleetSyncBar liveData={liveData} onShowReport={() => setShowReport(true)} />
-              </div>
-
-              {/* Mileage reconciliation + Utilisation + Idle */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-                <MileageReconciliationWidget />
-                <VehicleUtilisationWidget />
-                <IdleVehiclesWidget />
-              </div>
-
-              {/* Predictive maintenance */}
-              <div className="mb-4">
-                <PredictiveMaintenanceWidget onSelectVehicle={(v) => setSelectedVehicle(v)} />
-              </div>
-
-              {/* Search & filters */}
+              {/* Search & filters — first thing you see */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-4 flex flex-wrap gap-2 items-center">
                 <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -242,6 +216,18 @@ export default function Vehicles() {
                 </div>
                 <span className="text-xs text-slate-400 ml-1">{filtered.length} of {vehicles.length}</span>
               </div>
+
+              {/* Modern quick stats ribbon */}
+              <div className="mb-4">
+                <FleetQuickStats stats={stats} />
+              </div>
+
+              {/* Fleet insights — compact visual widgets in a collapsible panel */}
+              <FleetInsightsPanel
+                liveData={liveData}
+                onShowReport={() => setShowReport(true)}
+                onSelectVehicle={(v) => setSelectedVehicle(v)}
+              />
 
               {/* Fleet grid */}
               {isLoading ? (

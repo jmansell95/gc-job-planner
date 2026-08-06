@@ -220,6 +220,93 @@ function TripCard({ trip, breadcrumbs, isExpanded, onToggle }) {
   );
 }
 
+// Group trips by day and compute per-day stats
+function groupTripsByDay(trips) {
+  const groups = {};
+  for (const t of trips) {
+    const dayKey = new Date(t.start_time).toISOString().slice(0, 10);
+    if (!groups[dayKey]) groups[dayKey] = [];
+    groups[dayKey].push(t);
+  }
+  return Object.entries(groups)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([date, dayTrips]) => {
+      const distance = dayTrips.reduce((s, t) => s + (t.distance_km || 0), 0);
+      const duration = dayTrips.reduce((s, t) => s + (t.duration_minutes || 0), 0);
+      const idle = dayTrips.reduce((s, t) => s + (t.idle_minutes || 0), 0);
+      const stops = dayTrips.reduce((s, t) => s + (t.stop_count || 0), 0);
+      const maxSpeed = dayTrips.reduce((m, t) => Math.max(m, t.max_speed_kph || 0), 0);
+      return { date, trips: dayTrips, distance, duration, idle, stops, maxSpeed, tripCount: dayTrips.length };
+    });
+}
+
+// Day group header with daily stats
+function DayGroup({ dayGroup, breadcrumbs, geocodedTrips, expanded, setExpanded, globalIndex }) {
+  const [dayOpen, setDayOpen] = useState(true);
+  const dateObj = new Date(dayGroup.date + 'T00:00:00');
+  const isToday = dayGroup.date === new Date().toISOString().slice(0, 10);
+  const dayLabel = dateObj.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+
+  return (
+    <div className="rounded-xl border border-slate-200 overflow-hidden">
+      {/* Day header */}
+      <button
+        onClick={() => setDayOpen(!dayOpen)}
+        className="w-full flex items-center gap-3 px-3 py-2.5 bg-gradient-to-r from-slate-50 to-white hover:from-slate-100 transition text-left"
+      >
+        {dayOpen ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-3.5 h-3.5 text-slate-500" />
+            <span className="text-sm font-bold text-slate-800">{dayLabel}</span>
+            {isToday && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-cyan-100 text-cyan-700 font-bold">TODAY</span>}
+          </div>
+        </div>
+        {/* Daily stats */}
+        <div className="flex items-center gap-2.5 text-[11px] flex-shrink-0">
+          <span className="flex items-center gap-0.5 text-slate-500 font-semibold" title="Trips">
+            <Route className="w-3 h-3" />{dayGroup.tripCount}
+          </span>
+          <span className="flex items-center gap-0.5 text-emerald-600 font-bold" title="Distance">
+            <TrendingDown className="w-3 h-3" />{kmToMi(dayGroup.distance).toFixed(1)}mi
+          </span>
+          <span className="flex items-center gap-0.5 text-slate-500 font-semibold" title="Drive time">
+            <Clock className="w-3 h-3" />{formatDuration(dayGroup.duration)}
+          </span>
+          <span className="flex items-center gap-0.5 text-amber-600 font-semibold" title="Idle time">
+            <Timer className="w-3 h-3" />{formatDuration(dayGroup.idle)}
+          </span>
+          <span className="flex items-center gap-0.5 text-violet-600 font-semibold" title="Stops">
+            <MapPin className="w-3 h-3" />{dayGroup.stops}
+          </span>
+        </div>
+      </button>
+
+      {/* Trips under this day */}
+      {dayOpen && (
+        <div className="p-2 space-y-2 bg-white">
+          {dayGroup.trips.map((trip, i) => {
+            const geo = geocodedTrips[trip.trip_id];
+            const mergedTrip = geo
+              ? { ...trip, start_location: geo.start_location, end_location: geo.end_location, stops: geo.stops }
+              : trip;
+            const tripIdx = globalIndex + i;
+            return (
+              <TripCard
+                key={trip.trip_id}
+                trip={mergedTrip}
+                breadcrumbs={breadcrumbs}
+                isExpanded={expanded === tripIdx}
+                onToggle={() => setExpanded(expanded === tripIdx ? null : tripIdx)}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TripTimelineEnhanced({ vehicle }) {
   const [expanded, setExpanded] = useState(null);
   const [days, setDays] = useState(7);
@@ -355,23 +442,27 @@ export default function TripTimelineEnhanced({ vehicle }) {
             </div>
           </div>
 
-          {/* Trip list */}
+          {/* Trip list — grouped by day */}
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
-            {trips.map((trip, i) => {
-              const geo = geocodedTrips[trip.trip_id];
-              const mergedTrip = geo
-                ? { ...trip, start_location: geo.start_location, end_location: geo.end_location, stops: geo.stops }
-                : trip;
-              return (
-                <TripCard
-                  key={trip.trip_id || i}
-                  trip={mergedTrip}
-                  breadcrumbs={breadcrumbs}
-                  isExpanded={expanded === i}
-                  onToggle={() => setExpanded(expanded === i ? null : i)}
-                />
-              );
-            })}
+            {(() => {
+              const dayGroups = groupTripsByDay(trips);
+              let runningIndex = 0;
+              return dayGroups.map((dg) => {
+                const idx = runningIndex;
+                runningIndex += dg.trips.length;
+                return (
+                  <DayGroup
+                    key={dg.date}
+                    dayGroup={dg}
+                    breadcrumbs={breadcrumbs}
+                    geocodedTrips={geocodedTrips}
+                    expanded={expanded}
+                    setExpanded={setExpanded}
+                    globalIndex={idx}
+                  />
+                );
+              });
+            })()}
           </div>
         </>
       )}
