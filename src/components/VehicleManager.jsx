@@ -17,14 +17,20 @@ function getMaintenanceStatus(vehicle) {
   const today = new Date();
   const issues = [];
   if (vehicle.mot_expiry) {
-    const days = differenceInDays(new Date(vehicle.mot_expiry + 'T00:00:00'), today);
-    if (days < 0) issues.push({ label: 'MOT Expired', severity: 'expired', days });
-    else if (days <= 30) issues.push({ label: 'MOT Due', severity: 'warning', days });
+    const d = new Date(vehicle.mot_expiry + 'T00:00:00');
+    if (!isNaN(d.getTime())) {
+      const days = differenceInDays(d, today);
+      if (days < 0) issues.push({ label: 'MOT Expired', severity: 'expired', days });
+      else if (days <= 30) issues.push({ label: 'MOT Due', severity: 'warning', days });
+    }
   }
   if (vehicle.service_due_date) {
-    const days = differenceInDays(new Date(vehicle.service_due_date + 'T00:00:00'), today);
-    if (days < 0) issues.push({ label: 'Service Overdue', severity: 'expired', days });
-    else if (days <= 30) issues.push({ label: 'Service Due', severity: 'warning', days });
+    const d = new Date(vehicle.service_due_date + 'T00:00:00');
+    if (!isNaN(d.getTime())) {
+      const days = differenceInDays(d, today);
+      if (days < 0) issues.push({ label: 'Service Overdue', severity: 'expired', days });
+      else if (days <= 30) issues.push({ label: 'Service Due', severity: 'warning', days });
+    }
   }
   return issues;
 }
