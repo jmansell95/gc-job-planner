@@ -198,26 +198,46 @@ function hasForceCompleteMarker(jobName) {
 //   force-complete marker  → completed (explicit planner override)
 //   no dates               → planning
 //   has subcontractors     → in_progress (subcon jobs stay active until [DONE])
-//   last date in the past  → completed (job has finished)
-//   last date today/future → in_progress (actively being worked)
-// A job is only "active" if it has assignments dated today or later.
-// Past jobs are completed — no 30-day grace window.
+//   has dates this week    → in_progress (actively being worked this week)
+//   all dates before this week → completed (job has finished)
+//   all dates after this week → planning (future-planned, not started yet)
+// Uses REAL (non-carried-forward) dates only — carry-forward from merged
+// cells would otherwise extend completed jobs into the current week, and
+// date extrapolation can create false future assignments. A job is only
+// "in_progress" if it has a real assignment in the current week (Mon–Sun).
 // Subcontractor jobs don't follow the weekly rota pattern of direct staff —
 // a subcon crew can be on a job for months without a new rota entry being
 // added each week, so subcon jobs remain active until marked [DONE].
-function determineJobStatus(dates, jobName, hasSubbies) {
+function determineJobStatus(dates, jobName, hasSubbies, allDates) {
   if (hasForceCompleteMarker(jobName)) return 'completed';
   if (!dates || dates.length === 0) return 'planning';
-  // Jobs with subcontractors stay active until explicitly marked complete.
-  // Subcon crews don't follow the weekly rota pattern of direct staff — a
-  // subcon crew can be on a job for months without a new rota entry being
-  // added each week, so subcon jobs remain active until marked [DONE].
-  if (hasSubbies) return 'in_progress';
   const sorted = [...dates].sort();
   const lastDate = sorted[sorted.length - 1];
-  // Only jobs with assignments today or in the future are "in_progress".
-  if (lastDate >= TODAY) return 'in_progress';
-  return 'completed';
+  const firstDate = sorted[0];
+  // Current week boundaries (Mon–Sun of the week containing TODAY)
+  const thisWeekStart = getWeekStart(TODAY);
+  const wsDate = new Date(thisWeekStart + 'T00:00:00Z');
+  wsDate.setUTCDate(wsDate.getUTCDate() + 6);
+  const thisWeekEnd = wsDate.toISOString().slice(0, 10);
+  // Check current week using ALL dates (including carry-forward) — a merged
+  // cell means the planner intends the person to be on that job all week.
+  const checkDates = allDates || dates;
+  const hasThisWeek = checkDates.some(d => d >= thisWeekStart && d <= thisWeekEnd);
+  if (hasThisWeek) return 'in_progress';
+  // Subcontractor jobs: 4-week grace period (subcon crews don't get weekly
+  // rota entries, so the job may still be active without a rota this week).
+  if (hasSubbies) {
+    const cutoffDate = new Date(thisWeekStart + 'T00:00:00Z');
+    cutoffDate.setUTCDate(cutoffDate.getUTCDate() - 28);
+    const cutoff = cutoffDate.toISOString().slice(0, 10);
+    if (lastDate >= cutoff) return 'in_progress';
+    return 'completed';
+  }
+  // All assignments before this week → completed
+  if (lastDate < thisWeekStart) return 'completed';
+  // All assignments after this week → planning (future-planned, not started)
+  if (firstDate > thisWeekEnd) return 'planning';
+  return 'in_progress';
 }
 
 function isPlantPlannerSheet(sheetName) {
@@ -1163,6 +1183,7 @@ export default async function(req) {
     const uniqueJobBaseKeys = new Set();
     const jobNameByBaseKey = {};
     const jobDatesByBaseKey = {};
+    const jobRealDatesByBaseKey = {}; // real (non-carried-forward) dates only — used for status
     const jobRefByBaseKey = {};  // canonical base key → job reference (lowercase)
     for (const a of allAssignments) {
       if (!a.job_name) continue;
@@ -1179,6 +1200,11 @@ export default async function(req) {
       if (a.date) {
         if (!jobDatesByBaseKey[baseKey]) jobDatesByBaseKey[baseKey] = [];
         jobDatesByBaseKey[baseKey].push(a.date);
+        // Track real (non-carried-forward) dates separately for status
+        if (!a.carried_forward) {
+          if (!jobRealDatesByBaseKey[baseKey]) jobRealDatesByBaseKey[baseKey] = [];
+          jobRealDatesByBaseKey[baseKey].push(a.date);
+        }
       }
     }
 
@@ -1206,7 +1232,7 @@ export default async function(req) {
         keyToMaster[key] = master;
       }
       // Merge data into master entries
-      const mergedName = {}, mergedDates = {}, mergedRef = {};
+      const mergedName = {}, mergedDates = {}, mergedRealDates = {}, mergedRef = {};
       for (const key of uniqueJobBaseKeys) {
         const master = keyToMaster[key];
         const thisParsed = parseJobName(jobNameByBaseKey[key]);
@@ -1217,12 +1243,15 @@ export default async function(req) {
         if (jobRefByBaseKey[key] && !mergedRef[master]) mergedRef[master] = jobRefByBaseKey[key];
         if (!mergedDates[master]) mergedDates[master] = [];
         mergedDates[master].push(...(jobDatesByBaseKey[key] || []));
+        if (!mergedRealDates[master]) mergedRealDates[master] = [];
+        mergedRealDates[master].push(...(jobRealDatesByBaseKey[key] || []));
       }
       uniqueJobBaseKeys.clear();
       for (const mk of masterKeys) uniqueJobBaseKeys.add(mk);
       for (const mk of masterKeys) {
         jobNameByBaseKey[mk] = mergedName[mk];
         jobDatesByBaseKey[mk] = mergedDates[mk];
+        jobRealDatesByBaseKey[mk] = mergedRealDates[mk];
         jobRefByBaseKey[mk] = mergedRef[mk];
       }
     }
@@ -1258,7 +1287,11 @@ export default async function(req) {
       const rawName = jobNameByBaseKey[baseKey];
       const parsed = parseJobName(rawName);
       const jobDates = (jobDatesByBaseKey[baseKey] || []).sort();
-      const jobStatus = determineJobStatus(jobDates, rawName, jobHasSubbies[baseKey]);
+      // Use real (non-carried-forward) dates for status — carry-forward from
+      // merged cells would otherwise extend completed jobs into the current
+      // week, and date extrapolation can create false future assignments.
+      const jobRealDates = (jobRealDatesByBaseKey[baseKey] || jobDatesByBaseKey[baseKey] || []).sort();
+      const jobStatus = determineJobStatus(jobRealDates, rawName, jobHasSubbies[baseKey], jobDates);
 
       let job = null;
       if (parsed.job_reference) job = jobByReference.get(parsed.job_reference.toLowerCase());
@@ -1885,6 +1918,7 @@ export default async function(req) {
       const rawName = jobNameByBaseKey[key];
       const parsed = parseJobName(rawName);
       const dates = (jobDatesByBaseKey[key] || []).sort();
+      const realDates = (jobRealDatesByBaseKey[key] || dates).sort();
       const jAssignments = allAssignments.filter(a => a.job_name && (keyToMaster[extractJobBaseKey(a.job_name)] || extractJobBaseKey(a.job_name)) === key);
       const staffList = [...new Set(jAssignments.map(a => a.staff_name))];
       const sections = [...new Set(jAssignments.map(a => a.crew_section).filter(Boolean))];
@@ -1892,7 +1926,7 @@ export default async function(req) {
         name: parsed.name,
         reference: parsed.job_reference || '',
         location: parsed.location || '',
-        status: determineJobStatus(dates, rawName, jobHasSubbies[key]),
+        status: determineJobStatus(realDates, rawName, jobHasSubbies[key], dates),
         start_date: dates.length ? dates[0] : '',
         end_date: dates.length ? dates[dates.length - 1] : '',
         assignment_count: dates.length,
@@ -1998,6 +2032,7 @@ export default async function(req) {
         completed: jobsBreakdown.filter(j => j.status === 'completed').length,
         in_progress: jobsBreakdown.filter(j => j.status === 'in_progress').length,
         planning: jobsBreakdown.filter(j => j.status === 'planning').length,
+        in_progress_detail: jobsBreakdown.filter(j => j.status === 'in_progress').map(j => ({ name: j.name, start: j.start_date, end: j.end_date, staff: j.staff_count, has_subbies: jobHasSubbies[Object.keys(jobHasSubbies).find(k => k === j.name)] || false })).slice(0, 30),
         filtered_as_non_jobs: allAssignments.filter(a => a.filtered_as_non_job).length,
         filtered_labels: [...new Set(allAssignments.filter(a => a.filtered_as_non_job).map(a => a.non_job_label))].slice(0, 50),
       },
