@@ -297,6 +297,7 @@ const NON_JOB_NAME_PATTERNS = [
   /^rig\s*repair$|^rig\s*maintenance$|^breakdown$/i,   // rig maintenance
   /^potholes$|^monitoring$|^deliveries$|^rigs$/i,     // overhead activities
   /^geotechnica$/i,                                   // company name, not a job
+  /^messenza$/i,                                       // company name, not a job
 ];
 
 // Role titles and column-header text that appear in spreadsheet date cells

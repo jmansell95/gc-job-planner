@@ -222,7 +222,7 @@ function isPlantPlannerSheet(sheetName) {
 //   • "Drillers" → Drilling team (latest)
 const TARGET_SHEET_PATTERNS = [
   /team\s*planner.*2026.*gw\+depot/i,
-  /^drillers$/i,
+  /drillers/i,
 ];
 
 function isTargetSheet(sheetName) {
