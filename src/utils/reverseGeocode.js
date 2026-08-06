@@ -18,12 +18,13 @@ export async function reverseGeocode(lat, lng) {
     if (res.ok) {
       const json = await res.json();
       if (json) {
-        const road = json.streetName || '';
+        // BigDataCloud returns `street` (not `streetName`) for the road name.
+        const road = json.street || json.streetName || '';
         const suburb = json.locality || json.subLocality || json.neighbourhood || '';
         const town = json.city || json.principalSubdivision || json.countryName || '';
         const parts = [road, suburb, town].filter(Boolean);
-        const label = parts.length > 0 ? parts.join(', ') : (json.locality || json.city || 'Unknown location');
-        if (label && label !== 'Unknown location') {
+        const label = parts.length > 0 ? parts.join(', ') : '';
+        if (label) {
           cache.set(key, label);
           return label;
         }
@@ -33,10 +34,9 @@ export async function reverseGeocode(lat, lng) {
     // network error — fall through
   }
 
-  // Do NOT cache failures — BigDataCloud may have had a transient hiccup.
-  // If we cache 'Unknown location', that coordinate is poisoned for the whole
-  // session and won't recover even after the API comes back.
-  return 'Unknown location';
+  // Fall back to coordinates rather than "Unknown location" — gives the user
+  // at least some context. Do NOT cache failures so transient errors recover.
+  return `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`;
 }
 
 // Batch geocode multiple coordinate pairs with caching.
@@ -55,9 +55,15 @@ export async function batchReverseGeocode(coords) {
       unique.push({ lat, lng, key });
     }
   }
-  // Geocode unique uncached coordinates in parallel (BigDataCloud has no rate limit)
-  await Promise.all(unique.map(async ({ lat, lng, key }) => {
-    results[key] = await reverseGeocode(lat, lng);
-  }));
+  // Process in small batches to avoid overwhelming the browser's connection
+  // pool (browsers limit ~6 concurrent connections per origin). Sending 100+
+  // parallel requests causes some to fail silently, returning "Unknown location".
+  const BATCH_SIZE = 8;
+  for (let i = 0; i < unique.length; i += BATCH_SIZE) {
+    const batch = unique.slice(i, i + BATCH_SIZE);
+    await Promise.all(batch.map(async ({ lat, lng, key }) => {
+      results[key] = await reverseGeocode(lat, lng);
+    }));
+  }
   return results;
 }

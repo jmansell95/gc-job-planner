@@ -1,33 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, CircleMarker } from 'react-leaflet';
 import { MapPin, Clock, Navigation, ExternalLink, Loader2 } from 'lucide-react';
+import { reverseGeocode } from '@/utils/reverseGeocode';
 
 /**
  * A small, non-interactive Leaflet "snapshot" map showing a vehicle's last
  * known GPS position. Designed to sit inside a fleet card — no zoom controls,
  * no dragging, just a static pin thumbnail with a last-seen timestamp and
- * a Google Maps link.
+ * a Google Maps link. Uses the same shared reverseGeocode utility as the
+ * trip history so location labels are consistent across the app.
  */
 export default function VehicleLocationMiniMap({ lat, lng, timestamp, ignition_on, speed_kph, driver_name }) {
   const [address, setAddress] = useState(null);
   const [addrLoading, setAddrLoading] = useState(false);
 
-  // Reverse geocode the coordinates to a human-readable address using
-  // BigDataCloud's free API (no rate limits, no key required).
+  // Reverse geocode using the shared utility (same as trip history).
   useEffect(() => {
     if (lat == null || lng == null) { setAddress(null); return; }
     let cancelled = false;
     setAddrLoading(true);
-    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (cancelled) return;
-        if (!data) { setAddress(null); return; }
-        const parts = [data.street, data.locality, data.city, data.principalSubdivision].filter(Boolean);
-        setAddress(parts.length > 0 ? parts.join(', ') : `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-      })
-      .catch(() => { if (!cancelled) setAddress(null); })
-      .finally(() => { if (!cancelled) setAddrLoading(false); });
+    reverseGeocode(lat, lng).then(label => {
+      if (!cancelled) setAddress(label);
+    }).finally(() => {
+      if (!cancelled) setAddrLoading(false);
+    });
     return () => { cancelled = true; };
   }, [lat, lng]);
 

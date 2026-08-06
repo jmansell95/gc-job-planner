@@ -242,7 +242,7 @@ function groupTripsByDay(trips) {
 
 // Day group header with daily stats
 function DayGroup({ dayGroup, breadcrumbs, geocodedTrips, expanded, setExpanded, globalIndex }) {
-  const [dayOpen, setDayOpen] = useState(true);
+  const [dayOpen, setDayOpen] = useState(false);
   const dateObj = new Date(dayGroup.date + 'T00:00:00');
   const isToday = dayGroup.date === new Date().toISOString().slice(0, 10);
   const dayLabel = dateObj.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
@@ -327,16 +327,13 @@ export default function TripTimelineEnhanced({ vehicle }) {
     enabled: !!vehicle?.id && !!vehicle?.geotab_device_id,
   });
 
-  // Frontend geocoding fallback — the backend function's external geocoding
-  // calls can fail in the edge runtime. When the backend returns "Unknown
-  // location" for trip start/end points, we geocode the coordinates here in
-  // the browser where BigDataCloud is reliably accessible.
+  // Frontend geocoding — the backend function's external geocoding calls can
+  // fail in the edge runtime. We always geocode trip coordinates here in the
+  // browser where BigDataCloud is reliably accessible. The cache prevents
+  // redundant API calls for coordinates already resolved.
   const trips = data?.trips || [];
   useEffect(() => {
-    const needsGeocoding = trips.some(t =>
-      (t.start_location === 'Unknown location' || !t.start_location) && t.start_lat != null
-    );
-    if (!needsGeocoding) return;
+    if (trips.length === 0) return;
     let cancelled = false;
     (async () => {
       const coords = [];
