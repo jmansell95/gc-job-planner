@@ -17,6 +17,8 @@ const DEFAULT_CONFIG = {
   api_key: '',
   request_url: '',
   host: '',
+  method: 'GET',
+  body_template: '',
   // DVLA legacy fields (kept for backward compat)
   mot_history_api_key: '',
   use_test_environment: false,
@@ -311,6 +313,30 @@ export default function DvlaSettings() {
               <input type="text" value={config.host} onChange={e => setConfig({ ...config, host: e.target.value })}
                 placeholder="auto-detected from URL" className={`${inputCls} font-mono`} />
             </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">HTTP Method</label>
+              <p className="text-[11px] text-slate-400 mb-2">Most RapidAPI vehicle endpoints use GET with the reg in the URL. The <strong>UK Vehicle Data</strong> API uses POST with a JSON body — pick POST for that one.</p>
+              <div className="flex gap-2">
+                <button onClick={() => setConfig({ ...config, method: 'GET' })}
+                  className={`flex-1 px-3 py-2.5 rounded-lg border-2 text-sm font-semibold transition ${config.method !== 'POST' ? 'border-violet-500 bg-violet-50 text-violet-900' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}>
+                  GET <span className="text-[11px] font-normal block">reg in URL</span>
+                </button>
+                <button onClick={() => setConfig({ ...config, method: 'POST' })}
+                  className={`flex-1 px-3 py-2.5 rounded-lg border-2 text-sm font-semibold transition ${config.method === 'POST' ? 'border-violet-500 bg-violet-50 text-violet-900' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}>
+                  POST <span className="text-[11px] font-normal block">reg in body</span>
+                </button>
+              </div>
+            </div>
+
+            {config.method === 'POST' && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Request Body Template</label>
+                <p className="text-[11px] text-slate-400 mb-2">JSON body sent with each lookup. Use <code className="bg-slate-100 px-1 rounded">{'{reg}'}</code> where the registration goes — it's replaced automatically. Default works for the UK Vehicle Data API.</p>
+                <input type="text" value={config.body_template || ''} onChange={e => setConfig({ ...config, body_template: e.target.value })}
+                  placeholder='{"vrm": "{reg}"}' className={`${inputCls} font-mono`} />
+              </div>
+            )}
           </>
         ) : (
           <>

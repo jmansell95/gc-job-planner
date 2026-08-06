@@ -210,10 +210,12 @@ function normaliseDate(val: any): string | null {
 async function lookupRapidAPI(base44: any, vehicle: any, config: any, force: boolean): Promise<any> {
   const reg = vehicle.registration_number.replace(/\s+/g, '').toUpperCase();
 
-  // Build the URL — replace {reg} placeholder
-  let url = config.request_url;
-  if (!url.includes('{reg}')) {
-    // If no placeholder, append registration as a query param
+  // Build the URL — replace {reg} placeholder if present
+  let url = (config.request_url || '').trim();
+  if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+  const hasRegPlaceholder = url.includes('{reg}');
+  if (!hasRegPlaceholder && config.method !== 'POST') {
+    // GET with no placeholder — append registration as a query param
     url += (url.includes('?') ? '&' : '?') + 'registration={reg}';
   }
   url = url.replace('{reg}', encodeURIComponent(reg));
@@ -229,7 +231,16 @@ async function lookupRapidAPI(base44: any, vehicle: any, config: any, force: boo
   };
   if (host) headers['x-rapidapi-host'] = host;
 
-  const res = await fetch(url, { method: 'GET', headers });
+  // POST APIs (e.g. UK Vehicle Data) send the VRM in a JSON body.
+  const method = (config.method || 'GET').toUpperCase();
+  const fetchOpts: any = { method, headers };
+  if (method === 'POST') {
+    headers['Content-Type'] = 'application/json';
+    const bodyTpl = config.body_template || '{"vrm": "{reg}"}';
+    fetchOpts.body = bodyTpl.replace('{reg}', reg);
+  }
+
+  const res = await fetch(url, fetchOpts);
 
   if (res.status === 404) {
     const update: any = {
