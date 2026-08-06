@@ -23,6 +23,35 @@
       "format": "date",
       "description": "MOT expiry date"
     },
+    "mot_status": {
+      "type": "string",
+      "enum": [
+        "valid",
+        "not_valid",
+        "no_details",
+        "not_found",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Current MOT status pulled from DVLA. 'valid' = MOT is valid and in date, 'not_valid' = MOT expired or failed, 'no_details' = DVLA holds no MOT details, 'not_found' = vehicle not found in DVLA, 'unknown' = not yet checked."
+    },
+    "tax_due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Vehicle tax (VED) due date, pulled from the DVLA Vehicle Enquiry Service."
+    },
+    "tax_status": {
+      "type": "string",
+      "enum": [
+        "taxed",
+        "untaxed",
+        "sorn",
+        "not_found",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Current tax (VED) status pulled from DVLA. 'taxed' = tax valid and in date, 'untaxed' = tax expired, 'sorn' = declared off-road, 'not_found' = vehicle not found in DVLA, 'unknown' = not yet checked."
+    },
     "service_due_date": {
       "type": "string",
       "format": "date",
@@ -47,15 +76,15 @@
     },
     "make": {
       "type": "string",
-      "description": "Vehicle manufacturer (e.g. Ford, Mercedes, Iveco). Pulled from Geotab VehicleType during sync."
+      "description": "Vehicle manufacturer (e.g. Ford, Mercedes, Iveco). Authoritative source is the DVLA Vehicle Enquiry Service; Geotab is used as a fallback during sync."
     },
     "model": {
       "type": "string",
-      "description": "Vehicle model (e.g. Transit, Sprinter, Daily). Pulled from Geotab VehicleType during sync."
+      "description": "Vehicle model (e.g. Transit, Sprinter, Daily). DVLA VES does not return model \u2014 it is pulled from the DVLA MOT History API when available, or from Geotab/manual entry as a fallback."
     },
     "year": {
       "type": "number",
-      "description": "Vehicle model year. Pulled from Geotab VehicleType during sync."
+      "description": "Vehicle model year. Pulled from the DVLA Vehicle Enquiry Service (yearOfManufacture) during sync."
     },
     "fuel_type": {
       "type": "string",
@@ -69,7 +98,7 @@
         "unknown"
       ],
       "default": "unknown",
-      "description": "Fuel type. Pulled from Geotab VehicleType during sync."
+      "description": "Fuel type. Authoritative source is the DVLA Vehicle Enquiry Service; Geotab is used as a fallback during sync."
     },
     "vehicle_type": {
       "type": "string",
@@ -77,7 +106,20 @@
     },
     "color": {
       "type": "string",
-      "description": "Vehicle colour for quick visual identification in the yard."
+      "description": "Vehicle colour for quick visual identification in the yard. Pulled from the DVLA Vehicle Enquiry Service during sync."
+    },
+    "engine_capacity_cc": {
+      "type": "number",
+      "description": "Engine capacity in cubic centimetres, pulled from the DVLA Vehicle Enquiry Service during sync."
+    },
+    "co2_emissions_g_km": {
+      "type": "number",
+      "description": "CO2 emissions in g/km, pulled from the DVLA Vehicle Enquiry Service during sync. Used for VED tax band and environmental reporting."
+    },
+    "first_used_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the vehicle was first used on the road, pulled from the DVLA MOT History API during sync."
     },
     "geotab_device_id": {
       "type": "string",
@@ -108,7 +150,7 @@
     },
     "current_mileage": {
       "type": "number",
-      "description": "Latest odometer reading in miles, pulled from Holman fleet data or Geotab odometer readings."
+      "description": "Latest odometer reading in miles, pulled from Holman fleet data, Geotab odometer readings, or the latest DVLA MOT test."
     },
     "holman_sync_status": {
       "type": "string",
@@ -125,6 +167,10 @@
       "type": "string",
       "description": "ISO timestamp of the last successful Holman sync for this vehicle."
     },
+    "last_dvla_sync": {
+      "type": "string",
+      "description": "ISO timestamp of the last successful DVLA spec + MOT history sync for this vehicle."
+    },
     "spec_lookup_confidence": {
       "type": "string",
       "enum": [
@@ -134,7 +180,7 @@
         "none"
       ],
       "default": "none",
-      "description": "Confidence level of the last LLM web-search spec lookup. 'high' = make+model+year all returned, 'medium' = make+model only, 'low' = partial/uncertain data, 'none' = no lookup performed. Low-confidence vehicles should be manually reviewed."
+      "description": "Confidence level of the last DVLA spec lookup. 'high' = DVLA VES returned full data, 'medium' = partial data returned, 'low' = vehicle not found / errors, 'none' = no lookup performed."
     }
   },
   "required": [
