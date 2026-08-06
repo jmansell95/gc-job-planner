@@ -4,19 +4,29 @@ import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import {
   Zap, KeyRound, Link2, ToggleLeft, ToggleRight, Clock,
-  CheckCircle2, AlertCircle, Loader2, Copy, Power, RefreshCw, Radio,
+  CheckCircle2, AlertCircle, Loader2, Copy, Power, Radio,
+  ShieldCheck, FileCode, Webhook, Eye, EyeOff, RefreshCw,
 } from 'lucide-react';
+
+function generateToken(prefix = 'klb') {
+  const chars = '0123456789abcdef';
+  let s = `${prefix}_`;
+  for (let i = 0; i < 40; i++) s += chars[Math.floor(Math.random() * 16)];
+  return s;
+}
 
 export default function AGSAutoSyncSection() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [secret, setSecret] = useState('');
-  const [intervalMin, setIntervalMin] = useState(30);
+  const [bearerToken, setBearerToken] = useState('');
+  const [signingSecret, setSigningSecret] = useState('');
+  const [signingEnabled, setSigningEnabled] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [showToken, setShowToken] = useState(false);
+  const [showSigning, setShowSigning] = useState(false);
+  const [copiedField, setCopiedField] = useState(null);
 
   const { data: config, isLoading } = useQuery({
     queryKey: ['keylogbook-config'],
@@ -36,25 +46,25 @@ export default function AGSAutoSyncSection() {
 
   useEffect(() => {
     if (config) {
-      setSecret(config.ags_sync_secret || '');
-      setIntervalMin(config.ags_sync_interval_minutes || 30);
+      setBearerToken(config.ags_sync_secret || '');
+      setSigningSecret(config.ags_webhook_signing_secret || '');
+      setSigningEnabled(!!config.ags_webhook_signing_enabled);
       setEnabled(!!config.ags_sync_enabled);
     }
   }, [config]);
 
-  // Build the AGS push endpoint URL from the app base URL
   const appBaseUrl = appSetting?.app_base_url || '';
-  const agsEndpointUrl = appBaseUrl
-    ? `${appBaseUrl.replace(/\/$/, '')}/functions/importAGS`
-    : '';
+  const webhookUrl = appBaseUrl ? `${appBaseUrl.replace(/\/$/, '')}/functions/importAGS` : '';
 
   const handleSave = async () => {
     setSaving(true);
     try {
       const payload = {
-        ags_sync_secret: secret.trim(),
-        ags_sync_interval_minutes: intervalMin,
+        ags_sync_secret: bearerToken.trim(),
+        ags_webhook_signing_secret: signingSecret.trim(),
+        ags_webhook_signing_enabled: signingEnabled,
         ags_sync_enabled: enabled,
+        ags_webhook_auth_method: 'bearer',
       };
       if (config?.id) {
         await base44.entities.KeyLogBookConfig.update(config.id, payload);
@@ -62,37 +72,27 @@ export default function AGSAutoSyncSection() {
         await base44.entities.KeyLogBookConfig.create({ key: 'global', ...payload });
       }
       queryClient.invalidateQueries({ queryKey: ['keylogbook-config'] });
-      toast({ title: 'AGS auto-sync settings saved', description: 'Configuration updated.' });
+      toast({ title: 'Webhook settings saved', description: 'Configuration updated.' });
     } catch (e) {
       toast({ title: 'Save failed', description: e.message, variant: 'destructive' });
     }
     setSaving(false);
   };
 
-  const handleCopy = () => {
-    if (!agsEndpointUrl) return;
-    navigator.clipboard.writeText(agsEndpointUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = (field, value) => {
+    if (!value) return;
+    navigator.clipboard.writeText(value);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handleTestSync = async () => {
-    setTesting(true);
-    try {
-      // Trigger a manual test by invoking importAGS with a flag
-      // This simulates what KeyLogBook will do automatically
-      toast({ title: 'Test sync triggered', description: 'Check the last sync status below for results.' });
-      queryClient.invalidateQueries({ queryKey: ['keylogbook-config'] });
-    } catch (e) {
-      toast({ title: 'Test failed', description: e.message, variant: 'destructive' });
-    }
-    setTesting(false);
-  };
+  const handleGenerateToken = () => setBearerToken(generateToken('klb'));
+  const handleGenerateSigning = () => setSigningSecret(generateToken('klb_sig'));
 
   const statusConfig = {
-    success: { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', label: 'Synced successfully' },
-    failed: { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', label: 'Sync failed' },
-    never: { icon: Radio, color: 'text-slate-400', bg: 'bg-slate-50', label: 'No sync yet' },
+    success: { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', label: 'Last webhook processed successfully' },
+    failed: { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', label: 'Last webhook failed' },
+    never: { icon: Radio, color: 'text-slate-400', bg: 'bg-slate-50', label: 'No webhooks received yet' },
   };
   const lastStatus = config?.last_ags_sync_status || 'never';
   const StatusIcon = statusConfig[lastStatus].icon;
@@ -102,12 +102,12 @@ export default function AGSAutoSyncSection() {
       {/* Header */}
       <div className="flex items-center gap-2.5">
         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-          <Zap className="w-5 h-5 text-white" />
+          <Webhook className="w-5 h-5 text-white" />
         </div>
         <div className="min-w-0">
-          <h3 className="text-sm font-bold text-slate-900">Automated AGS File Sync</h3>
+          <h3 className="text-sm font-bold text-slate-900">KeyLogBook AGS Webhook</h3>
           <p className="text-xs text-slate-500">
-            KeyLogBook pushes a whole-job AGS file here automatically every {intervalMin} minutes — borehole data stays live without manual uploads.
+            KeyLogBook pushes AGS files automatically whenever a borehole is created, updated, or deleted — no manual uploads needed.
           </p>
         </div>
       </div>
@@ -117,85 +117,130 @@ export default function AGSAutoSyncSection() {
         <div className="flex items-center gap-2.5 min-w-0">
           <Power className="w-4 h-4 text-slate-500 flex-shrink-0" />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-800">Enable automated AGS push</p>
-            <p className="text-xs text-slate-500">Master switch — incoming AGS pushes are rejected when off.</p>
+            <p className="text-sm font-semibold text-slate-800">Enable AGS webhook sync</p>
+            <p className="text-xs text-slate-500">Master switch — incoming webhooks are rejected when off.</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setEnabled(!enabled)}
-          className={`flex-shrink-0 transition ${enabled ? 'text-amber-600' : 'text-slate-300'}`}
-        >
+        <button type="button" onClick={() => setEnabled(!enabled)}
+          className={`flex-shrink-0 transition ${enabled ? 'text-amber-600' : 'text-slate-300'}`}>
           {enabled ? <ToggleRight className="w-10 h-10" /> : <ToggleLeft className="w-10 h-10" />}
         </button>
       </div>
 
-      {/* Endpoint URL */}
+      {/* Webhook endpoint URL */}
       <div>
         <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5 mb-1.5">
-          <Link2 className="w-4 h-4 text-slate-400" /> AGS push endpoint URL
+          <Link2 className="w-4 h-4 text-slate-400" /> Webhook endpoint URL
         </label>
         <p className="text-xs text-slate-500 mb-2">
-          Give this URL to your KeyLogBook developer. They POST the AGS file here every {intervalMin} minutes.
+          Give this URL to your KeyLogBook developer. They configure it in their KLB webhook settings to receive hole events.
         </p>
-        {agsEndpointUrl ? (
+        {webhookUrl ? (
           <div className="flex items-center gap-2">
             <code className="flex-1 px-3 py-2.5 bg-slate-900 text-amber-300 rounded-lg text-xs font-mono break-all">
-              {agsEndpointUrl}
+              {webhookUrl}
             </code>
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="flex-shrink-0 p-2.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
-              title="Copy URL"
-            >
-              {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-600" />}
+            <button type="button" onClick={() => handleCopy('url', webhookUrl)}
+              className="flex-shrink-0 p-2.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition" title="Copy URL">
+              {copiedField === 'url' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-600" />}
             </button>
           </div>
         ) : (
           <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-100 rounded-lg">
             <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-amber-800">
-              Set your app's public base URL in <strong>Settings → Global Branding</strong> to generate the endpoint URL automatically.
+              Set your app's public base URL in <strong>Settings → Global Branding</strong> to generate the webhook URL automatically.
             </p>
           </div>
         )}
       </div>
 
-      {/* Shared secret */}
+      {/* Bearer token */}
       <div>
         <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5 mb-1.5">
-          <KeyRound className="w-4 h-4 text-slate-400" /> Shared secret (API key)
+          <KeyRound className="w-4 h-4 text-slate-400" /> Bearer token (authentication)
         </label>
         <p className="text-xs text-slate-500 mb-2">
-          A pre-shared key that KeyLogBook sends in the <code className="text-slate-600">Authorization: Bearer</code> header
-          with each AGS push. Enter the same value in your KeyLogBook integration settings.
+          KeyLogBook sends this in the <code className="text-slate-600 bg-slate-100 px-1 rounded">Authorization: Bearer</code> header with every webhook. Enter the same value in your KLB webhook auth settings.
         </p>
-        <input
-          type="text"
-          value={secret}
-          onChange={e => setSecret(e.target.value)}
-          placeholder="e.g. klb_ags_sync_s3cr3t_2026"
-          className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:border-amber-600 bg-white"
-        />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <input type={showToken ? 'text' : 'password'} value={bearerToken} onChange={e => setBearerToken(e.target.value)}
+              placeholder="Click generate to create a secure token"
+              className="w-full px-3 py-2.5 pr-20 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:border-amber-600 bg-white" />
+            <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+              <button type="button" onClick={() => setShowToken(!showToken)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded" title={showToken ? 'Hide' : 'Show'}>
+                {showToken ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+              <button type="button" onClick={() => handleCopy('token', bearerToken)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded" title="Copy">
+                {copiedField === 'token' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+          <button type="button" onClick={handleGenerateToken}
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-semibold hover:bg-amber-200 transition">
+            <RefreshCw className="w-3.5 h-3.5" /> Generate
+          </button>
+        </div>
       </div>
 
-      {/* Sync interval */}
-      <div>
-        <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5 mb-1.5">
-          <Clock className="w-4 h-4 text-slate-400" /> Sync interval (minutes)
-        </label>
-        <p className="text-xs text-slate-500 mb-2">
-          How often KeyLogBook pushes an AGS file. Confirm this matches the interval configured on their side.
+      {/* Request signing (HMAC-SHA256) */}
+      <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <ShieldCheck className="w-4 h-4 text-slate-500 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-800">Request signing (HMAC-SHA256)</p>
+              <p className="text-xs text-slate-500">Verify each webhook genuinely came from KeyLogBook. Recommended for security.</p>
+            </div>
+          </div>
+          <button type="button" onClick={() => setSigningEnabled(!signingEnabled)}
+            className={`flex-shrink-0 transition ${signingEnabled ? 'text-amber-600' : 'text-slate-300'}`}>
+            {signingEnabled ? <ToggleRight className="w-10 h-10" /> : <ToggleLeft className="w-10 h-10" />}
+          </button>
+        </div>
+        {signingEnabled && (
+          <div>
+            <p className="text-xs text-slate-500 mb-2">
+              Enter the signing secret that KeyLogBook generated for your webhook. The receiver independently calculates the HMAC-SHA256 signature and rejects mismatches.
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input type={showSigning ? 'text' : 'password'} value={signingSecret} onChange={e => setSigningSecret(e.target.value)}
+                  placeholder="Paste the KLB signing secret here"
+                  className="w-full px-3 py-2.5 pr-20 border border-slate-200 rounded-lg text-sm font-mono focus:outline-none focus:border-amber-600 bg-white" />
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                  <button type="button" onClick={() => setShowSigning(!showSigning)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded">
+                    {showSigning ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                  <button type="button" onClick={() => handleCopy('signing', signingSecret)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded">
+                    {copiedField === 'signing' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+              <button type="button" onClick={handleGenerateSigning}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:bg-slate-300 transition">
+                <RefreshCw className="w-3.5 h-3.5" /> Generate
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1.5">If you generate a secret here, enter it in your KLB webhook request-signing settings.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Event types */}
+      <div className="p-3.5 bg-blue-50 rounded-xl border border-blue-100">
+        <p className="text-sm font-semibold text-blue-900 flex items-center gap-1.5 mb-1.5">
+          <FileCode className="w-4 h-4" /> Event types to subscribe to
         </p>
-        <input
-          type="number"
-          min="5"
-          max="1440"
-          value={intervalMin}
-          onChange={e => setIntervalMin(parseInt(e.target.value) || 30)}
-          className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-amber-600 bg-white"
-        />
+        <p className="text-xs text-blue-700 mb-2">Tell your KeyLogBook developer to configure the webhook for these events:</p>
+        <div className="flex flex-wrap gap-2">
+          {['hole_created', 'hole_updated', 'hole_deleted'].map(evt => (
+            <span key={evt} className="px-2.5 py-1 bg-blue-100 text-blue-800 rounded-md text-xs font-mono font-semibold">
+              {evt}
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* Last sync status */}
@@ -203,15 +248,9 @@ export default function AGSAutoSyncSection() {
         <div className={`flex items-start gap-2.5 p-3.5 rounded-xl border ${statusConfig[lastStatus].bg} border-slate-100`}>
           <StatusIcon className={`w-4 h-4 ${statusConfig[lastStatus].color} flex-shrink-0 mt-0.5`} />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-800">
-              Last AGS sync: {statusConfig[lastStatus].label}
-            </p>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {new Date(config.last_ags_sync_at).toLocaleString('en-GB')}
-            </p>
-            {config.last_ags_sync_summary && (
-              <p className="text-xs text-slate-600 mt-1">{config.last_ags_sync_summary}</p>
-            )}
+            <p className="text-sm font-semibold text-slate-800">{statusConfig[lastStatus].label}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{new Date(config.last_ags_sync_at).toLocaleString('en-GB')}</p>
+            {config.last_ags_sync_summary && <p className="text-xs text-slate-600 mt-1">{config.last_ags_sync_summary}</p>}
           </div>
         </div>
       )}
@@ -221,42 +260,33 @@ export default function AGSAutoSyncSection() {
         <div className="flex items-center gap-2.5 p-3.5 bg-blue-50 border border-blue-100 rounded-xl">
           <Radio className="w-4 h-4 text-blue-500 flex-shrink-0 animate-pulse" />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-blue-800">Waiting for first AGS push…</p>
-            <p className="text-xs text-blue-600 mt-0.5">
-              Automated sync is enabled. Once KeyLogBook starts pushing files, the last sync status will appear here.
-            </p>
+            <p className="text-sm font-semibold text-blue-800">Waiting for first webhook…</p>
+            <p className="text-xs text-blue-600 mt-0.5">Sync is enabled. Once KeyLogBook starts sending events, the last sync status will appear here.</p>
           </div>
         </div>
       )}
 
-      {/* Action buttons */}
-      <div className="flex gap-3">
-        <button
-          onClick={handleSave}
-          disabled={saving || isLoading}
-          className="flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-          {saving ? 'Saving…' : 'Save Settings'}
-        </button>
-        <button
-          onClick={handleTestSync}
-          disabled={testing}
-          className="flex items-center justify-center gap-2 px-5 py-3 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          Test
-        </button>
-      </div>
+      {/* Save button */}
+      <button onClick={handleSave} disabled={saving || isLoading}
+        className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
+        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+        {saving ? 'Saving…' : 'Save Settings'}
+      </button>
 
-      {/* Info box for the developer */}
-      <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-        <p className="text-xs font-semibold text-slate-600 mb-1.5">📋 Give this to your KeyLogBook developer:</p>
-        <div className="space-y-1 text-xs text-slate-500 font-mono">
-          <p><span className="text-slate-400">POST</span> <span className="text-slate-700">{agsEndpointUrl || '<endpoint URL>'}</span></p>
-          <p><span className="text-slate-400">Headers:</span> <span className="text-slate-700">Authorization: Bearer {secret || '<your-secret>'}</span></p>
-          <p><span className="text-slate-400">Body:</span> <span className="text-slate-700">multipart/form-data — file: &lt;ags-file&gt;, job_id: &lt;optional&gt;</span></p>
-          <p><span className="text-slate-400">Interval:</span> <span className="text-slate-700">every {intervalMin} minutes</span></p>
+      {/* Developer instructions */}
+      <div className="bg-slate-900 rounded-xl p-4 space-y-2">
+        <p className="text-xs font-semibold text-amber-300 mb-1.5 flex items-center gap-1.5">
+          <Zap className="w-3.5 h-3.5" /> Give this to your KeyLogBook developer:
+        </p>
+        <div className="space-y-1.5 text-xs font-mono">
+          <div className="flex gap-2"><span className="text-slate-500 w-16 flex-shrink-0">URL:</span><span className="text-slate-300 break-all">{webhookUrl || '<endpoint URL>'}</span></div>
+          <div className="flex gap-2"><span className="text-slate-500 w-16 flex-shrink-0">Method:</span><span className="text-slate-300">POST</span></div>
+          <div className="flex gap-2"><span className="text-slate-500 w-16 flex-shrink-0">Auth:</span><span className="text-slate-300">Authorization: Bearer {bearerToken ? '••••••' : '<token>'}</span></div>
+          {signingEnabled && signingSecret && (
+            <div className="flex gap-2"><span className="text-slate-500 w-16 flex-shrink-0">Signing:</span><span className="text-slate-300">X-Hole-Signature: sha256=••••••</span></div>
+          )}
+          <div className="flex gap-2"><span className="text-slate-500 w-16 flex-shrink-0">Events:</span><span className="text-slate-300">hole_created, hole_updated, hole_deleted</span></div>
+          <div className="flex gap-2"><span className="text-slate-500 w-16 flex-shrink-0">Body:</span><span className="text-slate-300">JSON — event_type, hole_id, project_name, project_number, ags_file (Base64)</span></div>
         </div>
       </div>
     </div>

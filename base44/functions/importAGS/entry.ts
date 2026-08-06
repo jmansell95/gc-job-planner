@@ -1,6 +1,17 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 import { parseRemarks, professionaliseActivities, hasTimePattern, timeToMins, normaliseTime } from '../../shared/keylogbookRemarks.ts';
 
+// HMAC-SHA256 for KeyLogBook webhook request signing verification.
+// KLB sends X-Hole-Signature: sha256=<hex> when request signing is enabled.
+async function hmacSha256(secret: string, message: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(message));
+  return Array.from(new Uint8Array(signature)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // ============================================================
 // AGS v3/v4 parser with suffix-based field matching
 // ============================================================
@@ -409,23 +420,85 @@ Deno.serve(async (req) => {
     // provide the matching token. Internal app calls (from the settings UI)
     // are identified by the absence of an Authorization header and are allowed
     // through — the route guard already gates access to the settings page.
+    // --- KeyLogBook webhook authentication ---
+    // KeyLogBook sends event-based webhooks (hole_created, hole_updated,
+    // hole_deleted) with a JSON body containing a Base64-encoded AGS file and
+    // contextual fields (project_name, project_number, hole_id). Auth can be
+    // Bearer Token, Basic Auth, Custom Header, or Off. Optional HMAC-SHA256
+    // request signing via the X-Hole-Signature header verifies the payload.
+    const contentType = req.headers.get('content-type') || '';
+    const authHeader = req.headers.get('authorization') || '';
+    const sigHeader = req.headers.get('x-hole-signature') || '';
+
     let isExternalPush = false;
     let agsSyncConfig: any = null;
-    const authHeader = req.headers.get('authorization') || '';
-    if (authHeader.startsWith('Bearer ')) {
-      isExternalPush = true;
-      const token = authHeader.slice(7).trim();
-      try {
-        const configs = await base44.asServiceRole.entities.KeyLogBookConfig.filter({ key: 'global' });
-        agsSyncConfig = configs[0] || null;
-      } catch (e) { /* config not available */ }
+    try {
+      const configs = await base44.asServiceRole.entities.KeyLogBookConfig.filter({ key: 'global' });
+      agsSyncConfig = configs[0] || null;
+    } catch (e) { /* config not available */ }
 
+    // Read JSON body once for HMAC verification + KLB webhook detection
+    let rawBodyText = '';
+    let klbBody: any = null;
+    let isKlbWebhook = false;
+    let klbEventType = '';
+    let klbHoleId = '';
+    let klbProjectName = '';
+    let klbProjectNumber = '';
+
+    if (contentType.includes('application/json')) {
+      rawBodyText = await req.text();
+      try {
+        klbBody = JSON.parse(rawBodyText);
+        if (klbBody?.event_type && ['hole_created', 'hole_updated', 'hole_deleted'].includes(klbBody.event_type)) {
+          isKlbWebhook = true;
+          klbEventType = klbBody.event_type;
+          klbHoleId = klbBody.hole_id || klbBody.holeId || '';
+          klbProjectName = klbBody.project_name || klbBody.projectName || '';
+          klbProjectNumber = klbBody.project_number || klbBody.projectNumber || '';
+        }
+      } catch (e) { /* not JSON */ }
+    }
+
+    const hasAuthHeader = authHeader.startsWith('Bearer ') || authHeader.startsWith('Basic ');
+    const hasCustomAuth = !!(agsSyncConfig?.ags_webhook_custom_header_name && req.headers.get(agsSyncConfig.ags_webhook_custom_header_name));
+    isExternalPush = hasAuthHeader || hasCustomAuth || !!sigHeader || isKlbWebhook;
+
+    if (isExternalPush) {
       if (!agsSyncConfig || !agsSyncConfig.ags_sync_enabled) {
-        return Response.json({ error: 'Automated AGS sync is not enabled.' }, { status: 403 });
+        return Response.json({ error: 'KeyLogBook AGS sync is not enabled.' }, { status: 403 });
       }
-      const storedSecret = (agsSyncConfig.ags_sync_secret || '').trim();
-      if (!storedSecret || token !== storedSecret) {
-        return Response.json({ error: 'Invalid AGS sync credentials.' }, { status: 401 });
+
+      const authMethod = agsSyncConfig.ags_webhook_auth_method || 'bearer';
+      if (authMethod === 'bearer') {
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+        const storedSecret = (agsSyncConfig.ags_sync_secret || '').trim();
+        if (!storedSecret || token !== storedSecret) {
+          return Response.json({ error: 'Invalid Bearer token.' }, { status: 401 });
+        }
+      } else if (authMethod === 'basic') {
+        const expected = btoa(`${agsSyncConfig.ags_webhook_basic_user || ''}:${agsSyncConfig.ags_webhook_basic_pass || ''}`);
+        const provided = authHeader.startsWith('Basic ') ? authHeader.slice(6).trim() : '';
+        if (!provided || provided !== expected) {
+          return Response.json({ error: 'Invalid Basic auth credentials.' }, { status: 401 });
+        }
+      } else if (authMethod === 'custom_header') {
+        const headerName = agsSyncConfig.ags_webhook_custom_header_name || '';
+        const expectedValue = agsSyncConfig.ags_webhook_custom_header_value || '';
+        if (!expectedValue || req.headers.get(headerName) !== expectedValue) {
+          return Response.json({ error: 'Invalid custom header credentials.' }, { status: 401 });
+        }
+      }
+
+      // Verify HMAC-SHA256 request signing if enabled
+      if (agsSyncConfig.ags_webhook_signing_enabled && rawBodyText && sigHeader) {
+        const signingSecret = (agsSyncConfig.ags_webhook_signing_secret || '').trim();
+        if (signingSecret) {
+          const expectedSig = 'sha256=' + await hmacSha256(signingSecret, rawBodyText);
+          if (sigHeader !== expectedSig) {
+            return Response.json({ error: 'Invalid request signature.' }, { status: 401 });
+          }
+        }
       }
     }
 
@@ -441,26 +514,79 @@ Deno.serve(async (req) => {
     let user: any = null;
     try { user = await base44.auth.me(); } catch (e) { /* token not forwarded — proceed with service role */ }
 
-    // Accept the AGS file three ways for maximum compatibility:
-    //   1. Multipart form upload (preferred — functions.invoke with a File
-    //      object uses multipart/form-data, no JSON body size limit, no
-    //      admin-only UploadFile integration).
-    //   2. Raw text in a JSON body (file_content) — legacy inline path.
-    //   3. A previously-uploaded file URL (file_url) — legacy fallback.
+    // --- Handle hole_deleted event (no AGS file, just contextual info) ---
+    if (isKlbWebhook && klbEventType === 'hole_deleted') {
+      let delJob: any = null;
+      const allJobs = await base44.asServiceRole.entities.Job.list('-created_date', 500);
+      if (klbProjectNumber) {
+        const lc = klbProjectNumber.toLowerCase();
+        delJob = allJobs.find((j: any) => j.job_reference && j.job_reference.toLowerCase() === lc)
+          || allJobs.find((j: any) => j.name && j.name.toLowerCase() === lc)
+          || allJobs.find((j: any) => j.job_reference && j.job_reference.toLowerCase().includes(lc));
+      }
+      if (!delJob && klbProjectName) {
+        const lc = klbProjectName.toLowerCase();
+        delJob = allJobs.find((j: any) => j.name && j.name.toLowerCase() === lc)
+          || allJobs.find((j: any) => j.name && j.name.toLowerCase().includes(lc));
+      }
+
+      let deletedLogs = 0;
+      if (delJob) {
+        try {
+          const existing = await base44.asServiceRole.entities.InvestigationLog.filter({
+            job_id: delJob.id, borehole_ref: klbHoleId,
+            source: { $in: ['ags_import', 'keylogbook_remarks'] },
+          });
+          deletedLogs = existing.length;
+          if (deletedLogs > 0) {
+            await base44.asServiceRole.entities.InvestigationLog.deleteMany({
+              job_id: delJob.id, borehole_ref: klbHoleId,
+              source: { $in: ['ags_import', 'keylogbook_remarks'] },
+            });
+          }
+        } catch (e) { /* continue */ }
+      }
+
+      if (agsSyncConfig?.id) {
+        try {
+          await base44.asServiceRole.entities.KeyLogBookConfig.update(agsSyncConfig.id, {
+            last_ags_sync_at: new Date().toISOString(),
+            last_ags_sync_status: 'success',
+            last_ags_sync_summary: `Hole ${klbHoleId} deleted — removed ${deletedLogs} log entries${delJob ? ` from ${delJob.name}` : ''}.`,
+          });
+        } catch (e) { /* best-effort */ }
+      }
+
+      return Response.json({
+        status: 'success', event: 'hole_deleted', hole_id: klbHoleId,
+        job_id: delJob?.id || null, job_name: delJob?.name || null, deleted_logs: deletedLogs,
+      });
+    }
+
+    // Accept the AGS file four ways:
+    //   1. KLB webhook JSON (event_type + base64 ags_file) — the new event model.
+    //   2. Multipart form upload (UI — functions.invoke with a File object).
+    //   3. Raw text in a JSON body (file_content) — legacy inline path.
+    //   4. A previously-uploaded file URL (file_url) — legacy fallback.
     let text: string;
     let jobId: string | null = null;
-    const contentType = req.headers.get('content-type') || '';
-    if (contentType.includes('multipart/form-data')) {
+    if (isKlbWebhook && klbBody) {
+      const agsB64 = klbBody.ags_file || klbBody.agsFile || '';
+      if (!agsB64) return Response.json({ error: 'No AGS file provided for hole event.' }, { status: 400 });
+      try { text = atob(agsB64); } catch (e) {
+        return Response.json({ error: 'Could not decode Base64 AGS file.' }, { status: 400 });
+      }
+      jobId = klbBody.job_id || null;
+    } else if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
       const filePart = formData.get('file');
       jobId = (formData.get('job_id') as string) || null;
       if (!filePart) return Response.json({ error: 'An AGS file is required.' }, { status: 400 });
       text = await (filePart as File).text();
-    } else {
-      const body = await req.json();
-      const fileContent = body.file_content;
-      const fileUrl = body.file_url;
-      jobId = body.job_id || null;
+    } else if (klbBody) {
+      const fileContent = klbBody.file_content;
+      const fileUrl = klbBody.file_url;
+      jobId = klbBody.job_id || null;
       if (!fileContent && !fileUrl) return Response.json({ error: 'An AGS file is required.' }, { status: 400 });
       if (fileContent) {
         text = String(fileContent);
@@ -469,6 +595,8 @@ Deno.serve(async (req) => {
         if (!fileRes.ok) return Response.json({ error: 'Could not download AGS file' }, { status: 422 });
         text = await fileRes.text();
       }
+    } else {
+      return Response.json({ error: 'An AGS file is required.' }, { status: 400 });
     }
     const groups = parseAGS(text);
 
@@ -477,6 +605,21 @@ Deno.serve(async (req) => {
     let job: any = null;
     if (jobId) {
       try { job = await base44.asServiceRole.entities.Job.get(jobId); } catch (e) { job = null; }
+    }
+    // KLB webhook contextual fields take priority for job matching
+    if (!job && isKlbWebhook && (klbProjectNumber || klbProjectName)) {
+      const allJobs = await base44.asServiceRole.entities.Job.list('-created_date', 500);
+      if (klbProjectNumber) {
+        const lc = klbProjectNumber.toLowerCase();
+        job = allJobs.find((j: any) => j.job_reference && j.job_reference.toLowerCase() === lc)
+          || allJobs.find((j: any) => j.name && j.name.toLowerCase() === lc)
+          || allJobs.find((j: any) => j.job_reference && j.job_reference.toLowerCase().includes(lc));
+      }
+      if (!job && klbProjectName) {
+        const lc = klbProjectName.toLowerCase();
+        job = allJobs.find((j: any) => j.name && j.name.toLowerCase() === lc)
+          || allJobs.find((j: any) => j.name && j.name.toLowerCase().includes(lc));
+      }
     }
     if (!job && groups.PROJ && groups.PROJ.rows.length) {
       const proj = buildRow(groups.PROJ, groups.PROJ.rows[0]);
