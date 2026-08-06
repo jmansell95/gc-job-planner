@@ -71,11 +71,8 @@ export const SECONDARY_WIDGETS = [
 // localStorage. This replaces the old primary/secondary split.
 export const DEFAULT_WIDGETS = [
   'crew-deployment',
-  'field-priorities',
   'site-readiness',
   'off-hire-recon',
-  'live-site-map',
-  'site-weather',
 ];
 
 // Widgets that require costing permission (admin / manager only).

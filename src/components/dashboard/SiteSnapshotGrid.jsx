@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -12,6 +12,7 @@ import { getJobPrimaryType, getJobTypeLabel, getJobTypeColor } from '@/utils/job
 import { hasDiscipline, getJobDisciplines, getDisciplineConfig } from '@/utils/jobDisciplines';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
 import { Skeleton } from '@/components/StateViews';
+import { WEATHER_CODE_MAP, LEVEL_STYLES, assessConditions, fetchWeather } from '@/utils/siteWeather';
 
 const complianceConfig = {
   compliant: { icon: ShieldCheck, cls: 'text-emerald-600 bg-emerald-50 ring-emerald-200', dot: 'bg-emerald-500', label: 'Compliant' },
@@ -132,6 +133,16 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
     queryFn: () => base44.entities.DeliveryLeg.list('-created_date', 200),
   });
 
+  const { data: safetyReports = [] } = useQuery({
+    queryKey: ['safety-reports-snapshot'],
+    queryFn: () => base44.entities.SafetyReport.filter({ status: 'open' }, '-created_date', 50),
+  });
+
+  const { data: todayDeliveries = [] } = useQuery({
+    queryKey: ['deliveries-snapshot', todayStr],
+    queryFn: () => base44.entities.DeliveryLog.filter({ scheduled_date: todayStr, status: 'pending' }, '-created_date', 50),
+  });
+
   const assetMap = {};
   (assets || []).forEach(a => { assetMap[a.id] = a; });
 
@@ -142,6 +153,35 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
     scopedJobs = scopedJobs.filter(j => hasDiscipline(j, disciplineFilter));
   }
 
+  // Weather fetch for active sites with coordinates
+  const [weatherData, setWeatherData] = useState({});
+  const weatherJobs = useMemo(() => {
+    let active = isAll
+      ? jobs.filter(j => j.status === 'in_progress' || j.status === 'decommissioning')
+      : jobs.filter(j => j.id === selectedJobId);
+    if (disciplineFilter !== 'all') {
+      active = active.filter(j => hasDiscipline(j, disciplineFilter));
+    }
+    return active
+      .filter(j => j.site_lat != null && j.site_lng != null)
+      .map(j => ({ id: j.id, lat: j.site_lat, lng: j.site_lng }));
+  }, [jobs, isAll, selectedJobId, disciplineFilter]);
+  useEffect(() => {
+    if (weatherJobs.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const results = {};
+      await Promise.all(weatherJobs.map(async (job) => {
+        try {
+          const w = await fetchWeather(job.lat, job.lng);
+          results[job.id] = w;
+        } catch (_) { /* skip */ }
+      }));
+      if (!cancelled) setWeatherData(results);
+    })();
+    return () => { cancelled = true; };
+  }, [weatherJobs]);
+
   const logsByJob = {};
   invLogs.forEach(l => { if (!logsByJob[l.job_id]) logsByJob[l.job_id] = 0; logsByJob[l.job_id]++; });
 
@@ -150,6 +190,12 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
 
   const legsByJob = {};
   (deliveryLegs || []).forEach(l => { if (!legsByJob[l.job_id]) legsByJob[l.job_id] = []; legsByJob[l.job_id].push(l); });
+
+  const safetyByJob = {};
+  (safetyReports || []).forEach(r => { if (r.job_id) { if (!safetyByJob[r.job_id]) safetyByJob[r.job_id] = []; safetyByJob[r.job_id].push(r); } });
+
+  const deliveriesByJob = {};
+  (todayDeliveries || []).forEach(d => { if (d.job_id) { if (!deliveriesByJob[d.job_id]) deliveriesByJob[d.job_id] = []; deliveriesByJob[d.job_id].push(d); } });
 
   const activeAssetItems = (costItems || []).filter(c =>
     c.site_asset_id && c.site_asset_id.trim() !== '' &&
@@ -171,7 +217,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
     });
   });
 
-  const assessRisk = (job, jobRigs, jobRotas) => {
+  const assessRisk = (job, jobRigs, jobRotas, openSafety = 0, dueDeliveries = 0) => {
     const risks = [];
     const expiredRig = jobRigs.find(r => r.compliance_status === 'expired');
     const expiringRig = jobRigs.find(r => r.compliance_status === 'expiring');
@@ -184,6 +230,16 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
     const isDrilling = primaryType === 'cp_drilling' || primaryType === 'rotary_drilling';
     if (isDrilling && jobRigs.filter(r => r.asset_type === 'rig').length === 0) {
       risks.push({ level: 'info', reason: 'No rig assigned' });
+    }
+    const pendingBriefings = (jobRotas || []).filter(r => r.briefing_signed === false).length;
+    if (pendingBriefings > 0) {
+      risks.push({ level: 'warning', reason: `${pendingBriefings} briefing${pendingBriefings !== 1 ? 's' : ''} pending` });
+    }
+    if (openSafety > 0) {
+      risks.push({ level: 'critical', reason: `${openSafety} open safety item${openSafety !== 1 ? 's' : ''}` });
+    }
+    if (dueDeliveries > 0) {
+      risks.push({ level: 'info', reason: `${dueDeliveries} delivery${dueDeliveries !== 1 ? 's' : ''} due today` });
     }
     return risks;
   };
@@ -275,7 +331,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
           const crewToday = jobRotas.map(r => staff.find(s => s.id === r.staff_id)).filter(Boolean);
           const primaryType = getJobPrimaryType(job, teams);
           const st = statusBadge[job.status] || statusBadge.in_progress;
-          const risks = assessRisk(job, jobRigs, jobRotas);
+          const risks = assessRisk(job, jobRigs, jobRotas, safetyByJob[job.id]?.length || 0, deliveriesByJob[job.id]?.length || 0);
           const hasCritical = risks.some(r => r.level === 'critical');
           const activityCount = logsByJob[job.id] || 0;
 
@@ -325,6 +381,19 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                     {methodLabel && (
                       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200">{methodLabel}</span>
                     )}
+                    {weatherData[job.id] && (() => {
+                      const w = weatherData[job.id];
+                      const wInfo = WEATHER_CODE_MAP[w?.current?.weather_code] || WEATHER_CODE_MAP[3];
+                      const WeatherIcon = wInfo.icon;
+                      const temp = w?.current ? Math.round(w.current.temperature_2m) : '—';
+                      const assessment = assessConditions(w.current, w.daily?.[0]);
+                      const lvl = LEVEL_STYLES[assessment.level];
+                      return (
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${lvl.bg} border ${lvl.border} ${lvl.text}`}>
+                          <WeatherIcon className="w-3 h-3" />{temp}°{assessment.level !== 'good' ? ` · ${lvl.label}` : ''}
+                        </span>
+                      );
+                    })()}
                     {job.job_reference && (
                       <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">{job.job_reference}</span>
                     )}
