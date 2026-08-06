@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Lock, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart } from 'lucide-react';
+import React from 'react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart } from 'lucide-react';
 import { normalizePermissions } from '@/utils/permissions';
 
 export const settingsGroups = [
@@ -128,59 +128,7 @@ export function accessibleSettingsItems(role, profile) {
   return allSettingsItems.filter(i => !i.roles || i.roles.includes(effective));
 }
 
-export default function SettingsNav({ activeId, onChange, role = 'admin', lockdownMap = {}, profile }) {
-  const [query, setQuery] = useState('');
-  const effectiveRole = role === 'super_admin' ? 'admin' : role;
-
-  // If the staff member's permission group grants no access to the settings
-  // module, hide every settings item.
-  const settingsHidden = profile?.permission_group
-    ? normalizePermissions(profile.permission_group.permissions).settings === 'none'
-    : false;
-
-  const roleFiltered = settingsHidden ? [] : settingsGroups
-    .map(g => ({ ...g, items: g.items.filter(i => !i.roles || i.roles.includes(effectiveRole)) }))
-    .filter(g => g.items.length > 0)
-    .map(g => ({ ...g, items: g.items.filter(i => !lockdownMap[i.id]?.locked || (lockdownMap[i.id]?.allowedRoles || []).includes(effectiveRole) || effectiveRole === 'admin') }))
-    .filter(g => g.items.length > 0);
-
-  const q = query.toLowerCase().trim();
-  const filtered = q
-    ? roleFiltered
-        .map(g => ({ ...g, items: g.items.filter(i => i.label.toLowerCase().includes(q) || i.desc.toLowerCase().includes(q)) }))
-        .filter(g => g.items.length > 0)
-    : roleFiltered;
-
-  return (
-    <div>
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search settings..."
-          className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
-      </div>
-      {filtered.length === 0 && (
-        <p className="text-sm text-slate-400 text-center py-6">No settings match "{query}"</p>
-      )}
-      {filtered.map(group => (
-        <div key={group.label} className="mb-2">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-3 py-1.5">{group.label}</p>
-          {group.items.map(item => {
-            const Icon = item.icon;
-            const isActive = activeId === item.id;
-            const isLocked = lockdownMap[item.id]?.locked;
-            return (
-              <button key={item.id} onClick={() => onChange(item.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition text-left ${
-                  isActive ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
-                }`}>
-                <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span className="truncate flex-1 text-left">{item.label}</span>
-                {isLocked && <Lock className={`w-3 h-3 flex-shrink-0 ${isActive ? 'text-white/70' : 'text-amber-500'}`} />}
-              </button>
-            );
-          })}
-        </div>
-      ))}
-    </div>
-  );
-}
+// The sidebar nav UI component has been removed — the Settings Command Hub
+// overview (SettingsHubOverview) now provides all navigation. The helper
+// exports above (settingsGroups, allSettingsItems, accessibleSettingsItems)
+// remain and are used by SettingsPage to resolve accessible tabs.
