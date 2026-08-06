@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Calendar, Settings2, Check, Eye, MapPin, ArrowRight, ShieldAlert, Percent, Timer } from 'lucide-react';
+import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Calendar, Settings2, Check, Eye, MapPin, ArrowRight, ShieldAlert, Percent, Timer, HardHat, User } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
@@ -363,16 +363,69 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         <StateMonitorBar
           className="mb-4"
           monitors={[
-            { key: 'active', icon: Briefcase, label: 'Active Jobs', value: activeJobs.length, sublabel: `${scopedJobs.length} total in system`, tone: 'emerald', nav: 'jobs' },
-            { key: 'util', icon: Percent, label: 'Crew Utilisation', value: utilizationPct, unit: '%', sublabel: `${staffToday} of ${activeStaff} active crew on site`, tone: 'blue', nav: 'rota' },
-            { key: 'ts', icon: ClipboardCheck, label: 'Timesheet Queue', value: pendingTs, sublabel: overdueSubmittedTs > 0 ? `${overdueSubmittedTs} overdue (>48h)` : 'All within target', tone: overdueSubmittedTs > 0 ? 'rose' : 'amber', nav: 'timesheets' },
-            { key: 'actions', icon: ShieldAlert, label: 'Overdue Actions', value: overdueActions, sublabel: overdueActions > 0 ? 'Safety items past due' : 'No overdue safety actions', tone: overdueActions > 0 ? 'rose' : 'slate', nav: 'safety-hub' },
+            { key: 'active', icon: Briefcase, label: 'Active Jobs', value: activeJobs.length, sublabel: `${scopedJobs.length} total in system`, tone: 'emerald', nav: 'jobs', live: true },
+            { key: 'util', icon: Percent, label: 'Crew Utilisation', value: utilizationPct, unit: '%', sublabel: `${staffToday} of ${activeStaff} active crew on site`, tone: 'blue', nav: 'rota', trend: staffToday > 0 ? 'up' : 'down' },
+            { key: 'ts', icon: ClipboardCheck, label: 'Timesheet Queue', value: pendingTs, sublabel: overdueSubmittedTs > 0 ? `${overdueSubmittedTs} overdue (>48h)` : 'All within target', tone: overdueSubmittedTs > 0 ? 'rose' : 'amber', nav: 'timesheets', trend: overdueSubmittedTs > 0 ? 'up' : null },
+            { key: 'actions', icon: ShieldAlert, label: 'Overdue Actions', value: overdueActions, sublabel: overdueActions > 0 ? 'Safety items past due' : 'No overdue safety actions', tone: overdueActions > 0 ? 'rose' : 'slate', nav: 'safety-hub', trend: overdueActions > 0 ? 'up' : 'down' },
           ]}
           onNavigate={onNavigate}
         />
       )}
 
       <JobSelectorBar />
+
+      {/* Workforce Composition — direct / subcontractor / agency breakdown */}
+      {!customizeMode && isAllJobs && viewProfile === 'operations' && (() => {
+        const direct = staff.filter(s => s.is_active !== false && (!s.worker_type || s.worker_type === 'direct_employee')).length;
+        const subbies = staff.filter(s => s.is_active !== false && s.worker_type === 'subcontractor').length;
+        const agency = staff.filter(s => s.is_active !== false && s.worker_type === 'agency').length;
+        const total = direct + subbies + agency;
+        if (total === 0) return null;
+        return (
+          <div className="mb-4 insight-card rounded-2xl p-4 md:p-5">
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm icon-tile-glow">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-slate-900">Workforce Composition</h3>
+                <p className="text-xs text-slate-500">{total} active {total === 1 ? 'person' : 'people'} across all crews</p>
+              </div>
+            </div>
+            <div className="flex h-3 rounded-full overflow-hidden bg-slate-100 mb-3 shadow-inner">
+              {direct > 0 && <div className="stat-gradient-emerald transition-all duration-500" style={{ width: `${(direct / total) * 100}%` }} title={`Direct: ${direct}`} />}
+              {subbies > 0 && <div className="stat-gradient-orange transition-all duration-500" style={{ width: `${(subbies / total) * 100}%` }} title={`Sub-Contractor: ${subbies}`} />}
+              {agency > 0 && <div className="stat-gradient-blue transition-all duration-500" style={{ width: `${(agency / total) * 100}%` }} title={`Agency: ${agency}`} />}
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-xl p-3 bg-emerald-50 border border-emerald-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-6 h-6 rounded-lg stat-gradient-emerald flex items-center justify-center"><User className="w-3 h-3 text-white" /></div>
+                  <span className="text-xs font-bold text-emerald-700">Direct</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900 tabular-nums leading-none">{direct}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">{total > 0 ? Math.round((direct / total) * 100) : 0}% of workforce</p>
+              </div>
+              <div className="rounded-xl p-3 bg-orange-50 border border-orange-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-6 h-6 rounded-lg stat-gradient-orange flex items-center justify-center"><HardHat className="w-3 h-3 text-white" /></div>
+                  <span className="text-xs font-bold text-orange-700">Sub-Contractor</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900 tabular-nums leading-none">{subbies}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">{total > 0 ? Math.round((subbies / total) * 100) : 0}% of workforce</p>
+              </div>
+              <div className="rounded-xl p-3 bg-blue-50 border border-blue-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-6 h-6 rounded-lg stat-gradient-blue flex items-center justify-center"><Briefcase className="w-3 h-3 text-white" /></div>
+                  <span className="text-xs font-bold text-blue-700">Agency</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900 tabular-nums leading-none">{agency}</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">{total > 0 ? Math.round((agency / total) * 100) : 0}% of workforce</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Command Centre Tabs — full-width focus switcher (Operations / Financials / Compliance) */}
       {!customizeMode && (

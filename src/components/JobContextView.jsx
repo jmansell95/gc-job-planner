@@ -90,6 +90,79 @@ function relTime(iso) {
   return format(d, 'dd MMM');
 }
 
+function CrewCompositionBar({ assignedStaff, rotas, contractors }) {
+  if (!assignedStaff || assignedStaff.length === 0) return null;
+  const direct = assignedStaff.filter(s => !s.worker_type || s.worker_type === 'direct_employee');
+  const subbies = assignedStaff.filter(s => s.worker_type === 'subcontractor');
+  const agency = assignedStaff.filter(s => s.worker_type === 'agency');
+  const total = assignedStaff.length;
+  const segments = [
+    { label: 'Direct', count: direct.length, color: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-emerald-700', icon: User },
+    { label: 'Sub-Contractor', count: subbies.length, color: 'bg-orange-500', light: 'bg-orange-50', text: 'text-orange-700', icon: HardHat },
+    { label: 'Agency', count: agency.length, color: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-700', icon: Briefcase },
+  ].filter(s => s.count > 0);
+
+  return (
+    <div className="insight-card rounded-2xl p-4 md:p-5">
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm icon-tile-glow">
+          <UsersRound className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-sm font-bold text-slate-900">Crew Composition</h3>
+          <p className="text-xs text-slate-500">{total} {total === 1 ? 'person' : 'people'} on this job</p>
+        </div>
+      </div>
+
+      {/* Proportional bar */}
+      <div className="flex h-3 rounded-full overflow-hidden bg-slate-100 mb-4 shadow-inner">
+        {segments.map(s => (
+          <div key={s.label} className={s.color + ' transition-all duration-500'} style={{ width: `${(s.count / total) * 100}%` }} title={`${s.label}: ${s.count}`} />
+        ))}
+      </div>
+
+      {/* Type cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {segments.map(s => {
+          const Icon = s.icon;
+          const staffList = s.label === 'Direct' ? assignedStaff.filter(st => !st.worker_type || st.worker_type === 'direct_employee')
+            : s.label === 'Sub-Contractor' ? assignedStaff.filter(st => st.worker_type === 'subcontractor')
+            : assignedStaff.filter(st => st.worker_type === 'agency');
+          return (
+            <div key={s.label} className={'rounded-xl p-3 border ' + s.light + ' border-slate-200'}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className={'w-7 h-7 rounded-lg ' + s.color + ' flex items-center justify-center'}>
+                  <Icon className="w-3.5 h-3.5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={'text-xs font-bold ' + s.text}>{s.label}</p>
+                  <p className="text-lg font-bold text-slate-900 leading-none">{s.count}</p>
+                </div>
+              </div>
+              <div className="space-y-1">
+                {staffList.slice(0, 5).map(st => {
+                  const stRotas = rotas.filter(r => r.staff_id === st.id);
+                  const shifts = stRotas.length;
+                  const contractorRec = st.agency_id ? contractors.find(c => c.id === st.agency_id) : null;
+                  return (
+                    <div key={st.id} className="flex items-center gap-1.5 text-[11px]">
+                      <div className={'w-1.5 h-1.5 rounded-full ' + s.color + ' flex-shrink-0'} />
+                      <span className="text-slate-700 font-medium truncate flex-1">{st.name}</span>
+                      {contractorRec && <span className="text-slate-400 text-[10px] truncate hidden sm:inline">{contractorRec.name}</span>}
+                      {shifts > 0 && <span className="text-slate-400 text-[10px] flex-shrink-0">{shifts}d</span>}
+                    </div>
+                  );
+                })}
+                {staffList.length > 5 && <p className="text-[10px] text-slate-400 pl-3">+{staffList.length - 5} more</p>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function SetupChecklist({ job, rotas, hotelBookings }) {
   return (
     <div className="rounded-xl p-4 bg-gradient-to-br from-slate-50 to-[#2E5A1A]/5 border border-emerald-200">
@@ -216,6 +289,9 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
 
       {/* Multi-discipline pills — at-a-glance visibility of all active disciplines */}
       <DisciplinePills job={job} size="md" showStatus />
+
+      {/* Visual crew composition — direct / subcontractor / agency breakdown */}
+      <CrewCompositionBar assignedStaff={assignedStaff} rotas={rotas} contractors={contractors} />
 
       {/* Main 3-pane grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
