@@ -4,9 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   MapPin, Cog, ShieldCheck, ShieldAlert, ShieldX,
-  ChevronRight, AlertTriangle, Activity, Radio, ClipboardList, CalendarClock, ChevronDown, Link2, Wrench, Package, Anchor, Users, Briefcase
+  ChevronRight, AlertTriangle, Activity, Radio, ClipboardList, CalendarClock, ChevronDown, Link2, Wrench, Package, Anchor, Users, Briefcase, Truck
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, differenceInCalendarDays } from 'date-fns';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import { getJobPrimaryType, getJobTypeLabel, getJobTypeColor } from '@/utils/jobTeams';
 import { hasDiscipline, getJobDisciplines, getDisciplineConfig } from '@/utils/jobDisciplines';
@@ -127,6 +127,11 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
     queryFn: () => base44.entities.InvestigationLog.list('-created_date', 100),
   });
 
+  const { data: deliveryLegs = [] } = useQuery({
+    queryKey: ['delivery-legs-snapshot'],
+    queryFn: () => base44.entities.DeliveryLeg.list('-created_date', 200),
+  });
+
   const assetMap = {};
   (assets || []).forEach(a => { assetMap[a.id] = a; });
 
@@ -142,6 +147,9 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
 
   const rotasByJob = {};
   todayRotas.forEach(r => { if (!rotasByJob[r.job_id]) rotasByJob[r.job_id] = []; rotasByJob[r.job_id].push(r); });
+
+  const legsByJob = {};
+  (deliveryLegs || []).forEach(l => { if (!legsByJob[l.job_id]) legsByJob[l.job_id] = []; legsByJob[l.job_id].push(l); });
 
   const activeAssetItems = (costItems || []).filter(c =>
     c.site_asset_id && c.site_asset_id.trim() !== '' &&
@@ -275,6 +283,23 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
             ? Math.min(100, (Number(job.meterage) / job.meterage_target) * 100)
             : null;
 
+          const jobLegs = legsByJob[job.id] || [];
+          const activeLegs = jobLegs.filter(l => l.status !== 'complete');
+
+          const drillingMethod = job.drilling_method || (job.disciplines || []).find(d => d.drilling_method && d.drilling_method !== 'not_applicable')?.drilling_method;
+          const methodLabel = drillingMethod && drillingMethod !== 'not_applicable'
+            ? (drillingMethod === 'cp' ? 'CP' : drillingMethod === 'rotary' ? 'Rotary' : drillingMethod === 'mixed' ? 'Mixed' : null)
+            : null;
+
+          let timelineProgress = null;
+          if (meterageProgress == null && job.start_date && job.end_date) {
+            const total = differenceInCalendarDays(new Date(job.end_date), new Date(job.start_date)) + 1;
+            if (total > 0) {
+              const elapsed = Math.max(0, differenceInCalendarDays(new Date(), new Date(job.start_date)) + 1);
+              timelineProgress = { pct: Math.min(100, Math.round((elapsed / total) * 100)), elapsed: Math.min(elapsed, total), total };
+            }
+          }
+
           return (
             <motion.div
               key={job.id}
@@ -297,6 +322,9 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                       {st.label}
                     </span>
                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{getJobTypeLabel(primaryType)}</span>
+                    {methodLabel && (
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200">{methodLabel}</span>
+                    )}
                     {job.job_reference && (
                       <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">{job.job_reference}</span>
                     )}
@@ -331,6 +359,13 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                     <Activity className="w-3.5 h-3.5 text-slate-400" />
                     <span className="font-bold text-slate-700">{activityCount}</span>
                     <span className="text-slate-400">Logs</span>
+                  </div>
+                )}
+                {activeLegs.length > 0 && (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 text-xs">
+                    <Truck className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="font-bold text-slate-700">{activeLegs.length}</span>
+                    <span className="text-slate-400">Legs</span>
                   </div>
                 )}
               </div>
@@ -396,6 +431,19 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                   </div>
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] rounded-full transition-all" style={{ width: `${meterageProgress}%` }} />
+                  </div>
+                </div>
+              )}
+
+              {/* Timeline progress (non-drilling jobs) */}
+              {timelineProgress != null && (
+                <div className="mt-3 pl-2">
+                  <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+                    <span>Timeline</span>
+                    <span className="font-semibold text-slate-600">Day {timelineProgress.elapsed} of {timelineProgress.total}</span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all" style={{ width: `${timelineProgress.pct}%` }} />
                   </div>
                 </div>
               )}

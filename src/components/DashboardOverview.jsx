@@ -6,7 +6,7 @@ import { Users, Briefcase, Grid3x3, Calendar, MapPin, Percent, ClipboardCheck, S
 import { format, startOfWeek, addDays } from 'date-fns';
 import { COST_WIDGETS, GLOBAL_ONLY_WIDGETS } from '@/components/dashboard/registry';
 import CustomizableWidgetGrid from '@/components/dashboard/CustomizableWidgetGrid';
-import { FieldCrewsWidget, ChartsWidget } from '@/components/dashboard/DashboardWidgets';
+import { ChartsWidget } from '@/components/dashboard/DashboardWidgets';
 import ComplianceOverviewWidget from '@/components/dashboard/ComplianceOverviewWidget';
 import ExecutiveSnapshotWidget from '@/components/dashboard/ExecutiveSnapshotWidget';
 import JobAssetsWidget from '@/components/dashboard/JobAssetsWidget';
@@ -40,10 +40,9 @@ import BenchmarkComparisonsWidget from '@/components/dashboard/BenchmarkComparis
 import SiteWeatherOverviewWidget from '@/components/dashboard/SiteWeatherOverviewWidget';
 import ConfigurationHealthWidget from '@/components/dashboard/ConfigurationHealthWidget';
 import MissingRatesWidget from '@/components/dashboard/MissingRatesWidget';
-import YardControlWidget from '@/components/dashboard/YardControlWidget';
 import SiteReadinessGate from '@/components/safety/SiteReadinessGate';
 import OffHireReconciliationWidget from '@/components/logistics/OffHireReconciliationWidget';
-import SiteCommandCards from '@/components/dashboard/SiteCommandCards';
+import CrewDeploymentWidget from '@/components/dashboard/CrewDeploymentWidget';
 import DeliveryStats from '@/components/DeliveryStats';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
 import { canViewCostings } from '@/utils/access';
@@ -127,8 +126,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'geo-heatmap': return <GeotechnicalHeatmapWidget />;
       case 'unbilled-wip': return canViewCosts ? <UnbilledLiabilityWidget /> : null;
       case 'project-financials': return canViewCosts ? <ProjectFinancialsWidget onNavigate={onNavigate} /> : null;
-      case 'field-crews': return <FieldCrewsWidget todaysRotas={todaysRotas} staff={staff} jobs={scopedJobs} vehicles={vehicles} onSelectJob={openJobDrawer} onNavigate={onNavigate} />;
-      case 'yard-control': return <YardControlWidget onNavigate={onNavigate} />;
+      case 'crew-deployment': return <CrewDeploymentWidget todaysRotas={todaysRotas} staff={staff} jobs={scopedJobs} vehicles={vehicles} onSelectJob={openJobDrawer} onNavigate={onNavigate} />;
       case 'charts': return <ChartsWidget jobs={scopedJobs} staff={staff} rotas={scopedRotas} weekDays={weekDays} />;
       case 'maintenance-quick-view': return <MaintenanceQuickView onNavigate={onNavigate} />;
       case 'job-assets': return <JobAssetsWidget onSelectJob={openJobDrawer} />;
@@ -161,7 +159,6 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'missing-rates': return <MissingRatesWidget />;
       case 'site-readiness': return <SiteReadinessGate jobId={isAllJobs ? null : selectedJobId} />;
       case 'off-hire-recon': return <OffHireReconciliationWidget jobId={isAllJobs ? null : selectedJobId} />;
-      case 'site-command-cards': return <SiteCommandCards onSelectJob={openJobDrawer} />;
       default: return null;
     }
   };
