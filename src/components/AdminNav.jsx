@@ -92,12 +92,12 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           const isActive = activeSection === item.id;
           return (
             <button key={item.id} type="button" onClick={() => setActiveSection(item.id)}
-              className={`w-full flex items-center gap-3 px-3.5 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
+              className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
                 isActive
-                  ? 'bg-white/15 text-white shadow-[inset_3px_0_0_0_#8DC63F]'
+                  ? 'bg-gradient-to-r from-[#2E5A1A] to-[#5A8C1E] text-white shadow-lg ring-1 ring-[#8DC63F]/30'
                   : 'text-white/75 hover:bg-white/10 hover:text-white'
               }`}>
-              <Icon className="w-[18px] h-[18px] flex-shrink-0" />
+              <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? 'text-[#8DC63F]' : ''}`} />
               <span>{item.label}</span>
             </button>
           );

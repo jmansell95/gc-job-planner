@@ -1,17 +1,58 @@
-import React from 'react';
-import { GripVertical, EyeOff, ChevronUp, ChevronDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { GripVertical, EyeOff, ChevronUp, ChevronDown, ChevronRight } from 'lucide-react';
 import { WIDGET_REGISTRY } from '@/components/dashboard/registry';
 
 const SIZE_LABELS = { sm: 'S', md: 'M', lg: 'L' };
 
+// Widgets that stay expanded by default — the most critical at-a-glance panels.
+// Everything else defaults to collapsed so the dashboard loads clean and tidy.
+const EXPANDED_BY_DEFAULT = new Set([
+  'executive-snapshot',
+  'field-crews',
+  'field-priorities',
+]);
+
 export default function WidgetCard({ widgetId, customizeMode, dragHandleProps, onHide, size = 'md', onResize, onMoveUp, onMoveDown, canMoveUp = true, canMoveDown = true, children }) {
   const config = WIDGET_REGISTRY[widgetId];
+  const [collapsed, setCollapsed] = useState(!EXPANDED_BY_DEFAULT.has(widgetId));
+
   if (!config) return <div>{children}</div>;
 
+  // ── Normal mode — collapsible card with header ──
   if (!customizeMode) {
-    return <div>{children}</div>;
+    const Icon = config.icon;
+    return (
+      <div className="insight-card rounded-2xl overflow-hidden">
+        {/* Header — clickable to toggle collapse */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="w-full flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-slate-50 to-white hover:from-slate-100 transition text-left group"
+        >
+          {collapsed
+            ? <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0 group-hover:text-[#2E5A1A] transition" />
+            : <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0 group-hover:text-[#2E5A1A] transition" />
+          }
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-sm icon-tile-glow">
+            <Icon className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-slate-800 truncate">{config.title}</p>
+          </div>
+          <span className={`text-[10px] font-bold px-2 py-1 rounded-full transition ${collapsed ? 'bg-slate-100 text-slate-500' : 'bg-[#2E5A1A]/10 text-[#2E5A1A]'}`}>
+            {collapsed ? 'Show' : 'Hide'}
+          </span>
+        </button>
+        {/* Content — only when expanded */}
+        {!collapsed && (
+          <div className="p-3 border-t border-slate-100">
+            {children}
+          </div>
+        )}
+      </div>
+    );
   }
 
+  // ── Customize mode — full edit controls ──
   return (
     <div className="rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm ring-2 ring-emerald-400/70 ring-offset-2 ring-offset-slate-50 shadow-lg">
       <div

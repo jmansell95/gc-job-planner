@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Calendar, Settings2, Check, Eye, MapPin, ArrowRight, ShieldAlert, Percent, Timer, HardHat, User } from 'lucide-react';
+import { Users, Truck, Briefcase, Grid3x3, ClipboardCheck, Calendar, Settings2, Check, Eye, MapPin, ArrowRight, ShieldAlert, Percent, Timer, HardHat, User, ChevronDown } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
@@ -62,6 +62,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const [drawerJob, setDrawerJob] = useState(null);
   const [modalJob, setModalJob] = useState(null);
   const [viewProfile, setViewProfile] = useState('operations');
+  const [collapseAllKey, setCollapseAllKey] = useState(0);
   const queryClient = useQueryClient();
   const { selectedJobId } = useJobFilter();
   const isAllJobs = selectedJobId === 'all';
@@ -353,6 +354,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
                       </span>
                     </div>
                   )}
+                  <button onClick={() => setCollapseAllKey(k => k + 1)} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm w-full sm:w-auto" title="Collapse all widgets to their headers">
+                    <ChevronDown className="w-4 h-4 rotate-180" /> Collapse All
+                  </button>
                   <button onClick={() => setCustomizeMode(true)} className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium backdrop-blur-sm w-full sm:w-auto">
                     <Settings2 className="w-4 h-4" /> Customise
                   </button>
@@ -438,7 +442,11 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
       {/* Command Centre Tabs — full-width focus switcher (Operations / Financials / Compliance) */}
       {!customizeMode && (
-        <CommandCentreTabs activeId={viewProfile} onChange={setViewProfile} />
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 min-w-0">
+            <CommandCentreTabs activeId={viewProfile} onChange={setViewProfile} className="mb-0" />
+          </div>
+        </div>
       )}
 
       {/* At-a-glance intelligence — surfaces critical items needing attention (Operations only) */}
@@ -508,7 +516,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 items-start">
           {visibleOrder.map((widgetId) => (
-            <div key={widgetId} className={sizeColSpan(getWidgetSize(widgetId))}>
+            <div key={`${widgetId}-${collapseAllKey}`} className={sizeColSpan(getWidgetSize(widgetId))}>
               <WidgetCard widgetId={widgetId} customizeMode={false} size={getWidgetSize(widgetId)}>
                 {renderWidget(widgetId)}
               </WidgetCard>
