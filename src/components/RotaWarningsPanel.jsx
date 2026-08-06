@@ -7,7 +7,7 @@ const severityConfig = {
 };
 
 export default function RotaWarningsPanel({ warnings = [] }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   if (warnings.length === 0) return null;
 
   const critical = warnings.filter(w => w.severity === 'critical');
