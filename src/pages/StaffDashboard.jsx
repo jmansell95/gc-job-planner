@@ -746,7 +746,7 @@ export default function StaffDashboard() {
                 <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
                   <HelpCircle className="w-7 h-7 text-white" />
                 </div>
-                <span className="text-base font-bold text-white">Help</span>
+                <span className="text-base font-bold text-white">Help Guides</span>
               </button>
           </div>
 

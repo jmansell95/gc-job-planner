@@ -13,7 +13,7 @@ const ROUTE_MAP = {
   '/staff-profile': [{ label: 'My Schedule', to: '/staff-schedule' }, { label: 'My Profile' }],
   '/subcontractor': [{ label: 'Subcontractor' }],
   '/deliveries': [{ label: 'Deliveries' }],
-  '/help': [{ label: 'Help Guide' }],
+  '/help': [{ label: 'Help Guides' }],
   '/presentation-pack': [{ label: 'Presentation Pack' }],
   '/assets': [{ label: 'Admin', to: '/admin' }, { label: 'Asset Hub' }],
   '/vehicles': [{ label: 'Admin', to: '/admin' }, { label: 'Vehicles' }],

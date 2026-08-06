@@ -138,7 +138,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         <button type="button" onClick={() => navigate('/help')}
           className="w-full flex items-center gap-3 px-3.5 py-1.5 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
           <HelpCircle className="w-[18px] h-[18px] flex-shrink-0" />
-          <span>Help & Guide</span>
+          <span>Help Guides</span>
         </button>
         <button type="button" onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3.5 py-1.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
@@ -171,7 +171,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
                 <CalendarDays className="w-[18px] h-[18px]" />
               </button>
             )}
-            <button onClick={() => navigate('/help')} aria-label="Help & Guide" type="button"
+            <button onClick={() => navigate('/help')} aria-label="Help Guides" type="button"
               className="relative h-10 w-10 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <HelpCircle className="w-[18px] h-[18px]" />
             </button>
