@@ -1,147 +1,81 @@
-import { Truck, Users, BarChart3, PoundSterling, CalendarClock, ShieldCheck, Boxes, Sparkles, TrendingUp, HardHat, Activity, LayoutDashboard, MapPin, FileClock, FolderKanban, AlertTriangle, Scale, ClipboardCheck, Gauge, ShieldAlert, Brain, Navigation, AlertOctagon, Star, Leaf, CloudSun, Settings2, Warehouse, RotateCcw, Radar } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, Warehouse, AlertOctagon, MapPin, Sparkles, Brain, CloudSun, Star, BarChart3, Radar } from 'lucide-react';
 
+// ═══════════════════════════════════════════════════════════════════
+//  STREAMLINED DASHBOARD REGISTRY
+//  Only widgets that DON'T have a dedicated page live on the dashboard.
+//  Everything else (jobs, billing, compliance, assets, vehicles,
+//  scheduling, logistics, timesheets, settings) is accessed via the
+//  sidebar nav and removed from the dashboard to reduce clutter.
+// ═══════════════════════════════════════════════════════════════════
 export const WIDGET_REGISTRY = {
-  'executive-snapshot': { title: 'Executive Snapshot', icon: LayoutDashboard },
-  'delivery-stats': { title: 'Deliveries & Collections', icon: Truck },
-  'compliance-overview': { title: 'Compliance Overview', icon: ShieldCheck },
-  'yard-control': { title: 'Yard Control', icon: Warehouse },
-  'field-crews': { title: 'Field Crews Today', icon: Users },
-  'charts': { title: 'Weekly Trends', icon: BarChart3 },
-  'maintenance-quick-view': { title: 'Fleet Compliance', icon: CalendarClock },
-  'job-assets': { title: 'Job Equipment', icon: Boxes },
-  'ai-insights': { title: 'AI Weekly Insights', icon: Sparkles },
-  'job-profitability': { title: 'Job Profitability', icon: PoundSterling },
-  'efficiency-snapshot': { title: 'Efficiency Snapshot', icon: TrendingUp },
-  'rig-profitability': { title: 'Rig Profitability', icon: HardHat },
-  'geo-heatmap': { title: 'Geotechnical Risk', icon: MapPin },
-  'unbilled-wip': { title: 'Unbilled WIP', icon: FileClock },
-  'project-financials': { title: 'Project Financials', icon: FolderKanban },
-  'subcon-margin-guard': { title: 'Subcon Margin Guard', icon: AlertTriangle },
-  'financial-reconciliation': { title: 'Financial Reconciliation', icon: Scale },
-  'billing-readiness': { title: 'Billing Readiness Gate', icon: ClipboardCheck },
-  'outstanding-receivables': { title: 'Outstanding Receivables', icon: PoundSterling },
+  'executive-snapshot': { title: 'Executive Snapshot', icon: LayoutDashboard, fullWidth: true },
+  'mission-control': { title: 'Mission Control Center', icon: Radar, fullWidth: true },
   'field-priorities': { title: 'Field Priorities', icon: AlertTriangle },
-  'cash-flow-forecast': { title: 'Cash Flow Forecast', icon: PoundSterling },
-  'drilling-performance': { title: 'Drilling Performance', icon: Gauge },
-  'safety-dashboard': { title: 'Safety Dashboard', icon: ShieldAlert },
+  'yard-control': { title: 'Yard Control', icon: Warehouse },
+  'exception-monitor': { title: 'Needs Attention', icon: AlertOctagon, fullWidth: true },
+  'live-site-map': { title: 'Live Site Map', icon: MapPin, fullWidth: true },
+  'ai-insights': { title: 'AI Weekly Insights', icon: Sparkles },
   'predictive-insights': { title: 'Predictive AI Insights', icon: Brain },
-  'traffic-heatmap': { title: 'Mission Command — Traffic Heatmap', icon: Navigation },
-  'profitability-alerts': { title: 'Profitability Alerts', icon: AlertOctagon },
-  'compliance-expiry': { title: 'Compliance Expiry', icon: ShieldAlert },
-  'staff-utilization': { title: 'Staff Utilization', icon: Users },
-  'asset-utilization': { title: 'Asset Utilization', icon: Activity },
-  'live-site-map': { title: 'Live Site Map', icon: MapPin },
-  'client-feedback': { title: 'Client Feedback', icon: Star },
-  'audit-score-trends': { title: 'Audit Score Trends', icon: ShieldCheck },
-  'environmental-impact': { title: 'Environmental Impact', icon: Leaf },
-  'predictive-completion': { title: 'Completion Forecast', icon: Brain },
-  'benchmark-comparisons': { title: 'Benchmark Comparisons', icon: BarChart3 },
   'site-weather': { title: 'Site Weather Conditions', icon: CloudSun },
-  'config-health': { title: 'Configuration Health', icon: Settings2 },
-  'missing-rates': { title: 'Missing Day Rates', icon: PoundSterling },
-  'site-readiness': { title: 'Site Readiness Gate', icon: ShieldCheck },
-  'off-hire-recon': { title: 'Off-Hire Reconciliation', icon: RotateCcw },
-  'site-command-cards': { title: 'Site Command Cards', icon: HardHat },
-  'crew-deployment': { title: 'Crew Deployment', icon: Users },
-  'geofence-feed': { title: 'Geofence Activity', icon: Radar },
-  'exception-monitor': { title: 'Needs Attention', icon: AlertOctagon },
-  'error-monitor': { title: 'Error Monitor', icon: AlertOctagon },
-  'yard-map': { title: 'Yard Management Map', icon: Warehouse },
-  'mission-control': { title: 'Mission Control Center', icon: Radar },
-  'idle-asset-transfer': { title: 'Idle Asset Transfers', icon: RotateCcw },
-  'training-gap-scheduler': { title: 'Training Gap Scheduler', icon: CalendarClock },
+  'client-feedback': { title: 'Client Feedback', icon: Star },
+  'benchmark-comparisons': { title: 'Benchmark Comparisons', icon: BarChart3 },
+  'geo-heatmap': { title: 'Geotechnical Risk', icon: MapPin },
 };
 
 // ═══════════════════════════════════════════════════════════════════
-//  THREE-TIER DASHBOARD LAYOUT
-//  Tier 1 — Operational Pulse: live, always-on metrics for quick glance
-//  Tier 2 — Alerts & Action: exception-based items needing attention
-//  Tier 3 — Deep Dive & Analytics: charts, forecasts, and historical data
+//  TWO-TIER DASHBOARD LAYOUT
+//  Tier 1 — At a Glance: live operational widgets for quick situational awareness
+//  Tier 2 — Insights & Analysis: AI predictions, benchmarks, and deeper analysis
 // ═══════════════════════════════════════════════════════════════════
-export const TIER_OPERATIONAL = [
-  'exception-monitor',
-  'field-priorities',
-  'site-readiness',
-  'off-hire-recon',
-];
-
-export const TIER_ALERTS = [
-  'compliance-expiry',
-  'billing-readiness',
-  'safety-dashboard',
-  'profitability-alerts',
-  'error-monitor',
-  'missing-rates',
-];
-
-export const TIER_ANALYTICS = [
+export const TIER_GLANCE = [
   'executive-snapshot',
   'mission-control',
-  'delivery-stats',
-  'compliance-overview',
+  'field-priorities',
   'yard-control',
-  'field-crews',
-  'charts',
-  'maintenance-quick-view',
-  'job-assets',
-  'ai-insights',
-  'job-profitability',
-  'efficiency-snapshot',
-  'rig-profitability',
-  'geo-heatmap',
-  'unbilled-wip',
-  'project-financials',
-  'subcon-margin-guard',
-  'financial-reconciliation',
-  'outstanding-receivables',
-  'cash-flow-forecast',
-  'drilling-performance',
-  'predictive-insights',
-  'traffic-heatmap',
-  'staff-utilization',
-  'asset-utilization',
+  'exception-monitor',
   'live-site-map',
-  'client-feedback',
-  'audit-score-trends',
-  'environmental-impact',
-  'predictive-completion',
-  'benchmark-comparisons',
-  'site-weather',
-  'config-health',
-  'geofence-feed',
-  'yard-map',
-  'idle-asset-transfer',
-  'training-gap-scheduler',
 ];
 
-// Backward compat — kept for any code still importing these
-export const PRIMARY_WIDGETS = TIER_OPERATIONAL;
-export const SECONDARY_WIDGETS = TIER_ANALYTICS;
+export const TIER_INSIGHTS = [
+  'ai-insights',
+  'predictive-insights',
+  'site-weather',
+  'client-feedback',
+  'benchmark-comparisons',
+  'geo-heatmap',
+];
 
-// The unified list of widgets shown on the dashboard in tier order.
 export const DEFAULT_WIDGETS = [
-  ...TIER_OPERATIONAL,
-  ...TIER_ALERTS,
-  ...TIER_ANALYTICS,
+  ...TIER_GLANCE,
+  ...TIER_INSIGHTS,
 ];
 
 // Tier metadata for section headers
 export const TIER_META = {
-  operational: { label: 'Operational Pulse', icon: Activity, color: 'emerald' },
-  alerts: { label: 'Alerts & Action', icon: AlertOctagon, color: 'rose' },
-  analytics: { label: 'Deep Dive & Analytics', icon: BarChart3, color: 'blue' },
+  glance: { label: 'At a Glance', icon: Radar, color: 'emerald' },
+  insights: { label: 'Insights & Analysis', icon: Brain, color: 'blue' },
 };
 
 // Map each widget to its tier
 export const WIDGET_TIER = {};
-TIER_OPERATIONAL.forEach(id => WIDGET_TIER[id] = 'operational');
-TIER_ALERTS.forEach(id => WIDGET_TIER[id] = 'alerts');
-TIER_ANALYTICS.forEach(id => WIDGET_TIER[id] = 'analytics');
+TIER_GLANCE.forEach(id => WIDGET_TIER[id] = 'glance');
+TIER_INSIGHTS.forEach(id => WIDGET_TIER[id] = 'insights');
 
-// Widgets that require costing permission (admin / manager only).
-export const COST_WIDGETS = ['job-profitability', 'efficiency-snapshot', 'rig-profitability', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'cash-flow-forecast', 'profitability-alerts', 'staff-utilization'];
+// Backward compat — kept for any code still importing these
+export const TIER_OPERATIONAL = TIER_GLANCE;
+export const TIER_ALERTS = [];
+export const TIER_ANALYTICS = TIER_INSIGHTS;
+export const PRIMARY_WIDGETS = TIER_GLANCE;
+export const SECONDARY_WIDGETS = TIER_INSIGHTS;
 
-// Widgets that show company-wide data (not specific to a job). These are hidden
-// when the dashboard is focused on a single job, since they don't reflect that
-// job's data.
-export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'exception-monitor', 'compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'ai-insights', 'geo-heatmap', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'field-priorities', 'cash-flow-forecast', 'drilling-performance', 'safety-dashboard', 'predictive-insights', 'profitability-alerts', 'staff-utilization', 'predictive-completion', 'benchmark-comparisons', 'site-weather', 'config-health', 'missing-rates', 'error-monitor', 'yard-map'];
+// No cost-gated widgets remain on the dashboard — all financial widgets
+// have been moved to the dedicated Billing page.
+export const COST_WIDGETS = [];
+
+// Widgets that show company-wide data (not specific to a job). Hidden when
+// the dashboard is focused on a single job.
+export const GLOBAL_ONLY_WIDGETS = [
+  'executive-snapshot', 'mission-control', 'field-priorities', 'yard-control',
+  'exception-monitor', 'live-site-map', 'ai-insights', 'predictive-insights',
+  'client-feedback', 'benchmark-comparisons', 'geo-heatmap',
+];

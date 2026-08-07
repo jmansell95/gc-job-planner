@@ -27,11 +27,10 @@ function loadHidden() {
   return [];
 }
 
-const TIER_ORDER = ['operational', 'alerts', 'analytics'];
+const TIER_ORDER = ['glance', 'insights'];
 const TIER_GRADIENT = {
-  operational: 'from-emerald-500 to-green-600',
-  alerts: 'from-rose-500 to-pink-600',
-  analytics: 'from-blue-500 to-cyan-600',
+  glance: 'from-emerald-500 to-green-600',
+  insights: 'from-blue-500 to-cyan-600',
 };
 
 export default function CustomizableWidgetGrid({ renderWidget, canShowWidget }) {
@@ -127,16 +126,18 @@ export default function CustomizableWidgetGrid({ renderWidget, canShowWidget }) 
                       <div className="flex-1 h-px bg-gradient-to-r from-slate-200 to-transparent" />
                       <span className="text-xs text-slate-400 font-medium">{widgets.length} {widgets.length === 1 ? 'widget' : 'widgets'}</span>
                     </div>
-                    {/* Widgets in this tier */}
-                    <div className="flex flex-wrap gap-4">
-                      {widgets.map((widgetId, index) => {
+                    {/* Widgets in this tier — full-width widgets span both columns */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {widgets.map((widgetId) => {
                         const content = renderWidget(widgetId);
                         if (!content) return null;
+                        const config = WIDGET_REGISTRY[widgetId];
+                        const isFullWidth = config?.fullWidth;
                         return (
                           <Draggable key={widgetId} draggableId={widgetId} index={visibleWidgets.indexOf(widgetId)} isDragDisabled={!customize}>
                             {(provided, snapshot) => (
                               <div ref={provided.innerRef} {...provided.draggableProps}
-                                className={`w-full lg:w-[calc(50%-0.5rem)] relative ${customize ? 'ring-2 ring-[#2E5A1A]/30 rounded-2xl pt-5' : ''} ${snapshot.isDragging ? 'z-50 shadow-2xl' : ''}`}>
+                                className={`${isFullWidth ? 'lg:col-span-2' : ''} relative ${customize ? 'ring-2 ring-[#2E5A1A]/30 rounded-2xl pt-5' : ''} ${snapshot.isDragging ? 'z-50 shadow-2xl' : ''}`}>
                                 {customize && (
                                   <div {...provided.dragHandleProps}
                                     className="absolute -top-0.5 left-1/2 -translate-x-1/2 z-20 bg-[#2E5A1A] text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg cursor-grab active:cursor-grabbing">
