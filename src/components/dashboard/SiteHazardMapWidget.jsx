@@ -64,7 +64,7 @@ export default function SiteHazardMapWidget({ onNavigate }) {
   return (
     <WidgetShell icon={Waves} iconBg="bg-cyan-50" iconColor="text-cyan-700" title="Site Hazard Map" subtitle="Live service encounter locations from field logs"
       action={parsedHazards.length > 0 ? (
-        <button onClick={() => onNavigate?.('log-qc')} type="button"
+        <button onClick={() => onNavigate?.('compliance')} type="button"
           className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-cyan-700 hover:bg-cyan-50 rounded-lg transition">
           Review Logs <MapPin className="w-3.5 h-3.5" />
         </button>

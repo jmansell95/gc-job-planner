@@ -104,7 +104,7 @@ export default function ProjectFinancialsWidget({ onNavigate }) {
               ))}
             </select>
             {onNavigate && (
-              <button onClick={() => onNavigate('project-financials')}
+              <button onClick={() => onNavigate('billing')}
                 className="flex items-center gap-1 px-2.5 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] transition flex-shrink-0 whitespace-nowrap">
                 Full Breakdown <ArrowRight className="w-3 h-3" />
               </button>

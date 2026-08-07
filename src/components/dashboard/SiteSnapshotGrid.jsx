@@ -524,7 +524,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#2E5A1A] bg-[#2E5A1A]/8 hover:bg-[#2E5A1A]/15 transition">
                     <CalendarClock className="w-3.5 h-3.5" /> Rota
                   </button>
-                  <button type="button" onClick={() => onNavigate('log-qc')}
+                  <button type="button" onClick={() => onNavigate('compliance')}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-violet-700 bg-violet-50 hover:bg-violet-100 transition">
                     <ClipboardList className="w-3.5 h-3.5" /> Logs
                   </button>

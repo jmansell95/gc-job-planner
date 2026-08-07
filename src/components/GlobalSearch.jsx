@@ -86,7 +86,7 @@ export default function GlobalSearch({ compact = false }) {
           {vehicles.length > 0 && (
             <CommandGroup heading="Vehicles">
               {vehicles.slice(0, 8).map(v => (
-                <CommandItem key={v.id} value={`vehicle ${v.name} ${v.registration_number || ''}`} onSelect={() => navigate({ section: 'settings', settingsTab: 'vehicles' })}>
+                <CommandItem key={v.id} value={`vehicle ${v.name} ${v.registration_number || ''}`} onSelect={() => navigate({ section: 'assets' })}>
                   <Truck className="w-4 h-4 text-amber-600" />
                   <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">{v.name}</p>

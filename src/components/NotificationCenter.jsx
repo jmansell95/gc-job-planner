@@ -48,15 +48,15 @@ export default function NotificationCenter({ isOpen, onClose, onNavigate, notifi
             )}
             {pendingTimesheets.length > 0 && (
               <NotifGroup label="Timesheet Approvals" icon={Clock} color="text-blue-600" items={pendingTimesheets}
-                onNavigate={() => { onNavigate?.('timesheets'); onClose(); }} onDismiss={dismiss} />
+                onNavigate={() => { onNavigate?.('staff'); onClose(); }} onDismiss={dismiss} />
             )}
             {withdrawnTimesheets.length > 0 && (
               <NotifGroup label="Withdrawn to Review" icon={RotateCcw} color="text-slate-600" items={withdrawnTimesheets}
-                onNavigate={() => { onNavigate?.('timesheets'); onClose(); }} onDismiss={dismiss} />
+                onNavigate={() => { onNavigate?.('staff'); onClose(); }} onDismiss={dismiss} />
             )}
             {draftTimesheets.length > 0 && (
               <NotifGroup label="Draft Timesheets (48h+)" icon={FileClock} color="text-amber-600" items={draftTimesheets}
-                onNavigate={() => { onNavigate?.('timesheets'); onClose(); }} onDismiss={dismiss} />
+                onNavigate={() => { onNavigate?.('staff'); onClose(); }} onDismiss={dismiss} />
             )}
             {onHoldJobs.length > 0 && (
               <NotifGroup label="Jobs On Hold" icon={PauseCircle} color="text-rose-600" items={onHoldJobs}

@@ -24,7 +24,10 @@ import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonP
 
 const DEFAULT_DOMAIN = 'ground-control.co.uk';
 const PLACEHOLDER_LOCATION = 'TBC — imported from planner';
-const TODAY = new Date().toISOString().slice(0, 10);
+// Use Europe/London timezone for TODAY so job status matches the planner's
+// local dates. Using UTC (toISOString) can be off by one day during BST
+// (midnight–01:00 BST the UTC date is still the previous day).
+const TODAY = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/London' });
 
 const SUBCONTRACTOR_TEAM_NAME = 'Subcontractors';
 const DIRECT_EMPLOYEE_TEAM_NAME = 'Direct Employees';
@@ -366,14 +369,17 @@ function parseSheet(sheet, sheetName) {
         }
       }
     }
-    // Extrapolate after the last date column — fill all remaining columns
-    // that contain assignment data, assuming 1 day per column.
+    // Extrapolate after the last date column — fill remaining columns that
+    // contain assignment data, assuming 1 day per column. Cap at 7 columns
+    // (one week) beyond the last known date to prevent stray data in far-right
+    // notes/summary columns from creating false future dates that make
+    // completed jobs appear active.
     const lastCol = dateCols[dateCols.length - 1];
     const lastDate = new Date(colToDate[lastCol] + 'T00:00:00Z');
     let maxDataCol = lastCol;
     for (let r = dateHeaderRowIdx + 1; r < rows.length; r++) {
       if (!rows[r]) continue;
-      for (let c = lastCol + 1; c < rows[r].length; c++) {
+      for (let c = lastCol + 1; c < Math.min(rows[r].length, lastCol + 8); c++) {
         if (rows[r][c] != null && String(rows[r][c]).trim()) {
           if (c > maxDataCol) maxDataCol = c;
         }
@@ -388,13 +394,14 @@ function parseSheet(sheet, sheetName) {
     }
     // Extrapolate BEFORE the first date column — fill columns that contain
     // assignment data but precede the first date header, assuming 1 day per
-    // column going backwards.
+    // column going backwards. Cap at 7 columns before the first known date
+    // to prevent name/notes columns from getting false extrapolated dates.
     const firstCol = dateCols[0];
     const firstDate = new Date(colToDate[firstCol] + 'T00:00:00Z');
     let minDataCol = firstCol;
     for (let r = dateHeaderRowIdx + 1; r < rows.length; r++) {
       if (!rows[r]) continue;
-      for (let c = 0; c < firstCol && c < (rows[r].length || 0); c++) {
+      for (let c = Math.max(0, firstCol - 7); c < firstCol && c < (rows[r].length || 0); c++) {
         if (rows[r][c] != null && String(rows[r][c]).trim()) {
           if (c < minDataCol) minDataCol = c;
         }
@@ -413,13 +420,24 @@ function parseSheet(sheet, sheetName) {
   // but no date mapping. Fill them with incrementing dates from the nearest
   // known date column. This catches edge cases where the header row has gaps
   // or non-standard date formats that cellToDate missed.
+  //
+  // IMPORTANT: Only fill columns WITHIN the date grid range (between the first
+  // and last known date columns). Columns outside this range are likely name
+  // columns (cols 0-4), notes columns, or summary columns — extrapolating dates
+  // for them creates false future dates that make completed jobs appear active.
   {
     const knownCols = Object.keys(colToDate).map(Number).sort((a, b) => a - b);
     if (knownCols.length > 0) {
+      const firstDateCol = knownCols[0];
+      const lastDateCol = knownCols[knownCols.length - 1];
       for (let r = dateHeaderRowIdx + 1; r < rows.length; r++) {
         if (!rows[r]) continue;
         for (let c = 0; c < rows[r].length; c++) {
           if (colToDate[c]) continue;
+          // Skip columns outside the date grid — they are name/notes/summary
+          // columns, not date columns. Extrapolating dates for them creates
+          // false future assignments that make completed jobs appear active.
+          if (c < firstDateCol || c > lastDateCol) continue;
           const val = rows[r][c];
           if (val == null || !String(val).trim()) continue;
           // This column has data but no date — find the nearest known date

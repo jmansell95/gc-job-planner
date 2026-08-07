@@ -14,7 +14,7 @@ const STATUS_COLORS = {
 };
 
 const goToVehicles = () => {
-  window.dispatchEvent(new CustomEvent('app-navigate', { detail: { section: 'settings', settingsTab: 'vehicles' } }));
+  window.dispatchEvent(new CustomEvent('app-navigate', { detail: { section: 'assets' } }));
 };
 
 export default function MaintenanceQuickView({ onNavigate }) {
