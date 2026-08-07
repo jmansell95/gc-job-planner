@@ -60,6 +60,7 @@ import CustomReportBuilder from '@/components/reports/CustomReportBuilder';
 import HolidayAccrualManager from '@/components/staff/HolidayAccrualManager';
 import StaffReviewManager from '@/components/staff/StaffReviewManager';
 import CsvBulkImport from '@/components/import/CsvBulkImport';
+import TimesheetDelegationManager from '@/components/settings/TimesheetDelegationManager';
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -168,6 +169,7 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'holiday-accrual': return <HolidayAccrualManager />;
       case 'staff-reviews': return <StaffReviewManager />;
       case 'csv-import': return <CsvBulkImport />;
+      case 'timesheet-delegation': return <TimesheetDelegationManager />;
       default: return null;
     }
   };

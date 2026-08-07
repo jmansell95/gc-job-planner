@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart, Star, CalendarDays } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart, Star, CalendarDays, UserCheck } from 'lucide-react';
 import { normalizePermissions } from '@/utils/permissions';
 
 export const settingsGroups = [
@@ -51,6 +51,7 @@ export const settingsGroups = [
       { id: 'log-qc', label: 'Log QC', icon: FlaskConical, desc: 'Review and approve investigation logs', roles: ['admin', 'manager', 'viewer'] },
       { id: 'audit-trail', label: 'Audit Trail', icon: ClipboardCheck, desc: 'ISO-compliant job packs — full start-to-finish audit trail for auditors', roles: ['admin', 'manager', 'viewer'] },
       { id: 'timesheets', label: 'Timesheets', icon: Clock, desc: 'Review and approve crew timesheets', roles: ['admin', 'manager'] },
+      { id: 'timesheet-delegation', label: 'Approval Delegation', icon: UserCheck, desc: 'Delegate timesheet approval authority to another person during absences — annual leave, conferences, sick cover', roles: ['admin'] },
       { id: 'cis-verification', label: 'CIS Verification', icon: ShieldCheck, desc: 'Verify subcontractors against HMRC CIS — deduction rates & verification numbers', roles: ['admin'] },
     ],
   },

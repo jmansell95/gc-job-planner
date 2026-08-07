@@ -1,0 +1,77 @@
+{
+  "name": "TimesheetDelegation",
+  "type": "object",
+  "properties": {
+    "delegating_manager_id": {
+      "type": "string",
+      "description": "Staff ID of the manager who is delegating their approval authority."
+    },
+    "delegating_manager_name": {
+      "type": "string",
+      "description": "Manager name (denormalised for display)."
+    },
+    "delegate_id": {
+      "type": "string",
+      "description": "Staff ID of the person receiving the delegation authority \u2014 can approve timesheets on the manager's behalf."
+    },
+    "delegate_name": {
+      "type": "string",
+      "description": "Delegate name (denormalised for display)."
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the delegation becomes active."
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the delegation expires. After this date the delegate can no longer approve on the manager's behalf."
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for the delegation (e.g. 'Annual leave', 'Conference', 'Sick cover')."
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "True when the delegation is currently in effect (within date range and not manually revoked)."
+    },
+    "revoked_at": {
+      "type": "string",
+      "description": "ISO timestamp when the delegation was manually revoked by an admin, if applicable."
+    },
+    "revoked_by_name": {
+      "type": "string",
+      "description": "Name of the admin who revoked the delegation."
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Name of the admin who created the delegation."
+    }
+  },
+  "required": [
+    "delegating_manager_id",
+    "delegate_id",
+    "start_date",
+    "end_date"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,180 +1,199 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { BarChart3, GitCompare, Users, Briefcase, Calendar, Loader2 } from 'lucide-react';
-import WidgetShell from '@/components/dashboard/WidgetShell';
-import { format, startOfWeek, subWeeks, isWithinInterval, parseISO } from 'date-fns';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line,
-} from 'recharts';
+import { BarChart3, TrendingUp, Users, Briefcase, Award, ArrowRight } from 'lucide-react';
+import WidgetShell from './WidgetShell';
 
-/**
- * Benchmark Comparisons — compare job vs job, crew vs crew, and period vs period
- * for performance insights. Shows revenue, cost, margin, and productivity metrics
- * side-by-side with visual charts.
- */
-export default function BenchmarkComparisonsWidget() {
-  const [mode, setMode] = useState('jobs'); // 'jobs' | 'crews' | 'periods'
+// Benchmark Comparisons — compares jobs by margin, crews by utilization,
+// and periods by revenue. Helps managers spot top/bottom performers at a glance.
 
-  const { data: jobs = [], isLoading: jobsLoading } = useQuery({
-    queryKey: ['benchmark-jobs'],
-    queryFn: () => base44.entities.Job.filter({ status: { $in: ['in_progress', 'completed', 'decommissioning'] } }, '-start_date', 30),
+export default function BenchmarkComparisonsWidget({ onJobSelect }) {
+  const { data: jobs = [] } = useQuery({
+    queryKey: ['jobs-benchmark'],
+    queryFn: async () => {
+      const res = await base44.entities.Job.list('-created_date', 100);
+      return res.data || res || [];
+    },
   });
 
   const { data: staff = [] } = useQuery({
-    queryKey: ['benchmark-staff'],
-    queryFn: () => base44.entities.Staff.filter({ is_active: true }, '-created_date', 50),
+    queryKey: ['staff-benchmark'],
+    queryFn: async () => {
+      const res = await base44.entities.Staff.list('-created_date', 100);
+      return res.data || res || [];
+    },
   });
 
   const { data: rotas = [] } = useQuery({
-    queryKey: ['benchmark-rotas'],
-    queryFn: () => base44.entities.RotaAssignment.filter({}, '-assigned_date', 200),
+    queryKey: ['rotas-benchmark'],
+    queryFn: async () => {
+      const res = await base44.entities.RotaAssignment.list('-created_date', 200);
+      return res.data || res || [];
+    },
   });
 
   const { data: timesheets = [] } = useQuery({
-    queryKey: ['benchmark-timesheets'],
-    queryFn: () => base44.entities.Timesheet.filter({ status: 'approved' }, '-created_date', 200),
+    queryKey: ['timesheets-benchmark'],
+    queryFn: async () => {
+      const res = await base44.entities.Timesheet.list('-created_date', 200);
+      return res.data || res || [];
+    },
   });
 
-  const { data: teams = [] } = useQuery({
-    queryKey: ['benchmark-teams'],
-    queryFn: () => base44.entities.Team.list(),
-  });
+  const analysis = useMemo(() => {
+    // Job margin comparison — top 5 by estimated margin %
+    const jobMargins = jobs
+      .filter(j => j.budget_amount && j.budget_amount > 0)
+      .map(j => {
+        const cost = j.actual_cost || 0;
+        const margin = j.budget_amount > 0 ? ((j.budget_amount - cost) / j.budget_amount) * 100 : 0;
+        return { name: j.name, id: j.id, margin: Math.round(margin), budget: j.budget_amount, cost };
+      })
+      .sort((a, b) => b.margin - a.margin);
 
-  // Job comparison data
-  const jobData = useMemo(() => {
-    return jobs.slice(0, 8).map(j => ({
-      name: j.name?.length > 15 ? j.name.substring(0, 15) + '…' : j.name,
-      Budget: Math.round(j.budget_amount || 0),
-      Actual: Math.round(j.actual_cost || 0),
-      Margin: Math.round((j.budget_amount || 0) - (j.actual_cost || 0)),
-    }));
-  }, [jobs]);
+    const topJobs = jobMargins.slice(0, 5);
+    const bottomJobs = jobMargins.slice(-5).reverse();
 
-  // Crew comparison data — group rotas by team
-  const crewData = useMemo(() => {
-    if (!teams.length) return [];
-    return teams.slice(0, 8).map(team => {
-      const teamStaff = staff.filter(s => s.team_id === team.id);
-      const teamRotas = rotas.filter(r => teamStaff.some(s => s.id === r.staff_id));
-      const teamTimesheets = timesheets.filter(t => teamStaff.some(s => s.id === t.staff_id));
-      const totalHours = teamTimesheets.reduce((sum, t) => sum + (t.total_hours || 0), 0);
-      const daysWorked = teamRotas.filter(r => r.assignment_type === 'job').length;
-      return {
-        name: team.name?.length > 12 ? team.name.substring(0, 12) + '…' : team.name,
-        Hours: Math.round(totalHours),
-        Days: daysWorked,
-        Crew: teamStaff.length,
-      };
-    }).filter(d => d.Days > 0 || d.Hours > 0);
-  }, [teams, staff, rotas, timesheets]);
+    // Crew utilization — assignments per staff member (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentRotas = rotas.filter(r => r.assigned_date && r.assigned_date >= thirtyDaysAgo.toISOString().slice(0, 10));
 
-  // Period comparison — last 4 weeks
-  const periodData = useMemo(() => {
+    const crewUtil = staff.map(s => {
+      const assignments = recentRotas.filter(r => r.staff_id === s.id).length;
+      const jobAssignments = recentRotas.filter(r => r.staff_id === s.id && r.assignment_type === 'job').length;
+      const util = recentRotas.length > 0 ? (jobAssignments / Math.max(assignments, 1)) * 100 : 0;
+      return { name: s.name, id: s.id, assignments, jobAssignments, util: Math.round(util) };
+    }).filter(c => c.assignments > 0).sort((a, b) => b.util - a.util);
+
+    const topCrews = crewUtil.slice(0, 5);
+    const bottomCrews = crewUtil.slice(-3).reverse();
+
+    // Period comparison — this week vs last week timesheet hours
     const now = new Date();
-    const weeks = [];
-    for (let w = 3; w >= 0; w--) {
-      const weekStart = startOfWeek(subWeeks(now, w), { weekStartsOn: 1 });
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      const weekRotas = rotas.filter(r => {
-        if (!r.assigned_date) return false;
-        const d = parseISO(r.assigned_date);
-        return isWithinInterval(d, { start: weekStart, end: weekEnd });
-      });
-      const weekTs = timesheets.filter(t => {
-        if (!t.week_start) return false;
-        const d = parseISO(t.week_start);
-        return isWithinInterval(d, { start: weekStart, end: weekEnd });
-      });
-      weeks.push({
-        name: format(weekStart, 'dd MMM'),
-        Shifts: weekRotas.filter(r => r.assignment_type === 'job').length,
-        Hours: Math.round(weekTs.reduce((s, t) => s + (t.total_hours || 0), 0)),
-      });
-    }
-    return weeks;
-  }, [rotas, timesheets]);
+    const thisWeekStart = new Date(now);
+    thisWeekStart.setDate(now.getDate() - now.getDay() + 1);
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
 
-  const modes = [
-    { id: 'jobs', label: 'Jobs', icon: Briefcase, data: jobData, keys: ['Budget', 'Actual', 'Margin'], subtitle: 'Budget vs actual cost by job' },
-    { id: 'crews', label: 'Crews', icon: Users, data: crewData, keys: ['Hours', 'Days'], subtitle: 'Hours and days worked by crew' },
-    { id: 'periods', label: 'Periods', icon: Calendar, data: periodData, keys: ['Shifts', 'Hours'], subtitle: 'Week-over-week trend' },
-  ];
+    const thisWeekStr = thisWeekStart.toISOString().slice(0, 10);
+    const lastWeekStr = lastWeekStart.toISOString().slice(0, 10);
 
-  const activeMode = modes.find(m => m.id === mode);
-  const isLoading = jobsLoading;
+    const thisWeekHours = timesheets
+      .filter(t => t.week_start && t.week_start >= thisWeekStr)
+      .reduce((sum, t) => sum + (t.total_hours || t.hours || 0), 0);
+    const lastWeekHours = timesheets
+      .filter(t => t.week_start && t.week_start >= lastWeekStr && t.week_start < thisWeekStr)
+      .reduce((sum, t) => sum + (t.total_hours || t.hours || 0), 0);
+    const weekChange = lastWeekHours > 0 ? Math.round(((thisWeekHours - lastWeekHours) / lastWeekHours) * 100) : 0;
+
+    return { topJobs, bottomJobs, topCrews, bottomCrews, thisWeekHours, lastWeekHours, weekChange };
+  }, [jobs, staff, rotas, timesheets]);
+
+  const maxMargin = Math.max(...analysis.topJobs.map(j => Math.abs(j.margin)), 1);
 
   return (
     <WidgetShell
-      icon={GitCompare}
+      icon={BarChart3}
       title="Benchmark Comparisons"
-      subtitle="Job vs job · crew vs crew · period vs period"
+      subtitle="Top & bottom performers — jobs by margin, crews by utilization"
     >
-      {/* Mode tabs */}
-      <div className="flex gap-1.5 mb-4 bg-slate-100 rounded-lg p-1">
-        {modes.map(m => {
-          const Icon = m.icon;
-          return (
-            <button
-              key={m.id}
-              onClick={() => setMode(m.id)}
-              className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition ${
-                mode === m.id ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {m.label}
-            </button>
-          );
-        })}
+      <div className="space-y-5">
+        {/* Period comparison */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-slate-50 rounded-xl p-3.5">
+            <p className="text-xs text-slate-500 font-medium">This Week Hours</p>
+            <p className="text-xl font-bold text-slate-800 mt-0.5">{Math.round(analysis.thisWeekHours)}h</p>
+          </div>
+          <div className="bg-slate-50 rounded-xl p-3.5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-slate-500 font-medium">vs Last Week</p>
+              <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${analysis.weekChange >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-600'}`}>
+                {analysis.weekChange >= 0 ? '+' : ''}{analysis.weekChange}%
+              </span>
+            </div>
+            <p className="text-xl font-bold text-slate-800 mt-0.5">{Math.round(analysis.lastWeekHours)}h</p>
+          </div>
+        </div>
+
+        {/* Job margin benchmarks */}
+        <div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <Briefcase className="w-3.5 h-3.5 text-slate-400" />
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Job Margin — Top 5</p>
+          </div>
+          <div className="space-y-1.5">
+            {analysis.topJobs.length === 0 ? (
+              <p className="text-xs text-slate-400 py-2">No jobs with budgets yet.</p>
+            ) : analysis.topJobs.map((j, i) => (
+              <button
+                key={j.id}
+                onClick={() => onJobSelect?.(j.id)}
+                className="w-full flex items-center gap-2 group"
+              >
+                <span className="text-xs font-bold text-slate-400 w-4 text-right">{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-slate-700 truncate group-hover:text-emerald-700 transition">{j.name}</span>
+                    <span className={`text-xs font-bold flex-shrink-0 ${j.margin >= 20 ? 'text-emerald-600' : j.margin >= 0 ? 'text-amber-600' : 'text-rose-600'}`}>
+                      {j.margin}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${j.margin >= 20 ? 'stat-gradient-emerald' : j.margin >= 0 ? 'stat-gradient-amber' : 'stat-gradient-rose'}`}
+                      style={{ width: `${Math.min(Math.abs(j.margin) / maxMargin * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Crew utilization benchmarks */}
+        <div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <Users className="w-3.5 h-3.5 text-slate-400" />
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Crew Utilization — Top 5 (30 days)</p>
+          </div>
+          <div className="space-y-1.5">
+            {analysis.topCrews.length === 0 ? (
+              <p className="text-xs text-slate-400 py-2">No rota assignments in the last 30 days.</p>
+            ) : analysis.topCrews.map((c, i) => (
+              <div key={c.id} className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-400 w-4 text-right">{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-slate-700 truncate">{c.name}</span>
+                    <span className="text-xs font-bold text-slate-600 flex-shrink-0">{c.util}%</span>
+                  </div>
+                  <div className="h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
+                    <div
+                      className="h-full rounded-full stat-gradient-blue"
+                      style={{ width: `${c.util}%` }}
+                    />
+                  </div>
+                </div>
+                {i === 0 && <Award className="w-4 h-4 text-amber-400 flex-shrink-0" />}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom performers callout */}
+        {analysis.bottomJobs.length > 0 && analysis.bottomJobs[0].margin < 0 && (
+          <div className="bg-rose-50 border border-rose-200 rounded-xl p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <TrendingUp className="w-3.5 h-3.5 text-rose-500" />
+              <p className="text-xs font-semibold text-rose-700">Needs Attention — Negative Margin</p>
+            </div>
+            <p className="text-xs text-rose-600">
+              {analysis.bottomJobs.filter(j => j.margin < 0).length} job(s) are running at a loss. Review costing and billing.
+            </p>
+          </div>
+        )}
       </div>
-
-      {isLoading ? (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 text-[#2E5A1A] animate-spin" />
-        </div>
-      ) : !activeMode.data || activeMode.data.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <BarChart3 className="w-8 h-8 text-slate-300 mb-2" />
-          <p className="text-sm text-slate-500">No data for {activeMode.label.toLowerCase()} comparison</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <p className="text-xs text-slate-500">{activeMode.subtitle}</p>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={activeMode.data} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#94a3b8" />
-              <YAxis tick={{ fontSize: 10 }} stroke="#94a3b8" />
-              <Tooltip
-                contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}
-                cursor={{ fill: 'rgba(46,90,26,0.05)' }}
-              />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              {activeMode.keys.map((key, i) => {
-                const colors = ['#2E5A1A', '#8DC63F', '#f59e0b'];
-                return (
-                  <Bar key={key} dataKey={key} fill={colors[i % colors.length]} radius={[4, 4, 0, 0]} maxBarSize={40} />
-                );
-              })}
-            </BarChart>
-          </ResponsiveContainer>
-
-          {/* Period trend line for periods mode */}
-          {mode === 'periods' && periodData.length > 1 && (
-            <ResponsiveContainer width="100%" height={120}>
-              <LineChart data={periodData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} stroke="#94a3b8" />
-                <YAxis tick={{ fontSize: 10 }} stroke="#94a3b8" />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                <Line type="monotone" dataKey="Hours" stroke="#2E5A1A" strokeWidth={2} dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      )}
     </WidgetShell>
   );
 }
