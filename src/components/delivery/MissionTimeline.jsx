@@ -1,12 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Package, ArrowRightLeft, Clock, Navigation, Phone, PlayCircle, CheckCircle2, Truck, User } from 'lucide-react';
+import { MapPin, Package, ArrowRightLeft, Clock, Navigation, Phone, PlayCircle, CheckCircle2, Truck, User, FlaskConical } from 'lucide-react';
 import { format } from 'date-fns';
 
 const typeConfig = {
   site_delivery: { label: 'Delivery', icon: Truck, dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200', iconText: 'text-emerald-600' },
   supplier_collection: { label: 'Collection', icon: Package, dot: 'bg-blue-500', badge: 'bg-blue-100 text-blue-700 ring-1 ring-blue-200', iconText: 'text-blue-600' },
-  item_handover: { label: 'Handover', icon: ArrowRightLeft, dot: 'bg-purple-500', badge: 'bg-purple-100 text-purple-700 ring-1 ring-purple-200', iconText: 'text-purple-600' }
+  item_handover: { label: 'Handover', icon: ArrowRightLeft, dot: 'bg-purple-500', badge: 'bg-purple-100 text-purple-700 ring-1 ring-purple-200', iconText: 'text-purple-600' },
+  sample_collection: { label: 'Sample Collect', icon: FlaskConical, dot: 'bg-teal-500', badge: 'bg-teal-100 text-teal-700 ring-1 ring-teal-200', iconText: 'text-teal-600' },
+  sample_delivery: { label: 'Sample to Lab', icon: FlaskConical, dot: 'bg-cyan-500', badge: 'bg-cyan-100 text-cyan-700 ring-1 ring-cyan-200', iconText: 'text-cyan-600' }
 };
 
 function legTone(minutes) {
@@ -80,7 +82,7 @@ export default function MissionTimeline({ deliveries, jobs, vehicles, allStaff, 
           const job = jobs.find(j => j.id === delivery.job_id);
           const vehicle = vehicles.find(v => v.id === delivery.vehicle_id);
           const handoverTo = allStaff.find(s => s.id === delivery.handover_to_staff_id);
-          const navAddress = delivery.delivery_type === 'supplier_collection' ? delivery.pickup_address : delivery.delivery_address;
+          const navAddress = (delivery.delivery_type === 'supplier_collection' || delivery.delivery_type === 'sample_collection') ? delivery.pickup_address : delivery.delivery_address;
           const tone = legTone(delivery.leg_duration_minutes);
           const isCompleted = delivery.status === 'completed';
           const isInProgress = delivery.status === 'in_progress';

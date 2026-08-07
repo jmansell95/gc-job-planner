@@ -23,9 +23,11 @@
       "enum": [
         "site_delivery",
         "supplier_collection",
-        "item_handover"
+        "item_handover",
+        "sample_collection",
+        "sample_delivery"
       ],
-      "description": "Type of movement: delivering to site, collecting from supplier, or internal handover"
+      "description": "Type of movement: delivering to site, collecting from supplier, internal handover, collecting samples from site, or delivering samples to a laboratory"
     },
     "status": {
       "type": "string",
@@ -46,13 +48,22 @@
       "type": "string",
       "description": "Comma-separated IDs of JobCostItem groups linked to this delivery \u2014 used to auto-populate items and track which material sets are on this load"
     },
+    "sample_ids": {
+      "type": "string",
+      "description": "Comma-separated Sample entity IDs linked to this delivery task. Set when a driver is collecting samples from site or delivering them to a laboratory. Drives the sample checklist shown in the sign-off modal \u2014 the driver must tick 'all samples accounted' before completing."
+    },
+    "samples_accounted": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the driver has confirmed all linked samples are present and accounted for at the point of sign-off. Required to complete a sample_collection or sample_delivery task."
+    },
     "pickup_address": {
       "type": "string",
-      "description": "Where to collect/pick up the items from (supplier yard, depot, etc.)"
+      "description": "Where to collect/pick up the items from (supplier yard, depot, site, etc.)"
     },
     "delivery_address": {
       "type": "string",
-      "description": "Where items are being delivered to (site address, supplier return, etc.)"
+      "description": "Where items are being delivered to (site address, supplier return, lab address, etc.)"
     },
     "contact_name": {
       "type": "string",

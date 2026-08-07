@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FlaskConical, Plus, X, Send, CheckCircle2, Clock, AlertTriangle, Trash2, Edit2, Loader2, Package } from 'lucide-react';
+import { FlaskConical, Plus, X, Send, CheckCircle2, Clock, AlertTriangle, Trash2, Edit2, Loader2, Package, Truck } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import ScheduleSampleCollectionModal from '@/components/geotech/ScheduleSampleCollectionModal';
 
 const SAMPLE_TYPES = [
   { value: 'disturbed', label: 'Disturbed (Bag)' },
@@ -43,6 +44,7 @@ export default function SampleManager({ job, allStaff, suppliers }) {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   const { data: samples = [], isLoading } = useQuery({
     queryKey: ['samples-for-job', job.id],
@@ -119,10 +121,18 @@ export default function SampleManager({ job, allStaff, suppliers }) {
             <p className="text-xs text-slate-500">{stats.total} samples · {stats.inTransit} in transit/testing · {stats.resultsBack} results returned</p>
           </div>
         </div>
-        <button onClick={() => { setEditing(null); setShowModal(true); }}
+        <div className="flex items-center gap-2">
+          {samples.filter(s => s.status === 'collected').length > 0 && (
+            <button onClick={() => setShowScheduleModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition text-xs font-medium">
+              <Truck className="w-3.5 h-3.5" /> Schedule Collection
+            </button>
+          )}
+          <button onClick={() => { setEditing(null); setShowModal(true); }}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-xs font-medium">
           <Plus className="w-3.5 h-3.5" /> Register Sample
         </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -208,6 +218,16 @@ export default function SampleManager({ job, allStaff, suppliers }) {
           saving={saving}
           onSave={handleSave}
           onClose={() => { setShowModal(false); setEditing(null); }}
+        />
+      )}
+
+      {showScheduleModal && (
+        <ScheduleSampleCollectionModal
+          job={job}
+          samples={samples}
+          allStaff={allStaff}
+          suppliers={suppliers}
+          onClose={() => setShowScheduleModal(false)}
         />
       )}
     </div>

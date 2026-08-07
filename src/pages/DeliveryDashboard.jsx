@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Truck, Package, ArrowRightLeft, Calendar, CheckCircle2, Clock, HardHat, ArrowRight } from 'lucide-react';
+import { Truck, Package, ArrowRightLeft, Calendar, CheckCircle2, Clock, HardHat, ArrowRight, FlaskConical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, isFuture, isToday } from 'date-fns';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
@@ -172,11 +172,28 @@ export default function DeliveryDashboard() {
         notes: data.notes,
         condition_report: data.condition_report,
         synced_from_offline: false,
+        ...(data.samples_accounted !== undefined ? { samples_accounted: data.samples_accounted } : {}),
         ...(data.handover_mode && handoverColleague ? {
           handover_to_staff_id: handoverColleague.id,
           handover_to_staff_name: handoverColleague.name,
         } : {})
       });
+
+      // Auto-update linked sample statuses when a sample run is completed
+      const linkedSampleIds = (updated.sample_ids || '').split(',').map(s => s.trim()).filter(Boolean);
+      if (linkedSampleIds.length > 0 && !data.handover_mode) {
+        const now = new Date().toISOString().slice(0, 10);
+        const newStatus = updated.delivery_type === 'sample_collection' ? 'dispatched' : 'received_at_lab';
+        try {
+          const sampleUpdates = linkedSampleIds.map(id => ({
+            id,
+            status: newStatus,
+            status_changed_at: new Date().toISOString(),
+            ...(newStatus === 'dispatched' ? { dispatch_date: now } : { lab_receipt_date: now }),
+          }));
+          await base44.entities.Sample.bulkUpdate(sampleUpdates);
+        } catch (e) { console.error('Sample status sync error:', e); }
+      }
 
       // Auto-update linked cost item locations based on delivery type
       const linkedIds = (updated.linked_cost_item_ids || '').split(',').map(s => s.trim()).filter(Boolean);

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle2, Camera, MapPin, FileText, ShieldCheck, AlertTriangle, ArrowRightLeft, User } from 'lucide-react';
+import { X, CheckCircle2, Camera, MapPin, FileText, ShieldCheck, AlertTriangle, ArrowRightLeft, User, FlaskConical, CheckSquare, Square } from 'lucide-react';
 import SignaturePad from '@/components/staff/SignaturePad';
 import { format } from 'date-fns';
 
@@ -15,6 +15,8 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
   const [submitting, setSubmitting] = useState(false);
   const [handoverMode, setHandoverMode] = useState(false);
   const [handoverToStaffId, setHandoverToStaffId] = useState('');
+  const [samplesAccounted, setSamplesAccounted] = useState(false);
+  const [sampleChecks, setSampleChecks] = useState({});
   const fileInputRef = useRef(null);
 
   // Reset state when modal opens for a new delivery
@@ -29,6 +31,8 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
       setSubmitting(false);
       setHandoverMode(false);
       setHandoverToStaffId('');
+      setSamplesAccounted(false);
+      setSampleChecks({});
       // Try to capture GPS on open
       if (navigator.geolocation) {
         setGpsLoading(true);
@@ -42,6 +46,11 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
   }, [open, delivery?.id]);
 
   if (!open || !delivery) return null;
+
+  const isSampleRun = delivery.delivery_type === 'sample_collection' || delivery.delivery_type === 'sample_delivery';
+  const sampleIds = (delivery.sample_ids || '').split(',').map(s => s.trim()).filter(Boolean);
+  const allSamplesChecked = sampleIds.length > 0 && sampleIds.every(id => sampleChecks[id]);
+  const samplesReady = !isSampleRun || (allSamplesChecked && samplesAccounted);
 
   const handlePhotos = (files) => {
     const newPhotos = Array.from(files).slice(0, 4 - photos.length);
@@ -81,6 +90,7 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
       linked_cost_item_ids: delivery.linked_cost_item_ids || '',
       handover_mode: handoverMode,
       handover_to_staff_id: handoverMode ? handoverToStaffId : '',
+      samples_accounted: isSampleRun ? samplesAccounted : undefined,
     });
 
     // Only stop the spinner if the sign-off failed — on success the modal closes.
@@ -90,7 +100,7 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
     }
   };
 
-  const canSubmit = signature && !submitting && (!handoverMode || !!handoverToStaffId);
+  const canSubmit = signature && !submitting && (!handoverMode || !!handoverToStaffId) && samplesReady;
 
   return (
     <AnimatePresence>
@@ -137,6 +147,46 @@ export default function DeliveryCompleteModal({ delivery, open, onClose, onCompl
                 </span>
               )}
             </div>
+
+            {/* Sample checklist — confirm each sample is present */}
+            {isSampleRun && sampleIds.length > 0 && (
+              <div className="rounded-xl border border-teal-200 overflow-hidden bg-teal-50/40">
+                <div className="px-3.5 py-2.5 bg-teal-50 border-b border-teal-100 flex items-center gap-2">
+                  <FlaskConical className="w-4 h-4 text-teal-700" />
+                  <span className="text-sm font-bold text-teal-800">Sample Checklist ({sampleIds.length})</span>
+                </div>
+                <div className="px-3.5 py-3 space-y-1.5">
+                  {sampleIds.map(id => (
+                    <button key={id} type="button" onClick={() => setSampleChecks(prev => ({ ...prev, [id]: !prev[id] }))}
+                      className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg bg-white border border-teal-100 hover:border-teal-300 transition text-left">
+                      {sampleChecks[id]
+                        ? <CheckSquare className="w-5 h-5 text-teal-600 flex-shrink-0" />
+                        : <Square className="w-5 h-5 text-slate-300 flex-shrink-0" />}
+                      <span className="text-sm font-mono font-medium text-slate-800">{id}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="px-3.5 py-3 bg-white border-t border-teal-100">
+                  <button type="button" onClick={() => setSamplesAccounted(v => !v)}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border-2 transition text-left ${
+                      samplesAccounted ? 'bg-emerald-50 border-emerald-400' : 'bg-white border-slate-200 hover:border-teal-300'
+                    }`}>
+                    {samplesAccounted
+                      ? <CheckSquare className="w-6 h-6 text-emerald-600 flex-shrink-0" />
+                      : <Square className="w-6 h-6 text-slate-300 flex-shrink-0" />}
+                    <span className="flex-1">
+                      <span className="block text-sm font-bold text-slate-900">All samples are there and accounted for</span>
+                      <span className="block text-xs text-slate-500 mt-0.5">Tick this to confirm every sample on the list above is present.</span>
+                    </span>
+                  </button>
+                  {!samplesReady && (
+                    <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" /> You must check off every sample and confirm they're all accounted for.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Handover-to-colleague toggle */}
             {staffList.length > 0 && (
