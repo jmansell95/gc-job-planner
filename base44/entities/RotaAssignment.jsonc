@@ -19,6 +19,10 @@
       "type": "string",
       "description": "Vehicle assignment for this job"
     },
+    "rig_asset_id": {
+      "type": "string",
+      "description": "Drilling rig (SiteAsset) assigned to this shift. For drilling jobs, the crew is formed dynamically by the rig \u2014 not by a static crew number. The Lead Driller and Second Man assigned to the same rig on the same date form the drilling crew. This links the rota assignment to the specific rig for utilisation and cost tracking."
+    },
     "week_start": {
       "type": "string",
       "format": "date",

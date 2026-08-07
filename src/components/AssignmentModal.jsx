@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2, Clock, MapPin, Calendar, CalendarClock, User, Phone, Briefcase, FileText, ShieldX, ShieldAlert } from 'lucide-react';
+import { X, AlertTriangle, Trash2, RotateCcw, Loader2, CheckCircle2, Clock, MapPin, Calendar, CalendarClock, User, Phone, Briefcase, FileText, ShieldX, ShieldAlert, Drill } from 'lucide-react';
 import { evaluateAssignmentCompliance, qualLabel } from '@/utils/complianceLock';
 import { format, differenceInDays, addDays } from 'date-fns';
 import { isStaffOutsideJobTeams, getJobTeamIds } from '@/utils/jobTeams';
@@ -10,7 +10,7 @@ import { getCurrentTimeStr, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { findConflict, suggestAutoTimes, getDailyShiftSummary } from '@/utils/rotaScheduling';
 
 export default function AssignmentModal({ isOpen, onClose, assignment, defaultStaffId, defaultDate, weekStartStr, staff, jobs, vehicles, existingRotas }) {
-  const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', start_time: '', end_time: '', notes: '', is_overtime: false, rate_multiplier: '', start_delayed: false, actual_start_date: '' });
+  const [formData, setFormData] = useState({ job_id: '', staff_id: '', assigned_date: '', vehicle_id: '', rig_asset_id: '', start_time: '', end_time: '', notes: '', is_overtime: false, rate_multiplier: '', start_delayed: false, actual_start_date: '' });
   const [conflictWarnings, setConflictWarnings] = useState([]);
   const [timeConflict, setTimeConflict] = useState(null);
   const [resetting, setResetting] = useState(false);
@@ -21,6 +21,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   const { data: recurring = [] } = useQuery({ queryKey: ['recurring-absences'], queryFn: () => base44.entities.RecurringAbsence.list() });
   const { data: overtimeRates = [] } = useQuery({ queryKey: ['overtime-rates'], queryFn: () => base44.entities.OvertimeRate.list() });
   const { data: complianceItems = [] } = useQuery({ queryKey: ['compliance-staff-all'], queryFn: () => base44.entities.ComplianceItem.filter({ category: 'staff' }) });
+  const { data: rigs = [] } = useQuery({ queryKey: ['rigs-active'], queryFn: () => base44.entities.SiteAsset.filter({ is_rig: true, is_active: true }) });
   const rateMap = buildRateMap(overtimeRates);
 
   const computeWeekStart = (dateStr) => {
@@ -53,6 +54,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           staff_id: assignment.staff_id || '',
           assigned_date: assignment.assigned_date || '',
           vehicle_id: assignment.vehicle_id || '',
+          rig_asset_id: assignment.rig_asset_id || '',
           start_time: assignment.start_time || '',
           end_time: assignment.end_time || '',
           notes: assignment.notes || '',
@@ -68,6 +70,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           staff_id: defaultStaffId || '',
           assigned_date: '',
           vehicle_id: '',
+          rig_asset_id: '',
           start_time: defaults.start_time,
           end_time: defaults.end_time,
           notes: '',
@@ -167,6 +170,8 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   };
 
   const selectedJob = jobs.find(j => j.id === formData.job_id);
+  const isDrillingJob = selectedJob && selectedJob.drilling_method && selectedJob.drilling_method !== 'not_applicable';
+  const selectedRig = rigs.find(r => r.id === formData.rig_asset_id);
   const selectedStaff = staff.find(s => s.id === formData.staff_id);
   const effectiveStartDisplay = formData.start_delayed && formData.actual_start_date ? formData.actual_start_date : formData.assigned_date;
   const multiDayDays = (!isEditing && selectedJob?.end_date && effectiveStartDisplay && selectedJob.end_date > effectiveStartDisplay) ? buildDateRange(effectiveStartDisplay, selectedJob.end_date) : [];
@@ -285,6 +290,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
       if (isEditing) {
         const payload = {
           ...formData,
+          rig_asset_id: formData.rig_asset_id || '',
           rate_multiplier: rateMultiplier,
           actual_start_date: formData.start_delayed ? (formData.actual_start_date || null) : null
         };
@@ -297,6 +303,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           staff_id: formData.staff_id,
           assigned_date: dateStr,
           vehicle_id: formData.vehicle_id || '',
+          rig_asset_id: formData.rig_asset_id || '',
           week_start: computeWeekStart(dateStr),
           start_time: formData.start_time || '',
           end_time: formData.end_time || '',
@@ -314,6 +321,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
           staff_id: formData.staff_id,
           assigned_date: effectiveStart,
           vehicle_id: formData.vehicle_id || '',
+          rig_asset_id: formData.rig_asset_id || '',
           week_start: computeWeekStart(effectiveStart),
           start_time: formData.start_time || '',
           end_time: formData.end_time || '',
@@ -512,6 +520,34 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                 {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} — {v.name}</option>)}
               </select>
             </div>
+            {isDrillingJob && (
+              <div className="sm:col-span-2 rounded-lg border border-emerald-300 bg-emerald-50/50 p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Drill className="w-4 h-4 text-emerald-700" />
+                  <p className="text-xs font-semibold text-slate-800">Drilling Rig — Dynamic Crew</p>
+                  <span className="text-[10px] text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full font-medium ml-auto">Crew = Rig</span>
+                </div>
+                <p className="text-[11px] text-slate-500 mb-2">Drilling crews are formed by the rig, not by crew number. Pick the rig this driller is operating — the Lead Driller + Second Man on the same rig form the crew.</p>
+                <select value={formData.rig_asset_id} onChange={(e) => setFormData({ ...formData, rig_asset_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm bg-white">
+                  <option value="">Select Rig</option>
+                  {rigs.map(r => <option key={r.id} value={r.id}>{r.name}{r.serial_number ? ` — ${r.serial_number}` : ''}{r.rig_type && r.rig_type !== 'n/a' ? ` (${r.rig_type.toUpperCase()})` : ''}</option>)}
+                </select>
+                {selectedRig && (
+                  <div className="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+                    {selectedRig.rig_type && selectedRig.rig_type !== 'n/a' && (
+                      <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{selectedRig.rig_type.toUpperCase()}</span>
+                    )}
+                    {selectedRig.serial_number && (
+                      <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-mono">S/N: {selectedRig.serial_number}</span>
+                    )}
+                    {selectedRig.compliance_status && (
+                      <span className={`px-2 py-0.5 rounded-full font-medium ${selectedRig.compliance_status === 'compliant' ? 'bg-emerald-100 text-emerald-700' : selectedRig.compliance_status === 'expiring' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{selectedRig.compliance_status}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 space-y-2.5">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">

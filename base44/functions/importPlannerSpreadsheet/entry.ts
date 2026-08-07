@@ -842,37 +842,24 @@ export default async function(req) {
     }
 
     // -----------------------------------------------------------------------
-    // 2. PURGE — full wipe: delete ALL staff, teams, jobs, crews, rotas
+    // 2. PURGE — Import Guard: only wipe rota/asset/cost/training/absence data.
+    //    Teams, Staff, and Jobs are PRESERVED — they are managed manually
+    //    in the Team Manager and Staff Command. The import only syncs
+    //    rota assignments, rig/asset assignments, and job dates/status.
     // -----------------------------------------------------------------------
-    let purgeSummary = { rotas_deleted: 0, staff_deleted: 0, teams_deleted: 0, jobs_deleted: 0, crews_deleted: 0, asset_assignments_deleted: 0, training_bookings_deleted: 0, absences_deleted: 0 };
-    // Parallel fetch all entity lists — 9 round-trips collapsed into 1 batch
-    // to avoid hitting the platform API rate limit on large datasets.
-    const [allRotas, allStaff, allTeams, allJobs, allCrews, allAssetAssignments, allCostItems, allTrainingBookings, allAbsences, allUsers] = await Promise.all([
+    let purgeSummary = { rotas_deleted: 0, jobs_deleted: 0, crews_deleted: 0, asset_assignments_deleted: 0, training_bookings_deleted: 0, absences_deleted: 0, cost_items_deleted: 0 };
+    // Parallel fetch — rotas, jobs, crews, asset assignments, cost items, training, absences.
+    // Teams and Staff are NOT fetched for deletion — they are preserved (Import Guard).
+    const [allRotas, allJobs, allCrews, allAssetAssignments, allCostItems, allTrainingBookings, allAbsences] = await Promise.all([
       base44.asServiceRole.entities.RotaAssignment.list('-created_date', 5000),
-      base44.asServiceRole.entities.Staff.list('-created_date', 5000),
-      base44.asServiceRole.entities.Team.list('-created_date', 5000),
       base44.asServiceRole.entities.Job.list('-created_date', 5000),
       base44.asServiceRole.entities.DrillingCrew.list('-created_date', 5000),
       base44.asServiceRole.entities.JobAssetAssignment.list('-created_date', 5000),
       base44.asServiceRole.entities.JobCostItem.list('-created_date', 5000),
       base44.asServiceRole.entities.TrainingBooking.list('-created_date', 5000),
       base44.asServiceRole.entities.Absence.list('-created_date', 5000),
-      base44.asServiceRole.entities.User.list('-created_date', 5000),
     ]);
-    // Save existing user emails so we don't re-invite users who already have accounts.
-    // User accounts persist across the full wipe (only Staff records are deleted),
-    // so we check User emails directly — not Staff.user_id which gets wiped.
-    const existingUserEmails = new Set();
-    const userIdByEmail = new Map();
-    for (const u of allUsers) {
-      if (u.email) {
-        existingUserEmails.add(u.email.toLowerCase());
-        userIdByEmail.set(u.email.toLowerCase(), u.id);
-      }
-    }
     purgeSummary.rotas_deleted = allRotas.length;
-    purgeSummary.staff_deleted = allStaff.length;
-    purgeSummary.teams_deleted = allTeams.length;
     purgeSummary.jobs_deleted = allJobs.length;
     purgeSummary.crews_deleted = allCrews.length;
     purgeSummary.asset_assignments_deleted = allAssetAssignments.length;
@@ -880,11 +867,8 @@ export default async function(req) {
     purgeSummary.training_bookings_deleted = allTrainingBookings.length;
     purgeSummary.absences_deleted = allAbsences.length;
     if (!dryRun) {
-      // Parallel delete — 9 round-trips collapsed into 1 batch
       const deleteOps = [];
       if (allRotas.length > 0) deleteOps.push(base44.asServiceRole.entities.RotaAssignment.deleteMany({}));
-      if (allStaff.length > 0) deleteOps.push(base44.asServiceRole.entities.Staff.deleteMany({}));
-      if (allTeams.length > 0) deleteOps.push(base44.asServiceRole.entities.Team.deleteMany({}));
       if (allJobs.length > 0) deleteOps.push(base44.asServiceRole.entities.Job.deleteMany({}));
       if (allCrews.length > 0) deleteOps.push(base44.asServiceRole.entities.DrillingCrew.deleteMany({}));
       if (allAssetAssignments.length > 0) deleteOps.push(base44.asServiceRole.entities.JobAssetAssignment.deleteMany({}));
@@ -892,79 +876,72 @@ export default async function(req) {
       if (allTrainingBookings.length > 0) deleteOps.push(base44.asServiceRole.entities.TrainingBooking.deleteMany({}));
       if (allAbsences.length > 0) deleteOps.push(base44.asServiceRole.entities.Absence.deleteMany({}));
       if (deleteOps.length > 0) await Promise.all(deleteOps);
-      warnings.push(`Full wipe: deleted ${purgeSummary.rotas_deleted} rotas, ${purgeSummary.staff_deleted} staff, ${purgeSummary.teams_deleted} teams, ${purgeSummary.jobs_deleted} jobs, ${purgeSummary.crews_deleted} crews, ${purgeSummary.asset_assignments_deleted} asset assignments, ${purgeSummary.cost_items_deleted} cost items, ${purgeSummary.training_bookings_deleted} training bookings, ${purgeSummary.absences_deleted} absences.`);
+      warnings.push(`Import Guard: preserved all Teams and Staff. Wiped ${purgeSummary.rotas_deleted} rotas, ${purgeSummary.jobs_deleted} jobs, ${purgeSummary.crews_deleted} crews, ${purgeSummary.asset_assignments_deleted} asset assignments, ${purgeSummary.cost_items_deleted} cost items, ${purgeSummary.training_bookings_deleted} training bookings, ${purgeSummary.absences_deleted} absences.`);
     }
 
     // -----------------------------------------------------------------------
-    // 3. Resolve Teams
+    // 3. Load Existing Teams (Import Guard — no team creation)
     // -----------------------------------------------------------------------
-    const crewSections = [...new Set(teamAssignments.map(a => a.crew_section).filter(Boolean))];
-    const existingTeams = []; // After full wipe, no existing teams
+    // Teams are managed manually in the Team Manager. The import does NOT
+    // create, update, or delete teams. It loads existing teams and maps
+    // spreadsheet crew sections to them by name. Unmatched sections fall
+    // back to the first available field_ops team.
+    const existingTeams = await base44.asServiceRole.entities.Team.list('-created_date', 500);
     const teamByLabel = {};
     for (const t of existingTeams) teamByLabel[String(t.name).toLowerCase().trim()] = t;
 
+    // Resolve key teams by name (case-insensitive). These are the standard
+    // teams created by the Team Restructuring migration.
+    const findTeam = (name) => {
+      const key = name.toLowerCase().trim();
+      return teamByLabel[key] || Object.values(teamByLabel).find(t =>
+        String(t.name).toLowerCase().includes(key) || key.includes(String(t.name).toLowerCase())
+      );
+    };
+    const subconTeam = findTeam(SUBCONTRACTOR_TEAM_NAME) || findTeam('Subcontractors') || existingTeams[0] || { id: '', name: SUBCONTRACTOR_TEAM_NAME };
+    const agencyTeam = findTeam(AGENCY_TEAM_NAME) || findTeam('Agency') || existingTeams[0] || { id: '', name: AGENCY_TEAM_NAME };
+    const fallbackTeam = findTeam(DIRECT_EMPLOYEE_TEAM_NAME) || findTeam('Drilling') || existingTeams[0] || { id: '', name: DIRECT_EMPLOYEE_TEAM_NAME };
+    const drillingTeam = findTeam('Drilling') || findTeam('Drilling (Dynamic)') || fallbackTeam;
+    const depotTeam = findTeam('Depot') || findTeam('Depot Staff') || fallbackTeam;
+
+    // Map crew sections to existing teams by fuzzy name match
+    const crewSections = [...new Set(teamAssignments.map(a => a.crew_section).filter(Boolean))];
     const teamMap = {};
-    const newTeamNames = [];
-
-    let subconTeam = teamByLabel[SUBCONTRACTOR_TEAM_NAME.toLowerCase()];
-    if (!subconTeam) {
-      if (!dryRun) {
-        subconTeam = await base44.asServiceRole.entities.Team.create({
-          name: SUBCONTRACTOR_TEAM_NAME, category: 'field_ops', default_landing_page: '/staff-schedule'
-        });
-      } else {
-        subconTeam = { id: 'temp_team_subcon', name: SUBCONTRACTOR_TEAM_NAME };
-      }
-      newTeamNames.push(SUBCONTRACTOR_TEAM_NAME);
-    }
-
-    let agencyTeam = teamByLabel[AGENCY_TEAM_NAME.toLowerCase()];
-    if (!agencyTeam) {
-      if (!dryRun) {
-        agencyTeam = await base44.asServiceRole.entities.Team.create({
-          name: AGENCY_TEAM_NAME, category: 'field_ops', default_landing_page: '/staff-schedule'
-        });
-      } else {
-        agencyTeam = { id: 'temp_team_agency', name: AGENCY_TEAM_NAME };
-      }
-      newTeamNames.push(AGENCY_TEAM_NAME);
-    }
-    teamByLabel[AGENCY_TEAM_NAME.toLowerCase()] = agencyTeam;
-
+    const newTeamNames = []; // Always empty — no teams created
     for (const section of crewSections) {
       const key = section.toLowerCase().trim();
-      if (teamMap[section]) continue;
       let team = teamByLabel[key];
-      if (!team && !dryRun) {
-        const jobType = inferJobType(section);
-        team = await base44.asServiceRole.entities.Team.create({
-          name: section, job_type: jobType || undefined,
-          category: jobType === 'depot' ? 'depot' : 'field_ops',
-          default_landing_page: jobType === 'depot' ? '/admin' : '/staff-schedule'
+      if (!team) {
+        // Fuzzy match: find a team whose name contains the section keyword or vice versa
+        const sectionLower = section.toLowerCase();
+        team = existingTeams.find(t => {
+          const tName = String(t.name).toLowerCase();
+          return tName.includes(sectionLower) || sectionLower.includes(tName);
         });
-        teamByLabel[key] = team;
-        newTeamNames.push(section);
-      } else if (!team && dryRun) {
-        team = { id: `temp_team_${key}`, name: section };
-        newTeamNames.push(section);
       }
-      teamMap[section] = team;
-    }
-
-    let fallbackTeam = teamByLabel[DIRECT_EMPLOYEE_TEAM_NAME.toLowerCase()] || teamByLabel['imported staff'];
-    if (!fallbackTeam) {
-      if (!dryRun) {
-        fallbackTeam = await base44.asServiceRole.entities.Team.create({
-          name: DIRECT_EMPLOYEE_TEAM_NAME, category: 'field_ops', default_landing_page: '/staff-schedule'
-        });
-      } else {
-        fallbackTeam = { id: 'temp_team_fallback', name: DIRECT_EMPLOYEE_TEAM_NAME };
+      // Section-specific overrides
+      if (!team) {
+        if (isDepotSection(section)) team = depotTeam;
+        else if (isSubcontractor(section)) team = subconTeam;
+        else if (isAgencySection(section)) team = agencyTeam;
+        else {
+          // Infer from job type
+          const jobType = inferJobType(section);
+          if (jobType === 'drilling') team = drillingTeam;
+          else if (jobType === 'groundworks') team = findTeam('Groundworks') || fallbackTeam;
+          else team = fallbackTeam;
+        }
       }
+      teamMap[section] = team || fallbackTeam;
     }
 
     // -----------------------------------------------------------------------
-    // 4. Resolve Staff + Leaver Detection
+    // 4. Match Staff to EXISTING Records (Import Guard — no staff creation)
     // -----------------------------------------------------------------------
+    // Staff are managed manually in Staff Command. The import does NOT create
+    // new staff. It matches spreadsheet names to existing Staff records by
+    // name key or email. Unmatched staff are skipped with a warning so
+    // admins can add them manually in Staff Command before re-importing.
     const uniqueStaffKeys = new Set();
     const staffNameByKey = {};
     for (const a of teamAssignments) {
@@ -973,8 +950,8 @@ export default async function(req) {
       staffNameByKey[key] = a.staff_name;
     }
 
-    // After full wipe, no existing staff — all will be created fresh
-    const existingStaff = [];
+    // Load ALL existing staff — these are preserved across imports
+    const existingStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 5000);
     const staffByName = new Map();
     const staffByEmail = new Map();
     for (const s of existingStaff) {
@@ -982,175 +959,56 @@ export default async function(req) {
       if (s.email) staffByEmail.set(s.email.toLowerCase(), s);
     }
 
-    // Leaver detection: staff with linked logins not in the spreadsheet
-    const leavers = existingStaff
-      .filter(s => s.user_id && s.is_active !== false && !uniqueStaffKeys.has(nameKey(s.name)))
-      .map(s => ({ id: s.id, name: s.name, email: s.email, team_id: s.team_id }));
+    // No leaver detection — staff are preserved (Import Guard)
+    const leavers = [];
 
-    // Load existing contractors (agencies + subcontractors) — these survive
-    // the full wipe so agency relationships persist across re-imports.
+    // Load existing contractors (agencies + subcontractors) — preserved across imports
     const existingContractors = await base44.asServiceRole.entities.Contractor.list('-created_date', 5000);
     const contractorMaps = buildContractorMaps(existingContractors);
     const newAgencies = [];
 
     const staffMap = new Map();
-    const newStaffPayloads = [];
-    const newStaffKeys = [];
-    const staffUpdates = [];
+    const newStaffPayloads = []; // Always empty — no staff created
+    const newStaffKeys = [];    // Always empty
+    const staffUpdates = [];   // Always empty — no staff updates
     let staffFoundCount = 0;
-    // Track how each staff was linked across tabs: key → { method, matched_to, score }
     const staffLinkMethods = {};
-
-    // Track all known emails (DB + generated) to prevent email collisions
-    const allKnownEmails = new Set();
-    for (const s of existingStaff) {
-      if (s.email) allKnownEmails.add(s.email.toLowerCase());
-    }
+    const unmatchedStaffNames = [];
 
     for (const key of uniqueStaffKeys) {
       const name = staffNameByKey[key];
       let staff = staffByName.get(key);
       if (!staff) {
-        const email = generateEmail(name, allKnownEmails);
+        // Try email match with generated email
+        const email = generateEmail(name, new Set());
         staff = staffByEmail.get(email.toLowerCase());
       }
-      // Fuzzy fallback: match to already-created staff with a similar name.
-      // Handles typos and variations across tabs (e.g. "Jon Smith" → "John Smith",
-      // "J Smith" → "John Smith") so the same person isn't created twice under
-      // slightly different spellings, nicknames, or initials.
-      if (!staff && staffMap.size > 0) {
-        const fuzzy = fuzzyFindStaff(name, [...staffMap.values()], 0.70);
+      // Fuzzy fallback: match to existing staff with a similar name
+      if (!staff && existingStaff.length > 0) {
+        const fuzzy = fuzzyFindStaff(name, existingStaff, 0.70);
         if (fuzzy) {
           staff = fuzzy.staff;
-          staffMap.set(key, staff);
           staffLinkMethods[key] = { method: fuzzy.method, matched_to: fuzzy.staff.name, score: Math.round(fuzzy.score * 100) };
         }
       }
 
-      const staffAssignments = teamAssignments.filter(a => nameKey(a.staff_name) === key);
-      const inSubSection = staffAssignments.some(a => a.is_subcontractor_section);
-      const inAgencySection = staffAssignments.some(a => a.is_agency_section);
-      // Worker type is determined by the section the person appears under,
-      // NOT by their name. Name-based company detection (isSubcontractor) was
-      // too aggressive — it flagged direct employees with company-like surnames
-      // (e.g. "John Drilling") as subcontractors.
-      const subbie = inSubSection;
-      const agency = inAgencySection;
-      const workerType = agency ? 'agency' : (subbie ? 'subcontractor' : 'direct_employee');
-      const crewSectionCounts = staffAssignments.map(a => a.crew_section).filter(Boolean);
-      const mostCommonSection = getMostCommon(crewSectionCounts);
-      // Fall back to raw crew section (non-work sections like "Leave/Sick" are
-      // normalized to '' — use the original section name for job title inference,
-      // excluding non-work sections since they don't indicate a real crew role)
-      const rawSectionCounts = staffAssignments
-        .map(a => a.raw_crew_section)
-        .filter(s => s && !isNonWorkSection(s));
-      const mostCommonRawSection = getMostCommon(rawSectionCounts);
-      // Last resort: infer from the sheet name (Drillers → Driller, GW+Depot → Groundworker)
-      const mostCommonSheet = getMostCommon(staffAssignments.map(a => a.sheet_name).filter(Boolean));
-      const jobTitle = inferJobTitle(mostCommonSection)
-        || inferJobTitle(mostCommonRawSection)
-        || inferJobTitleFromSheet(mostCommonSheet);
-      const team = agency ? agencyTeam : (subbie ? subconTeam : (teamMap[mostCommonSection] || fallbackTeam));
-
-      // Resolve the agency (Contractor) for agency workers. The agency name
-      // comes from the company-name row above the worker in the spreadsheet.
-      let agencyId = undefined;
-      let agencyNameResolved = '';
-      if (agency) {
-        const agencyNames = staffAssignments.map(a => a.agency_name).filter(Boolean);
-        agencyNameResolved = getMostCommon(agencyNames) || 'Unknown Agency';
-        const agencyRec = await findOrCreateAgency(base44, agencyNameResolved, contractorMaps, dryRun);
-        agencyId = agencyRec.id;
-        if (!existingContractors.find(c => c.id === agencyRec.id) && !newAgencies.find(a => a.id === agencyRec.id)) {
-          newAgencies.push(agencyRec);
-        }
-      }
-
-      // Resolve the subcontractor company for subcontractor workers. The
-      // company name comes from the company-name row above the worker in the
-      // "Field Teams - Drilling Subbies" section.
-      let subbieContractorId = undefined;
-      if (subbie && !agency) {
-        const subbieNames = staffAssignments.map(a => a.subcontractor_name).filter(Boolean);
-        const subbieNameResolved = getMostCommon(subbieNames);
-        if (subbieNameResolved) {
-          const subbieRec = await findOrCreateSubcontractor(base44, subbieNameResolved, contractorMaps, dryRun);
-          subbieContractorId = subbieRec.id;
-        }
-      }
-
       if (!staff) {
-        const email = generateEmail(name, allKnownEmails);
-        allKnownEmails.add(email.toLowerCase());
-        // Link to existing User account if one exists for this email.
-        // User accounts persist across the full wipe; only Staff records are deleted.
-        const existingUserId = userIdByEmail.get(email.toLowerCase());
-        newStaffPayloads.push({
-          name, email, worker_type: workerType,
-          agency_id: agencyId || subbieContractorId, job_title: jobTitle || undefined,
-          team_id: team.id, is_active: true,
-          user_id: existingUserId || undefined,
-          invite_sent: !!existingUserId,
-        });
-        newStaffKeys.push(key);
-      } else {
-        staffFoundCount++;
-        const updates = {};
-        if (jobTitle && !staff.job_title) updates.job_title = jobTitle;
-        if (!staff.worker_type) updates.worker_type = workerType;
-        if (agency && agencyId && !staff.agency_id) updates.agency_id = agencyId;
-        if (subbie && !agency && subbieContractorId && !staff.agency_id) updates.agency_id = subbieContractorId;
-        if (subbie && staff.team_id && staff.team_id !== subconTeam.id) updates.team_id = subconTeam.id;
-        if (!staff.is_active) updates.is_active = true; // reactivate if returning
-
-        if (Object.keys(updates).length > 0) {
-          staffUpdates.push({ id: staff.id, name: staff.name, updates });
-          if (!dryRun) await base44.asServiceRole.entities.Staff.update(staff.id, updates);
-        }
-        staffMap.set(key, staff);
+        // Import Guard: unmatched staff are SKIPPED, not created
+        unmatchedStaffNames.push(name);
+        continue;
       }
+
+      staffFoundCount++;
+      staffMap.set(key, staff);
     }
 
-    if (newStaffPayloads.length > 0) {
-      // Safety: deduplicate by email (paranoia — the loop above should
-      // already guarantee uniqueness, but this is a final guard)
-      const seenEmails = new Set();
-      const dedupedStaffPayloads = [];
-      const dedupedStaffKeys = [];
-      for (let i = 0; i < newStaffPayloads.length; i++) {
-        const emailKey = newStaffPayloads[i].email.toLowerCase();
-        if (seenEmails.has(emailKey)) continue;
-        seenEmails.add(emailKey);
-        dedupedStaffPayloads.push(newStaffPayloads[i]);
-        dedupedStaffKeys.push(newStaffKeys[i]);
-      }
-      let createdStaff;
-      if (!dryRun) {
-        createdStaff = await base44.asServiceRole.entities.Staff.bulkCreate(dedupedStaffPayloads);
-      } else {
-        createdStaff = dedupedStaffPayloads.map((p, i) => ({
-          id: `temp_staff_${dedupedStaffKeys[i]}`, name: p.name, email: p.email,
-          worker_type: p.worker_type, job_title: p.job_title, team_id: p.team_id,
-        }));
-      }
-      for (let i = 0; i < createdStaff.length; i++) staffMap.set(dedupedStaffKeys[i], createdStaff[i]);
+    if (unmatchedStaffNames.length > 0) {
+      warnings.push(`Import Guard: ${unmatchedStaffNames.length} staff in the spreadsheet were NOT found in the system and were skipped (no auto-creation). Add them manually in Staff Command → Crews tab, then re-import: ${unmatchedStaffNames.slice(0, 15).join(', ')}${unmatchedStaffNames.length > 15 ? '…' : ''}`);
     }
 
-    const newStaff = newStaffKeys.map(k => staffMap.get(k));
-
-    // Invitations are no longer sent automatically during import.
-    // Admins send app invites manually from Staff Command → Profile tab.
+    const newStaff = []; // Always empty — no staff created
     const usersInvited = 0;
-
-    // Mark leavers as inactive
-    let leaversMarked = 0;
-    if (!dryRun && leavers.length > 0) {
-      for (const l of leavers) {
-        await base44.asServiceRole.entities.Staff.update(l.id, { is_active: false });
-        leaversMarked++;
-      }
-    }
+    let leaversMarked = 0; // Always 0 — no leaver detection
 
     // -----------------------------------------------------------------------
     // 5. Resolve Jobs — with date-aware status
@@ -1999,8 +1857,9 @@ export default async function(req) {
       staff: {
         total: uniqueStaffKeys.size,
         found: staffFoundCount,
-        new: newStaffPayloads.length,
-        updates: staffUpdates.length,
+        new: 0, // Import Guard — no staff created
+        updates: 0,
+        unmatched_skipped: unmatchedStaffNames.length,
         subcontractors: subbieCount,
         agency: agencyCount,
         direct_employees: uniqueStaffKeys.size - subbieCount - agencyCount,
@@ -2011,9 +1870,9 @@ export default async function(req) {
           token: Object.values(staffLinkMethods).filter(l => l.method === 'token').length,
           levenshtein: Object.values(staffLinkMethods).filter(l => l.method === 'levenshtein').length,
         },
-        leavers_detected: leavers.length,
-        leavers_marked_inactive: dryRun ? 0 : leaversMarked,
-        users_invited: dryRun ? 0 : usersInvited,
+        leavers_detected: 0,
+        leavers_marked_inactive: 0,
+        users_invited: 0,
       },
       jobs: {
         total: uniqueJobBaseKeys.size,
@@ -2027,7 +1886,7 @@ export default async function(req) {
         filtered_as_non_jobs: allAssignments.filter(a => a.filtered_as_non_job).length,
         filtered_labels: [...new Set(allAssignments.filter(a => a.filtered_as_non_job).map(a => a.non_job_label))].slice(0, 50),
       },
-      teams: { total: crewSections.length + 1, new: newTeamNames.length },
+      teams: { total: existingTeams.length, new: 0, preserved: true },
       projects: {
         existing_matched: jobProjectUpdates.length,
         new_created: dryRun ? unmatchedSiteNames.length : newProjectsCreated,
@@ -2098,12 +1957,8 @@ export default async function(req) {
         jobs_breakdown: jobsBreakdown,
         leavers,
         conflicts: conflicts.slice(0, 50),
-        new_staff: newStaff.map(s => ({
-          name: s.name, email: s.email, job_title: s.job_title,
-          worker_type: s.worker_type,
-          team: s.team_id === agencyTeam.id ? AGENCY_TEAM_NAME
-            : (s.team_id === subconTeam.id ? SUBCONTRACTOR_TEAM_NAME : 'Direct Employee')
-        })),
+        new_staff: [],
+        unmatched_staff: unmatchedStaffNames,
         new_jobs: newJobs.map(j => ({
           name: j.name, location: j.location, job_reference: j.job_reference,
           drilling_method: j.drilling_method, job_type: j.job_type,
@@ -2226,12 +2081,8 @@ export default async function(req) {
       staff_breakdown: staffBreakdown,
       jobs_breakdown: jobsBreakdown,
       conflicts,
-      new_staff: newStaff.map(s => ({
-        name: s.name, email: s.email, job_title: s.job_title,
-        worker_type: s.worker_type,
-        team: s.team_id === agencyTeam.id ? AGENCY_TEAM_NAME
-          : (s.team_id === subconTeam.id ? SUBCONTRACTOR_TEAM_NAME : 'Direct Employee')
-      })),
+      new_staff: [],
+      unmatched_staff: unmatchedStaffNames,
       new_jobs: newJobs.map(j => ({
         name: j.name, location: j.location, job_reference: j.job_reference,
         drilling_method: j.drilling_method, job_type: j.job_type,
