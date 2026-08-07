@@ -59,10 +59,11 @@ export default function GeotabLiveMap() {
   const { data: liveData, isLoading, refetch } = useQuery({
     queryKey: ['geotab-live-locations'],
     queryFn: async () => {
-      const res = await base44.functions.invoke('getVehicleLocationHistory', { mode: 'live', limit: 500 });
+      const res = await base44.functions.invoke('getVehicleLocationHistory', { mode: 'live_fast', limit: 500 });
       return res.data || res;
     },
     refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   const { data: history } = useQuery({

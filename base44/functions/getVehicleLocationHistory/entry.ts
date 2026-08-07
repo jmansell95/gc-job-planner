@@ -320,7 +320,7 @@ export default async function(req: Request): Promise<Response> {
       });
     }
 
-    if (mode === 'live') {
+    if (mode === 'live' || mode === 'live_fast') {
       // Get the latest location log per vehicle (cached)
       const allLogs = await base44.asServiceRole.entities.VehicleLocationLog.list('-timestamp', limit);
       const latestByVehicle: Record<string, any> = {};
@@ -332,54 +332,59 @@ export default async function(req: Request): Promise<Response> {
         }
       }
 
-      // ── FRESH GEOTAB STATUS OVERLAY ──
-      // Cached logs can be stale (sync runs every few minutes). Fetch the
-      // current driving/ignition status directly from Geotab in a single
-      // DeviceStatusInfo API call so the fleet map reflects reality right now.
+      // live_fast skips the Geotab API overlay call (which adds 2-5s latency)
+      // and returns cached logs instantly. The full "live" mode overlays
+      // fresh driving/ignition status from Geotab for real-time accuracy.
       let freshStatusByDeviceId: Record<string, { isDriving: boolean; isIgnitionOn: boolean }> = {};
-      try {
-        const settings = await base44.asServiceRole.entities.AppSetting.filter({ key: 'geotab_config' });
-        const cfg = settings[0]?.value || {};
-        if (cfg.username && cfg.password && cfg.database) {
-          const server = cfg.server || 'my.geotab.com';
-          const apiUrl = `https://${server.replace(/^https?:\/\//, '')}/apiv1`;
-          const authRes = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              method: 'Authenticate',
-              params: { userName: cfg.username, password: cfg.password, database: cfg.database },
-            }),
-          });
-          const authJson = authRes.ok ? await authRes.json().catch(() => null) : null;
-          const creds = authJson?.result?.credentials;
-          if (creds?.sessionId) {
-            const statusRes = await fetch(apiUrl, {
+      if (mode === 'live') {
+        // ── FRESH GEOTAB STATUS OVERLAY ──
+        // Cached logs can be stale (sync runs every few minutes). Fetch the
+        // current driving/ignition status directly from Geotab in a single
+        // DeviceStatusInfo API call so the fleet map reflects reality right now.
+        try {
+          const settings = await base44.asServiceRole.entities.AppSetting.filter({ key: 'geotab_config' });
+          const cfg = settings[0]?.value || {};
+          if (cfg.username && cfg.password && cfg.database) {
+            const server = cfg.server || 'my.geotab.com';
+            const apiUrl = `https://${server.replace(/^https?:\/\//, '')}/apiv1`;
+            const authRes = await fetch(apiUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                method: 'Get',
-                params: {
-                  typeName: 'DeviceStatusInfo',
-                  credentials: creds,
-                  resultsLimit: 500,
-                },
+                method: 'Authenticate',
+                params: { userName: cfg.username, password: cfg.password, database: cfg.database },
               }),
             });
-            const statusJson = statusRes.ok ? await statusRes.json().catch(() => null) : null;
-            const statusList: any[] = Array.isArray(statusJson?.result) ? statusJson.result : [];
-            for (const s of statusList) {
-              const devId = s.device?.id;
-              if (!devId) continue;
-              freshStatusByDeviceId[devId] = {
-                isDriving: !!s.isDriving,
-                isIgnitionOn: s.isDriving || (s.engineState === 'on') || false,
-              };
+            const authJson = authRes.ok ? await authRes.json().catch(() => null) : null;
+            const creds = authJson?.result?.credentials;
+            if (creds?.sessionId) {
+              const statusRes = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  method: 'Get',
+                  params: {
+                    typeName: 'DeviceStatusInfo',
+                    credentials: creds,
+                    resultsLimit: 500,
+                  },
+                }),
+              });
+              const statusJson = statusRes.ok ? await statusRes.json().catch(() => null) : null;
+              const statusList: any[] = Array.isArray(statusJson?.result) ? statusJson.result : [];
+              for (const s of statusList) {
+                const devId = s.device?.id;
+                if (!devId) continue;
+                freshStatusByDeviceId[devId] = {
+                  isDriving: !!s.isDriving,
+                  isIgnitionOn: s.isDriving || (s.engineState === 'on') || false,
+                };
+              }
             }
           }
+        } catch (_) {
+          // Geotab overlay is best-effort — fall back to cached logs silently
         }
-      } catch (_) {
-        // Geotab overlay is best-effort — fall back to cached logs silently
       }
 
       const results = Object.values(latestByVehicle).map((log: any) => {
@@ -404,7 +409,7 @@ export default async function(req: Request): Promise<Response> {
           is_driving_now: fresh?.isDriving || false,
         };
       });
-      return Response.json({ ok: true, mode: 'live', count: results.length, vehicles: results });
+      return Response.json({ ok: true, mode, count: results.length, vehicles: results });
     }
 
     if (mode === 'history') {

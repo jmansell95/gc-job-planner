@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { BookOpen, Plus, Send, Trash2, Clock, Coffee, Car, Briefcase, CheckCircle2, XCircle, AlertCircle, CalendarDays } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { useToast } from '@/components/ui/use-toast';
+import VoiceToTextButton from '@/components/ui/VoiceToTextButton';
 
 const TASK_TYPES = [
   { value: 'on_site', label: 'On-Site', icon: Briefcase },
@@ -251,9 +252,12 @@ export default function DailyDiary({ staffId }) {
           )}
           {!isBreak && (
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">What were you doing?</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-slate-600">What were you doing?</label>
+                <VoiceToTextButton onTranscript={(text) => setForm(prev => ({ ...prev, task_description: (prev.task_description + text).slice(0, 500) }))} />
+              </div>
               <input type="text" value={form.task_description} onChange={e => setForm({ ...form, task_description: e.target.value })}
-                placeholder="e.g. Setting up the rig"
+                placeholder="e.g. Setting up the rig — or tap Voice"
                 className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600" />
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {TASK_SUGGESTIONS.map(s => (

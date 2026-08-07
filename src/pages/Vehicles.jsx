@@ -73,14 +73,17 @@ export default function Vehicles() {
     queryFn: () => base44.entities.Staff.list(),
   });
 
-  // Live GPS locations from Geotab
+  // Live GPS locations — uses live_fast mode (cached logs only, no Geotab API
+  // overlay call) so the fleet grid loads instantly. The full "live" mode with
+  // fresh Geotab status is triggered manually via the Sync button.
   const { data: liveData } = useQuery({
     queryKey: ['geotab-live-locations-fleet'],
     queryFn: async () => {
-      const res = await base44.functions.invoke('getVehicleLocationHistory', { mode: 'live', limit: 500 });
+      const res = await base44.functions.invoke('getVehicleLocationHistory', { mode: 'live_fast', limit: 500 });
       return res?.data ?? res;
     },
     refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   const liveLocations = liveData?.vehicles || [];

@@ -6,6 +6,7 @@ import { X, CheckCircle2, Car, Ruler, FileText, ClipboardCheck, Send, ChevronRig
 import { format } from 'date-fns';
 import DailyExpenseStep from './DailyExpenseStep';
 import AssetRecoveryStep from './AssetRecoveryStep';
+import VoiceToTextButton from '@/components/ui/VoiceToTextButton';
 
 const fmtDur = (mins) => {
   const m = Math.round(Number(mins) || 0);
@@ -313,13 +314,16 @@ export default function EndOfShiftWizard({ open, onClose, onSubmit, assignment, 
               {currentStep.key === 'notes' && (
                 <div className="space-y-3">
                   <div>
-                    <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-2">
-                      <FileText className="w-4 h-4 text-slate-500" /> Progress notes for the next shift
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+                        <FileText className="w-4 h-4 text-slate-500" /> Progress notes for the next shift
+                      </label>
+                      <VoiceToTextButton onTranscript={(text) => setProgressNotes(prev => (prev + text).slice(0, 2000))} />
+                    </div>
                     <textarea value={progressNotes} onChange={e => setProgressNotes(e.target.value)} rows={5} autoFocus
-                      placeholder="What was done today? What's left for the next shift? Any issues?"
+                      placeholder="What was done today? What's left for the next shift? Any issues? — or tap Voice to dictate"
                       className="w-full px-3 py-3 border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 resize-none" />
-                    <p className="text-[11px] text-slate-400 mt-1.5">Optional — visible to management and the next shift.</p>
+                    <p className="text-[11px] text-slate-400 mt-1.5">Optional — visible to management and the next shift. Tap <strong>Voice</strong> to dictate hands-free.</p>
                   </div>
                 </div>
               )}
