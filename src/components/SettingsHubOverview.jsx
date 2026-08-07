@@ -9,7 +9,6 @@ import {
   History, Gauge, Link2, Search, ChevronRight, GitBranch, Lock, AlertTriangle,
   Database, Webhook, Bell, Settings2, Coins, Wrench, FileUp, Layers,
 } from 'lucide-react';
-import { COMING_SOON_IDS } from '@/components/SettingsNav';
 
 const INTEGRATION_SETTING_KEYS = [
   'geotab_config', 'holman_config', 'asset_panda_config', 'bob_hr_config',
@@ -263,26 +262,21 @@ export default function SettingsHubOverview({ onNavigate }) {
               {group.items.map(item => {
                 const Icon = item.icon;
                 const a = accent[item.color] || accent.slate;
-                const soon = COMING_SOON_IDS.has(item.id);
                 return (
-                  <button key={item.id} onClick={() => !soon && onNavigate(item.id)} disabled={soon}
-                    className={`insight-card relative rounded-2xl p-4 text-left group overflow-hidden ${soon ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}>
-                    <span className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${a.stripe} ${soon ? 'opacity-40' : ''}`}></span>
+                  <button key={item.id} onClick={() => onNavigate(item.id)} className="insight-card relative rounded-2xl p-4 text-left group overflow-hidden">
+                    <span className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${a.stripe}`}></span>
                     <div className="flex items-center gap-3 pl-2">
-                      <div className={`w-12 h-12 rounded-xl ${a.tile} flex items-center justify-center flex-shrink-0 shadow-lg ${a.glow} ${soon ? 'opacity-60' : ''}`}>
+                      <div className={`w-12 h-12 rounded-xl ${a.tile} flex items-center justify-center flex-shrink-0 shadow-lg ${a.glow}`}>
                         <Icon className="w-6 h-6 text-white" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-bold text-slate-900 truncate">{item.label}</p>
-                          {soon && <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-500 flex-shrink-0">Soon</span>}
-                        </div>
+                        <p className="text-sm font-bold text-slate-900 truncate">{item.label}</p>
                         <p className="text-xs text-slate-500 truncate">{item.sub}</p>
                       </div>
-                      {!soon && item.value !== '—' && (
+                      {item.value !== '—' && (
                         <span className="text-2xl font-extrabold text-slate-800 tabular-nums">{item.value}</span>
                       )}
-                      {!soon && <ArrowRight className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition flex-shrink-0" />}
+                      <ArrowRight className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition flex-shrink-0" />
                     </div>
                   </button>
                 );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Clock } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import StaffCommand from '@/components/StaffCommand';
 import VehicleManager from '@/components/VehicleManager';
 import ContractorManager from '@/components/ContractorManager';
@@ -22,7 +22,7 @@ import AssetManifestManager from '@/components/assetpanda/AssetManifestManager';
 import RateCardManager from '@/components/RateCardManager';
 import DropdownConfigManager from '@/components/DropdownConfigManager';
 import SettingsHubOverview from '@/components/SettingsHubOverview';
-import { accessibleSettingsItems, COMING_SOON_IDS } from '@/components/SettingsNav';
+import { accessibleSettingsItems } from '@/components/SettingsNav';
 import ComplianceManager from '@/components/ComplianceManager';
 import ComplianceRulesSettings from '@/components/ComplianceRulesSettings';
 import LogQualityControl from '@/components/investigation/LogQualityControl';
@@ -122,21 +122,6 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
     // If this page is locked down and the user doesn't have access, show the guard.
     if (isLockedOut) {
       return <SettingsAccessGuard pageLabel={active.label} lockedBy={activeLockdown.lockedBy} lockedAt={activeLockdown.lockedAt} />;
-    }
-
-    if (COMING_SOON_IDS.has(activeTab)) {
-      return (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-            <Clock className="w-8 h-8 text-slate-400" />
-          </div>
-          <h3 className="text-lg font-bold text-slate-700">{active?.label || 'This section'}</h3>
-          <p className="text-sm text-slate-500 mt-1 max-w-sm">This area isn't ready for use yet — check back soon.</p>
-          <button onClick={() => setActiveTab('hub')} className="mt-5 px-4 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-medium hover:bg-[#1c4a12] transition">
-            Back to Overview
-          </button>
-        </div>
-      );
     }
    
     switch (activeTab) {
