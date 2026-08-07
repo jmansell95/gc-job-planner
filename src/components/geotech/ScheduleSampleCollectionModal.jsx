@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
  */
 export default function ScheduleSampleCollectionModal({ job, samples, allStaff, suppliers, scheduledSampleIds, onClose }) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
 
   // Only samples still on site (collected status) and not already scheduled
@@ -92,6 +93,8 @@ export default function ScheduleSampleCollectionModal({ job, samples, allStaff, 
         title: 'Sample run scheduled',
         description: `${selectedIds.length} sample${selectedIds.length === 1 ? '' : 's'} assigned to ${driver?.name || 'driver'}. They'll see a checklist on their delivery dashboard.`,
       });
+      queryClient.invalidateQueries({ queryKey: ['sample-deliveries-for-job', job.id] });
+      queryClient.invalidateQueries({ queryKey: ['samples-for-job', job.id] });
       onClose();
     } catch (e) {
       toast({ title: 'Error scheduling sample run', description: e.message, variant: 'destructive' });
