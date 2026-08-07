@@ -3,12 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import {
   X, Truck, Gauge, CalendarClock, Wrench, Link2, Satellite,
   ShieldCheck, ShieldAlert, ShieldX, Hash, Fuel, Palette, Car, User, Users,
-  MapPin, Navigation, Clock, Activity, Zap, Radio, Database, FileText, Loader2,
+  MapPin, Navigation, Clock, Activity, Zap, Radio, Database, FileText, Loader2, Route,
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { differenceInDays } from 'date-fns';
 import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
 import TripTimelineEnhanced from '@/components/vehicles/TripTimelineEnhanced';
+import TravelReconciliationReport from '@/components/vehicles/TravelReconciliationReport';
 import MaintenanceTimeline from '@/components/vehicles/MaintenanceTimeline';
 import MOTHistoryTimeline from '@/components/vehicles/MOTHistoryTimeline';
 import { generateVehicleReport } from '@/utils/vehiclePdfReport';
@@ -83,7 +84,7 @@ function SpecTile({ icon: Icon, label, value, source, color }) {
 }
 
 export default function VehicleDetailDrawer({ vehicle, onClose }) {
-  const [activeTab, setActiveTab] = useState('live'); // 'live' | 'spec' | 'compliance'
+  const [activeTab, setActiveTab] = useState('live'); // 'live' | 'spec' | 'compliance' | 'reconciliation'
   const [reportLoading, setReportLoading] = useState(false);
 
   const handleDownloadReport = async () => {
@@ -258,6 +259,10 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition ${activeTab === 'compliance' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}>
             <Wrench className="w-3.5 h-3.5" /> Maintenance
           </button>
+          <button onClick={() => setActiveTab('reconciliation')}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition ${activeTab === 'reconciliation' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-500'}`}>
+            <Route className="w-3.5 h-3.5" /> Travel Reconciliation
+          </button>
         </div>
 
         {/* ═════════════ LIVE OPS TAB (Geotab) ═════════════ */}
@@ -422,6 +427,13 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
               </div>
               <MaintenanceTimeline vehicleId={vehicle.id} />
             </div>
+          </div>
+        )}
+
+        {/* ═════════════ TRAVEL RECONCILIATION TAB ═════════════ */}
+        {activeTab === 'reconciliation' && (
+          <div className="px-5 py-4">
+            <TravelReconciliationReport vehicle={vehicle} />
           </div>
         )}
       </div>

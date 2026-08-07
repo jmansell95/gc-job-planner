@@ -613,13 +613,18 @@ function parseSheet(sheet, sheetName) {
           nonJobType = 'yard_depot';
           nonJobLabel = jobName;
         }
-        // In depot sections, staff are yard/depot only — NEVER auto-assign
-        // them to jobs from the import. If a planner writes a job name in a
-        // depot cell, it's informational (e.g. "helping at EWR") not a real
-        // assignment. Jobs can be assigned manually after import if needed.
+        // In depot sections, empty cells = yard/depot duty (merged cell pattern).
+        // BUT if a real job name is written in the cell, honour it as a real
+        // assignment — depot staff are sometimes sent to jobs (e.g. Dean Skirrow
+        // helping at EWR). Only force yard_depot for non-job text or empty cells.
         if (!nonJobType && isDepotSection(currentSection)) {
-          nonJobType = 'yard_depot';
-          nonJobLabel = jobName;
+          if (isLikelyRealJob(jobName)) {
+            // Real job name in a depot section — treat as a job assignment
+            // so the staff member shows on the rota for that job.
+          } else {
+            nonJobType = 'yard_depot';
+            nonJobLabel = jobName;
+          }
         }
         if (!nonJobType && !isLikelyRealJob(jobName)) {
           // Unknown text that isn't a real job — filter as training (overhead)

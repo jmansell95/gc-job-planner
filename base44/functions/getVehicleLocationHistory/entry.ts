@@ -125,7 +125,10 @@ export default async function(req: Request): Promise<Response> {
         if (t.start) tripDays.add(new Date(t.start).toISOString().slice(0, 10));
         if (t.stop) tripDays.add(new Date(t.stop).toISOString().slice(0, 10));
       }
-      for (const dayStr of tripDays) {
+      // Fetch all trip-day LogRecords in PARALLEL — previously sequential
+      // (N days × ~17s each = 2+ minutes for a 7-day range). Parallel cuts
+      // total time to ~17-20s regardless of day count.
+      const dayFetches = [...tripDays].map(async (dayStr) => {
         const dayStart = new Date(dayStr + 'T00:00:00.000Z');
         const dayEnd = new Date(Math.min(dayStart.getTime() + dayMs, toDate.getTime()));
         const logRes = await fetch(apiUrl, {
@@ -146,10 +149,10 @@ export default async function(req: Request): Promise<Response> {
           }),
         }).catch(() => null);
         const logJson = logRes ? await logRes.json().catch(() => null) : null;
-        if (Array.isArray(logJson?.result)) {
-          logs.push(...logJson.result);
-        }
-      }
+        return Array.isArray(logJson?.result) ? logJson.result : [];
+      });
+      const dayResults = await Promise.all(dayFetches);
+      for (const dayLogs of dayResults) logs.push(...dayLogs);
 
       // Format log breadcrumbs (defined first — trips reference these for coordinates)
       const formattedLogs = logs.map((l: any) => ({
