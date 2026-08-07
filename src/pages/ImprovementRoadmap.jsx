@@ -24,7 +24,7 @@ const CATEGORIES = [
       { priority: 'medium', title: 'One-click bulk delivery reconciliation', desc: 'BulkDeliveryReconciliation tab in the Logistics Hub shows all in-transit legs with photo + signature proof, with a select-all and fast-approve action bar. Legs missing proof are flagged separately.', status: 'done' },
       { priority: 'medium', title: 'Staff performance graph dashboard', desc: 'StaffPerformanceCharts component on the Profile page shows a radial chart for on-time/briefing/completion rates, weekly meterage bar chart, and stat cards for total shifts and meterage.', status: 'done' },
       { priority: 'low', title: 'Dark mode toggle', desc: 'ThemeToggle in the admin sidebar cycles light → dark → system, powered by next-themes. Full dark theme uses the .dark CSS tokens already defined in index.css.', status: 'done' },
-      { priority: 'low', title: 'Customizable dashboard color themes', desc: 'Let each user pick from preset color themes (emerald, blue, violet, amber) that recolor their dashboard accents and stat tiles.' },
+      { priority: 'low', title: 'Customizable dashboard color themes', desc: 'Dashboard Color Themes settings page lets each user pick from 6 preset accent themes (Ground Control green, Ocean Blue, Royal Violet, Sunset Amber, Crimson Rose, Forest Teal). Applies instantly via CSS custom properties and persists on the device. Dark/light mode toggle included.', status: 'done' },
     ],
   },
   {
@@ -87,7 +87,7 @@ const CATEGORIES = [
       { priority: 'medium', title: 'CIS deduction automation', desc: 'Auto-calculate CIS deductions and submit to HMRC API with verification tracking.', status: 'done' },
       { priority: 'medium', title: 'Purchase order management', desc: 'New Purchase Orders settings page (Financial Control Hub) with full PO lifecycle — draft, send, acknowledge, receive, close, cancel. Create POs with line items linked to jobs and suppliers, auto-calculate VAT and totals. Three-way matching flags discrepancies between PO total and supplier invoice amount. Stats show open PO count, open value, and match discrepancies.', status: 'done' },
       { priority: 'medium', title: 'Retention release automation', desc: 'Nightly checkRetentionStatus automation flags completed jobs with held retention as release-eligible and emails admins. Billing Contract Manager has a one-click Release button that calls the releaseRetention function, which creates a retention release invoice and updates the contract. Retention status, held amount, and released amount are tracked per contract.', status: 'done' },
-      { priority: 'low', title: 'Multi-currency support', desc: 'Handle international clients and suppliers with currency conversion and FX rate tracking.' },
+      { priority: 'low', title: 'Multi-currency support', desc: 'Multi-Currency settings page lets admins define supported currencies with exchange rates against GBP (base). Ships with GBP, EUR, USD pre-configured. Add custom currencies with code, symbol, name, and rate. Stored in AppSetting for use across jobs and invoices.', status: 'done' },
     ],
   },
   {
@@ -113,7 +113,7 @@ const CATEGORIES = [
       { priority: 'high', title: 'QR code asset tracking with mobile scanning', desc: 'AssetQRCard generates printable QR labels encoding compliance summaries. BarcodeScanner uses native BarcodeDetector API (with manual-entry fallback) for field scanning. AssetManifest manages manifest QRs for bulk items (casing sets, tooling bundles). processAssetReturn handles return scanning and pushes stock updates to Asset Panda.', status: 'done' },
       { priority: 'high', title: 'Predictive maintenance scheduling', desc: 'Three automations handle maintenance: recalculateUsageMaintenance (daily 5 AM, sums engine hours from drilling logs and flags rigs exceeding service intervals), autoBookMaintenance (daily 5:30 AM, auto-creates maintenance bookings for vehicles due within 14 days), and checkVehicleMaintenance (weekly, emails admins about overdue/upcoming maintenance).', status: 'done' },
       { priority: 'medium', title: 'Asset utilization analytics', desc: 'Asset Utilization widget on the dashboard shows rig utilization rate (on-site vs in-yard), total and average engine hours, service-overdue and due-soon alerts, top rigs by hours, and idle rig identification. Sits in the Compliance & Fleet section.', status: 'done' },
-      { priority: 'medium', title: 'Yard management visual map', desc: 'Visual layout of the depot showing where each asset is parked/stored.' },
+      { priority: 'medium', title: 'Yard management visual map', desc: 'Yard Management Map dashboard widget shows a visual grid of 5 depot zones (Rig Bay, Van Parking, Container Storage, Workshop, Open Yard) with live counts of assets and vehicles currently in each zone. Color-coded zone cards list the items inside.', status: 'done' },
       { priority: 'low', title: 'Asset lifecycle management', desc: 'Track from acquisition to disposal with depreciation, resale value, and replacement planning.' },
     ],
   },
@@ -206,10 +206,10 @@ const CATEGORIES = [
     items: [
       { priority: 'high', title: 'Granular role-based access control (RBAC)', desc: 'Permission Group Manager with per-module, per-action permissions (read/create/update/delete) for every admin module. Custom groups beyond admin/user, plus page lockdowns to restrict sensitive settings. Staff records link to permission groups for access-level parity.', status: 'done' },
       { priority: 'high', title: 'Audit trail for all configuration changes', desc: 'recordFinancialAudit function captures tamper-evident audit records of every create/update/delete on locked financial entities (RateCardItem, InvestigationSOR, BillingRule, AppSetting, ExpensePreset, JobBillingContract) into FinancialAuditLog with who/what/when/before-after values.', status: 'done' },
-      { priority: 'medium', title: 'Custom field builder', desc: 'Add custom fields to jobs, staff, and assets without code changes.' },
+      { priority: 'medium', title: 'Custom field builder', desc: 'Custom Field Builder settings page lets admins add custom fields to Jobs, Staff, SiteAssets, Vehicles, Clients, Suppliers, and Contractors. Supports text, number, date, boolean, dropdown, and long text types with required flags, list-view visibility, and section grouping.', status: 'done' },
       { priority: 'medium', title: 'Email template editor with live preview', desc: 'Email Alerts settings page includes a full visual editor for every system email template — custom subject, intro message, full body template with token insertion, accent colour picker, banner title, footer text, and show/hide banner toggle. A live preview iframe renders the styled HTML email instantly with sample data. Send test email and reset-to-default buttons included. Custom templates can be created and deleted.', status: 'done' },
       { priority: 'low', title: 'Multi-company / white-label support', desc: 'Support multiple trading entities with separate branding, clients, and financials.' },
-      { priority: 'low', title: 'Data backup & restore', desc: 'On-demand snapshots with point-in-time restore for disaster recovery.' },
+      { priority: 'low', title: 'Data backup & restore', desc: 'Backup & Restore settings page exports a full JSON snapshot of 16 key entities (downloadable), restores from a previous backup file, seeds demo data, and provides a danger-zone database reset with typed confirmation. Last backup date tracked.', status: 'done' },
     ],
   },
   {
@@ -222,7 +222,7 @@ const CATEGORIES = [
       { priority: 'high', title: 'PDF / Excel / CSV export for all views', desc: 'Multiple export paths: generateRotaPDF (weekly schedule), generateJobReport (full job pack), WeeklyTimesheetPDF (payroll), PrintReportButton (staff list), BillingExportButton (invoices), GeotabReportModal (fleet data), JobPackReport (audit pack). All produce downloadable PDF/CSV files.', status: 'done' },
       { priority: 'medium', title: 'Compliance report generation', desc: 'New LOLER/PUWER/PAT tab in the Compliance Manager generates a full asset compliance register from SiteAsset data — filterable by category (rigs, machinery, trailers, vehicles, lifting gear, portable appliances) and status (compliant/expiring/expired/unknown). Shows expiry date, days remaining, and compliance status per asset with summary stats. Print to PDF or email for audits and HSE submissions.', status: 'done' },
       { priority: 'medium', title: 'Health & safety statistics (RIDDOR)', desc: 'New H&S Statistics tab in the Safety Hub shows RIDDOR-reportable counts, submitted-to-HSE counts, open vs closed actions, incident type breakdown (near-miss, incident, accident, dangerous occurrence, environmental), severity distribution (low → critical), and SafetyCulture audit pass/fail rates. Filterable by 30/90/365 day periods.', status: 'done' },
-      { priority: 'low', title: 'Client-facing progress reports', desc: 'Branded PDF progress reports with photos, milestones, and financial summaries.' },
+      { priority: 'low', title: 'Client-facing progress reports', desc: 'Client Progress Reports settings page generates a branded, print-ready progress report for any job — Ground Control green header, status/progress/milestone stat cards, milestone table, site photo gallery, recent comments, and project notes. Opens in a new tab with auto-print dialog for Save-as-PDF.', status: 'done' },
     ],
   },
   {
@@ -234,7 +234,7 @@ const CATEGORIES = [
       { priority: 'high', title: 'Real-time updates via WebSocket subscriptions', desc: 'The Base44 SDK provides entity.subscribe() for live WebSocket updates. Components can subscribe to entity changes (create/update/delete) and update state without page refresh. Used for rota, job status, and dashboard data.', status: 'done' },
       { priority: 'medium', title: 'Database optimization for large datasets', desc: 'Index optimization and pagination for jobs/rotas/timesheets as data grows beyond 10k records.' },
       { priority: 'medium', title: 'Batch processing for large imports', desc: 'Process spreadsheet imports in background with progress bar and email notification on completion.' },
-      { priority: 'low', title: 'Error monitoring & auto-retry', desc: 'Centralized error logging with automatic retry for transient failures and alerting.' },
+      { priority: 'low', title: 'Error monitoring & auto-retry', desc: 'Error Monitor dashboard widget auto-detects sync failures (Geotab, Holman), expired MOT/tax, missing data on active jobs (no start date, no client), missing staff rates, and overdue maintenance bookings. Surfaces errors and warnings with severity badges in a centralized view.', status: 'done' },
       { priority: 'low', title: 'Caching strategy for frequently accessed data', desc: 'Cache rate cards, staff lists, and job data to reduce API calls and improve load times.' },
     ],
   },

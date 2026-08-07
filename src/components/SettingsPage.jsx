@@ -61,6 +61,11 @@ import HolidayAccrualManager from '@/components/staff/HolidayAccrualManager';
 import StaffReviewManager from '@/components/staff/StaffReviewManager';
 import CsvBulkImport from '@/components/import/CsvBulkImport';
 import TimesheetDelegationManager from '@/components/settings/TimesheetDelegationManager';
+import DashboardThemeSettings from '@/components/settings/DashboardThemeSettings';
+import CustomFieldBuilder from '@/components/settings/CustomFieldBuilder';
+import BackupRestoreManager from '@/components/settings/BackupRestoreManager';
+import CurrencySettings from '@/components/settings/CurrencySettings';
+import ClientProgressReport from '@/components/reports/ClientProgressReport';
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -170,6 +175,11 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'staff-reviews': return <StaffReviewManager />;
       case 'csv-import': return <CsvBulkImport />;
       case 'timesheet-delegation': return <TimesheetDelegationManager />;
+      case 'dashboard-themes': return <DashboardThemeSettings />;
+      case 'custom-fields': return <CustomFieldBuilder />;
+      case 'backup-restore': return <BackupRestoreManager />;
+      case 'multi-currency': return <CurrencySettings />;
+      case 'client-progress-report': return <ClientProgressReport />;
       default: return null;
     }
   };

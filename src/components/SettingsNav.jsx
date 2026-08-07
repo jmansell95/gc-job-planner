@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart, Star, CalendarDays, UserCheck } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart, Star, CalendarDays, UserCheck, Warehouse, AlertOctagon, Coins } from 'lucide-react';
 import { normalizePermissions } from '@/utils/permissions';
 
 export const settingsGroups = [
@@ -106,6 +106,11 @@ export const settingsGroups = [
       { id: 'demo-data', label: 'Demo Data Manager', icon: Sparkles, desc: 'Populate realistic showcase data or wipe everything for a clean slate', roles: ['admin'] },
       { id: 'system-guide', label: 'System Logic Guide', icon: BookOpen, desc: 'Download a PDF explaining every stat, rule and automation in the system', roles: ['admin', 'manager', 'viewer'] },
       { id: 'custom-reports', label: 'Custom Report Builder', icon: FileBarChart, desc: 'Build custom reports from any data source — pick columns, filter, and export to CSV or PDF', roles: ['admin', 'manager'] },
+      { id: 'client-progress-report', label: 'Client Progress Reports', icon: FileText, desc: 'Generate branded, printable PDF progress reports for clients — photos, milestones, schedule & project details', roles: ['admin', 'manager'] },
+      { id: 'custom-fields', label: 'Custom Field Builder', icon: Settings2, desc: 'Add custom fields to jobs, staff, assets, vehicles, clients & suppliers — no code needed', roles: ['admin'] },
+      { id: 'dashboard-themes', label: 'Dashboard Color Themes', icon: Palette, desc: 'Personalize your dashboard with preset accent color themes — emerald, blue, violet, amber, rose & teal', roles: ['admin', 'manager', 'viewer'] },
+      { id: 'backup-restore', label: 'Backup & Restore', icon: Database, desc: 'Export a full data snapshot, restore from a previous backup, seed demo data or reset the database', roles: ['admin'] },
+      { id: 'multi-currency', label: 'Multi-Currency', icon: Coins, desc: 'Define supported currencies & exchange rates against GBP for international clients and suppliers', roles: ['admin'] },
     ],
   },
 ];

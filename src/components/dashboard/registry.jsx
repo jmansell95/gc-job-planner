@@ -45,6 +45,8 @@ export const WIDGET_REGISTRY = {
   'crew-deployment': { title: 'Crew Deployment', icon: Users },
   'geofence-feed': { title: 'Geofence Activity', icon: Radar },
   'exception-monitor': { title: 'Needs Attention', icon: AlertOctagon },
+  'error-monitor': { title: 'Error Monitor', icon: AlertOctagon },
+  'yard-map': { title: 'Yard Management Map', icon: Warehouse },
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -83,4 +85,4 @@ export const COST_WIDGETS = ['job-profitability', 'efficiency-snapshot', 'rig-pr
 // Widgets that show company-wide data (not specific to a job). These are hidden
 // when the dashboard is focused on a single job, since they don't reflect that
 // job's data.
-export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'exception-monitor', 'compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'ai-insights', 'geo-heatmap', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'field-priorities', 'cash-flow-forecast', 'drilling-performance', 'safety-dashboard', 'predictive-insights', 'profitability-alerts', 'staff-utilization', 'predictive-completion', 'benchmark-comparisons', 'site-weather', 'config-health', 'missing-rates'];
+export const GLOBAL_ONLY_WIDGETS = ['executive-snapshot', 'exception-monitor', 'compliance-overview', 'compliance-expiry', 'maintenance-quick-view', 'ai-insights', 'geo-heatmap', 'unbilled-wip', 'project-financials', 'subcon-margin-guard', 'financial-reconciliation', 'billing-readiness', 'outstanding-receivables', 'field-priorities', 'cash-flow-forecast', 'drilling-performance', 'safety-dashboard', 'predictive-insights', 'profitability-alerts', 'staff-utilization', 'predictive-completion', 'benchmark-comparisons', 'site-weather', 'config-health', 'missing-rates', 'error-monitor', 'yard-map'];

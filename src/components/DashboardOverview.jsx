@@ -44,6 +44,8 @@ import SiteReadinessGate from '@/components/safety/SiteReadinessGate';
 import OffHireReconciliationWidget from '@/components/logistics/OffHireReconciliationWidget';
 import GeofenceEventFeed from '@/components/dashboard/GeofenceEventFeed';
 import ExceptionMonitorWidget from '@/components/dashboard/ExceptionMonitorWidget';
+import ErrorMonitorWidget from '@/components/dashboard/ErrorMonitorWidget';
+import YardMapWidget from '@/components/dashboard/YardMapWidget';
 import DeliveryStats from '@/components/DeliveryStats';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
 import { canViewCostings } from '@/utils/access';
@@ -161,6 +163,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'off-hire-recon': return <OffHireReconciliationWidget jobId={isAllJobs ? null : selectedJobId} />;
       case 'geofence-feed': return <GeofenceEventFeed onSelectJob={(jid) => { const j = jobs.find(x => x.id === jid); if (j) openJobDrawer(j); }} />;
       case 'exception-monitor': return <ExceptionMonitorWidget onNavigate={onNavigate} />;
+      case 'error-monitor': return <ErrorMonitorWidget />;
+      case 'yard-map': return <YardMapWidget />;
       default: return null;
     }
   };
