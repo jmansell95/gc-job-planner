@@ -24,6 +24,10 @@ const SECTIONS = [
       { stat: 'Timesheet Queue', meaning: 'Timesheet entries with status "submitted" — awaiting manager approval. Overdue entries are those submitted more than 48 hours ago without a decision.' },
       { stat: 'Overdue Actions', meaning: 'Safety action items (from SafetyCulture audits) whose due date has passed. These are corrective actions assigned from audit findings that have not been closed.' },
       { stat: 'Pending Deliveries', meaning: 'DeliveryLog records for today where status is "pending" or "in_progress". These are deliveries or collections scheduled for today that have not been completed.' },
+      { stat: 'Three-Tier Dashboard', meaning: 'The dashboard is organised into three tiers: Operational Pulse (live exception metrics), Alerts & Action (items needing attention), and Deep Dive & Analytics (charts, forecasts, historical data). Drag widgets to reorder or toggle visibility via the customise button on each tier header.' },
+      { stat: 'Mission Control Center', meaning: 'A unified command widget showing burn rate gauge, system health, outstanding revenue, and safety status in one view. It pulls from jobs, timesheets, invoices, and safety reports to give a single-glance operational picture.' },
+      { stat: 'Idle Asset Transfers', meaning: 'The Idle Asset Transfer widget matches yard assets sitting idle with upcoming job delivery requirements and auto-generates transfer delivery legs. A daily automation at 6 AM runs the matching engine so gear moves to where it is needed without manual planning.' },
+      { stat: 'Training Gap Scheduler', meaning: 'Scans all staff for expiring compliance certifications (LOLER, PUWER, first aid, etc.) and cross-references their rota to find free days for training. Suggests optimal training slots that do not conflict with job assignments.' },
     ],
   },
   {
@@ -38,6 +42,7 @@ const SECTIONS = [
       { stat: 'PAT Interval', meaning: 'Default 12 months for office, 3 months for construction sites. Portable electrical equipment (110V transformers, power tools, leads) tested via the PAT Testing Console.' },
       { stat: 'Expiring Warning Days', meaning: 'Default 30 days. Assets are flagged "expiring soon" when their next test is within this window. Drives the amber warning tiles.' },
       { stat: 'Hard-Stop Validation', meaning: 'AssignmentModal cross-references staff qualifications against job requirements. A staff member without the required qualification cannot be assigned — the system blocks the assignment, it does not warn.' },
+      { stat: 'Compliance Passport Gate', meaning: 'When a rig is selected for a job in the Rig Gear Picker, the Compliance Passport Gate checks whether the rig\'s LOLER/PUWER/PAT certificates remain valid for the entire on-site period. If a cert expires during the job, assignment is blocked and a recertification prompt appears. If it expires soon after, a warning is shown.' },
     ],
   },
   {
@@ -63,6 +68,8 @@ const SECTIONS = [
       { stat: 'Charge Calculation', meaning: 'The calculateCharge function runs automatically on every approved InvestigationLog and submitted Timesheet. It matches the activity to a BillingRule (by task description or log type), applies the rate, and sets charge_amount and charge_breakdown on the record.' },
       { stat: 'Revenue Method', meaning: 'How a job earns money: "drilling_meterage" = £/metre, "groundworks_unit" = £/trial pit, "coring_unit" = £/core run, "day_rate" = fixed daily crew rate, "flat_fee" = single project fee. Set on the Team, inherited by the job.' },
       { stat: 'VAT Rate', meaning: 'Default 20% (UK standard rate). Applied to invoice net totals. Editable per job for zero-rated or exempt work. Falls back to the BusinessConfig default_vat_rate when not set on the job.' },
+      { stat: 'Asset Financial Lifecycle', meaning: 'The Financial tab on each Asset Passport shows the full ROI of an asset: total revenue earned (from approved JobCostItem billing records) vs total cost (maintenance + servicing + straight-line depreciation). The net profit and ROI percentage update in real time as new billing and service records are added.' },
+      { stat: 'Auto-Detect Billing from Remarks', meaning: 'Each investigation log entry has an "Auto-Detect Billing" button that sends the log\'s remarks to an LLM. The AI identifies billable events mentioned in the driller diary (e.g. "extra casing installed", "made up 10m of rods") and auto-creates JobCostItem billing entries with the correct rate from the Master Price List.' },
     ],
   },
   {
@@ -74,6 +81,8 @@ const SECTIONS = [
       { stat: 'Staff Assistant', meaning: 'A conversational AI copilot available to every user inside the app. It queries the live database to answer operational questions in plain English: "Who is on site today?", "What needs my approval?", "Show me overdue compliance." Available via the Sparkles button in the sidebar.' },
       { stat: 'Drilling Intelligence', meaning: 'A dedicated AI agent that analyses drilling logs for ground condition patterns, flags anomalous SPT values, identifies refusal trends, and surfaces geotechnical risks. It reads the logs so the engineer does not have to. Available via the HardHat button in the sidebar.' },
       { stat: 'Scheduling Assistant', meaning: 'An AI assistant that suggests crew assignments based on qualifications, availability and job type. It validates staff qualifications against crew requirements before suggesting an assignment — work that takes a scheduler 20 minutes takes seconds.' },
+      { stat: 'Incident Auto-Analysis', meaning: 'When logging a safety incident, an AI analysis button appears after the description is entered. The LLM analyses the incident against UK HSE guidelines and RIDDOR requirements, then suggests a root cause, corrective actions with priority and owner, whether it is RIDDOR-reportable, and prevention notes. Suggestions can be applied to the report with one click.' },
+      { stat: 'What-If Rota Sandbox', meaning: 'A sandbox tab in the Scheduling Hub that lets planners test rota changes before applying them. Add proposed assignments and the system calculates the impact on crew utilisation, job coverage, and cost. An AI analysis button assesses risk factors (overallocation, single-point-of-failure) and recommends approve, reject, or modify.' },
     ],
   },
   {
@@ -89,6 +98,8 @@ const SECTIONS = [
       { stat: 'Schedule Email', meaning: 'Triggered when a rota week is published. Emails each assigned crew member their weekly schedule with a PDF attachment.' },
       { stat: 'Bank Holiday Sync', meaning: 'Annual. Pulls UK bank holidays from gov.uk API so the rota engine knows not to schedule work on public holidays.' },
       { stat: 'Geofence Batch Check', meaning: 'Every 10 minutes. Reads the latest GPS position for every vehicle and checks it against all job, supplier and client geofences. Catches arrivals/departures the real-time Geotab webhook may have missed between pings.' },
+      { stat: 'Idle Asset Transfer Sweep', meaning: 'Daily at 6 AM. The autoGenerateTransferLegs function matches assets sitting idle in the yard with upcoming job delivery requirements and auto-creates DeliveryLeg records so gear moves to where it is needed without manual planning.' },
+      { stat: 'Portal Feedback Sync', meaning: 'Nightly at 11 PM. The syncPortalFeedbackToJobStatus function processes client portal feedback ratings. When a poor rating (1-2 stars) is received, the linked job is automatically put on hold with a status_reason so the project manager can investigate before continuing.' },
     ],
   },
   {
