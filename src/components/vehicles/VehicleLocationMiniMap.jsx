@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, CircleMarker } from 'react-leaflet';
 import { MapPin, Clock, Navigation, ExternalLink, Loader2 } from 'lucide-react';
-import { reverseGeocodeStructured } from '@/utils/reverseGeocode';
+import { reverseGeocodeStructured, buildLabelFromParts } from '@/utils/reverseGeocode';
 
 /**
  * A small, non-interactive Leaflet "snapshot" map showing a vehicle's last
@@ -22,19 +22,7 @@ export default function VehicleLocationMiniMap({ lat, lng, timestamp, ignition_o
     setAddrLoading(true);
     reverseGeocodeStructured(lat, lng).then(parts => {
       if (cancelled) return;
-      if (!parts) { setAddress(null); return; }
-      // Build "Street, Postcode" — most readable for UK addresses
-      const road = parts.road || '';
-      const suburb = parts.suburb || '';
-      const postcode = parts.postcode || '';
-      let label = null;
-      if (road && postcode) label = `${road}, ${postcode}`;
-      else if (suburb && postcode) label = `${suburb}, ${postcode}`;
-      else if (road && suburb) label = `${road}, ${suburb}`;
-      else if (road) label = road;
-      else if (suburb) label = suburb;
-      else if (postcode) label = postcode;
-      setAddress(label);
+      setAddress(buildLabelFromParts(parts));
     }).finally(() => {
       if (!cancelled) setAddrLoading(false);
     });

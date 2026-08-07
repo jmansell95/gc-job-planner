@@ -6,35 +6,40 @@
 const cache = new Map();        // key → formatted label
 const structuredCache = new Map(); // key → structured parts
 
-// Build a readable UK-style address from BigDataCloud response fields.
-// Priority: street + postcode (most specific), falling back to locality/city.
-function formatAddress(json) {
-  if (!json) return null;
-  const road = json.street || json.streetName || '';
-  const suburb = json.locality || json.subLocality || json.neighbourhood || '';
-  const town = json.city || json.principalSubdivision || '';
-  const postcode = json.postcode || '';
+// Build a readable UK-style address from structured parts.
+// Priority: street + postcode (most specific), then progressively looser
+// fallbacks so we ALWAYS show something useful if the API returned any data.
+// Exported so all vehicle/trip components share one consistent label builder.
+export function buildLabelFromParts(parts) {
+  if (!parts) return null;
+  const road = parts.road || '';
+  const suburb = parts.suburb || '';
+  const town = parts.town || '';
+  const postcode = parts.postcode || '';
 
-  // Best case: "High Street, AB1 2CD" — street + postcode is most readable
-  if (road && postcode) {
-    return `${road}, ${postcode}`;
-  }
-  // No street but have locality + postcode: "Springfield, AB1 2CD"
-  if (suburb && postcode) {
-    return `${suburb}, ${postcode}`;
-  }
-  // No postcode: "High Street, Springfield" or "High Street, London"
-  if (road && (suburb || town)) {
-    return `${road}, ${suburb || town}`;
-  }
+  // Best case: "High Street, AB1 2CD"
+  if (road && postcode) return `${road}, ${postcode}`;
+  // "Springfield, AB1 2CD"
+  if (suburb && postcode) return `${suburb}, ${postcode}`;
+  // "High Street, Springfield"
+  if (road && suburb) return `${road}, ${suburb}`;
+  // "High Street, London"
+  if (road && town) return `${road}, ${town}`;
   // Just postcode
   if (postcode) return postcode;
   // Just road
   if (road) return road;
-  // Fall back to locality/town
+  // Just suburb/locality
   if (suburb) return suburb;
+  // Just town/city — better than "Unknown"!
   if (town) return town;
   return null;
+}
+
+// Build a readable UK-style address from BigDataCloud response fields.
+function formatAddress(json) {
+  if (!json) return null;
+  return buildLabelFromParts(parseStructured(json));
 }
 
 // Return structured address parts for richer UI display (separate street, postcode, etc.)

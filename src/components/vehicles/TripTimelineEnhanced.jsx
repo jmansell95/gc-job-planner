@@ -7,7 +7,7 @@ import {
   Square, Activity, Timer, ExternalLink,
 } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup } from 'react-leaflet';
-import { batchReverseGeocodeStructured } from '@/utils/reverseGeocode';
+import { batchReverseGeocodeStructured, buildLabelFromParts } from '@/utils/reverseGeocode';
 
 const KM_TO_MI = 0.621371;
 function kmToMi(km) { return (Number(km) || 0) * KM_TO_MI; }
@@ -381,29 +381,15 @@ export default function TripTimelineEnhanced({ vehicle }) {
       if (coords.length === 0) return;
       const labels = await batchReverseGeocodeStructured(coords);
       if (cancelled) return;
-      // Build readable "Street, Postcode" labels from structured parts
-      const buildLabel = (parts) => {
-        if (!parts) return null;
-        const road = parts.road || '';
-        const suburb = parts.suburb || '';
-        const postcode = parts.postcode || '';
-        if (road && postcode) return `${road}, ${postcode}`;
-        if (suburb && postcode) return `${suburb}, ${postcode}`;
-        if (road && suburb) return `${road}, ${suburb}`;
-        if (road) return road;
-        if (suburb) return suburb;
-        if (postcode) return postcode;
-        return null;
-      };
       const updated = {};
       for (const t of trips) {
         const sKey = t.start_lat != null ? `${Number(t.start_lat).toFixed(4)},${Number(t.start_lng).toFixed(4)}` : null;
         const eKey = t.end_lat != null ? `${Number(t.end_lat).toFixed(4)},${Number(t.end_lng).toFixed(4)}` : null;
-        const startLoc = sKey && labels[sKey] ? (buildLabel(labels[sKey]) || t.start_location) : t.start_location;
-        const endLoc = eKey && labels[eKey] ? (buildLabel(labels[eKey]) || t.end_location) : t.end_location;
+        const startLoc = sKey && labels[sKey] ? (buildLabelFromParts(labels[sKey]) || t.start_location) : t.start_location;
+        const endLoc = eKey && labels[eKey] ? (buildLabelFromParts(labels[eKey]) || t.end_location) : t.end_location;
         const stopLocs = (t.stops || []).map(s => {
           const stKey = s.lat != null ? `${Number(s.lat).toFixed(4)},${Number(s.lng).toFixed(4)}` : null;
-          const sl = stKey && labels[stKey] ? buildLabel(labels[stKey]) : null;
+          const sl = stKey && labels[stKey] ? buildLabelFromParts(labels[stKey]) : null;
           return sl ? { ...s, location: sl } : s;
         });
         updated[t.trip_id] = { start_location: startLoc, end_location: endLoc, stops: stopLocs };
