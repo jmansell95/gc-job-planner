@@ -66,6 +66,11 @@ import CustomFieldBuilder from '@/components/settings/CustomFieldBuilder';
 import BackupRestoreManager from '@/components/settings/BackupRestoreManager';
 import CurrencySettings from '@/components/settings/CurrencySettings';
 import ClientProgressReport from '@/components/reports/ClientProgressReport';
+import MultiCompanySettings from '@/components/settings/MultiCompanySettings';
+import AssetLifecycleManager from '@/components/settings/AssetLifecycleManager';
+import ZapierWebhookSettings from '@/components/settings/ZapierWebhookSettings';
+import PushNotificationSettings from '@/components/settings/PushNotificationSettings';
+import IncrementalImportSettings from '@/components/settings/IncrementalImportSettings';
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -180,6 +185,11 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'backup-restore': return <BackupRestoreManager />;
       case 'multi-currency': return <CurrencySettings />;
       case 'client-progress-report': return <ClientProgressReport />;
+      case 'multi-company': return <MultiCompanySettings />;
+      case 'asset-lifecycle': return <AssetLifecycleManager />;
+      case 'zapier-webhooks': return <ZapierWebhookSettings />;
+      case 'push-notifications': return <PushNotificationSettings />;
+      case 'incremental-import': return <IncrementalImportSettings />;
       default: return null;
     }
   };

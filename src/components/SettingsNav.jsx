@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart, Star, CalendarDays, UserCheck, Warehouse, AlertOctagon, Coins } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart, Star, CalendarDays, UserCheck, Warehouse, AlertOctagon, Coins, Bell, Webhook, Layers, Activity } from 'lucide-react';
 import { normalizePermissions } from '@/utils/permissions';
 
 export const settingsGroups = [
@@ -111,6 +111,11 @@ export const settingsGroups = [
       { id: 'dashboard-themes', label: 'Dashboard Color Themes', icon: Palette, desc: 'Personalize your dashboard with preset accent color themes — emerald, blue, violet, amber, rose & teal', roles: ['admin', 'manager', 'viewer'] },
       { id: 'backup-restore', label: 'Backup & Restore', icon: Database, desc: 'Export a full data snapshot, restore from a previous backup, seed demo data or reset the database', roles: ['admin'] },
       { id: 'multi-currency', label: 'Multi-Currency', icon: Coins, desc: 'Define supported currencies & exchange rates against GBP for international clients and suppliers', roles: ['admin'] },
+      { id: 'multi-company', label: 'Multi-Company / White-Label', icon: Building2, desc: 'Manage multiple trading entities with separate branding, logos & color schemes for client-facing output', roles: ['admin'] },
+      { id: 'asset-lifecycle', label: 'Asset Lifecycle', icon: Wrench, desc: 'Track assets from acquisition to disposal — depreciation, book value & replacement planning', roles: ['admin'] },
+      { id: 'zapier-webhooks', label: 'Zapier / Make Webhooks', icon: Webhook, desc: 'Register outbound webhook URLs to receive system events for no-code automation', roles: ['admin'] },
+      { id: 'push-notifications', label: 'Push Notifications', icon: Bell, desc: 'Enable browser push notifications for new assignments, schedule changes & compliance alerts', roles: ['admin', 'manager', 'viewer'] },
+      { id: 'incremental-import', label: 'Incremental Import', icon: Layers, desc: 'Non-destructive import mode that merges new data without wiping manual edits, photos or custom fields', roles: ['admin'] },
     ],
   },
 ];

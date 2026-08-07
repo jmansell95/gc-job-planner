@@ -193,6 +193,56 @@
       "type": "boolean",
       "default": false,
       "description": "True when this asset was created by the Demo Data Manager for showcase purposes. Sync functions (Asset Panda, GC Compliance Manager) skip demo assets so they are never pushed to or purged from external systems."
+    },
+    "acquisition_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the asset was purchased or acquired. Used as the start of the depreciation schedule and to calculate asset age."
+    },
+    "acquisition_cost": {
+      "type": "number",
+      "description": "Original purchase cost in GBP. Used as the baseline for straight-line depreciation calculations."
+    },
+    "depreciation_years": {
+      "type": "number",
+      "description": "Useful life of the asset in years for depreciation purposes (e.g. 10 for a rig, 5 for a trailer, 3 for portable equipment). Used with acquisition_cost to calculate annual depreciation and current book value."
+    },
+    "current_book_value": {
+      "type": "number",
+      "description": "Calculated current book value after straight-line depreciation from acquisition_date. Auto-calculated: acquisition_cost \u00d7 (remaining_years / depreciation_years). Updated by the Asset Lifecycle Manager."
+    },
+    "salvage_value": {
+      "type": "number",
+      "description": "Estimated residual/salvage value at end of useful life (GBP). The asset won't depreciate below this value."
+    },
+    "replacement_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Planned replacement date for this asset. Drives replacement planning alerts when the date is within 90 days."
+    },
+    "replacement_cost_estimate": {
+      "type": "number",
+      "description": "Estimated cost to replace this asset with an equivalent new model (GBP). Used for capital expenditure planning."
+    },
+    "disposal_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the asset was disposed of (sold, scrapped, or traded in). Set when lifecycle_status moves to 'disposed'."
+    },
+    "disposal_value": {
+      "type": "number",
+      "description": "Amount received (GBP) when the asset was sold or traded in. Negative if disposal cost money (scrapping)."
+    },
+    "lifecycle_status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "aging",
+        "due_for_replacement",
+        "disposed"
+      ],
+      "default": "active",
+      "description": "Asset lifecycle stage. 'active' = in service and within useful life, 'aging' = past useful life but still operational, 'due_for_replacement' = replacement date within 90 days or past useful life with high maintenance costs, 'disposed' = sold/scrapped/traded in (asset deactivated)."
     }
   },
   "required": [

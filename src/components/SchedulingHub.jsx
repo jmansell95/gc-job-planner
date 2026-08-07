@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import WeeklyRotaBuilder from '@/components/WeeklyRotaBuilder';
 import CalendarView from '@/components/CalendarView';
-import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2 } from 'lucide-react';
+import DragDropRotaTimeline from '@/components/rota/DragDropRotaTimeline';
+import AvailabilityHeatmap from '@/components/rota/AvailabilityHeatmap';
+import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, MousePointer2, Grid3x3 } from 'lucide-react';
 import { useSchedulingAssistant } from '@/components/SchedulingAssistantChat';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
@@ -34,6 +36,8 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
 
   const tabs = [
     { id: 'rota', label: 'Rota Builder', icon: Calendar },
+    { id: 'dragdrop', label: 'Drag & Drop', icon: MousePointer2 },
+    { id: 'heatmap', label: 'Availability Heatmap', icon: Grid3x3 },
     { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   ];
 
@@ -67,6 +71,8 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
         </div>
       </div>
       {tab === 'rota' && <WeeklyRotaBuilder />}
+      {tab === 'dragdrop' && <DragDropRotaTimeline />}
+      {tab === 'heatmap' && <AvailabilityHeatmap />}
       {tab === 'calendar' && <CalendarView />}
     </div>
   );
