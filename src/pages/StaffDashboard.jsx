@@ -545,7 +545,9 @@ export default function StaffDashboard() {
   return (
     <div className="page-bg-vibrant min-h-screen pb-20">
       <StaffHeader staff={staff} onShowSchedule={() => setShowScheduleSummary(true)} />
-      <Breadcrumbs />
+      <div className="max-w-6xl mx-auto px-4 md:px-6">
+        <Breadcrumbs />
+      </div>
 
       {/* Today Tab — zero-scroll, action-first */}
       {activeTab === 'today' && (

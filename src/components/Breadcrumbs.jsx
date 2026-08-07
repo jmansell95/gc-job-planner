@@ -22,7 +22,19 @@ const ROUTE_MAP = {
   '/compliance': [{ label: 'Admin', to: '/admin' }, { label: 'Compliance' }],
   '/billing': [{ label: 'Admin', to: '/admin' }, { label: 'Billing' }],
   '/safety': [{ label: 'Admin', to: '/admin' }, { label: 'Compliance', to: '/compliance' }, { label: 'Safety' }],
-  '/compliance': [{ label: 'Admin', to: '/admin' }, { label: 'Compliance & Safety' }],
+  '/staff': [{ label: 'Admin', to: '/admin' }, { label: 'Staff' }],
+  '/contacts': [{ label: 'Admin', to: '/admin' }, { label: 'Contacts' }],
+  '/automations': [{ label: 'Admin', to: '/admin' }, { label: 'Automations' }],
+  '/price-list': [{ label: 'Admin', to: '/admin' }, { label: 'Price List' }],
+  '/reports': [{ label: 'Admin', to: '/admin' }, { label: 'Reports' }],
+  '/import': [{ label: 'Admin', to: '/admin' }, { label: 'Import' }],
+  '/audit': [{ label: 'Admin', to: '/admin' }, { label: 'Audit' }],
+  '/keylogbook-docs': [{ label: 'Admin', to: '/admin' }, { label: 'KeyLogBook Docs' }],
+  '/roadmap': [{ label: 'Admin', to: '/admin' }, { label: 'Roadmap' }],
+  '/presentation-pack': [{ label: 'Admin', to: '/admin' }, { label: 'Presentation Pack' }],
+  '/pat-testing': [{ label: 'Admin', to: '/admin' }, { label: 'Asset Hub', to: '/assets' }, { label: 'PAT Testing' }],
+  '/subcontractor': [{ label: 'Admin', to: '/admin' }, { label: 'Subcontractor' }],
+  '/admin/logistics': [{ label: 'Admin', to: '/admin' }, { label: 'Logistics Hub' }],
 };
 
 // Convert a raw path segment into a human-readable label.
