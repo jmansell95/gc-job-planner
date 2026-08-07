@@ -74,7 +74,6 @@ export default function IntegrationsHub({ onNavigate }) {
   };
 
   const connectedCount = INTEGRATIONS.filter(isConnected).length;
-  const newCount = INTEGRATIONS.filter(i => i.isNew).length;
   const comingSoonCount = comingSoonIds.size;
 
   // Group by category
@@ -141,26 +140,6 @@ export default function IntegrationsHub({ onNavigate }) {
           </button>
         }
       />
-
-      {/* Summary tiles */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white border border-slate-200 rounded-xl p-3 text-center">
-          <p className="text-2xl font-bold text-emerald-600 tabular-nums">{connectedCount}</p>
-          <p className="text-[11px] text-slate-400 uppercase font-medium">Connected</p>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-3 text-center">
-          <p className="text-2xl font-bold text-slate-400 tabular-nums">{INTEGRATIONS.length - connectedCount - comingSoonCount}</p>
-          <p className="text-[11px] text-slate-400 uppercase font-medium">Not Connected</p>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-3 text-center">
-          <p className="text-2xl font-bold text-amber-600 tabular-nums">{newCount}</p>
-          <p className="text-[11px] text-slate-400 uppercase font-medium">New (Roadmap)</p>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-3 text-center">
-          <p className="text-2xl font-bold text-slate-500 tabular-nums">{comingSoonCount}</p>
-          <p className="text-[11px] text-slate-400 uppercase font-medium">Coming Soon</p>
-        </div>
-      </div>
 
       {/* Manage mode banner */}
       {manageMode && (
@@ -244,9 +223,6 @@ export default function IntegrationsHub({ onNavigate }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className="text-sm font-bold text-slate-800 truncate">{integ.name}</p>
-                        {integ.isNew && !isComingSoon && (
-                          <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full uppercase">New</span>
-                        )}
                       </div>
                       <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-2">{integ.desc}</p>
                       <div className="flex items-center gap-1.5 mt-2">
