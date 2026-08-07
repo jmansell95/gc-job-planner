@@ -19,6 +19,7 @@ import { EmptyState } from '@/components/StateViews';
 import { resolveRole, isOfficeStaff } from '@/utils/access';
 import StaffProfileEditDrawer from '@/components/staff/StaffProfileEditDrawer';
 import StaffPerformanceCard from '@/components/staff/StaffPerformanceCard';
+import StaffPerformanceCharts from '@/components/staff/StaffPerformanceCharts';
 import IncentiveDashboard from '@/components/staff/IncentiveDashboard';
 import NoCrewProfileState from '@/components/staff/NoCrewProfileState';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
@@ -252,7 +253,10 @@ export default function StaffProfile() {
         {/* Tab Content */}
         <div className="mt-4">
           {activeTab === 'performance' && (staff.id
-            ? <StaffPerformanceCard staffId={staff.id} />
+            ? <div className="space-y-5">
+                <StaffPerformanceCard staffId={staff.id} />
+                <StaffPerformanceCharts staffId={staff.id} staffName={staff.name} />
+              </div>
             : <NoCrewProfileState tab="performance" onGoAdmin={() => navigate('/admin')} onCreateProfile={isPlatformAdmin ? handleCreateCrewProfile : null} creating={creatingProfile} />)}
           {activeTab === 'incentives' && (staff.id
             ? <IncentiveDashboard staffId={staff.id} staffName={staff.name} teamId={staff.team_id} />

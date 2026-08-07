@@ -1,0 +1,139 @@
+{
+  "name": "StaffReview",
+  "type": "object",
+  "properties": {
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member being reviewed."
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Staff name (denormalised for display)."
+    },
+    "reviewer_id": {
+      "type": "string",
+      "description": "Staff ID of the reviewer/manager conducting the review."
+    },
+    "reviewer_name": {
+      "type": "string",
+      "description": "Reviewer name (denormalised for display)."
+    },
+    "review_type": {
+      "type": "string",
+      "enum": [
+        "probation",
+        "quarterly",
+        "annual",
+        "project_completion",
+        "feedback"
+      ],
+      "default": "quarterly",
+      "description": "Type of review. 'probation' = end of probation, 'quarterly' = quarterly check-in, 'annual' = yearly formal review, 'project_completion' = after a major project, 'feedback' = ad-hoc feedback."
+    },
+    "review_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the review was conducted."
+    },
+    "period_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Start of the review period."
+    },
+    "period_end": {
+      "type": "string",
+      "format": "date",
+      "description": "End of the review period."
+    },
+    "performance_rating": {
+      "type": "number",
+      "description": "Overall performance rating from 1 (below expectations) to 5 (exceeds expectations)."
+    },
+    "strengths": {
+      "type": "string",
+      "description": "What the staff member is doing well \u2014 strengths and achievements."
+    },
+    "areas_for_improvement": {
+      "type": "string",
+      "description": "Areas where the staff member can improve."
+    },
+    "goals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "target_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "on_track",
+              "at_risk",
+              "achieved",
+              "missed"
+            ],
+            "default": "on_track"
+          }
+        }
+      },
+      "default": [],
+      "description": "Goals set during the review with target dates and tracking status."
+    },
+    "manager_feedback": {
+      "type": "string",
+      "description": "Manager's written feedback and comments."
+    },
+    "staff_response": {
+      "type": "string",
+      "description": "Staff member's response or self-assessment comments."
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the staff member has acknowledged the review."
+    },
+    "acknowledged_at": {
+      "type": "string",
+      "description": "ISO timestamp when the staff member acknowledged the review."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "shared",
+        "acknowledged",
+        "archived"
+      ],
+      "default": "draft",
+      "description": "Review lifecycle status. 'draft' = being written, 'shared' = shared with staff, 'acknowledged' = staff has signed off, 'archived' = closed."
+    }
+  },
+  "required": [
+    "staff_id",
+    "review_type",
+    "review_date"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

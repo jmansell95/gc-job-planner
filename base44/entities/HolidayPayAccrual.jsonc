@@ -1,0 +1,79 @@
+{
+  "name": "HolidayPayAccrual",
+  "type": "object",
+  "properties": {
+    "staff_id": {
+      "type": "string",
+      "description": "Staff member this accrual record belongs to."
+    },
+    "staff_name": {
+      "type": "string",
+      "description": "Staff name (denormalised for display without joining Staff records)."
+    },
+    "holiday_year_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Start date of the holiday year this accrual covers (typically 1 April or 1 Jan)."
+    },
+    "holiday_year_end": {
+      "type": "string",
+      "format": "date",
+      "description": "End date of the holiday year."
+    },
+    "total_entitlement_days": {
+      "type": "number",
+      "description": "Total holiday entitlement for the year in days (typically 28 for UK statutory, plus any contractual extra)."
+    },
+    "days_taken": {
+      "type": "number",
+      "default": 0,
+      "description": "Total holiday days taken so far this year (summed from approved absences of type 'holiday')."
+    },
+    "days_remaining": {
+      "type": "number",
+      "default": 0,
+      "description": "Entitlement minus days taken \u2014 remaining holiday days available."
+    },
+    "days_carried_over": {
+      "type": "number",
+      "default": 0,
+      "description": "Days carried over from the previous holiday year (per statutory carry-over rules)."
+    },
+    "accrual_rate_per_day": {
+      "type": "number",
+      "description": "Calculated daily accrual rate (entitlement / 365). Used to show how much holiday is earned per working day."
+    },
+    "days_accrued_to_date": {
+      "type": "number",
+      "default": 0,
+      "description": "Holiday days accrued from the start of the holiday year to today, based on the daily accrual rate."
+    },
+    "last_calculated_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last accrual recalculation."
+    }
+  },
+  "required": [
+    "staff_id",
+    "holiday_year_start",
+    "holiday_year_end"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -13,6 +13,7 @@ import AssetLens from '@/components/logistics/AssetLens';
 import { canAccessSection } from '@/utils/access';
 import Logo from '@/components/Logo';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
   const navigate = useNavigate();
@@ -106,7 +107,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       {/* Compact action cluster — single row of quick actions */}
       <div className="px-3 pt-1.5 pb-1.5 border-t border-white/10 space-y-1.5">
         <GlobalSearch />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           <button onClick={openDrillingIntelligence} type="button" title="Drilling Intelligence"
             className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <HardHat className="w-4 h-4" />
@@ -119,6 +120,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <Sparkles className="w-4 h-4" />
           </button>
+          <ThemeToggle className="!bg-white/10 !ring-white/15 hover:!bg-white/20" />
         </div>
       </div>
       {/* Personal links + system actions */}

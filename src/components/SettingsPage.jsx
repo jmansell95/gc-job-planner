@@ -57,6 +57,9 @@ import WhatsAppSettings from '@/components/settings/WhatsAppSettings';
 import AccountingSyncSettings from '@/components/settings/AccountingSyncSettings';
 import PaymentGatewaySettings from '@/components/settings/PaymentGatewaySettings';
 import CustomReportBuilder from '@/components/reports/CustomReportBuilder';
+import HolidayAccrualManager from '@/components/staff/HolidayAccrualManager';
+import StaffReviewManager from '@/components/staff/StaffReviewManager';
+import CsvBulkImport from '@/components/import/CsvBulkImport';
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -162,6 +165,9 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'whatsapp': return <WhatsAppSettings />;
       case 'accounting-sync': return <AccountingSyncSettings />;
       case 'payment-gateway': return <PaymentGatewaySettings />;
+      case 'holiday-accrual': return <HolidayAccrualManager />;
+      case 'staff-reviews': return <StaffReviewManager />;
+      case 'csv-import': return <CsvBulkImport />;
       default: return null;
     }
   };

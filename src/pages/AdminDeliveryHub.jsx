@@ -7,6 +7,8 @@ import DeliveryBoard from '@/components/admin/DeliveryBoard';
 import DeliveryTable from '@/components/admin/DeliveryTable';
 import RouteOptimizeBar from '@/components/delivery/RouteOptimizeBar';
 import DeliveryChainBuilder from '@/components/logistics/DeliveryChainBuilder';
+import BulkDeliveryReconciliation from '@/components/delivery/BulkDeliveryReconciliation';
+import DeliveryRouteMap from '@/components/delivery/DeliveryRouteMap';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import PageHeader from '@/components/PageHeader';
 
@@ -96,7 +98,7 @@ export default function AdminDeliveryHub() {
         ]}
       />
 
-      {/* Tab toggle: Delivery Board vs Delivery Chains */}
+      {/* Tab toggle: Delivery Board vs Delivery Chains vs Reconciliation */}
       <div className="flex bg-slate-100 rounded-xl p-1">
         <button onClick={() => setTab('board')} className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'board' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           <LayoutGrid className="w-4 h-4" /> Delivery Board
@@ -104,10 +106,20 @@ export default function AdminDeliveryHub() {
         <button onClick={() => setTab('chains')} className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'chains' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           <Link2 className="w-4 h-4" /> Delivery Chains
         </button>
+        <button onClick={() => setTab('reconcile')} className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'reconcile' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          <CheckCircle2 className="w-4 h-4" /> Reconcile
+        </button>
       </div>
 
       {/* Chain builder tab */}
       {tab === 'chains' && <DeliveryChainBuilder />}
+
+      {/* Reconciliation tab */}
+      {tab === 'reconcile' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 md:p-5">
+          <BulkDeliveryReconciliation />
+        </div>
+      )}
 
       {/* Board tab content */}
       {tab === 'board' && (
@@ -203,6 +215,16 @@ export default function AdminDeliveryHub() {
   );
 }
 
+function DeliveryRouteMapLegs({ jobId }) {
+  const { data: legs = [] } = useQuery({
+    queryKey: ['delivery-legs-map', jobId],
+    queryFn: () => base44.entities.DeliveryLeg.filter({ job_id: jobId }),
+    enabled: !!jobId,
+  });
+  if (!legs.length) return null;
+  return <DeliveryRouteMap legs={legs} />;
+}
+
 function DeliveryDetailDrawer({ delivery, jobs, staff, onClose }) {
   const job = jobs.find(j => j.id === delivery.job_id);
   const driver = staff.find(s => s.id === delivery.driver_staff_id);
@@ -265,6 +287,12 @@ function DeliveryDetailDrawer({ delivery, jobs, staff, onClose }) {
               <p className="text-sm text-slate-800 mt-0.5 whitespace-pre-wrap break-words">{String(r.value)}</p>
             </div>
           ))}
+          {/* Route map showing GPS-tagged delivery legs for this job */}
+          {delivery.job_id && (
+            <div className="pt-3">
+              <DeliveryRouteMapLegs jobId={delivery.job_id} />
+            </div>
+          )}
         </div>
       </div>
     </div>

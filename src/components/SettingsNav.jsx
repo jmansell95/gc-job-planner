@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart } from 'lucide-react';
+import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart, Star, CalendarDays } from 'lucide-react';
 import { normalizePermissions } from '@/utils/permissions';
 
 export const settingsGroups = [
@@ -17,6 +17,8 @@ export const settingsGroups = [
       { id: 'teams', label: 'Crew Types', icon: Users, desc: 'Manage everything about each crew type — capabilities, qualifications, revenue, assets & roster' },
       { id: 'access-levels', label: 'Permission Groups', icon: ShieldCheck, desc: 'Create permission groups and assign them to each crew member from Staff Command', roles: ['admin'] },
       { id: 'absences', label: 'Absences', icon: CalendarX, desc: 'Approve leave and recurring days off' },
+      { id: 'holiday-accrual', label: 'Holiday Accrual', icon: CalendarDays, desc: 'Track holiday pay entitlement, days taken, accrued balances & carry-over per staff member', roles: ['admin'] },
+      { id: 'staff-reviews', label: 'Performance Reviews', icon: Star, desc: 'Create periodic reviews — probation, quarterly, annual — rate performance, set goals & share with staff', roles: ['admin'] },
       { id: 'bob-hr', label: 'Bob HR Sync', icon: Users, desc: 'Bidirectional time-off bridge with Bob HR (Hibob) — pull & push leave, webhook receiver for real-time events', roles: ['admin'] },
     ],
   },
@@ -34,6 +36,7 @@ export const settingsGroups = [
       { id: 'automations', label: 'Automations', icon: Zap, desc: 'View and toggle background automations' },
       { id: 'ags-import', label: 'KeyLogBook Settings', icon: FileUp, desc: 'Automated AGS file sync from KeyLogBook (every 30 min) & manual AGS imports — borehole data, strata & driller remarks', roles: ['admin', 'manager'] },
       { id: 'planner-import', label: 'Planner Import', icon: FileSpreadsheet, desc: 'Upload your Team & Plant Planner Excel file — auto-creates staff, jobs, teams & rotas with deduplication', roles: ['admin'] },
+      { id: 'csv-import', label: 'CSV Bulk Import', icon: FileUp, desc: 'Quickly create multiple staff, jobs, vehicles, clients or suppliers from a simple CSV file — preview before importing', roles: ['admin'] },
       { id: 'safety-culture', label: 'Safety Culture Sync', icon: ShieldAlert, desc: 'Sync site safety audits & inspection forms from SafetyCulture (iAuditor) — webhook & API integration ready for later setup', roles: ['admin', 'manager'] },
       { id: 'met-office', label: 'Met Office Weather', icon: Cloud, desc: 'Daily weather forecasts per site postcode — flag weather-impacted days on the rota', roles: ['admin'] },
       { id: 'google-maps', label: 'Google Maps', icon: MapPin, desc: 'Geocoding for job sites & delivery route optimisation', roles: ['admin'] },

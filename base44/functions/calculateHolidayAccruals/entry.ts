@@ -1,0 +1,92 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+
+// Holiday pay accrual calculator — for each active staff member, calculates
+// their holiday year window, entitlement, days taken (from approved absences),
+// days remaining, and days accrued to date. Creates or updates HolidayPayAccrual
+// records. Run as a scheduled automation or manually from the admin dashboard.
+
+export default async function(req: Request): Promise<Response> {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Get all active staff
+    const allStaff = await base44.asServiceRole.entities.Staff.list();
+    const activeStaff = allStaff.filter(s => s.is_active !== false);
+
+    // Get all approved holiday absences
+    const absences = await base44.asServiceRole.entities.Absence.filter({ status: 'approved' });
+    const holidayAbsences = absences.filter(a => (a.absence_type || a.type || '').toLowerCase().includes('holiday') || (a.absence_type || a.type || '').toLowerCase().includes('annual'));
+
+    // Get existing accrual records
+    const existing = await base44.asServiceRole.entities.HolidayPayAccrual.list();
+    const existingByStaff = {};
+    for (const e of existing) {
+      if (!existingByStaff[e.staff_id]) existingByStaff[e.staff_id] = e;
+    }
+
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const results = [];
+
+    for (const staff of activeStaff) {
+      // Determine holiday year window — UK default: 1 April to 31 March
+      const currentYear = today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
+      const yearStart = new Date(currentYear, 3, 1); // April 1
+      const yearEnd = new Date(currentYear + 1, 3, 1);
+      const yearStartStr = yearStart.toISOString().slice(0, 10);
+      const yearEndStr = new Date(currentYear + 1, 2, 31).toISOString().slice(0, 10);
+
+      // Default entitlement: 28 days (UK statutory for 5-day-week workers)
+      const entitlement = 28;
+
+      // Count holiday days taken in this year window
+      const myHolidays = holidayAbsences.filter(a => {
+        if (a.staff_id !== staff.id) return false;
+        const aDate = (a.start_date || a.date || '').slice(0, 10);
+        return aDate >= yearStartStr && aDate <= yearEndStr;
+      });
+      const daysTaken = myHolidays.reduce((sum, a) => sum + (a.days || 1), 0);
+
+      // Calculate accrued to date
+      const daysSinceStart = Math.floor((today.getTime() - yearStart.getTime()) / (1000 * 60 * 60 * 24));
+      const accrualRatePerDay = entitlement / 365;
+      const daysAccruedToDate = Math.min(entitlement, Math.round(daysSinceStart * accrualRatePerDay * 10) / 10);
+
+      const daysRemaining = entitlement - daysTaken;
+      const daysCarriedOver = existingByStaff[staff.id]?.days_carried_over || 0;
+
+      const recordData = {
+        staff_id: staff.id,
+        staff_name: staff.name || '',
+        holiday_year_start: yearStartStr,
+        holiday_year_end: yearEndStr,
+        total_entitlement_days: entitlement,
+        days_taken: daysTaken,
+        days_remaining: daysRemaining,
+        days_carried_over: daysCarriedOver,
+        accrual_rate_per_day: Math.round(accrualRatePerDay * 1000) / 1000,
+        days_accrued_to_date: daysAccruedToDate,
+        last_calculated_at: new Date().toISOString(),
+      };
+
+      let result;
+      if (existingByStaff[staff.id]) {
+        result = await base44.asServiceRole.entities.HolidayPayAccrual.update(existingByStaff[staff.id].id, recordData);
+      } else {
+        result = await base44.entities.HolidayPayAccrual.create(recordData);
+      }
+      results.push({ staff_id: staff.id, staff_name: staff.name, days_taken: daysTaken, days_remaining: daysRemaining, days_accrued: daysAccruedToDate });
+    }
+
+    return Response.json({
+      ok: true,
+      staff_count: activeStaff.length,
+      calculated_at: new Date().toISOString(),
+      results,
+    });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
