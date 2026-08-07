@@ -55,10 +55,10 @@ export default function NeedsAttentionPanel({ onNavigate }) {
   }).length;
 
   const items = [
-    pendingTs > 0 && { key: 'ts', icon: ClipboardCheck, label: 'Timesheets to approve', value: pendingTs, tone: 'emerald', nav: 'timesheets' },
-    withdrawnTs > 0 && { key: 'wd', icon: RotateCcw, label: 'Withdrawn timesheets to review', value: withdrawnTs, tone: 'slate', nav: 'timesheets' },
-    draftTs > 0 && { key: 'draft', icon: FileClock, label: 'Draft timesheets unresolved', value: draftTs, tone: 'amber', nav: 'timesheets' },
-    pendingAbs > 0 && { key: 'abs', icon: CalendarX, label: 'Absence requests pending', value: pendingAbs, tone: 'amber', nav: 'settings' },
+    pendingTs > 0 && { key: 'ts', icon: ClipboardCheck, label: 'Timesheets to approve', value: pendingTs, tone: 'emerald', nav: 'staff' },
+    withdrawnTs > 0 && { key: 'wd', icon: RotateCcw, label: 'Withdrawn timesheets to review', value: withdrawnTs, tone: 'slate', nav: 'staff' },
+    draftTs > 0 && { key: 'draft', icon: FileClock, label: 'Draft timesheets unresolved', value: draftTs, tone: 'amber', nav: 'staff' },
+    pendingAbs > 0 && { key: 'abs', icon: CalendarX, label: 'Absence requests pending', value: pendingAbs, tone: 'amber', nav: 'staff' },
     onHoldJobs > 0 && { key: 'hold', icon: PauseCircle, label: 'Jobs on hold', value: onHoldJobs, tone: 'rose', nav: 'jobs' },
     rotaUnpublished && { key: 'rota', icon: CalendarClock, label: "This week's rota not published", value: null, tone: 'blue', nav: 'rota' },
     expiredCompliance > 0 && { key: 'exp', icon: ShieldAlert, label: 'Expired compliance items', value: expiredCompliance, tone: 'rose', nav: 'compliance' },

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, CalendarX, CalendarDays, Star, UserCheck, UsersRound } from 'lucide-react';
+import { Users, CalendarX, CalendarDays, Star, UserCheck, UsersRound, Building2, HardHat, Package, Clock, Contact } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import SettingsPage from '@/components/SettingsPage';
 
@@ -11,6 +11,10 @@ export default function StaffPage() {
   const tabs = [
     { id: 'staff', label: 'Crew Members', icon: Users },
     { id: 'teams', label: 'Crew Types', icon: UsersRound },
+    { id: 'timesheets', label: 'Timesheets', icon: Clock },
+    { id: 'clients', label: 'Clients', icon: Building2 },
+    { id: 'contractors', label: 'Sub-contractors', icon: HardHat },
+    { id: 'suppliers', label: 'Suppliers', icon: Package },
     { id: 'absences', label: 'Absences', icon: CalendarX },
     { id: 'holiday-accrual', label: 'Holiday Accrual', icon: CalendarDays },
     { id: 'staff-reviews', label: 'Performance Reviews', icon: Star },
@@ -21,8 +25,8 @@ export default function StaffPage() {
     <div className="space-y-4">
       <PageHeader
         icon={Users}
-        title="Staff & Teams"
-        subtitle="Crew members, crew types, absences, holiday accrual & performance reviews"
+        title="Staff, Teams & Contacts"
+        subtitle="Crew members, crew types, timesheets, clients, sub-contractors, suppliers & HR"
       />
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">
         {tabs.map(t => {

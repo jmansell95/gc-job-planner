@@ -73,7 +73,7 @@ export default function ExceptionMonitorWidget({ onNavigate }) {
         icon: Clock,
         title: 'Timesheet awaiting approval >48h',
         detail: `${t.staff_name || 'Staff'} · ${job?.name || 'No job'} · ${format(new Date(t.date || t.created_date), 'dd MMM')}`,
-        navTarget: 'timesheets',
+        navTarget: 'staff',
       });
     });
 
@@ -106,7 +106,7 @@ export default function ExceptionMonitorWidget({ onNavigate }) {
             icon: Truck,
             title: 'MOT expired',
             detail: `${v.registration_number || v.name} · expired ${format(new Date(motExpiry), 'dd MMM yyyy')}`,
-            navTarget: 'vehicles',
+            navTarget: 'assets',
           });
         } else if (d <= 30) {
           items.push({
@@ -115,7 +115,7 @@ export default function ExceptionMonitorWidget({ onNavigate }) {
             icon: Truck,
             title: 'MOT due soon',
             detail: `${v.registration_number || v.name} · ${d} days left`,
-            navTarget: 'vehicles',
+            navTarget: 'assets',
           });
         }
       }
@@ -128,7 +128,7 @@ export default function ExceptionMonitorWidget({ onNavigate }) {
             icon: Truck,
             title: 'Service overdue',
             detail: `${v.registration_number || v.name} · due ${format(new Date(v.service_due_date), 'dd MMM yyyy')}`,
-            navTarget: 'vehicles',
+            navTarget: 'assets',
           });
         }
       }
@@ -150,7 +150,7 @@ export default function ExceptionMonitorWidget({ onNavigate }) {
           icon: Ruler,
           title: 'Missing meterage',
           detail: `${r.staff_name || 'Crew'} · ${job?.name || 'Job'} · shift completed, 0m recorded`,
-          navTarget: 'timesheets',
+          navTarget: 'staff',
         });
       }
     });

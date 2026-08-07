@@ -77,15 +77,15 @@ export default function PulseRibbon({ onNavigate }) {
   }).length;
 
   const items = [
-    pendingTs > 0 && { key: 'ts', icon: ClipboardCheck, label: 'Timesheets to approve', value: pendingTs, tone: 'emerald', nav: 'timesheets', urgent: false },
-    withdrawnTs > 0 && { key: 'wd', icon: RotateCcw, label: 'Withdrawn timesheets', value: withdrawnTs, tone: 'slate', nav: 'timesheets', urgent: false },
-    draftTs > 0 && { key: 'draft', icon: FileClock, label: 'Stale draft timesheets', value: draftTs, tone: 'amber', nav: 'timesheets', urgent: false },
-    pendingAbs > 0 && { key: 'abs', icon: CalendarX, label: 'Absence requests', value: pendingAbs, tone: 'amber', nav: 'settings', urgent: false },
+    pendingTs > 0 && { key: 'ts', icon: ClipboardCheck, label: 'Timesheets to approve', value: pendingTs, tone: 'emerald', nav: 'staff', urgent: false },
+    withdrawnTs > 0 && { key: 'wd', icon: RotateCcw, label: 'Withdrawn timesheets', value: withdrawnTs, tone: 'slate', nav: 'staff', urgent: false },
+    draftTs > 0 && { key: 'draft', icon: FileClock, label: 'Stale draft timesheets', value: draftTs, tone: 'amber', nav: 'staff', urgent: false },
+    pendingAbs > 0 && { key: 'abs', icon: CalendarX, label: 'Absence requests', value: pendingAbs, tone: 'amber', nav: 'staff', urgent: false },
     onHoldJobs > 0 && { key: 'hold', icon: PauseCircle, label: 'Jobs on hold', value: onHoldJobs, tone: 'rose', nav: 'jobs', urgent: true },
     rotaUnpublished && { key: 'rota', icon: CalendarClock, label: "This week's rota unpublished", value: null, tone: 'blue', nav: 'rota', urgent: false },
     expiredCompliance > 0 && { key: 'exp', icon: ShieldAlert, label: 'Expired compliance', value: expiredCompliance, tone: 'rose', nav: 'compliance', urgent: true },
     expiringCompliance > 0 && { key: 'soon', icon: AlertTriangle, label: 'Compliance expiring soon', value: expiringCompliance, tone: 'amber', nav: 'compliance', urgent: false },
-    maintenanceDue > 0 && { key: 'maint', icon: Wrench, label: 'Vehicle maintenance due', value: maintenanceDue, tone: 'violet', nav: 'settings', urgent: false },
+    maintenanceDue > 0 && { key: 'maint', icon: Wrench, label: 'Vehicle maintenance due', value: maintenanceDue, tone: 'violet', nav: 'assets', urgent: false },
   ].filter(Boolean);
 
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };

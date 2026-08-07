@@ -2,18 +2,14 @@
 // When a nav item or dashboard tile targets one of these, navigate
 // directly to the route instead of going through the AdminDashboard
 // section state (which causes a blank flash before the redirect fires).
+//
+// Consolidated sidebar — former standalone pages (Contacts, Timesheets,
+// Audit, Price List, Reports, Import, Automations, Vehicles) are now
+// tabs inside their parent page rather than separate routes.
 export const STANDALONE_ROUTES = {
   staff: '/staff',
-  contacts: '/contacts',
-  automations: '/automations',
-  'price-list': '/price-list',
-  reports: '/reports',
-  import: '/import',
-  audit: '/audit',
-  timesheets: '/timesheets',
   compliance: '/compliance',
   billing: '/billing',
-  vehicles: '/vehicles',
   assets: '/assets',
 };
 

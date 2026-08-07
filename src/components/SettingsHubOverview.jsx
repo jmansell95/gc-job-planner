@@ -7,7 +7,7 @@ import {
   Scale, ArrowRight, Activity, BookOpen,
   Sparkles, QrCode, ArrowUpDown, TrendingUp, FileSpreadsheet, ScrollText,
   History, Gauge, Link2, Search, ChevronRight, GitBranch, Lock, AlertTriangle,
-  Database, Webhook, Bell, Settings2, Coins, Wrench,
+  Database, Webhook, Bell, Settings2, Coins, Wrench, FileUp, Layers,
 } from 'lucide-react';
 
 const INTEGRATION_SETTING_KEYS = [
@@ -101,6 +101,10 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'email-alerts', icon: Mail, label: 'Email Alerts', value: '—', sub: 'Templates & timing', color: 'blue' },
     ]},
     { group: 'System', icon: Sparkles, accent: 'from-slate-500 to-slate-700', items: [
+      { id: 'automations', icon: Zap, label: 'Automations', value: '—', sub: 'Background automations & alerts', color: 'amber' },
+      { id: 'planner-import', icon: FileSpreadsheet, label: 'Planner Import', value: '—', sub: 'Upload weekly rota spreadsheet', color: 'blue' },
+      { id: 'csv-import', icon: FileUp, label: 'CSV Bulk Import', value: '—', sub: 'Bulk import any entity via CSV', color: 'cyan' },
+      { id: 'incremental-import', icon: Layers, label: 'Incremental Import', value: '—', sub: 'Non-destructive smart imports', color: 'violet' },
       { id: 'demo-data', icon: Sparkles, label: 'Demo Data Manager', value: '—', sub: 'Showcase data or clean slate', color: 'violet' },
       { id: 'system-guide', icon: BookOpen, label: 'System Logic Guide', value: 'PDF', sub: 'Every stat & rule explained', color: 'emerald' },
       { id: 'custom-fields', icon: Settings2, label: 'Custom Field Builder', value: '—', sub: 'Add fields to any entity', color: 'slate' },

@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import WeeklyRotaBuilder from '@/components/WeeklyRotaBuilder';
+import UnifiedRotaBuilder from '@/components/rota/UnifiedRotaBuilder';
 import CalendarView from '@/components/CalendarView';
-import DragDropRotaTimeline from '@/components/rota/DragDropRotaTimeline';
 import AvailabilityHeatmap from '@/components/rota/AvailabilityHeatmap';
 import WhatIfRotaSandbox from '@/components/rota/WhatIfRotaSandbox';
-import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, MousePointer2, Grid3x3, FlaskConical } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, Grid3x3, FlaskConical } from 'lucide-react';
 import { useSchedulingAssistant } from '@/components/SchedulingAssistantChat';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
@@ -43,7 +42,6 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
 
   const tabs = [
     { id: 'rota', label: 'Rota Builder', icon: Calendar },
-    { id: 'dragdrop', label: 'Drag & Drop', icon: MousePointer2 },
     { id: 'heatmap', label: 'Availability Heatmap', icon: Grid3x3 },
     { id: 'whatif', label: 'What-If Sandbox', icon: FlaskConical },
     { id: 'calendar', label: 'Calendar', icon: CalendarDays },
@@ -78,8 +76,7 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
           </button>
         </div>
       </div>
-      {tab === 'rota' && <WeeklyRotaBuilder />}
-      {tab === 'dragdrop' && <DragDropRotaTimeline />}
+      {tab === 'rota' && <UnifiedRotaBuilder />}
       {tab === 'heatmap' && <AvailabilityHeatmap />}
       {tab === 'whatif' && <WhatIfRotaSandbox weekStart={currentWeekStart} />}
       {tab === 'calendar' && <CalendarView />}

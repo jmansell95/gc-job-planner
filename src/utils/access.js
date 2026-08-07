@@ -12,9 +12,9 @@ import { SECTION_TO_MODULE, normalizePermissions, resolveModuleLevel, canWriteMo
 export const ROLE_SECTIONS = {
   super_admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety', 'safety-hub', 'assets', 'vehicles', 'project-financials', 'staff', 'contacts', 'automations', 'price-list', 'reports', 'import', 'audit'],
   admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety', 'safety-hub', 'assets', 'vehicles', 'project-financials', 'staff', 'contacts', 'automations', 'price-list', 'reports', 'import', 'audit'],
-  management: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'billing', 'safety', 'safety-hub', 'assets', 'vehicles', 'project-financials', 'reports', 'audit'],
-  user: ['overview', 'jobs', 'calendar', 'logistics', 'audit-trail', 'audit'],
-  read_only: ['overview', 'jobs', 'calendar', 'logistics', 'audit-trail', 'audit'],
+  management: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'billing', 'safety', 'safety-hub', 'assets', 'vehicles', 'project-financials', 'reports', 'audit', 'staff', 'settings'],
+  user: ['overview', 'jobs', 'calendar', 'logistics', 'audit-trail', 'audit', 'compliance', 'staff'],
+  read_only: ['overview', 'jobs', 'calendar', 'logistics', 'audit-trail', 'audit', 'compliance', 'staff'],
 };
 
 // Resolve the effective role from profile + platform admin flag.

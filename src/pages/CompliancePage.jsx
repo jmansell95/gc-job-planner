@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, ShieldAlert, AlertTriangle, BarChart3, HardHat } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, AlertTriangle, BarChart3, HardHat, ClipboardCheck, FlaskConical } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import SettingsPage from '@/components/SettingsPage';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
@@ -16,6 +16,8 @@ export default function CompliancePage() {
   const topTabs = [
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck },
     { id: 'safety', label: 'Safety', icon: ShieldAlert },
+    { id: 'audit-trail', label: 'Audit Trail', icon: ClipboardCheck },
+    { id: 'log-qc', label: 'Log QC', icon: FlaskConical },
   ];
 
   const safetyTabs = [
@@ -29,11 +31,11 @@ export default function CompliancePage() {
     <div className="space-y-4">
       <PageHeader
         icon={ShieldCheck}
-        title="Compliance & Safety Hub"
-        subtitle="Staff certs, equipment compliance, skills matrix, training, safety checks & incidents"
+        title="Compliance & Audit Hub"
+        subtitle="Staff certs, equipment compliance, safety, audit trail & investigation log review"
       />
 
-      {/* Top-level tabs: Compliance vs Safety */}
+      {/* Top-level tabs: Compliance | Safety | Audit Trail | Log QC */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">
         {topTabs.map(t => {
           const Icon = t.icon;
@@ -47,9 +49,19 @@ export default function CompliancePage() {
         })}
       </div>
 
-      {tab === 'compliance' ? (
+      {tab === 'compliance' && (
         <SettingsPage initialTab="compliance" standalone />
-      ) : (
+      )}
+
+      {tab === 'audit-trail' && (
+        <SettingsPage initialTab="audit-trail" standalone onSelectJob={(job) => navigate('/admin', { state: { section: 'job-detail', job } })} />
+      )}
+
+      {tab === 'log-qc' && (
+        <SettingsPage initialTab="log-qc" standalone onSelectJob={(job) => navigate('/admin', { state: { section: 'job-detail', job } })} />
+      )}
+
+      {tab === 'safety' && (
         <>
           {/* Safety sub-tabs */}
           <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">

@@ -22,18 +22,10 @@ import PresentationPack from './pages/PresentationPack';
 import AssetHub from './pages/AssetHub';
 import KeyLogBookDocs from './pages/KeyLogBookDocs';
 import ImprovementRoadmap from './pages/ImprovementRoadmap';
-import Vehicles from './pages/Vehicles';
 import PATTestingConsole from './pages/PATTestingConsole';
-import TimesheetsPage from './pages/TimesheetsPage';
 import CompliancePage from './pages/CompliancePage';
 import BillingPage from './pages/BillingPage';
 import StaffPage from './pages/StaffPage';
-import ContactsPage from './pages/ContactsPage';
-import AutomationsPage from './pages/AutomationsPage';
-import PriceListPage from './pages/PriceListPage';
-import ReportsPage from './pages/ReportsPage';
-import ImportPage from './pages/ImportPage';
-import AuditPage from './pages/AuditPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -90,19 +82,19 @@ const AuthenticatedApp = () => {
             <Route path="/presentation-pack" element={<PresentationPack />} />
 
             <Route path="/pat-testing" element={<RouteGuard><PATTestingConsole /></RouteGuard>} />
-            <Route path="/timesheets" element={<RouteGuard><TimesheetsPage /></RouteGuard>} />
             <Route path="/compliance" element={<RouteGuard><CompliancePage /></RouteGuard>} />
             <Route path="/billing" element={<RouteGuard><BillingPage /></RouteGuard>} />
             <Route path="/staff" element={<RouteGuard><StaffPage /></RouteGuard>} />
-            <Route path="/contacts" element={<RouteGuard><ContactsPage /></RouteGuard>} />
-            <Route path="/automations" element={<RouteGuard><AutomationsPage /></RouteGuard>} />
-            <Route path="/price-list" element={<RouteGuard><PriceListPage /></RouteGuard>} />
-            <Route path="/reports" element={<RouteGuard><ReportsPage /></RouteGuard>} />
-            <Route path="/import" element={<RouteGuard><ImportPage /></RouteGuard>} />
-            <Route path="/audit" element={<RouteGuard><AuditPage /></RouteGuard>} />
             <Route path="/safety" element={<Navigate to="/compliance" replace />} />
             <Route path="/assets" element={<RouteGuard><AssetHub /></RouteGuard>} />
-            <Route path="/vehicles" element={<RouteGuard><Vehicles /></RouteGuard>} />
+            <Route path="/timesheets" element={<Navigate to="/staff" replace />} />
+            <Route path="/contacts" element={<Navigate to="/staff" replace />} />
+            <Route path="/audit" element={<Navigate to="/compliance" replace />} />
+            <Route path="/price-list" element={<Navigate to="/billing" replace />} />
+            <Route path="/reports" element={<Navigate to="/billing" replace />} />
+            <Route path="/vehicles" element={<Navigate to="/assets" replace />} />
+            <Route path="/import" element={<Navigate to="/admin" replace />} />
+            <Route path="/automations" element={<Navigate to="/admin" replace />} />
             <Route path="/keylogbook-docs" element={<RouteGuard><KeyLogBookDocs /></RouteGuard>} />
             <Route path="/roadmap" element={<RouteGuard><ImprovementRoadmap /></RouteGuard>} />
           </Route>

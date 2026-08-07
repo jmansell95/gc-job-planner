@@ -8,6 +8,7 @@ import {
   CheckSquare, Upload, Database, MapPin,
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
+import Vehicles from '@/pages/Vehicles';
 import { rollupCompliance, daysUntil } from '@/utils/rigRollup';
 import RigDetailDrawer from '@/components/righub/RigDetailDrawer';
 import EquipmentDetailDrawer from '@/components/righub/EquipmentDetailDrawer';
@@ -55,6 +56,7 @@ export default function AssetHub() {
   const [bulkCerts, setBulkCerts] = useState(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showSmartImport, setShowSmartImport] = useState(false);
+  const [topTab, setTopTab] = useState('assets');
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
@@ -131,11 +133,39 @@ export default function AssetHub() {
     return (a.name || '').toLowerCase().includes(q) || (a.serial_number || '').toLowerCase().includes(q);
   }), [equipment, category, compFilter, search]);
 
+  if (topTab === 'fleet') {
+    return (
+      <div className="space-y-4">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">
+          <button onClick={() => setTopTab('assets')} type="button"
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${topTab === 'assets' ? 'bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+            <Wrench className="w-4 h-4" /> Assets
+          </button>
+          <button onClick={() => setTopTab('fleet')} type="button"
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${topTab === 'fleet' ? 'bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+            <Truck className="w-4 h-4" /> Fleet
+          </button>
+        </div>
+        <Vehicles />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">
+        <button onClick={() => setTopTab('assets')} type="button"
+          className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm`}>
+          <Wrench className="w-4 h-4" /> Assets
+        </button>
+        <button onClick={() => setTopTab('fleet')} type="button"
+          className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100`}>
+          <Truck className="w-4 h-4" /> Fleet
+        </button>
+      </div>
       <PageHeader
         icon={Wrench}
-        title="Asset Hub"
+        title="Assets & Fleet"
         subtitle="Unified inventory from Asset Panda — rigs, lifting, machinery & compliance"
         stats={headerStats}
         actions={
