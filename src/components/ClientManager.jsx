@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Building2, Mail, Phone, User } from 'lucide-react';
+import { Plus, Trash2, Edit2, Building2, Mail, Phone, User, MapPin, Loader2 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SearchFilterBar from '@/components/SearchFilterBar';
+
+const inputCls = 'w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm';
+const blank = { name: '', contact_name: '', contact_email: '', contact_phone: '', yard_address: '', lat: '', lng: '', geofence_radius_override: '' };
 
 export default function ClientManager() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ name: '', contact_name: '', contact_email: '', contact_phone: '' });
+  const [formData, setFormData] = useState(blank);
   const [searchQuery, setSearchQuery] = useState('');
 
   const queryClient = useQueryClient();
@@ -25,11 +28,18 @@ export default function ClientManager() {
     if (editingId) { await base44.entities.Client.update(editingId, formData); }
     else { await base44.entities.Client.create(formData); }
     queryClient.invalidateQueries({ queryKey: ['clients'] });
-    setFormData({ name: '', contact_name: '', contact_email: '', contact_phone: '' });
+    setFormData(blank);
     setShowForm(false); setEditingId(null);
   };
 
-  const handleEdit = (c) => { setFormData(c); setEditingId(c.id); setShowForm(true); };
+  const handleEdit = (c) => {
+    setFormData({
+      name: c.name || '', contact_name: c.contact_name || '', contact_email: c.contact_email || '',
+      contact_phone: c.contact_phone || '', yard_address: c.yard_address || '',
+      lat: c.lat ?? '', lng: c.lng ?? '', geofence_radius_override: c.geofence_radius_override ?? '',
+    });
+    setEditingId(c.id); setShowForm(true);
+  };
   const handleDelete = async (id) => {
     if (confirm('Delete this client?')) {
       await base44.entities.Client.delete(id);
@@ -42,9 +52,9 @@ export default function ClientManager() {
       <SettingsSectionHeader
         icon={Building2}
         title="Manage Clients"
-        description="Add and manage your client contacts"
+        description="Add and manage your client contacts — including their yard/collection point coordinates for geofence arrival detection"
         actions={
-          <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData({ name: '', contact_name: '', contact_email: '', contact_phone: '' }); }}
+          <button onClick={() => { setShowForm(!showForm); setEditingId(null); setFormData(blank); }}
             className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition text-sm font-medium">
             <Plus className="w-4 h-4" /> Add Client
           </button>
@@ -58,22 +68,50 @@ export default function ClientManager() {
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Company Name *</label>
               <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+                className={inputCls} />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Contact Name</label>
               <input type="text" value={formData.contact_name} onChange={e => setFormData({ ...formData, contact_name: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+                className={inputCls} />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Contact Email</label>
               <input type="email" value={formData.contact_email} onChange={e => setFormData({ ...formData, contact_email: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+                className={inputCls} />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Contact Phone</label>
               <input type="tel" value={formData.contact_phone} onChange={e => setFormData({ ...formData, contact_phone: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+                className={inputCls} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-slate-600 mb-1">Yard / Collection Point Address</label>
+              <input type="text" value={formData.yard_address} onChange={e => setFormData({ ...formData, yard_address: e.target.value })}
+                placeholder="e.g. Concept Consulting, Unit 5, Bristol Industrial Park, BS1 5XX"
+                className={inputCls} />
+              <p className="text-[11px] text-slate-400 mt-1">The address of the client's yard or depot where crews collect or return gear. Used as the reference for the geocode button below.</p>
+            </div>
+
+            {/* Geofence Location — for vehicle arrival/departure detection at client yards */}
+            <div className="sm:col-span-2 border-t border-slate-100 pt-4 mt-1">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+                <MapPin className="w-4 h-4 text-emerald-600" /> Yard / Collection Point Location
+                <span className="text-xs text-slate-400 font-normal">(for Geotab geofence arrival/departure detection)</span>
+              </label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <input type="number" step="any" value={formData.lat} onChange={(e) => setFormData({ ...formData, lat: e.target.value === '' ? '' : parseFloat(e.target.value) })} placeholder="Latitude (e.g. 51.5074)" className={inputCls + ' flex-1 min-w-[120px]'} />
+                <input type="number" step="any" value={formData.lng} onChange={(e) => setFormData({ ...formData, lng: e.target.value === '' ? '' : parseFloat(e.target.value) })} placeholder="Longitude (e.g. -0.1278)" className={inputCls + ' flex-1 min-w-[120px]'} />
+                <ClientGeocodeButton
+                  address={formData.yard_address || formData.name}
+                  onResult={(lat, lng) => setFormData(prev => ({ ...prev, lat, lng }))}
+                />
+              </div>
+              <div className="mt-2">
+                <label className="block text-xs font-medium text-slate-500 mb-1">Geofence Radius Override (metres) — blank = global default</label>
+                <input type="number" min="0" step="1" value={formData.geofence_radius_override} onChange={(e) => setFormData({ ...formData, geofence_radius_override: e.target.value === '' ? '' : parseFloat(e.target.value) })} placeholder="e.g. 250" className={inputCls + ' max-w-[200px]'} />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">Set the client's yard GPS coordinates so Geotab can detect when vehicles arrive to collect or return gear. Override the radius for large yards.</p>
             </div>
           </div>
           <div className="flex gap-2 mt-5">
@@ -126,7 +164,13 @@ export default function ClientManager() {
                     {c.contact_phone && (
                       <div className="flex items-center gap-2 text-slate-500 text-xs"><Phone className="w-3.5 h-3.5 text-slate-400" /><span>{c.contact_phone}</span></div>
                     )}
-                    {!c.contact_name && !c.contact_email && !c.contact_phone && (
+                    {c.lat != null && c.lng != null && (
+                      <div className="flex items-center gap-2 text-blue-600 font-medium text-xs">
+                        <MapPin className="w-3.5 h-3.5" /> Geofence active
+                        {c.geofence_radius_override && <span className="text-slate-400 font-normal">· {c.geofence_radius_override}m radius</span>}
+                      </div>
+                    )}
+                    {!c.contact_name && !c.contact_email && !c.contact_phone && !(c.lat != null && c.lng != null) && (
                       <p className="text-xs text-slate-400">No contact details</p>
                     )}
                   </div>
@@ -136,6 +180,51 @@ export default function ClientManager() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function ClientGeocodeButton({ address, onResult }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleGeocode = async () => {
+    if (!address?.trim()) { setError('Enter a yard address or client name first'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Return the GPS latitude and longitude of this UK location as a JSON object: "${address}". Use only valid numeric coordinates. If the address is ambiguous, return the most likely match for the UK.`,
+        add_context_from_internet: true,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            lat: { type: 'number' },
+            lng: { type: 'number' }
+          },
+          required: ['lat', 'lng']
+        }
+      });
+      if (res && typeof res.lat === 'number' && typeof res.lng === 'number') {
+        onResult(res.lat, res.lng);
+      } else {
+        setError('Could not geocode this location');
+      }
+    } catch (e) {
+      setError(e.message || 'Geocode failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <button type="button" onClick={handleGeocode} disabled={loading}
+        className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-medium hover:bg-blue-100 transition disabled:opacity-60 flex-shrink-0">
+        {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
+        Auto-fill
+      </button>
+      {error && <p className="text-[10px] text-red-500">{error}</p>}
     </div>
   );
 }

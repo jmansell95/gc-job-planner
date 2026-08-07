@@ -41,7 +41,7 @@ export const DEFAULT_GEOFENCE_CONFIG: GeofenceConfig = {
 };
 
 export interface GeofenceTarget {
-  type: 'job' | 'supplier';
+  type: 'job' | 'supplier' | 'client';
   id: string;
   name: string;
   lat: number;
@@ -52,6 +52,7 @@ export interface GeofenceTarget {
 export interface GeofencePreload {
   suppliers?: any[];
   jobs?: any[];
+  clients?: any[];
 }
 
 /**
@@ -62,9 +63,10 @@ export interface GeofencePreload {
  *  - Jobs the vehicle is assigned to TODAY (via RotaAssignment.vehicle_id)
  *  - Jobs the vehicle is delivering to TODAY (via DeliveryLeg.vehicle_id)
  *  - All suppliers with lat/lng (yards, depots, maintenance providers)
+ *  - All clients with lat/lng (client yards, depots, collection points)
  *
- * Only jobs with site_lat/site_lng set are checked. Only suppliers with
- * lat/lng set are checked.
+ * Only jobs with site_lat/site_lng set are checked. Only suppliers and
+ * clients with lat/lng set are checked.
  *
  * Returns a summary of events created.
  */
@@ -85,7 +87,7 @@ export async function checkGeofencePresence(
   const today = timestamp.slice(0, 10);
 
   // Load per-vehicle data + shared data (use preload if provided)
-  const [rotas, legs, suppliers, jobs] = await Promise.all([
+  const [rotas, legs, suppliers, jobs, clients] = await Promise.all([
     base44.asServiceRole.entities.RotaAssignment.filter(
       { vehicle_id: vehicleId, assigned_date: today },
       '-created_date',
@@ -102,6 +104,9 @@ export async function checkGeofencePresence(
     preload?.jobs
       ? Promise.resolve(preload.jobs)
       : base44.asServiceRole.entities.Job.list('-created_date', 500),
+    preload?.clients
+      ? Promise.resolve(preload.clients)
+      : base44.asServiceRole.entities.Client.list('-created_date', 500),
   ]);
 
   const jobMap = new Map<string, any>();
@@ -152,6 +157,20 @@ export async function checkGeofencePresence(
         lat: s.lat,
         lng: s.lng,
         radius_override: s.geofence_radius_override,
+      });
+    }
+  }
+
+  // Add all clients with coordinates (client yards, depots, collection points)
+  for (const c of clients) {
+    if (c.lat && c.lng) {
+      targets.push({
+        type: 'client',
+        id: c.id,
+        name: c.name,
+        lat: c.lat,
+        lng: c.lng,
+        radius_override: c.geofence_radius_override,
       });
     }
   }

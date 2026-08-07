@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Radar, LogIn, LogOut, MapPin, Truck, Building2, Loader2 } from 'lucide-react';
+import { Radar, LogIn, LogOut, MapPin, Truck, Building2, Briefcase, Loader2 } from 'lucide-react';
 import WidgetShell from '@/components/dashboard/WidgetShell';
 
 export default function GeofenceEventFeed({ onSelectJob }) {
@@ -46,7 +46,7 @@ export default function GeofenceEventFeed({ onSelectJob }) {
           <Radar className="w-8 h-8 text-slate-200 mb-2" />
           <p className="text-sm font-medium text-slate-400">No geofence events yet</p>
           <p className="text-xs text-slate-400 mt-1 max-w-xs">
-            Events appear here when vehicles arrive at or leave job sites and supplier yards. Make sure Geotab sync is active and jobs have site coordinates set.
+            Events appear here when vehicles arrive at or leave job sites, supplier yards and client collection points. Make sure Geotab sync is active and locations have coordinates set.
           </p>
         </div>
       ) : (
@@ -54,9 +54,11 @@ export default function GeofenceEventFeed({ onSelectJob }) {
           {(events || []).slice(0, 20).map((e) => {
             const isArrival = e.event_type === 'arrival';
             const isJob = e.target_type === 'job';
+            const isClient = e.target_type === 'client';
             const time = e.timestamp ? new Date(e.timestamp).toLocaleString('en-GB', {
               day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
             }) : '';
+            const TargetIcon = isJob ? Building2 : isClient ? Briefcase : MapPin;
             return (
               <div
                 key={e.id}
@@ -87,9 +89,7 @@ export default function GeofenceEventFeed({ onSelectJob }) {
                     )}
                   </div>
                   <div className="flex items-center gap-1 mt-0.5">
-                    {isJob
-                      ? <Building2 className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                      : <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />}
+                    <TargetIcon className="w-3 h-3 text-slate-400 flex-shrink-0" />
                     <p className="text-xs text-slate-500 truncate">
                       {isArrival ? 'Arrived at' : 'Left'} {e.target_name || 'site'}
                     </p>

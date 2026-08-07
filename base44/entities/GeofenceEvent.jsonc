@@ -18,17 +18,18 @@
       "type": "string",
       "enum": [
         "job",
-        "supplier"
+        "supplier",
+        "client"
       ],
-      "description": "What the geofence is around. 'job' = a job site (uses Job.site_lat/site_lng), 'supplier' = a supplier yard/depot (uses Supplier.lat/lng)."
+      "description": "What the geofence is around. 'job' = a job site (uses Job.site_lat/site_lng), 'supplier' = a supplier yard/depot (uses Supplier.lat/lng), 'client' = a client yard/depot/collection point (uses Client.lat/lng)."
     },
     "target_id": {
       "type": "string",
-      "description": "ID of the Job or Supplier this geofence event is for"
+      "description": "ID of the Job, Supplier or Client this geofence event is for"
     },
     "target_name": {
       "type": "string",
-      "description": "Job or supplier name (denormalised for display without joining)"
+      "description": "Job, supplier or client name (denormalised for display without joining)"
     },
     "event_type": {
       "type": "string",
@@ -52,7 +53,7 @@
     },
     "radius_meters": {
       "type": "number",
-      "description": "The geofence radius (metres) that was in effect when this event was created \u2014 either the global default, or a per-job/per-supplier override"
+      "description": "The geofence radius (metres) that was in effect when this event was created \u2014 either the global default, or a per-job/per-supplier/per-client override"
     },
     "timestamp": {
       "type": "string",

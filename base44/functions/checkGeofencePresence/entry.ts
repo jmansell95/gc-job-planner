@@ -36,11 +36,12 @@ export default async function(req: Request): Promise<Response> {
 
     // ── Batch mode: process latest location for every vehicle ──
     if (body.action === 'batch') {
-      const [vehicles, logs, suppliers, jobs] = await Promise.all([
+      const [vehicles, logs, suppliers, jobs, clients] = await Promise.all([
         base44.asServiceRole.entities.Vehicle.list('-created_date', 500),
         base44.asServiceRole.entities.VehicleLocationLog.list('-created_date', 2000),
         base44.asServiceRole.entities.Supplier.list('-created_date', 500),
         base44.asServiceRole.entities.Job.list('-created_date', 500),
+        base44.asServiceRole.entities.Client.list('-created_date', 500),
       ]);
 
       // Find the latest log per vehicle
@@ -52,7 +53,7 @@ export default async function(req: Request): Promise<Response> {
         }
       }
 
-      const preload = { suppliers, jobs };
+      const preload = { suppliers, jobs, clients };
       let totalArrivals = 0;
       let totalDepartures = 0;
       let totalAutoArrivals = 0;

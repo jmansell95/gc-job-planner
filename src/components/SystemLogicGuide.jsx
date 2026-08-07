@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Loader2, BookOpen, ShieldCheck, TrendingUp, Sparkles, HardHat, FileClock, Clock, Activity, Zap, FileText } from 'lucide-react';
+import { Download, Loader2, BookOpen, ShieldCheck, TrendingUp, Sparkles, HardHat, FileClock, Clock, Activity, Zap, FileText, Radar } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { EMBLEM_URL } from '@/components/Logo';
 
@@ -88,6 +88,21 @@ const SECTIONS = [
       { stat: 'Milestone Auto-Push', meaning: 'Triggered when an investigation log is approved. Posts a "Verified Milestone" comment to the client portal and emails the project manager. Zero manual steps.' },
       { stat: 'Schedule Email', meaning: 'Triggered when a rota week is published. Emails each assigned crew member their weekly schedule with a PDF attachment.' },
       { stat: 'Bank Holiday Sync', meaning: 'Annual. Pulls UK bank holidays from gov.uk API so the rota engine knows not to schedule work on public holidays.' },
+      { stat: 'Geofence Batch Check', meaning: 'Every 10 minutes. Reads the latest GPS position for every vehicle and checks it against all job, supplier and client geofences. Catches arrivals/departures the real-time Geotab webhook may have missed between pings.' },
+    ],
+  },
+  {
+    id: 'geofence',
+    icon: Radar,
+    title: 'Geofence & Vehicle Tracking',
+    desc: 'How GPS arrival/departure detection works',
+    items: [
+      { stat: 'Geofence Targets', meaning: 'Three types of locations are monitored: job sites (using Job.site_lat/site_lng), supplier yards (using Supplier.lat/lng) and client collection points (using Client.lat/lng). A vehicle entering the radius around any of these triggers an arrival event; leaving triggers a departure.' },
+      { stat: 'Default Radius', meaning: '100 metres. The distance from the location centre within which a vehicle is considered "on site". Configurable globally in Geofence Settings, and overridable per job, supplier or client for locations that need a larger or smaller zone (e.g. a large client yard vs a tight layby).' },
+      { stat: 'Arrival / Departure Logic', meaning: 'The system compares each GPS ping to the last known state. An arrival is only recorded if the vehicle was previously outside (or this is the first check). A departure is only recorded if the vehicle was previously inside. This prevents duplicate events from repeated pings while stationary.' },
+      { stat: 'Auto Check-in', meaning: 'When enabled in Geofence Settings, a vehicle entering its assigned job\'s geofence automatically sets "arrived_on_site_at" on the crew\'s rota assignment — no manual check-in needed. The event is flagged "AUTO CHECK-IN" in the feed.' },
+      { stat: 'Real-time + Batch', meaning: 'Geotab webhooks and fleet syncs check geofences in real time as location pings arrive. A scheduled batch check every 10 minutes acts as a fallback to catch any pings the webhook missed, ensuring no arrival or departure goes undetected.' },
+      { stat: 'Geofence Event Feed', meaning: 'A dashboard widget showing the latest 30 arrival/departure events with vehicle, location, distance and time. Clicking a job event opens the job detail drawer. Supplier and client events show the location name without navigation.' },
     ],
   },
 ];

@@ -17,6 +17,22 @@
     "contact_phone": {
       "type": "string",
       "description": "Contact phone number"
+    },
+    "yard_address": {
+      "type": "string",
+      "description": "Address of the client's yard, depot or collection point \u2014 where GC crews collect or return gear, materials or samples. Used as the geocode reference for the lat/lng fields."
+    },
+    "lat": {
+      "type": "number",
+      "description": "Client yard/depot latitude. Set via the geocode button on the client form. Used for geofence detection \u2014 when a vehicle enters the radius around this location, an arrival event is triggered (e.g. collecting gear from Concept's yard)."
+    },
+    "lng": {
+      "type": "number",
+      "description": "Client yard/depot longitude. Set via the geocode button on the client form. Used for geofence detection."
+    },
+    "geofence_radius_override": {
+      "type": "number",
+      "description": "Per-client geofence radius override (metres). When set, this radius is used instead of the global default from the geofence config. Useful for large client yards that need a wider zone."
     }
   },
   "required": [

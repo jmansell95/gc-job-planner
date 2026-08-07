@@ -80,7 +80,7 @@ export default function GeofenceSettings() {
       <SettingsSectionHeader
         icon={Radar}
         title="Geofence Detection"
-        description="Automatically detects when a vehicle enters or leaves a geofence around a job site or supplier yard. Uses live Geotab GPS data to trigger arrival/departure events, auto check-ins, and notifications. Each job uses its site coordinates (set via the geocode button on the job form); each supplier can have yard coordinates added. A per-job or per-supplier radius override can be set if the default doesn't suit a particular location."
+        description="Automatically detects when a vehicle enters or leaves a geofence around a job site, supplier yard or client collection point. Uses live Geotab GPS data to trigger arrival/departure events, auto check-ins, and notifications. Each job uses its site coordinates (set via the geocode button on the job form); suppliers and clients can have yard/depot coordinates added on their records. A per-location radius override can be set if the default doesn't suit a particular site."
       />
 
       {/* Enable / Disable */}
@@ -96,7 +96,7 @@ export default function GeofenceSettings() {
             <p className="text-sm font-bold text-slate-800">{config.enabled ? 'Geofence Detection Active' : 'Geofence Detection Disabled'}</p>
             <p className="text-xs text-slate-500">
               {config.enabled
-                ? 'Vehicle positions from Geotab are checked against job and supplier geofences in real time.'
+                ? 'Vehicle positions from Geotab are checked against job, supplier and client geofences in real time.'
                 : 'No geofence events will be generated. Turn this on to start tracking arrivals and departures.'}
             </p>
           </div>
@@ -110,7 +110,7 @@ export default function GeofenceSettings() {
           <h3 className="text-sm font-bold text-slate-800">Default Geofence Radius</h3>
         </div>
         <p className="text-xs text-slate-500">
-          The radius (in metres) around a job site or supplier yard that triggers an arrival event when a vehicle enters. 100m is a good default for most sites. You can override this per job (on the job form) or per supplier (on the supplier record) if a site needs a larger or smaller zone.
+          The radius (in metres) around a job site, supplier yard or client collection point that triggers an arrival event when a vehicle enters. 100m is a good default for most sites. You can override this per job (on the job form), per supplier (on the supplier record) or per client (on the client record) if a location needs a larger or smaller zone.
         </p>
         <div className="flex items-center gap-4">
           <input
