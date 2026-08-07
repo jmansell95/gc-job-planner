@@ -111,7 +111,11 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
                 <input type="number" step="any" value={num('site_lng')} onChange={(e) => setNum('site_lng', e.target.value)} placeholder="Longitude (e.g. -0.1278)" className={inputCls + ' flex-1 min-w-[120px]'} />
                 <GeocodeButton address={formData.location} onResult={(lat, lng) => setFormData(prev => ({ ...prev, site_lat: lat, site_lng: lng }))} />
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">Set the site's GPS coordinates to enable automatic arrival/departure detection from Geotab vehicle tracking.</p>
+              <div className="mt-2">
+                <label className="block text-xs font-medium text-slate-500 mb-1">Geofence Radius Override (metres) — blank = global default</label>
+                <input type="number" min="0" step="1" value={num('geofence_radius_override')} onChange={(e) => setNum('geofence_radius_override', e.target.value)} placeholder="e.g. 150" className={inputCls + ' max-w-[200px]'} />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">Set the site's GPS coordinates to enable automatic arrival/departure detection from Geotab vehicle tracking. Override the radius for large sites.</p>
             </Field>
             <Field label="Required Teams" hint="Staff from these teams can be assigned" full>
               {teams.length === 0 ? (

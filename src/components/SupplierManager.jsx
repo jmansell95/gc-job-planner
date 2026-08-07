@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Package, Plus, Edit2, Trash2, Mail, Phone, Search, Wrench,
-  Upload, FileSpreadsheet, Loader2, RefreshCw
+  Upload, FileSpreadsheet, Loader2, RefreshCw, MapPin
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
-const blank = { name: '', contact_name: '', contact_email: '', contact_phone: '', notes: '', is_maintenance_provider: false, emergency_mobile: '', technical_email: '', portal_login_url: '', maintenance_services: [], account_number: '' };
+const blank = { name: '', contact_name: '', contact_email: '', contact_phone: '', notes: '', is_maintenance_provider: false, emergency_mobile: '', technical_email: '', portal_login_url: '', maintenance_services: [], account_number: '', lat: '', lng: '', geofence_radius_override: '' };
 
 const MAINT_SERVICE_OPTS = [
   { value: 'mot', label: 'MOT' },
@@ -51,6 +51,7 @@ export default function SupplierManager() {
       is_maintenance_provider: s.is_maintenance_provider || false, emergency_mobile: s.emergency_mobile || '',
       technical_email: s.technical_email || '', portal_login_url: s.portal_login_url || '',
       maintenance_services: s.maintenance_services || [], account_number: s.account_number || '',
+      lat: s.lat ?? '', lng: s.lng ?? '', geofence_radius_override: s.geofence_radius_override ?? '',
     });
     setEditingId(s.id); setAdding(true);
   };
@@ -155,6 +156,27 @@ export default function SupplierManager() {
               <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows="2" className={inputCls} />
             </div>
 
+            {/* Geofence Location — for vehicle arrival/departure detection at supplier yards */}
+            <div className="sm:col-span-2 border-t border-slate-100 pt-4 mt-1">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+                <MapPin className="w-4 h-4 text-emerald-600" /> Yard / Depot Location
+                <span className="text-xs text-slate-400 font-normal">(for Geotab geofence arrival/departure detection)</span>
+              </label>
+              <div className="flex items-center gap-2 flex-wrap">
+                <input type="number" step="any" value={form.lat} onChange={(e) => setForm({ ...form, lat: e.target.value === '' ? '' : parseFloat(e.target.value) })} placeholder="Latitude (e.g. 51.5074)" className={inputCls + ' flex-1 min-w-[120px]'} />
+                <input type="number" step="any" value={form.lng} onChange={(e) => setForm({ ...form, lng: e.target.value === '' ? '' : parseFloat(e.target.value) })} placeholder="Longitude (e.g. -0.1278)" className={inputCls + ' flex-1 min-w-[120px]'} />
+                <SupplierGeocodeButton
+                  address={form.name}
+                  onResult={(lat, lng) => setForm(prev => ({ ...prev, lat, lng }))}
+                />
+              </div>
+              <div className="mt-2">
+                <label className="block text-xs font-medium text-slate-500 mb-1">Geofence Radius Override (metres) — blank = global default</label>
+                <input type="number" min="0" step="1" value={form.geofence_radius_override} onChange={(e) => setForm({ ...form, geofence_radius_override: e.target.value === '' ? '' : parseFloat(e.target.value) })} placeholder="e.g. 250" className={inputCls + ' max-w-[200px]'} />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">Set the supplier's yard/depot GPS coordinates so Geotab can detect when vehicles arrive to collect or return gear. Override the radius for large yards.</p>
+            </div>
+
             {/* Maintenance provider section */}
             <div className="sm:col-span-2 border-t border-slate-100 pt-4 mt-1">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-3 cursor-pointer">
@@ -248,6 +270,12 @@ export default function SupplierManager() {
                     {s.maintenance_services?.length > 0 && <span className="text-slate-400 font-normal">· {s.maintenance_services.length} services</span>}
                   </div>
                 )}
+                {s.lat != null && s.lng != null && (
+                  <div className="flex items-center gap-1.5 text-blue-600 font-medium">
+                    <MapPin className="w-3.5 h-3.5" /> Geofence active
+                    {s.geofence_radius_override && <span className="text-slate-400 font-normal">· {s.geofence_radius_override}m radius</span>}
+                  </div>
+                )}
               </div>
 
               {/* Rate card section */}
@@ -288,6 +316,51 @@ export default function SupplierManager() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function SupplierGeocodeButton({ address, onResult }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleGeocode = async () => {
+    if (!address?.trim()) { setError('Enter a supplier name first'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt: `Return the GPS latitude and longitude of this UK supplier/yard location as a JSON object: "${address}". Use only valid numeric coordinates. If the name is ambiguous, return the most likely match for the UK.`,
+        add_context_from_internet: true,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            lat: { type: 'number' },
+            lng: { type: 'number' }
+          },
+          required: ['lat', 'lng']
+        }
+      });
+      if (res && typeof res.lat === 'number' && typeof res.lng === 'number') {
+        onResult(res.lat, res.lng);
+      } else {
+        setError('Could not geocode this location');
+      }
+    } catch (e) {
+      setError(e.message || 'Geocode failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <button type="button" onClick={handleGeocode} disabled={loading}
+        className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-medium hover:bg-blue-100 transition disabled:opacity-60 flex-shrink-0">
+        {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
+        Auto-fill
+      </button>
+      {error && <p className="text-[10px] text-red-500">{error}</p>}
     </div>
   );
 }
