@@ -2,6 +2,18 @@ import React from 'react';
 import { Search, Users, Truck, Building2, HardHat, Package, CalendarX, Timer, Mail, Zap, Wrench, Tag, Banknote, Boxes,   Palette, Database, Receipt, TrendingUp, LayoutGrid, ListChecks, ShieldCheck, FlaskConical, Clock, FileUp, ClipboardCheck, ShieldAlert, Scale, Sparkles, Gauge, BookOpen, Settings2, Landmark, FileSpreadsheet, ScrollText, History, Radio, ArrowUpDown, Satellite, QrCode, Link2, Cloud, MapPin, MessageCircle, CreditCard, GitBranch, FileText, FileBarChart, Star, CalendarDays, UserCheck, Warehouse, AlertOctagon, Coins, Bell, Webhook, Layers, Activity } from 'lucide-react';
 import { normalizePermissions } from '@/utils/permissions';
 
+// Settings areas that are built but not needed right now. They stay in the
+// nav (so deep links and the Integrations Hub still resolve) but are greyed
+// out in the overview and show a "Coming Soon" placeholder when opened.
+export const COMING_SOON_IDS = new Set([
+  // Advanced finance integrations — not yet in active use
+  'concur-sync', 'accounting-sync', 'payment-gateway', 'gl-mapping', 'payroll-export', 'multi-currency',
+  // Future / advanced system tools — built but not needed yet
+  'zapier-webhooks', 'push-notifications', 'multi-company', 'asset-lifecycle', 'custom-fields', 'dashboard-themes',
+  // Niche operations config — not actively configured
+  'asset-manifests', 'equipment-library', 'incremental-import', 'csv-import', 'asset-panda', 'safety-culture', 'met-office', 'google-maps', 'whatsapp',
+]);
+
 export const settingsGroups = [
   {
     label: 'Overview',
