@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Edit2, AlertCircle, FileBarChart, Sparkles, PackageCheck, AlertTriangle, MoreHorizontal,
+  ArrowLeft, Edit2, AlertCircle, FileBarChart, Sparkles, PackageCheck, AlertTriangle, MoreHorizontal, Satellite,
 } from 'lucide-react';
 import FinishJobModal from '@/components/decommissioning/FinishJobModal';
 import { format } from 'date-fns';
@@ -91,6 +91,13 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const assignedStaff = assignedStaffIds.map(id => allStaff.find(s => s.id === id)).filter(Boolean);
   const client = clients.find(c => c.id === job.client_id);
   const contractor = contractors.find(c => c.id === job.contractor_id);
+
+  // Live Geotab drivers — vehicles assigned to this job's rotas that have a driver detected by Geotab
+  const assignedVehicleIds = [...new Set(rotas.map(r => r.vehicle_id).filter(Boolean))];
+  const liveDrivers = assignedVehicleIds
+    .map(vid => vehicles.find(v => v.id === vid))
+    .filter(v => v && v.geotab_driver_name)
+    .map(v => ({ name: v.geotab_driver_name, vehicle: v.name || v.registration_number }));
 
   const rotasByDate = {};
   rotas.forEach(r => { if (!rotasByDate[r.assigned_date]) rotasByDate[r.assigned_date] = []; rotasByDate[r.assigned_date].push(r); });
@@ -271,6 +278,20 @@ export default function JobDetail({ job: initialJob, onBack }) {
       <div className="mb-4">
         <JobWarningsBanner job={job} assignedStaffCount={assignedStaff.length} />
       </div>
+
+      {/* Live Geotab driver indicator — shows who is driving vehicles assigned to this job */}
+      {liveDrivers.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-50 border border-cyan-200">
+          <Satellite className="w-4 h-4 text-cyan-600 flex-shrink-0" />
+          <span className="text-sm font-semibold text-cyan-800">Live Driver:</span>
+          {liveDrivers.map((d, i) => (
+            <span key={i} className="text-sm text-cyan-700">
+              {d.name} <span className="text-cyan-500 text-xs">({d.vehicle})</span>
+              {i < liveDrivers.length - 1 && <span className="text-cyan-400 mx-1">·</span>}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Unified tabbed command center — no more long scroll */}
       <JobDetailTabs

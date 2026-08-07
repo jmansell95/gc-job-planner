@@ -284,6 +284,49 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
               </div>
             </div>
 
+            {/* Driver safety telemetry — from Geotab Exception events */}
+            {vehicle.geotab_sync_status === 'synced' && vehicle.safety_event_count != null && (
+              <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4 text-slate-600" />
+                    <h3 className="text-sm font-bold text-slate-800">Driver Safety</h3>
+                  </div>
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                    (vehicle.driver_risk_score || 100) >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                    (vehicle.driver_risk_score || 100) >= 50 ? 'bg-amber-100 text-amber-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    Risk Score: {vehicle.driver_risk_score ?? 100}/100
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-red-50 rounded-lg p-2 border border-red-100">
+                    <p className="text-[10px] uppercase text-red-500 font-semibold">Harsh Braking</p>
+                    <p className="text-lg font-bold text-red-700 tabular-nums">{vehicle.safety_harsh_braking_count || 0}</p>
+                  </div>
+                  <div className="bg-amber-50 rounded-lg p-2 border border-amber-100">
+                    <p className="text-[10px] uppercase text-amber-500 font-semibold">Speeding</p>
+                    <p className="text-lg font-bold text-amber-700 tabular-nums">{vehicle.safety_speeding_count || 0}</p>
+                  </div>
+                  <div className="bg-orange-50 rounded-lg p-2 border border-orange-100">
+                    <p className="text-[10px] uppercase text-orange-500 font-semibold">Harsh Accel</p>
+                    <p className="text-lg font-bold text-orange-700 tabular-nums">{vehicle.safety_harsh_accel_count || 0}</p>
+                  </div>
+                  <div className="bg-violet-50 rounded-lg p-2 border border-violet-100">
+                    <p className="text-[10px] uppercase text-violet-500 font-semibold">Harsh Cornering</p>
+                    <p className="text-lg font-bold text-violet-700 tabular-nums">{vehicle.safety_harsh_cornering_count || 0}</p>
+                  </div>
+                </div>
+                {vehicle.geotab_driver_name && (
+                  <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+                    <User className="w-3 h-3" /> Last detected driver: <span className="font-semibold text-slate-700">{vehicle.geotab_driver_name}</span>
+                  </div>
+                )}
+                <p className="text-[10px] text-slate-400 mt-1.5">Events from the last 30 days · Geotab Exception data</p>
+              </div>
+            )}
+
             {/* Live position */}
             {latestLoc ? (
               <div>

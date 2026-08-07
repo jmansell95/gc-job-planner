@@ -258,6 +258,78 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
+    // ── Fetch Exception events (safety telemetry: harsh braking, speeding, etc.) ──
+    // Geotab stores driver safety events as "Exception" records, each linked to
+    // a Rule (e.g. HardBrakingRule, SpeedingRule). We pull the last 30 days and
+    // aggregate counts per device so the fleet dashboard can show a driver risk
+    // score and the checkDriverSafety function can send alerts.
+    const safetyFromDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const exceptionRes = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'Get',
+        params: {
+          typeName: 'Exception',
+          credentials: creds,
+          search: { fromDate: safetyFromDate },
+          resultsLimit: 5000,
+        },
+      }),
+    }).catch(() => null);
+    const exceptionJson = exceptionRes ? await exceptionRes.json().catch(() => null) : null;
+    const exceptions: any[] = Array.isArray(exceptionJson?.result) ? exceptionJson.result : [];
+
+    // Fetch Rule entities to categorize exceptions by type (braking, speeding, etc.)
+    const ruleIds = new Set<string>();
+    for (const ex of exceptions) {
+      if (ex.rule?.id) ruleIds.add(ex.rule.id);
+    }
+    const ruleMap: Record<string, any> = {};
+    if (ruleIds.size > 0) {
+      const ruleRes = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'Get',
+          params: { typeName: 'Rule', credentials: creds, resultsLimit: 2000 },
+        }),
+      }).catch(() => null);
+      const ruleJson = ruleRes ? await ruleRes.json().catch(() => null) : null;
+      const ruleList: any[] = Array.isArray(ruleJson?.result) ? ruleJson.result : [];
+      for (const r of ruleList) {
+        ruleMap[r.id] = r;
+      }
+    }
+
+    // Aggregate safety events per device
+    interface SafetyStats {
+      harsh_braking: number;
+      speeding: number;
+      harsh_accel: number;
+      harsh_cornering: number;
+      total: number;
+      driver_name: string;
+    }
+    const safetyByDevice: Record<string, SafetyStats> = {};
+    for (const ex of exceptions) {
+      const devId = ex.device?.id;
+      if (!devId) continue;
+      if (!safetyByDevice[devId]) {
+        safetyByDevice[devId] = { harsh_braking: 0, speeding: 0, harsh_accel: 0, harsh_cornering: 0, total: 0, driver_name: '' };
+      }
+      const stats = safetyByDevice[devId];
+      stats.total++;
+      const rule = ex.rule?.id ? ruleMap[ex.rule.id] : null;
+      const ruleName = (rule?.name || ex.rule?.name || '').toLowerCase();
+      if (ruleName.includes('brak')) stats.harsh_braking++;
+      else if (ruleName.includes('speed')) stats.speeding++;
+      else if (ruleName.includes('accel')) stats.harsh_accel++;
+      else if (ruleName.includes('corner') || ruleName.includes('turn')) stats.harsh_cornering++;
+      // Capture driver name from the exception if available
+      if (ex.driver?.name && !stats.driver_name) stats.driver_name = ex.driver.name;
+    }
+
     // ── Load local vehicles and build lookup maps ──
     const vehicles = await base44.asServiceRole.entities.Vehicle.list('-created_date', 500);
     const regMap: Record<string, any> = {};
@@ -364,6 +436,20 @@ export default async function(req: Request): Promise<Response> {
         if (makeLower && nameParts[0]?.toLowerCase() === makeLower && nameParts.length > 1) {
           detailUpdate.model = nameParts.slice(1).join(' ');
         }
+      }
+
+      // Merge safety telemetry stats into the update payload
+      const safety = safetyByDevice[deviceId];
+      if (safety) {
+        detailUpdate.safety_harsh_braking_count = safety.harsh_braking;
+        detailUpdate.safety_speeding_count = safety.speeding;
+        detailUpdate.safety_harsh_accel_count = safety.harsh_accel;
+        detailUpdate.safety_harsh_cornering_count = safety.harsh_cornering;
+        detailUpdate.safety_event_count = safety.total;
+        // Risk score: 100 = safest (0 events), 0 = worst (20+ events). Linear scale.
+        detailUpdate.driver_risk_score = Math.max(0, Math.round(100 - (safety.total / 20) * 100));
+        detailUpdate.safety_events_last_sync = now;
+        if (safety.driver_name) detailUpdate.geotab_driver_name = safety.driver_name;
       }
 
       if (!vehicle) {

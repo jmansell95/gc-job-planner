@@ -181,6 +181,43 @@
       ],
       "default": "none",
       "description": "Confidence level of the last DVLA spec lookup. 'high' = DVLA VES returned full data, 'medium' = partial data returned, 'low' = vehicle not found / errors, 'none' = no lookup performed."
+    },
+    "geotab_driver_name": {
+      "type": "string",
+      "description": "Name of the driver currently/last detected by Geotab for this vehicle. Pulled from Geotab Exception events (safety telemetry) and DeviceStatusInfo. Shown on the Job Detail page so managers can see who is driving the vehicle assigned to a job."
+    },
+    "safety_harsh_braking_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of harsh braking events recorded by Geotab in the last 30 days. Pulled from Geotab Exception events matching braking rules. Used for the driver risk score and safety alerts."
+    },
+    "safety_speeding_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of speeding events recorded by Geotab in the last 30 days. Pulled from Geotab Exception events matching speeding rules."
+    },
+    "safety_harsh_accel_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of harsh acceleration events recorded by Geotab in the last 30 days."
+    },
+    "safety_harsh_cornering_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of harsh cornering events recorded by Geotab in the last 30 days."
+    },
+    "safety_event_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Total safety events (harsh braking + speeding + harsh acceleration + harsh cornering) recorded by Geotab in the last 30 days. Drives the driver risk score and safety alert threshold."
+    },
+    "driver_risk_score": {
+      "type": "number",
+      "description": "Driver safety risk score from 0 to 100. 100 = safest (no events), 0 = worst (20+ events in 30 days). Calculated as max(0, 100 - (total_events / 20) * 100). Displayed on vehicle cards and the fleet dashboard."
+    },
+    "safety_events_last_sync": {
+      "type": "string",
+      "description": "ISO timestamp of the last Geotab safety events sync (Exception events pull)."
     }
   },
   "required": [

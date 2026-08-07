@@ -187,6 +187,25 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
           )}
         </div>
 
+        {/* Driver safety risk badge — from Geotab Exception events */}
+        {vehicle.geotab_sync_status === 'synced' && vehicle.safety_event_count != null && (
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${
+              (vehicle.driver_risk_score || 100) >= 80 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+              (vehicle.driver_risk_score || 100) >= 50 ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+              'bg-red-50 text-red-700 border border-red-200'
+            }`} title={`Risk score ${vehicle.driver_risk_score ?? 100}/100 — ${vehicle.safety_event_count || 0} safety events in 30 days`}>
+              <ShieldAlert className="w-3 h-3" />
+              Risk {vehicle.driver_risk_score ?? 100}/100
+            </span>
+            {vehicle.safety_event_count > 0 && (
+              <span className="text-[10px] text-slate-500 font-medium">
+                {vehicle.safety_event_count} event{vehicle.safety_event_count === 1 ? '' : 's'} · 30d
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Spec chips */}
         <div className="flex flex-wrap gap-1.5">
           {vehicle.year && (
