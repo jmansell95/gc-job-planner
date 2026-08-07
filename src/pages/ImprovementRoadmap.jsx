@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Rocket, Users, Briefcase, DollarSign, ShieldCheck, Wrench, Clock,
   Globe, Truck, BarChart3, Plug, Smartphone, Settings, FileText,
-  Zap, ChevronDown, ChevronRight, CheckCircle2, Circle, AlertCircle
+  Zap, ChevronDown, ChevronRight, CheckCircle2, Circle, AlertCircle, Download, Loader2
 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 
@@ -262,6 +262,128 @@ const COLOR_MAP = {
 export default function ImprovementRoadmap() {
   const [expanded, setExpanded] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  const handleDownloadPDF = () => {
+    setPdfLoading(true);
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    const totalItems = CATEGORIES.reduce((sum, c) => sum + c.items.length, 0);
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>GC Mission Control — Improvement Roadmap</title>
+  <style>
+    @page { margin: 2cm; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1e293b; line-height: 1.5; margin: 0; padding: 0; }
+    .cover { text-align: center; padding: 60px 20px 40px; page-break-after: always; }
+    .cover-logo { width: 64px; height: 64px; margin: 0 auto 20px; background: linear-gradient(135deg, #2E5A1A, #8DC63F); border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+    .cover-logo span { font-size: 32px; }
+    .cover h1 { font-size: 32px; color: #2E5A1A; margin: 0 0 8px; font-weight: 800; letter-spacing: -0.02em; }
+    .cover .subtitle { font-size: 16px; color: #64748b; margin: 0 0 30px; }
+    .cover .meta { font-size: 13px; color: #94a3b8; }
+    .cover .stats { display: flex; gap: 20px; justify-content: center; margin-top: 40px; }
+    .cover .stat { text-align: center; }
+    .cover .stat .num { font-size: 36px; font-weight: 800; color: #2E5A1A; }
+    .cover .stat .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .toc { page-break-after: always; }
+    .toc h2 { color: #2E5A1A; font-size: 20px; border-bottom: 2px solid #d1fae5; padding-bottom: 8px; margin-bottom: 16px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { margin-bottom: 6px; font-size: 14px; }
+    .toc li .count { color: #94a3b8; font-size: 12px; }
+    .category { margin-bottom: 28px; page-break-inside: avoid; }
+    .category-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .category-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: 700; }
+    .category-title { font-size: 18px; font-weight: 700; color: #1e293b; margin: 0; }
+    .category-count { font-size: 12px; color: #94a3b8; margin-left: 8px; }
+    .item { margin-bottom: 10px; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 8px; page-break-inside: avoid; }
+    .item-header { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+    .priority-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+    .priority-high { background: #fee2e2; color: #dc2626; }
+    .priority-medium { background: #fef3c7; color: #d97706; }
+    .priority-low { background: #f1f5f9; color: #64748b; }
+    .status-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: #dcfce7; color: #16a34a; margin-left: auto; }
+    .item-title { font-size: 14px; font-weight: 600; color: #1e293b; margin: 4px 0 4px; }
+    .item-desc { font-size: 12px; color: #475569; line-height: 1.5; margin: 0; }
+    .footer { text-align: center; padding: 20px; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-logo"><span>🚀</span></div>
+    <h1>GC Mission Control</h1>
+    <p class="subtitle">Improvement Roadmap — Complete Feature Catalogue</p>
+    <p class="meta">Generated ${dateStr}</p>
+    <div class="stats">
+      <div class="stat"><div class="num">${totalItems}</div><div class="label">Total Items</div></div>
+      <div class="stat"><div class="num">${CATEGORIES.length}</div><div class="label">Categories</div></div>
+      <div class="stat"><div class="num">${CATEGORIES.reduce((s, c) => s + c.items.filter(i => i.priority === 'high').length, 0)}</div><div class="label">High Priority</div></div>
+    </div>
+  </div>
+
+  <div class="toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      ${CATEGORIES.map((c, i) => `<li><strong>${c.title}</strong> <span class="count">(${c.items.length} items)</span></li>`).join('')}
+    </ol>
+  </div>
+
+  ${CATEGORIES.map((cat, idx) => {
+    const gradients = {
+      blue: '#3b82f6', emerald: '#10b981', amber: '#f59e0b', violet: '#8b5cf6',
+      rose: '#f43f5e', cyan: '#06b6d4', orange: '#f97316', teal: '#14b8a6',
+      indigo: '#6366f1', slate: '#64748b'
+    };
+    const color = gradients[cat.color] || '#64748b';
+    return `
+    <div class="category">
+      <div class="category-header">
+        <div class="category-icon" style="background:${color};">${idx + 1}</div>
+        <h3 class="category-title">${cat.title}</h3>
+        <span class="category-count">${cat.items.length} items</span>
+      </div>
+      ${cat.items.map(item => `
+        <div class="item">
+          <div class="item-header">
+            <span class="priority-badge priority-${item.priority}">${item.priority}</span>
+            <span class="status-badge">✓ Done</span>
+          </div>
+          <div class="item-title">${item.title}</div>
+          <p class="item-desc">${(item.desc || '').replace(/</g, '&lt;')}</p>
+        </div>
+      `).join('')}
+    </div>
+    `;
+  }).join('')}
+
+  <div class="footer">
+    GC Mission Control — Improvement Roadmap · Generated ${dateStr} · ${totalItems} features across ${CATEGORIES.length} categories
+  </div>
+</body>
+</html>
+    `;
+
+    try {
+      const win = window.open('', '_blank');
+      if (!win) {
+        alert('Please allow pop-ups to download the roadmap PDF.');
+        setPdfLoading(false);
+        return;
+      }
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => {
+        win.print();
+        setPdfLoading(false);
+      }, 600);
+    } catch (e) {
+      setPdfLoading(false);
+    }
+  };
 
   const filteredCategories = filter === 'all'
     ? CATEGORIES
@@ -281,6 +403,13 @@ export default function ImprovementRoadmap() {
           { label: 'High Priority', value: highCount, icon: AlertCircle },
           { label: 'Categories', value: CATEGORIES.length, icon: ChevronRight },
         ]}
+        actions={
+          <button onClick={handleDownloadPDF} disabled={pdfLoading} type="button"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/25 text-white text-sm font-medium active:scale-95 transition touch-manipulation disabled:opacity-60">
+            {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            <span className="hidden sm:inline">{pdfLoading ? 'Preparing...' : 'Download PDF'}</span>
+          </button>
+        }
       />
 
       {/* Filter Bar */}
