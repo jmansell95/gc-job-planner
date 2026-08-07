@@ -46,6 +46,9 @@ import GeofenceEventFeed from '@/components/dashboard/GeofenceEventFeed';
 import ExceptionMonitorWidget from '@/components/dashboard/ExceptionMonitorWidget';
 import ErrorMonitorWidget from '@/components/dashboard/ErrorMonitorWidget';
 import YardMapWidget from '@/components/dashboard/YardMapWidget';
+import MissionControlWidget from '@/components/dashboard/MissionControlWidget';
+import IdleAssetTransferWidget from '@/components/dashboard/IdleAssetTransferWidget';
+import TrainingGapSchedulerWidget from '@/components/dashboard/TrainingGapSchedulerWidget';
 import DeliveryStats from '@/components/DeliveryStats';
 import MaintenanceQuickView from '@/components/MaintenanceQuickView';
 import { canViewCostings } from '@/utils/access';
@@ -165,6 +168,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'exception-monitor': return <ExceptionMonitorWidget onNavigate={onNavigate} />;
       case 'error-monitor': return <ErrorMonitorWidget />;
       case 'yard-map': return <YardMapWidget />;
+      case 'mission-control': return <MissionControlWidget onNavigate={onNavigate} />;
+      case 'idle-asset-transfer': return <IdleAssetTransferWidget onNavigate={onNavigate} />;
+      case 'training-gap-scheduler': return <TrainingGapSchedulerWidget onNavigate={onNavigate} />;
       default: return null;
     }
   };
