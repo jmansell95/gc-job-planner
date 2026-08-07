@@ -188,11 +188,11 @@ export default function JobDetail({ job: initialJob, onBack }) {
     <div>
       {/* Top bar — compact floating action bar */}
       <div className="mb-3 sm:mb-4 flex items-center justify-between gap-2">
-        <button onClick={onBack} className="flex items-center gap-2 text-sm text-slate-600 hover:text-[#2E5A1A] font-medium transition group">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm text-slate-600 hover:text-[#2E5A1A] font-medium transition group flex-shrink-0">
           <span className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center group-hover:border-[#2E5A1A]/30 group-hover:bg-[#2E5A1A]/5 transition">
             <ArrowLeft className="w-4 h-4" />
           </span>
-          Back to Jobs
+          <span className="hidden sm:inline">Back to Jobs</span>
         </button>
         <div className="flex items-center gap-1.5">
           {job.status === 'in_progress' && (
@@ -208,7 +208,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
           )}
           <button onClick={handleEdit}
             className="flex items-center gap-2 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg hover:bg-[#1c4a12] transition text-sm font-medium shadow-sm hover:shadow-md">
-            <Edit2 className="w-4 h-4" /> Edit
+            <Edit2 className="w-4 h-4" /> <span className="hidden sm:inline">Edit</span>
           </button>
           {/* Desktop: inline secondary actions */}
           <button onClick={() => setShowStatusModal(true)}
