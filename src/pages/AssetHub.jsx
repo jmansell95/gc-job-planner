@@ -165,7 +165,7 @@ export default function AssetHub() {
       </div>
       <PageHeader
         icon={Wrench}
-        title="Assets & Fleet"
+        title="Asset Command"
         subtitle="Unified inventory from Asset Panda — rigs, lifting, machinery & compliance"
         stats={headerStats}
         actions={
