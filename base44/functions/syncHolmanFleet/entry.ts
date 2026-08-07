@@ -164,7 +164,13 @@ export default async function(req: Request): Promise<Response> {
         const lastService = toDateStr(deepGet(fv, 'last_service_date', 'last_service', 'service.last_completed'));
         const mileage = num(deepGet(fv, 'mileage', 'odometer', 'current_mileage'));
 
-        if (motExpiry) update.mot_expiry = motExpiry;
+        if (motExpiry) {
+          update.mot_expiry = motExpiry;
+          // Derive mot_status from the expiry date so stale DVLA-era values
+          // don't contradict the current Holman MOT data.
+          const today = new Date().toISOString().slice(0, 10);
+          update.mot_status = motExpiry >= today ? 'valid' : 'not_valid';
+        }
         if (serviceDue) update.service_due_date = serviceDue;
         if (lastService) update.last_service_date = lastService;
         if (mileage != null) update.current_mileage = mileage;
