@@ -177,6 +177,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
               className="relative h-10 w-10 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <HelpCircle className="w-[18px] h-[18px]" />
             </button>
+            <ThemeToggle className="h-10 w-10 bg-white/10 ring-white/20 hover:bg-white/20" />
             <button onClick={() => setNotifOpen(true)} aria-label="Notifications" type="button"
               className="relative h-10 w-10 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <Bell className="w-[18px] h-[18px]" />
