@@ -4,9 +4,10 @@ import { base44 } from '@/api/base44Client';
 import {
   Route, Loader2, Clock, MapPin, ChevronDown, ChevronRight, RefreshCw,
   AlertCircle, FileDown, Calendar, TrendingDown, Timer, Navigation,
-  CheckCircle2, AlertTriangle, XCircle, User,
+  CheckCircle2, AlertTriangle, XCircle, User, Circle, Flag, Square,
+  ExternalLink, Gauge, Activity, Car,
 } from 'lucide-react';
-import { batchReverseGeocode } from '@/utils/reverseGeocode';
+import { batchReverseGeocodeStructured } from '@/utils/reverseGeocode';
 import jsPDF from 'jspdf';
 
 const KM_TO_MI = 0.621371;
@@ -22,12 +23,21 @@ function formatTime(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
-function formatDate(iso) {
+function formatTimeSec(iso) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+function formatDateLong(dateStr) {
+  if (!dateStr) return '—';
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+}
+function formatDateShort(dateStr) {
+  if (!dateStr) return '—';
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-// Group trips by day
+// Group trips by day — each day gets its trips sorted by start time,
+// plus aggregated stats (distance, duration, first start, last end, stops).
 function groupTripsByDay(trips) {
   const groups = {};
   for (const t of trips) {
@@ -38,20 +48,23 @@ function groupTripsByDay(trips) {
   }
   return Object.entries(groups)
     .sort(([a], [b]) => b.localeCompare(a))
-    .map(([date, dayTrips]) => ({
-      date,
-      trips: dayTrips,
-      distance: dayTrips.reduce((s, t) => s + (t.distance_km || 0), 0),
-      duration: dayTrips.reduce((s, t) => s + (t.duration_minutes || 0), 0),
-      firstStart: dayTrips.reduce((m, t) => m && m < t.start_time ? m : t.start_time, null),
-      lastEnd: dayTrips.reduce((m, t) => m && m > t.end_time ? m : t.end_time, null),
-    }));
+    .map(([date, dayTrips]) => {
+      const sorted = dayTrips.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+      return {
+        date,
+        trips: sorted,
+        distance: sorted.reduce((s, t) => s + (t.distance_km || 0), 0),
+        duration: sorted.reduce((s, t) => s + (t.duration_minutes || 0), 0),
+        idle: sorted.reduce((s, t) => s + (t.idle_minutes || 0), 0),
+        stops: sorted.reduce((s, t) => s + (t.stop_count || 0), 0),
+        firstStart: sorted.reduce((m, t) => (m && m < t.start_time ? m : t.start_time), null),
+        lastEnd: sorted.reduce((m, t) => (m && m > t.end_time ? m : t.end_time), null),
+      };
+    });
 }
 
 // Match GPS trips to timesheet entries for the same staff member on the same date.
-// Timesheets don't have vehicle_id, so we match by the vehicle's assigned staff_id.
 function reconcileTripsWithTimesheets(trips, timesheets, staffMap, assignedStaffId, vehicleName) {
-  // Group GPS trips by date
   const byDate = {};
   for (const t of trips) {
     const date = (t.start_time || '').slice(0, 10);
@@ -67,8 +80,6 @@ function reconcileTripsWithTimesheets(trips, timesheets, staffMap, assignedStaff
     const gpsLastEnd = dayTrips.reduce((m, t) => (m > t.end_time ? m : t.end_time), null);
     const distanceMi = kmToMi(dayTrips.reduce((s, t) => s + (t.distance_km || 0), 0));
 
-    // Find matching timesheets — same staff_id and date
-    // Sum travel_to + travel_from minutes (the claimed travel hours)
     const matchingTs = timesheets.filter(ts =>
       ts.staff_id === assignedStaffId &&
       (ts.date || '').slice(0, 10) === date &&
@@ -76,10 +87,8 @@ function reconcileTripsWithTimesheets(trips, timesheets, staffMap, assignedStaff
     );
 
     if (matchingTs.length > 0) {
-      // Aggregate claimed travel from all entries for this staff on this date
       const claimedTravelMins = matchingTs.reduce((s, ts) => {
         const travel = Number(ts.travel_to_minutes || 0) + Number(ts.travel_from_minutes || 0);
-        // If no explicit travel fields, count travel-type task entries
         if (travel === 0 && (ts.task_type === 'travel_to' || ts.task_type === 'travel_from')) {
           return s + Number(ts.task_duration_minutes || 0);
         }
@@ -102,7 +111,6 @@ function reconcileTripsWithTimesheets(trips, timesheets, staffMap, assignedStaff
         distance_mi: distanceMi,
       });
     } else {
-      // No timesheet entries for this date — GPS shows driving but no claim
       reconciliations.push({
         staff_name: staffMap[assignedStaffId]?.name || vehicleName || 'Unassigned',
         date,
@@ -120,16 +128,22 @@ function reconcileTripsWithTimesheets(trips, timesheets, staffMap, assignedStaff
   return reconciliations.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 }
 
-// Generate a full PDF report with all trips + reconciliation
-function generateFullPDF(vehicle, tripData, reconciliations, dateRange) {
+// ── PDF GENERATION ──
+// Day-by-day report: each day gets a header, a movement-by-movement breakdown,
+// and a reconciliation row. Designed for printing and auditing.
+function generateFullPDF(vehicle, dayGroups, reconciliations, dateRange) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageW = 210, pageH = 297, margin = 15;
   const contentW = pageW - margin * 2;
   let y = margin;
 
-  // Header bar
+  const ensureSpace = (needed) => {
+    if (y > pageH - needed - 10) { doc.addPage(); y = margin; }
+  };
+
+  // ── Header bar ──
   doc.setFillColor(46, 90, 26);
-  doc.rect(0, 0, pageW, 30, 'F');
+  doc.rect(0, 0, pageW, 32, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
@@ -138,9 +152,9 @@ function generateFullPDF(vehicle, tripData, reconciliations, dateRange) {
   doc.setFont('helvetica', 'normal');
   doc.text(`Generated: ${new Date().toLocaleString('en-GB')}`, margin, 20);
   doc.text('GC Mission Control — Fleet Command', margin, 26);
-  y = 40;
+  y = 42;
 
-  // Vehicle identity
+  // ── Vehicle identity ──
   doc.setTextColor(30, 41, 59);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
@@ -154,13 +168,14 @@ function generateFullPDF(vehicle, tripData, reconciliations, dateRange) {
   if (dateRange.from || dateRange.to) {
     doc.text(`Period: ${dateRange.from || '—'} to ${dateRange.to || '—'}`, margin, y); y += 5;
   }
-  y += 4;
+  y += 3;
 
-  // Summary stats
-  const trips = tripData?.trips || [];
-  const totalDistMi = kmToMi(tripData?.total_distance_km || 0);
-  const totalDriveMins = trips.reduce((s, t) => s + (t.duration_minutes || 0), 0);
-  const totalIdleMins = trips.reduce((s, t) => s + (t.idle_minutes || 0), 0);
+  // ── Summary stats ──
+  const allTrips = dayGroups.flatMap(dg => dg.trips);
+  const totalDistMi = kmToMi(allTrips.reduce((s, t) => s + (t.distance_km || 0), 0));
+  const totalDriveMins = allTrips.reduce((s, t) => s + (t.duration_minutes || 0), 0);
+  const totalIdleMins = allTrips.reduce((s, t) => s + (t.idle_minutes || 0), 0);
+  const totalStops = allTrips.reduce((s, t) => s + (t.stop_count || 0), 0);
 
   doc.setDrawColor(226, 232, 240);
   doc.line(margin, y, pageW - margin, y);
@@ -173,120 +188,144 @@ function generateFullPDF(vehicle, tripData, reconciliations, dateRange) {
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(71, 85, 105);
-  doc.text(`Total Trips: ${trips.length}`, margin, y); y += 5;
+  doc.text(`Total Days: ${dayGroups.length}`, margin, y); y += 5;
+  doc.text(`Total Trips: ${allTrips.length}`, margin, y); y += 5;
   doc.text(`Total Distance: ${totalDistMi.toFixed(1)} mi`, margin, y); y += 5;
   doc.text(`Total Drive Time: ${formatDuration(totalDriveMins)}`, margin, y); y += 5;
-  doc.text(`Total Idle Time: ${formatDuration(totalIdleMins)}`, margin, y); y += 8;
+  doc.text(`Total Idle Time: ${formatDuration(totalIdleMins)}`, margin, y); y += 5;
+  doc.text(`Total Stops: ${totalStops}`, margin, y); y += 8;
 
-  // Reconciliation summary
+  // ── Reconciliation summary table ──
   if (reconciliations.length > 0) {
-    if (y > pageH - 40) { doc.addPage(); y = margin; }
+    ensureSpace(40);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(30, 41, 59);
     doc.text('Travel-Hour Reconciliation (GPS vs Timesheet)', margin, y);
     y += 6;
 
-    // Table header
     doc.setFillColor(248, 250, 252);
     doc.rect(margin, y, contentW, 8, 'F');
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(51, 65, 85);
     doc.text('Date', margin + 2, y + 5.5);
-    doc.text('Staff', margin + 25, y + 5.5);
-    doc.text('GPS Drive', margin + 70, y + 5.5);
-    doc.text('Claimed Travel', margin + 100, y + 5.5);
-    doc.text('Variance', margin + 130, y + 5.5);
-    doc.text('Status', margin + 160, y + 5.5);
+    doc.text('Staff', margin + 28, y + 5.5);
+    doc.text('GPS Drive', margin + 75, y + 5.5);
+    doc.text('Claimed', margin + 105, y + 5.5);
+    doc.text('Variance', margin + 135, y + 5.5);
+    doc.text('Status', margin + 165, y + 5.5);
     y += 8;
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(71, 85, 105);
     for (const r of reconciliations) {
-      if (y > pageH - 15) { doc.addPage(); y = margin; }
+      ensureSpace(15);
       const date = r.date || '—';
-      const staff = (r.staff_name || '').slice(0, 20);
+      const staff = (r.staff_name || '').slice(0, 22);
       const gps = formatDuration(r.gps_drive_mins);
       const claimed = formatDuration(r.claimed_travel_mins);
       const variance = (r.variance > 0 ? '+' : '') + formatDuration(r.variance);
-      const status = r.status === 'match' ? 'MATCH' : r.status === 'under_claimed' ? 'UNDER-CLAIMED' : r.status === 'over_claimed' ? 'OVER-CLAIMED' : 'UNRECORDED';
-
-      // Colour-code variance
-      if (r.status === 'match') doc.setTextColor(16, 185, 129);
-      else if (r.status === 'under_claimed') doc.setTextColor(245, 158, 11);
-      else doc.setTextColor(239, 68, 68);
+      const status = r.status === 'match' ? 'MATCH' : r.status === 'under_claimed' ? 'UNDER' : r.status === 'over_claimed' ? 'OVER' : 'UNRECORDED';
 
       doc.text(date, margin + 2, y + 5);
-      doc.setTextColor(71, 85, 105);
-      doc.text(staff, margin + 25, y + 5);
-      doc.text(gps, margin + 70, y + 5);
-      doc.text(claimed, margin + 100, y + 5);
+      doc.text(staff, margin + 28, y + 5);
+      doc.text(gps, margin + 75, y + 5);
+      doc.text(claimed, margin + 105, y + 5);
       if (r.status === 'match') doc.setTextColor(16, 185, 129);
       else if (r.status === 'under_claimed') doc.setTextColor(245, 158, 11);
       else doc.setTextColor(239, 68, 68);
-      doc.text(variance, margin + 130, y + 5);
-      doc.text(status, margin + 160, y + 5);
+      doc.text(variance, margin + 135, y + 5);
+      doc.text(status, margin + 165, y + 5);
+      doc.setTextColor(71, 85, 105);
       y += 6;
       doc.setDrawColor(241, 245, 249);
-      doc.setTextColor(71, 85, 105);
       doc.line(margin, y, pageW - margin, y);
+    }
+    y += 6;
+  }
+
+  // ── Day-by-day movement log ──
+  ensureSpace(30);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 41, 59);
+  doc.text('Daily Movement Log', margin, y);
+  y += 8;
+
+  for (const dg of dayGroups) {
+    ensureSpace(25);
+    // Day header bar
+    doc.setFillColor(46, 90, 26);
+    doc.rect(margin, y, contentW, 7, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(formatDateLong(dg.date), margin + 2, y + 5);
+    const dayStats = `${dg.trips.length} trips · ${kmToMi(dg.distance).toFixed(1)} mi · ${formatDuration(dg.duration)} drive · ${formatDuration(dg.idle)} idle`;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(dayStats, pageW - margin - 2, y + 5, { align: 'right' });
+    y += 9;
+
+    // Reconciliation row for this day (if any)
+    const recon = reconciliations.find(r => r.date === dg.date);
+    if (recon) {
+      ensureSpace(10);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(71, 85, 105);
+      const reconLine = `Staff: ${recon.staff_name}  |  GPS Drive: ${formatDuration(recon.gps_drive_mins)}  |  Claimed: ${formatDuration(recon.claimed_travel_mins)}  |  Variance: ${(recon.variance > 0 ? '+' : '') + formatDuration(recon.variance)}  |  ${recon.status.toUpperCase()}`;
+      doc.text(reconLine, margin + 2, y + 4);
+      y += 6;
+    }
+
+    // Trip movements
+    doc.setFontSize(8);
+    for (const trip of dg.trips) {
+      ensureSpace(18);
+      const startT = formatTime(trip.start_time);
+      const endT = formatTime(trip.end_time);
+      const distMi = kmToMi(trip.distance_km).toFixed(1);
+      const dur = formatDuration(trip.duration_minutes);
+
+      // Trip row — time | from → to | dist | dur
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 41, 59);
+      doc.text(`${startT}–${endT}`, margin + 2, y + 4);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(71, 85, 105);
+      const from = (trip.start_location || '—').slice(0, 38);
+      const to = (trip.end_location || '—').slice(0, 38);
+      doc.text(`From: ${from}`, margin + 24, y + 4);
+      doc.text(`To:   ${to}`, margin + 24, y + 8);
+      doc.text(`${distMi}mi`, pageW - margin - 30, y + 4, { align: 'right' });
+      doc.text(dur, pageW - margin - 2, y + 4, { align: 'right' });
+
+      // Stops detail
+      if (trip.stops && trip.stops.length > 0) {
+        doc.setFontSize(7);
+        doc.setTextColor(148, 163, 184);
+        for (let si = 0; si < Math.min(trip.stops.length, 3); si++) {
+          const s = trip.stops[si];
+          ensureSpace(6);
+          const stopLoc = (s.location || '—').slice(0, 45);
+          doc.text(`  • Stop ${si + 1}: ${stopLoc} (${formatDuration(s.duration_minutes)})`, margin + 24, y + 12 + si * 4);
+        }
+        y += 12 + Math.min(trip.stops.length, 3) * 4;
+      } else {
+        y += 10;
+      }
+      doc.setFontSize(8);
+      doc.setDrawColor(241, 245, 249);
+      doc.line(margin, y, pageW - margin, y);
+      y += 2;
     }
     y += 4;
   }
 
-  // Full trip log — ALL trips (not capped)
-  if (trips.length > 0) {
-    if (y > pageH - 40) { doc.addPage(); y = margin; }
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(30, 41, 59);
-    doc.text(`Full Trip Log (${trips.length} trips)`, margin, y);
-    y += 6;
-
-    // Table header
-    doc.setFillColor(248, 250, 252);
-    doc.rect(margin, y, contentW, 8, 'F');
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(51, 65, 85);
-    doc.text('Date', margin + 2, y + 5.5);
-    doc.text('Start', margin + 22, y + 5.5);
-    doc.text('End', margin + 38, y + 5.5);
-    doc.text('From', margin + 54, y + 5.5);
-    doc.text('To', margin + 104, y + 5.5);
-    doc.text('Mi', margin + 154, y + 5.5);
-    doc.text('Dur', margin + 168, y + 5.5);
-    doc.text('Max', margin + 184, y + 5.5);
-    y += 8;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(71, 85, 105);
-    for (const trip of trips) {
-      if (y > pageH - 15) { doc.addPage(); y = margin; }
-      const date = new Date(trip.start_time).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
-      const start = formatTime(trip.start_time);
-      const end = formatTime(trip.end_time);
-      const from = (trip.start_location || '—').slice(0, 28);
-      const to = (trip.end_location || '—').slice(0, 28);
-      const distMi = kmToMi(trip.distance_km).toFixed(1);
-      const dur = formatDuration(trip.duration_minutes);
-      const maxMph = Math.round(kmToMi(trip.max_speed_kph || 0));
-      doc.text(date, margin + 2, y + 5);
-      doc.text(start, margin + 22, y + 5);
-      doc.text(end, margin + 38, y + 5);
-      doc.text(from, margin + 54, y + 5);
-      doc.text(to, margin + 104, y + 5);
-      doc.text(distMi, margin + 154, y + 5);
-      doc.text(dur, margin + 168, y + 5);
-      doc.text(String(maxMph), margin + 184, y + 5);
-      y += 5.5;
-      doc.setDrawColor(241, 245, 249);
-      doc.line(margin, y, pageW - margin, y);
-    }
-  }
-
-  // Footer
+  // ── Footer ──
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -300,12 +339,12 @@ function generateFullPDF(vehicle, tripData, reconciliations, dateRange) {
 }
 
 export default function TravelReconciliationReport({ vehicle }) {
-  const [expanded, setExpanded] = useState(null);
+  const [expandedDay, setExpandedDay] = useState(null);
+  const [expandedTrip, setExpandedTrip] = useState(null);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [geocodedTrips, setGeocodedTrips] = useState({});
 
-  // Default to last 7 days if no dates selected
   const effectiveFrom = useMemo(() => {
     if (fromDate) return new Date(fromDate + 'T00:00:00').toISOString();
     return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -330,7 +369,6 @@ export default function TravelReconciliationReport({ vehicle }) {
     enabled: !!vehicle?.id && !!vehicle?.geotab_device_id,
   });
 
-  // Load timesheets for reconciliation
   const { data: timesheets = [] } = useQuery({
     queryKey: ['timesheets-for-reconciliation'],
     queryFn: () => base44.entities.Timesheet.list('-created_date', 500),
@@ -347,15 +385,8 @@ export default function TravelReconciliationReport({ vehicle }) {
   }, [staffList]);
 
   const trips = data?.trips || [];
-  const breadcrumbs = data?.breadcrumbs || [];
 
-  // Tag trips with vehicle_id for reconciliation matching
-  const tripsTagged = useMemo(() =>
-    trips.map(t => ({ ...t, _vehicle_id: vehicle?.id, _driver_name: data?.vehicle_name })),
-    [trips, vehicle?.id, data?.vehicle_name]
-  );
-
-  // Frontend geocoding — resolves "Unknown location" labels
+  // Frontend geocoding — resolves "Unknown location" labels with street + postcode
   useEffect(() => {
     if (trips.length === 0) return;
     let cancelled = false;
@@ -369,15 +400,39 @@ export default function TravelReconciliationReport({ vehicle }) {
         }
       }
       if (coords.length === 0) return;
-      const labels = await batchReverseGeocode(coords);
+      const labels = await batchReverseGeocodeStructured(coords);
       if (cancelled) return;
+
+      // Build readable labels from structured parts
+      const buildLabel = (parts) => {
+        if (!parts) return null;
+        const road = parts.road || '';
+        const suburb = parts.suburb || '';
+        const postcode = parts.postcode || '';
+        if (road && postcode) return `${road}, ${postcode}`;
+        if (suburb && postcode) return `${suburb}, ${postcode}`;
+        if (road && suburb) return `${road}, ${suburb}`;
+        if (road) return road;
+        if (suburb) return suburb;
+        if (postcode) return postcode;
+        return null;
+      };
+
       const updated = {};
       for (const t of trips) {
         const sKey = t.start_lat != null ? `${Number(t.start_lat).toFixed(4)},${Number(t.start_lng).toFixed(4)}` : null;
         const eKey = t.end_lat != null ? `${Number(t.end_lat).toFixed(4)},${Number(t.end_lng).toFixed(4)}` : null;
+        const startLabel = sKey && labels[sKey] ? buildLabel(labels[sKey]) : null;
+        const endLabel = eKey && labels[eKey] ? buildLabel(labels[eKey]) : null;
+        const stopLocs = (t.stops || []).map(s => {
+          const stKey = s.lat != null ? `${Number(s.lat).toFixed(4)},${Number(s.lng).toFixed(4)}` : null;
+          const sl = stKey && labels[stKey] ? buildLabel(labels[stKey]) : null;
+          return sl ? { ...s, location: sl } : s;
+        });
         updated[t.trip_id] = {
-          start_location: sKey && labels[sKey] ? labels[sKey] : t.start_location,
-          end_location: eKey && labels[eKey] ? labels[eKey] : t.end_location,
+          start_location: startLabel || t.start_location,
+          end_location: endLabel || t.end_location,
+          stops: stopLocs,
         };
       }
       if (!cancelled) setGeocodedTrips(updated);
@@ -387,14 +442,13 @@ export default function TravelReconciliationReport({ vehicle }) {
 
   // Merge geocoded locations into trips
   const geocodedTripList = useMemo(() =>
-    tripsTagged.map(t => {
+    trips.map(t => {
       const geo = geocodedTrips[t.trip_id];
-      return geo ? { ...t, start_location: geo.start_location, end_location: geo.end_location } : t;
+      return geo ? { ...t, start_location: geo.start_location, end_location: geo.end_location, stops: geo.stops } : t;
     }),
-    [tripsTagged, geocodedTrips]
+    [trips, geocodedTrips]
   );
 
-  // Reconcile with timesheets — match by the vehicle's assigned staff member
   const reconciliations = useMemo(() =>
     reconcileTripsWithTimesheets(geocodedTripList, timesheets, staffMap, vehicle?.assigned_staff_id, vehicle?.name),
     [geocodedTripList, timesheets, staffMap, vehicle?.assigned_staff_id, vehicle?.name]
@@ -405,12 +459,13 @@ export default function TravelReconciliationReport({ vehicle }) {
   const totalDistance = data?.total_distance_km || 0;
   const totalDriveMins = trips.reduce((s, t) => s + (t.duration_minutes || 0), 0);
   const totalIdleMins = trips.reduce((s, t) => s + (t.idle_minutes || 0), 0);
+  const totalStops = trips.reduce((s, t) => s + (t.stop_count || 0), 0);
   const matchCount = reconciliations.filter(r => r.status === 'match').length;
   const underClaimedCount = reconciliations.filter(r => r.status === 'under_claimed').length;
   const unrecordedCount = reconciliations.filter(r => r.status === 'unrecorded').length;
 
   const handleDownloadPDF = () => {
-    generateFullPDF(vehicle, { ...data, trips: geocodedTripList }, reconciliations, { from: fromDate, to: toDate });
+    generateFullPDF(vehicle, dayGroups, reconciliations, { from: fromDate, to: toDate });
   };
 
   if (!vehicle?.geotab_device_id) {
@@ -468,7 +523,7 @@ export default function TravelReconciliationReport({ vehicle }) {
       ) : (
         <>
           {/* Summary tiles */}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-2.5 border border-cyan-200">
               <p className="text-[10px] uppercase text-cyan-600 font-semibold flex items-center gap-1"><Route className="w-3 h-3" /> Trips</p>
               <p className="text-lg font-bold text-cyan-700 tabular-nums mt-0.5">{trips.length}</p>
@@ -484,6 +539,10 @@ export default function TravelReconciliationReport({ vehicle }) {
             <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-2.5 border border-amber-200">
               <p className="text-[10px] uppercase text-amber-600 font-semibold flex items-center gap-1"><Timer className="w-3 h-3" /> Idle</p>
               <p className="text-lg font-bold text-amber-700 tabular-nums mt-0.5">{formatDuration(totalIdleMins)}</p>
+            </div>
+            <div className="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg p-2.5 border border-violet-200">
+              <p className="text-[10px] uppercase text-violet-600 font-semibold flex items-center gap-1"><MapPin className="w-3 h-3" /> Stops</p>
+              <p className="text-lg font-bold text-violet-700 tabular-nums mt-0.5">{totalStops}</p>
             </div>
           </div>
 
@@ -508,7 +567,7 @@ export default function TravelReconciliationReport({ vehicle }) {
                   <span className="text-slate-600">{unrecordedCount} unrecorded</span>
                 </div>
               </div>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
+              <div className="space-y-1 max-h-32 overflow-y-auto">
                 {reconciliations.slice(0, 20).map((r, i) => (
                   <div key={i} className="flex items-center gap-2 text-[11px] py-1 px-2 rounded hover:bg-slate-50">
                     <span className="font-mono text-slate-500 w-20">{r.date}</span>
@@ -529,89 +588,197 @@ export default function TravelReconciliationReport({ vehicle }) {
             </div>
           )}
 
-          {/* Trip list — grouped by day */}
-          <div className="space-y-2 max-h-[500px] overflow-y-auto">
-            {dayGroups.map((dg) => (
-              <div key={dg.date} className="rounded-xl border border-slate-200 overflow-hidden">
-                <div className="flex items-center gap-3 px-3 py-2.5 bg-gradient-to-r from-slate-50 to-white">
-                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="text-sm font-bold text-slate-800">
-                    {new Date(dg.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}
-                  </span>
-                  <div className="flex-1" />
-                  <span className="flex items-center gap-0.5 text-[11px] text-emerald-600 font-bold">
-                    <TrendingDown className="w-3 h-3" />{kmToMi(dg.distance).toFixed(1)}mi
-                  </span>
-                  <span className="flex items-center gap-0.5 text-[11px] text-slate-500 font-semibold">
-                    <Clock className="w-3 h-3" />{formatDuration(dg.duration)}
-                  </span>
-                </div>
-                <div className="p-2 space-y-1.5 bg-white">
-                  {dg.trips.map((trip, i) => {
-                    const isExp = expanded === trip.trip_id;
-                    return (
-                      <div key={trip.trip_id} className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-                        <button onClick={() => setExpanded(isExp ? null : trip.trip_id)}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-slate-50 transition text-left">
-                          {isExp ? <ChevronDown className="w-3.5 h-3.5 text-slate-400" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400" />}
-                          <div className="flex-1 min-w-0">
-                            <span className="text-[11px] text-slate-400">
-                              {formatTime(trip.start_time)} → {formatTime(trip.end_time)}
-                            </span>
-                            <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500">
-                              <MapPin className="w-3 h-3 text-emerald-500 flex-shrink-0" />
-                              <span className="truncate">{trip.start_location || 'Resolving...'}</span>
-                              <Navigation className="w-2.5 h-2.5 text-slate-300" />
-                              <span className="truncate">{trip.end_location || 'Resolving...'}</span>
-                            </div>
-                          </div>
-                          <span className="flex items-center gap-0.5 text-[11px] text-emerald-600 font-bold">
-                            <TrendingDown className="w-3 h-3" />{kmToMi(trip.distance_km).toFixed(1)}mi
+          {/* Day-by-day movement log */}
+          <div className="space-y-2 max-h-[600px] overflow-y-auto">
+            {dayGroups.map((dg) => {
+              const isDayOpen = expandedDay === dg.date || (expandedDay === null && dg === dayGroups[0]);
+              const recon = reconciliations.find(r => r.date === dg.date);
+              return (
+                <div key={dg.date} className="rounded-xl border border-slate-200 overflow-hidden">
+                  {/* Day header */}
+                  <button
+                    onClick={() => setExpandedDay(isDayOpen ? null : dg.date)}
+                    className="w-full flex items-center gap-3 px-3 py-3 bg-gradient-to-r from-[#2E5A1A] to-[#4d7c2a] hover:from-[#1c4a12] hover:to-[#3a6b1e] transition text-left"
+                  >
+                    {isDayOpen ? <ChevronDown className="w-4 h-4 text-white" /> : <ChevronRight className="w-4 h-4 text-white" />}
+                    <Calendar className="w-3.5 h-3.5 text-white/80" />
+                    <span className="text-sm font-bold text-white">
+                      {formatDateLong(dg.date)}
+                    </span>
+                    <div className="flex-1" />
+                    {/* Daily stats */}
+                    <div className="flex items-center gap-2.5 text-[11px] text-white/90">
+                      <span className="flex items-center gap-0.5 font-semibold" title="Trips">
+                        <Route className="w-3 h-3" />{dg.trips.length}
+                      </span>
+                      <span className="flex items-center gap-0.5 font-bold" title="Distance">
+                        <TrendingDown className="w-3 h-3" />{kmToMi(dg.distance).toFixed(1)}mi
+                      </span>
+                      <span className="flex items-center gap-0.5 font-semibold" title="Drive time">
+                        <Clock className="w-3 h-3" />{formatDuration(dg.duration)}
+                      </span>
+                      <span className="flex items-center gap-0.5 font-semibold" title="Idle time">
+                        <Timer className="w-3 h-3" />{formatDuration(dg.idle)}
+                      </span>
+                      <span className="flex items-center gap-0.5 font-semibold" title="Stops">
+                        <MapPin className="w-3 h-3" />{dg.stops}
+                      </span>
+                    </div>
+                  </button>
+
+                  {/* Day content */}
+                  {isDayOpen && (
+                    <div className="bg-white">
+                      {/* Reconciliation banner for this day */}
+                      {recon && (
+                        <div className={`px-3 py-2 border-b text-[11px] flex items-center gap-2 ${
+                          recon.status === 'match' ? 'bg-emerald-50 border-emerald-100' :
+                          recon.status === 'under_claimed' ? 'bg-amber-50 border-amber-100' :
+                          recon.status === 'unrecorded' ? 'bg-rose-50 border-rose-100' : 'bg-rose-50 border-rose-100'
+                        }`}>
+                          <User className="w-3 h-3 text-slate-500" />
+                          <span className="font-semibold text-slate-700">{recon.staff_name}</span>
+                          <span className="text-slate-400">·</span>
+                          <span className="text-slate-600">GPS: <b>{formatDuration(recon.gps_drive_mins)}</b></span>
+                          <span className="text-slate-400">·</span>
+                          <span className="text-slate-600">Claimed: <b>{formatDuration(recon.claimed_travel_mins)}</b></span>
+                          <span className="text-slate-400">·</span>
+                          <span className={`font-bold ${
+                            recon.status === 'match' ? 'text-emerald-600' :
+                            recon.status === 'under_claimed' ? 'text-amber-600' : 'text-rose-600'
+                          }`}>
+                            {recon.status === 'match' ? '✓ Match' :
+                             recon.status === 'under_claimed' ? `⚠ Under-claimed (+${formatDuration(recon.variance)})` :
+                             recon.status === 'over_claimed' ? `⚠ Over-claimed (${formatDuration(recon.variance)})` :
+                             `✗ Unrecorded (+${formatDuration(recon.variance)})`}
                           </span>
-                          <span className="flex items-center gap-0.5 text-[11px] text-slate-500">
-                            <Clock className="w-3 h-3" />{formatDuration(trip.duration_minutes)}
-                          </span>
-                        </button>
-                        {isExp && (
-                          <div className="px-3 pb-3 pt-1 bg-slate-50/50 space-y-2">
-                            <div className="grid grid-cols-4 gap-2">
-                              <div className="bg-cyan-50 rounded-lg p-2 border border-cyan-100 text-center">
-                                <p className="text-[9px] uppercase text-cyan-500 font-semibold">Max</p>
-                                <p className="text-sm font-bold text-cyan-700 tabular-nums">{Math.round(kmToMi(trip.max_speed_kph))}mph</p>
-                              </div>
-                              <div className="bg-violet-50 rounded-lg p-2 border border-violet-100 text-center">
-                                <p className="text-[9px] uppercase text-violet-500 font-semibold">Avg</p>
-                                <p className="text-sm font-bold text-violet-700 tabular-nums">{Math.round(kmToMi(trip.average_speed_kph || 0))}mph</p>
-                              </div>
-                              <div className="bg-amber-50 rounded-lg p-2 border border-amber-100 text-center">
-                                <p className="text-[9px] uppercase text-amber-500 font-semibold">Idle</p>
-                                <p className="text-sm font-bold text-amber-700 tabular-nums">{formatDuration(trip.idle_minutes)}</p>
-                              </div>
-                              <div className="bg-slate-50 rounded-lg p-2 border border-slate-200 text-center">
-                                <p className="text-[9px] uppercase text-slate-400 font-semibold">Odo</p>
-                                <p className="text-sm font-bold text-slate-600 tabular-nums">{Math.round(kmToMi(trip.odometer_km || 0)).toLocaleString()}mi</p>
-                              </div>
-                            </div>
-                            {(trip.stops || []).length > 0 && (
-                              <div className="text-[11px] text-slate-500">
-                                <span className="font-semibold">{trip.stops.length} stop(s)</span>
-                                {trip.stops.map((s, si) => (
-                                  <div key={si} className="flex items-center gap-1 pl-3 py-0.5">
-                                    <MapPin className="w-2.5 h-2.5 text-amber-400" />
-                                    <span className="truncate">{s.location || 'Resolving...'}</span>
-                                    <span className="text-slate-400">({formatDuration(s.duration_minutes)})</span>
+                        </div>
+                      )}
+
+                      {/* Movement timeline */}
+                      <div className="p-3 space-y-2">
+                        {dg.trips.map((trip, ti) => {
+                          const isTripOpen = expandedTrip === trip.trip_id;
+                          return (
+                            <div key={trip.trip_id} className="bg-slate-50 rounded-lg border border-slate-200 overflow-hidden">
+                              {/* Trip header — movement summary */}
+                              <button
+                                onClick={() => setExpandedTrip(isTripOpen ? null : trip.trip_id)}
+                                className="w-full flex items-start gap-3 px-3 py-2.5 hover:bg-slate-100 transition text-left"
+                              >
+                                {isTripOpen ? <ChevronDown className="w-3.5 h-3.5 text-slate-400 mt-1" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400 mt-1" />}
+                                {/* Time block */}
+                                <div className="flex-shrink-0 text-center bg-white rounded-lg px-2 py-1 border border-slate-200 min-w-[60px]">
+                                  <p className="text-[10px] text-slate-400 font-semibold">TRIP {ti + 1}</p>
+                                  <p className="text-xs font-bold text-slate-700 tabular-nums">{formatTime(trip.start_time)}</p>
+                                  <p className="text-[10px] text-slate-400 tabular-nums">→ {formatTime(trip.end_time)}</p>
+                                </div>
+                                {/* From → To */}
+                                <div className="flex-1 min-w-0 space-y-1">
+                                  <div className="flex items-center gap-1.5 text-[11px]">
+                                    <Circle className="w-2.5 h-2.5 text-emerald-500 flex-shrink-0 fill-emerald-500" />
+                                    <span className="text-slate-700 truncate font-medium">{trip.start_location || 'Resolving...'}</span>
+                                    {trip.start_lat != null && (
+                                      <a href={`https://www.google.com/maps?q=${trip.start_lat},${trip.start_lng}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                                        className="text-blue-500 hover:text-blue-700 flex-shrink-0">
+                                        <ExternalLink className="w-2.5 h-2.5" />
+                                      </a>
+                                    )}
                                   </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
+                                  <div className="flex items-center gap-1.5 text-[11px]">
+                                    <Flag className="w-2.5 h-2.5 text-rose-500 flex-shrink-0 fill-rose-500" />
+                                    <span className="text-slate-700 truncate font-medium">{trip.end_location || 'Resolving...'}</span>
+                                    {trip.end_lat != null && (
+                                      <a href={`https://www.google.com/maps?q=${trip.end_lat},${trip.end_lng}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                                        className="text-blue-500 hover:text-blue-700 flex-shrink-0">
+                                        <ExternalLink className="w-2.5 h-2.5" />
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                                {/* Quick stats */}
+                                <div className="flex flex-col items-end gap-0.5 text-[11px] flex-shrink-0">
+                                  <span className="flex items-center gap-0.5 text-emerald-600 font-bold">
+                                    <TrendingDown className="w-3 h-3" />{kmToMi(trip.distance_km).toFixed(1)}mi
+                                  </span>
+                                  <span className="flex items-center gap-0.5 text-slate-500">
+                                    <Clock className="w-3 h-3" />{formatDuration(trip.duration_minutes)}
+                                  </span>
+                                </div>
+                              </button>
+
+                              {/* Expanded trip detail */}
+                              {isTripOpen && (
+                                <div className="px-3 pb-3 pt-1 bg-white space-y-2 border-t border-slate-100">
+                                  {/* Stats grid */}
+                                  <div className="grid grid-cols-4 gap-2">
+                                    <div className="bg-cyan-50 rounded-lg p-2 border border-cyan-100 text-center">
+                                      <Gauge className="w-3 h-3 text-cyan-500 mx-auto mb-0.5" />
+                                      <p className="text-[9px] uppercase text-cyan-500 font-semibold">Max</p>
+                                      <p className="text-sm font-bold text-cyan-700 tabular-nums">{Math.round(kmToMi(trip.max_speed_kph))}mph</p>
+                                    </div>
+                                    <div className="bg-violet-50 rounded-lg p-2 border border-violet-100 text-center">
+                                      <Activity className="w-3 h-3 text-violet-500 mx-auto mb-0.5" />
+                                      <p className="text-[9px] uppercase text-violet-500 font-semibold">Avg</p>
+                                      <p className="text-sm font-bold text-violet-700 tabular-nums">{Math.round(kmToMi(trip.average_speed_kph || 0))}mph</p>
+                                    </div>
+                                    <div className="bg-amber-50 rounded-lg p-2 border border-amber-100 text-center">
+                                      <Timer className="w-3 h-3 text-amber-500 mx-auto mb-0.5" />
+                                      <p className="text-[9px] uppercase text-amber-500 font-semibold">Idle</p>
+                                      <p className="text-sm font-bold text-amber-700 tabular-nums">{formatDuration(trip.idle_minutes)}</p>
+                                    </div>
+                                    <div className="bg-slate-50 rounded-lg p-2 border border-slate-200 text-center">
+                                      <Car className="w-3 h-3 text-slate-400 mx-auto mb-0.5" />
+                                      <p className="text-[9px] uppercase text-slate-400 font-semibold">Odo</p>
+                                      <p className="text-sm font-bold text-slate-600 tabular-nums">{Math.round(kmToMi(trip.odometer_km || 0)).toLocaleString()}mi</p>
+                                    </div>
+                                  </div>
+
+                                  {/* Stops timeline */}
+                                  {(trip.stops || []).length > 0 && (
+                                    <div className="bg-slate-50 rounded-lg p-2 border border-slate-200">
+                                      <p className="text-[10px] font-bold text-slate-600 mb-1.5 flex items-center gap-1">
+                                        <MapPin className="w-3 h-3 text-amber-500" /> {trip.stops.length} Stop(s)
+                                      </p>
+                                      <div className="space-y-1">
+                                        {trip.stops.map((s, si) => (
+                                          <div key={si} className="flex items-center gap-2 text-[11px] py-0.5">
+                                            <Square className="w-2.5 h-2.5 text-amber-500 flex-shrink-0" />
+                                            <span className="text-slate-700 truncate flex-1">{s.location || 'Resolving...'}</span>
+                                            <span className="text-slate-400 font-mono">{formatTime(s.arrival_time)} → {formatTime(s.departure_time)}</span>
+                                            <span className="text-amber-600 font-semibold">{formatDuration(s.duration_minutes)}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Coordinates */}
+                                  {trip.start_lat != null && (
+                                    <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1 border-t border-slate-100">
+                                      <span className="flex items-center gap-1">
+                                        <MapPin className="w-2.5 h-2.5 text-emerald-400" />
+                                        Start: {trip.start_lat?.toFixed(4)}, {trip.start_lng?.toFixed(4)}
+                                      </span>
+                                      {trip.end_lat != null && (
+                                        <span className="flex items-center gap-1">
+                                          <MapPin className="w-2.5 h-2.5 text-rose-400" />
+                                          End: {trip.end_lat?.toFixed(4)}, {trip.end_lng?.toFixed(4)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}

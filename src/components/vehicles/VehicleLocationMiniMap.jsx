@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, CircleMarker } from 'react-leaflet';
 import { MapPin, Clock, Navigation, ExternalLink, Loader2 } from 'lucide-react';
-import { reverseGeocode } from '@/utils/reverseGeocode';
+import { reverseGeocodeStructured } from '@/utils/reverseGeocode';
 
 /**
  * A small, non-interactive Leaflet "snapshot" map showing a vehicle's last
@@ -14,13 +14,27 @@ export default function VehicleLocationMiniMap({ lat, lng, timestamp, ignition_o
   const [address, setAddress] = useState(null);
   const [addrLoading, setAddrLoading] = useState(false);
 
-  // Reverse geocode using the shared utility (same as trip history).
+  // Reverse geocode using the shared utility — returns structured parts
+  // (road, suburb, postcode) so we can show "Street, Postcode" format.
   useEffect(() => {
     if (lat == null || lng == null) { setAddress(null); return; }
     let cancelled = false;
     setAddrLoading(true);
-    reverseGeocode(lat, lng).then(label => {
-      if (!cancelled) setAddress(label);
+    reverseGeocodeStructured(lat, lng).then(parts => {
+      if (cancelled) return;
+      if (!parts) { setAddress(null); return; }
+      // Build "Street, Postcode" — most readable for UK addresses
+      const road = parts.road || '';
+      const suburb = parts.suburb || '';
+      const postcode = parts.postcode || '';
+      let label = null;
+      if (road && postcode) label = `${road}, ${postcode}`;
+      else if (suburb && postcode) label = `${suburb}, ${postcode}`;
+      else if (road && suburb) label = `${road}, ${suburb}`;
+      else if (road) label = road;
+      else if (suburb) label = suburb;
+      else if (postcode) label = postcode;
+      setAddress(label);
     }).finally(() => {
       if (!cancelled) setAddrLoading(false);
     });
