@@ -1,4 +1,4 @@
-import { LayoutDashboard, AlertTriangle, Warehouse, AlertOctagon, MapPin, Sparkles, Brain, CloudSun, Star, BarChart3, Radar } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, Warehouse, AlertOctagon, MapPin, Sparkles, Brain, CloudSun, Star, BarChart3, Radar, Wrench } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════
 //  STREAMLINED DASHBOARD REGISTRY
@@ -20,6 +20,7 @@ export const WIDGET_REGISTRY = {
   'client-feedback': { title: 'Client Feedback', icon: Star },
   'benchmark-comparisons': { title: 'Benchmark Comparisons', icon: BarChart3 },
   'geo-heatmap': { title: 'Geotechnical Risk', icon: MapPin },
+  'predictive-maintenance': { title: 'Predictive Maintenance', icon: Wrench },
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -43,6 +44,7 @@ export const TIER_INSIGHTS = [
   'client-feedback',
   'benchmark-comparisons',
   'geo-heatmap',
+  'predictive-maintenance',
 ];
 
 export const DEFAULT_WIDGETS = [
@@ -77,5 +79,5 @@ export const COST_WIDGETS = [];
 export const GLOBAL_ONLY_WIDGETS = [
   'executive-snapshot', 'mission-control', 'field-priorities', 'yard-control',
   'exception-monitor', 'live-site-map', 'ai-insights', 'predictive-insights',
-  'client-feedback', 'benchmark-comparisons', 'geo-heatmap',
+  'client-feedback', 'benchmark-comparisons', 'geo-heatmap', 'predictive-maintenance',
 ];

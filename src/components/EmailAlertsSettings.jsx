@@ -223,6 +223,24 @@ const ALERT_META = {
     showRecipients: true,
     tokens: ['{vehicle_name}', '{driver_name}', '{event_count}', '{event_list}', '{date}'],
   },
+  predictive_maintenance_alert: {
+    title: 'Predictive Maintenance Alert',
+    desc: 'Emails admins when the AI predictive maintenance engine flags vehicles as critical or high risk for upcoming breakdown, MOT or service.',
+    schedule: 'Runs automatically every Monday at 7:00 AM',
+    icon: Wrench,
+    showThreshold: true,
+    showRecipients: true,
+    tokens: ['{vehicle_count}', '{vehicle_list}', '{date}'],
+  },
+  inventory_alert: {
+    title: 'Inventory Low-Stock Alert',
+    desc: 'Emails admins when Asset Panda reports gear or equipment as low stock, out of stock, or needing service.',
+    schedule: 'Runs automatically every day at 8:00 AM',
+    icon: Boxes,
+    showThreshold: false,
+    showRecipients: true,
+    tokens: ['{alert_count}', '{alert_list}', '{date}'],
+  },
 };
 
 const ACCENT_PRESETS = [
@@ -260,6 +278,8 @@ const SUBJECT_PLACEHOLDERS = {
   monthly_statement: 'Monthly Statement — ABC Construction Ltd — July 2026',
   retention_release: 'Retention Released — Sample Job',
   driver_safety_alert: 'Driver Safety Alert — Van 01 (AB12 CDE)',
+  predictive_maintenance_alert: 'Predictive Maintenance Alert — 3 vehicle(s) flagged',
+  inventory_alert: 'Inventory Alert — 5 item(s) need attention',
 };
 
 const TEMPLATE_PLACEHOLDERS = {
@@ -287,6 +307,8 @@ const TEMPLATE_PLACEHOLDERS = {
   monthly_statement: 'Monthly Statement\n\nClient: {client_name}\nPeriod: {month}\nTotal: {statement_total}\nInvoices: {invoice_count}\n\nPlease review the attached statement and arrange payment.\n\nGC Mission Control',
   retention_release: 'Retention Released\n\nJob: {job_name}\nClient: {client_name}\nRetention Amount: {retention_amount}\nReleased by: {released_by}\n\nThe retention has been released to the client.\n\nGC Mission Control',
   driver_safety_alert: 'Driver Safety Report\n\nVehicle: {vehicle_name}\nDriver: {driver_name}\nDate: {date}\n\n{event_count} safety event(s) recorded:\n\n{event_list}\n\nReview driver behaviour and take corrective action.\n\nGC Mission Control',
+  predictive_maintenance_alert: 'Predictive Maintenance Report\n\nDate: {date}\n\n{vehicle_count} vehicle(s) flagged as critical or high risk:\n\n{vehicle_list}\n\nReview the Predictive Maintenance panel and schedule preventative work before breakdowns occur.\n\nGC Mission Control',
+  inventory_alert: 'Inventory Alert Report\n\nDate: {date}\n\n{alert_count} item(s) need attention:\n\n{alert_list}\n\nReplenish or service these items before they impact operations.\n\nGC Mission Control',
 };
 
 function escapeHtml(s) {

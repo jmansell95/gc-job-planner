@@ -18,6 +18,7 @@ import SiteWeatherOverviewWidget from '@/components/dashboard/SiteWeatherOvervie
 import ExceptionMonitorWidget from '@/components/dashboard/ExceptionMonitorWidget';
 import YardControlWidget from '@/components/dashboard/YardControlWidget';
 import MissionControlWidget from '@/components/dashboard/MissionControlWidget';
+import PredictiveMaintenanceWidget from '@/components/vehicles/PredictiveMaintenanceWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
@@ -99,6 +100,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'client-feedback': return <ClientFeedbackWidget />;
       case 'benchmark-comparisons': return <BenchmarkComparisonsWidget />;
       case 'geo-heatmap': return <GeotechnicalHeatmapWidget />;
+      case 'predictive-maintenance': return <PredictiveMaintenanceWidget onSelectVehicle={(v) => onNavigate?.('assets')} />;
       default: return null;
     }
   };
