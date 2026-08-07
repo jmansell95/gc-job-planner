@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowLeft, Edit2, AlertCircle, FileBarChart, Sparkles, PackageCheck, AlertTriangle,
+  ArrowLeft, Edit2, AlertCircle, FileBarChart, Sparkles, PackageCheck, AlertTriangle, MoreHorizontal,
 } from 'lucide-react';
 import FinishJobModal from '@/components/decommissioning/FinishJobModal';
 import { format } from 'date-fns';
@@ -44,6 +44,15 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!moreMenuOpen) return;
+    const handler = (e) => { if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) setMoreMenuOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [moreMenuOpen]);
 
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
@@ -186,23 +195,48 @@ export default function JobDetail({ job: initialJob, onBack }) {
             </button>
           )}
           {job.status === 'decommissioning' && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-100 text-amber-800 rounded-lg text-sm font-semibold border border-amber-200">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 bg-amber-100 text-amber-800 rounded-lg text-sm font-semibold border border-amber-200">
               <PackageCheck className="w-4 h-4" /> Decommissioning
             </span>
           )}
-          <button onClick={() => setShowStatusModal(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition text-sm font-medium shadow-sm">
-            <AlertCircle className="w-4 h-4" /> <span className="hidden sm:inline">Status</span>
-          </button>
           <button onClick={handleEdit}
             className="flex items-center gap-2 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg hover:bg-[#1c4a12] transition text-sm font-medium shadow-sm hover:shadow-md">
             <Edit2 className="w-4 h-4" /> Edit
           </button>
-          <PrintReportButton buildHtml={buildJobPrintHtml} label="Print" className="px-3 py-2" />
+          {/* Desktop: inline secondary actions */}
+          <button onClick={() => setShowStatusModal(true)}
+            className="hidden sm:flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition text-sm font-medium shadow-sm">
+            <AlertCircle className="w-4 h-4" /> Status
+          </button>
+          <div className="hidden sm:block">
+            <PrintReportButton buildHtml={buildJobPrintHtml} label="Print" className="px-3 py-2" />
+          </div>
           <button onClick={handleFullReport} disabled={generatingReport}
-            className="flex items-center gap-2 px-3 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50">
+            className="hidden sm:flex items-center gap-2 px-3 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50">
             <Sparkles className="w-4 h-4" /> {generatingReport ? '...' : 'Report'}
           </button>
+          {/* Mobile: More dropdown for secondary actions */}
+          <div className="relative sm:hidden" ref={moreMenuRef}>
+            <button onClick={() => setMoreMenuOpen(o => !o)}
+              className="flex items-center gap-1 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm font-medium shadow-sm">
+              <MoreHorizontal className="w-4 h-4" /> More
+            </button>
+            {moreMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-20 py-1 animate-pop-in">
+                <button onClick={() => { setShowStatusModal(true); setMoreMenuOpen(false); }}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 text-left">
+                  <AlertCircle className="w-4 h-4" /> Status
+                </button>
+                <div className="px-1">
+                  <PrintReportButton buildHtml={buildJobPrintHtml} label="Print" className="w-full justify-start px-2 py-2.5 text-sm text-slate-700 hover:bg-slate-50" />
+                </div>
+                <button onClick={() => { handleFullReport(); setMoreMenuOpen(false); }} disabled={generatingReport}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 text-left disabled:opacity-50">
+                  <Sparkles className="w-4 h-4" /> {generatingReport ? 'Generating...' : 'Report'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

@@ -214,6 +214,15 @@ const ALERT_META = {
     showRecipients: true,
     tokens: ['{job_name}', '{client_name}', '{retention_amount}', '{released_by}'],
   },
+  driver_safety_alert: {
+    title: 'Driver Safety Alert',
+    desc: 'Emails admins when Geotab detects harsh braking, speeding, or harsh acceleration events from fleet vehicles.',
+    schedule: 'Runs automatically when Geotab safety events are detected',
+    icon: AlertTriangle,
+    showThreshold: true,
+    showRecipients: true,
+    tokens: ['{vehicle_name}', '{driver_name}', '{event_count}', '{event_list}', '{date}'],
+  },
 };
 
 const ACCENT_PRESETS = [
@@ -250,6 +259,7 @@ const SUBJECT_PLACEHOLDERS = {
   retention_status: 'Retention Status — Sample Job',
   monthly_statement: 'Monthly Statement — ABC Construction Ltd — July 2026',
   retention_release: 'Retention Released — Sample Job',
+  driver_safety_alert: 'Driver Safety Alert — Van 01 (AB12 CDE)',
 };
 
 const TEMPLATE_PLACEHOLDERS = {
@@ -276,6 +286,7 @@ const TEMPLATE_PLACEHOLDERS = {
   retention_status: 'Retention Status Update\n\nJob: {job_name}\nContract Value: {contract_value}\nRetention Rate: {retention_pct}\nRetention Held: {retention_held}\nStatus: {status}\n\nReview and process the retention release if appropriate.\n\nGC Mission Control',
   monthly_statement: 'Monthly Statement\n\nClient: {client_name}\nPeriod: {month}\nTotal: {statement_total}\nInvoices: {invoice_count}\n\nPlease review the attached statement and arrange payment.\n\nGC Mission Control',
   retention_release: 'Retention Released\n\nJob: {job_name}\nClient: {client_name}\nRetention Amount: {retention_amount}\nReleased by: {released_by}\n\nThe retention has been released to the client.\n\nGC Mission Control',
+  driver_safety_alert: 'Driver Safety Report\n\nVehicle: {vehicle_name}\nDriver: {driver_name}\nDate: {date}\n\n{event_count} safety event(s) recorded:\n\n{event_list}\n\nReview driver behaviour and take corrective action.\n\nGC Mission Control',
 };
 
 function escapeHtml(s) {
@@ -429,6 +440,17 @@ function renderSampleBody(key, cfg) {
       .replace(/\{released_by\}/g, 'John Smith');
     const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
     return intro + 'Retention Released\n\nJob: Sample Job\nClient: ABC Construction Ltd\nRetention Amount: £2,500\nReleased by: John Smith\n\nThe retention has been released to the client.\n\nGC Mission Control';
+  }
+  if (key === 'driver_safety_alert') {
+    const sampleList = '   • 09:14 — Harsh braking (−0.45g) near M4 J18\n   • 11:32 — Speeding (68 mph in 50 zone) on A46\n   • 14:07 — Harsh acceleration (+0.38g) at site entrance';
+    if (cfg.template) return cfg.template
+      .replace(/\{vehicle_name\}/g, 'Van 01 (AB12 CDE)')
+      .replace(/\{driver_name\}/g, 'John Smith')
+      .replace(/\{event_count\}/g, '3')
+      .replace(/\{event_list\}/g, sampleList)
+      .replace(/\{date\}/g, '2026-08-07');
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'Driver Safety Report\n\nVehicle: Van 01 (AB12 CDE)\nDriver: John Smith\nDate: 2026-08-07\n\n3 safety event(s) recorded:\n\n' + sampleList + '\n\nReview driver behaviour and take corrective action.\n\nGC Mission Control';
   }
   // Custom templates — render with user-defined tokens (sample data for preview)
   if (key.startsWith('custom_') && cfg.template) {
