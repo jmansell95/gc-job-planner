@@ -196,28 +196,23 @@ function hasForceCompleteMarker(jobName) {
 
 // Determine job status strictly from its REAL (non-carried-forward)
 // assignment dates:
-//   force-complete marker  → completed (explicit planner override)
-//   no dates               → planning
-//   all dates before today → completed (job has finished)
-//   all dates after today  → planning (future-planned, not started yet)
-//   spans across today     → in_progress (started, still has upcoming work)
-// This is a pure date comparison against TODAY — no week grace periods,
-// no subcontractor grace window. A job is only "in_progress" if it has at
-// least one assignment on or after today AND at least one on or before today
-// (i.e. it is actively spanning the current date). Jobs whose last real
-// assignment was yesterday are correctly marked completed.
+//   force-complete marker      → completed (explicit planner override)
+//   no dates                   → planning
+//   has any date >= today      → in_progress (currently active or upcoming)
+//   all dates before today     → completed (job has finished)
+// A job is "in_progress" if it has ANY assignment on or after today —
+// whether it started in the past and continues, starts today, or is
+// entirely in the future. Only jobs whose every assignment is in the
+// past are marked completed.
 function determineJobStatus(dates, jobName, hasSubbies, allDates) {
   if (hasForceCompleteMarker(jobName)) return 'completed';
   if (!dates || dates.length === 0) return 'planning';
   const sorted = [...dates].sort();
   const lastDate = sorted[sorted.length - 1];
-  const firstDate = sorted[0];
-  // All assignments in the past → completed
-  if (lastDate < TODAY) return 'completed';
-  // All assignments in the future → planning (not started yet)
-  if (firstDate > TODAY) return 'planning';
-  // Spans across today (has past and future/today dates) → in_progress
-  return 'in_progress';
+  // Has at least one assignment on or after today → in_progress
+  if (lastDate >= TODAY) return 'in_progress';
+  // All assignments before today → completed
+  return 'completed';
 }
 
 function isPlantPlannerSheet(sheetName) {
@@ -612,24 +607,24 @@ function parseSheet(sheet, sheetName) {
         jobName = rawJobName;
         // Check non-job categories FIRST in all sections — depot staff on
         // holiday, sick, or working from home should be categorised correctly,
-        // not forced to yard_depot. This also lets job names (e.g. "PRJ-001034
-        // - Parliament") in depot sections create real job assignments.
+        // not forced to yard_depot.
         nonJobType = categorizeNonJobCell(jobName);
         if (!nonJobType && isYardDepotText(jobName)) {
           nonJobType = 'yard_depot';
           nonJobLabel = jobName;
         }
+        // In depot sections, staff are yard/depot only — NEVER auto-assign
+        // them to jobs from the import. If a planner writes a job name in a
+        // depot cell, it's informational (e.g. "helping at EWR") not a real
+        // assignment. Jobs can be assigned manually after import if needed.
+        if (!nonJobType && isDepotSection(currentSection)) {
+          nonJobType = 'yard_depot';
+          nonJobLabel = jobName;
+        }
         if (!nonJobType && !isLikelyRealJob(jobName)) {
           // Unknown text that isn't a real job — filter as training (overhead)
-          // in non-depot sections. In depot sections, default to yard_depot
-          // since it's likely depot-related text (e.g. "rig repair", "fuel").
-          if (isDepotSection(currentSection)) {
-            nonJobType = 'yard_depot';
-            nonJobLabel = jobName;
-          } else {
-            nonJobType = 'training';
-            filteredAsNonJob = true;
-          }
+          nonJobType = 'training';
+          filteredAsNonJob = true;
         }
         // Track for carry-forward: only real jobs are carried forward, not
         // non-job entries (Off, Sick, Training, Yard/Depot).

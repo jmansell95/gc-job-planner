@@ -21,12 +21,35 @@ export default function StaffUtilizationWidget() {
     queryKey: ['staff-util-widget'],
     queryFn: () => base44.entities.Staff.filter({ is_active: true }),
   });
+  const { data: teams = [], isLoading: teamsLoading } = useQuery({
+    queryKey: ['teams-util-widget'],
+    queryFn: () => base44.entities.Team.list('-created_date', 500),
+  });
   const { data: timesheets = [], isLoading: tsLoading } = useQuery({
     queryKey: ['timesheets-util', weekStart],
     queryFn: () => base44.entities.Timesheet.filter({ week_start: weekStart, status: 'approved' }),
   });
 
-  const isLoading = staffLoading || tsLoading;
+  const isLoading = staffLoading || teamsLoading || tsLoading;
+
+  // Depot/yard team IDs — staff on these teams are NOT field crews and are
+  // excluded from utilization calculations.
+  const depotTeamIds = useMemo(() => {
+    const ids = new Set();
+    for (const t of teams) {
+      const cat = String(t.category || '').toLowerCase();
+      const name = String(t.name || '').toLowerCase();
+      if (cat === 'depot' || name.includes('depot') || name.includes('yard') || name.includes('dartford')) {
+        ids.add(t.id);
+      }
+    }
+    return ids;
+  }, [teams]);
+
+  // Field crew staff only — excludes depot/yard teams.
+  const fieldStaff = useMemo(() => {
+    return staff.filter(s => !depotTeamIds.has(s.team_id));
+  }, [staff, depotTeamIds]);
 
   const utilization = useMemo(() => {
     const byStaff = {};
@@ -43,7 +66,7 @@ export default function StaffUtilizationWidget() {
   }, [timesheets]);
 
   const ranked = useMemo(() => {
-    return staff
+    return fieldStaff
       .map(s => {
         const u = utilization[s.id] || { billable: 0, nonBillable: 0, total: 0 };
         const rate = u.total > 0 ? Math.round((u.billable / u.total) * 100) : 0;
@@ -51,7 +74,7 @@ export default function StaffUtilizationWidget() {
       })
       .filter(s => s.total > 0)
       .sort((a, b) => b.billable - a.billable);
-  }, [staff, utilization]);
+  }, [fieldStaff, utilization]);
 
   const overall = useMemo(() => {
     const totalBillable = ranked.reduce((s, r) => s + r.billable, 0);
@@ -76,8 +99,8 @@ export default function StaffUtilizationWidget() {
           <TrendingUp className={`w-6 h-6 ${overall.rate >= 70 ? 'text-emerald-600' : overall.rate >= 50 ? 'text-amber-600' : 'text-rose-600'}`} />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-bold text-slate-900">{overall.rate}% Utilization</p>
-          <p className="text-xs text-slate-400">{overall.billable.toFixed(1)}h billable of {overall.total.toFixed(1)}h total · {overall.activeStaff} staff</p>
+          <p className="text-sm font-bold text-slate-900">{overall.rate}% Field Crew Utilization</p>
+          <p className="text-xs text-slate-400">{overall.billable.toFixed(1)}h billable of {overall.total.toFixed(1)}h total · {overall.activeStaff} field staff</p>
         </div>
       </div>
 
@@ -91,7 +114,7 @@ export default function StaffUtilizationWidget() {
       {ranked.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <AlertCircle className="w-8 h-8 text-slate-300 mb-2" />
-          <p className="text-sm text-slate-500">No approved timesheets this week</p>
+          <p className="text-sm text-slate-500">No approved timesheets from field crews this week</p>
         </div>
       ) : (
         <div className="space-y-1.5 max-h-[280px] overflow-y-auto">
