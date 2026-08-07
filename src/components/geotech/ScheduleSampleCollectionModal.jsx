@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useQueryClient } from '@tanstack/react-query';
 import { FlaskConical, Truck, X, CheckCircle2, Loader2, MapPin, Package, User, Calendar } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -16,14 +17,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
  *  - suppliers: supplier list (labs)
  *  - onClose: () => void
  */
-export default function ScheduleSampleCollectionModal({ job, samples, allStaff, suppliers, onClose }) {
+export default function ScheduleSampleCollectionModal({ job, samples, allStaff, suppliers, scheduledSampleIds, onClose }) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
 
-  // Only samples still on site (collected status) are eligible for collection/dispatch
+  // Only samples still on site (collected status) and not already scheduled
+  // for collection are eligible by default. Already-scheduled samples can still
+  // be toggled on manually if the admin wants to re-schedule.
   const eligibleSamples = useMemo(
-    () => samples.filter(s => s.status === 'collected'),
-    [samples]
+    () => samples.filter(s => s.status === 'collected' && !scheduledSampleIds?.has(s.sample_id)),
+    [samples, scheduledSampleIds]
   );
 
   const [selectedIds, setSelectedIds] = useState(() => eligibleSamples.map(s => s.id));
@@ -122,6 +125,9 @@ export default function ScheduleSampleCollectionModal({ job, samples, allStaff, 
                   Samples to include ({selectedIds.length} selected)
                 </label>
                 <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100">
+                  {eligibleSamples.length === 0 && (
+                    <p className="px-3 py-3 text-xs text-slate-400">No uncollected samples — all collected samples are already scheduled.</p>
+                  )}
                   {eligibleSamples.map(s => (
                     <button key={s.id} type="button" onClick={() => toggleSample(s.id)}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition ${selectedIds.includes(s.id) ? 'bg-teal-50' : 'bg-white hover:bg-slate-50'}`}>
@@ -137,6 +143,18 @@ export default function ScheduleSampleCollectionModal({ job, samples, allStaff, 
                     </button>
                   ))}
                 </div>
+                {samples.filter(s => s.status === 'collected' && scheduledSampleIds?.has(s.sample_id)).length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-[10px] font-semibold text-slate-400 mb-1">Already scheduled for collection:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {samples.filter(s => s.status === 'collected' && scheduledSampleIds?.has(s.sample_id)).map(s => (
+                        <span key={s.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-teal-50 text-teal-600 border border-teal-200">
+                          <CheckCircle2 className="w-2.5 h-2.5" />{s.sample_id}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Run type */}

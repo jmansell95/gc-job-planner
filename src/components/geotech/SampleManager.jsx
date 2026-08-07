@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FlaskConical, Plus, X, Send, CheckCircle2, Clock, AlertTriangle, Trash2, Edit2, Loader2, Package, Truck } from 'lucide-react';
+import { FlaskConical, Plus, X, Send, CheckCircle2, Clock, AlertTriangle, Trash2, Edit2, Loader2, Package, Truck, ClipboardCheck } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import ScheduleSampleCollectionModal from '@/components/geotech/ScheduleSampleCollectionModal';
@@ -49,6 +49,19 @@ export default function SampleManager({ job, allStaff, suppliers }) {
   const { data: samples = [], isLoading } = useQuery({
     queryKey: ['samples-for-job', job.id],
     queryFn: () => base44.entities.Sample.filter({ job_id: job.id }, '-collection_date'),
+  });
+
+  // Fetch sample-related delivery logs so we can show which samples are
+  // already scheduled for collection/delivery vs which still need a driver.
+  const { data: sampleDeliveries = [] } = useQuery({
+    queryKey: ['sample-deliveries-for-job', job.id],
+    queryFn: () => base44.entities.DeliveryLog.filter({ job_id: job.id }, '-scheduled_date'),
+  });
+  const scheduledSampleIds = new Set();
+  sampleDeliveries.forEach((d) => {
+    if ((d.delivery_type === 'sample_collection' || d.delivery_type === 'sample_delivery') && d.sample_ids) {
+      d.sample_ids.split(',').map((id) => id.trim()).filter(Boolean).forEach((id) => scheduledSampleIds.add(id));
+    }
   });
 
   const labs = suppliers?.filter(s => s.name?.match(/lab|geol|soil|test|analy/i)) || [];
@@ -107,6 +120,7 @@ export default function SampleManager({ job, allStaff, suppliers }) {
     inTransit: samples.filter(s => ['dispatched', 'received_at_lab', 'testing'].includes(s.status)).length,
     resultsBack: samples.filter(s => s.status === 'results_returned').length,
     compromised: samples.filter(s => ['compromised', 'leaked', 'broken'].includes(s.lab_receipt_condition)).length,
+    needsCollection: samples.filter(s => s.status === 'collected' && !scheduledSampleIds.has(s.sample_id)).length,
   };
 
   return (
@@ -118,14 +132,14 @@ export default function SampleManager({ job, allStaff, suppliers }) {
           </div>
           <div>
             <h3 className="font-semibold text-slate-900 text-sm">Sample Chain of Custody</h3>
-            <p className="text-xs text-slate-500">{stats.total} samples · {stats.inTransit} in transit/testing · {stats.resultsBack} results returned</p>
+            <p className="text-xs text-slate-500">{stats.total} samples · {stats.inTransit} in transit/testing · {stats.resultsBack} results returned{stats.needsCollection > 0 ? ` · ${stats.needsCollection} need collection` : ''}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {samples.filter(s => s.status === 'collected').length > 0 && (
+          {stats.needsCollection > 0 && (
             <button onClick={() => setShowScheduleModal(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition text-xs font-medium">
-              <Truck className="w-3.5 h-3.5" /> Schedule Collection
+              <Truck className="w-3.5 h-3.5" /> Schedule Collection ({stats.needsCollection})
             </button>
           )}
           <button onClick={() => { setEditing(null); setShowModal(true); }}
@@ -158,6 +172,16 @@ export default function SampleManager({ job, allStaff, suppliers }) {
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${StatusBadge.color}`}>
                         <StatusBadge.icon className="w-2.5 h-2.5" /> {StatusBadge.label}
                       </span>
+                      {s.status === 'collected' && !scheduledSampleIds.has(s.sample_id) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700">
+                          <Clock className="w-2.5 h-2.5" /> Needs Collection
+                        </span>
+                      )}
+                      {scheduledSampleIds.has(s.sample_id) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-teal-100 text-teal-700">
+                          <ClipboardCheck className="w-2.5 h-2.5" /> Scheduled
+                        </span>
+                      )}
                       {s.lab_receipt_condition && ['compromised', 'leaked', 'broken'].includes(s.lab_receipt_condition) && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-100 text-rose-700">
                           <AlertTriangle className="w-2.5 h-2.5" /> {s.lab_receipt_condition}
@@ -227,6 +251,7 @@ export default function SampleManager({ job, allStaff, suppliers }) {
           samples={samples}
           allStaff={allStaff}
           suppliers={suppliers}
+          scheduledSampleIds={scheduledSampleIds}
           onClose={() => setShowScheduleModal(false)}
         />
       )}

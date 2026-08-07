@@ -198,6 +198,20 @@ function mapSampleType(agsType: string): string {
   return 'none';
 }
 
+// Maps AGS SAMP_TYPE codes to the Sample entity's sample_type enum.
+// Used when auto-creating Sample records from KeyLogBook SAMP groups so
+// the driver's sample-collection flow picks them up automatically.
+function mapSampleEntityType(agsType: string): string {
+  const t = String(agsType || '').toUpperCase().trim();
+  if (t.startsWith('U')) return 'undisturbed_u100';
+  if (t.startsWith('D')) return 'disturbed';
+  if (t.startsWith('B')) return 'bulk_sample';
+  if (t.startsWith('W')) return 'water_sample';
+  if (t.startsWith('G')) return 'gas_sample';
+  if (t.startsWith('C')) return 'rotary_core';
+  return 'disturbed';
+}
+
 // KeyLogBook sometimes stores the driller's shift diary ("Set up rig",
 // "Lunch", "Travelled home", "Left digs and travelled to site") inside the
 // TREM group as rows that carry no real installation attributes (no type,
@@ -827,8 +841,9 @@ Deno.serve(async (req) => {
     const locaDates = buildLocaDates(groups, today);
 
     const logs: any[] = [];
+    const samplesToCreate: any[] = [];
     const seen = new Set<string>();
-    const counts = { locations: 0, strata: 0, core: 0, samples: 0, spt: 0, installations: 0, waterReadings: 0, remarks: 0, duplicates: 0 };
+    const counts = { locations: 0, strata: 0, core: 0, samples: 0, spt: 0, installations: 0, waterReadings: 0, remarks: 0, duplicates: 0, samplesCreated: 0 };
 
     // Push a log only if it is not a duplicate of one already staged.
     const addLog = (log: any) => {
@@ -954,6 +969,9 @@ Deno.serve(async (req) => {
     }
 
     // ---- SAMP — samples ----
+    // Also auto-creates Sample entity records so the driver's sample-collection
+    // flow picks them up automatically. The Sample is linked back to the
+    // InvestigationLog via investigation_log_id after both are created.
     if (groups.SAMP && groups.SAMP.rows.length) {
       for (const row of groups.SAMP.rows) {
         const r = buildRow(groups.SAMP, row);
@@ -961,8 +979,10 @@ Deno.serve(async (req) => {
         const sampType = pick(r, 'SAMP_TYPE', 'SAMPLE_TYPE', 'TYPE');
         const ref = resolveLocaRef(r);
         const dFrom = num(pick(r, 'SAMP_TOP', 'SAMP_DEP', 'SAMP_DEPTH', 'TOP', 'DEPTH', 'DEPTH_FROM', 'DEP', 'FROM'));
-        if (addLog({
-          job_id: job.id, staff_id: staffId, date: resolveDate(ref),
+        const dTo = num(pick(r, 'SAMP_BOT', 'SAMP_BASE', 'SAMP_BOTTOM', 'BASE', 'BOT', 'TO', 'DEPTH_TO'));
+        const collectionDate = resolveDate(ref);
+        const logAdded = addLog({
+          job_id: job.id, staff_id: staffId, date: collectionDate,
           log_type: 'sample_collection', borehole_ref: ref,
           sample_id: sampId, depth_from: dFrom || null,
           sample_type: mapSampleType(sampType),
@@ -970,7 +990,27 @@ Deno.serve(async (req) => {
           source: 'ags_import', logged_by_role: drillerRole, completed_by_type: 'internal_staff',
           completed_by_name: importerName,
           manager_review_status: 'approved', chargeable: false,
-        })) counts.samples++;
+        });
+        if (logAdded) {
+          counts.samples++;
+          // Stage a Sample entity record — the driver's collection list is built from these.
+          const fallbackId = `${ref || 'BH'}-S-${dFrom != null ? dFrom.toFixed(1) : samplesToCreate.length + 1}`;
+          samplesToCreate.push({
+            job_id: job.id,
+            borehole_ref: ref || null,
+            sample_id: sampId || fallbackId,
+            sample_type: mapSampleEntityType(sampType),
+            depth_from: dFrom || null,
+            depth_to: dTo || null,
+            collection_date: collectionDate,
+            collected_by_staff_id: staffId || null,
+            collected_by_name: importerName || null,
+            container_type: 'bag',
+            status: 'collected',
+            status_changed_at: new Date().toISOString(),
+            notes: 'Auto-created from KeyLogBook AGS import',
+          });
+        }
       }
     }
 
@@ -1196,10 +1236,46 @@ Deno.serve(async (req) => {
     });
 
     let inserted = 0;
+    const createdLogs: any[] = [];
     for (let i = 0; i < logs.length; i += 500) {
       const batch = logs.slice(i, i + 500);
-      await base44.asServiceRole.entities.InvestigationLog.bulkCreate(batch);
+      const result = await base44.asServiceRole.entities.InvestigationLog.bulkCreate(batch);
       inserted += batch.length;
+      if (Array.isArray(result)) createdLogs.push(...result);
+    }
+
+    // ---- Auto-create Sample entity records from KeyLogBook SAMP groups ----
+    // Each Sample is linked back to its InvestigationLog (sample_collection log)
+    // so the Geotech tab and driver's collection flow stay in sync. Existing
+    // samples (matched by job_id + sample_id) are skipped to avoid duplicates
+    // on re-imports.
+    if (samplesToCreate.length > 0) {
+      const existingSamples = await base44.asServiceRole.entities.Sample.filter({ job_id: job.id });
+      const existingKeys = new Set(existingSamples.map((s: any) => `${s.job_id}|${s.sample_id}`));
+
+      // Match staged samples to their created InvestigationLog by sample_id + borehole_ref
+      const logMap = new Map<string, string>();
+      for (const cl of createdLogs) {
+        if (cl.log_type === 'sample_collection' && cl.sample_id) {
+          logMap.set(`${cl.sample_id}|${cl.borehole_ref || ''}`, cl.id);
+        }
+      }
+
+      const newSamples = samplesToCreate.filter((s) => {
+        const key = `${s.job_id}|${s.sample_id}`;
+        if (existingKeys.has(key)) return false;
+        existingKeys.add(key); // prevent intra-batch duplicates
+        // Link to the InvestigationLog if we can match it
+        const logId = logMap.get(`${s.sample_id}|${s.borehole_ref || ''}`);
+        if (logId) s.investigation_log_id = logId;
+        return true;
+      });
+
+      for (let i = 0; i < newSamples.length; i += 500) {
+        const batch = newSamples.slice(i, i + 500);
+        await base44.asServiceRole.entities.Sample.bulkCreate(batch);
+        counts.samplesCreated += batch.length;
+      }
     }
 
     const groupDebug: Record<string, string[]> = {};
@@ -1222,7 +1298,7 @@ Deno.serve(async (req) => {
       status: 'success', job_id: job.id, job_name: job.name,
       job_reference: job.job_reference, created_job: createdJob,
       deleted: deletedCount, inserted,
-      duplicates: counts.duplicates, counts, groups: groupDebug,
+      duplicates: counts.duplicates, counts, samples_created: counts.samplesCreated, groups: groupDebug,
     });
   } catch (error) {
     // Record failed sync for automated pushes
