@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
-import { Palette, Check, Sun, Moon, Monitor } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Palette, Check } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
-import { useTheme } from 'next-themes';
 
 // Customizable Dashboard Color Themes — lets each user pick from preset
 // accent color themes that recolor their dashboard accents and stat tiles.
@@ -22,7 +18,6 @@ const THEMES = [
 
 export default function DashboardThemeSettings() {
   const { toast } = useToast();
-  const { theme: darkMode, setTheme } = useTheme();
   const [selected, setSelected] = useState(() => localStorage.getItem('dashboard-theme') || 'emerald');
 
   const applyTheme = (themeId) => {
@@ -41,26 +36,12 @@ export default function DashboardThemeSettings() {
     toast({ title: `✓ ${theme.label} theme applied`, description: 'Your dashboard accents have been recolored.' });
   };
 
-  const cycleDarkMode = () => {
-    if (darkMode === 'light') setTheme('dark');
-    else if (darkMode === 'dark') setTheme('system');
-    else setTheme('light');
-  };
-
-  const darkLabel = darkMode === 'system' ? 'System' : darkMode === 'dark' ? 'Dark' : 'Light';
-  const DarkIcon = darkMode === 'system' ? Monitor : darkMode === 'dark' ? Moon : Sun;
-
   return (
     <div>
       <SettingsSectionHeader
         icon={Palette}
         title="Dashboard Color Themes"
         description="Personalize your dashboard with a preset accent color theme. Changes apply instantly and persist on this device."
-        actions={
-          <Button variant="outline" onClick={cycleDarkMode} className="gap-2">
-            <DarkIcon className="w-4 h-4" /> {darkLabel}
-          </Button>
-        }
       />
 
       <div className="insight-card rounded-2xl p-5">
@@ -92,7 +73,6 @@ export default function DashboardThemeSettings() {
         <div className="mt-5 pt-4 border-t border-slate-100">
           <p className="text-xs text-slate-500">
             Your theme choice is stored on this device and overrides the default Ground Control green accents.
-            The dark/light mode toggle controls the overall brightness theme independently.
           </p>
         </div>
       </div>

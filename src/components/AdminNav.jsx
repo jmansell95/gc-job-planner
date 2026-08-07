@@ -13,7 +13,6 @@ import AssetLens from '@/components/logistics/AssetLens';
 import { canAccessSection } from '@/utils/access';
 import Logo from '@/components/Logo';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
-import ThemeToggle from '@/components/ThemeToggle';
 
 export default function AdminNav({ activeSection, setActiveSection }) {
   const navigate = useNavigate();
@@ -119,7 +118,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <Sparkles className="w-4 h-4" />
           </button>
-          <ThemeToggle className="!bg-white/10 !ring-white/15 hover:!bg-white/20" />
         </div>
       </div>
       {/* Personal links + system actions */}
@@ -176,7 +174,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
               className="relative h-10 w-10 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <HelpCircle className="w-[18px] h-[18px]" />
             </button>
-            <ThemeToggle className="h-10 w-10 bg-white/10 ring-white/20 hover:bg-white/20" />
             <button onClick={() => setNotifOpen(true)} aria-label="Notifications" type="button"
               className="relative h-10 w-10 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <Bell className="w-[18px] h-[18px]" />
