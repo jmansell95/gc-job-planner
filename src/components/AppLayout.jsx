@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AdminNav from '@/components/AdminNav';
+import { STANDALONE_ROUTES, ROUTE_TO_SECTION } from '@/utils/standaloneRoutes';
 
 // Maps standalone routes to the closest AdminNav section so the
 // sidebar highlights the right item when on a non-dashboard page.
@@ -11,16 +12,12 @@ const ROUTE_SECTION_MAP = {
   '/deliveries': 'logistics',
   '/admin/logistics': 'logistics',
   '/pat-testing': 'assets',
-  '/assets': 'assets',
-  '/vehicles': 'vehicles',
-  '/timesheets': 'timesheets',
-  '/compliance': 'compliance',
-  '/billing': 'billing',
-  '/safety': 'safety',
+  '/safety': 'compliance',
   '/help': 'overview',
   '/presentation-pack': 'overview',
   '/keylogbook-docs': 'overview',
   '/roadmap': 'overview',
+  ...ROUTE_TO_SECTION,
 };
 
 /**
@@ -36,7 +33,13 @@ export default function AppLayout() {
   const activeSection = ROUTE_SECTION_MAP[location.pathname] || '';
 
   const setActiveSection = (s) => {
-    navigate('/admin', { state: { section: s } });
+    // Standalone pages get a direct route push — no blank-flash round-trip
+    // through the AdminDashboard section state.
+    if (STANDALONE_ROUTES[s]) {
+      navigate(STANDALONE_ROUTES[s]);
+    } else {
+      navigate('/admin', { state: { section: s } });
+    }
   };
 
   return (

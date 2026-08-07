@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { canAccessSection } from '@/utils/access';
+import { STANDALONE_ROUTES } from '@/utils/standaloneRoutes';
 import AdminNav from '@/components/AdminNav';
 import DashboardOverview from '@/components/DashboardOverview';
 import JobManager from '@/components/JobManager';
@@ -49,90 +50,32 @@ export default function AdminDashboard() {
   const [settingsTab, setSettingsTab] = useState('hub');
   const [profile, setProfile] = useState(null);
 
-  // Read navigation state passed from other pages (e.g. Vehicles → Manage Records)
+  // Read navigation state passed from other pages (e.g. Vehicles → Manage Records).
+  // Standalone sections are redirected immediately so the dashboard never
+  // tries to render a panel it doesn't have (which caused blank screens).
   useEffect(() => {
     const navState = location.state;
-    if (navState?.section) setActiveSection(navState.section);
+    if (navState?.section && STANDALONE_ROUTES[navState.section]) {
+      navigate(STANDALONE_ROUTES[navState.section], { replace: true });
+    } else if (navState?.section) {
+      setActiveSection(navState.section);
+    }
     if (navState?.settingsTab) setSettingsTab(navState.settingsTab);
     if (navState?.job) setSelectedJob(navState.job);
     // Clear state so a refresh doesn't re-trigger the section switch
     if (navState) window.history.replaceState({}, document.title);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The dashboard "Deliveries" stat monitor routes to the dedicated driver
-  // delivery page rather than an embedded admin section. Intercept the
-  // navigation, push the route, and reset the section so the admin dashboard
-  // doesn't render a blank panel.
-  useEffect(() => {
-    if (activeSection === 'deliveries') {
-      navigate('/deliveries');
-      setActiveSection('overview');
+  // Wrapper that sends standalone sections (Staff, Contacts, Price List, etc.)
+  // straight to their own routes — avoids the blank-flash round-trip through
+  // the internal section state.
+  const handleSetActiveSection = (section) => {
+    if (STANDALONE_ROUTES[section]) {
+      navigate(STANDALONE_ROUTES[section]);
+    } else {
+      setActiveSection(section);
     }
-    if (activeSection === 'assets') {
-      navigate('/assets');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'vehicles') {
-      navigate('/vehicles');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'timesheets') {
-      navigate('/timesheets');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'compliance') {
-      navigate('/compliance');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'billing') {
-      navigate('/billing');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'safety') {
-      navigate('/compliance');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'staff') {
-      navigate('/staff');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'contacts') {
-      navigate('/contacts');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'automations') {
-      navigate('/automations');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'price-list') {
-      navigate('/price-list');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'reports') {
-      navigate('/reports');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'import') {
-      navigate('/import');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'audit') {
-      navigate('/audit');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'teams') {
-      navigate('/staff');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'log-qc') {
-      navigate('/audit');
-      setActiveSection('overview');
-    }
-    if (activeSection === 'audit-trail') {
-      navigate('/audit');
-      setActiveSection('overview');
-    }
-  }, [activeSection, navigate]);
+  };
 
   useEffect(() => {
     (async () => {
@@ -155,16 +98,16 @@ export default function AdminDashboard() {
       if (tab) setSettingsTab(tab);
       if (section) {
         if (profile && !canAccessSection(profile, section)) return;
-        setActiveSection(section);
+        handleSetActiveSection(section);
       }
     };
     window.addEventListener('app-navigate', handler);
     return () => window.removeEventListener('app-navigate', handler);
-  }, [profile]);
+  }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen page-bg-vibrant">
-      <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} />
+      <AdminNav activeSection={activeSection} setActiveSection={handleSetActiveSection} />
       <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] lg:pt-0 lg:pb-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="px-4 pb-4 md:px-6 md:pb-6 lg:pt-6 w-full">
           <Breadcrumbs sectionLabel={SECTION_LABELS[activeSection]} />
@@ -178,7 +121,7 @@ export default function AdminDashboard() {
             {activeSection === 'overview' && (
               <JobFilterProvider>
                 <DashboardOverview
-                  onNavigate={setActiveSection}
+                  onNavigate={handleSetActiveSection}
                   onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }}
                 />
               </JobFilterProvider>
