@@ -133,8 +133,11 @@ export function categorizeNonJobCell(cellValue) {
   const lower = String(cellValue).trim().toLowerCase();
   if (!lower || lower.length < 2) return null;
 
-  // Unassigned placeholder
-  if (lower === 'unassigned') return 'annual_leave';
+  // "Unassigned" is NOT annual leave — it's a placeholder meaning the
+  // person hasn't been given a specific assignment. In depot sections it
+  // should be treated as yard/depot duty (they're at work, just not on a
+  // specific task). Removed the 'unassigned' → 'annual_leave' mapping that
+  // caused depot staff to show as on holiday when they're actually at the yard.
 
   // Annual leave / holidays / absence (exact match or starts-with)
   if (/^(off|golf|golf day|holiday|holidays|hoilday|hoildays|al|bh|bank holiday|annual leave|leave|vacation|pto|rest|rest day|day off|leave day|on leave|absent|awol|left|compassionate|unpaid leave|unauthorised leave|emergency leave|no longer works|last day|start date|requested absence|italy)$/.test(lower)) return 'annual_leave';

@@ -644,15 +644,22 @@ function parseSheet(sheet, sheetName) {
         }
       } else {
         // Cell is empty — carry forward.
-        if (isDepotSection(currentSection)) {
-          // In a depot section, empty cells = yard/depot duty (merged cell pattern).
+        if (lastJobName) {
+          // Carry forward the last real job name (merged cell case).
+          // This applies in ALL sections, including depot — depot staff sent
+          // to a job (e.g. Dean Skirrow on Parliament) stay on that job for
+          // the whole week, not just the day it was written. The previous
+          // logic checked isDepotSection FIRST, which forced empty cells to
+          // yard_depot even when a real job was written earlier in the week,
+          // causing depot staff to lose their job assignment after one day.
+          jobName = lastJobName;
+          carriedForward = true;
+        } else if (isDepotSection(currentSection)) {
+          // In a depot section, empty cells with no job to carry forward =
+          // yard/depot duty (merged cell pattern).
           nonJobType = 'yard_depot';
           nonJobLabel = lastNonJobLabel || 'Yard/Depot';
           jobName = null;
-          carriedForward = true;
-        } else if (lastJobName) {
-          // Carry forward the last real job name (merged cell case).
-          jobName = lastJobName;
           carriedForward = true;
         } else {
           continue; // nothing to carry forward

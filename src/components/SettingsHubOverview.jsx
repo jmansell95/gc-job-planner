@@ -7,8 +7,7 @@ import {
   Scale, ArrowRight, Activity, BookOpen,
   Sparkles, QrCode, ArrowUpDown, TrendingUp, FileSpreadsheet, ScrollText,
   History, Gauge, Link2, Search, ChevronRight, GitBranch, Lock, AlertTriangle,
-  Database, Radio, Satellite, Cloud, MapPin, MessageCircle, Landmark, CreditCard,
-  Webhook, Bell, Settings2, Coins, FileUp, ShieldAlert, Wrench,
+  Database, Webhook, Bell, Settings2, Coins, Wrench,
 } from 'lucide-react';
 
 const INTEGRATION_SETTING_KEYS = [
@@ -69,25 +68,15 @@ export default function SettingsHubOverview({ onNavigate }) {
   const groups = [
     { group: 'People & Teams', icon: Users, accent: 'from-emerald-500 to-teal-600', items: [
       { id: 'access-levels', icon: ShieldCheck, label: 'Permission Groups', value: '—', sub: 'Access control roles', color: 'slate' },
-      { id: 'bob-hr', icon: Users, label: 'Bob HR Sync', value: '—', sub: 'Bidirectional time-off bridge', color: 'emerald' },
     ]},
     { group: 'Operations', icon: Activity, accent: 'from-blue-500 to-cyan-600', items: [
-      { id: 'asset-panda', icon: Database, label: 'Asset Panda Sync', value: '—', sub: 'Live inventory sync', color: 'violet' },
       { id: 'asset-manifests', icon: QrCode, label: 'Van Manifest QRs', value: '—', sub: 'QR print-outs for bulky items', color: 'violet' },
       { id: 'equipment-library', icon: Boxes, label: 'Equipment Sets', value: costPresets.length, sub: 'Pre-built sets', color: 'emerald' },
-      { id: 'holman-sync', icon: Radio, label: 'Holman Fleet Sync', value: '—', sub: 'MOT, service & mileage', color: 'amber' },
-      { id: 'geotab-sync', icon: Satellite, label: 'Geotab GPS Sync', value: '—', sub: 'Live locations & specs', color: 'blue' },
       { id: 'job-types', icon: Tag, label: 'Job Types', value: '—', sub: 'Types & colours', color: 'slate' },
       { id: 'dropdowns', icon: ListChecks, label: 'Dropdown Manager', value: '—', sub: 'Edit every dropdown', color: 'violet' },
-      { id: 'ags-import', icon: FileUp, label: 'KeyLogBook Settings', value: '—', sub: 'AGS file sync', color: 'emerald' },
-      { id: 'safety-culture', icon: ShieldAlert, label: 'Safety Culture Sync', value: '—', sub: 'Site audit sync', color: 'rose' },
-      { id: 'met-office', icon: Cloud, label: 'Met Office Weather', value: '—', sub: 'Site forecasts', color: 'blue' },
-      { id: 'google-maps', icon: MapPin, label: 'Google Maps', value: '—', sub: 'Geocoding & routing', color: 'emerald' },
-      { id: 'whatsapp', icon: MessageCircle, label: 'WhatsApp Business', value: '—', sub: 'Crew alerts', color: 'emerald' },
     ]},
     { group: 'Compliance & Review', icon: ShieldCheck, accent: 'from-rose-500 to-pink-600', items: [
       { id: 'compliance-rules', icon: Gauge, label: 'Compliance Rules', value: '—', sub: 'LOLER, PUWER & PAT intervals', color: 'slate' },
-      { id: 'cis-verification', icon: ShieldCheck, label: 'CIS Verification', value: '—', sub: 'HMRC subcontractor checks', color: 'rose' },
     ]},
     { group: 'Finance & Billing', icon: Receipt, accent: 'from-emerald-600 to-green-700', items: [
       { id: 'billing', icon: Banknote, label: 'Billing Rules', value: billingRules.length, sub: 'Charge rules', color: 'blue' },
@@ -97,16 +86,12 @@ export default function SettingsHubOverview({ onNavigate }) {
     ]},
     { group: 'Financial Control', icon: TrendingUp, accent: 'from-amber-500 to-orange-600', items: [
       { id: 'expense-presets', icon: Receipt, label: 'Expense Presets', value: '—', sub: 'Quick-add crew expenses', color: 'amber' },
-      { id: 'concur-sync', icon: Landmark, label: 'SAP Concur Sync', value: '—', sub: 'GL codes & expense bridge', color: 'slate' },
       { id: 'subcon-markup', icon: TrendingUp, label: 'Sub-Con Markup', value: '—', sub: 'Default markup %', color: 'emerald' },
       { id: 'gl-mapping', icon: FileSpreadsheet, label: 'GL Code Mapping', value: '—', sub: 'Map to SAP Concur GL', color: 'slate' },
       { id: 'billing-pipeline', icon: GitBranch, label: 'Billing Pipeline', value: '—', sub: 'Contract & retention lifecycle', color: 'indigo' },
       { id: 'billing-contracts', icon: ScrollText, label: 'Billing Contracts', value: '—', sub: 'Locked per-job terms', color: 'indigo' },
       { id: 'purchase-orders', icon: FileText, label: 'Purchase Orders', value: '—', sub: 'POs & 3-way matching', color: 'blue' },
       { id: 'financial-audit', icon: History, label: 'Financial Audit Log', value: '—', sub: 'Tamper-evident history', color: 'rose' },
-      { id: 'payroll-export', icon: FileSpreadsheet, label: 'Payroll Export', value: '—', sub: 'CSV / Xero / Sage', color: 'slate' },
-      { id: 'accounting-sync', icon: FileSpreadsheet, label: 'Xero / Sage Sync', value: '—', sub: 'Push invoices directly', color: 'blue' },
-      { id: 'payment-gateway', icon: CreditCard, label: 'Stripe Payments', value: '—', sub: 'Client portal payments', color: 'violet' },
       { id: 'job-alerts', icon: Gauge, label: 'Job Budget Alerts', value: '—', sub: 'Budget & margin alerts', color: 'amber' },
     ]},
     { group: 'Communication', icon: Mail, accent: 'from-violet-500 to-purple-600', items: [
