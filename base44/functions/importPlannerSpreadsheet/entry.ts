@@ -194,54 +194,29 @@ function hasForceCompleteMarker(jobName) {
   return FORCE_COMPLETE_MARKERS.some(m => lower.includes(m));
 }
 
-// Determine job status from its assignment dates:
+// Determine job status strictly from its REAL (non-carried-forward)
+// assignment dates:
 //   force-complete marker  → completed (explicit planner override)
 //   no dates               → planning
-//   has subcontractors     → in_progress (subcon jobs stay active until [DONE])
-//   has dates this week    → in_progress (actively being worked this week)
-//   all dates before this week → completed (job has finished)
-//   all dates after this week → planning (future-planned, not started yet)
-// Uses REAL (non-carried-forward) dates only — carry-forward from merged
-// cells would otherwise extend completed jobs into the current week, and
-// date extrapolation can create false future assignments. A job is only
-// "in_progress" if it has a real assignment in the current week (Mon–Sun).
-// Subcontractor jobs don't follow the weekly rota pattern of direct staff —
-// a subcon crew can be on a job for months without a new rota entry being
-// added each week, so subcon jobs remain active until marked [DONE].
+//   all dates before today → completed (job has finished)
+//   all dates after today  → planning (future-planned, not started yet)
+//   spans across today     → in_progress (started, still has upcoming work)
+// This is a pure date comparison against TODAY — no week grace periods,
+// no subcontractor grace window. A job is only "in_progress" if it has at
+// least one assignment on or after today AND at least one on or before today
+// (i.e. it is actively spanning the current date). Jobs whose last real
+// assignment was yesterday are correctly marked completed.
 function determineJobStatus(dates, jobName, hasSubbies, allDates) {
   if (hasForceCompleteMarker(jobName)) return 'completed';
   if (!dates || dates.length === 0) return 'planning';
   const sorted = [...dates].sort();
   const lastDate = sorted[sorted.length - 1];
   const firstDate = sorted[0];
-  // Current week boundaries (Mon–Sun of the week containing TODAY)
-  const thisWeekStart = getWeekStart(TODAY);
-  const wsDate = new Date(thisWeekStart + 'T00:00:00Z');
-  wsDate.setUTCDate(wsDate.getUTCDate() + 6);
-  const thisWeekEnd = wsDate.toISOString().slice(0, 10);
-  // Check current week using ALL dates (including carry-forward) — a merged
-  // cell means the planner intends the person to be on that job all week.
-  // Also include the previous week: a job that ended last Sunday may still
-  // be active (rota for this week may not have been entered yet).
-  const checkDates = allDates || dates;
-  const prevWeekStartDate = new Date(thisWeekStart + 'T00:00:00Z');
-  prevWeekStartDate.setUTCDate(prevWeekStartDate.getUTCDate() - 7);
-  const prevWeekStart = prevWeekStartDate.toISOString().slice(0, 10);
-  const hasRecent = checkDates.some(d => d >= prevWeekStart && d <= thisWeekEnd);
-  if (hasRecent) return 'in_progress';
-  // Subcontractor jobs: 4-week grace period (subcon crews don't get weekly
-  // rota entries, so the job may still be active without a rota this week).
-  if (hasSubbies) {
-    const cutoffDate = new Date(thisWeekStart + 'T00:00:00Z');
-    cutoffDate.setUTCDate(cutoffDate.getUTCDate() - 28);
-    const cutoff = cutoffDate.toISOString().slice(0, 10);
-    if (lastDate >= cutoff) return 'in_progress';
-    return 'completed';
-  }
-  // All assignments before this week → completed
-  if (lastDate < thisWeekStart) return 'completed';
-  // All assignments after this week → planning (future-planned, not started)
-  if (firstDate > thisWeekEnd) return 'planning';
+  // All assignments in the past → completed
+  if (lastDate < TODAY) return 'completed';
+  // All assignments in the future → planning (not started yet)
+  if (firstDate > TODAY) return 'planning';
+  // Spans across today (has past and future/today dates) → in_progress
   return 'in_progress';
 }
 
