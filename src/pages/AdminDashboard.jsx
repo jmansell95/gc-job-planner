@@ -23,15 +23,22 @@ const SECTION_LABELS = {
   calendar: 'Calendar',
   logistics: 'Logistics',
   timesheets: 'Timesheets',
-  teams: 'Teams',
+  teams: 'Staff',
   compliance: 'Compliance',
   safety: 'Safety',
   'safety-hub': 'Safety Hub',
-  'log-qc': 'Log Quality Control',
+  'log-qc': 'Audit',
   billing: 'Billing',
   settings: 'Settings',
   assets: 'Asset Hub',
   vehicles: 'Vehicles',
+  staff: 'Staff',
+  contacts: 'Contacts',
+  automations: 'Automations',
+  'price-list': 'Price List',
+  reports: 'Reports',
+  import: 'Import',
+  audit: 'Audit',
 };
 
 export default function AdminDashboard() {
@@ -85,9 +92,45 @@ export default function AdminDashboard() {
       navigate('/compliance');
       setActiveSection('overview');
     }
+    if (activeSection === 'staff') {
+      navigate('/staff');
+      setActiveSection('overview');
+    }
+    if (activeSection === 'contacts') {
+      navigate('/contacts');
+      setActiveSection('overview');
+    }
+    if (activeSection === 'automations') {
+      navigate('/automations');
+      setActiveSection('overview');
+    }
+    if (activeSection === 'price-list') {
+      navigate('/price-list');
+      setActiveSection('overview');
+    }
+    if (activeSection === 'reports') {
+      navigate('/reports');
+      setActiveSection('overview');
+    }
     if (activeSection === 'import') {
-      setActiveSection('settings');
-      setSettingsTab('planner-import');
+      navigate('/import');
+      setActiveSection('overview');
+    }
+    if (activeSection === 'audit') {
+      navigate('/audit');
+      setActiveSection('overview');
+    }
+    if (activeSection === 'teams') {
+      navigate('/staff');
+      setActiveSection('overview');
+    }
+    if (activeSection === 'log-qc') {
+      navigate('/audit');
+      setActiveSection('overview');
+    }
+    if (activeSection === 'audit-trail') {
+      navigate('/audit');
+      setActiveSection('overview');
     }
   }, [activeSection, navigate]);
 
@@ -148,8 +191,6 @@ export default function AdminDashboard() {
               <SchedulingHub initialTab={activeSection === 'calendar' ? 'calendar' : 'rota'} />
             )}
             {activeSection === 'logistics' && <AdminDeliveryHub />}
-            {activeSection === 'teams' && <SettingsPage initialTab="teams" />}
-            {activeSection === 'log-qc' && <SettingsPage initialTab="log-qc" />}
             {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}
             </ErrorBoundary>
           </motion.div>

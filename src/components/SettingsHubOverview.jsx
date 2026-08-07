@@ -3,10 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   Users, Briefcase, Truck, Building2, Receipt, Package, HardHat, Boxes, Mail,
-  Palette, Zap, Timer, Banknote, CalendarX, Tag, ListChecks, ShieldCheck, FileText,
-  FlaskConical, Clock, ClipboardCheck, Scale, ArrowRight, Activity, BookOpen,
+  Palette, Zap, Timer, Banknote, Tag, ListChecks, ShieldCheck, FileText,
+  Scale, ArrowRight, Activity, BookOpen,
   Sparkles, QrCode, ArrowUpDown, TrendingUp, FileSpreadsheet, ScrollText,
   History, Gauge, Link2, Search, ChevronRight, GitBranch, Lock, AlertTriangle,
+  Database, Radio, Satellite, Cloud, MapPin, MessageCircle, Landmark, CreditCard,
+  Webhook, Bell, Settings2, Coins, FileUp, ShieldAlert, Wrench,
 } from 'lucide-react';
 
 const INTEGRATION_SETTING_KEYS = [
@@ -66,59 +68,64 @@ export default function SettingsHubOverview({ onNavigate }) {
 
   const groups = [
     { group: 'People & Teams', icon: Users, accent: 'from-emerald-500 to-teal-600', items: [
-      { id: 'staff', icon: Users, label: 'Crew Members', value: staff.length, sub: `${activeStaff} active`, color: 'emerald' },
-      { id: 'teams', icon: Users, label: 'Crew Types', value: teams.length, sub: 'Teams & capabilities', color: 'blue' },
       { id: 'access-levels', icon: ShieldCheck, label: 'Permission Groups', value: '—', sub: 'Access control roles', color: 'slate' },
-      { id: 'absences', icon: CalendarX, label: 'Absences', value: '—', sub: 'Leave & time off', color: 'amber' },
+      { id: 'bob-hr', icon: Users, label: 'Bob HR Sync', value: '—', sub: 'Bidirectional time-off bridge', color: 'emerald' },
     ]},
     { group: 'Operations', icon: Activity, accent: 'from-blue-500 to-cyan-600', items: [
+      { id: 'asset-panda', icon: Database, label: 'Asset Panda Sync', value: '—', sub: 'Live inventory sync', color: 'violet' },
       { id: 'asset-manifests', icon: QrCode, label: 'Van Manifest QRs', value: '—', sub: 'QR print-outs for bulky items', color: 'violet' },
       { id: 'equipment-library', icon: Boxes, label: 'Equipment Sets', value: costPresets.length, sub: 'Pre-built sets', color: 'emerald' },
-      { id: 'vehicles', icon: Truck, label: 'Vehicles', value: vehicles.length, sub: 'Fleet & MOTs', color: 'amber' },
+      { id: 'holman-sync', icon: Radio, label: 'Holman Fleet Sync', value: '—', sub: 'MOT, service & mileage', color: 'amber' },
+      { id: 'geotab-sync', icon: Satellite, label: 'Geotab GPS Sync', value: '—', sub: 'Live locations & specs', color: 'blue' },
       { id: 'job-types', icon: Tag, label: 'Job Types', value: '—', sub: 'Types & colours', color: 'slate' },
       { id: 'dropdowns', icon: ListChecks, label: 'Dropdown Manager', value: '—', sub: 'Edit every dropdown', color: 'violet' },
-      { id: 'automations', icon: Zap, label: 'Automations', value: '—', sub: 'Background tasks', color: 'violet' },
-      { id: 'planner-import', icon: FileSpreadsheet, label: 'Planner Import', value: '—', sub: 'Team & Plant Planner upload', color: 'emerald' },
+      { id: 'ags-import', icon: FileUp, label: 'KeyLogBook Settings', value: '—', sub: 'AGS file sync', color: 'emerald' },
+      { id: 'safety-culture', icon: ShieldAlert, label: 'Safety Culture Sync', value: '—', sub: 'Site audit sync', color: 'rose' },
+      { id: 'met-office', icon: Cloud, label: 'Met Office Weather', value: '—', sub: 'Site forecasts', color: 'blue' },
+      { id: 'google-maps', icon: MapPin, label: 'Google Maps', value: '—', sub: 'Geocoding & routing', color: 'emerald' },
+      { id: 'whatsapp', icon: MessageCircle, label: 'WhatsApp Business', value: '—', sub: 'Crew alerts', color: 'emerald' },
     ]},
     { group: 'Compliance & Review', icon: ShieldCheck, accent: 'from-rose-500 to-pink-600', items: [
-      { id: 'compliance', icon: ShieldCheck, label: 'Compliance', value: complianceItems.length, sub: 'Training & qualifications', color: 'rose' },
       { id: 'compliance-rules', icon: Gauge, label: 'Compliance Rules', value: '—', sub: 'LOLER, PUWER & PAT intervals', color: 'slate' },
-      { id: 'log-qc', icon: FlaskConical, label: 'Log QC', value: pendingReviewLogs, sub: 'Pending review', color: 'violet' },
-      { id: 'audit-trail', icon: ClipboardCheck, label: 'Audit Trail', value: jobs.length, sub: 'Job packs for auditors', color: 'emerald' },
-      { id: 'timesheets', icon: Clock, label: 'Timesheets', value: pendingTimesheets, sub: 'Awaiting approval', color: 'blue' },
       { id: 'cis-verification', icon: ShieldCheck, label: 'CIS Verification', value: '—', sub: 'HMRC subcontractor checks', color: 'rose' },
     ]},
-    { group: 'Contacts', icon: Building2, accent: 'from-indigo-500 to-blue-600', items: [
-      { id: 'clients', icon: Building2, label: 'Clients', value: clients.length, sub: 'Client contacts', color: 'emerald' },
-      { id: 'contractors', icon: HardHat, label: 'Sub-contractors', value: contractors.length, sub: 'Onboard & vet', color: 'indigo' },
-      { id: 'suppliers', icon: Package, label: 'Suppliers', value: suppliers.length, sub: 'Hire suppliers', color: 'amber' },
-    ]},
     { group: 'Finance & Billing', icon: Receipt, accent: 'from-emerald-600 to-green-700', items: [
-      { id: 'rate-card', icon: Receipt, label: 'Master Price List', value: ourRateItems, sub: 'Your rate card', color: 'emerald' },
       { id: 'billing', icon: Banknote, label: 'Billing Rules', value: billingRules.length, sub: 'Charge rules', color: 'blue' },
-      { id: 'invoicing', icon: Receipt, label: 'Billing & Invoicing', value: '—', sub: 'Job cost summaries', color: 'emerald' },
       { id: 'data-exchange', icon: ArrowUpDown, label: 'Data Exchange', value: '—', sub: 'Bulk import / export CSV', color: 'cyan' },
       { id: 'overtime', icon: Timer, label: 'Overtime', value: '—', sub: 'Rate multipliers', color: 'rose' },
       { id: 'business-rules', icon: Scale, label: 'Business Rules', value: '—', sub: 'Hours & travel rules', color: 'slate' },
     ]},
     { group: 'Financial Control', icon: TrendingUp, accent: 'from-amber-500 to-orange-600', items: [
       { id: 'expense-presets', icon: Receipt, label: 'Expense Presets', value: '—', sub: 'Quick-add crew expenses', color: 'amber' },
+      { id: 'concur-sync', icon: Landmark, label: 'SAP Concur Sync', value: '—', sub: 'GL codes & expense bridge', color: 'slate' },
       { id: 'subcon-markup', icon: TrendingUp, label: 'Sub-Con Markup', value: '—', sub: 'Default markup %', color: 'emerald' },
       { id: 'gl-mapping', icon: FileSpreadsheet, label: 'GL Code Mapping', value: '—', sub: 'Map to SAP Concur GL', color: 'slate' },
       { id: 'billing-pipeline', icon: GitBranch, label: 'Billing Pipeline', value: '—', sub: 'Contract & retention lifecycle', color: 'indigo' },
       { id: 'billing-contracts', icon: ScrollText, label: 'Billing Contracts', value: '—', sub: 'Locked per-job terms', color: 'indigo' },
       { id: 'purchase-orders', icon: FileText, label: 'Purchase Orders', value: '—', sub: 'POs & 3-way matching', color: 'blue' },
       { id: 'financial-audit', icon: History, label: 'Financial Audit Log', value: '—', sub: 'Tamper-evident history', color: 'rose' },
+      { id: 'payroll-export', icon: FileSpreadsheet, label: 'Payroll Export', value: '—', sub: 'CSV / Xero / Sage', color: 'slate' },
+      { id: 'accounting-sync', icon: FileSpreadsheet, label: 'Xero / Sage Sync', value: '—', sub: 'Push invoices directly', color: 'blue' },
+      { id: 'payment-gateway', icon: CreditCard, label: 'Stripe Payments', value: '—', sub: 'Client portal payments', color: 'violet' },
       { id: 'job-alerts', icon: Gauge, label: 'Job Budget Alerts', value: '—', sub: 'Budget & margin alerts', color: 'amber' },
     ]},
     { group: 'Communication', icon: Mail, accent: 'from-violet-500 to-purple-600', items: [
       { id: 'global-branding', icon: Palette, label: 'Global Branding', value: '—', sub: 'Email colours & banners', color: 'violet' },
       { id: 'login-branding', icon: Lock, label: 'Login Page Customizer', value: '—', sub: 'Login & reset screen branding', color: 'blue' },
+      { id: 'portal-branding', icon: Palette, label: 'Portal Branding Editor', value: '—', sub: 'Client & sub-contractor portal', color: 'violet' },
       { id: 'email-alerts', icon: Mail, label: 'Email Alerts', value: '—', sub: 'Templates & timing', color: 'blue' },
     ]},
     { group: 'System', icon: Sparkles, accent: 'from-slate-500 to-slate-700', items: [
       { id: 'demo-data', icon: Sparkles, label: 'Demo Data Manager', value: '—', sub: 'Showcase data or clean slate', color: 'violet' },
       { id: 'system-guide', icon: BookOpen, label: 'System Logic Guide', value: 'PDF', sub: 'Every stat & rule explained', color: 'emerald' },
+      { id: 'custom-fields', icon: Settings2, label: 'Custom Field Builder', value: '—', sub: 'Add fields to any entity', color: 'slate' },
+      { id: 'dashboard-themes', icon: Palette, label: 'Dashboard Color Themes', value: '—', sub: 'Personalize accent colours', color: 'violet' },
+      { id: 'backup-restore', icon: Database, label: 'Backup & Restore', value: '—', sub: 'Snapshot & reset', color: 'rose' },
+      { id: 'multi-currency', icon: Coins, label: 'Multi-Currency', value: '—', sub: 'Exchange rates vs GBP', color: 'amber' },
+      { id: 'multi-company', icon: Building2, label: 'Multi-Company / White-Label', value: '—', sub: 'Trading entities & branding', color: 'indigo' },
+      { id: 'asset-lifecycle', icon: Wrench, label: 'Asset Lifecycle', value: '—', sub: 'Depreciation & replacement', color: 'slate' },
+      { id: 'zapier-webhooks', icon: Webhook, label: 'Zapier / Make Webhooks', value: '—', sub: 'Outbound event webhooks', color: 'violet' },
+      { id: 'push-notifications', icon: Bell, label: 'Push Notifications', value: '—', sub: 'Browser push alerts', color: 'blue' },
     ]},
   ];
 
@@ -133,13 +140,10 @@ export default function SettingsHubOverview({ onNavigate }) {
     indigo: { stripe: 'from-indigo-400 to-blue-600', tile: 'bg-gradient-to-br from-indigo-400 to-blue-600', glow: 'shadow-indigo-200' },
   };
 
-  // Needs-attention alerts
+  // Needs-attention alerts — only for items that remain in Settings.
+  // Operational alerts (log-qc, timesheets, compliance) are now on their
+  // own dedicated pages and surfaced by the dashboard's Exception Monitor.
   const alerts = [];
-  if (pendingReviewLogs > 0) alerts.push({ id: 'log-qc', icon: FlaskConical, label: `${pendingReviewLogs} log${pendingReviewLogs !== 1 ? 's' : ''} pending review`, color: 'violet', bg: 'from-violet-500 to-purple-600' });
-  if (pendingTimesheets > 0) alerts.push({ id: 'timesheets', icon: Clock, label: `${pendingTimesheets} timesheet${pendingTimesheets !== 1 ? 's' : ''} awaiting approval`, color: 'blue', bg: 'from-blue-500 to-cyan-600' });
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const expiredCompliance = complianceItems.filter(c => c.status_override !== 'not_required' && c.expiry_date && c.expiry_date.slice(0, 10) < todayStr).length;
-  if (expiredCompliance > 0) alerts.push({ id: 'compliance', icon: ShieldCheck, label: `${expiredCompliance} expired compliance item${expiredCompliance !== 1 ? 's' : ''}`, color: 'rose', bg: 'from-rose-500 to-pink-600' });
 
   const heroStats = [
     { label: 'Crew', value: activeStaff, icon: Users, gradient: 'from-emerald-400 to-teal-500' },

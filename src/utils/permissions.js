@@ -46,6 +46,13 @@ export const SECTION_TO_MODULE = {
   settings: 'settings',
   'ags-import': 'ags_import',
   'project-financials': 'billing',
+  staff: 'settings',
+  contacts: 'settings',
+  automations: 'settings',
+  'price-list': 'settings',
+  reports: 'settings',
+  import: 'settings',
+  audit: 'audit-trail',
 };
 
 // Build a default permissions object (all modules = 'none').

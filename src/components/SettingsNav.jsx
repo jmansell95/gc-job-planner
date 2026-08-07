@@ -13,12 +13,7 @@ export const settingsGroups = [
   {
     label: 'People & Teams',
     items: [
-      { id: 'staff', label: 'Staff Command', icon: Users, desc: 'Manage everything about each crew member — profile, access, compliance, training, schedule & bookings' },
-      { id: 'teams', label: 'Crew Types', icon: Users, desc: 'Manage everything about each crew type — capabilities, qualifications, revenue, assets & roster' },
       { id: 'access-levels', label: 'Permission Groups', icon: ShieldCheck, desc: 'Create permission groups and assign them to each crew member from Staff Command', roles: ['admin'] },
-      { id: 'absences', label: 'Absences', icon: CalendarX, desc: 'Approve leave and recurring days off' },
-      { id: 'holiday-accrual', label: 'Holiday Accrual', icon: CalendarDays, desc: 'Track holiday pay entitlement, days taken, accrued balances & carry-over per staff member', roles: ['admin'] },
-      { id: 'staff-reviews', label: 'Performance Reviews', icon: Star, desc: 'Create periodic reviews — probation, quarterly, annual — rate performance, set goals & share with staff', roles: ['admin'] },
       { id: 'bob-hr', label: 'Bob HR Sync', icon: Users, desc: 'Bidirectional time-off bridge with Bob HR (Hibob) — pull & push leave, webhook receiver for real-time events', roles: ['admin'] },
     ],
   },
@@ -28,15 +23,11 @@ export const settingsGroups = [
       { id: 'asset-panda', label: 'Asset Panda Sync', icon: Database, desc: 'Connect Asset Panda & sync live inventory, stock levels and billing rates' },
       { id: 'asset-manifests', label: 'Van Manifest QRs', icon: QrCode, desc: 'Create QR print-outs for bulky items (casing, rig tooling) — crews scan one sheet to log returns', roles: ['admin'] },
       { id: 'equipment-library', label: 'Equipment Sets', icon: Package, desc: 'Pre-built equipment sets (presets) — individual items now sync from Asset Panda' },
-      { id: 'vehicles', label: 'Vehicles', icon: Truck, desc: 'Track vehicles, MOTs and service dates' },
       { id: 'holman-sync', label: 'Holman Fleet Sync', icon: Radio, desc: 'Connect Holman fleet management — auto-sync MOT, service dates & mileage via API and webhooks', roles: ['admin'] },
       { id: 'geotab-sync', label: 'Geotab GPS Sync', icon: Satellite, desc: 'Connect Geotab GPS tracking — live locations, vehicle specs (make, model, year, fuel type) & fleet reports', roles: ['admin'] },
       { id: 'job-types', label: 'Job Types', icon: Tag, desc: 'Manage job types and colours' },
       { id: 'dropdowns', label: 'Dropdown Manager', icon: ListChecks, desc: 'Add, rename, reorder or remove options in every dropdown — qualifications, asset types, revenue streams & more' },
-      { id: 'automations', label: 'Automations', icon: Zap, desc: 'View and toggle background automations' },
       { id: 'ags-import', label: 'KeyLogBook Settings', icon: FileUp, desc: 'Automated AGS file sync from KeyLogBook (every 30 min) & manual AGS imports — borehole data, strata & driller remarks', roles: ['admin', 'manager'] },
-      { id: 'planner-import', label: 'Planner Import', icon: FileSpreadsheet, desc: 'Upload your Team & Plant Planner Excel file — auto-creates staff, jobs, teams & rotas with deduplication', roles: ['admin'] },
-      { id: 'csv-import', label: 'CSV Bulk Import', icon: FileUp, desc: 'Quickly create multiple staff, jobs, vehicles, clients or suppliers from a simple CSV file — preview before importing', roles: ['admin'] },
       { id: 'safety-culture', label: 'Safety Culture Sync', icon: ShieldAlert, desc: 'Sync site safety audits & inspection forms from SafetyCulture (iAuditor) — webhook & API integration ready for later setup', roles: ['admin', 'manager'] },
       { id: 'met-office', label: 'Met Office Weather', icon: Cloud, desc: 'Daily weather forecasts per site postcode — flag weather-impacted days on the rota', roles: ['admin'] },
       { id: 'google-maps', label: 'Google Maps', icon: MapPin, desc: 'Geocoding for job sites & delivery route optimisation', roles: ['admin'] },
@@ -46,30 +37,15 @@ export const settingsGroups = [
   {
     label: 'Compliance & Review',
     items: [
-      { id: 'compliance', label: 'Compliance', icon: ShieldCheck, desc: 'Staff compliance, training & qualifications tracking', roles: ['admin', 'manager', 'viewer'] },
       { id: 'compliance-rules', label: 'Compliance Rules', icon: Gauge, desc: 'Default LOLER, PUWER & PAT inspection intervals & expiry warnings', roles: ['admin'] },
-      { id: 'log-qc', label: 'Log QC', icon: FlaskConical, desc: 'Review and approve investigation logs', roles: ['admin', 'manager', 'viewer'] },
-      { id: 'audit-trail', label: 'Audit Trail', icon: ClipboardCheck, desc: 'ISO-compliant job packs — full start-to-finish audit trail for auditors', roles: ['admin', 'manager', 'viewer'] },
-      { id: 'timesheets', label: 'Timesheets', icon: Clock, desc: 'Review and approve crew timesheets', roles: ['admin', 'manager'] },
-      { id: 'timesheet-delegation', label: 'Approval Delegation', icon: UserCheck, desc: 'Delegate timesheet approval authority to another person during absences — annual leave, conferences, sick cover', roles: ['admin'] },
       { id: 'cis-verification', label: 'CIS Verification', icon: ShieldCheck, desc: 'Verify subcontractors against HMRC CIS — deduction rates & verification numbers', roles: ['admin'] },
-    ],
-  },
-  {
-    label: 'Contacts',
-    items: [
-      { id: 'clients', label: 'Clients', icon: Building2, desc: 'Manage client contacts' },
-      { id: 'contractors', label: 'Sub-contractors', icon: HardHat, desc: 'Onboard, vet & approve sub-contractors — insurance, accreditations & SafetyCulture email' },
-      { id: 'suppliers', label: 'Suppliers', icon: Package, desc: 'Suppliers & their rate cards — upload to auto-populate job costing' },
     ],
   },
   {
     label: 'Finance & Billing',
     items: [
-      { id: 'rate-card', label: 'Master Price List', icon: Receipt, desc: 'Your chargeable rate card plus each supplier\'s ingested rate card — auto-populates job costing' },
       { id: 'billing', label: 'Billing Rules', icon: Banknote, desc: 'Delivery, task & consumable pricing rules' },
       { id: 'data-exchange', label: 'Data Exchange', icon: ArrowUpDown, desc: 'Bulk import/export rate cards, billing rules & BOQ data via CSV' },
-      { id: 'invoicing', label: 'Billing & Invoicing', icon: Receipt, desc: 'Per-job cost summary & invoice totals — reconcile CDRs and raise invoices', roles: ['admin', 'manager'] },
       { id: 'overtime', label: 'Overtime', icon: Timer, desc: 'Overtime multipliers by day' },
       { id: 'business-rules', label: 'Business Rules', icon: Scale, desc: 'Core working rules — required daily hours & travel deductions — that drive the timesheet engine' },
     ],
@@ -105,8 +81,6 @@ export const settingsGroups = [
     items: [
       { id: 'demo-data', label: 'Demo Data Manager', icon: Sparkles, desc: 'Populate realistic showcase data or wipe everything for a clean slate', roles: ['admin'] },
       { id: 'system-guide', label: 'System Logic Guide', icon: BookOpen, desc: 'Download a PDF explaining every stat, rule and automation in the system', roles: ['admin', 'manager', 'viewer'] },
-      { id: 'custom-reports', label: 'Custom Report Builder', icon: FileBarChart, desc: 'Build custom reports from any data source — pick columns, filter, and export to CSV or PDF', roles: ['admin', 'manager'] },
-      { id: 'client-progress-report', label: 'Client Progress Reports', icon: FileText, desc: 'Generate branded, printable PDF progress reports for clients — photos, milestones, schedule & project details', roles: ['admin', 'manager'] },
       { id: 'custom-fields', label: 'Custom Field Builder', icon: Settings2, desc: 'Add custom fields to jobs, staff, assets, vehicles, clients & suppliers — no code needed', roles: ['admin'] },
       { id: 'dashboard-themes', label: 'Dashboard Color Themes', icon: Palette, desc: 'Personalize your dashboard with preset accent color themes — emerald, blue, violet, amber, rose & teal', roles: ['admin', 'manager', 'viewer'] },
       { id: 'backup-restore', label: 'Backup & Restore', icon: Database, desc: 'Export a full data snapshot, restore from a previous backup, seed demo data or reset the database', roles: ['admin'] },
@@ -115,7 +89,6 @@ export const settingsGroups = [
       { id: 'asset-lifecycle', label: 'Asset Lifecycle', icon: Wrench, desc: 'Track assets from acquisition to disposal — depreciation, book value & replacement planning', roles: ['admin'] },
       { id: 'zapier-webhooks', label: 'Zapier / Make Webhooks', icon: Webhook, desc: 'Register outbound webhook URLs to receive system events for no-code automation', roles: ['admin'] },
       { id: 'push-notifications', label: 'Push Notifications', icon: Bell, desc: 'Enable browser push notifications for new assignments, schedule changes & compliance alerts', roles: ['admin', 'manager', 'viewer'] },
-      { id: 'incremental-import', label: 'Incremental Import', icon: Layers, desc: 'Non-destructive import mode that merges new data without wiping manual edits, photos or custom fields', roles: ['admin'] },
     ],
   },
 ];

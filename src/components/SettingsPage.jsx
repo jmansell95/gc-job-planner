@@ -103,9 +103,14 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
   useEffect(() => { if (initialTab) setActiveTab(initialTab); }, [initialTab]);
 
   useEffect(() => {
+    // Standalone pages (Staff, Contacts, Import, etc.) handle access control
+    // via RouteGuard at the route level. Skip the settings-item accessibility
+    // check so the requested tab renders even though it's no longer in the
+    // settings nav list.
+    if (standalone) return;
     if (!profile || items.length === 0 || lockdownLoading) return;
     if (!items.find(i => i.id === activeTab)) setActiveTab(items[0].id);
-  }, [profile, role, activeTab, items, lockdownLoading]);
+  }, [profile, role, activeTab, items, lockdownLoading, standalone]);
 
   const active = items.find(t => t.id === activeTab);
   const activeLockdown = active ? lockdownMap[active.id] : null;

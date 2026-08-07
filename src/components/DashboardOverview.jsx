@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Users, Briefcase, Grid3x3, Calendar, MapPin, Percent, ClipboardCheck, ShieldAlert } from 'lucide-react';
+import { Users, Briefcase, Grid3x3, Calendar, MapPin, Percent, ClipboardCheck, ShieldAlert, Contact, Zap, Receipt, FileBarChart, FileUp } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { GLOBAL_ONLY_WIDGETS } from '@/components/dashboard/registry';
 import CustomizableWidgetGrid from '@/components/dashboard/CustomizableWidgetGrid';
@@ -181,6 +181,35 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       )}
 
       <JobSelectorBar />
+
+      {/* Management Tools — quick access to standalone pages */}
+      {isAllJobs && (
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
+          {[
+            { id: 'staff', label: 'Staff', icon: Users },
+            { id: 'contacts', label: 'Contacts', icon: Contact },
+            { id: 'price-list', label: 'Price List', icon: Receipt },
+            { id: 'reports', label: 'Reports', icon: FileBarChart },
+            { id: 'import', label: 'Import', icon: FileUp },
+            { id: 'automations', label: 'Automations', icon: Zap },
+            { id: 'audit', label: 'Audit', icon: ClipboardCheck },
+          ].map(tool => {
+            const Icon = tool.icon;
+            return (
+              <button
+                key={tool.id}
+                onClick={() => onNavigate(tool.id)}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/80 backdrop-blur-sm border border-slate-200/70 shadow-sm hover:shadow-md hover:border-[#2E5A1A]/30 hover:bg-white transition-all duration-200 flex-shrink-0 group"
+              >
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Icon className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-sm font-semibold text-slate-700 whitespace-nowrap">{tool.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Live Site Activity — visual snapshot grid of active sites */}
       {isAllJobs && (
