@@ -34,6 +34,10 @@
       "type": "number",
       "description": "Job site longitude (for Geotab GPS geofencing \u2014 auto-detects arrival/departure times for timesheets). Set manually or via the geocode button on the job form."
     },
+    "geofence_radius_override": {
+      "type": "number",
+      "description": "Per-job geofence radius override (metres). When set, this radius is used instead of the global default from the geofence config. Useful for large sites that need a wider zone, or compact sites that need a tighter one."
+    },
     "disciplines": {
       "type": "array",
       "items": {

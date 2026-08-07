@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { decodeVin } from '../../shared/vinDecoder.ts';
+import { checkGeofencePresence, loadGeofenceConfig } from '../../shared/geofence.ts';
 
 // ============================================================
 // syncGeotabFleet — pulls live vehicle locations AND full
@@ -423,6 +424,18 @@ export default async function(req: Request): Promise<Response> {
     let stored = 0;
     let unmatched = 0;
 
+    // Load geofence config + preload shared data for geofence checks
+    const { config: geofenceConfig } = await loadGeofenceConfig(base44);
+    const geofencePreload = geofenceConfig.enabled
+      ? {
+          suppliers: await base44.asServiceRole.entities.Supplier.list('-created_date', 500),
+          jobs: await base44.asServiceRole.entities.Job.list('-created_date', 500),
+        }
+      : null;
+    let totalGeofenceArrivals = 0;
+    let totalGeofenceDepartures = 0;
+    let totalAutoArrivals = 0;
+
     for (const st of statuses) {
       const deviceId = st.device?.id || st.deviceId;
       const reg = deviceRegMap[deviceId] || '';
@@ -466,6 +479,29 @@ export default async function(req: Request): Promise<Response> {
           });
         } catch (_) {}
       }
+
+      // ── Geofence check — detect arrival/departure at job sites & supplier yards ──
+      if (geofencePreload) {
+        try {
+          const geoResult = await checkGeofencePresence(
+            base44,
+            vehicle.id,
+            vehicle.name,
+            vehicle.registration_number || reg || '',
+            lat,
+            lng,
+            st.dateTime || now,
+            geofenceConfig,
+            geofencePreload,
+          );
+          totalGeofenceArrivals += geoResult.arrivals;
+          totalGeofenceDepartures += geoResult.departures;
+          totalAutoArrivals += geoResult.autoArrivals;
+        } catch (_) {
+          // geofence check failure should not break the sync
+        }
+      }
+
       stored++;
     }
 
@@ -514,6 +550,11 @@ export default async function(req: Request): Promise<Response> {
       total_devices: devices.length,
       total_statuses: statuses.length,
       vehicle_type_count: Object.keys(vehicleTypeMap).length,
+      geofence: {
+        arrivals: totalGeofenceArrivals,
+        departures: totalGeofenceDepartures,
+        auto_arrivals: totalAutoArrivals,
+      },
       diagnostics: vtDiag,
     });
   } catch (error) {

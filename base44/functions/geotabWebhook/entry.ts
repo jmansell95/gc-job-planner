@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { checkGeofencePresence, loadGeofenceConfig } from '../../shared/geofence.ts';
 
 // ============================================================
 // geotabWebhook — receives real-time vehicle location events
@@ -54,6 +55,12 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
+    // Load geofence config once — used for all events in this batch
+    const { config: geofenceConfig } = await loadGeofenceConfig(base44);
+    let totalGeofenceArrivals = 0;
+    let totalGeofenceDepartures = 0;
+    let totalAutoArrivals = 0;
+
     for (const evt of events) {
       const reg = (evt.registration_number || evt.plate || evt.vehicle || '').toString().toUpperCase().replace(/\s+/g, '');
       const lat = Number(evt.lat || evt.latitude);
@@ -87,6 +94,25 @@ export default async function(req: Request): Promise<Response> {
         geotab_device_id: evt.device_id || evt.geotab_device_id || '',
       });
       stored.push(log.id);
+
+      // ── Geofence check — detect arrival/departure at job sites & supplier yards ──
+      try {
+        const geoResult = await checkGeofencePresence(
+          base44,
+          vehicle.id,
+          vehicle.name,
+          vehicle.registration_number || '',
+          lat,
+          lng,
+          ts,
+          geofenceConfig,
+        );
+        totalGeofenceArrivals += geoResult.arrivals;
+        totalGeofenceDepartures += geoResult.departures;
+        totalAutoArrivals += geoResult.autoArrivals;
+      } catch (_) {
+        // geofence check failure should not break the webhook
+      }
     }
 
     // Update last-webhook metadata on the config
@@ -109,6 +135,11 @@ export default async function(req: Request): Promise<Response> {
       stored: stored.length,
       unmatched: unmatched.length,
       unmatched_details: unmatched.slice(0, 10),
+      geofence: {
+        arrivals: totalGeofenceArrivals,
+        departures: totalGeofenceDepartures,
+        auto_arrivals: totalAutoArrivals,
+      },
     });
   } catch (error) {
     const msg = (error && typeof error === 'object' && error.message) ? error.message : String(error);

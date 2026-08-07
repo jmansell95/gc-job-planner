@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
+import GeofenceSettings from '@/components/settings/GeofenceSettings';
 
 const inputCls = "w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10";
 
@@ -305,6 +306,9 @@ export default function GeotabSettings() {
         )}
         <p className="text-[11px] text-slate-400 mt-2">A nightly automation also runs this automatically for yesterday's shifts — entries appear as drafts for crew review.</p>
       </div>
+
+      {/* Geofence Detection — arrival/departure alerts for job sites & supplier yards */}
+      <GeofenceSettings />
     </div>
   );
 }

@@ -1,0 +1,97 @@
+{
+  "name": "GeofenceEvent",
+  "type": "object",
+  "properties": {
+    "vehicle_id": {
+      "type": "string",
+      "description": "Vehicle that triggered this geofence event"
+    },
+    "vehicle_name": {
+      "type": "string",
+      "description": "Vehicle name (denormalised for display)"
+    },
+    "registration_number": {
+      "type": "string",
+      "description": "Vehicle registration (denormalised for display)"
+    },
+    "target_type": {
+      "type": "string",
+      "enum": [
+        "job",
+        "supplier"
+      ],
+      "description": "What the geofence is around. 'job' = a job site (uses Job.site_lat/site_lng), 'supplier' = a supplier yard/depot (uses Supplier.lat/lng)."
+    },
+    "target_id": {
+      "type": "string",
+      "description": "ID of the Job or Supplier this geofence event is for"
+    },
+    "target_name": {
+      "type": "string",
+      "description": "Job or supplier name (denormalised for display without joining)"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "arrival",
+        "departure"
+      ],
+      "description": "'arrival' = vehicle entered the geofence radius, 'departure' = vehicle left the geofence radius. Generated automatically by the checkGeofencePresence function when Geotab location data is received."
+    },
+    "lat": {
+      "type": "number",
+      "description": "Vehicle latitude at the time of the event"
+    },
+    "lng": {
+      "type": "number",
+      "description": "Vehicle longitude at the time of the event"
+    },
+    "distance_meters": {
+      "type": "number",
+      "description": "Distance from the vehicle to the geofence centre when the event fired (metres)"
+    },
+    "radius_meters": {
+      "type": "number",
+      "description": "The geofence radius (metres) that was in effect when this event was created \u2014 either the global default, or a per-job/per-supplier override"
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO timestamp of the GPS reading that triggered this event"
+    },
+    "notified": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when a notification (email/WhatsApp) has been sent for this event. Set by the notification sender so we don't duplicate alerts."
+    },
+    "rota_assignment_id": {
+      "type": "string",
+      "description": "If this arrival event matched a rota assignment for the vehicle on that date, the rota assignment ID is linked here so managers can trace which shift the arrival relates to."
+    },
+    "auto_arrival_triggered": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this arrival event automatically set arrived_on_site_at on the linked rota assignment (auto check-in). Only set when auto_arrival_on_rota is enabled in the geofence config."
+    }
+  },
+  "required": [
+    "vehicle_id",
+    "target_type",
+    "target_id",
+    "event_type",
+    "timestamp"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

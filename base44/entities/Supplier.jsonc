@@ -78,6 +78,18 @@
     "account_number": {
       "type": "string",
       "description": "Account number or reference with this supplier (e.g. Holman fleet account number). Shown on the provider card for quick reference when calling."
+    },
+    "lat": {
+      "type": "number",
+      "description": "Supplier yard/depot latitude. Set via the geocode button on the supplier form. Used for geofence detection \u2014 when a vehicle enters the radius around this location, an arrival event is triggered."
+    },
+    "lng": {
+      "type": "number",
+      "description": "Supplier yard/depot longitude. Set via the geocode button on the supplier form. Used for geofence detection."
+    },
+    "geofence_radius_override": {
+      "type": "number",
+      "description": "Per-supplier geofence radius override (metres). When set, this radius is used instead of the global default from the geofence config. Useful for large yards that need a wider zone."
     }
   },
   "required": [
