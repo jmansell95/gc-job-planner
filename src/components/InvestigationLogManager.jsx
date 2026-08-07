@@ -9,6 +9,7 @@ import {
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import { titleCase } from '@/utils/format';
 import DrillingSiteLogs from '@/components/investigation/DrillingSiteLogs';
+import AutoBillingButton from '@/components/investigation/AutoBillingButton';
 import {
   strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig,
   fluidLossConfig, obstructionConfig, logTypeConfig,
@@ -389,6 +390,11 @@ function LogEntryCard({ log }) {
             </p>
           </div>
         )}
+
+        {/* Auto-detect billing from remarks */}
+        <div className="mt-1.5">
+          <AutoBillingButton logId={log.id} />
+        </div>
       </div>
     </div>
   );

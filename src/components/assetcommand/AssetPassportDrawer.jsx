@@ -8,6 +8,7 @@ import ServiceHistoryPanel from '@/components/compliance/ServiceHistoryPanel';
 import CertificateVault from '@/components/righub/CertificateVault';
 import CompliancePackGenerator from '@/components/assetcommand/CompliancePackGenerator';
 import AssetQRCard from '@/components/assetcommand/AssetQRCard';
+import AssetFinancialLifecycle from '@/components/assethub/AssetFinancialLifecycle';
 
 const TYPE_META = {
   rig: { label: 'Rig', icon: Cog, tint: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -36,6 +37,7 @@ const TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'certificates', label: 'Certificates' },
   { key: 'service', label: 'Service History' },
+  { key: 'financial', label: 'Financial' },
   { key: 'pack', label: 'Compliance Pack' },
   { key: 'qr', label: 'QR Code' },
 ];
@@ -215,6 +217,10 @@ export default function AssetPassportDrawer({ asset, allAssets = [], onClose, on
 
           {tab === 'service' && (
             <ServiceHistoryPanel assetId={asset.id} assetName={asset.name} assetType={asset.asset_type} />
+          )}
+
+          {tab === 'financial' && (
+            <AssetFinancialLifecycle assetId={asset.id} />
           )}
 
           {tab === 'pack' && (

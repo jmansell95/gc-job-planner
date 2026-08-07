@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Layers, Plus, Loader2, Check, Package, Cog } from 'lucide-react';
 import { findRigRateCardItem, rigFallbackDayRate } from './rigRateMatcher';
+import CompliancePassportGate from '@/components/assethub/CompliancePassportGate';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -95,7 +96,14 @@ export default function RigGearPickerModal({ rigs = [], assets = [], rateCardIte
             );
           })}
           {selectedRig && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+            <div className="space-y-2">
+              <CompliancePassportGate
+                assetId={selectedRig}
+                jobStartDate={onSiteStart || undefined}
+                jobEndDate={onSiteEnd || onSiteStart || undefined}
+                compact
+              />
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
               <p className="text-xs font-semibold text-blue-800">On-site period</p>
               <p className="text-[11px] text-blue-600">Choose the days you want this rig on site. Crew costs are calculated automatically: day rate × working days. Revenue comes from meterage × metres drilled.</p>
               <div className="grid grid-cols-2 gap-2">
@@ -108,6 +116,7 @@ export default function RigGearPickerModal({ rigs = [], assets = [], rateCardIte
                   <input type="date" value={onSiteEnd} onChange={e => setOnSiteEnd(e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 rounded-md text-sm focus:outline-none focus:border-blue-500" />
                 </div>
               </div>
+            </div>
             </div>
           )}
         </div>

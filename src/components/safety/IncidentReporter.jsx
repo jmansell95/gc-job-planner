@@ -5,6 +5,7 @@ import {
   AlertTriangle, Plus, X, Loader2, ShieldAlert, CheckCircle2, Clock,
   Camera, FileText, Flag, MapPin, User, ChevronRight,
 } from 'lucide-react';
+import IncidentAutoAnalysis from '@/components/safety/IncidentAutoAnalysis';
 
 const inputCls = "w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10";
 
@@ -229,6 +230,14 @@ function IncidentForm({ jobs, staff, onClose, onSaved }) {
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
+  const handleApplySuggestions = (suggestions) => {
+    setForm(prev => ({
+      ...prev,
+      root_cause: suggestions.root_cause || prev.root_cause,
+      riddor_reportable: suggestions.riddor_reportable || prev.riddor_reportable,
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.description.trim()) { setError('Please describe what happened.'); return; }
@@ -346,6 +355,24 @@ function IncidentForm({ jobs, staff, onClose, onSaved }) {
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Immediate action taken</label>
             <textarea value={form.immediate_action} onChange={e => set('immediate_action', e.target.value)} rows="2" placeholder="First aid, area secured, equipment isolated..." className={inputCls} />
           </div>
+
+          {/* AI Auto-Analysis */}
+          {form.description.trim().length > 20 && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">AI Analysis</label>
+              <IncidentAutoAnalysis
+                incident={{
+                  type: form.incident_type,
+                  severity: form.severity,
+                  description: form.description,
+                  immediate_action: form.immediate_action,
+                  job_name: jobs.find(j => j.id === form.job_id)?.name,
+                  location: form.site_name,
+                }}
+                onApplySuggestions={handleApplySuggestions}
+              />
+            </div>
+          )}
 
           {/* RIDDOR */}
           <label className="flex items-center gap-2.5 p-3 bg-red-50 rounded-lg border border-red-200 cursor-pointer">

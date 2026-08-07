@@ -3,7 +3,8 @@ import WeeklyRotaBuilder from '@/components/WeeklyRotaBuilder';
 import CalendarView from '@/components/CalendarView';
 import DragDropRotaTimeline from '@/components/rota/DragDropRotaTimeline';
 import AvailabilityHeatmap from '@/components/rota/AvailabilityHeatmap';
-import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, MousePointer2, Grid3x3 } from 'lucide-react';
+import WhatIfRotaSandbox from '@/components/rota/WhatIfRotaSandbox';
+import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, MousePointer2, Grid3x3, FlaskConical } from 'lucide-react';
 import { useSchedulingAssistant } from '@/components/SchedulingAssistantChat';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
@@ -34,10 +35,17 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
     }
   };
 
+  const currentWeekStart = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  })();
+
   const tabs = [
     { id: 'rota', label: 'Rota Builder', icon: Calendar },
     { id: 'dragdrop', label: 'Drag & Drop', icon: MousePointer2 },
     { id: 'heatmap', label: 'Availability Heatmap', icon: Grid3x3 },
+    { id: 'whatif', label: 'What-If Sandbox', icon: FlaskConical },
     { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   ];
 
@@ -73,6 +81,7 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
       {tab === 'rota' && <WeeklyRotaBuilder />}
       {tab === 'dragdrop' && <DragDropRotaTimeline />}
       {tab === 'heatmap' && <AvailabilityHeatmap />}
+      {tab === 'whatif' && <WhatIfRotaSandbox weekStart={currentWeekStart} />}
       {tab === 'calendar' && <CalendarView />}
     </div>
   );
