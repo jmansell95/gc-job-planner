@@ -113,7 +113,6 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'multi-currency', icon: Coins, label: 'Multi-Currency', value: '—', sub: 'Exchange rates vs GBP', color: 'amber' },
       { id: 'multi-company', icon: Building2, label: 'Multi-Company / White-Label', value: '—', sub: 'Trading entities & branding', color: 'indigo' },
       { id: 'asset-lifecycle', icon: Wrench, label: 'Asset Lifecycle', value: '—', sub: 'Depreciation & replacement', color: 'slate' },
-      { id: 'zapier-webhooks', icon: Webhook, label: 'Zapier / Make Webhooks', value: '—', sub: 'Outbound event webhooks', color: 'violet' },
       { id: 'push-notifications', icon: Bell, label: 'Push Notifications', value: '—', sub: 'Browser push alerts', color: 'blue' },
     ]},
   ];

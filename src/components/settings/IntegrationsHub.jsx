@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Database, Satellite, Radio, Users, Landmark, ShieldAlert, FileUp,
   ShieldCheck, FileSpreadsheet, Cloud, MapPin, MessageCircle, CreditCard,
-  Link2, Link2Off, ArrowRight, Loader2, Search,
+  Link2, Link2Off, ArrowRight, Search, Webhook, Sparkles, X, CheckSquare,
+  Square, Loader2,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
-
-const inputCls = "w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10";
+import { useToast } from '@/components/ui/use-toast';
 
 // All integrations in the platform — existing + new. Each links to its
 // dedicated settings page where the admin enters API keys & webhooks.
@@ -23,6 +23,7 @@ const INTEGRATIONS = [
   { id: 'ags-import', name: 'KeyLogBook', category: 'Geotechnical Data', icon: FileUp, color: 'bg-amber-100 text-amber-600', settingKey: 'keylogbook_config', connectedField: 'webhook_secret', desc: 'Real-time borehole & AGS data from KeyLogBook webhook' },
   { id: 'cis-verification', name: 'HMRC CIS', category: 'Finance', icon: ShieldCheck, color: 'bg-teal-100 text-teal-600', settingKey: 'cis_config', connectedField: 'api_key', desc: 'Verify subcontractors against HMRC CIS register' },
   { id: 'payroll-export', name: 'Payroll Export', category: 'Finance', icon: FileSpreadsheet, color: 'bg-slate-100 text-slate-600', settingKey: 'payroll_config', connectedField: 'provider', desc: 'Export approved weekly timesheets to Sage / Xero / CSV' },
+  { id: 'zapier-webhooks', name: 'Zapier / Make Webhooks', category: 'Automation', icon: Webhook, color: 'bg-orange-100 text-orange-600', settingKey: 'zapier_config', connectedField: 'webhook_url', desc: 'Register outbound webhook URLs to receive system events for no-code automation' },
   // --- New (roadmap integrations) ---
   { id: 'met-office', name: 'Met Office Weather', category: 'Operations', icon: Cloud, color: 'bg-sky-100 text-sky-600', settingKey: 'met_office_config', connectedField: 'api_key', desc: 'Daily weather data per site postcode — flag weather-delayed days', isNew: true },
   { id: 'google-maps', name: 'Google Maps', category: 'Operations', icon: MapPin, color: 'bg-red-100 text-red-600', settingKey: 'google_maps_config', connectedField: 'api_key', desc: 'Geocoding for job sites + travel route optimisation', isNew: true },
@@ -31,14 +32,21 @@ const INTEGRATIONS = [
   { id: 'payment-gateway', name: 'Stripe Payments', category: 'Finance', icon: CreditCard, color: 'bg-indigo-100 text-indigo-600', settingKey: 'stripe_config', connectedField: 'secret_key', desc: 'Accept client invoice payments via Stripe in the client portal', isNew: true },
 ];
 
+const COMING_SOON_SETTING_KEY = 'integration_coming_soon_ids';
+
 export default function IntegrationsHub({ onNavigate }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [configStatus, setConfigStatus] = useState({});
+  const [manageMode, setManageMode] = useState(false);
+  const [selected, setSelected] = useState(new Set());
+  const [saving, setSaving] = useState(false);
 
   // Batch-fetch all AppSetting records to determine connection status
   const { data: allSettings = [] } = useQuery({
     queryKey: ['all-integration-configs'],
     queryFn: () => base44.entities.AppSetting.filter({
-      key: { $in: INTEGRATIONS.map(i => i.settingKey) },
+      key: { $in: [...INTEGRATIONS.map(i => i.settingKey), COMING_SOON_SETTING_KEY] },
     }, '-created_date', 50),
   });
 
@@ -50,6 +58,15 @@ export default function IntegrationsHub({ onNavigate }) {
     setConfigStatus(status);
   }, [allSettings]);
 
+  const comingSoonIds = useMemo(() => {
+    const rec = allSettings.find(s => s.key === COMING_SOON_SETTING_KEY);
+    if (!rec) return new Set();
+    const val = rec.value;
+    if (Array.isArray(val)) return new Set(val);
+    if (val && Array.isArray(val.ids)) return new Set(val.ids);
+    return new Set();
+  }, [allSettings]);
+
   const isConnected = (integ) => {
     const cfg = configStatus[integ.settingKey];
     if (!cfg) return false;
@@ -58,6 +75,7 @@ export default function IntegrationsHub({ onNavigate }) {
 
   const connectedCount = INTEGRATIONS.filter(isConnected).length;
   const newCount = INTEGRATIONS.filter(i => i.isNew).length;
+  const comingSoonCount = comingSoonIds.size;
 
   // Group by category
   const categories = [...new Set(INTEGRATIONS.map(i => i.category))];
@@ -66,12 +84,62 @@ export default function IntegrationsHub({ onNavigate }) {
     items: INTEGRATIONS.filter(i => i.category === cat),
   }));
 
+  const toggleSelect = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllComingSoon = () => setSelected(new Set(comingSoonIds));
+
+  const saveComingSoon = async (idsToMark) => {
+    setSaving(true);
+    try {
+      const existing = allSettings.find(s => s.key === COMING_SOON_SETTING_KEY);
+      const value = { ids: [...idsToMark] };
+      if (existing) {
+        await base44.entities.AppSetting.update(existing.id, { key: COMING_SOON_SETTING_KEY, value });
+      } else {
+        await base44.entities.AppSetting.create({ key: COMING_SOON_SETTING_KEY, value });
+      }
+      await queryClient.invalidateQueries({ queryKey: ['all-integration-configs'] });
+      toast({
+        title: 'Coming Soon badges updated',
+        description: `${idsToMark.size} integration${idsToMark.size === 1 ? '' : 's'} marked as Coming Soon.`,
+      });
+      setManageMode(false);
+      setSelected(new Set());
+    } catch (e) {
+      toast({ title: 'Error saving', description: e.message, variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleApply = () => saveComingSoon(new Set(selected));
+  const handleClearAll = async () => saveComingSoon(new Set());
+
   return (
     <div className="space-y-4">
       <SettingsSectionHeader
         icon={Link2}
         title="Integrations Hub"
         description={`All external system connections in one place. ${connectedCount} of ${INTEGRATIONS.length} integrations configured. Enter API keys and webhook details when you're ready to link each service — nothing syncs until you save credentials and hit the sync button.`}
+        actions={
+          <button
+            onClick={() => { setManageMode(m => !m); setSelected(new Set()); }}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm ${
+              manageMode
+                ? 'bg-[#2E5A1A] text-white hover:bg-[#244715]'
+                : 'bg-white border border-slate-200 text-slate-700 hover:border-[#2E5A1A] hover:text-[#2E5A1A]'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            {manageMode ? 'Exit Manage Mode' : 'Manage Coming Soon'}
+          </button>
+        }
       />
 
       {/* Summary tiles */}
@@ -81,7 +149,7 @@ export default function IntegrationsHub({ onNavigate }) {
           <p className="text-[11px] text-slate-400 uppercase font-medium">Connected</p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-3 text-center">
-          <p className="text-2xl font-bold text-slate-400 tabular-nums">{INTEGRATIONS.length - connectedCount}</p>
+          <p className="text-2xl font-bold text-slate-400 tabular-nums">{INTEGRATIONS.length - connectedCount - comingSoonCount}</p>
           <p className="text-[11px] text-slate-400 uppercase font-medium">Not Connected</p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-3 text-center">
@@ -89,10 +157,49 @@ export default function IntegrationsHub({ onNavigate }) {
           <p className="text-[11px] text-slate-400 uppercase font-medium">New (Roadmap)</p>
         </div>
         <div className="bg-white border border-slate-200 rounded-xl p-3 text-center">
-          <p className="text-2xl font-bold text-blue-600 tabular-nums">{INTEGRATIONS.length}</p>
-          <p className="text-[11px] text-slate-400 uppercase font-medium">Total</p>
+          <p className="text-2xl font-bold text-slate-500 tabular-nums">{comingSoonCount}</p>
+          <p className="text-[11px] text-slate-400 uppercase font-medium">Coming Soon</p>
         </div>
       </div>
+
+      {/* Manage mode banner */}
+      {manageMode && (
+        <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-lg p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#2E5A1A]" />
+            <p className="text-sm font-semibold text-slate-800">
+              Select integrations to mark as <span className="text-amber-600">Coming Soon</span> — they'll be greyed out and show a badge.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={selectAllComingSoon}
+              className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+              Select current Coming Soon ({comingSoonIds.size})
+            </button>
+            <button onClick={() => setSelected(new Set(INTEGRATIONS.map(i => i.id)))}
+              className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+              Select All
+            </button>
+            <button onClick={() => setSelected(new Set())}
+              className="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+              Clear selection
+            </button>
+            <span className="text-xs text-slate-400 ml-1">{selected.size} selected</span>
+            <div className="flex-1" />
+            <button onClick={handleClearAll}
+              disabled={saving || comingSoonCount === 0}
+              className="px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition disabled:opacity-50">
+              Clear All Badges
+            </button>
+            <button onClick={handleApply}
+              disabled={saving || selected.size === 0}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-[#2E5A1A] hover:bg-[#244715] rounded-lg transition disabled:opacity-50">
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckSquare className="w-3.5 h-3.5" />}
+              Apply Coming Soon ({selected.size})
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Integration cards grouped by category */}
       {grouped.map(group => (
@@ -102,20 +209,42 @@ export default function IntegrationsHub({ onNavigate }) {
             {group.items.map(integ => {
               const Icon = integ.icon;
               const connected = isConnected(integ);
+              const isComingSoon = comingSoonIds.has(integ.id);
+              const isSelected = selected.has(integ.id);
               return (
                 <button
                   key={integ.id}
-                  onClick={() => onNavigate?.(integ.id)}
-                  className="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-[#2E5A1A] hover:shadow-md transition group"
+                  onClick={() => manageMode ? toggleSelect(integ.id) : (isComingSoon ? null : onNavigate?.(integ.id))}
+                  className={`relative bg-white border rounded-xl p-4 text-left transition group overflow-hidden ${
+                    manageMode
+                      ? isSelected
+                        ? 'border-[#2E5A1A] ring-2 ring-[#2E5A1A]/20 hover:shadow-md'
+                        : 'border-slate-200 hover:border-[#2E5A1A]/50 hover:shadow-md'
+                      : isComingSoon
+                        ? 'border-slate-200 cursor-default'
+                        : 'border-slate-200 hover:border-[#2E5A1A] hover:shadow-md'
+                  }`}
                 >
-                  <div className="flex items-start gap-3">
+                  {isComingSoon && !manageMode && (
+                    <span className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 text-[9px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full uppercase">
+                      <Sparkles className="w-2.5 h-2.5" /> Coming Soon
+                    </span>
+                  )}
+                  {manageMode && (
+                    <span className="absolute top-2 right-2 z-10">
+                      {isSelected
+                        ? <CheckSquare className="w-5 h-5 text-[#2E5A1A]" />
+                        : <Square className="w-5 h-5 text-slate-300" />}
+                    </span>
+                  )}
+                  <div className={`flex items-start gap-3 ${isComingSoon && !manageMode ? 'opacity-40 grayscale' : ''}`}>
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${integ.color}`}>
                       <Icon className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className="text-sm font-bold text-slate-800 truncate">{integ.name}</p>
-                        {integ.isNew && (
+                        {integ.isNew && !isComingSoon && (
                           <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full uppercase">New</span>
                         )}
                       </div>
@@ -125,12 +254,18 @@ export default function IntegrationsHub({ onNavigate }) {
                           <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
                             <Link2 className="w-3 h-3" /> Configured
                           </span>
+                        ) : isComingSoon ? (
+                          <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-600">
+                            <Sparkles className="w-3 h-3" /> Coming Soon
+                          </span>
                         ) : (
                           <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-400">
                             <Link2Off className="w-3 h-3" /> Not Connected
                           </span>
                         )}
-                        <ArrowRight className="w-3 h-3 text-slate-300 group-hover:text-[#2E5A1A] ml-auto transition" />
+                        {!manageMode && !isComingSoon && (
+                          <ArrowRight className="w-3 h-3 text-slate-300 group-hover:text-[#2E5A1A] ml-auto transition" />
+                        )}
                       </div>
                     </div>
                   </div>
