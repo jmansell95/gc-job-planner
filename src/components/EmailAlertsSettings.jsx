@@ -34,9 +34,9 @@ const ALERT_META = {
     tokens: ['{staff_name}', '{week_start}', '{assignment_count}'],
   },
   staff_invitation: {
-    title: 'App Invitation',
-    desc: 'Branded invitation email sent to a staff member when you give them app access.',
-    schedule: 'Sent when you invite a staff member from Staff Management',
+    title: 'Welcome / Invitation',
+    desc: 'Branded welcome email sent to a staff member when they accept their app invite and register. The platform also sends its own standard invite email with the registration link — this template lets you customise the branded welcome they receive once they join.',
+    schedule: 'Sent automatically when a new user registers',
     icon: UserPlus,
     showThreshold: false,
     showRecipients: false,
