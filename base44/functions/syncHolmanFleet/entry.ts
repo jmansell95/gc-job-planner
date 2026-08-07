@@ -195,9 +195,13 @@ export default async function(req: Request): Promise<Response> {
     }
 
     // ---- SYNC FUEL CARD TRANSACTIONS ----
-    // Fetches fuel card transactions from Holman and creates
-    // VehicleMaintenanceBooking records (booking_type='fuel_card') for each
-    // transaction matched to a local vehicle by registration or VIN.
+    // Fetches fuel card transactions from Holman and:
+    //   1. Creates VehicleMaintenanceBooking records (booking_type='fuel_card')
+    //      for each transaction matched to a local vehicle by reg/VIN.
+    //   2. Matches each transaction to the JOB the vehicle was assigned to
+    //      on that date (via RotaAssignment) and creates a DailyCost record
+    //      (category='fuel') so fuel spend is attributed to the correct job
+    //      for profitability / cost tracking.
     if (action === 'sync_fuel') {
       let fuelData: any[] = [];
       try {
@@ -239,10 +243,47 @@ export default async function(req: Request): Promise<Response> {
           if (m) seenRefs.add(m[1]);
         }
       }
+      // Load existing DailyCost fuel records to dedupe by Holman transaction ref
+      const existingFuelCosts = await base44.asServiceRole.entities.DailyCost.filter({ category: 'fuel' }, '-created_date', 500);
+      const seenCostRefs = new Set();
+      for (const c of existingFuelCosts) {
+        if (c.notes) {
+          const m = c.notes.match(/Holman ref:\s*(\S+)/);
+          if (m) seenCostRefs.add(m[1]);
+        }
+      }
+
+      // Collect all transaction dates so we can batch-load rota assignments
+      const txDates = new Set<string>();
+      for (const tx of fuelData) {
+        const d = toDateStr(deepGet(tx, 'date', 'transaction_date', 'fuel_date', 'posted_date'));
+        if (d) txDates.add(d);
+      }
+      // Load rota assignments for the transaction dates — we'll match by
+      // vehicle_id + assigned_date to find which job the vehicle was on.
+      const dateList = Array.from(txDates);
+      const rotaByDate: Record<string, any[]> = {};
+      if (dateList.length > 0) {
+        const allRota = await base44.asServiceRole.entities.RotaAssignment.filter(
+          { assigned_date: { $in: dateList }, assignment_type: 'job' },
+          '-created_date', 500
+        );
+        for (const r of allRota) {
+          const d = r.assigned_date;
+          if (!rotaByDate[d]) rotaByDate[d] = [];
+          rotaByDate[d].push(r);
+        }
+      }
+      // Load jobs for job-name lookup
+      const allJobs = await base44.asServiceRole.entities.Job.list('-created_date', 500);
+      const jobMap: Record<string, any> = {};
+      for (const j of allJobs) jobMap[j.id] = j;
 
       let imported = 0;
       let unmatched = 0;
       let duplicate = 0;
+      let jobMatched = 0;
+      let jobUnmatched = 0;
 
       for (const tx of fuelData) {
         const reg = normalizeReg(deepGet(tx, 'registration', 'registration_number', 'vrn', 'vehicle_registration'));
@@ -254,8 +295,9 @@ export default async function(req: Request): Promise<Response> {
         const fuelType = String(deepGet(tx, 'fuel_type', 'product', 'product_description') || '').toLowerCase();
         const siteName = String(deepGet(tx, 'site_name', 'station', 'location', 'merchant_name') || '');
         const odometer = num(deepGet(tx, 'odometer', 'mileage', 'odometer_reading'));
+        const pencePerLitre = num(deepGet(tx, 'unit_price', 'price_per_litre', 'pp_litre', 'unit_cost'));
 
-        // Dedupe by transaction reference
+        // Dedupe by transaction reference (maintenance bookings)
         if (txRef && seenRefs.has(txRef)) { duplicate++; continue; }
         if (txRef) seenRefs.add(txRef);
 
@@ -294,6 +336,73 @@ export default async function(req: Request): Promise<Response> {
             holman_sync_status: 'synced',
           });
         }
+
+        // ── Job cost matching ──
+        // Find the RotaAssignment for this vehicle on the transaction date.
+        // The assignment's job_id tells us which job to attribute the fuel cost to.
+        // Skip if we already have a DailyCost for this transaction ref.
+        if (txRef && seenCostRefs.has(txRef)) continue;
+        if (txRef) seenCostRefs.add(txRef);
+
+        let matchedJobId: string | null = null;
+        let matchedAssignmentId: string | null = null;
+        if (txDate && rotaByDate[txDate]) {
+          const assignments = rotaByDate[txDate];
+          // Match by vehicle_id
+          const byVehicle = assignments.find((r: any) => r.vehicle_id === match.id);
+          if (byVehicle) {
+            matchedJobId = byVehicle.job_id || null;
+            matchedAssignmentId = byVehicle.id || null;
+          }
+        }
+
+        if (matchedJobId) {
+          jobMatched++;
+          // Calculate VAT — Holman fuel amounts are typically gross (incl. VAT).
+          // Assume 20% VAT rate (UK standard). Net = gross / 1.2, VAT = gross - net.
+          const vatRate = 20;
+          const gross = cost || 0;
+          const net = gross > 0 ? +(gross / (1 + vatRate / 100)).toFixed(2) : 0;
+          const vat = +(gross - net).toFixed(2);
+
+          const costNotes = [`Holman ref: ${txRef || 'N/A'}`, `Vehicle: ${match.registration_number || vehicleName}`];
+          if (litres != null) costNotes.push(`${litres}L ${fuelType || 'fuel'}`);
+          if (pencePerLitre != null) costNotes.push(`${pencePerLitre}p/L`);
+          if (siteName) costNotes.push(`@ ${siteName}`);
+
+          // Find the staff member assigned to this vehicle on that date
+          let staffId = '';
+          let staffName = '';
+          if (rotaByDate[txDate]) {
+            const assignment = rotaByDate[txDate].find((r: any) => r.vehicle_id === match.id);
+            if (assignment) {
+              staffId = assignment.staff_id || '';
+              // staff_name is denormalised on RotaAssignment? No — we need to look up Staff
+            }
+          }
+
+          try {
+            await base44.asServiceRole.entities.DailyCost.create({
+              job_id: matchedJobId,
+              assignment_id: matchedAssignmentId || undefined,
+              staff_id: staffId || undefined,
+              date: txDate,
+              category: 'fuel',
+              description: `Fuel card: ${match.registration_number || vehicleName}${litres != null ? ` — ${litres}L ${fuelType || 'fuel'}` : ''}${siteName ? ` @ ${siteName}` : ''}`,
+              amount_net: net,
+              amount_vat: vat,
+              amount_gross: gross,
+              vat_rate: vatRate,
+              supplier_name: 'Holman Fuel Card',
+              status: 'submitted',
+              notes: costNotes.join(' · '),
+            });
+          } catch (e) {
+            // Non-fatal — maintenance booking was still created
+          }
+        } else {
+          jobUnmatched++;
+        }
       }
 
       // Update config status
@@ -303,15 +412,17 @@ export default async function(req: Request): Promise<Response> {
             ...cfg,
             last_fuel_sync_at: new Date().toISOString(),
             last_fuel_sync_status: 'success',
-            last_fuel_sync_summary: `${imported} fuel transaction(s) imported, ${duplicate} duplicate(s) skipped, ${unmatched} unmatched.`,
+            last_fuel_sync_summary: `${imported} fuel transaction(s) imported, ${jobMatched} matched to jobs, ${jobUnmatched} no job assignment, ${duplicate} duplicate(s) skipped, ${unmatched} unmatched vehicle.`,
           },
         });
       } catch (e) { /* non-fatal */ }
 
       return Response.json({
         ok: true,
-        message: `Fuel sync complete — ${imported} transaction(s) imported, ${duplicate} duplicate(s) skipped, ${unmatched} unmatched.`,
+        message: `Fuel sync complete — ${imported} transaction(s) imported, ${jobMatched} matched to jobs, ${jobUnmatched} no job assignment, ${duplicate} duplicate(s) skipped, ${unmatched} unmatched vehicle.`,
         imported,
+        jobMatched,
+        jobUnmatched,
         duplicate,
         unmatched,
         total: fuelData.length,

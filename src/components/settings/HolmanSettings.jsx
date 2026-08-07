@@ -133,6 +133,8 @@ export default function HolmanSettings() {
         ok: !!d.ok,
         msg: d.message || d.error || 'Fuel sync complete',
         imported: d.imported || 0,
+        jobMatched: d.jobMatched || 0,
+        jobUnmatched: d.jobUnmatched || 0,
         duplicate: d.duplicate || 0,
         unmatched: d.unmatched || 0,
         total: d.total || 0,
@@ -345,7 +347,7 @@ export default function HolmanSettings() {
           <h3 className="text-sm font-bold text-slate-800">Fuel Card Transactions</h3>
           <span className="ml-auto text-xs text-slate-400">Pull fuel card spend from Holman</span>
         </div>
-        <p className="text-xs text-slate-500 mb-3">Fetches fuel card transactions from Holman and creates fuel card booking records for each transaction, matched to vehicles by registration or VIN. Transactions are deduplicated by reference number, and vehicle mileage is updated from odometer readings on the fuel receipt.</p>
+        <p className="text-xs text-slate-500 mb-3">Fetches fuel card transactions from Holman and creates fuel card booking records for each transaction, matched to vehicles by registration or VIN. Each transaction is also matched to the job the vehicle was assigned to on that date (via the rota) and recorded as a fuel cost against that job for profitability tracking. Transactions are deduplicated by reference number, and vehicle mileage is updated from odometer readings on the fuel receipt.</p>
         <button onClick={handleSyncFuel} disabled={!connected || fuelSyncing}
           className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-bold hover:bg-[#1c4a12] disabled:opacity-40 transition">
           {fuelSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Fuel className="w-4 h-4" />} Sync Fuel Cards
@@ -354,11 +356,12 @@ export default function HolmanSettings() {
           <div className={`mt-3 rounded-lg px-3 py-2 text-xs ${fuelSyncResult.ok ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
             <p className="flex items-start gap-2"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> {fuelSyncResult.msg}</p>
             {fuelSyncResult.ok && fuelSyncResult.total > 0 && (
-              <div className="grid grid-cols-4 gap-2 mt-2 text-center">
+              <div className="grid grid-cols-5 gap-2 mt-2 text-center">
                 <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Total</p><p className="font-bold text-slate-700 tabular-nums">{fuelSyncResult.total}</p></div>
                 <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Imported</p><p className="font-bold text-emerald-700 tabular-nums">{fuelSyncResult.imported}</p></div>
-                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Duplicate</p><p className="font-bold text-slate-500 tabular-nums">{fuelSyncResult.duplicate}</p></div>
-                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Unmatched</p><p className="font-bold text-amber-700 tabular-nums">{fuelSyncResult.unmatched}</p></div>
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Job Matched</p><p className="font-bold text-blue-700 tabular-nums">{fuelSyncResult.jobMatched || 0}</p></div>
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">No Job</p><p className="font-bold text-amber-700 tabular-nums">{fuelSyncResult.jobUnmatched || 0}</p></div>
+                <div className="bg-white/60 rounded p-1.5"><p className="text-[9px] uppercase text-slate-500">Unmatched</p><p className="font-bold text-rose-700 tabular-nums">{fuelSyncResult.unmatched}</p></div>
               </div>
             )}
           </div>
