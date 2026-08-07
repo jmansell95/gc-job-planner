@@ -1,0 +1,244 @@
+{
+  "name": "Sample",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this sample was collected for"
+    },
+    "borehole_ref": {
+      "type": "string",
+      "description": "Borehole or pit reference the sample was taken from (e.g. BH-01, TP-03)"
+    },
+    "investigation_log_id": {
+      "type": "string",
+      "description": "Linked InvestigationLog record (the sample_collection log entry). Optional \u2014 samples can be created standalone."
+    },
+    "sample_id": {
+      "type": "string",
+      "description": "Unique sample identifier (e.g. S-01, BH01-S-003). Used as the primary reference on lab schedules and chain-of-custody documents."
+    },
+    "sample_type": {
+      "type": "string",
+      "enum": [
+        "disturbed",
+        "undisturbed_u100",
+        "undisturbed_ut100",
+        "spt_split_spoon",
+        "rotary_core",
+        "window_sample",
+        "bulk_sample",
+        "water_sample",
+        "gas_sample",
+        "hand_excavated"
+      ],
+      "description": "Type of sample collected. U100/UT100 = undisturbed 100mm diameter tube samples, SPT split spoon = SPT drive sample, rotary core = rock core, window sample = window sampler tube."
+    },
+    "depth_from": {
+      "type": "number",
+      "description": "Top depth of the sample interval in metres below ground level (mBGL)"
+    },
+    "depth_to": {
+      "type": "number",
+      "description": "Bottom depth of the sample interval in metres below ground level (mBGL)"
+    },
+    "strata_descriptor": {
+      "type": "string",
+      "description": "Soil/rock type the sample was taken from (e.g. 'Stiff grey CLAY', 'Medium dense SAND'). Free text \u2014 the standardised strata_descriptor lives on the linked InvestigationLog."
+    },
+    "collection_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the sample was collected on site"
+    },
+    "collected_by_staff_id": {
+      "type": "string",
+      "description": "Staff member who collected the sample"
+    },
+    "collected_by_name": {
+      "type": "string",
+      "description": "Name of the collector (denormalised for display)"
+    },
+    "container_type": {
+      "type": "string",
+      "enum": [
+        "bag",
+        "jar",
+        "u100_tube",
+        "spt_tube",
+        "core_box",
+        "water_bottle",
+        "gas_bag",
+        "amber_jar",
+        "other"
+      ],
+      "default": "bag",
+      "description": "Container the sample is stored in. Amber jars are used for contamination samples to prevent UV degradation."
+    },
+    "container_count": {
+      "type": "number",
+      "default": 1,
+      "description": "Number of containers for this sample (e.g. 3 core boxes, 2 jars)"
+    },
+    "storage_location": {
+      "type": "string",
+      "description": "Where the sample is currently stored (e.g. 'Site fridge', 'Lab ambient store', 'Retained \u2014 Bay 3')"
+    },
+    "storage_temperature": {
+      "type": "string",
+      "enum": [
+        "ambient",
+        "refrigerated",
+        "frozen",
+        "other"
+      ],
+      "default": "ambient",
+      "description": "Storage temperature requirement for this sample. Contamination samples often need refrigeration."
+    },
+    "lab_id": {
+      "type": "string",
+      "description": "Linked Supplier record for the laboratory processing this sample"
+    },
+    "lab_name": {
+      "type": "string",
+      "description": "Laboratory name (denormalised for display)"
+    },
+    "test_schedule": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "sieve_analysis",
+          "atterberg_limits",
+          "moisture_content",
+          "bulk_density",
+          "particle_density",
+          "triaxial_test",
+          "oedometer_test",
+          "cbr_test",
+          "unconfined_compressive_strength",
+          "point_load_test",
+          "shear_box",
+          "chemical_contamination",
+          "organic_content",
+          "sulphate_content",
+          "ph_value",
+          "petrographic_analysis",
+          "asbestos_screening",
+          "coal_tar_screening",
+          "groundwater_chemistry",
+          "gas_analysis",
+          "other"
+        ]
+      },
+      "default": [],
+      "description": "List of laboratory tests requested for this sample. Drives the lab test schedule and the LabTestResult records created when results come back."
+    },
+    "dispatch_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the sample was dispatched to the laboratory"
+    },
+    "dispatch_courier": {
+      "type": "string",
+      "description": "Courier used to transport the sample to the lab"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Courier tracking number for the dispatched sample"
+    },
+    "lab_receipt_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the laboratory confirmed receipt of the sample"
+    },
+    "lab_receipt_condition": {
+      "type": "string",
+      "enum": [
+        "good",
+        "compromised",
+        "leaked",
+        "broken",
+        "not_received"
+      ],
+      "default": "good",
+      "description": "Condition of the sample when the lab received it. 'compromised' or worse triggers a quality flag on all results from this sample."
+    },
+    "lab_receipt_note": {
+      "type": "string",
+      "description": "Note from the lab about the sample condition on receipt"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "collected",
+        "dispatched",
+        "received_at_lab",
+        "testing",
+        "results_returned",
+        "retained",
+        "disposed"
+      ],
+      "default": "collected",
+      "description": "Current position of this sample in the chain of custody. 'collected' = on site or in transit to GC office, 'dispatched' = sent to lab, 'received_at_lab' = lab confirmed receipt, 'testing' = lab is running tests, 'results_returned' = all results back, 'retained' = stored at GC or lab for retention period, 'disposed' = sample destroyed."
+    },
+    "status_changed_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last status change"
+    },
+    "retention_expiry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the sample retention period expires. After this date the sample can be disposed of. Typical retention is 1-6 months for soil, longer for contamination samples."
+    },
+    "disposal_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the sample was disposed of"
+    },
+    "disposal_method": {
+      "type": "string",
+      "enum": [
+        "landfill",
+        "hazardous_waste_facility",
+        "returned_to_client",
+        "left_on_site",
+        "not_applicable"
+      ],
+      "description": "How the sample was disposed of. Contaminated samples must go to a hazardous waste facility."
+    },
+    "chain_of_custody_signed": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the chain of custody form has been signed by both the GC representative and the lab/recipient"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about this sample"
+    }
+  },
+  "required": [
+    "job_id",
+    "sample_id",
+    "sample_type",
+    "collection_date"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

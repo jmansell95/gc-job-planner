@@ -1,0 +1,159 @@
+{
+  "name": "EquipmentCalibration",
+  "type": "object",
+  "properties": {
+    "asset_id": {
+      "type": "string",
+      "description": "Linked SiteAsset record (the equipment that was calibrated). Optional \u2014 calibration records can exist for equipment not in the asset register."
+    },
+    "asset_name": {
+      "type": "string",
+      "description": "Equipment name (denormalised from the SiteAsset for display)"
+    },
+    "serial_number": {
+      "type": "string",
+      "description": "Serial number of the calibrated equipment (denormalised from the SiteAsset)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job this calibration was performed for (if the calibration was done on site). Blank for calibrations done at the depot/lab."
+    },
+    "equipment_type": {
+      "type": "string",
+      "enum": [
+        "shear_vane",
+        "spt_auto_hammer",
+        "spt_donut_hammer",
+        "cpt_cone",
+        "pocket_penetrometer",
+        "cbr_mould",
+        "oedometer_ring",
+        "nuclear_density_gauge",
+        "dcp",
+        "mackintosh_probe",
+        "plate_load_kentledge",
+        "load_cell",
+        "pressure_gauge",
+        "dip_meter",
+        "gas_monitor",
+        "other"
+      ],
+      "description": "Type of field testing equipment calibrated. Shear vanes and SPT hammers need regular calibration per BS 1377; CPT cones need calibration per ISO 22476-1; nuclear density gauges need annual leak testing and calibration."
+    },
+    "calibration_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the calibration was carried out"
+    },
+    "next_calibration_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the next calibration is due. Drives the overdue calibration alert \u2014 equipment past this date cannot be used for accredited testing."
+    },
+    "calibration_standard": {
+      "type": "string",
+      "description": "Standard the calibration was performed to (e.g. 'BS 1377-9:2022', 'ISO 22476-1', 'UKAS procedure')"
+    },
+    "calibrated_by_company": {
+      "type": "string",
+      "description": "Company or person who performed the calibration (e.g. 'Geonor AS', 'In-Situ Testing Ltd', 'UKAS-accredited lab name')"
+    },
+    "calibrated_by_name": {
+      "type": "string",
+      "description": "Name of the individual who carried out the calibration"
+    },
+    "calibration_certificate_url": {
+      "type": "string",
+      "description": "URL of the uploaded calibration certificate PDF"
+    },
+    "calibration_certificate_name": {
+      "type": "string",
+      "description": "Original filename of the calibration certificate"
+    },
+    "calibration_result": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "conditional_pass",
+        "out_of_tolerance"
+      ],
+      "default": "pass",
+      "description": "Outcome of the calibration. 'pass' = within tolerance, 'fail' = outside tolerance and cannot be used, 'conditional_pass' = within tolerance for limited range, 'out_of_tolerance' = needs adjustment/repair."
+    },
+    "deviation_from_standard": {
+      "type": "number",
+      "description": "Measured deviation from the standard value (in the equipment's native unit). Used to track drift over time."
+    },
+    "deviation_unit": {
+      "type": "string",
+      "description": "Unit of the deviation (e.g. '%', 'kPa', 'N')"
+    },
+    "calibration_points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "reference_value": {
+            "type": "number"
+          },
+          "measured_value": {
+            "type": "number"
+          },
+          "deviation_pct": {
+            "type": "number"
+          }
+        }
+      },
+      "default": [],
+      "description": "Multi-point calibration data \u2014 reference vs measured values at each calibration point. For equipment calibrated across a range (load cells, pressure gauges)."
+    },
+    "adjustment_made": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the equipment was adjusted during calibration (e.g. zeroing a shear vane, resetting a pressure gauge)"
+    },
+    "adjustment_note": {
+      "type": "string",
+      "description": "Note describing the adjustment made during calibration"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "valid",
+        "expiring_soon",
+        "expired",
+        "failed"
+      ],
+      "default": "valid",
+      "description": "Derived calibration status. 'valid' = in date and passed, 'expiring_soon' = within 30 days of next_calibration_date, 'expired' = past due date, 'failed' = last calibration failed. Equipment with expired or failed status cannot be used for accredited testing."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about this calibration"
+    }
+  },
+  "required": [
+    "equipment_type",
+    "calibration_date",
+    "next_calibration_date"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

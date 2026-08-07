@@ -1,0 +1,166 @@
+{
+  "name": "LabTestResult",
+  "type": "object",
+  "properties": {
+    "sample_id": {
+      "type": "string",
+      "description": "ID of the Sample this result belongs to"
+    },
+    "sample_ref": {
+      "type": "string",
+      "description": "Sample reference (sample_id field from the Sample record, denormalised for display without joining)"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job this lab result belongs to"
+    },
+    "borehole_ref": {
+      "type": "string",
+      "description": "Borehole reference (denormalised from the Sample for display)"
+    },
+    "lab_name": {
+      "type": "string",
+      "description": "Laboratory that performed the test (denormalised from the Sample's linked Supplier)"
+    },
+    "test_type": {
+      "type": "string",
+      "enum": [
+        "sieve_analysis",
+        "atterberg_limits",
+        "moisture_content",
+        "bulk_density",
+        "particle_density",
+        "triaxial_test_cu",
+        "triaxial_test_cd",
+        "triaxial_test_uu",
+        "oedometer_test",
+        "cbr_test",
+        "unconfined_compressive_strength",
+        "point_load_test",
+        "shear_box_test",
+        "chemical_contamination",
+        "organic_content",
+        "sulphate_content",
+        "ph_value",
+        "petrographic_analysis",
+        "asbestos_screening",
+        "coal_tar_screening",
+        "groundwater_chemistry",
+        "gas_analysis",
+        "permeability_test",
+        "compaction_test",
+        "california_bearing_ratio",
+        "other"
+      ],
+      "description": "Type of laboratory test performed. Triaxial variants: CU = consolidated undrained, CD = consolidated drained, UU = unconsolidated undrained."
+    },
+    "test_standard": {
+      "type": "string",
+      "description": "Test standard followed (e.g. 'BS 1377-2:2022', 'ISO 17892-4', 'BS EN 1997-2'). Used to verify the test was performed to the correct specification."
+    },
+    "depth_from": {
+      "type": "number",
+      "description": "Top depth of the tested interval in metres (denormalised from the Sample)"
+    },
+    "depth_to": {
+      "type": "number",
+      "description": "Bottom depth of the tested interval in metres (denormalised from the Sample)"
+    },
+    "result_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the laboratory issued the result"
+    },
+    "result_value_primary": {
+      "type": "number",
+      "description": "Primary numeric result value (e.g. Cu peak deviator stress for triaxial, LL for Atterberg, CBR %). For multi-value tests, use result_summary for the full dataset."
+    },
+    "result_value_secondary": {
+      "type": "number",
+      "description": "Secondary numeric result (e.g. PL for Atterberg, PI derived, cell pressure for triaxial)"
+    },
+    "result_unit": {
+      "type": "string",
+      "description": "Unit of the primary result (e.g. 'kPa', '%', 'Mg/m\u00b3', 'g/cm\u00b3')"
+    },
+    "result_summary": {
+      "type": "string",
+      "description": "Text summary of the full result set. For multi-point tests (sieve curve, triaxial stages, oedometer points), this holds the complete data in a readable format. The structured values go in result_value_primary/secondary for quick display."
+    },
+    "result_file_url": {
+      "type": "string",
+      "description": "URL of the lab certificate / test report PDF uploaded by the lab"
+    },
+    "result_file_name": {
+      "type": "string",
+      "description": "Original filename of the lab certificate"
+    },
+    "passed_spec": {
+      "type": "boolean",
+      "description": "True when the result meets the project specification or typical range. Set by the reviewing engineer."
+    },
+    "spec_note": {
+      "type": "string",
+      "description": "Note explaining why the result passed or failed the spec check"
+    },
+    "review_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "reviewed",
+        "queried"
+      ],
+      "default": "pending",
+      "description": "Engineering review status. 'pending' = awaiting geotechnical engineer review, 'reviewed' = checked and accepted, 'queried' = result flagged for lab clarification."
+    },
+    "reviewed_by_engineer": {
+      "type": "string",
+      "description": "Name of the geotechnical engineer who reviewed this result"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the result was reviewed"
+    },
+    "review_note": {
+      "type": "string",
+      "description": "Engineer's review note (e.g. 'Result consistent with expected strata', 'Queried \u2014 result anomalous, requested retest')"
+    },
+    "published_to_portal": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this lab result has been published to the client portal for the client to view"
+    },
+    "published_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the result was published to the client portal"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about this lab test result"
+    }
+  },
+  "required": [
+    "sample_id",
+    "job_id",
+    "test_type",
+    "result_date"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

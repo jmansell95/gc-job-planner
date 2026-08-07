@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Mail, Save, Send, Loader2, Truck, UserCheck, Clock, Palette, RotateCcw, Eye, Sparkles, Type, Calendar, UserPlus, CalendarX, AlertTriangle, Briefcase, ClipboardCheck, Wrench, GraduationCap, Bell, ShieldCheck, Coffee, ListChecks, Flag, Receipt, Plus, Trash2, Wrench as WrenchIcon, Boxes, TrendingUp, ScrollText, FileBarChart } from 'lucide-react';
+import { Mail, Save, Send, Loader2, Truck, UserCheck, Clock, Palette, RotateCcw, Eye, Sparkles, Type, Calendar, UserPlus, CalendarX, AlertTriangle, Briefcase, ClipboardCheck, Wrench, GraduationCap, Bell, ShieldCheck, Coffee, ListChecks, Flag, Receipt, Plus, Trash2, Wrench as WrenchIcon, Boxes, TrendingUp, ScrollText, FileBarChart, FlaskConical } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import CustomTemplateModal from '@/components/settings/CustomTemplateModal';
@@ -241,6 +241,15 @@ const ALERT_META = {
     showRecipients: true,
     tokens: ['{alert_count}', '{alert_list}', '{date}'],
   },
+  geotech_alert: {
+    title: 'Geotech Data Alert',
+    desc: 'Emails admins about overdue monitoring well readings, expired/expiring equipment calibrations, compromised samples, and samples lost in transit.',
+    schedule: 'Runs automatically every day at 8:00 AM',
+    icon: FlaskConical,
+    showThreshold: false,
+    showRecipients: true,
+    tokens: ['{alert_count}', '{alert_list}', '{date}'],
+  },
 };
 
 const ACCENT_PRESETS = [
@@ -280,6 +289,7 @@ const SUBJECT_PLACEHOLDERS = {
   driver_safety_alert: 'Driver Safety Alert — Van 01 (AB12 CDE)',
   predictive_maintenance_alert: 'Predictive Maintenance Alert — 3 vehicle(s) flagged',
   inventory_alert: 'Inventory Alert — 5 item(s) need attention',
+  geotech_alert: 'Geotech Alert — 3 item(s) need attention',
 };
 
 const TEMPLATE_PLACEHOLDERS = {
@@ -309,6 +319,7 @@ const TEMPLATE_PLACEHOLDERS = {
   driver_safety_alert: 'Driver Safety Report\n\nVehicle: {vehicle_name}\nDriver: {driver_name}\nDate: {date}\n\n{event_count} safety event(s) recorded:\n\n{event_list}\n\nReview driver behaviour and take corrective action.\n\nGC Mission Control',
   predictive_maintenance_alert: 'Predictive Maintenance Report\n\nDate: {date}\n\n{vehicle_count} vehicle(s) flagged as critical or high risk:\n\n{vehicle_list}\n\nReview the Predictive Maintenance panel and schedule preventative work before breakdowns occur.\n\nGC Mission Control',
   inventory_alert: 'Inventory Alert Report\n\nDate: {date}\n\n{alert_count} item(s) need attention:\n\n{alert_list}\n\nReplenish or service these items before they impact operations.\n\nGC Mission Control',
+  geotech_alert: 'Geotechnical Data Alert\n\nDate: {date}\n\n{alert_count} item(s) need attention:\n\n{alert_list}\n\nReview these items in the Geotech tab of the relevant job.\n\nGC Mission Control',
 };
 
 function escapeHtml(s) {
@@ -473,6 +484,15 @@ function renderSampleBody(key, cfg) {
       .replace(/\{date\}/g, '2026-08-07');
     const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
     return intro + 'Driver Safety Report\n\nVehicle: Van 01 (AB12 CDE)\nDriver: John Smith\nDate: 2026-08-07\n\n3 safety event(s) recorded:\n\n' + sampleList + '\n\nReview driver behaviour and take corrective action.\n\nGC Mission Control';
+  }
+  if (key === 'geotech_alert') {
+    const sampleList = 'OVERDUE MONITORING READINGS (2):\n   • SPZ-01 (in BH-01) — due 2026-07-30\n   • GP-03 (in BH-05) — due 2026-07-28\n\nEXPIRED CALIBRATIONS (1):\n   • Shear Vane [SV-002] — expired 2026-06-15';
+    if (cfg.template) return cfg.template
+      .replace(/\{alert_count\}/g, '3')
+      .replace(/\{alert_list\}/g, sampleList)
+      .replace(/\{date\}/g, '2026-08-07');
+    const intro = cfg.intro_message ? cfg.intro_message + '\n\n' : '';
+    return intro + 'Geotechnical Data Alert\n\nDate: 2026-08-07\n\n3 item(s) need attention:\n\n' + sampleList + '\n\nReview these items in the Geotech tab of the relevant job.\n\nGC Mission Control';
   }
   // Custom templates — render with user-defined tokens (sample data for preview)
   if (key.startsWith('custom_') && cfg.template) {

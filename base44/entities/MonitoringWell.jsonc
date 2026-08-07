@@ -1,0 +1,212 @@
+{
+  "name": "MonitoringWell",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Job this monitoring well belongs to"
+    },
+    "borehole_ref": {
+      "type": "string",
+      "description": "Borehole reference this well was installed in (e.g. BH-01). Links the well to the borehole's strata log."
+    },
+    "well_reference": {
+      "type": "string",
+      "description": "Monitoring well reference (e.g. SPZ-01, GP-01, VW-03). Used on monitoring schedules and dip logs."
+    },
+    "well_type": {
+      "type": "string",
+      "enum": [
+        "standpipe_piezometer",
+        "response_piezometer",
+        "vibrating_wire_piezometer",
+        "observation_well",
+        "gas_monitoring_point",
+        "combined_groundwater_gas",
+        "settlement_plate",
+        "extensometer"
+      ],
+      "description": "Type of monitoring installation. Standpipe piezometer = simple groundwater monitoring, response piezometer = targeted response zone, vibrating wire = pore water pressure, gas monitoring point = ground gas (methane/CO2/O2)."
+    },
+    "installation_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the monitoring well was installed"
+    },
+    "installed_by_staff_id": {
+      "type": "string",
+      "description": "Staff member who installed the monitoring well"
+    },
+    "installed_by_name": {
+      "type": "string",
+      "description": "Installer name (denormalised for display)"
+    },
+    "tip_depth": {
+      "type": "number",
+      "description": "Depth of the response zone / piezometer tip in metres below ground level (mBGL)"
+    },
+    "screen_top": {
+      "type": "number",
+      "description": "Top of the well screen in metres below ground level (mBGL)"
+    },
+    "screen_bottom": {
+      "type": "number",
+      "description": "Bottom of the well screen in metres below ground level (mBGL)"
+    },
+    "response_zone_strata": {
+      "type": "string",
+      "description": "Strata the response zone / screen is installed in (e.g. 'Medium dense SAND', 'Weathered CHALK'). Determines which aquifer the well monitors."
+    },
+    "casing_diameter_mm": {
+      "type": "number",
+      "description": "Internal diameter of the well casing in millimetres (typically 19mm, 38mm, or 50mm)"
+    },
+    "casing_material": {
+      "type": "string",
+      "enum": [
+        "pvc",
+        "hdpe",
+        "steel",
+        "stainless_steel"
+      ],
+      "default": "pvc",
+      "description": "Casing material. PVC is most common; stainless steel used for contamination monitoring."
+    },
+    "gravel_pack_depth_from": {
+      "type": "number",
+      "description": "Top of the gravel pack / filter sand in metres below ground level (mBGL)"
+    },
+    "gravel_pack_depth_to": {
+      "type": "number",
+      "description": "Bottom of the gravel pack / filter sand in metres below ground level (mBGL)"
+    },
+    "gravel_pack_type": {
+      "type": "string",
+      "description": "Type of gravel / filter sand used (e.g. '10mm washed pea gravel', '2-5mm silica sand')"
+    },
+    "bentonite_seal_depth_from": {
+      "type": "number",
+      "description": "Top of the bentonite seal in metres below ground level (mBGL)"
+    },
+    "bentonite_seal_depth_to": {
+      "type": "number",
+      "description": "Bottom of the bentonite seal in metres below ground level (mBGL)"
+    },
+    "headworks_type": {
+      "type": "string",
+      "enum": [
+        "flush_gladed",
+        "raised_guard_pipe",
+        "gas_tap_headworks",
+        "lockable_cover",
+        "road_bollard"
+      ],
+      "description": "Type of headworks (top of well). Flush = below ground level with a cover, raised = above ground with a guard pipe, gas tap = for gas monitoring."
+    },
+    "headworks_locked": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the headworks cover is lockable and locked. Required for long-term monitoring in public areas."
+    },
+    "ground_level": {
+      "type": "number",
+      "description": "Ground level at the well location in metres above Ordnance Datum (mAOD) \u2014 used to convert dip readings to mAOD for cross-well comparison."
+    },
+    "top_of_casing": {
+      "type": "number",
+      "description": "Elevation of the top of the casing (TOC) in metres above Ordnance Datum (mAOD). Dip readings are measured from TOC and converted to mAOD using this value."
+    },
+    "casing_stickup": {
+      "type": "number",
+      "description": "Height of the casing above ground level in metres (for raised headworks). Used to calculate top_of_casing from ground_level."
+    },
+    "monitoring_type": {
+      "type": "string",
+      "enum": [
+        "groundwater",
+        "ground_gas",
+        "combined",
+        "pore_water_pressure",
+        "settlement"
+      ],
+      "default": "groundwater",
+      "description": "What this well monitors. 'groundwater' = water level only, 'ground_gas' = methane/CO2/O2, 'combined' = both, 'pore_water_pressure' = vibrating wire piezometer, 'settlement' = settlement plate."
+    },
+    "monitoring_frequency_days": {
+      "type": "number",
+      "description": "How often the well should be monitored, in days (e.g. 7 = weekly, 30 = monthly). Drives the monitoring schedule and missed-reading alerts."
+    },
+    "monitoring_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the monitoring programme starts for this well"
+    },
+    "monitoring_end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the monitoring programme ends for this well. After this date the well can be decommissioned."
+    },
+    "last_reading_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the most recent monitoring reading (denormalised from InvestigationLog standpipe_reading entries for quick display)"
+    },
+    "last_reading_value": {
+      "type": "number",
+      "description": "Most recent reading value (denormalised for quick display). For groundwater: metres below TOC. For gas: % or %LEL."
+    },
+    "next_reading_due": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the next monitoring reading is due (calculated from last_reading_date + monitoring_frequency_days). Drives the overdue-reading alert."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "dormant",
+        "decommissioned",
+        "damaged"
+      ],
+      "default": "active",
+      "description": "Well status. 'active' = being monitored, 'dormant' = monitoring paused, 'decommissioned' = permanently backfilled and sealed, 'damaged' = needs repair before monitoring can resume."
+    },
+    "decommissioned_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the well was permanently decommissioned (backfilled and sealed)"
+    },
+    "decommissioning_method": {
+      "type": "string",
+      "description": "Method used to decommission the well (e.g. 'Bentonite pellets to full depth', 'Cement-bentonite grout pumped')"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about this monitoring well"
+    }
+  },
+  "required": [
+    "job_id",
+    "well_reference",
+    "well_type",
+    "installation_date"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

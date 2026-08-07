@@ -6,7 +6,7 @@ import {
   Boxes, PoundSterling, FolderOpen, FileText, Eye, Download, Activity, Mountain,
   LayoutGrid, CalendarDays, ShieldCheck, Users, Briefcase, Truck, User, HardHat,
   Phone, MapPin, Send, CheckCircle2, UsersRound, CalendarClock, Ruler, StickyNote, Hotel, ArrowRightLeft,
-  Camera, Clock
+  Camera, Clock, FlaskConical
 } from 'lucide-react';
 import { format } from 'date-fns';
 import JobLogisticsHub from '@/components/logistics/JobLogisticsHub';
@@ -35,6 +35,7 @@ import JobContextView from '@/components/JobContextView';
 import JobDependencyManager from '@/components/JobDependencyManager';
 import DrillingWeatherWidget from '@/components/DrillingWeatherWidget';
 import FloodRiskWidget from '@/components/jobs/FloodRiskWidget';
+import GeotechDataTab from '@/components/geotech/GeotechDataTab';
 import TabStatRibbon from '@/components/TabStatRibbon';
 import { getJobTypeLabel } from '@/utils/jobTeams';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -96,6 +97,7 @@ export default function JobDetailTabs({
           <TabsTrigger value="schedule" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><CalendarDays className="w-3.5 h-3.5 shrink-0" />Schedule</TabsTrigger>
           <TabsTrigger value="activity" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Activity className="w-3.5 h-3.5 shrink-0" />Site Logs</TabsTrigger>
           <TabsTrigger value="boreholes" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Mountain className="w-3.5 h-3.5 shrink-0" />Boreholes</TabsTrigger>
+          <TabsTrigger value="geotech" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><FlaskConical className="w-3.5 h-3.5 shrink-0" />Geotech</TabsTrigger>
           <TabsTrigger value="logistics" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Boxes className="w-3.5 h-3.5 shrink-0" />Logistics</TabsTrigger>
           <TabsTrigger value="compliance" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><ShieldCheck className="w-3.5 h-3.5 shrink-0" />Compliance</TabsTrigger>
           {canSeeCosts && <TabsTrigger value="subcontractors" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><ArrowRightLeft className="w-3.5 h-3.5 shrink-0" />Sub-Cons</TabsTrigger>}
@@ -213,6 +215,11 @@ export default function JobDetailTabs({
           ]}
         />
         <BoreholeDrillDown job={job} jobType={primaryType} />
+      </TabsContent>
+
+      {/* ── Geotech Data Tab (samples, lab tests, monitoring wells, calibration) ── */}
+      <TabsContent value="geotech" className="space-y-4 mt-0">
+        <GeotechDataTab job={job} allStaff={allStaff} suppliers={suppliers} assets={undefined} />
       </TabsContent>
 
       {/* ── Accommodation Tab ── */}
