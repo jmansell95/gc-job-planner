@@ -76,7 +76,6 @@ export const settingsGroups = [
       { id: 'login-branding', label: 'Login Page Customizer', icon: Palette, desc: 'Customise the staff login page — background, colours, logo, welcome text & live preview', roles: ['admin'] },
       { id: 'portal-branding', label: 'Portal Branding Editor', icon: Palette, desc: 'Customise the client portal & sub-contractor onboarding portal — welcome text, logo, colours, support contacts & live preview', roles: ['admin'] },
       { id: 'email-templates', label: 'Email Templates', icon: Mail, desc: 'Manage branded email templates for portal invitations, schedules, billing & compliance notifications with {{variable}} token support' },
-      { id: 'email-templates', label: 'Email Templates', icon: Mail, desc: 'Manage branded email templates for portal invitations, schedules, billing & compliance notifications with {{variable}} token support' },
       { id: 'email-alerts', label: 'Email Alerts', icon: Mail, desc: 'Edit templates, recipients and timing for each automated email' },
     ],
   },
