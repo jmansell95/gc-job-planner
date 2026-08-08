@@ -1,20 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { ShieldCheck, CheckCircle2, Clock, AlertTriangle, Tablet, Download, Loader2 } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, Clock, AlertTriangle, Tablet, Loader2, UploadCloud, ExternalLink, Mountain } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
 // Quick-view stat card showing the review progress of investigation logs
-// for a job. Shown on the job Overview tab so managers see QC status at a
-// glance, with a one-click OpenGround export button.
+// for a job. Shown on the job Summary tab so managers see QC status at a
+// glance, with a one-click Push to OpenGround button + last sync indicator.
 export default function LogReviewQuickStat({ job }) {
   const { toast } = useToast();
-  const [exporting, setExporting] = React.useState(false);
+  const navigate = useNavigate();
+  const [pushing, setPushing] = useState(false);
+  const [pushResult, setPushResult] = useState(null);
 
   const { data: logs = [], isLoading } = useQuery({
     queryKey: ['job-log-review-stat', job.id],
     queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job.id }),
   });
+
+  // Check if OpenGround is configured + get last sync info
+  const { data: opengroundSettings } = useQuery({
+    queryKey: ['openground-config-quickstat'],
+    queryFn: () => base44.entities.AppSetting.filter({ key: 'openground_config' }, '-created_date', 1),
+  });
+
+  const opengroundCfg = opengroundSettings?.[0]?.value || {};
+  const opengroundConnected = !!(opengroundCfg.client_id && opengroundCfg.client_secret);
+  const lastSyncAt = opengroundCfg.last_sync_at;
+  const lastSyncStatus = opengroundCfg.last_sync_status;
+  const lastSyncSummary = opengroundCfg.last_sync_summary;
 
   const pending = logs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
   const approved = logs.filter(l => l.manager_review_status === 'approved').length;
@@ -22,26 +37,26 @@ export default function LogReviewQuickStat({ job }) {
   const agsImported = logs.filter(l => l.source === 'ags_import').length;
   const total = logs.length;
   const pct = total > 0 ? Math.round((approved / total) * 100) : 0;
+  const boreholeCount = [...new Set(logs.filter(l => l.manager_review_status === 'approved' && l.borehole_ref).map(l => l.borehole_ref))].length;
 
-  const handleExport = async () => {
-    setExporting(true);
+  const handlePush = async () => {
+    setPushing(true);
+    setPushResult(null);
     try {
-      const fileName = `${(job.name || job.id).replace(/[^a-zA-Z0-9-_]/g, '_')}_OpenGround_${new Date().toISOString().slice(0, 10)}.ags`;
-      const response = await base44.functions.invoke('generateJobAGSExport', { job_id: job.id });
-      const text = typeof response.data === 'string' ? response.data : await response.data?.text();
-      if (!text) throw new Error('Empty export');
-      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast({ title: 'AGS file downloaded for OpenGround' });
+      const res = await base44.functions.invoke('syncOpenGround', { job_id: job.id });
+      const d = res.data || res;
+      setPushResult({
+        ok: !!d.ok,
+        msg: d.message || d.error || 'Push complete',
+        logs: d.logs_pushed || 0,
+        boreholes: d.boreholes || 0,
+      });
+      if (d.ok) toast({ title: `${d.logs_pushed} logs pushed to OpenGround`, duration: 3000 });
     } catch (e) {
-      toast({ title: e?.response?.data?.error || 'Export failed', variant: 'destructive' });
+      const d = e.response?.data || e;
+      setPushResult({ ok: false, msg: d.error || d.message || e.message || 'Push failed' });
     }
-    setExporting(false);
+    setPushing(false);
   };
 
   if (isLoading) {
@@ -105,17 +120,57 @@ export default function LogReviewQuickStat({ job }) {
             <AlertTriangle className="w-2.5 h-2.5" /> {queried} Queried
           </span>
         )}
+        {boreholeCount > 0 && (
+          <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
+            <Mountain className="w-2.5 h-2.5" /> {boreholeCount} Boreholes
+          </span>
+        )}
       </div>
 
-      {/* Export button — only enabled when there are approved logs */}
-      <button onClick={handleExport} disabled={approved === 0 || exporting}
-        className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
-        {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-        {exporting ? 'Building…' : 'Export to OpenGround'}
+      {/* Push to OpenGround button — only enabled when there are approved logs */}
+      <button onClick={handlePush} disabled={approved === 0 || pushing || !opengroundConnected}
+        className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] transition disabled:opacity-50 disabled:cursor-not-allowed">
+        {pushing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
+        {pushing ? 'Pushing…' : 'Push to OpenGround'}
       </button>
-      {approved === 0 && (
-        <p className="text-[11px] text-slate-400 mt-1.5 text-center">Approve logs in Log QC to enable export</p>
+
+      {/* Push result feedback */}
+      {pushResult && (
+        <div className={`mt-2 rounded-lg px-2.5 py-2 text-[11px] ${pushResult.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+          <p className="flex items-start gap-1.5">
+            {pushResult.ok ? <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> : <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />}
+            <span>{pushResult.msg}</span>
+          </p>
+          {pushResult.ok && pushResult.logs > 0 && (
+            <div className="flex gap-3 mt-1 pl-5">
+              <span><span className="font-bold tabular-nums">{pushResult.logs}</span> logs</span>
+              <span><span className="font-bold tabular-nums">{pushResult.boreholes}</span> boreholes</span>
+            </div>
+          )}
+        </div>
       )}
+
+      {/* Status messages */}
+      {approved === 0 && (
+        <p className="text-[11px] text-slate-400 mt-1.5 text-center">Approve logs in Log QC to enable push</p>
+      )}
+      {!opengroundConnected && approved > 0 && (
+        <p className="text-[11px] text-amber-600 mt-1.5 text-center">OpenGround not configured — Settings → OpenGround Sync</p>
+      )}
+
+      {/* Last sync indicator */}
+      {lastSyncAt && (
+        <div className="mt-2.5 pt-2.5 border-t border-slate-100 flex items-center gap-1.5 text-[11px] text-slate-500">
+          <span className={`w-1.5 h-1.5 rounded-full ${lastSyncStatus === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+          <span>Last push: {new Date(lastSyncAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} at {new Date(lastSyncAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+      )}
+
+      {/* Quick link to Log QC */}
+      <button onClick={() => navigate('/compliance')}
+        className="mt-2 w-full inline-flex items-center justify-center gap-1 text-[11px] text-slate-500 hover:text-[#2E5A1A] font-medium transition">
+        Review logs in Log QC <ExternalLink className="w-3 h-3" />
+      </button>
     </div>
   );
 }
