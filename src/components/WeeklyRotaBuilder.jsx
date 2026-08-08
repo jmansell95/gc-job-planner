@@ -98,7 +98,11 @@ export default function WeeklyRotaBuilder() {
     members: filteredStaff.filter(s => {
       const team = teams.find(t => t.id === s.team_id);
       const cat = team?.category;
-      if (g.key === 'unassigned') return !cat;
+      // Agency workers and subcontractors without a depot/management team
+      // are treated as field team staff so managers see them on the rota.
+      const isExternalFieldWorker = s.worker_type === 'agency' || s.worker_type === 'subcontractor';
+      if (g.key === 'field_ops') return cat === 'field_ops' || (!cat && isExternalFieldWorker);
+      if (g.key === 'unassigned') return !cat && !isExternalFieldWorker;
       return cat === g.key;
     }),
   }));
@@ -727,8 +731,16 @@ export default function WeeklyRotaBuilder() {
                         <span className="text-emerald-700 font-bold text-xs">{member.name.charAt(0)}</span>
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium text-slate-900 text-sm whitespace-nowrap truncate">{member.name}</p>
-                        <p className="text-xs text-slate-400">{teams.find(t => t.id === member.team_id)?.name || 'Unassigned'}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium text-slate-900 text-sm whitespace-nowrap truncate">{member.name}</p>
+                          {member.worker_type === 'agency' && (
+                            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-amber-100 text-amber-700 flex-shrink-0">AGENCY</span>
+                          )}
+                          {member.worker_type === 'subcontractor' && (
+                            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-blue-100 text-blue-700 flex-shrink-0">SUBCON</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400">{teams.find(t => t.id === member.team_id)?.name || (member.worker_type === 'agency' ? 'Agency Worker' : member.worker_type === 'subcontractor' ? 'Subcontractor' : 'Unassigned')}</p>
                       </div>
                     </div>
                   </td>
