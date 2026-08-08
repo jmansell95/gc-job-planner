@@ -29,6 +29,8 @@ import AssetInventoryGrid from '@/components/assethub/AssetInventoryGrid';
 import AssetDeploymentsPanel from '@/components/assethub/AssetDeploymentsPanel';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Skeleton } from '@/components/StateViews';
+import PageHeader from '@/components/PageHeader';
+import TabBar from '@/components/TabBar';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: Boxes },
@@ -144,16 +146,19 @@ export default function AssetHub() {
   if (topTab === 'fleet') {
     return (
       <div className="space-y-4">
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">
-          <button onClick={() => setTopTab('assets')} type="button"
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${topTab === 'assets' ? 'bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
-            <Wrench className="w-4 h-4" /> Assets
-          </button>
-          <button onClick={() => setTopTab('fleet')} type="button"
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${topTab === 'fleet' ? 'bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
-            <Truck className="w-4 h-4" /> Fleet
-          </button>
-        </div>
+        <PageHeader
+          icon={Boxes}
+          title="Assets & Fleet Command"
+          subtitle="Unified inventory — Asset Panda synced + locally created · Rigs, gear, vehicles & PAT"
+        />
+        <TabBar
+          tabs={[
+            { id: 'assets', label: 'Assets', icon: Wrench },
+            { id: 'fleet', label: 'Fleet', icon: Truck },
+          ]}
+          activeTab={topTab}
+          onChange={setTopTab}
+        />
         <Vehicles />
       </div>
     );
@@ -161,29 +166,28 @@ export default function AssetHub() {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">
-        <button onClick={() => setTopTab('assets')} type="button"
-          className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm`}>
-          <Wrench className="w-4 h-4" /> Assets
-        </button>
-        <button onClick={() => setTopTab('fleet')} type="button"
-          className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition text-slate-600 hover:bg-slate-100`}>
-          <Truck className="w-4 h-4" /> Fleet
-        </button>
-      </div>
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Assets & Fleet Command</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Unified inventory — Asset Panda synced + locally created · Rigs, gear, vehicles & PAT</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => navigate('/scanner')} className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><ScanLine className="w-3.5 h-3.5" /> Tablet Scanner</button>
-          <button onClick={() => setShowBulkQR(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><QrCode className="w-3.5 h-3.5" /> Print QR Labels</button>
-          <button onClick={() => setShowSmartImport(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><ScanLine className="w-3.5 h-3.5" /> Smart Import</button>
-          <button onClick={() => setShowBulkUpload(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><Upload className="w-3.5 h-3.5" /> Bulk Upload</button>
-          <button onClick={openAdd} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><Plus className="w-3.5 h-3.5" /> Add Asset</button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Boxes}
+        title="Assets & Fleet Command"
+        subtitle="Unified inventory — Asset Panda synced + locally created · Rigs, gear, vehicles & PAT"
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={() => navigate('/scanner')} className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><ScanLine className="w-3.5 h-3.5" /> Tablet Scanner</button>
+            <button onClick={() => setShowBulkQR(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><QrCode className="w-3.5 h-3.5" /> Print QR Labels</button>
+            <button onClick={() => setShowSmartImport(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><ScanLine className="w-3.5 h-3.5" /> Smart Import</button>
+            <button onClick={() => setShowBulkUpload(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><Upload className="w-3.5 h-3.5" /> Bulk Upload</button>
+            <button onClick={openAdd} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><Plus className="w-3.5 h-3.5" /> Add Asset</button>
+          </div>
+        }
+      />
+      <TabBar
+        tabs={[
+          { id: 'assets', label: 'Assets', icon: Wrench },
+          { id: 'fleet', label: 'Fleet', icon: Truck },
+        ]}
+        activeTab={topTab}
+        onChange={setTopTab}
+      />
 
       {/* Compliance overview — dark hero-gradient so the white-text charts are readable */}
       <div className="hero-gradient rounded-2xl p-4 sm:p-5 shadow-lg">

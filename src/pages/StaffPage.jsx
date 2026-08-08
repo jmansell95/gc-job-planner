@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, CalendarX, CalendarDays, Star, UserCheck, UsersRound, Building2, HardHat, Package, Clock, Contact } from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
+import PageHeader from '@/components/PageHeader';
+import TabBar from '@/components/TabBar';
 
 export default function StaffPage() {
   const navigate = useNavigate();
@@ -22,22 +24,12 @@ export default function StaffPage() {
 
   return (
     <div className="space-y-4">
-      <div className="mb-1">
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">People & Team Management</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Manage crew members, timesheets, clients, subcontractors and suppliers</p>
-      </div>
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">
-        {tabs.map(t => {
-          const Icon = t.icon;
-          const active = tab === t.id;
-          return (
-            <button key={t.id} onClick={() => setTab(t.id)} type="button"
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${active ? 'bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
-              <Icon className="w-4 h-4" /> {t.label}
-            </button>
-          );
-        })}
-      </div>
+      <PageHeader
+        icon={Users}
+        title="People & Team Management"
+        subtitle="Manage crew members, timesheets, clients, subcontractors and suppliers"
+      />
+      <TabBar tabs={tabs} activeTab={tab} onChange={setTab} />
       {tabs.map(t => tab === t.id && (
         <SettingsPage
           key={t.id}

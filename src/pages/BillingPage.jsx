@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { PoundSterling, Receipt, FileBarChart, FileText, Banknote } from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
 import InvoiceDiscrepancyWidget from '@/components/billing/InvoiceDiscrepancyWidget';
+import PageHeader from '@/components/PageHeader';
+import TabBar from '@/components/TabBar';
 
 export default function BillingPage() {
   const navigate = useNavigate();
@@ -18,22 +20,12 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-4">
-      <div className="mb-1">
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Financial Management</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Invoicing, price lists, billing rules, custom reports & client progress reports</p>
-      </div>
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">
-        {tabs.map(t => {
-          const Icon = t.icon;
-          const active = tab === t.id;
-          return (
-            <button key={t.id} onClick={() => setTab(t.id)} type="button"
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${active ? 'bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
-              <Icon className="w-4 h-4" /> {t.label}
-            </button>
-          );
-        })}
-      </div>
+      <PageHeader
+        icon={PoundSterling}
+        title="Financial Management"
+        subtitle="Invoicing, price lists, billing rules, custom reports & client progress reports"
+      />
+      <TabBar tabs={tabs} activeTab={tab} onChange={setTab} />
       {tab === 'invoicing' && <InvoiceDiscrepancyWidget />}
       {tabs.map(t => tab === t.id && (
         <SettingsPage

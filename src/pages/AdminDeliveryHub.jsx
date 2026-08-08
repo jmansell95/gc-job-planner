@@ -13,6 +13,8 @@ import DeliveryRouteMap from '@/components/delivery/DeliveryRouteMap';
 import GoodsInPanel from '@/components/logistics/GoodsInPanel';
 import ConsumableInventoryManager from '@/components/settings/ConsumableInventoryManager';
 import { Skeleton, EmptyState } from '@/components/StateViews';
+import PageHeader from '@/components/PageHeader';
+import TabBar from '@/components/TabBar';
 
 const typeFilters = [
   { value: 'all', label: 'All Types', icon: Filter },
@@ -88,41 +90,30 @@ export default function AdminDeliveryHub() {
   }, [deliveries]);
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Logistics Hub</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Delivery board, collections, route optimisation & driver handovers</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700"><Clock className="w-3.5 h-3.5 text-slate-400" /> {stats.today} Today</span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700"><PlayCircle className="w-3.5 h-3.5 text-slate-400" /> {stats.inTransit} In Transit</span>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700"><CheckCircle2 className="w-3.5 h-3.5 text-slate-400" /> {stats.completed} Completed</span>
-          {stats.overdue > 0 && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border border-rose-200 rounded-lg text-xs font-semibold text-rose-700"><AlertTriangle className="w-3.5 h-3.5 text-rose-400" /> {stats.overdue} Overdue</span>}
-        </div>
-      </div>
-
-      {/* Tab toggle: Day Planner vs Delivery Board vs Delivery Chains vs Reconciliation */}
-      <div className="flex bg-slate-100 rounded-xl p-1 flex-wrap gap-1">
-        <button onClick={() => setTab('planner')} className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'planner' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-          <Navigation className="w-4 h-4" /> Day Planner
-        </button>
-        <button onClick={() => setTab('board')} className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'board' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-          <LayoutGrid className="w-4 h-4" /> Delivery Board
-        </button>
-        <button onClick={() => setTab('chains')} className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'chains' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-          <Link2 className="w-4 h-4" /> Delivery Chains
-        </button>
-        <button onClick={() => setTab('reconcile')} className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'reconcile' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-          <CheckCircle2 className="w-4 h-4" /> Reconcile
-        </button>
-        <button onClick={() => setTab('goods-in')} className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'goods-in' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-          <Store className="w-4 h-4" /> Goods In
-        </button>
-        <button onClick={() => setTab('stock')} className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'stock' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-          <Boxes className="w-4 h-4" /> Stock
-        </button>
-      </div>
+    <div className="space-y-4">
+      <PageHeader
+        icon={Truck}
+        title="Logistics Hub"
+        subtitle="Delivery board, collections, route optimisation & driver handovers"
+        stats={[
+          { label: 'Today', value: stats.today, icon: Clock },
+          { label: 'In Transit', value: stats.inTransit, icon: PlayCircle },
+          { label: 'Completed', value: stats.completed, icon: CheckCircle2 },
+          { label: 'Overdue', value: stats.overdue, icon: AlertTriangle },
+        ]}
+      />
+      <TabBar
+        tabs={[
+          { id: 'planner', label: 'Day Planner', icon: Navigation },
+          { id: 'board', label: 'Delivery Board', icon: LayoutGrid },
+          { id: 'chains', label: 'Delivery Chains', icon: Link2 },
+          { id: 'reconcile', label: 'Reconcile', icon: CheckCircle2 },
+          { id: 'goods-in', label: 'Goods In', icon: Store },
+          { id: 'stock', label: 'Stock', icon: Boxes },
+        ]}
+        activeTab={tab}
+        onChange={setTab}
+      />
 
       {/* Day Planner tab — plan a driver's whole day */}
       {tab === 'planner' && <DriverDayPlanner />}

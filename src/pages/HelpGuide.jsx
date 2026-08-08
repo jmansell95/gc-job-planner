@@ -8,6 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import { EmptyState, Skeleton } from '@/components/StateViews';
 import { Button } from '@/components/ui/button';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import PageHeader from '@/components/PageHeader';
 
 const categoryConfig = {
   delivery: { label: 'Deliveries', icon: Truck, color: 'text-[#2E5A1A]', bg: 'bg-[#2E5A1A]/10' },
@@ -105,38 +106,40 @@ export default function HelpGuide() {
 
   return (
     <div className="page-bg-vibrant min-h-screen">
-      {/* Header */}
-      <div className="hero-gradient relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-3 md:py-4">
-          <div className="flex items-center justify-end gap-1.5 sm:gap-2 mb-3">
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-              <button onClick={handleExportPDF} type="button"
-                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-xs sm:text-sm font-medium active:scale-95 transition touch-manipulation">
-                <Download className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Print PDF</span>
-              </button>
-              <button onClick={() => navigate(-1)} type="button"
-                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-xs sm:text-sm font-medium active:scale-95 transition touch-manipulation">
-                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Back</span>
-              </button>
-            </div>
+      <PageHeader
+        icon={HelpCircle}
+        title="Help & Guides"
+        subtitle="Search guides on deliveries, logistics, compliance, safety and more"
+        actions={
+          <div className="flex items-center gap-2">
+            <button onClick={handleExportPDF} type="button"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white text-[#2E5A1A] ring-1 ring-slate-200 text-sm font-semibold active:scale-95 transition touch-manipulation hover:bg-slate-50">
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Print PDF</span>
+            </button>
+            <button onClick={() => navigate(-1)} type="button"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white text-slate-600 ring-1 ring-slate-200 text-sm font-semibold active:scale-95 transition touch-manipulation hover:bg-slate-50">
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Back</span>
+            </button>
           </div>
+        }
+      />
+      <Breadcrumbs />
 
-          {/* Search bar */}
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search help topics…"
-              className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/90 text-slate-800 text-sm font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2E5A1A]/40 shadow-lg"
-            />
-          </div>
+      {/* Search bar */}
+      <div className="mb-4">
+        <div className="relative max-w-md">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search help topics…"
+            className="w-full pl-12 pr-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-800 text-sm font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2E5A1A]/40 shadow-sm"
+          />
         </div>
       </div>
-      <Breadcrumbs />
 
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
