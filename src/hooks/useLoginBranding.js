@@ -26,7 +26,7 @@ export function useLoginBranding() {
     secondary_color: data?.secondary_color || '#1c4a12',
     background_image_url: data?.background_image_url || '',
     overlay_opacity: data?.overlay_opacity ?? 0.75,
-    card_style: data?.card_style || 'solid',
+    card_style: data?.card_style || 'glass',
     logo_url: data?.logo_url || '',
     show_logo: data?.show_logo || false,
     welcome_title: data?.welcome_title || 'Welcome back',
