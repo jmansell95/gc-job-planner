@@ -24,6 +24,17 @@ const INTEGRATION_CONNECTED_FIELDS = {
   accounting_config: 'provider', stripe_config: 'secret_key',
 };
 
+// Settings items greyed out as "Coming Soon" — secondary/advanced features
+// that aren't core to daily Site Investigation operations. Keeps the
+// settings hub focused on what matters right now.
+const COMING_SOON_IDS = new Set([
+  'asset-manifests', 'data-exchange', 'expense-presets', 'subcon-markup',
+  'gl-mapping', 'billing-pipeline', 'billing-contracts', 'purchase-orders',
+  'financial-audit', 'job-alerts', 'login-branding', 'portal-branding',
+  'incremental-import', 'custom-fields', 'dashboard-themes', 'backup-restore',
+  'multi-currency', 'multi-company', 'asset-lifecycle', 'push-notifications',
+]);
+
 /**
  * Settings Command Hub — bold, in-your-face overview of everything configurable.
  * Big hero, prominent alerts, large visual cards grouped by domain.
@@ -150,15 +161,16 @@ export default function SettingsHubOverview({ onNavigate }) {
   return (
     <div className="space-y-5">
       {/* ── Hero — big, bold, in-your-face ── */}
-      <div className="relative overflow-hidden rounded-3xl mesh-bg shadow-2xl">
-        <div className="relative z-10 px-5 py-6 md:px-7 md:py-7">
+      <div className="relative overflow-hidden rounded-3xl bg-white border border-slate-200/80 shadow-sm">
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#2E5A1A] to-[#8DC63F]" />
+        <div className="relative z-10 px-5 py-5 md:px-7 md:py-6 pl-7">
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-14 h-14 rounded-2xl bg-white/15 ring-1 ring-white/25 flex items-center justify-center flex-shrink-0 backdrop-blur-sm shadow-lg">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-md">
               <Zap className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight">Settings Command Hub</h2>
-              <p className="text-emerald-50/90 text-sm font-medium">Full control of your site — manage everything from one place.</p>
+              <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">Settings Command Hub</h2>
+              <p className="text-slate-500 text-sm font-medium">Full control of your site — manage everything from one place.</p>
             </div>
           </div>
           {/* Big stat tiles */}
@@ -166,12 +178,12 @@ export default function SettingsHubOverview({ onNavigate }) {
             {heroStats.map(s => {
               const Icon = s.icon;
               return (
-                <div key={s.label} className="bg-white/10 backdrop-blur-md rounded-2xl px-3 py-3 ring-1 ring-white/15 hover:bg-white/15 transition">
-                  <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${s.gradient} flex items-center justify-center mb-1.5 shadow-md`}>
+                <div key={s.label} className="bg-slate-50 rounded-2xl px-3 py-3 border border-slate-100 hover:bg-slate-100 transition">
+                  <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${s.gradient} flex items-center justify-center mb-1.5 shadow-sm`}>
                     <Icon className="w-4 h-4 text-white" />
                   </div>
-                  <p className="text-[10px] font-bold text-emerald-100 uppercase tracking-wide">{s.label}</p>
-                  <p className="text-2xl font-extrabold text-white mt-0.5 tabular-nums">{s.value}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{s.label}</p>
+                  <p className="text-2xl font-extrabold text-slate-900 mt-0.5 tabular-nums">{s.value}</p>
                 </div>
               );
             })}
@@ -261,6 +273,23 @@ export default function SettingsHubOverview({ onNavigate }) {
               {group.items.map(item => {
                 const Icon = item.icon;
                 const a = accent[item.color] || accent.slate;
+                if (COMING_SOON_IDS.has(item.id)) {
+                  return (
+                    <div key={item.id} className="relative rounded-2xl p-4 overflow-hidden opacity-50 cursor-not-allowed bg-slate-50 border border-slate-200">
+                      <span className="absolute left-0 top-0 bottom-0 w-1.5 bg-slate-300"></span>
+                      <div className="flex items-center gap-3 pl-2">
+                        <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center flex-shrink-0">
+                          <Icon className="w-6 h-6 text-slate-400" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-slate-400 truncate">{item.label}</p>
+                          <p className="text-xs text-slate-400 truncate">{item.sub}</p>
+                        </div>
+                        <span className="text-[9px] font-bold text-slate-400 bg-slate-200 px-2 py-1 rounded-full uppercase tracking-wide">Soon</span>
+                      </div>
+                    </div>
+                  );
+                }
                 return (
                   <button key={item.id} onClick={() => onNavigate(item.id)} className="insight-card relative rounded-2xl p-4 text-left group overflow-hidden">
                     <span className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${a.stripe}`}></span>
