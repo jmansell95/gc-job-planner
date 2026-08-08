@@ -37,6 +37,7 @@ import DrillingWeatherWidget from '@/components/DrillingWeatherWidget';
 import FloodRiskWidget from '@/components/jobs/FloodRiskWidget';
 import GeotechDataTab from '@/components/geotech/GeotechDataTab';
 import TabStatRibbon from '@/components/TabStatRibbon';
+import JobSiteManager from '@/components/jobs/JobSiteManager';
 import { getJobTypeLabel } from '@/utils/jobTeams';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -94,6 +95,7 @@ export default function JobDetailTabs({
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-sm px-1 py-2 mb-4">
         <TabsList className="flex w-full flex-nowrap overflow-x-auto no-scrollbar h-auto p-1 gap-1 justify-start sm:justify-center">
           <TabsTrigger value="context" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><LayoutGrid className="w-3.5 h-3.5 shrink-0" />Summary</TabsTrigger>
+          <TabsTrigger value="sites" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><MapPin className="w-3.5 h-3.5 shrink-0" />Sites</TabsTrigger>
           <TabsTrigger value="schedule" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><CalendarDays className="w-3.5 h-3.5 shrink-0" />Schedule</TabsTrigger>
           <TabsTrigger value="activity" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Activity className="w-3.5 h-3.5 shrink-0" />Site Logs</TabsTrigger>
           <TabsTrigger value="boreholes" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Mountain className="w-3.5 h-3.5 shrink-0" />Boreholes</TabsTrigger>
@@ -149,6 +151,11 @@ export default function JobDetailTabs({
             />
           </div>
         )}
+      </TabsContent>
+
+      {/* ── Sites Tab ── */}
+      <TabsContent value="sites" className="space-y-4 mt-0">
+        <JobSiteManager job={job} />
       </TabsContent>
 
       {/* ── Schedule Tab ── */}

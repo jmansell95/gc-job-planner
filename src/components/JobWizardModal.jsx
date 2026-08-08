@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import {
   X, ChevronLeft, ChevronRight, Check, Briefcase, CalendarDays, Users, MapPin,
   FileText, Sparkles, Loader2, FolderOpen, PoundSterling, Target, AlertTriangle,
-  HardHat, Receipt, Percent, Building2, Phone, Ruler, FileCheck2, ArrowRightLeft, LayoutTemplate,
+  HardHat, Receipt, Percent, Building2, Phone, Ruler, FileCheck2, ArrowRightLeft, LayoutTemplate, Plus,
 } from 'lucide-react';
 import ProjectSelect from '@/components/ProjectSelect';
 import SubcontractorAssignments from '@/components/SubcontractorAssignments';
@@ -48,6 +48,7 @@ const emptyForm = {
   unit_price: '', markup_percentage: '', vat_rate: 20,
   client_charge: '', client_charge_description: '',
   disciplines: [],
+  sites: [],
 };
 
 export default function JobWizardModal({ open, onClose, onCreated, editingJob }) {
@@ -390,6 +391,25 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                       onChange={(pid) => set('project_id', pid)}
                       onClientInherit={(cid) => set('client_id', form.client_id || cid)}
                     />
+                  </div>
+                  {/* Additional Sites — for jobs spanning multiple locations */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Additional Sites <span className="text-xs text-slate-400 font-normal">· for jobs spanning multiple locations</span>
+                    </label>
+                    {(form.sites || []).map((site, i) => (
+                      <div key={i} className="flex items-center gap-2 mb-2">
+                        <input type="text" value={site.name || ''} onChange={e => set('sites', (form.sites || []).map((s, idx) => idx === i ? { ...s, name: e.target.value } : s))} placeholder="Site name" className={`${inputCls} flex-1`} />
+                        <input type="text" value={site.location || ''} onChange={e => set('sites', (form.sites || []).map((s, idx) => idx === i ? { ...s, location: e.target.value } : s))} placeholder="Address" className={`${inputCls} flex-1`} />
+                        <button type="button" onClick={() => set('sites', (form.sites || []).filter((_, idx) => idx !== i))} className="p-2 text-slate-400 hover:text-red-600 transition">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => set('sites', [...(form.sites || []), { name: '', location: '', status: 'planning' }])} className="inline-flex items-center gap-1.5 text-sm text-[#2E5A1A] font-medium hover:underline">
+                      <Plus className="w-3.5 h-3.5" /> Add a site
+                    </button>
+                    <p className="text-[11px] text-slate-400 mt-1">Full site details (coordinates, dates, status) can be managed from the Sites tab after creation.</p>
                   </div>
                 </div>
               )}

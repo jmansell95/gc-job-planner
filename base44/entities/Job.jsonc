@@ -38,6 +38,61 @@
       "type": "number",
       "description": "Per-job geofence radius override (metres). When set, this radius is used instead of the global default from the geofence config. Useful for large sites that need a wider zone, or compact sites that need a tighter one."
     },
+    "sites": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Site name or reference (e.g. 'Site A', 'North Field', 'Plot 3')"
+          },
+          "location": {
+            "type": "string",
+            "description": "Site address or location description"
+          },
+          "lat": {
+            "type": "number",
+            "description": "Site latitude for geofencing, maps and weather lookups"
+          },
+          "lng": {
+            "type": "number",
+            "description": "Site longitude for geofencing, maps and weather lookups"
+          },
+          "geofence_radius_override": {
+            "type": "number",
+            "description": "Per-site geofence radius override (metres). When set, this radius is used instead of the job-level or global default."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "planning",
+              "active",
+              "completed",
+              "on_hold"
+            ],
+            "default": "planning",
+            "description": "Site-specific status. Each site within a job tracks its own lifecycle independently \u2014 Site A may be completed while Site B is still active."
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Site-specific start date. Allows staggered starts across sites within the same job."
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Site-specific end date."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Site-specific notes (access arrangements, hazards, special requirements)"
+          }
+        }
+      },
+      "default": [],
+      "description": "Multiple sites within this job. A single job can span one or more sites \u2014 each with its own location, coordinates, status and dates. The legacy location/site_lat/site_lng fields represent the primary site for backward compatibility; entries here are additional sites managed within the same job. All billing rolls up to the parent Project."
+    },
     "disciplines": {
       "type": "array",
       "items": {
