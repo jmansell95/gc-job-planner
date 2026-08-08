@@ -58,6 +58,7 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
   const [lastScan, setLastScan] = useState('');
   const [scanError, setScanError] = useState('');
   const [scannedValue, setScannedValue] = useState('');
+  const [selectedAssetId, setSelectedAssetId] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
   const [syncError, setSyncError] = useState(null);
@@ -87,16 +88,24 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
   });
   const allAssets = propAssets.length > 0 ? propAssets : fetchedAssets;
 
-  const match = useMemo(() => {
+  // Live search — compute ALL matches as the user types (in-memory, instant)
+  const matches = useMemo(() => {
     const q = scannedValue.trim().toLowerCase();
-    if (!q) return null;
-    return allAssets.find((a) => {
+    if (!q || q.length < 2) return [];
+    return allAssets.filter((a) => {
       const sn = (a.serial_number || '').toLowerCase().trim();
       const pid = (a.panda_asset_id || '').toLowerCase().trim();
       const nm = (a.name || '').toLowerCase().trim();
-      return sn === q || pid === q || nm === q || (sn && sn.includes(q)) || (pid && pid.includes(q));
-    }) || null;
+      return (sn && sn.includes(q)) || (pid && pid.includes(q)) || (nm && nm.includes(q));
+    }).slice(0, 8);
   }, [scannedValue, allAssets]);
+
+  // The actively selected asset — either user-picked, or auto-selected when exactly 1 match
+  const match = useMemo(() => {
+    if (selectedAssetId) return allAssets.find((a) => a.id === selectedAssetId) || null;
+    if (matches.length === 1) return matches[0];
+    return null;
+  }, [matches, selectedAssetId, allAssets]);
 
   // Fetch certificates (service records with certificate_url) for the matched asset
   const { data: certificates = [] } = useQuery({
@@ -112,7 +121,15 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
     enabled: !!match,
   });
 
-  // Unified scan handler — audio feedback + auto-basket
+  // Live search — fires on every keystroke (in-memory, no debounce needed)
+  const handleLiveSearch = useCallback((val) => {
+    setScannedValue(val);
+    setSelectedAssetId(null);
+    setScanError('');
+    setLastScan('');
+  }, []);
+
+  // Unified scan handler — camera scan or manual submit: audio feedback + auto-basket
   const handleScan = useCallback((val) => {
     const q = val.trim().toLowerCase();
     if (!q) return;
@@ -127,7 +144,7 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
       playSuccess();
       setLastScan(found.name);
       setScanError('');
-      // Auto-add to basket
+      setSelectedAssetId(found.id);
       setBasket((prev) => prev.find((a) => a.id === found.id) ? prev : [...prev, found]);
     } else {
       playError();
@@ -135,6 +152,16 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
       setScanError(val);
     }
   }, [allAssets]);
+
+  // User picks an asset from the live results list
+  const selectAsset = useCallback((asset) => {
+    playSuccess();
+    setLastScan(asset.name);
+    setScanError('');
+    setSelectedAssetId(asset.id);
+    setScannedValue(asset.serial_number || asset.name || '');
+    setBasket((prev) => prev.find((a) => a.id === asset.id) ? prev : [...prev, asset]);
+  }, []);
 
   const removeFromBasket = (id) => setBasket((prev) => prev.filter((a) => a.id !== id));
   const clearBasket = () => setBasket([]);
@@ -223,7 +250,7 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
 
         {/* Scanner — always at top, no mode toggle */}
         <div className="p-4 pb-2 space-y-3">
-          <BarcodeScanner onScan={handleScan} placeholder="Scan QR / type serial / search name…" autoFocus={false} />
+          <BarcodeScanner onScan={handleScan} onSearch={handleLiveSearch} placeholder="Scan QR / type serial / search name…" autoFocus={false} />
 
           {/* Config warning */}
           {!config?.group_id && (
@@ -253,8 +280,8 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
 
         {/* Content area — scrollable */}
         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
-          {/* No scan yet */}
-          {!scannedValue.trim() && (
+          {/* No scan yet / too short to search */}
+          {scannedValue.trim().length < 2 && !match && (
             <div className="text-center py-10">
               <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-3">
                 <Camera className="w-8 h-8 text-emerald-600" />
@@ -264,8 +291,34 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
             </div>
           )}
 
+          {/* Multiple matches — pick one */}
+          {scannedValue.trim() && matches.length > 1 && !match && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-500 px-1">{matches.length} matches — tap the right one</p>
+              {matches.map((a) => {
+                const tm = TYPE_META[a.asset_type] || TYPE_META.machinery;
+                const cm = COMPLIANCE_META[a.compliance_status] || COMPLIANCE_META.unknown;
+                return (
+                  <button key={a.id} onClick={() => selectAsset(a)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/50 transition active:scale-[0.98] text-left">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center border flex-shrink-0 ${tm.tint}`}>
+                      <tm.icon className="w-4.5 h-4.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-slate-900 truncate">{a.name}</p>
+                      <p className="text-xs text-slate-400 font-mono truncate">{a.serial_number || '—'}</p>
+                    </div>
+                    <div className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border flex-shrink-0 ${cm.tone}`}>
+                      <cm.Icon className="w-3 h-3" /> {cm.label}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* No match */}
-          {scannedValue.trim() && !match && (
+          {scannedValue.trim().length >= 2 && matches.length === 0 && (
             <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 text-center">
               <AlertCircle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
               <p className="text-sm font-semibold text-slate-700 mb-1">No asset matches "{scannedValue}"</p>

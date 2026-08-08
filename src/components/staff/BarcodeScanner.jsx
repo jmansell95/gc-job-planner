@@ -4,7 +4,7 @@ import { Camera, ScanLine, Keyboard, X, CheckCircle2, AlertTriangle } from 'luci
 // A lightweight barcode/QR scanner that uses the native BarcodeDetector API
 // when available (Chrome on Android), with a manual-entry fallback for iOS
 // and hardware Bluetooth scanners that act as keyboards.
-export default function BarcodeScanner({ onScan, placeholder = 'Scan or type barcode…', autoFocus = true }) {
+export default function BarcodeScanner({ onScan, onSearch, placeholder = 'Scan or type barcode…', autoFocus = true }) {
   const [mode, setMode] = useState('input'); // 'input' | 'camera'
   const [manualValue, setManualValue] = useState('');
   const [cameraActive, setCameraActive] = useState(false);
@@ -142,7 +142,10 @@ export default function BarcodeScanner({ onScan, placeholder = 'Scan or type bar
               ref={inputRef}
               type="text"
               value={manualValue}
-              onChange={e => setManualValue(e.target.value)}
+              onChange={e => {
+                setManualValue(e.target.value);
+                if (onSearch) onSearch(e.target.value);
+              }}
               placeholder={placeholder}
               className="w-full pl-11 pr-4 py-3.5 border-2 border-slate-200 rounded-xl text-base font-medium focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
             />
