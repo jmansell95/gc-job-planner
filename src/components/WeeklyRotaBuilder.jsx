@@ -83,6 +83,26 @@ export default function WeeklyRotaBuilder() {
     return true;
   });
 
+  // Group staff by team category for visual separation on the rota:
+  // Field Teams → Depot Teams → Management → Unassigned.
+  // Each group gets a coloured header row so managers can instantly see
+  // where field crews, depot staff, and management are for any given day.
+  const STAFF_GROUPS = [
+    { key: 'field_ops', label: 'Field Teams', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-300' },
+    { key: 'depot', label: 'Depot Teams', color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-300' },
+    { key: 'management', label: 'Management', color: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-300' },
+    { key: 'unassigned', label: 'Unassigned', color: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-300' },
+  ];
+  const staffByGroup = STAFF_GROUPS.map(g => ({
+    ...g,
+    members: filteredStaff.filter(s => {
+      const team = teams.find(t => t.id === s.team_id);
+      const cat = team?.category;
+      if (g.key === 'unassigned') return !cat;
+      return cat === g.key;
+    }),
+  }));
+
   const rotasByStaff = {};
   filteredStaff.forEach(s => { rotasByStaff[s.id] = Array.from({ length: days.length }, () => []); });
   rotas.forEach(rota => {
@@ -105,6 +125,7 @@ export default function WeeklyRotaBuilder() {
     if (nonJobRota) {
       if (nonJobRota.assignment_type === 'sick') return { recurring: false, label: 'Sick', type: 'sick' };
       if (nonJobRota.assignment_type === 'training') return { recurring: false, label: 'Training', type: 'training' };
+      if (nonJobRota.assignment_type === 'yard_depot') return { recurring: false, label: 'Depot', type: 'yard_depot' };
       return { recurring: false, label: 'On Leave', type: 'annual_leave' };
     }
     const leave = absences.some(a => a.staff_id === staffId && a.status === 'approved' && a.start_date <= dateStr && a.end_date >= dateStr);
@@ -300,7 +321,7 @@ export default function WeeklyRotaBuilder() {
   const goToPrevWeek = () => setSelectedWeek(prev => addDays(prev, -7));
   const goToNextWeek = () => setSelectedWeek(prev => addDays(prev, 7));
 
-  const jobRotas = rotas.filter(r => !r.assignment_type || r.assignment_type === 'job');
+  const jobRotas = rotas.filter(r => !r.assignment_type || r.assignment_type === 'job' || r.assignment_type === 'yard_depot');
   const totalAssignments = jobRotas.length;
   const staffWorking = [...new Set(jobRotas.map(r => r.staff_id))].length;
   const jobsActive = [...new Set(jobRotas.map(r => r.job_id).filter(Boolean))].length;
@@ -534,15 +555,20 @@ export default function WeeklyRotaBuilder() {
 
       {/* Today's Crew Summary — compact job-grouped view showing who's on site today */}
       {(() => {
-        const todayRotas = rotas.filter(r => r.assigned_date === todayStr && (!r.assignment_type || r.assignment_type === 'job'));
+        const todayRotas = rotas.filter(r => r.assigned_date === todayStr && (!r.assignment_type || r.assignment_type === 'job' || r.assignment_type === 'yard_depot'));
         const todayCrew = [...new Set(todayRotas.map(r => r.staff_id))];
         const todayLeave = rotas.filter(r => r.assigned_date === todayStr && r.assignment_type && r.assignment_type !== 'job');
         // Group rotas by job for a compact grouped layout
         const byJob = {};
         todayRotas.forEach(r => {
-          const jid = r.job_id || 'unassigned';
-          if (!byJob[jid]) byJob[jid] = [];
-          byJob[jid].push(r);
+          if (r.assignment_type === 'yard_depot') {
+            if (!byJob['depot']) byJob['depot'] = [];
+            byJob['depot'].push(r);
+          } else {
+            const jid = r.job_id || 'unassigned';
+            if (!byJob[jid]) byJob[jid] = [];
+            byJob[jid].push(r);
+          }
         });
         const jobGroups = Object.entries(byJob);
         return (
@@ -573,7 +599,7 @@ export default function WeeklyRotaBuilder() {
                     <div key={jid} className={`rounded-lg border ${colors.border} ${colors.bg} px-3 py-2`}>
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <span className={`w-2 h-2 rounded-full ${colors.dot}`} />
-                        <p className="text-sm font-bold text-slate-800 truncate flex-1">{job?.name || 'Unassigned'}</p>
+                        <p className="text-sm font-bold text-slate-800 truncate flex-1">{jid === 'depot' ? 'Depot Duty' : (job?.name || 'Unassigned')}</p>
                         {job?.location && <span className="hidden sm:flex items-center gap-0.5 text-xs text-slate-400 truncate max-w-[140px]"><MapPin className="w-3 h-3" />{job.location}</span>}
                         <span className="text-[10px] font-bold text-slate-500 bg-white/70 rounded-full px-1.5 py-0.5 flex-shrink-0">{group.length}</span>
                       </div>
@@ -608,7 +634,7 @@ export default function WeeklyRotaBuilder() {
       <div className="hidden lg:flex gap-2 mb-3 pl-[180px]">
         {days.map(day => {
           const dayStr = format(day, 'yyyy-MM-dd');
-          const dayRotas = rotas.filter(r => r.assigned_date === dayStr && (!r.assignment_type || r.assignment_type === 'job'));
+          const dayRotas = rotas.filter(r => r.assigned_date === dayStr && (!r.assignment_type || r.assignment_type === 'job' || r.assignment_type === 'yard_depot'));
           const dayCrew = [...new Set(dayRotas.map(r => r.staff_id))].length;
           const overlaps = dayRotas.length > 1
             ? dayRotas.filter(r => r.start_time && r.end_time && dayRotas.some(o => o.id !== r.id && o.staff_id === r.staff_id && o.start_time && o.end_time && (() => { const a = r.start_time.replace(':',''), b = r.end_time.replace(':',''), c = o.start_time.replace(':',''), d = o.end_time.replace(':',''); return a < d && c < b; })())).length
@@ -682,7 +708,18 @@ export default function WeeklyRotaBuilder() {
               </tr>
             </thead>
             <tbody>
-              {filteredStaff.map((member, idx) => (
+              {staffByGroup.map(group => (
+                <React.Fragment key={group.key}>
+                  {group.members.length > 0 && (
+                    <tr className={`border-b-2 ${group.border}`}>
+                      <td colSpan={days.length + 1} className={`px-4 py-2 ${group.bg} sticky left-0 z-10`}>
+                        <span className={`text-xs font-bold uppercase tracking-wide ${group.color}`}>
+                          {group.label} · {group.members.length}
+                        </span>
+                      </td>
+                    </tr>
+                  )}
+                  {group.members.map((member, idx) => (
                 <tr key={member.id} className={`border-b border-slate-100 transition hover:bg-emerald-50/30 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
                   <td className="px-4 py-3 sticky left-0 z-10 bg-inherit border-r border-slate-200">
                     <div className="flex items-center gap-2">
@@ -701,7 +738,7 @@ export default function WeeklyRotaBuilder() {
                     const isToday = dayStr === todayStr;
                     const ls = leaveState(member.id, dayStr);
                     return (
-                      <td key={`${member.id}-${dayIdx}`} className={`px-2 py-2 align-top min-w-[130px] ${isToday ? 'bg-emerald-50/40' : ''} ${ls ? (ls.recurring ? 'bg-slate-100/70' : 'bg-red-50/60') : ''} group/cell`}>
+                      <td key={`${member.id}-${dayIdx}`} className={`px-2 py-2 align-top min-w-[130px] ${isToday ? 'bg-emerald-50/40' : ''} ${ls ? (ls.recurring ? 'bg-slate-100/70' : ls.type === 'yard_depot' ? 'bg-amber-50/60' : 'bg-red-50/60') : ''} group/cell`}>
                         <Droppable droppableId={`${member.id}|${dayStr}`}>
                           {(provided, snapshot) => (
                             <div ref={provided.innerRef} {...provided.droppableProps}
@@ -711,6 +748,7 @@ export default function WeeklyRotaBuilder() {
                                   ls.recurring ? 'bg-slate-200 text-slate-600' :
                                   ls.type === 'sick' ? 'bg-rose-100 text-rose-600' :
                                   ls.type === 'training' ? 'bg-violet-100 text-violet-600' :
+                                  ls.type === 'yard_depot' ? 'bg-amber-100 text-amber-700' :
                                   'bg-red-100 text-red-600'
                                 }`}>
                                   {(ls.label || 'ON LEAVE').toUpperCase()}
@@ -740,6 +778,8 @@ export default function WeeklyRotaBuilder() {
                     );
                   })}
                 </tr>
+                  ))}
+                </React.Fragment>
               ))}
               {filteredStaff.length === 0 && (
                 <tr><td colSpan={days.length + 1} className="px-4 py-8 text-center text-slate-400 text-sm">
@@ -768,7 +808,7 @@ export default function WeeklyRotaBuilder() {
         ) : days.map((day) => {
           const dayStr = format(day, 'yyyy-MM-dd');
           const isToday = dayStr === todayStr;
-          const dayAssignments = rotas.filter(r => r.assigned_date === dayStr && (!r.assignment_type || r.assignment_type === 'job') && filteredStaff.some(s => s.id === r.staff_id));
+          const dayAssignments = rotas.filter(r => r.assigned_date === dayStr && (!r.assignment_type || r.assignment_type === 'job' || r.assignment_type === 'yard_depot') && filteredStaff.some(s => s.id === r.staff_id));
           return (
             <div key={dayStr} className={`bg-white rounded-xl border shadow-sm overflow-hidden ${isToday ? 'border-emerald-400 ring-1 ring-emerald-200' : 'border-slate-200'}`}>
               <div className={`px-4 py-3 flex items-center justify-between ${isToday ? 'bg-gradient-to-r from-emerald-700 to-emerald-600 text-white' : 'bg-slate-50 border-b border-slate-100'}`}>
@@ -800,7 +840,7 @@ export default function WeeklyRotaBuilder() {
                             </div>
                             <div className="min-w-0">
                               <p className="text-sm font-semibold text-slate-900 truncate">{member?.name || 'Unknown'}</p>
-                              <p className="text-xs text-slate-500 truncate font-medium">{job?.name || '—'}</p>
+                              <p className="text-xs text-slate-500 truncate font-medium">{assignment.assignment_type === 'yard_depot' ? 'Depot Duty' : (job?.name || '—')}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
