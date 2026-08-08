@@ -108,7 +108,7 @@ export default function StaffActivityBreakdown({ job, assignedStaff, primaryType
         <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
           <Activity className="w-4 h-4 text-emerald-700" />
         </div>
-        <h2 className="font-semibold text-slate-900">Staff Activity Breakdown</h2>
+        <h3 className="font-semibold text-slate-900 text-sm">Staff Activity Breakdown</h3>
         <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
           {staffWithActivity.length} {staffWithActivity.length === 1 ? 'person' : 'people'}
         </span>

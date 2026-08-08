@@ -380,7 +380,7 @@ export default function JobHotelBookings({ job, assignedStaff, allStaff }) {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <Hotel className="w-5 h-5 text-blue-600" />
-          <h2 className="font-semibold text-slate-900">Crew Accommodation</h2>
+          <h3 className="font-semibold text-slate-900 text-sm">Crew Accommodation</h3>
           <span className="ml-auto text-xs text-slate-400">Tap a row to expand details</span>
           <button onClick={handleAdd} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-xs font-semibold ml-2">
             <Plus className="w-3.5 h-3.5" /> Add Hotel

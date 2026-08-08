@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import PortalSectionManager from '@/components/PortalSectionManager';
+import { CANONICAL_APP_BASE_URL } from '@/utils/appBaseUrl';
 
 export default function PortalLinkManager({ job }) {
   const [copied, setCopied] = useState(false);
@@ -28,7 +29,7 @@ export default function PortalLinkManager({ job }) {
   const enabledSections = job.portal_sections ? Object.values(job.portal_sections).filter(Boolean).length : 10;
 
   const portalUrl = portalToken
-    ? `${window.location.origin}/client-portal/${portalToken}`
+    ? `${CANONICAL_APP_BASE_URL}/client-portal/${portalToken}`
     : null;
 
   const generateToken = () => {
@@ -112,7 +113,7 @@ export default function PortalLinkManager({ job }) {
         jobId: isContractor ? undefined : job.id,
         contractorId: isContractor ? contractor?.id : undefined,
         recipientEmail: email,
-        portalBaseUrl: window.location.origin,
+        portalBaseUrl: CANONICAL_APP_BASE_URL,
       });
       const data = res.data || {};
       if (data.ok) {
@@ -152,7 +153,7 @@ export default function PortalLinkManager({ job }) {
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
         <Link2 className="w-5 h-5 text-emerald-700" />
-        <h2 className="font-semibold text-slate-900">Portal Access</h2>
+        <h3 className="font-semibold text-slate-900 text-sm">Portal Access</h3>
         {portalEnabled && (
           <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Active

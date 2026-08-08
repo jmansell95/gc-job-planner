@@ -146,7 +146,7 @@ export default function DocumentManager({ job }) {
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
         <FileText className="w-5 h-5 text-emerald-700" />
-        <h2 className="font-semibold text-slate-900">Documents</h2>
+        <h3 className="font-semibold text-slate-900 text-sm">Documents</h3>
         <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{documents.length}</span>
       </div>
       <div className="px-5 py-4">

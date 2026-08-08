@@ -52,7 +52,7 @@ export default function MilestoneManager({ job }) {
       <div className="px-5 py-4 border-b border-slate-100">
         <div className="flex items-center gap-2 mb-3">
           <Target className="w-5 h-5 text-emerald-700" />
-          <h2 className="font-semibold text-slate-900">Milestones</h2>
+          <h3 className="font-semibold text-slate-900 text-sm">Milestones</h3>
           <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
             {completedCount}/{sorted.length}
           </span>

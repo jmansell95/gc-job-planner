@@ -14,7 +14,7 @@ export default function TabStatRibbon({ stats = [], icon: Icon, title, action })
             <Icon className="w-3.5 h-3.5 text-[#2E5A1A]" />
           </div>
         )}
-        {title && <h3 className="text-sm font-bold text-slate-900">{title}</h3>}
+        {title && <h3 className="text-sm font-semibold text-slate-900">{title}</h3>}
         {action && <div className="ml-auto">{action}</div>}
       </div>
       {stats.length > 0 && (

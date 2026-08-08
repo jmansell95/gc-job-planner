@@ -109,7 +109,7 @@ function CrewCompositionBar({ assignedStaff, rotas, contractors }) {
           <UsersRound className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-bold text-slate-900">Crew Composition</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Crew Composition</h3>
           <p className="text-xs text-slate-500">{total} {total === 1 ? 'person' : 'people'} on this job</p>
         </div>
       </div>
@@ -168,7 +168,7 @@ function SetupChecklist({ job, rotas, hotelBookings }) {
     <div className="rounded-xl p-4 bg-gradient-to-br from-slate-50 to-[#2E5A1A]/5 border border-emerald-200">
       <div className="flex items-center gap-2 mb-3">
         <CalendarClock className="w-4 h-4 text-[#2E5A1A]" />
-        <h3 className="font-bold text-slate-900 text-sm">Setup Checklist</h3>
+        <h3 className="font-semibold text-slate-900 text-sm">Setup Checklist</h3>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
         <div className={`rounded-lg p-2.5 border ${job.required_team_ids?.length > 0 ? 'border-[#2E5A1A]/20 bg-[#2E5A1A]/5' : 'border-slate-200 bg-white'}`}>
@@ -401,7 +401,7 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
                 <div className="w-7 h-7 rounded-lg stat-gradient-brand flex items-center justify-center">
                   <PoundSterling className="w-3.5 h-3.5 text-white" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900">Live Financials</h3>
+                <h3 className="text-sm font-semibold text-slate-900">Live Financials</h3>
                 <span className="ml-auto text-[10px] text-slate-400">{s.revenue_method_label || s.revenue_method || '—'}</span>
                 <button onClick={() => refetch()} disabled={isFetching} className="p-1 text-slate-400 hover:text-[#2E5A1A] transition">
                   <RefreshCw className={'w-3.5 h-3.5 ' + (isFetching ? 'animate-spin' : '')} />
@@ -486,7 +486,7 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
                 <div className="w-7 h-7 rounded-lg stat-gradient-blue flex items-center justify-center">
                   <Mountain className="w-3.5 h-3.5 text-white" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-900">Drilling Performance</h3>
+                <h3 className="text-sm font-semibold text-slate-900">Drilling Performance</h3>
                 <span className={'ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 ' + (METHOD_LABELS[dm.job_method]?.text || 'text-slate-500')}>
                   <span className={'w-1.5 h-1.5 rounded-full ' + (METHOD_LABELS[dm.job_method]?.dot || 'bg-slate-300')} />
                   {METHOD_LABELS[dm.job_method]?.full || 'Not set'}

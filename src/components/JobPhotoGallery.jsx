@@ -36,7 +36,7 @@ export default function JobPhotoGallery({ job }) {
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
         <Camera className="w-5 h-5 text-emerald-700" />
-        <h2 className="font-semibold text-slate-900">Site Photos</h2>
+        <h3 className="font-semibold text-slate-900 text-sm">Site Photos</h3>
         <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{photos.length}</span>
         {photos.length > 1 && (
           <button onClick={() => setShowTimeLapse(s => !s)}

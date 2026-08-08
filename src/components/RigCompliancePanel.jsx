@@ -142,7 +142,7 @@ export default function RigCompliancePanel({ job }) {
           <ShieldCheck className="w-4 h-4 text-white" />
         </div>
         <div>
-          <h3 className="font-bold text-slate-900 text-sm">Equipment Compliance & Certificates</h3>
+          <h3 className="font-semibold text-slate-900 text-sm">Equipment Compliance & Certificates</h3>
           <p className="text-xs text-slate-400">{assigned.length} asset{assigned.length !== 1 ? 's' : ''} · {totalCerts} certificate{totalCerts !== 1 ? 's' : ''} on file — every access is recorded</p>
         </div>
       </div>

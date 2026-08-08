@@ -287,7 +287,7 @@ export default function JobDetailTabs({
         <DocumentManager job={job} />
         {job.requisition_list_url && (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2"><FileText className="w-5 h-5 text-[#2E5A1A]" /><h2 className="font-semibold text-slate-900">Requisition List</h2></div>
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2"><FileText className="w-5 h-5 text-[#2E5A1A]" /><h3 className="font-semibold text-slate-900 text-sm">Requisition List</h3></div>
             <div className="px-5 py-4 space-y-2">
               <p className="text-sm text-slate-700 truncate">{job.requisition_list_name || 'Requisition List'}</p>
               <div className="flex gap-2">

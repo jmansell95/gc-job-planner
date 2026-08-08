@@ -21,7 +21,7 @@ export default function JobScheduleOverview({ primaryType, assignedStaff, rotas,
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><Users className="w-4 h-4 text-emerald-700" /></div>
-          <h2 className="font-semibold text-slate-900">Assigned Staff</h2>
+          <h3 className="font-semibold text-slate-900 text-sm">Assigned Staff</h3>
           <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">{assignedStaff.length} {assignedStaff.length === 1 ? 'person' : 'people'}</span>
         </div>
         {assignedStaff.length === 0 ? (
@@ -66,7 +66,7 @@ export default function JobScheduleOverview({ primaryType, assignedStaff, rotas,
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center"><Calendar className="w-4 h-4 text-blue-700" /></div>
-          <h2 className="font-semibold text-slate-900">Daily Schedule</h2>
+          <h3 className="font-semibold text-slate-900 text-sm">Daily Schedule</h3>
           <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{sortedDates.length} days</span>
         </div>
         {sortedDates.length === 0 ? (

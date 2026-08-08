@@ -103,7 +103,7 @@ export default function BoreholeDrillDown({ job, jobType }) {
       {/* Header */}
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-3 flex-wrap">
         <Mountain className="w-5 h-5 text-emerald-700" />
-        <h2 className="font-semibold text-slate-900">Borehole Data Explorer</h2>
+        <h3 className="font-semibold text-slate-900 text-sm">Borehole Data Explorer</h3>
         <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1">
           <Tablet className="w-3 h-3" /> KeyLogBook
         </span>
