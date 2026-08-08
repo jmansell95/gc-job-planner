@@ -70,6 +70,7 @@ import MultiCompanySettings from '@/components/settings/MultiCompanySettings';
 import AssetLifecycleManager from '@/components/settings/AssetLifecycleManager';
 import ZapierWebhookSettings from '@/components/settings/ZapierWebhookSettings';
 import PushNotificationSettings from '@/components/settings/PushNotificationSettings';
+import OutlookCalendarSettings from '@/components/settings/OutlookCalendarSettings';
 import IncrementalImportSettings from '@/components/settings/IncrementalImportSettings';
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
 import SettingsSidebar from '@/components/SettingsSidebar';
@@ -83,6 +84,7 @@ const INTEGRATION_IDS = new Set([
   'geotab-sync', 'holman-sync', 'asset-panda', 'bob-hr', 'concur-sync',
   'safety-culture', 'ags-import', 'cis-verification', 'payroll-export',
   'met-office', 'google-maps', 'whatsapp', 'accounting-sync', 'payment-gateway',
+  'outlook-calendar',
 ]);
 
 export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
@@ -182,6 +184,7 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'whatsapp': return <WhatsAppSettings />;
       case 'accounting-sync': return <AccountingSyncSettings />;
       case 'payment-gateway': return <PaymentGatewaySettings />;
+      case 'outlook-calendar': return <OutlookCalendarSettings />;
       case 'holiday-accrual': return <HolidayAccrualManager />;
       case 'staff-reviews': return <StaffReviewManager />;
       case 'csv-import': return <CsvBulkImport />;

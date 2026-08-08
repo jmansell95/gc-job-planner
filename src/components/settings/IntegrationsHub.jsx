@@ -5,7 +5,7 @@ import {
   Database, Satellite, Radio, Users, Landmark, ShieldAlert, FileUp,
   ShieldCheck, FileSpreadsheet, Cloud, MapPin, MessageCircle, CreditCard,
   Link2, Link2Off, ArrowRight, Search, Webhook, Sparkles, X, CheckSquare,
-  Square, Loader2,
+  Square, Loader2, Calendar,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
@@ -30,6 +30,7 @@ const INTEGRATIONS = [
   { id: 'whatsapp', name: 'WhatsApp Business', category: 'Communication', icon: MessageCircle, color: 'bg-green-100 text-green-600', settingKey: 'whatsapp_config', connectedField: 'api_token', desc: 'Push critical alerts to crew via WhatsApp Business API', defaultComingSoon: true },
   { id: 'accounting-sync', name: 'Xero / Sage', category: 'Finance', icon: FileSpreadsheet, color: 'bg-purple-100 text-purple-600', settingKey: 'accounting_config', connectedField: 'provider', desc: 'Push invoices & purchase costs to Xero or Sage accounting', defaultComingSoon: true },
   { id: 'payment-gateway', name: 'Stripe Payments', category: 'Finance', icon: CreditCard, color: 'bg-indigo-100 text-indigo-600', settingKey: 'stripe_config', connectedField: 'secret_key', desc: 'Accept client invoice payments via Stripe in the client portal', defaultComingSoon: true },
+  { id: 'outlook-calendar', name: 'Outlook Calendar', category: 'Communication', icon: Calendar, color: 'bg-blue-100 text-blue-600', settingKey: 'outlook_calendar_config', connectedField: 'client_id', desc: 'Two-way sync of staff rota assignments with their Microsoft 365 / Outlook calendar', defaultComingSoon: true },
 ];
 
 const COMING_SOON_SETTING_KEY = 'integration_coming_soon_ids';
