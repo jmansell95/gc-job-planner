@@ -168,6 +168,14 @@
       "type": "string",
       "description": "Where the asset lives when not on a job \u2014 e.g. 'Dartford Depot' (yard), a rig name, or a person. Pulled from GC Compliance Manager's location field. Used by the yard/assignment view to group yard-held equipment."
     },
+    "weight_kg": {
+      "type": "number",
+      "description": "Weight of this asset in kilograms. Used for vehicle capacity checks when booking equipment onto a delivery vehicle. Optional \u2014 leave blank if unknown."
+    },
+    "volume_m3": {
+      "type": "number",
+      "description": "Volume of this asset in cubic metres. Used for vehicle capacity checks when booking equipment onto a delivery vehicle. Optional \u2014 leave blank if unknown."
+    },
     "tooling_notes": {
       "type": "string",
       "description": "Associated tooling for this rig/equipment (e.g. casing sizes, augers, core barrels)."

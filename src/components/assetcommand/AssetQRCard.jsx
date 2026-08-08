@@ -13,6 +13,10 @@ export default function AssetQRCard({ asset }) {
 
   if (!asset) return null;
 
+  // QR encodes the serial number (or name fallback) so the Asset Lens camera
+  // can scan it and instantly match the asset. The human-readable summary is
+  // shown below for anyone scanning with a generic phone QR reader.
+  const qrData = asset.serial_number || asset.name || asset.id;
   const summary = [
     `ASSET: ${asset.name}`,
     `TYPE: ${(asset.asset_type || '').toUpperCase()}`,
@@ -22,7 +26,7 @@ export default function AssetQRCard({ asset }) {
     asset.next_service_date ? `NEXT SERVICE: ${safeFormat(asset.next_service_date, 'dd MMM yyyy')}` : '',
   ].filter(Boolean).join('\n');
 
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(summary)}`;
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(qrData)}`;
 
   const handlePrint = () => {
     const w = window.open('', '_blank', 'width=420,height=560');
@@ -43,7 +47,7 @@ export default function AssetQRCard({ asset }) {
           <div class="meta">${(asset.asset_type || '').toUpperCase()}${asset.serial_number ? ' · ' + asset.serial_number : ''}</div>
           <div class="badge">${(asset.compliance_status || 'unknown').toUpperCase()}${asset.compliance_expiry_date ? ' · EXP ' + safeFormat(asset.compliance_expiry_date, 'dd MMM yyyy') : ''}</div>
           <img src="${qrSrc}" alt="QR" />
-          <div class="meta">Ground Control · Asset Hub</div>
+          <div class="meta">Scan with Asset Lens · Ground Control</div>
         </div>
       </body></html>`);
     w.document.close();

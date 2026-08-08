@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
   Plus, Search, Boxes, ScanLine, X, TrendingUp, RefreshCw, Lock, Check,
-  CheckSquare, Upload, Database, MapPin,
+  CheckSquare, Upload, Database, MapPin, QrCode,
 } from 'lucide-react';
 import Vehicles from '@/pages/Vehicles';
 import { rollupCompliance, daysUntil } from '@/utils/rigRollup';
@@ -23,6 +23,7 @@ import DrillingEfficiencyPanel from '@/components/righub/DrillingEfficiencyPanel
 import FleetUtilizationHeatmap from '@/components/righub/FleetUtilizationHeatmap';
 import BulkAssetUpload from '@/components/righub/BulkAssetUpload';
 import SmartCertImport from '@/components/righub/SmartCertImport';
+import BulkQRPrinter from '@/components/assetcommand/BulkQRPrinter';
 import AssetInventoryGrid from '@/components/assethub/AssetInventoryGrid';
 import AssetDeploymentsPanel from '@/components/assethub/AssetDeploymentsPanel';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -55,6 +56,7 @@ export default function AssetHub() {
   const [bulkCerts, setBulkCerts] = useState(null);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showSmartImport, setShowSmartImport] = useState(false);
+  const [showBulkQR, setShowBulkQR] = useState(false);
   const [topTab, setTopTab] = useState('assets');
 
   const { data: assets = [], isLoading } = useQuery({
@@ -168,6 +170,7 @@ export default function AssetHub() {
           <p className="text-sm text-slate-500 mt-0.5">Rigs, lifting gear, machinery, trailers, vehicles & PAT — compliance tracked from Asset Panda</p>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => setShowBulkQR(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><QrCode className="w-3.5 h-3.5" /> Print QR Labels</button>
           <button onClick={() => setShowSmartImport(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><ScanLine className="w-3.5 h-3.5" /> Smart Import</button>
           <button onClick={() => setShowBulkUpload(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><Upload className="w-3.5 h-3.5" /> Bulk Upload</button>
           <button onClick={openAdd} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><Plus className="w-3.5 h-3.5" /> Add Asset</button>
@@ -326,6 +329,7 @@ export default function AssetHub() {
       )}
       {showBulkUpload && <BulkAssetUpload onClose={() => setShowBulkUpload(false)} />}
       {showSmartImport && <SmartCertImport onClose={() => setShowSmartImport(false)} />}
+      {showBulkQR && <BulkQRPrinter onClose={() => setShowBulkQR(false)} />}
     </div>
   );
 }
