@@ -5,7 +5,7 @@ import {
   X, ScanLine, Loader2, RefreshCw, CheckCircle2, AlertTriangle,
   ShieldCheck, ShieldAlert, ShieldX, Cog, Wrench, Package, Truck, Anchor,
   Database, Link2, AlertCircle, Camera, FileText, QrCode, Wrench as WrenchIcon,
-  Trash2, History, Layers, Scan,
+  Trash2, History, Layers, Scan, Clock, CalendarClock, Gauge,
 } from 'lucide-react';
 import { safeFormat } from '@/utils/format';
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
@@ -66,6 +66,7 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
   const [savingService, setSavingService] = useState(false);
   const [showScrap, setShowScrap] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showBulkHistory, setShowBulkHistory] = useState(false);
 
   const { data: config = null } = useQuery({
     queryKey: ['assetpanda-config'],
@@ -259,14 +260,22 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
                 </div>
               )}
 
-              {/* Bulk book button */}
+              {/* Bulk action buttons */}
               {basket.length > 0 && (
-                <button
-                  onClick={() => setShowBookVehicle(true)}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3.5 bg-emerald-700 text-white rounded-xl font-bold text-sm hover:bg-emerald-800 transition shadow-sm active:scale-95"
-                >
-                  <Truck className="w-5 h-5" /> Book {basket.length} to Vehicle
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setShowBulkHistory(true)}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-3.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-sm active:scale-95"
+                  >
+                    <History className="w-5 h-5" /> View History
+                  </button>
+                  <button
+                    onClick={() => setShowBookVehicle(true)}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-3.5 bg-emerald-700 text-white rounded-xl font-bold text-sm hover:bg-emerald-800 transition shadow-sm active:scale-95"
+                  >
+                    <Truck className="w-5 h-5" /> Book to Vehicle
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -319,6 +328,37 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
                     <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between text-[11px]">
                       <span className="text-slate-500 flex items-center gap-1.5"><Link2 className="w-3 h-3" /> Asset Panda</span>
                       <span className={`font-medium ${syncMeta.tone}`}>{syncMeta.label}</span>
+                    </div>
+                  </div>
+
+                  {/* Quick info strip — key stats at a glance */}
+                  <div className="grid grid-cols-3 gap-px bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
+                    <div className="bg-white px-3 py-2.5">
+                      <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-0.5 mb-1"><CalendarClock className="w-2.5 h-2.5" /> Compl.</p>
+                      <p className="text-[11px] font-bold text-slate-700 leading-tight">
+                        {match.compliance_expiry_date ? safeFormat(match.compliance_expiry_date, 'dd MMM yy') : 'Lifetime'}
+                      </p>
+                    </div>
+                    <div className="bg-white px-3 py-2.5">
+                      <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-0.5 mb-1"><Wrench className="w-2.5 h-2.5" /> Service</p>
+                      <p className="text-[11px] font-bold text-slate-700 leading-tight">
+                        {match.last_service_date ? safeFormat(match.last_service_date, 'dd MMM yy') : 'None'}
+                      </p>
+                    </div>
+                    <div className="bg-white px-3 py-2.5">
+                      <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-0.5 mb-1">
+                        {match.asset_type === 'rig' ? <Gauge className="w-2.5 h-2.5" /> : <Clock className="w-2.5 h-2.5" />} {match.asset_type === 'rig' ? 'Hours' : 'Maint.'}
+                      </p>
+                      <p className="text-[11px] font-bold leading-tight">
+                        {match.asset_type === 'rig'
+                          ? <span className="text-slate-700">{Math.round(match.operating_hours || 0)}h</span>
+                          : <span className={
+                              match.maintenance_status === 'overdue' ? 'text-red-600' :
+                              match.maintenance_status === 'due_soon' ? 'text-amber-600' :
+                              match.maintenance_status === 'ok' ? 'text-emerald-600' : 'text-slate-500'
+                            }>{(match.maintenance_status || 'unknown').replace(/_/g, ' ')}</span>
+                        }
+                      </p>
                     </div>
                   </div>
 
@@ -445,6 +485,28 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
       )}
       {showScrap && match && (
         <ScrapModal asset={match} onClose={() => setShowScrap(false)} />
+      )}
+      {showBulkHistory && basket.length > 0 && (
+        <div className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-4 pt-8 sm:pt-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowBulkHistory(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-5 py-3.5 flex items-center justify-between z-10">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <History className="w-4 h-4 text-blue-700" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900">Movement History</h3>
+                  <p className="text-[11px] text-slate-400">{basket.length} items · merged timeline</p>
+                </div>
+              </div>
+              <button onClick={() => setShowBulkHistory(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition"><X className="w-4 h-4 text-slate-500" /></button>
+            </div>
+            <div className="p-4">
+              <AssetMovementHistory assets={basket} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
