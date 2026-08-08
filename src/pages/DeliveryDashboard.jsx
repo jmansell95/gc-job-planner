@@ -113,6 +113,28 @@ export default function DeliveryDashboard() {
 
   const canPerformActions = isWithinSiteHours() || isBeforeSiteOpen() || staff?.is_admin;
 
+  // Auto-optimise the driver's route on first load if they have 2+ unoptimised
+  // active stops for today — so their day is automatically organised (first,
+  // second, third) by location without needing to click anything.
+  const [autoOptimizeRan, setAutoOptimizeRan] = useState(false);
+  useEffect(() => {
+    if (autoOptimizeRan || !staff?.id || isLoading) return;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const todaysActive = deliveries.filter(d =>
+      d.scheduled_date === todayStr &&
+      (d.status === 'pending' || d.status === 'in_progress')
+    );
+    const unoptimised = todaysActive.filter(d => !d.route_optimized_at);
+    if (unoptimised.length >= 2) {
+      setAutoOptimizeRan(true);
+      base44.functions.invoke('optimizeDailyRoute', { driver_staff_id: staff.id, date: todayStr })
+        .then(() => queryClient.invalidateQueries({ queryKey: ['my-deliveries'] }))
+        .catch(() => {/* silent — driver can retry manually */});
+    } else {
+      setAutoOptimizeRan(true);
+    }
+  }, [autoOptimizeRan, staff?.id, deliveries, isLoading, queryClient]);
+
   const handleStart = async (deliveryId) => {
     try {
       await base44.entities.DeliveryLog.update(deliveryId, {

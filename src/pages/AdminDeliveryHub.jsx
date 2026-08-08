@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Truck, Search, LayoutGrid, List, Filter, Clock, PlayCircle, CheckCircle2, AlertTriangle, ArrowRightLeft, Package, X, Link2 } from 'lucide-react';
+import { Truck, Search, LayoutGrid, List, Filter, Clock, PlayCircle, CheckCircle2, AlertTriangle, ArrowRightLeft, Package, X, Link2, Navigation } from 'lucide-react';
 import { format, isToday, isFuture, isPast } from 'date-fns';
 import DeliveryBoard from '@/components/admin/DeliveryBoard';
 import DeliveryTable from '@/components/admin/DeliveryTable';
 import RouteOptimizeBar from '@/components/delivery/RouteOptimizeBar';
 import DeliveryChainBuilder from '@/components/logistics/DeliveryChainBuilder';
+import DriverDayPlanner from '@/components/logistics/DriverDayPlanner';
 import BulkDeliveryReconciliation from '@/components/delivery/BulkDeliveryReconciliation';
 import DeliveryRouteMap from '@/components/delivery/DeliveryRouteMap';
 import { Skeleton, EmptyState } from '@/components/StateViews';
@@ -27,7 +28,7 @@ const dateFilters = [
 ];
 
 export default function AdminDeliveryHub() {
-  const [tab, setTab] = useState('board');
+  const [tab, setTab] = useState('planner');
   const [view, setView] = useState('board');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -98,18 +99,24 @@ export default function AdminDeliveryHub() {
         </div>
       </div>
 
-      {/* Tab toggle: Delivery Board vs Delivery Chains vs Reconciliation */}
-      <div className="flex bg-slate-100 rounded-xl p-1">
-        <button onClick={() => setTab('board')} className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'board' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+      {/* Tab toggle: Day Planner vs Delivery Board vs Delivery Chains vs Reconciliation */}
+      <div className="flex bg-slate-100 rounded-xl p-1 flex-wrap gap-1">
+        <button onClick={() => setTab('planner')} className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'planner' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          <Navigation className="w-4 h-4" /> Day Planner
+        </button>
+        <button onClick={() => setTab('board')} className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'board' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           <LayoutGrid className="w-4 h-4" /> Delivery Board
         </button>
-        <button onClick={() => setTab('chains')} className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'chains' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+        <button onClick={() => setTab('chains')} className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'chains' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           <Link2 className="w-4 h-4" /> Delivery Chains
         </button>
-        <button onClick={() => setTab('reconcile')} className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'reconcile' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+        <button onClick={() => setTab('reconcile')} className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'reconcile' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           <CheckCircle2 className="w-4 h-4" /> Reconcile
         </button>
       </div>
+
+      {/* Day Planner tab — plan a driver's whole day */}
+      {tab === 'planner' && <DriverDayPlanner />}
 
       {/* Chain builder tab */}
       {tab === 'chains' && <DeliveryChainBuilder />}
