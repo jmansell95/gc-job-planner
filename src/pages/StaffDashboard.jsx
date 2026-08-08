@@ -432,7 +432,7 @@ export default function StaffDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen page-bg-vibrant">
-        <div className="w-12 h-12 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-4 border-slate-200 border-t-[#2E5A1A] rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -722,34 +722,34 @@ export default function StaffDashboard() {
           <div className="grid grid-cols-2 gap-3.5">
             {staff.delivery_dashboard_enabled && (
               <button onClick={() => navigate('/deliveries')} type="button"
-                className="stat-gradient-blue rounded-2xl flex flex-col items-center gap-3 p-5 hover:scale-[1.03] active:scale-95 transition touch-manipulation glow-blue">
-                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <Truck className="w-7 h-7 text-white" />
+                className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-blue-400 hover:shadow-md active:scale-95 transition touch-manipulation">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
+                  <Truck className="w-7 h-7 text-blue-600" />
                 </div>
-                <span className="text-base font-bold text-white">Deliveries</span>
+                <span className="text-base font-bold text-slate-800">Deliveries</span>
               </button>
             )}
             <button onClick={() => navigate('/staff-profile')} type="button"
-              className="stat-gradient-violet rounded-2xl flex flex-col items-center gap-3 p-5 hover:scale-[1.03] active:scale-95 transition touch-manipulation">
-                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <UserCircle className="w-7 h-7 text-white" />
-                </div>
-                <span className="text-base font-bold text-white">Profile</span>
-              </button>
+              className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-violet-400 hover:shadow-md active:scale-95 transition touch-manipulation">
+              <div className="w-14 h-14 rounded-2xl bg-violet-50 flex items-center justify-center">
+                <UserCircle className="w-7 h-7 text-violet-600" />
+              </div>
+              <span className="text-base font-bold text-slate-800">Profile</span>
+            </button>
             <button onClick={() => setShowScheduleSummary(true)} type="button"
-              className="stat-gradient-emerald rounded-2xl flex flex-col items-center gap-3 p-5 hover:scale-[1.03] active:scale-95 transition touch-manipulation glow-emerald">
-                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <CalendarDays className="w-7 h-7 text-white" />
-                </div>
-                <span className="text-base font-bold text-white">Schedule</span>
-              </button>
+              className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-[#2E5A1A] hover:shadow-md active:scale-95 transition touch-manipulation">
+              <div className="w-14 h-14 rounded-2xl bg-[#2E5A1A]/10 flex items-center justify-center">
+                <CalendarDays className="w-7 h-7 text-[#2E5A1A]" />
+              </div>
+              <span className="text-base font-bold text-slate-800">Schedule</span>
+            </button>
             <button onClick={() => navigate('/help')} type="button"
-              className="stat-gradient-amber rounded-2xl flex flex-col items-center gap-3 p-5 hover:scale-[1.03] active:scale-95 transition touch-manipulation glow-amber">
-                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <HelpCircle className="w-7 h-7 text-white" />
-                </div>
-                <span className="text-base font-bold text-white">Help Guides</span>
-              </button>
+              className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-amber-400 hover:shadow-md active:scale-95 transition touch-manipulation">
+              <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
+                <HelpCircle className="w-7 h-7 text-amber-600" />
+              </div>
+              <span className="text-base font-bold text-slate-800">Help Guides</span>
+            </button>
           </div>
 
         </div>

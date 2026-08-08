@@ -13,23 +13,23 @@ import { useToast } from '@/components/ui/use-toast';
 // All integrations in the platform — existing + new. Each links to its
 // dedicated settings page where the admin enters API keys & webhooks.
 const INTEGRATIONS = [
-  // --- Existing (already have settings pages) ---
+  // --- Core (active by default) ---
   { id: 'geotab-sync', name: 'Geotab GPS', category: 'Fleet & Vehicles', icon: Satellite, color: 'bg-blue-100 text-blue-600', settingKey: 'geotab_config', connectedField: 'username', desc: 'Live locations + vehicle specs (make, model, year, fuel type) via Geotab API + webhook' },
   { id: 'holman-sync', name: 'Holman Fleet', category: 'Fleet & Vehicles', icon: Radio, color: 'bg-cyan-100 text-cyan-600', settingKey: 'holman_config', connectedField: 'api_key', desc: 'MOT, service dates & mileage from Holman fleet management' },
   { id: 'asset-panda', name: 'Asset Panda', category: 'Assets & Inventory', icon: Database, color: 'bg-emerald-100 text-emerald-600', settingKey: 'asset_panda_config', connectedField: 'token', desc: 'Live stock levels, warehouse locations & asset matching' },
-  { id: 'bob-hr', name: 'Bob HR (Hibob)', category: 'People & HR', icon: Users, color: 'bg-violet-100 text-violet-600', settingKey: 'bob_hr_config', connectedField: 'username', desc: 'Bidirectional time-off sync with Bob HR + webhook receiver' },
-  { id: 'concur-sync', name: 'SAP Concur', category: 'Finance', icon: Landmark, color: 'bg-indigo-100 text-indigo-600', settingKey: 'concur_config', connectedField: 'client_id', desc: 'Push approved expenses & timesheets, pull GL codes, lock synced records' },
-  { id: 'safety-culture', name: 'SafetyCulture', category: 'Safety & Compliance', icon: ShieldAlert, color: 'bg-rose-100 text-rose-600', settingKey: 'safety_culture_config', connectedField: 'api_token', desc: 'Sync site safety audits & inspection forms from iAuditor' },
   { id: 'ags-import', name: 'KeyLogBook', category: 'Geotechnical Data', icon: FileUp, color: 'bg-amber-100 text-amber-600', settingKey: 'keylogbook_config', connectedField: 'webhook_secret', desc: 'Real-time borehole & AGS data from KeyLogBook webhook' },
-  { id: 'cis-verification', name: 'HMRC CIS', category: 'Finance', icon: ShieldCheck, color: 'bg-teal-100 text-teal-600', settingKey: 'cis_config', connectedField: 'api_key', desc: 'Verify subcontractors against HMRC CIS register' },
-  { id: 'payroll-export', name: 'Payroll Export', category: 'Finance', icon: FileSpreadsheet, color: 'bg-slate-100 text-slate-600', settingKey: 'payroll_config', connectedField: 'provider', desc: 'Export approved weekly timesheets to Sage / Xero / CSV' },
-  { id: 'zapier-webhooks', name: 'Zapier / Make Webhooks', category: 'Automation', icon: Webhook, color: 'bg-orange-100 text-orange-600', settingKey: 'zapier_config', connectedField: 'webhook_url', desc: 'Register outbound webhook URLs to receive system events for no-code automation' },
-  // --- New (roadmap integrations) ---
-  { id: 'met-office', name: 'Met Office Weather', category: 'Operations', icon: Cloud, color: 'bg-sky-100 text-sky-600', settingKey: 'met_office_config', connectedField: 'api_key', desc: 'Daily weather data per site postcode — flag weather-delayed days', isNew: true },
-  { id: 'google-maps', name: 'Google Maps', category: 'Operations', icon: MapPin, color: 'bg-red-100 text-red-600', settingKey: 'google_maps_config', connectedField: 'api_key', desc: 'Geocoding for job sites + travel route optimisation', isNew: true },
-  { id: 'whatsapp', name: 'WhatsApp Business', category: 'Communication', icon: MessageCircle, color: 'bg-green-100 text-green-600', settingKey: 'whatsapp_config', connectedField: 'api_token', desc: 'Push critical alerts to crew via WhatsApp Business API', isNew: true },
-  { id: 'accounting-sync', name: 'Xero / Sage', category: 'Finance', icon: FileSpreadsheet, color: 'bg-purple-100 text-purple-600', settingKey: 'accounting_config', connectedField: 'provider', desc: 'Push invoices & purchase costs to Xero or Sage accounting', isNew: true },
-  { id: 'payment-gateway', name: 'Stripe Payments', category: 'Finance', icon: CreditCard, color: 'bg-indigo-100 text-indigo-600', settingKey: 'stripe_config', connectedField: 'secret_key', desc: 'Accept client invoice payments via Stripe in the client portal', isNew: true },
+  // --- Secondary (Coming Soon by default until connected) ---
+  { id: 'bob-hr', name: 'Bob HR (Hibob)', category: 'People & HR', icon: Users, color: 'bg-violet-100 text-violet-600', settingKey: 'bob_hr_config', connectedField: 'username', desc: 'Bidirectional time-off sync with Bob HR + webhook receiver', defaultComingSoon: true },
+  { id: 'concur-sync', name: 'SAP Concur', category: 'Finance', icon: Landmark, color: 'bg-indigo-100 text-indigo-600', settingKey: 'concur_config', connectedField: 'client_id', desc: 'Push approved expenses & timesheets, pull GL codes, lock synced records', defaultComingSoon: true },
+  { id: 'safety-culture', name: 'SafetyCulture', category: 'Safety & Compliance', icon: ShieldAlert, color: 'bg-rose-100 text-rose-600', settingKey: 'safety_culture_config', connectedField: 'api_token', desc: 'Sync site safety audits & inspection forms from iAuditor', defaultComingSoon: true },
+  { id: 'cis-verification', name: 'HMRC CIS', category: 'Finance', icon: ShieldCheck, color: 'bg-teal-100 text-teal-600', settingKey: 'cis_config', connectedField: 'api_key', desc: 'Verify subcontractors against HMRC CIS register', defaultComingSoon: true },
+  { id: 'payroll-export', name: 'Payroll Export', category: 'Finance', icon: FileSpreadsheet, color: 'bg-slate-100 text-slate-600', settingKey: 'payroll_config', connectedField: 'provider', desc: 'Export approved weekly timesheets to Sage / Xero / CSV', defaultComingSoon: true },
+  { id: 'zapier-webhooks', name: 'Zapier / Make Webhooks', category: 'Automation', icon: Webhook, color: 'bg-orange-100 text-orange-600', settingKey: 'zapier_config', connectedField: 'webhook_url', desc: 'Register outbound webhook URLs to receive system events for no-code automation', defaultComingSoon: true },
+  { id: 'met-office', name: 'Met Office Weather', category: 'Operations', icon: Cloud, color: 'bg-sky-100 text-sky-600', settingKey: 'met_office_config', connectedField: 'api_key', desc: 'Daily weather data per site postcode — flag weather-delayed days', defaultComingSoon: true },
+  { id: 'google-maps', name: 'Google Maps', category: 'Operations', icon: MapPin, color: 'bg-red-100 text-red-600', settingKey: 'google_maps_config', connectedField: 'api_key', desc: 'Geocoding for job sites + travel route optimisation', defaultComingSoon: true },
+  { id: 'whatsapp', name: 'WhatsApp Business', category: 'Communication', icon: MessageCircle, color: 'bg-green-100 text-green-600', settingKey: 'whatsapp_config', connectedField: 'api_token', desc: 'Push critical alerts to crew via WhatsApp Business API', defaultComingSoon: true },
+  { id: 'accounting-sync', name: 'Xero / Sage', category: 'Finance', icon: FileSpreadsheet, color: 'bg-purple-100 text-purple-600', settingKey: 'accounting_config', connectedField: 'provider', desc: 'Push invoices & purchase costs to Xero or Sage accounting', defaultComingSoon: true },
+  { id: 'payment-gateway', name: 'Stripe Payments', category: 'Finance', icon: CreditCard, color: 'bg-indigo-100 text-indigo-600', settingKey: 'stripe_config', connectedField: 'secret_key', desc: 'Accept client invoice payments via Stripe in the client portal', defaultComingSoon: true },
 ];
 
 const COMING_SOON_SETTING_KEY = 'integration_coming_soon_ids';
@@ -74,7 +74,7 @@ export default function IntegrationsHub({ onNavigate }) {
   };
 
   const connectedCount = INTEGRATIONS.filter(isConnected).length;
-  const comingSoonCount = comingSoonIds.size;
+  const comingSoonCount = INTEGRATIONS.filter(i => comingSoonIds.has(i.id) || (i.defaultComingSoon && !isConnected(i))).length;
 
   // Group by category
   const categories = [...new Set(INTEGRATIONS.map(i => i.category))];
@@ -91,7 +91,7 @@ export default function IntegrationsHub({ onNavigate }) {
     });
   };
 
-  const selectAllComingSoon = () => setSelected(new Set(comingSoonIds));
+  const selectAllComingSoon = () => setSelected(new Set(INTEGRATIONS.filter(i => comingSoonIds.has(i.id) || (i.defaultComingSoon && !isConnected(i))).map(i => i.id)));
 
   const saveComingSoon = async (idsToMark) => {
     setSaving(true);
@@ -188,7 +188,7 @@ export default function IntegrationsHub({ onNavigate }) {
             {group.items.map(integ => {
               const Icon = integ.icon;
               const connected = isConnected(integ);
-              const isComingSoon = comingSoonIds.has(integ.id);
+              const isComingSoon = comingSoonIds.has(integ.id) || (integ.defaultComingSoon && !connected);
               const isSelected = selected.has(integ.id);
               return (
                 <button

@@ -20,6 +20,8 @@ import YardControlWidget from '@/components/dashboard/YardControlWidget';
 import MissionControlWidget from '@/components/dashboard/MissionControlWidget';
 import PredictiveMaintenanceWidget from '@/components/vehicles/PredictiveMaintenanceWidget';
 import SiteReadinessGateWidget from '@/components/dashboard/SiteReadinessGateWidget';
+import BoreholeProgressWidget from '@/components/dashboard/BoreholeProgressWidget';
+import CrewCertificationPulseWidget from '@/components/dashboard/CrewCertificationPulseWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
@@ -90,6 +92,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const renderWidget = (widgetId) => {
     switch (widgetId) {
       case 'site-readiness-gate': return <SiteReadinessGateWidget onNavigate={onNavigate} />;
+      case 'borehole-progress': return <BoreholeProgressWidget />;
+      case 'crew-cert-pulse': return <CrewCertificationPulseWidget />;
       case 'executive-snapshot': return <ExecutiveSnapshotWidget onNavigate={onNavigate} />;
       case 'mission-control': return <MissionControlWidget onNavigate={onNavigate} />;
       case 'field-priorities': return <FieldPrioritiesWidget />;

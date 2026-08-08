@@ -54,10 +54,10 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
     { id: 'scheduling', label: 'Scheduling', icon: Calendar },
     { id: 'staff', label: 'Staff & Teams', icon: Users },
-    { id: 'logistics', label: 'Logistics', icon: Truck, comingSoon: true },
+    { id: 'logistics', label: 'Logistics', icon: Truck },
     { id: 'assets', label: 'Assets & Fleet', icon: Wrench },
     { id: 'compliance', label: 'Compliance & Audit', icon: ShieldCheck },
-    { id: 'billing', label: 'Financial Control', icon: PoundSterling, comingSoon: true },
+    { id: 'billing', label: 'Financial Control', icon: PoundSterling },
     { id: 'settings', label: 'System', icon: Settings },
   ];
 
