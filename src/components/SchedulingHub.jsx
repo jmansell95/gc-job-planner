@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import UnifiedRotaBuilder from '@/components/rota/UnifiedRotaBuilder';
 import CalendarView from '@/components/CalendarView';
 import AvailabilityHeatmap from '@/components/rota/AvailabilityHeatmap';
-import WhatIfRotaSandbox from '@/components/rota/WhatIfRotaSandbox';
-import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, Grid3x3, FlaskConical } from 'lucide-react';
+import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, Grid3x3 } from 'lucide-react';
 import { useSchedulingAssistant } from '@/components/SchedulingAssistantChat';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
@@ -43,7 +42,6 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
   const tabs = [
     { id: 'rota', label: 'Rota Builder', icon: Calendar },
     { id: 'heatmap', label: 'Availability Heatmap', icon: Grid3x3 },
-    { id: 'whatif', label: 'What-If Sandbox', icon: FlaskConical },
     { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   ];
 
@@ -78,7 +76,6 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
       </div>
       {tab === 'rota' && <UnifiedRotaBuilder />}
       {tab === 'heatmap' && <AvailabilityHeatmap />}
-      {tab === 'whatif' && <WhatIfRotaSandbox weekStart={currentWeekStart} />}
       {tab === 'calendar' && <CalendarView />}
     </div>
   );
