@@ -1,6 +1,6 @@
-import React from 'react';
-import { Users, Calendar, User, Truck, ShieldCheck, PlayCircle, CheckCircle2, MessageSquare } from 'lucide-react';
-import { format } from 'date-fns';
+import React, { useState, useMemo } from 'react';
+import { Users, Calendar, User, Truck, ShieldCheck, PlayCircle, CheckCircle2, MessageSquare, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { format, startOfWeek, addWeeks } from 'date-fns';
 import { getCrewLabel } from '@/utils/terminology';
 
 const roleLabels = {
@@ -15,6 +15,49 @@ const workerTypeBadge = {
 };
 
 export default function JobScheduleOverview({ primaryType, assignedStaff, rotas, allStaff, vehicles, rotasByDate, sortedDates }) {
+  const [expandedDays, setExpandedDays] = useState(() => new Set(sortedDates.length <= 3 ? sortedDates : []));
+  const [expandedWeeks, setExpandedWeeks] = useState({});
+
+  const toggleDay = (date) => {
+    setExpandedDays(prev => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+  };
+
+  const allExpanded = expandedDays.size === sortedDates.length;
+  const toggleAll = () => {
+    if (allExpanded) setExpandedDays(new Set());
+    else setExpandedDays(new Set(sortedDates));
+  };
+
+  // Group dates by week for a more organised, scannable layout
+  const weekGroups = useMemo(() => {
+    const groups = [];
+    const seen = {};
+    sortedDates.forEach(date => {
+      const d = new Date(date + 'T00:00:00');
+      const weekStart = startOfWeek(d, { weekStartsOn: 1 });
+      const key = format(weekStart, 'yyyy-MM-dd');
+      if (!seen[key]) {
+        seen[key] = { key, weekStart, dates: [] };
+        groups.push(seen[key]);
+      }
+      seen[key].dates.push(date);
+    });
+    return groups;
+  }, [sortedDates]);
+
+  const toggleWeek = (key) => {
+    setExpandedWeeks(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Default: expand the first week so the user sees something without clicking
+  const firstWeekKey = weekGroups[0]?.key;
+  const isWeekExpanded = (key) => expandedWeeks[key] ?? (key === firstWeekKey);
+
   return (
     <div className="space-y-6 mb-6">
       {/* Assigned Staff */}
@@ -62,74 +105,143 @@ export default function JobScheduleOverview({ primaryType, assignedStaff, rotas,
         )}
       </div>
 
-      {/* Daily Schedule */}
+      {/* Daily Schedule — collapsible, grouped by week */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
           <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center"><Calendar className="w-4 h-4 text-blue-700" /></div>
           <h3 className="font-semibold text-slate-900 text-sm">Daily Schedule</h3>
-          <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{sortedDates.length} days</span>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{sortedDates.length} {sortedDates.length === 1 ? 'day' : 'days'}</span>
+            {sortedDates.length > 0 && (
+              <button
+                onClick={toggleAll}
+                className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-slate-900 px-2 py-1 rounded-md hover:bg-slate-100 transition"
+              >
+                <ChevronsUpDown className="w-3.5 h-3.5" />
+                {allExpanded ? 'Collapse all' : 'Expand all'}
+              </button>
+            )}
+          </div>
         </div>
         {sortedDates.length === 0 ? (
           <div className="px-5 py-8 text-center text-slate-400 text-sm">No shifts scheduled yet</div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {sortedDates.map(date => {
-              const _rawDayRotas = rotasByDate[date];
-              const _seenStaff = {};
-              const dayRotas = _rawDayRotas.filter(r => {
-                if (_seenStaff[r.staff_id]) return false;
-                _seenStaff[r.staff_id] = true;
-                return true;
-              });
-              const d = new Date(date + 'T00:00:00');
+            {weekGroups.map(group => {
+              const weekOpen = isWeekExpanded(group.key);
+              const weekStart = group.weekStart;
+              const weekEnd = addWeeks(weekStart, 1);
               return (
-                <div key={date} className="px-5 py-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-semibold text-slate-900">{format(d, 'EEEE, dd MMM yyyy')}</span>
-                    <span className="text-xs text-slate-400">{dayRotas.length} {dayRotas.length === 1 ? 'person' : 'people'}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {dayRotas.map(rota => {
-                      const member = allStaff.find(s => s.id === rota.staff_id);
-                      const vehicle = vehicles.find(v => v.id === rota.vehicle_id);
-                      return (
-                        <div key={rota.id} className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <User className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="font-medium text-slate-700">{member?.name || 'Unknown'}</span>
-                            {vehicle && (
-                              <>
-                                <span className="text-slate-300">·</span>
-                                <Truck className="w-3.5 h-3.5 text-slate-400" />
-                                <span className="text-slate-500 font-mono">{vehicle.registration_number}</span>
-                              </>
-                            )}
-                            {rota.briefing_signed && (
-                              <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium ml-auto">
-                                <ShieldCheck className="w-3 h-3" /> Briefing {rota.briefing_signed_at ? format(new Date(rota.briefing_signed_at), 'HH:mm') : ''}
-                              </span>
-                            )}
-                            {rota.status === 'started' && (
-                              <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
-                                <PlayCircle className="w-3 h-3" /> Started
-                              </span>
-                            )}
-                            {rota.status === 'completed' && (
-                              <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
-                                <CheckCircle2 className="w-3 h-3" /> Done
-                              </span>
+                <div key={group.key}>
+                  {/* Week header — clickable to expand/collapse */}
+                  <button
+                    onClick={() => toggleWeek(group.key)}
+                    className="w-full px-5 py-3 flex items-center gap-2 hover:bg-slate-50 transition text-left"
+                  >
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${weekOpen ? '' : '-rotate-90'}`} />
+                    <span className="text-sm font-semibold text-slate-700">
+                      Week of {format(weekStart, 'dd MMM yyyy')}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {format(weekStart, 'dd MMM')} – {format(new Date(weekEnd.getTime() - 86400000), 'dd MMM')}
+                    </span>
+                    <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{group.dates.length} {group.dates.length === 1 ? 'day' : 'days'}</span>
+                  </button>
+
+                  {/* Days within the week */}
+                  {weekOpen && (
+                    <div className="bg-slate-50/50">
+                      {group.dates.map(date => {
+                        const _rawDayRotas = rotasByDate[date];
+                        const _seenStaff = {};
+                        const dayRotas = _rawDayRotas.filter(r => {
+                          if (_seenStaff[r.staff_id]) return false;
+                          _seenStaff[r.staff_id] = true;
+                          return true;
+                        });
+                        const d = new Date(date + 'T00:00:00');
+                        const isOpen = expandedDays.has(date);
+
+                        // Quick status summary for the collapsed row
+                        const startedCount = dayRotas.filter(r => r.status === 'started').length;
+                        const completedCount = dayRotas.filter(r => r.status === 'completed').length;
+                        const briefedCount = dayRotas.filter(r => r.briefing_signed).length;
+
+                        return (
+                          <div key={date} className="border-t border-slate-100/70">
+                            {/* Day header — clickable to expand/collapse */}
+                            <button
+                              onClick={() => toggleDay(date)}
+                              className="w-full px-5 py-3 flex items-center gap-2 hover:bg-white transition text-left"
+                            >
+                              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
+                              <span className="text-sm font-semibold text-slate-900">{format(d, 'EEEE, dd MMM yyyy')}</span>
+                              <span className="text-xs text-slate-400">{dayRotas.length} {dayRotas.length === 1 ? 'person' : 'people'}</span>
+                              <div className="ml-auto flex items-center gap-1.5 flex-wrap justify-end">
+                                {briefedCount > 0 && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">{briefedCount} briefed</span>
+                                )}
+                                {startedCount > 0 && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">{startedCount} started</span>
+                                )}
+                                {completedCount > 0 && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">{completedCount} done</span>
+                                )}
+                              </div>
+                            </button>
+
+                            {/* Expanded day details */}
+                            {isOpen && (
+                              <div className="px-5 pb-4 pt-1">
+                                <div className="flex flex-wrap gap-2">
+                                  {dayRotas.map(rota => {
+                                    const member = allStaff.find(s => s.id === rota.staff_id);
+                                    const vehicle = vehicles.find(v => v.id === rota.vehicle_id);
+                                    return (
+                                      <div key={rota.id} className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs shadow-sm">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <User className="w-3.5 h-3.5 text-slate-400" />
+                                          <span className="font-medium text-slate-700">{member?.name || 'Unknown'}</span>
+                                          {vehicle && (
+                                            <>
+                                              <span className="text-slate-300">·</span>
+                                              <Truck className="w-3.5 h-3.5 text-slate-400" />
+                                              <span className="text-slate-500 font-mono">{vehicle.registration_number}</span>
+                                            </>
+                                          )}
+                                          {rota.briefing_signed && (
+                                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium ml-auto">
+                                              <ShieldCheck className="w-3 h-3" /> Briefing {rota.briefing_signed_at ? format(new Date(rota.briefing_signed_at), 'HH:mm') : ''}
+                                            </span>
+                                          )}
+                                          {rota.status === 'started' && (
+                                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                                              <PlayCircle className="w-3 h-3" /> Started
+                                            </span>
+                                          )}
+                                          {rota.status === 'completed' && (
+                                            <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
+                                              <CheckCircle2 className="w-3 h-3" /> Done
+                                            </span>
+                                          )}
+                                        </div>
+                                        {rota.progress_notes && (
+                                          <div className="flex items-start gap-1.5 mt-1.5 pl-5">
+                                            <MessageSquare className="w-3 h-3 text-slate-400 flex-shrink-0 mt-0.5" />
+                                            <p className="text-slate-500 leading-relaxed">{rota.progress_notes}</p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             )}
                           </div>
-                          {rota.progress_notes && (
-                            <div className="flex items-start gap-1.5 mt-1.5 pl-5">
-                              <MessageSquare className="w-3 h-3 text-slate-400 flex-shrink-0 mt-0.5" />
-                              <p className="text-slate-500 leading-relaxed">{rota.progress_notes}</p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
