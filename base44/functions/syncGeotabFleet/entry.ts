@@ -145,30 +145,41 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ ok: true, message: `Connected to Geotab (${cfg.database}) as ${creds.userName}. Session active.` });
     }
 
-    // ── Fetch device list (vehicles with registration, VIN, etc.) ──
-    // When Geotab group filters are configured, only sync devices in those
-    // groups (e.g. "Geotechnical Solutions (Drilling)" + "L&W Overheads").
-    // This prevents vehicles from other divisions (e.g. "EA") that share the
-    // same Geotab database from being auto-created in this app.
-    // Supports both a single group_filter_id (legacy) and group_filter_ids (array).
+    // ── Fetch all data from Geotab in parallel ──
+    // All 6 calls are independent (they only need credentials, not each other's
+    // results), so we fire them all at once via Promise.all. This cuts total sync
+    // time from ~10s (sequential) to ~3-4s (parallel), avoiding frontend timeouts.
     const groupFilterIds: string[] = []
       .concat(cfg.group_filter_ids || [])
       .concat(cfg.group_filter_id ? [cfg.group_filter_id] : [])
       .filter((id: string, i: number, arr: string[]) => id && arr.indexOf(id) === i);
 
-    // Fetch all devices once, then filter client-side by group membership.
-    // (Geotab's groupSearch parameter doesn't reliably filter in all setups.)
-    const allDeviceRes = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        method: 'Get',
-        params: { typeName: 'Device', credentials: creds, resultsLimit: 1000 },
-      }),
-    }).catch(() => null);
-    const allDeviceJson = allDeviceRes ? await allDeviceRes.json().catch(() => null) : null;
-    const allDevices: any[] = Array.isArray(allDeviceJson?.result) ? allDeviceJson.result : [];
+    const tripFromDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const safetyFromDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
+    async function geotabGet(typeName: string, search?: any, resultsLimit = 1000): Promise<any[]> {
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'Get',
+          params: { typeName, credentials: creds, search, resultsLimit },
+        }),
+      }).catch(() => null);
+      const json = res ? await res.json().catch(() => null) : null;
+      return Array.isArray(json?.result) ? json.result : [];
+    }
+
+    const [allDevices, vehicleTypeList, statuses, allTrips, exceptions, ruleList] = await Promise.all([
+      geotabGet('Device', undefined, 1000),
+      geotabGet('VehicleType', undefined, 1000),
+      geotabGet('DeviceStatusInfo', undefined, 1000),
+      geotabGet('Trip', { fromDate: tripFromDate }, 2000),
+      geotabGet('Exception', { fromDate: safetyFromDate }, 5000),
+      geotabGet('Rule', undefined, 2000),
+    ]);
+
+    // Filter devices by group membership (client-side — Geotab's groupSearch is unreliable)
     let devices: any[];
     if (groupFilterIds.length > 0) {
       devices = allDevices.filter((d: any) =>
@@ -178,70 +189,11 @@ export default async function(req: Request): Promise<Response> {
       devices = allDevices;
     }
 
-    // ── Fetch VehicleType entities (make, model, year, fuel type) ──
-    const vehicleTypeIds = new Set<string>();
-    for (const d of devices) {
-      if (d.vehicleType?.id) vehicleTypeIds.add(d.vehicleType.id);
-    }
+    // Build vehicle type lookup map
     const vehicleTypeMap: Record<string, any> = {};
-    if (vehicleTypeIds.size > 0) {
-      const vtRes = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method: 'Get',
-          params: {
-            typeName: 'VehicleType',
-            credentials: creds,
-            resultsLimit: 1000,
-          },
-        }),
-      }).catch(() => null);
-      const vtJson = vtRes ? await vtRes.json().catch(() => null) : null;
-      const vtList: any[] = Array.isArray(vtJson?.result) ? vtJson.result : [];
-      for (const vt of vtList) {
-        vehicleTypeMap[vt.id] = vt;
-      }
+    for (const vt of vehicleTypeList) {
+      vehicleTypeMap[vt.id] = vt;
     }
-
-    // ── Fetch current device status (live locations) ──
-    // Use "Get" (not "GetFeed") for current-state queries — GetFeed is for
-    // checkpointed change streams and returns a different wrapper structure.
-    const statusRes = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        method: 'Get',
-        params: {
-          typeName: 'DeviceStatusInfo',
-          credentials: creds,
-          resultsLimit: 1000,
-        },
-      }),
-    }).catch(() => null);
-
-    const statusJson = statusRes ? await statusRes.json().catch(() => null) : null;
-    const statuses: any[] = Array.isArray(statusJson?.result) ? statusJson.result : [];
-
-    // ── Fetch latest Trips (last 24h) to pull odometer readings ──
-    // DeviceStatusInfo does NOT include odometer — it only has lat/lng/speed/bearing.
-    // Odometer comes from the Trip type's `odometer` field (in meters).
-    const tripFromDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const tripRes = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        method: 'Get',
-        params: {
-          typeName: 'Trip',
-          credentials: creds,
-          search: { fromDate: tripFromDate },
-          resultsLimit: 2000,
-        },
-      }),
-    }).catch(() => null);
-    const tripJson = tripRes ? await tripRes.json().catch(() => null) : null;
-    const allTrips: any[] = Array.isArray(tripJson?.result) ? tripJson.result : [];
 
     // Build map: device_id → latest odometer (meters) from the most recent trip
     const latestOdometerByDevice: Record<string, number> = {};
@@ -258,48 +210,10 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
-    // ── Fetch Exception events (safety telemetry: harsh braking, speeding, etc.) ──
-    // Geotab stores driver safety events as "Exception" records, each linked to
-    // a Rule (e.g. HardBrakingRule, SpeedingRule). We pull the last 30 days and
-    // aggregate counts per device so the fleet dashboard can show a driver risk
-    // score and the checkDriverSafety function can send alerts.
-    const safetyFromDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const exceptionRes = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        method: 'Get',
-        params: {
-          typeName: 'Exception',
-          credentials: creds,
-          search: { fromDate: safetyFromDate },
-          resultsLimit: 5000,
-        },
-      }),
-    }).catch(() => null);
-    const exceptionJson = exceptionRes ? await exceptionRes.json().catch(() => null) : null;
-    const exceptions: any[] = Array.isArray(exceptionJson?.result) ? exceptionJson.result : [];
-
-    // Fetch Rule entities to categorize exceptions by type (braking, speeding, etc.)
-    const ruleIds = new Set<string>();
-    for (const ex of exceptions) {
-      if (ex.rule?.id) ruleIds.add(ex.rule.id);
-    }
+    // Build rule lookup map for categorizing exceptions
     const ruleMap: Record<string, any> = {};
-    if (ruleIds.size > 0) {
-      const ruleRes = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method: 'Get',
-          params: { typeName: 'Rule', credentials: creds, resultsLimit: 2000 },
-        }),
-      }).catch(() => null);
-      const ruleJson = ruleRes ? await ruleRes.json().catch(() => null) : null;
-      const ruleList: any[] = Array.isArray(ruleJson?.result) ? ruleJson.result : [];
-      for (const r of ruleList) {
-        ruleMap[r.id] = r;
-      }
+    for (const r of ruleList) {
+      ruleMap[r.id] = r;
     }
 
     // Aggregate safety events per device

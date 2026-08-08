@@ -3,8 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
-  Plus, Search, Boxes, ScanLine, X, TrendingUp, RefreshCw, Lock, Check,
+  Cog, Wrench, Package, Truck, Anchor, Plug,
+  Plus, Search, Boxes, ScanLine, X, TrendingUp, RefreshCw, Lock,
   CheckSquare, Upload, Database, MapPin, QrCode, Trash2, CircleDot,
 } from 'lucide-react';
 import Vehicles from '@/pages/Vehicles';
@@ -122,14 +122,6 @@ export default function AssetHub() {
     { id: 'scrap', label: 'Scrap Pile', icon: Trash2 },
   ];
 
-  const headerStats = [
-    { label: 'Fleet Health', value: `${Math.round(fleetHealthPct)}%`, icon: ShieldCheck },
-    { label: 'Total Assets', value: assets.length, icon: Boxes },
-    { label: 'Panda Linked', value: pandaLinked, icon: Database },
-    { label: 'Local Only', value: localOnly, icon: CircleDot },
-    { label: 'Need Attn', value: recertCount, icon: ShieldAlert, onClick: () => setView('recert') },
-  ];
-
   const openAdd = () => { setEditorAsset(null); setEditorOpen(true); };
 
   // Bulk cert helpers
@@ -200,20 +192,6 @@ export default function AssetHub() {
             <div className="h-16 w-px bg-white/15 hidden sm:block" />
             <FleetComplianceDonut counts={fleetCounts} onSegmentClick={(k) => { setCompFilter(k); setView('inventory'); }} />
           </div>
-        </div>
-        {/* Category breakdown tiles */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-4">
-          {CATEGORIES.slice(1).map(cat => {
-            const CIcon = cat.icon;
-            const count = categoryCounts[cat.id] || 0;
-            return (
-              <button key={cat.id} onClick={() => { setCategory(cat.id); setView('inventory'); }} className="bg-white/10 hover:bg-white/20 rounded-lg p-2.5 text-center transition ring-1 ring-white/10">
-                <CIcon className="w-4 h-4 text-white/80 mx-auto mb-1" />
-                <p className="text-lg font-bold text-white tabular-nums leading-none">{count}</p>
-                <p className="text-[10px] text-white/60 font-medium mt-0.5 truncate">{cat.label}</p>
-              </button>
-            );
-          })}
         </div>
       </div>
 

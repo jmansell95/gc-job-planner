@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  Loader2, Satellite, Link2, Zap, Clock, Check, AlertTriangle, FileBarChart,
+  Loader2, Satellite, Link2, Check, AlertTriangle, FileBarChart,
 } from 'lucide-react';
 
 /**
@@ -15,15 +15,6 @@ export default function FleetSyncButtons({ liveData, onShowReport, vehicles = []
   const [geotabSyncing, setGeotabSyncing] = useState(false);
   const [holmanSyncing, setHolmanSyncing] = useState(false);
   const [result, setResult] = useState(null);
-
-  // Only count Geotab devices that match actual Vehicle records in our DB.
-  // The Geotab database can contain devices not in our system, so filtering
-  // by vehicle_id prevents inflated "tracked" counts.
-  const vehicleIds = new Set(vehicles.map(v => v.id));
-  const trackedVehicles = (liveData?.vehicles || []).filter(v => v.vehicle_id && vehicleIds.has(v.vehicle_id));
-  const trackedCount = trackedVehicles.length;
-  const movingCount = trackedVehicles.filter(v => v.ignition_on).length;
-  const stoppedCount = trackedCount - movingCount;
 
   const handleGeotabSync = async () => {
     setGeotabSyncing(true);
@@ -57,25 +48,6 @@ export default function FleetSyncButtons({ liveData, onShowReport, vehicles = []
   return (
     <div className="rounded-2xl overflow-hidden shadow-lg mb-4 mesh-bg relative">
       <div className="relative z-10 px-4 py-3 flex flex-wrap items-center gap-3">
-        {/* Live status chips */}
-        <div className="flex items-center gap-3 text-white">
-          <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-lg px-2.5 py-1.5">
-            <Satellite className="w-4 h-4" />
-            <span className="text-sm font-bold tabular-nums">{trackedCount}</span>
-            <span className="text-[10px] text-white/70 font-medium">tracked</span>
-          </div>
-          <div className="flex items-center gap-1.5 bg-emerald-500/30 backdrop-blur-sm rounded-lg px-2.5 py-1.5">
-            <Zap className="w-3.5 h-3.5 text-emerald-200" />
-            <span className="text-sm font-bold tabular-nums">{movingCount}</span>
-            <span className="text-[10px] text-white/70 font-medium">moving</span>
-          </div>
-          <div className="hidden sm:flex items-center gap-1.5 bg-white/10 backdrop-blur-sm rounded-lg px-2.5 py-1.5">
-            <Clock className="w-3.5 h-3.5 text-white/60" />
-            <span className="text-sm font-semibold tabular-nums">{stoppedCount}</span>
-            <span className="text-[10px] text-white/60 font-medium">stopped</span>
-          </div>
-        </div>
-
         <div className="flex-1" />
 
         {/* Sync buttons — bold, in-your-face */}
