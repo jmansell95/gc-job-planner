@@ -3,21 +3,32 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Truck, X, Package, Calendar, User, MapPin, Loader2, Weight,
-  AlertTriangle, PackageCheck, CheckCircle2, Navigation,
+  AlertTriangle, PackageCheck, CheckCircle2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 
 /**
- * Book to Vehicle — the logistics booking flow launched from the Asset Lens
- * after scanning an asset. Lets the user choose a destination job, a vehicle
- * (with live weight/volume capacity bars), a driver, a quantity and a date,
- * then confirms the item is loaded and creates a DeliveryLog so the driver
- * sees the delivery on their schedule.
+ * Book to Vehicle — logistics booking flow launched from the Asset Lens
+ * (single asset) or the bulk scanner (array of assets). Accepts either:
+ *   asset   — a single SiteAsset (backward compatible)
+ *   assets  — an array of SiteAsset records (bulk mode)
+ * Sums weight/volume across all assets for the vehicle capacity check,
+ * and creates a single DeliveryLog listing every item.
+ *
+ * onSuccess(result) is called after a successful booking (before onClose)
+ * so callers can clear their basket.
  */
-export default function BookToVehicleModal({ asset, onClose }) {
+export default function BookToVehicleModal({ asset, assets: propAssets, onClose, onSuccess }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Normalize to array — accept either `assets` (array) or `asset` (single)
+  const assets = useMemo(() => {
+    if (propAssets && propAssets.length > 0) return propAssets;
+    if (asset) return [asset];
+    return [];
+  }, [asset, propAssets]);
 
   const { data: vehicles = [] } = useQuery({ queryKey: ['vehicles'], queryFn: () => base44.entities.Vehicle.list() });
   const { data: staff = [] } = useQuery({ queryKey: ['staff'], queryFn: () => base44.entities.Staff.list() });
@@ -32,10 +43,7 @@ export default function BookToVehicleModal({ asset, onClose }) {
   const [jobId, setJobId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [driverStaffId, setDriverStaffId] = useState('');
-  const [quantity, setQuantity] = useState(1);
   const [scheduledDate, setScheduledDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [weightKg, setWeightKg] = useState(asset?.weight_kg || '');
-  const [volumeM3, setVolumeM3] = useState(asset?.volume_m3 || '');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -54,14 +62,15 @@ export default function BookToVehicleModal({ asset, onClose }) {
   const effectiveDriverId = driverStaffId || autoDriver?.id || '';
   const effectiveDriver = staff.find(s => s.id === effectiveDriverId);
 
-  const totalWeight = (Number(weightKg) || 0) * quantity;
-  const totalVolume = (Number(volumeM3) || 0) * quantity;
+  // Sum weight/volume across all assets in the basket
+  const totalWeight = assets.reduce((sum, a) => sum + (Number(a.weight_kg) || 0), 0);
+  const totalVolume = assets.reduce((sum, a) => sum + (Number(a.volume_m3) || 0), 0);
   const weightPct = selectedVehicle?.max_weight_kg ? Math.min((totalWeight / selectedVehicle.max_weight_kg) * 100, 100) : 0;
   const volumePct = selectedVehicle?.max_volume_m3 ? Math.min((totalVolume / selectedVehicle.max_volume_m3) * 100, 100) : 0;
   const overWeight = selectedVehicle?.max_weight_kg && totalWeight > selectedVehicle.max_weight_kg;
   const overVolume = selectedVehicle?.max_volume_m3 && totalVolume > selectedVehicle.max_volume_m3;
 
-  const canSubmit = jobId && effectiveDriverId && vehicleId && !saving;
+  const canSubmit = jobId && effectiveDriverId && vehicleId && !saving && assets.length > 0;
 
   const handleSubmit = async () => {
     if (!jobId) { toast({ title: 'Select a job to deliver to', variant: 'destructive' }); return; }
@@ -69,7 +78,7 @@ export default function BookToVehicleModal({ asset, onClose }) {
     if (!vehicleId) { toast({ title: 'Select a vehicle', variant: 'destructive' }); return; }
     setSaving(true);
     try {
-      const itemDesc = `${quantity > 1 ? `${quantity}× ` : ''}${asset.name}${asset.serial_number ? ` (${asset.serial_number})` : ''}`;
+      const itemDesc = assets.map(a => `${a.name}${a.serial_number ? ` (${a.serial_number})` : ''}`).join(', ');
       const payload = {
         job_id: jobId,
         job_name: selectedJob?.name || '',
@@ -85,7 +94,7 @@ export default function BookToVehicleModal({ asset, onClose }) {
         vehicle_id: vehicleId,
         weight_kg: totalWeight > 0 ? totalWeight : null,
         volume_m3: totalVolume > 0 ? totalVolume : null,
-        notes: notes || `Loaded from scan: ${asset.name}`,
+        notes: notes || `Loaded from scan: ${assets.length} item${assets.length !== 1 ? 's' : ''}`,
         status: 'pending',
         chargeable: true,
       };
@@ -93,6 +102,7 @@ export default function BookToVehicleModal({ asset, onClose }) {
       queryClient.invalidateQueries({ queryKey: ['job-deliveries'] });
       queryClient.invalidateQueries({ queryKey: ['deliveries'] });
       setConfirmed(true);
+      if (onSuccess) onSuccess({ count: assets.length });
       setTimeout(() => { onClose(); }, 1500);
     } catch (err) {
       console.error('Booking error:', err);
@@ -101,7 +111,8 @@ export default function BookToVehicleModal({ asset, onClose }) {
     setSaving(false);
   };
 
-  if (!asset) return null;
+  if (assets.length === 0) return null;
+  const isBulk = assets.length > 1;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40" onClick={() => !saving && onClose()}>
@@ -113,8 +124,8 @@ export default function BookToVehicleModal({ asset, onClose }) {
               <Truck className="w-4 h-4 text-emerald-700" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900">Book to Vehicle</h3>
-              <p className="text-[11px] text-slate-400">Load this asset and notify the driver</p>
+              <h3 className="font-bold text-slate-900">{isBulk ? `Book ${assets.length} Items to Vehicle` : 'Book to Vehicle'}</h3>
+              <p className="text-[11px] text-slate-400">Load {isBulk ? 'these assets' : 'this asset'} and notify the driver</p>
             </div>
           </div>
           <button onClick={() => !saving && onClose()} className="p-1 text-slate-400 hover:text-slate-600 rounded"><X className="w-5 h-5" /></button>
@@ -130,28 +141,22 @@ export default function BookToVehicleModal({ asset, onClose }) {
           </div>
         ) : (
           <div className="p-5 space-y-4">
-            {/* Scanned asset */}
-            <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-              <div className="w-10 h-10 rounded-lg bg-white border border-emerald-200 flex items-center justify-center flex-shrink-0">
-                <Package className="w-5 h-5 text-emerald-700" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-slate-900 truncate">{asset.name}</p>
-                <p className="text-xs text-slate-500 font-mono truncate">{asset.serial_number || 'No serial'}</p>
-              </div>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${asset.compliance_status === 'compliant' ? 'bg-emerald-100 text-emerald-700' : asset.compliance_status === 'expired' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>
-                {(asset.compliance_status || 'unknown').toUpperCase()}
-              </span>
-            </div>
-
-            {/* Quantity */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Quantity to book out</label>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-9 h-9 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 font-bold text-lg flex items-center justify-center">−</button>
-                <input type="number" min="1" value={quantity} onChange={e => setQuantity(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 text-center px-2 py-2 border border-slate-300 rounded-lg text-sm font-bold focus:outline-none focus:border-emerald-600" />
-                <button type="button" onClick={() => setQuantity(quantity + 1)} className="w-9 h-9 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 font-bold text-lg flex items-center justify-center">+</button>
-              </div>
+            {/* Assets being booked */}
+            <div className="space-y-1.5">
+              {assets.map(a => (
+                <div key={a.id} className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl p-2.5">
+                  <div className="w-9 h-9 rounded-lg bg-white border border-emerald-200 flex items-center justify-center flex-shrink-0">
+                    <Package className="w-4 h-4 text-emerald-700" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-slate-900 truncate">{a.name}</p>
+                    <p className="text-xs text-slate-500 font-mono truncate">{a.serial_number || 'No serial'}</p>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${a.compliance_status === 'compliant' ? 'bg-emerald-100 text-emerald-700' : a.compliance_status === 'expired' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>
+                    {(a.compliance_status || 'unknown').toUpperCase()}
+                  </span>
+                </div>
+              ))}
             </div>
 
             {/* Job */}
@@ -209,18 +214,6 @@ export default function BookToVehicleModal({ asset, onClose }) {
               </div>
             )}
 
-            {/* Weight / volume input */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[11px] font-medium text-slate-600 mb-1">Weight per item (kg)</label>
-                <input type="number" step="0.1" value={weightKg} onChange={e => setWeightKg(e.target.value)} placeholder="0" className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
-              </div>
-              <div>
-                <label className="block text-[11px] font-medium text-slate-600 mb-1">Volume per item (m³)</label>
-                <input type="number" step="0.01" value={volumeM3} onChange={e => setVolumeM3(e.target.value)} placeholder="0" className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
-              </div>
-            </div>
-
             {/* Driver & Date */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -247,10 +240,10 @@ export default function BookToVehicleModal({ asset, onClose }) {
         {!confirmed && (
           <div className="sticky bottom-0 bg-white border-t border-slate-100 px-5 py-3 flex gap-2">
             <button onClick={handleSubmit} disabled={!canSubmit}
-              className="flex-1 py-2.5 bg-emerald-700 text-white rounded-xl font-semibold text-sm hover:bg-emerald-800 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5">
+              className="flex-1 py-3 bg-emerald-700 text-white rounded-xl font-semibold text-sm hover:bg-emerald-800 transition disabled:opacity-50 inline-flex items-center justify-center gap-1.5 active:scale-95">
               {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Booking…</> : <><PackageCheck className="w-4 h-4" /> Confirm Loaded</>}
             </button>
-            <button onClick={() => !saving && onClose()} className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-semibold text-sm hover:bg-slate-200 transition">Cancel</button>
+            <button onClick={() => !saving && onClose()} className="px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-semibold text-sm hover:bg-slate-200 transition">Cancel</button>
           </div>
         )}
       </div>

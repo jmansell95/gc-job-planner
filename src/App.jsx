@@ -35,6 +35,8 @@ import { StaffAssistantProvider } from '@/components/StaffAssistantChat';
 import { SchedulingAssistantProvider } from '@/components/SchedulingAssistantChat';
 import { DrillingIntelligenceProvider } from '@/components/DrillingIntelligenceChat';
 import AppBaseUrlSync from '@/components/AppBaseUrlSync';
+import AssetScannerPage from './pages/AssetScannerPage';
+import KioskScannerRedirect from '@/components/KioskScannerRedirect';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
@@ -69,7 +71,8 @@ const AuthenticatedApp = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<KioskScannerRedirect><Home /></KioskScannerRedirect>} />
+          <Route path="/scanner" element={<RouteGuard><AssetScannerPage /></RouteGuard>} />
           <Route path="/admin" element={<RouteGuard><AdminDashboard /></RouteGuard>} />
           {/* Staff pages — full-screen, no admin header bar; they render their own mobile-first headers */}
           <Route path="/staff-schedule" element={<RouteGuard><StaffDashboard /></RouteGuard>} />
