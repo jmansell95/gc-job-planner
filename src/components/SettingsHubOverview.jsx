@@ -24,16 +24,7 @@ const INTEGRATION_CONNECTED_FIELDS = {
   accounting_config: 'provider', stripe_config: 'secret_key',
 };
 
-// Settings items greyed out as "Coming Soon" — secondary/advanced features
-// that aren't core to daily Site Investigation operations. Keeps the
-// settings hub focused on what matters right now.
-const COMING_SOON_IDS = new Set([
-  'asset-manifests', 'data-exchange', 'expense-presets', 'subcon-markup',
-  'gl-mapping', 'billing-pipeline', 'billing-contracts', 'purchase-orders',
-  'financial-audit', 'job-alerts', 'login-branding', 'portal-branding',
-  'incremental-import', 'custom-fields', 'dashboard-themes', 'backup-restore',
-  'multi-currency', 'multi-company', 'asset-lifecycle', 'push-notifications',
-]);
+// All settings items are active — no "Coming Soon" grey-outs.
 
 /**
  * Settings Command Hub — bold, in-your-face overview of everything configurable.
@@ -273,23 +264,6 @@ export default function SettingsHubOverview({ onNavigate }) {
               {group.items.map(item => {
                 const Icon = item.icon;
                 const a = accent[item.color] || accent.slate;
-                if (COMING_SOON_IDS.has(item.id)) {
-                  return (
-                    <div key={item.id} className="relative rounded-2xl p-4 overflow-hidden opacity-50 cursor-not-allowed bg-slate-50 border border-slate-200">
-                      <span className="absolute left-0 top-0 bottom-0 w-1.5 bg-slate-300"></span>
-                      <div className="flex items-center gap-3 pl-2">
-                        <div className="w-12 h-12 rounded-xl bg-slate-200 flex items-center justify-center flex-shrink-0">
-                          <Icon className="w-6 h-6 text-slate-400" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-bold text-slate-400 truncate">{item.label}</p>
-                          <p className="text-xs text-slate-400 truncate">{item.sub}</p>
-                        </div>
-                        <span className="text-[9px] font-bold text-slate-400 bg-slate-200 px-2 py-1 rounded-full uppercase tracking-wide">Soon</span>
-                      </div>
-                    </div>
-                  );
-                }
                 return (
                   <button key={item.id} onClick={() => onNavigate(item.id)} className="insight-card relative rounded-2xl p-4 text-left group overflow-hidden">
                     <span className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${a.stripe}`}></span>

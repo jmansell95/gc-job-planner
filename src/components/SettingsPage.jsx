@@ -72,6 +72,7 @@ import ZapierWebhookSettings from '@/components/settings/ZapierWebhookSettings';
 import PushNotificationSettings from '@/components/settings/PushNotificationSettings';
 import IncrementalImportSettings from '@/components/settings/IncrementalImportSettings';
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
+import SettingsSidebar from '@/components/SettingsSidebar';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { resolveRole } from '@/utils/access';
@@ -200,21 +201,26 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
   };
 
   return (
-    <div>
-      {/* Back button — hidden in standalone mode (these pages have their own sidebar entry) */}
-      {!standalone && activeTab !== 'hub' && (
-        <button
-          onClick={() => setActiveTab(isIntegration ? 'integrations' : 'hub')}
-          className="mb-4 inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition shadow-sm"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          {isIntegration ? 'Back to Integrations' : 'Back to Overview'}
-        </button>
+    <div className="flex gap-4">
+      {!standalone && (
+        <div className="w-60 flex-shrink-0 hidden lg:block">
+          <SettingsSidebar activeTab={activeTab} onNavigate={setActiveTab} items={items} />
+        </div>
       )}
-
-      <ErrorBoundary key={activeTab}>
-        {renderContent()}
-      </ErrorBoundary>
+      <div className="flex-1 min-w-0">
+        {!standalone && activeTab !== 'hub' && (
+          <button
+            onClick={() => setActiveTab(isIntegration ? 'integrations' : 'hub')}
+            className="mb-4 inline-flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition shadow-sm lg:hidden"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            {isIntegration ? 'Back to Integrations' : 'Back to Overview'}
+          </button>
+        )}
+        <ErrorBoundary key={activeTab}>
+          {renderContent()}
+        </ErrorBoundary>
+      </div>
     </div>
   );
 }

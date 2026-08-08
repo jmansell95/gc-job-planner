@@ -10,7 +10,6 @@ import DeliveryChainBuilder from '@/components/logistics/DeliveryChainBuilder';
 import BulkDeliveryReconciliation from '@/components/delivery/BulkDeliveryReconciliation';
 import DeliveryRouteMap from '@/components/delivery/DeliveryRouteMap';
 import { Skeleton, EmptyState } from '@/components/StateViews';
-import PageHeader from '@/components/PageHeader';
 
 const typeFilters = [
   { value: 'all', label: 'All Types', icon: Filter },
@@ -86,17 +85,18 @@ export default function AdminDeliveryHub() {
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        icon={Truck}
-        title="Logistics Hub"
-        subtitle="Delivery board, collections & route optimisation"
-        stats={[
-          { label: "Today", value: stats.today, icon: Clock },
-          { label: 'In Transit', value: stats.inTransit, icon: PlayCircle },
-          { label: 'Completed', value: stats.completed, icon: CheckCircle2 },
-          { label: 'Overdue', value: stats.overdue, icon: AlertTriangle },
-        ]}
-      />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Logistics Hub</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Delivery board, collections, route optimisation & driver handovers</p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700"><Clock className="w-3.5 h-3.5 text-slate-400" /> {stats.today} Today</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700"><PlayCircle className="w-3.5 h-3.5 text-slate-400" /> {stats.inTransit} In Transit</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700"><CheckCircle2 className="w-3.5 h-3.5 text-slate-400" /> {stats.completed} Completed</span>
+          {stats.overdue > 0 && <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border border-rose-200 rounded-lg text-xs font-semibold text-rose-700"><AlertTriangle className="w-3.5 h-3.5 text-rose-400" /> {stats.overdue} Overdue</span>}
+        </div>
+      </div>
 
       {/* Tab toggle: Delivery Board vs Delivery Chains vs Reconciliation */}
       <div className="flex bg-slate-100 rounded-xl p-1">

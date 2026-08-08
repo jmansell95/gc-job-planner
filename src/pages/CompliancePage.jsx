@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, ShieldAlert, AlertTriangle, BarChart3, HardHat, ClipboardCheck, FlaskConical } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
 import SettingsPage from '@/components/SettingsPage';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
 import IncidentReporter from '@/components/safety/IncidentReporter';
@@ -29,11 +28,10 @@ export default function CompliancePage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        icon={ShieldCheck}
-        title="Compliance & Audit Hub"
-        subtitle="Staff certs, equipment compliance, safety, audit trail & investigation log review"
-      />
+      <div className="mb-1">
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Compliance, Safety & Audit</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Staff certifications, equipment compliance, safety incidents & investigation log review</p>
+      </div>
 
       {/* Top-level tabs: Compliance | Safety | Audit Trail | Log QC */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">

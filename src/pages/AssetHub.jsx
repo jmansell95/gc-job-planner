@@ -7,7 +7,6 @@ import {
   Plus, Search, Boxes, ScanLine, X, TrendingUp, RefreshCw, Lock, Check,
   CheckSquare, Upload, Database, MapPin,
 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
 import Vehicles from '@/pages/Vehicles';
 import { rollupCompliance, daysUntil } from '@/utils/rigRollup';
 import RigDetailDrawer from '@/components/righub/RigDetailDrawer';
@@ -163,19 +162,17 @@ export default function AssetHub() {
           <Truck className="w-4 h-4" /> Fleet
         </button>
       </div>
-      <PageHeader
-        icon={Wrench}
-        title="Asset Command"
-        subtitle="Unified inventory from Asset Panda — rigs, lifting, machinery & compliance"
-        stats={headerStats}
-        actions={
-          <>
-            <button onClick={() => setShowSmartImport(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 ring-1 ring-white/25 text-white rounded-lg font-semibold text-xs transition"><ScanLine className="w-3.5 h-3.5" /> Smart Import</button>
-            <button onClick={() => setShowBulkUpload(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white/15 hover:bg-white/25 ring-1 ring-white/25 text-white rounded-lg font-semibold text-xs transition"><Upload className="w-3.5 h-3.5" /> Bulk Upload</button>
-            <button onClick={openAdd} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white text-[#2E5A1A] rounded-lg font-semibold text-xs hover:bg-white/90 transition shadow-sm"><Plus className="w-3.5 h-3.5" /> Add Asset</button>
-          </>
-        }
-      />
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Asset & Fleet Command</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Rigs, lifting gear, machinery, trailers, vehicles & PAT — compliance tracked from Asset Panda</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowSmartImport(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><ScanLine className="w-3.5 h-3.5" /> Smart Import</button>
+          <button onClick={() => setShowBulkUpload(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><Upload className="w-3.5 h-3.5" /> Bulk Upload</button>
+          <button onClick={openAdd} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><Plus className="w-3.5 h-3.5" /> Add Asset</button>
+        </div>
+      </div>
 
       {/* Compliance overview — dark hero-gradient so the white-text charts are readable */}
       <div className="hero-gradient rounded-2xl p-4 sm:p-5 shadow-lg">

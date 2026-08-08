@@ -74,7 +74,7 @@ export default function IntegrationsHub({ onNavigate }) {
   };
 
   const connectedCount = INTEGRATIONS.filter(isConnected).length;
-  const comingSoonCount = INTEGRATIONS.filter(i => comingSoonIds.has(i.id) || (i.defaultComingSoon && !isConnected(i))).length;
+  const comingSoonCount = comingSoonIds.size;
 
   // Group by category
   const categories = [...new Set(INTEGRATIONS.map(i => i.category))];
@@ -91,7 +91,7 @@ export default function IntegrationsHub({ onNavigate }) {
     });
   };
 
-  const selectAllComingSoon = () => setSelected(new Set(INTEGRATIONS.filter(i => comingSoonIds.has(i.id) || (i.defaultComingSoon && !isConnected(i))).map(i => i.id)));
+  const selectAllComingSoon = () => setSelected(new Set(comingSoonIds));
 
   const saveComingSoon = async (idsToMark) => {
     setSaving(true);
@@ -188,7 +188,7 @@ export default function IntegrationsHub({ onNavigate }) {
             {group.items.map(integ => {
               const Icon = integ.icon;
               const connected = isConnected(integ);
-              const isComingSoon = comingSoonIds.has(integ.id) || (integ.defaultComingSoon && !connected);
+              const isComingSoon = comingSoonIds.has(integ.id);
               const isSelected = selected.has(integ.id);
               return (
                 <button

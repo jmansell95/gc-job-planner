@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, CalendarX, CalendarDays, Star, UserCheck, UsersRound, Building2, HardHat, Package, Clock, Contact } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
 import SettingsPage from '@/components/SettingsPage';
 
 export default function StaffPage() {
@@ -23,11 +22,10 @@ export default function StaffPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        icon={Users}
-        title="Staff, Teams & Contacts"
-        subtitle="Crew members, crew types, timesheets, clients, sub-contractors, suppliers & HR"
-      />
+      <div className="mb-1">
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight">People & Team Management</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Manage crew members, timesheets, clients, subcontractors and suppliers</p>
+      </div>
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">
         {tabs.map(t => {
           const Icon = t.icon;

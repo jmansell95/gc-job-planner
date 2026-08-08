@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PoundSterling, Receipt, FileBarChart, FileText, Banknote } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
 import SettingsPage from '@/components/SettingsPage';
 import InvoiceDiscrepancyWidget from '@/components/billing/InvoiceDiscrepancyWidget';
 
@@ -19,11 +18,10 @@ export default function BillingPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        icon={PoundSterling}
-        title="Financial Control"
-        subtitle="Invoicing, price list, billing rules, reports & CIS verification"
-      />
+      <div className="mb-1">
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Financial Management</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Invoicing, price lists, billing rules, custom reports & client progress reports</p>
+      </div>
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">
         {tabs.map(t => {
           const Icon = t.icon;
