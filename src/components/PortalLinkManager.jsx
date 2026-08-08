@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Link2, Copy, Check, ExternalLink, Eye, EyeOff, RefreshCw, Mail, MessageCircle, Loader2, Settings, HardHat
+  Link2, Copy, Check, ExternalLink, Eye, EyeOff, RefreshCw, Mail, MessageCircle, Loader2, Settings, HardHat, Clock
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import PortalSectionManager from '@/components/PortalSectionManager';
@@ -99,7 +99,6 @@ export default function PortalLinkManager({ job }) {
   const handleEmail = async (recipient) => {
     const isContractor = recipient === 'contractor';
     const email = isContractor ? contractorEmail : clientEmail;
-    const name = isContractor ? contractor?.contact_name : client?.contact_name;
     if (!email) {
       setEmailStatus({ type: 'error', msg: `No ${recipient} contact email on file. Add one in ${isContractor ? 'Contractors' : 'Clients'}.` });
       return;
@@ -107,14 +106,34 @@ export default function PortalLinkManager({ job }) {
     setEmailSending(recipient);
     setEmailStatus(null);
     try {
-      await base44.integrations.Core.SendEmail({
-        to: email,
-        subject: `${isContractor ? 'Site logging portal for' : 'Live progress portal for'} ${job.name}`,
-        body: buildEmailBody(name, isContractor)
+      // Use the dispatchPortalInvite backend function for branded, audited dispatch
+      const res = await base44.functions.invoke('dispatchPortalInvite', {
+        target: isContractor ? 'subcontractor' : 'client',
+        jobId: isContractor ? undefined : job.id,
+        contractorId: isContractor ? contractor?.id : undefined,
+        recipientEmail: email,
+        portalBaseUrl: window.location.origin,
       });
-      setEmailStatus({ type: 'success', msg: `Link emailed to ${email}` });
+      const data = res.data || {};
+      if (data.ok) {
+        setEmailStatus({ type: 'success', msg: `Link emailed to ${data.sent_to || email}` });
+        queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      } else {
+        setEmailStatus({ type: 'error', msg: data.error || 'Could not send email' });
+      }
     } catch (e) {
-      setEmailStatus({ type: 'error', msg: e.response?.data?.error || e.message || 'Could not send email' });
+      // Fallback to direct SendEmail if the backend function isn't available
+      try {
+        const name = isContractor ? contractor?.contact_name : client?.contact_name;
+        await base44.integrations.Core.SendEmail({
+          to: email,
+          subject: `${isContractor ? 'Site logging portal for' : 'Live progress portal for'} ${job.name}`,
+          body: buildEmailBody(name, isContractor)
+        });
+        setEmailStatus({ type: 'success', msg: `Link emailed to ${email}` });
+      } catch (e2) {
+        setEmailStatus({ type: 'error', msg: e2.response?.data?.error || e2.message || 'Could not send email' });
+      }
     }
     setEmailSending(null);
   };
@@ -177,6 +196,15 @@ export default function PortalLinkManager({ job }) {
             {emailStatus && (
               <div className={`text-xs px-3 py-2 rounded-lg ${emailStatus.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
                 {emailStatus.msg}
+              </div>
+            )}
+
+            {/* Last sent audit trail */}
+            {job.portal_invite_sent_at && (
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-500 bg-slate-50 rounded-lg px-3 py-2">
+                <Clock className="w-3 h-3" />
+                Last sent {new Date(job.portal_invite_sent_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {job.portal_invite_sent_to && ` to ${job.portal_invite_sent_to}`}
               </div>
             )}
 

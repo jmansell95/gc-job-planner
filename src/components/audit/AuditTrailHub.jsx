@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { ShieldCheck, Search, ChevronDown, ChevronRight, FileText, Download, X, Loader2 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import JobPackView from '@/components/audit/JobPackView';
+import GeneratePackButton from '@/components/audit/GeneratePackButton';
 
 /**
  * ISO-compliant Audit Trail hub.
@@ -171,6 +172,9 @@ export default function AuditTrailHub() {
                     {job.start_date && ` · ${job.start_date}`}
                     {job.end_date && ` → ${job.end_date}`}
                   </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0" onClick={e => e.stopPropagation()}>
+                  <GeneratePackButton job={job} clientName={clientMap[job.client_id]} />
                 </div>
                 <FileText className="w-4 h-4 text-slate-300 flex-shrink-0" />
               </button>

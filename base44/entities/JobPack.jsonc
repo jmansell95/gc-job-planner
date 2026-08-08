@@ -1,0 +1,112 @@
+{
+  "name": "JobPack",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "description": "Linked Job this pack was generated for"
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display without joining)"
+    },
+    "job_reference": {
+      "type": "string",
+      "description": "Job reference / PO number (denormalised)"
+    },
+    "pack_type": {
+      "type": "string",
+      "enum": [
+        "full_auditor_pack",
+        "client_progress",
+        "billing_export",
+        "geotechnical_report",
+        "compliance_pack"
+      ],
+      "default": "full_auditor_pack",
+      "description": "Type of pack generated. 'full_auditor_pack' = complete ISO audit trail (all sections), 'client_progress' = client-facing summary, 'billing_export' = commercial/invoice pack, 'geotechnical_report' = technical borehole logs & lab results, 'compliance_pack' = compliance certificates & sign-offs only."
+    },
+    "document_reference": {
+      "type": "string",
+      "description": "Auto-generated document control reference (e.g. 'GC-JOB-001-AUD-v1'). Used for ISO document control traceability."
+    },
+    "version": {
+      "type": "number",
+      "default": 1,
+      "description": "Pack version number. Incremented each time a new pack is generated for the same job and pack_type."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "issued",
+        "superseded",
+        "archived"
+      ],
+      "default": "issued",
+      "description": "Pack lifecycle. 'draft' = generated but not yet released, 'issued' = released to auditor/client, 'superseded' = replaced by a newer version, 'archived' = retained for history but no longer active."
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL of the generated PDF file (uploaded via UploadFile)"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "Original filename of the generated PDF"
+    },
+    "generated_by_name": {
+      "type": "string",
+      "description": "Name of the user who generated this pack"
+    },
+    "generated_at": {
+      "type": "string",
+      "description": "ISO timestamp when the pack was generated"
+    },
+    "content_summary": {
+      "type": "string",
+      "description": "JSON string summarising the pack contents: counts of boreholes, logs, photos, lab results, staff, cost items, etc. Used for the pack index without re-fetching all data."
+    },
+    "sections_included": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of section keys included in this pack (e.g. ['overview','personnel','borehole_logs','lab_results','photos','compliance','billing','timeline'])."
+    },
+    "superseded_by_id": {
+      "type": "string",
+      "description": "ID of the newer JobPack that superseded this one. Set when a new version is generated."
+    },
+    "issued_to": {
+      "type": "string",
+      "description": "Name/email of the auditor or client the pack was issued to (if sent externally)"
+    },
+    "issued_at": {
+      "type": "string",
+      "description": "ISO timestamp when the pack was issued/sent externally"
+    }
+  },
+  "required": [
+    "job_id",
+    "pack_type"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

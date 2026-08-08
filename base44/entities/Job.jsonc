@@ -355,6 +355,14 @@
         }
       }
     },
+    "portal_invite_sent_at": {
+      "type": "string",
+      "description": "ISO timestamp when the last portal invitation email was sent to the client"
+    },
+    "portal_invite_sent_to": {
+      "type": "string",
+      "description": "Email address the last portal invitation was sent to (denormalised for display)"
+    },
     "budget_amount": {
       "type": "number",
       "description": "Job budget in GBP for cost tracking"

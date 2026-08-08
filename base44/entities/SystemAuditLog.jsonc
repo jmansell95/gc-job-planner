@@ -1,0 +1,100 @@
+{
+  "name": "SystemAuditLog",
+  "type": "object",
+  "properties": {
+    "entity_name": {
+      "type": "string",
+      "description": "Name of the entity that was mutated (e.g. 'Job', 'RateCardItem', 'LabTestResult')"
+    },
+    "entity_id": {
+      "type": "string",
+      "description": "ID of the record that was created, updated, or deleted"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update",
+        "delete"
+      ],
+      "description": "The type of mutation that triggered this audit entry"
+    },
+    "changed_fields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Top-level field names that changed (update only). Empty for create/delete."
+    },
+    "field_changes": {
+      "type": "string",
+      "description": "JSON string of field-level diff: { field: { before, after } }. Used for detailed audit reconstruction."
+    },
+    "record_summary": {
+      "type": "string",
+      "description": "Human-readable summary of the record (e.g. 'Job: Site Investigation \u2014 Baker Street'). Used for display without joining."
+    },
+    "record_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the record's content at the time of this audit entry. Used for tamper detection \u2014 if the record is modified outside the audit trail, the hash won't match."
+    },
+    "previous_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of the previous SystemAuditLog entry for the same entity, forming a tamper-evident chain. If any entry in the chain is altered, all subsequent hashes break."
+    },
+    "actor_user_id": {
+      "type": "string",
+      "description": "User ID of the person who triggered the mutation. Null for system/scheduled actions."
+    },
+    "actor_name": {
+      "type": "string",
+      "description": "Display name of the actor (denormalised for audit display). 'system' for scheduled tasks."
+    },
+    "actor_ip": {
+      "type": "string",
+      "description": "IP address of the request that triggered the mutation, if available. Used for security forensics."
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "entity_automation",
+        "manual",
+        "scheduled",
+        "webhook",
+        "api"
+      ],
+      "default": "entity_automation",
+      "description": "How the mutation was triggered. 'entity_automation' = automatic middleware, 'manual' = direct user action, 'scheduled' = cron job, 'webhook' = external system, 'api' = direct API call."
+    },
+    "integrity_status": {
+      "type": "string",
+      "enum": [
+        "valid",
+        "broken_chain",
+        "hash_mismatch"
+      ],
+      "default": "valid",
+      "description": "Chain integrity check result. 'valid' = hash chain intact, 'broken_chain' = previous_hash doesn't match, 'hash_mismatch' = record hash doesn't match current record state."
+    }
+  },
+  "required": [
+    "entity_name",
+    "entity_id",
+    "action"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

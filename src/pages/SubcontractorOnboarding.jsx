@@ -103,8 +103,16 @@ export default function SubcontractorOnboarding() {
       });
       if (res.error) { setError(res.error); return; }
       setSaved(true);
-      // Refresh status
-      setContractor(prev => ({ ...prev, onboarding_status: res.data.onboarding_status, onboarding_completed_at: new Date().toISOString() }));
+      // Refresh status — include CIS verification result if auto-verification ran
+      const cisVer = res.data?.cis_verification;
+      setContractor(prev => ({
+        ...prev,
+        onboarding_status: res.data.onboarding_status,
+        onboarding_completed_at: new Date().toISOString(),
+        cis_status: cisVer?.cis_status || prev.cis_status,
+        cis_verified_at: cisVer ? new Date().toISOString() : prev.cis_verified_at,
+        cis_tax_rate: cisVer?.tax_rate ?? prev.cis_tax_rate,
+      }));
     } catch (e) {
       setError(e.message || 'Failed to submit');
     } finally {
@@ -214,6 +222,27 @@ export default function SubcontractorOnboarding() {
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-4 flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
             <p className="text-sm font-medium text-emerald-800">Details submitted. Our team will review and confirm your approval shortly.</p>
+          </div>
+        )}
+        {saved && contractor.cis_status && contractor.cis_status !== 'pending' && (
+          <div className={`rounded-2xl p-4 mb-4 flex items-start gap-3 ${
+            contractor.cis_status === 'verified_gross' ? 'bg-emerald-50 border border-emerald-200' :
+            contractor.cis_status === 'verified_net' ? 'bg-amber-50 border border-amber-200' :
+            contractor.cis_status === 'unknown' || contractor.cis_status === 'failed' ? 'bg-rose-50 border border-rose-200' :
+            'bg-slate-50 border border-slate-200'
+          }`}>
+            {contractor.cis_status === 'verified_gross' ? <ShieldCheck className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" /> :
+             contractor.cis_status === 'verified_net' ? <ShieldCheck className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" /> :
+             <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />}
+            <div>
+              <p className="text-sm font-semibold text-slate-900">CIS Verification Complete</p>
+              <p className="text-sm text-slate-600 mt-0.5">
+                {contractor.cis_status === 'verified_gross' && `Your CIS status has been verified with HMRC — you will be paid gross (${contractor.cis_tax_rate === 0 ? '0% deduction' : '20% higher rate'}).`}
+                {contractor.cis_status === 'verified_net' && `Your CIS status has been verified with HMRC — 30% deduction applies to payments.`}
+                {contractor.cis_status === 'unknown' && `HMRC could not match your details. Please check your UTR and National Insurance number are correct.`}
+                {contractor.cis_status === 'failed' && `CIS verification failed. Our team will contact you to resolve this.`}
+              </p>
+            </div>
           </div>
         )}
 

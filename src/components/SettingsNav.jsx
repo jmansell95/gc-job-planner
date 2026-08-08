@@ -39,6 +39,8 @@ export const settingsGroups = [
     items: [
       { id: 'compliance-rules', label: 'Compliance Rules', icon: Gauge, desc: 'Default LOLER, PUWER & PAT inspection intervals & expiry warnings', roles: ['admin'] },
       { id: 'cis-verification', label: 'CIS Verification', icon: ShieldCheck, desc: 'Verify subcontractors against HMRC CIS — deduction rates & verification numbers', roles: ['admin'] },
+      { id: 'audit-trail', label: 'Audit Trail & Job Packs', icon: History, desc: 'ISO-compliant audit trail — search for a job and expand its full Job Pack: personnel, technical activity, compliance sign-offs, equipment, commercial confirmations & timeline', roles: ['admin'] },
+      { id: 'system-audit-log', label: 'System Audit Log', icon: ShieldCheck, desc: 'ISO 27001 tamper-evident audit trail with SHA-256 record hashing & chain linking for non-repudiation', roles: ['admin'] },
     ],
   },
   {
@@ -73,6 +75,8 @@ export const settingsGroups = [
       { id: 'global-branding', label: 'Global Branding', icon: Palette, desc: 'Default colours, banner and footer for all automated emails' },
       { id: 'login-branding', label: 'Login Page Customizer', icon: Palette, desc: 'Customise the staff login page — background, colours, logo, welcome text & live preview', roles: ['admin'] },
       { id: 'portal-branding', label: 'Portal Branding Editor', icon: Palette, desc: 'Customise the client portal & sub-contractor onboarding portal — welcome text, logo, colours, support contacts & live preview', roles: ['admin'] },
+      { id: 'email-templates', label: 'Email Templates', icon: Mail, desc: 'Manage branded email templates for portal invitations, schedules, billing & compliance notifications with {{variable}} token support' },
+      { id: 'email-templates', label: 'Email Templates', icon: Mail, desc: 'Manage branded email templates for portal invitations, schedules, billing & compliance notifications with {{variable}} token support' },
       { id: 'email-alerts', label: 'Email Alerts', icon: Mail, desc: 'Edit templates, recipients and timing for each automated email' },
     ],
   },

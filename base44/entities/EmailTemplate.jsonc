@@ -1,0 +1,96 @@
+{
+  "name": "EmailTemplate",
+  "type": "object",
+  "properties": {
+    "template_key": {
+      "type": "string",
+      "description": "Machine-readable key (e.g. 'portal_invite_client', 'subcontractor_onboarding', 'weekly_schedule'). Used to look up the template from backend functions."
+    },
+    "template_name": {
+      "type": "string",
+      "description": "Human-readable template name shown in the settings UI"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "portal_invite",
+        "schedule",
+        "billing",
+        "compliance",
+        "general",
+        "onboarding",
+        "notification"
+      ],
+      "default": "general",
+      "description": "Category for grouping and filtering templates in the settings UI"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject line. Supports {{variables}} \u2014 e.g. 'Your project portal for {{job_name}} is ready'"
+    },
+    "body_html": {
+      "type": "string",
+      "description": "HTML body of the email. Supports {{variables}} that are replaced at send time. Uses the shared email styling wrapper automatically."
+    },
+    "available_variables": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "List of variable tokens this template supports (e.g. ['job_name','portal_url','recipient_name','client_name']). Shown in the editor as a reference."
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this template is available for use. Inactive templates are skipped when dispatching."
+    },
+    "is_system": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for built-in system templates. System templates can be edited but not deleted \u2014 they have default content that can be reset."
+    },
+    "last_sent_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last time this template was used to send an email. Used for the 'Last Sent' audit column."
+    },
+    "last_sent_to": {
+      "type": "string",
+      "description": "Email address the template was last sent to (denormalised for display)"
+    },
+    "send_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Total number of times this template has been used to send an email. Incremented on each dispatch."
+    },
+    "created_by_name": {
+      "type": "string",
+      "description": "Admin who created this template"
+    }
+  },
+  "required": [
+    "template_key",
+    "template_name",
+    "category",
+    "subject",
+    "body_html"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

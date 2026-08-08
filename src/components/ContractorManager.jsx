@@ -118,8 +118,26 @@ export default function ContractorManager() {
   };
 
   const sendOnboarding = async (c) => {
+    if (!c.contact_email) {
+      alert('No contact email on file for this subcontractor. Add one before sending the onboarding link.');
+      return;
+    }
     setBusyId(c.id);
     try {
+      const res = await base44.functions.invoke('dispatchPortalInvite', {
+        target: 'subcontractor',
+        contractorId: c.id,
+        recipientEmail: c.contact_email,
+        portalBaseUrl: window.location.origin,
+      });
+      const data = res.data || {};
+      if (data.ok) {
+        queryClient.invalidateQueries({ queryKey: ['contractors'] });
+      } else {
+        alert(data.error || 'Failed to send onboarding email');
+      }
+    } catch (e) {
+      // Fallback to mailto if the backend function fails
       const token = c.onboarding_token || genToken();
       await base44.entities.Contractor.update(c.id, {
         onboarding_token: token,
@@ -127,7 +145,7 @@ export default function ContractorManager() {
         onboarding_sent_at: new Date().toISOString(),
       });
       queryClient.invalidateQueries({ queryKey: ['contractors'] });
-      const link = (typeof window !== 'undefined' ? window.location.origin : '') + '/subcontractor-onboarding/' + token;
+      const link = window.location.origin + '/subcontractor-onboarding/' + token;
       const subject = 'Sub-contractor onboarding — ' + c.name;
       const body = [
         'Hi ' + (c.contact_name || 'there') + ',',
@@ -141,7 +159,7 @@ export default function ContractorManager() {
         'Thank you,',
         'Ground Control',
       ].join('\n');
-      window.location.href = 'mailto:' + (c.contact_email || '') + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+      window.location.href = 'mailto:' + c.contact_email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
     } finally {
       setBusyId(null);
     }

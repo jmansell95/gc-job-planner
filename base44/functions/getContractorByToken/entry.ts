@@ -72,9 +72,31 @@ Deno.serve(async (req) => {
       }
 
       const updated = await base44.asServiceRole.entities.Contractor.update(c.id, patch);
+
+      // Auto-trigger CIS verification if UTR was provided and not yet verified
+      let cisResult = null;
+      if (body.utr && c.cis_status === 'pending') {
+        try {
+          cisResult = await base44.functions.invoke('verifyCIS', { contractor_id: c.id });
+        } catch (_) { /* CIS verification is best-effort — don't block onboarding */ }
+      }
+
+      // Log to SystemAuditLog
+      try {
+        await base44.functions.invoke('logSystemAudit', {
+          entity_name: 'Contractor',
+          entity_id: c.id,
+          action: 'update',
+          data: { onboarding_status: patch.onboarding_status, utr: body.utr ? 'provided' : 'not provided' },
+          source: 'manual',
+          actor_name: 'subcontractor_onboarding_portal',
+        });
+      } catch (_) { /* audit logging is best-effort */ }
+
       return Response.json({
         ok: true,
         onboarding_status: updated.onboarding_status || patch.onboarding_status,
+        cis_verification: cisResult?.data || null,
       });
     }
 
