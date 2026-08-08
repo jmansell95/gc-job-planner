@@ -87,6 +87,17 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
   });
   const allAssets = propAssets.length > 0 ? propAssets : fetchedAssets;
 
+  const match = useMemo(() => {
+    const q = scannedValue.trim().toLowerCase();
+    if (!q) return null;
+    return allAssets.find((a) => {
+      const sn = (a.serial_number || '').toLowerCase().trim();
+      const pid = (a.panda_asset_id || '').toLowerCase().trim();
+      const nm = (a.name || '').toLowerCase().trim();
+      return sn === q || pid === q || nm === q || (sn && sn.includes(q)) || (pid && pid.includes(q));
+    }) || null;
+  }, [scannedValue, allAssets]);
+
   // Fetch certificates (service records with certificate_url) for the matched asset
   const { data: certificates = [] } = useQuery({
     queryKey: ['asset-certificates', match?.id],
@@ -100,17 +111,6 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
     },
     enabled: !!match,
   });
-
-  const match = useMemo(() => {
-    const q = scannedValue.trim().toLowerCase();
-    if (!q) return null;
-    return allAssets.find((a) => {
-      const sn = (a.serial_number || '').toLowerCase().trim();
-      const pid = (a.panda_asset_id || '').toLowerCase().trim();
-      const nm = (a.name || '').toLowerCase().trim();
-      return sn === q || pid === q || nm === q || (sn && sn.includes(q)) || (pid && pid.includes(q));
-    }) || null;
-  }, [scannedValue, allAssets]);
 
   // Unified scan handler — audio feedback + auto-basket
   const handleScan = useCallback((val) => {
