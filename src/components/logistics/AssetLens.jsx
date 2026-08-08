@@ -5,9 +5,11 @@ import {
   X, ScanLine, Loader2, RefreshCw, CheckCircle2, AlertTriangle,
   ShieldCheck, ShieldAlert, ShieldX, Cog, Wrench, Package, Truck, Anchor,
   Database, Link2, AlertCircle, Camera, FileText, QrCode, Wrench as WrenchIcon,
-  Trash2, History, Layers, Scan, Clock, CalendarClock, Gauge,
+  Trash2, History, Layers, Scan, Clock, CalendarClock, Gauge, Plug,
+  Plus, ChevronUp, ChevronDown, Award, ExternalLink,
 } from 'lucide-react';
 import { safeFormat } from '@/utils/format';
+import { playSuccess, playError, playConfirm } from '@/utils/scanFeedback';
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import AssetPassportDrawer from '@/components/assetcommand/AssetPassportDrawer';
 import AssetQRCard from '@/components/assetcommand/AssetQRCard';
@@ -15,6 +17,8 @@ import BookToVehicleModal from '@/components/assetcommand/BookToVehicleModal';
 import ScrapModal from '@/components/assetcommand/ScrapModal';
 import AssetMovementHistory from '@/components/assetcommand/AssetMovementHistory';
 import BulkScanBasket from '@/components/logistics/BulkScanBasket';
+import QuickAddAssetModal from '@/components/assetcommand/QuickAddAssetModal';
+import PATTestModal from '@/components/assetcommand/PATTestModal';
 
 const TYPE_META = {
   rig: { label: 'Rig', icon: Cog, tint: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -22,7 +26,7 @@ const TYPE_META = {
   trailer: { label: 'Trailer', icon: Package, tint: 'bg-amber-50 text-amber-700 border-amber-200' },
   vehicle: { label: 'Vehicle', icon: Truck, tint: 'bg-slate-50 text-slate-700 border-slate-200' },
   lifting: { label: 'Lifting Gear', icon: Anchor, tint: 'bg-teal-50 text-teal-700 border-teal-200' },
-  portable_appliance: { label: 'PAT', icon: WrenchIcon, tint: 'bg-amber-50 text-amber-700 border-amber-200' },
+  portable_appliance: { label: 'PAT', icon: Plug, tint: 'bg-amber-50 text-amber-700 border-amber-200' },
 };
 
 const COMPLIANCE_META = {
@@ -44,16 +48,15 @@ const SERVICE_TYPES = [
   { value: 'repair', label: 'Repair' },
   { value: 'loler_inspection', label: 'LOLER Inspection' },
   { value: 'puwer_inspection', label: 'PUWER Inspection' },
-  { value: 'pat_inspection', label: 'PAT Test' },
   { value: 'pre_use_check', label: 'Pre-use Check' },
 ];
 
 export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
   const queryClient = useQueryClient();
-  const [bulkMode, setBulkMode] = useState(false);
   const [basket, setBasket] = useState([]);
-  const [lastBulkScan, setLastBulkScan] = useState('');
-  const [bulkScanError, setBulkScanError] = useState('');
+  const [basketExpanded, setBasketExpanded] = useState(false);
+  const [lastScan, setLastScan] = useState('');
+  const [scanError, setScanError] = useState('');
   const [scannedValue, setScannedValue] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState(null);
@@ -67,6 +70,9 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
   const [showScrap, setShowScrap] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showBulkHistory, setShowBulkHistory] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showPAT, setShowPAT] = useState(false);
+  const [pushingToPanda, setPushingToPanda] = useState(false);
 
   const { data: config = null } = useQuery({
     queryKey: ['assetpanda-config'],
@@ -81,6 +87,20 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
   });
   const allAssets = propAssets.length > 0 ? propAssets : fetchedAssets;
 
+  // Fetch certificates (service records with certificate_url) for the matched asset
+  const { data: certificates = [] } = useQuery({
+    queryKey: ['asset-certificates', match?.id],
+    queryFn: async () => {
+      const all = await base44.entities.ServiceRecord.filter({ site_asset_id: match.id });
+      return all.filter(s => s.certificate_url).sort((a, b) => {
+        const da = a.date ? new Date(a.date.includes('T') ? a.date : a.date + 'T00:00:00').getTime() : 0;
+        const db = b.date ? new Date(b.date.includes('T') ? b.date : b.date + 'T00:00:00').getTime() : 0;
+        return db - da;
+      });
+    },
+    enabled: !!match,
+  });
+
   const match = useMemo(() => {
     const q = scannedValue.trim().toLowerCase();
     if (!q) return null;
@@ -92,24 +112,29 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
     }) || null;
   }, [scannedValue, allAssets]);
 
+  // Unified scan handler — audio feedback + auto-basket
   const handleScan = useCallback((val) => {
-    if (bulkMode) {
-      const q = val.trim().toLowerCase();
-      if (!q) return;
-      const found = allAssets.find((a) => {
-        const sn = (a.serial_number || '').toLowerCase().trim();
-        const pid = (a.panda_asset_id || '').toLowerCase().trim();
-        const nm = (a.name || '').toLowerCase().trim();
-        return sn === q || pid === q || nm === q || (sn && sn.includes(q)) || (pid && pid.includes(q));
-      });
-      if (!found) { setBulkScanError(val); setLastBulkScan(''); return; }
-      setBulkScanError('');
-      setLastBulkScan(found.name);
+    const q = val.trim().toLowerCase();
+    if (!q) return;
+    setScannedValue(val);
+    const found = allAssets.find((a) => {
+      const sn = (a.serial_number || '').toLowerCase().trim();
+      const pid = (a.panda_asset_id || '').toLowerCase().trim();
+      const nm = (a.name || '').toLowerCase().trim();
+      return sn === q || pid === q || nm === q || (sn && sn.includes(q)) || (pid && pid.includes(q));
+    });
+    if (found) {
+      playSuccess();
+      setLastScan(found.name);
+      setScanError('');
+      // Auto-add to basket
       setBasket((prev) => prev.find((a) => a.id === found.id) ? prev : [...prev, found]);
     } else {
-      setScannedValue(val);
+      playError();
+      setLastScan('');
+      setScanError(val);
     }
-  }, [bulkMode, allAssets]);
+  }, [allAssets]);
 
   const removeFromBasket = (id) => setBasket((prev) => prev.filter((a) => a.id !== id));
   const clearBasket = () => setBasket([]);
@@ -125,14 +150,24 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
     finally { setSyncing(false); }
   };
 
+  const pushToPanda = async (assetId, action = 'update') => {
+    setPushingToPanda(true);
+    try {
+      await base44.functions.invoke('pushAssetUpdateToPanda', { asset_id: assetId, action });
+      queryClient.invalidateQueries({ queryKey: ['site-assets'] });
+    } catch (e) { console.warn('Panda push failed:', e); }
+    setPushingToPanda(false);
+  };
+
   const handleSaveService = async () => {
     if (!match) return;
     setSavingService(true);
     try {
+      const today = new Date().toISOString().slice(0, 10);
       await base44.entities.ServiceRecord.create({
         site_asset_id: match.id,
         record_type: serviceForm.record_type,
-        date: new Date().toISOString().slice(0, 10),
+        date: today,
         result: serviceForm.result,
         notes: serviceForm.notes,
       });
@@ -144,12 +179,15 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
         });
       } else {
         await base44.entities.SiteAsset.update(match.id, {
-          last_service_date: new Date().toISOString().slice(0, 10),
+          last_service_date: today,
           service_notes: serviceForm.notes,
         });
       }
       queryClient.invalidateQueries({ queryKey: ['site-assets'] });
       queryClient.invalidateQueries({ queryKey: ['service-records'] });
+      // Push to Asset Panda
+      await pushToPanda(match.id, 'update');
+      playConfirm();
       setShowServiceForm(false);
       setServiceForm({ record_type: 'service', result: 'pass', notes: '' });
     } catch (e) { console.error('Service save error:', e); }
@@ -161,20 +199,21 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
   const typeMeta = match ? TYPE_META[match.asset_type] || TYPE_META.machinery : null;
   const compMeta = match ? COMPLIANCE_META[match.compliance_status] || COMPLIANCE_META.unknown : null;
   const syncMeta = match ? SYNC_META[match.sync_status] || SYNC_META.never : null;
+  const isPortable = match?.asset_type === 'portable_appliance';
 
   return (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-0 sm:p-4 pt-0 sm:pt-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[100vh] sm:max-h-[92vh] overflow-y-auto">
+      <div className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[100vh] sm:max-h-[92vh] overflow-y-auto flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-10">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-20">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center">
               <ScanLine className="w-4.5 h-4.5 text-emerald-700" />
             </div>
             <div>
               <h3 className="font-semibold text-slate-900">Asset Lens</h3>
-              <p className="text-[11px] text-slate-400">{bulkMode ? 'Scan items into the basket' : 'Scan to view, service, book or print'}</p>
+              <p className="text-[11px] text-slate-400">Scan or search — everything is automatic</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition active:scale-90">
@@ -182,45 +221,9 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
           </button>
         </div>
 
-        {/* Mode toggle */}
-        <div className="px-4 sm:px-5 pt-4">
-          <div className="flex gap-1 p-1 bg-slate-100 rounded-xl">
-            <button
-              onClick={() => { setBulkMode(false); setBulkScanError(''); setLastBulkScan(''); }}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition ${!bulkMode ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500'}`}
-            >
-              <Scan className="w-4 h-4" /> Single
-            </button>
-            <button
-              onClick={() => { setBulkMode(true); setScannedValue(''); }}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition ${bulkMode ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500'}`}
-            >
-              <Layers className="w-4 h-4" /> Bulk {basket.length > 0 && <span className="ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-600 text-white font-bold">{basket.length}</span>}
-            </button>
-          </div>
-        </div>
-
-        <div className="p-4 sm:p-5 space-y-4">
-          {/* Instructions */}
-          {!bulkMode && (
-            <div className="flex items-start gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl px-3.5 py-2.5">
-              <Camera className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-emerald-800">
-                <strong>How to scan:</strong> Tap <strong>Camera</strong> below, allow camera access, then point at the Asset Panda QR label on the asset. Center the code in the frame. Or use <strong>Manual</strong> to type the serial number.
-              </p>
-            </div>
-          )}
-          {bulkMode && (
-            <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-xl px-3.5 py-2.5">
-              <Layers className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-blue-800">
-                <strong>Bulk mode:</strong> Scan each asset — they collect in the basket below. When ready, book them all onto a vehicle in one go.
-              </p>
-            </div>
-          )}
-
-          {/* Scanner */}
-          <BarcodeScanner onScan={handleScan} placeholder="Scan or type serial / Asset Panda ID…" autoFocus={false} />
+        {/* Scanner — always at top, no mode toggle */}
+        <div className="p-4 pb-2 space-y-3">
+          <BarcodeScanner onScan={handleScan} placeholder="Scan QR / type serial / search name…" autoFocus={false} />
 
           {/* Config warning */}
           {!config?.group_id && (
@@ -230,227 +233,200 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
             </div>
           )}
 
-          {/* === BULK MODE === */}
-          {bulkMode && (
+          {/* Last scan feedback */}
+          {lastScan && !scanError && (
+            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3.5 py-2.5 animate-pop-in">
+              <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 flex-shrink-0" />
+              <p className="text-xs text-emerald-800 font-semibold truncate">Recognised: {lastScan}</p>
+            </div>
+          )}
+          {scanError && (
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5">
+              <AlertCircle className="w-4.5 h-4.5 text-amber-500 flex-shrink-0" />
+              <p className="text-xs text-amber-800 font-medium flex-1 truncate">Not in inventory: "{scanError}"</p>
+              <button onClick={() => setShowQuickAdd(true)} className="px-2.5 py-1 bg-amber-600 text-white rounded-lg text-[11px] font-bold flex items-center gap-1 flex-shrink-0">
+                <Plus className="w-3 h-3" /> Add
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Content area — scrollable */}
+        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
+          {/* No scan yet */}
+          {!scannedValue.trim() && (
+            <div className="text-center py-10">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-3">
+                <Camera className="w-8 h-8 text-emerald-600" />
+              </div>
+              <p className="text-sm font-semibold text-slate-700 mb-1">Ready to scan</p>
+              <p className="text-xs text-slate-400 max-w-xs mx-auto">Point the camera at a QR label, or type a serial number / name above. Found items show instantly and collect in the basket below.</p>
+            </div>
+          )}
+
+          {/* No match */}
+          {scannedValue.trim() && !match && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 text-center">
+              <AlertCircle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-slate-700 mb-1">No asset matches "{scannedValue}"</p>
+              <p className="text-xs text-slate-500 mb-3">This might be a new item. Add it to your inventory and it'll sync to Asset Panda.</p>
+              <button onClick={() => setShowQuickAdd(true)} className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-amber-700 transition active:scale-95">
+                <Plus className="w-4 h-4" /> Add to Inventory
+              </button>
+            </div>
+          )}
+
+          {/* Match found — full detail panel */}
+          {match && typeMeta && (
             <div className="space-y-3">
-              {/* Last scan feedback */}
-              {lastBulkScan && !bulkScanError && (
-                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3.5 py-2.5 animate-pop-in">
-                  <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 flex-shrink-0" />
-                  <p className="text-xs text-emerald-800 font-semibold truncate">Added: {lastBulkScan}</p>
+              {/* Asset identity card */}
+              <div className="rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-3.5 py-3 flex items-center gap-3 border-b border-slate-100">
+                  <div className={`w-11 h-11 rounded-lg flex items-center justify-center border flex-shrink-0 ${typeMeta.tint}`}>
+                    <typeMeta.icon className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-slate-900 truncate">{match.name}</p>
+                    <p className="text-xs text-slate-400 flex items-center gap-1.5 flex-wrap">
+                      <span className="font-mono">{match.serial_number || '—'}</span>
+                      {match.rig_type && match.rig_type !== 'n/a' && <span className="text-[10px] uppercase font-semibold text-slate-500">{match.rig_type}</span>}
+                      {!match.is_active && <span className="text-[10px] uppercase font-bold text-red-600">Inactive</span>}
+                    </p>
+                  </div>
+                  <div className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full border flex-shrink-0 ${compMeta.tone}`}>
+                    <compMeta.Icon className="w-3 h-3" /> {compMeta.label}
+                  </div>
                 </div>
-              )}
-              {bulkScanError && (
-                <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5">
-                  <AlertCircle className="w-4.5 h-4.5 text-red-500 flex-shrink-0" />
-                  <p className="text-xs text-red-700 font-medium flex-1 truncate">No match for "{bulkScanError}"</p>
-                  <button onClick={() => setBulkScanError('')} className="p-1 text-red-400 hover:text-red-600"><X className="w-3.5 h-3.5" /></button>
+
+                {/* Quick info strip — 3 key stats */}
+                <div className="grid grid-cols-3 gap-px bg-slate-100 border-t border-slate-100">
+                  <div className="bg-white px-2.5 py-2">
+                    <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-0.5 mb-0.5"><CalendarClock className="w-2.5 h-2.5" /> Compl.</p>
+                    <p className="text-[11px] font-bold text-slate-700 leading-tight">
+                      {match.compliance_expiry_date ? safeFormat(match.compliance_expiry_date, 'dd MMM yy') : 'Lifetime'}
+                    </p>
+                  </div>
+                  <div className="bg-white px-2.5 py-2">
+                    <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-0.5 mb-0.5"><Wrench className="w-2.5 h-2.5" /> Service</p>
+                    <p className="text-[11px] font-bold text-slate-700 leading-tight">
+                      {match.last_service_date ? safeFormat(match.last_service_date, 'dd MMM yy') : 'None'}
+                    </p>
+                  </div>
+                  <div className="bg-white px-2.5 py-2">
+                    <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-0.5 mb-0.5">
+                      {match.asset_type === 'rig' ? <Gauge className="w-2.5 h-2.5" /> : <Clock className="w-2.5 h-2.5" />} {match.asset_type === 'rig' ? 'Hours' : 'Maint.'}
+                    </p>
+                    <p className="text-[11px] font-bold leading-tight">
+                      {match.asset_type === 'rig'
+                        ? <span className="text-slate-700">{Math.round(match.operating_hours || 0)}h</span>
+                        : <span className={
+                            match.maintenance_status === 'overdue' ? 'text-red-600' :
+                            match.maintenance_status === 'due_soon' ? 'text-amber-600' :
+                            match.maintenance_status === 'ok' ? 'text-emerald-600' : 'text-slate-500'
+                          }>{(match.maintenance_status || 'unknown').replace(/_/g, ' ')}</span>
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                {/* Stock + sync provenance */}
+                <div className="grid grid-cols-2 divide-x divide-slate-100 border-t border-slate-100">
+                  <div className="px-3.5 py-2 flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-medium text-slate-400">Stock</span>
+                    <span className="text-xs font-semibold text-slate-700">{(match.stock_level || 'unknown').replace(/_/g, ' ')}</span>
+                  </div>
+                  <div className="px-3.5 py-2 flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-medium text-slate-400 flex items-center gap-1"><Link2 className="w-2.5 h-2.5" /> Panda</span>
+                    <span className={`text-[11px] font-medium ${syncMeta.tone}`}>{syncMeta.label}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Certificates section */}
+              {certificates.length > 0 && (
+                <div className="rounded-xl border border-slate-200 overflow-hidden">
+                  <div className="px-3.5 py-2 bg-slate-50/80 border-b border-slate-200 flex items-center gap-2">
+                    <Award className="w-3.5 h-3.5 text-amber-600" />
+                    <p className="text-xs font-semibold text-slate-800">Certificates ({certificates.length})</p>
+                  </div>
+                  <div className="divide-y divide-slate-50">
+                    {certificates.map((cert) => (
+                      <a key={cert.id} href={cert.certificate_url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-slate-50 transition">
+                        <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium text-slate-700 truncate">{cert.certificate_name || 'Certificate'}</p>
+                          <p className="text-[10px] text-slate-400">{cert.record_type?.replace(/_/g, ' ')} · {cert.date ? safeFormat(cert.date, 'dd MMM yyyy') : '—'} · {cert.result?.toUpperCase()}</p>
+                        </div>
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
 
-              {/* Basket */}
-              {basket.length > 0 ? (
-                <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/50">
-                  <BulkScanBasket items={basket} onRemove={removeFromBasket} onClear={clearBasket} />
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm text-slate-400">Basket is empty — scan an item to start</p>
-                </div>
-              )}
+              {/* Action buttons — compact grid */}
+              <div className="grid grid-cols-4 gap-2">
+                <ActionBtn icon={FileText} label="Passport" tint="bg-slate-800 text-white" onClick={() => setPassportAsset(match)} />
+                <ActionBtn icon={History} label="History" tint="bg-blue-600 text-white" onClick={() => setShowHistory(s => !s)} />
+                <ActionBtn icon={Wrench} label="Service" tint="bg-amber-600 text-white" onClick={() => setShowServiceForm(s => !s)} />
+                {isPortable
+                  ? <ActionBtn icon={Plug} label="PAT Test" tint="bg-purple-600 text-white" onClick={() => setShowPAT(true)} />
+                  : <ActionBtn icon={Trash2} label="Scrap" tint="bg-red-600 text-white" onClick={() => setShowScrap(true)} />
+                }
+                <ActionBtn icon={Truck} label="Book" tint="bg-emerald-700 text-white" onClick={() => setShowBookVehicle(true)} />
+                <ActionBtn icon={QrCode} label="QR" tint="bg-slate-100 text-slate-700" onClick={() => setShowQR(true)} />
+                <ActionBtn icon={Layers} label={`Basket (${basket.length})`} tint="bg-emerald-100 text-emerald-700" onClick={() => setBasketExpanded(s => !s)} hidden={basket.length === 0} />
+              </div>
 
-              {/* Bulk action buttons */}
-              {basket.length > 0 && (
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setShowBulkHistory(true)}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-3.5 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition shadow-sm active:scale-95"
-                  >
-                    <History className="w-5 h-5" /> View History
-                  </button>
-                  <button
-                    onClick={() => setShowBookVehicle(true)}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-3.5 bg-emerald-700 text-white rounded-xl font-bold text-sm hover:bg-emerald-800 transition shadow-sm active:scale-95"
-                  >
-                    <Truck className="w-5 h-5" /> Book to Vehicle
+              {/* Movement History */}
+              {showHistory && <AssetMovementHistory asset={match} />}
+
+              {/* Inline service form */}
+              {showServiceForm && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-800">Quick Service / Repair Log</p>
+                    <button onClick={() => setShowServiceForm(false)} className="p-1.5 text-slate-400 hover:bg-white rounded-lg"><X className="w-4 h-4" /></button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-600 mb-1">Type</label>
+                      <select value={serviceForm.record_type} onChange={e => setServiceForm(p => ({ ...p, record_type: e.target.value }))}
+                        className="w-full px-2.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white">
+                        {SERVICE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-600 mb-1">Result</label>
+                      <select value={serviceForm.result} onChange={e => setServiceForm(p => ({ ...p, result: e.target.value }))}
+                        className="w-full px-2.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white">
+                        <option value="pass">Pass</option>
+                        <option value="fail">Fail</option>
+                        <option value="advisory">Advisory</option>
+                        <option value="n/a">N/A</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-600 mb-1">Notes</label>
+                    <textarea value={serviceForm.notes} onChange={e => setServiceForm(p => ({ ...p, notes: e.target.value }))} rows={2}
+                      placeholder="Findings, defects, parts replaced…" className="w-full px-2.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 resize-none" />
+                  </div>
+                  <button onClick={handleSaveService} disabled={savingService || pushingToPanda}
+                    className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 transition disabled:opacity-60 active:scale-95">
+                    {savingService ? <Loader2 className="w-4 h-4 animate-spin" /> : pushingToPanda ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
+                    {savingService ? 'Saving…' : pushingToPanda ? 'Syncing to Panda…' : 'Save & Sync to Panda'}
                   </button>
                 </div>
               )}
             </div>
           )}
 
-          {/* === SINGLE MODE === */}
-          {!bulkMode && (
-            <>
-              {/* No match */}
-              {scannedValue.trim() && !match && (
-                <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-4 py-6 justify-center">
-                  <AlertCircle className="w-4 h-4 text-slate-400" />
-                  No asset matches "{scannedValue}".
-                </div>
-              )}
-
-              {/* Match found — Action Panel */}
-              {match && typeMeta && (
-                <div className="space-y-3">
-                  {/* Asset identity */}
-                  <div className="rounded-xl border border-slate-200 overflow-hidden">
-                    <div className="px-4 py-3.5 flex items-center gap-3 border-b border-slate-100">
-                      <div className={`w-11 h-11 rounded-lg flex items-center justify-center border ${typeMeta.tint}`}>
-                        <typeMeta.icon className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-slate-900 truncate">{match.name}</p>
-                        <p className="text-xs text-slate-400 flex items-center gap-1.5 flex-wrap">
-                          <span className="font-mono">{match.serial_number || '—'}</span>
-                          {match.rig_type && match.rig_type !== 'n/a' && <span className="text-[10px] uppercase font-semibold text-slate-500">{match.rig_type}</span>}
-                          {!match.is_active && <span className="text-[10px] uppercase font-bold text-red-600">Inactive</span>}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Status badges */}
-                    <div className="grid grid-cols-2 divide-x divide-slate-100">
-                      <div className="px-4 py-2.5">
-                        <p className="text-[10px] uppercase font-medium text-slate-400 mb-1">Compliance</p>
-                        <div className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full border ${compMeta.tone}`}>
-                          <compMeta.Icon className="w-3.5 h-3.5" /> {compMeta.label}
-                        </div>
-                      </div>
-                      <div className="px-4 py-2.5">
-                        <p className="text-[10px] uppercase font-medium text-slate-400 mb-1">Stock</p>
-                        <span className="text-xs font-semibold text-slate-700">{(match.stock_level || 'unknown').replace(/_/g, ' ')}</span>
-                      </div>
-                    </div>
-
-                    {/* Sync provenance */}
-                    <div className="px-4 py-2.5 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between text-[11px]">
-                      <span className="text-slate-500 flex items-center gap-1.5"><Link2 className="w-3 h-3" /> Asset Panda</span>
-                      <span className={`font-medium ${syncMeta.tone}`}>{syncMeta.label}</span>
-                    </div>
-                  </div>
-
-                  {/* Quick info strip — key stats at a glance */}
-                  <div className="grid grid-cols-3 gap-px bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
-                    <div className="bg-white px-3 py-2.5">
-                      <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-0.5 mb-1"><CalendarClock className="w-2.5 h-2.5" /> Compl.</p>
-                      <p className="text-[11px] font-bold text-slate-700 leading-tight">
-                        {match.compliance_expiry_date ? safeFormat(match.compliance_expiry_date, 'dd MMM yy') : 'Lifetime'}
-                      </p>
-                    </div>
-                    <div className="bg-white px-3 py-2.5">
-                      <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-0.5 mb-1"><Wrench className="w-2.5 h-2.5" /> Service</p>
-                      <p className="text-[11px] font-bold text-slate-700 leading-tight">
-                        {match.last_service_date ? safeFormat(match.last_service_date, 'dd MMM yy') : 'None'}
-                      </p>
-                    </div>
-                    <div className="bg-white px-3 py-2.5">
-                      <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-0.5 mb-1">
-                        {match.asset_type === 'rig' ? <Gauge className="w-2.5 h-2.5" /> : <Clock className="w-2.5 h-2.5" />} {match.asset_type === 'rig' ? 'Hours' : 'Maint.'}
-                      </p>
-                      <p className="text-[11px] font-bold leading-tight">
-                        {match.asset_type === 'rig'
-                          ? <span className="text-slate-700">{Math.round(match.operating_hours || 0)}h</span>
-                          : <span className={
-                              match.maintenance_status === 'overdue' ? 'text-red-600' :
-                              match.maintenance_status === 'due_soon' ? 'text-amber-600' :
-                              match.maintenance_status === 'ok' ? 'text-emerald-600' : 'text-slate-500'
-                            }>{(match.maintenance_status || 'unknown').replace(/_/g, ' ')}</span>
-                        }
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => setPassportAsset(match)}
-                      className="flex flex-col items-center gap-1.5 p-3.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl transition active:scale-95">
-                      <FileText className="w-5 h-5" />
-                      <span className="text-xs font-semibold">View Passport</span>
-                      <span className="text-[10px] text-white/60">Full details & history</span>
-                    </button>
-                    <button onClick={() => setShowHistory(s => !s)}
-                      className="flex flex-col items-center gap-1.5 p-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition active:scale-95">
-                      <History className="w-5 h-5" />
-                      <span className="text-xs font-semibold">Movement History</span>
-                      <span className="text-[10px] text-white/70">Who booked in/out</span>
-                    </button>
-                    <button onClick={() => setShowServiceForm(s => !s)}
-                      className="flex flex-col items-center gap-1.5 p-3.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition active:scale-95">
-                      <Wrench className="w-5 h-5" />
-                      <span className="text-xs font-semibold">Log Service / Repair</span>
-                      <span className="text-[10px] text-white/70">Record maintenance</span>
-                    </button>
-                    <button onClick={() => setShowBookVehicle(true)}
-                      className="flex flex-col items-center gap-1.5 p-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl transition active:scale-95">
-                      <Truck className="w-5 h-5" />
-                      <span className="text-xs font-semibold">Book to Vehicle</span>
-                      <span className="text-[10px] text-white/70">Load & notify driver</span>
-                    </button>
-                    <button onClick={() => setShowScrap(true)}
-                      className="flex flex-col items-center gap-1.5 p-3.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition active:scale-95">
-                      <Trash2 className="w-5 h-5" />
-                      <span className="text-xs font-semibold">Scrap</span>
-                      <span className="text-[10px] text-white/70">Send to scrap pile</span>
-                    </button>
-                    <button onClick={() => setShowQR(true)}
-                      className="flex flex-col items-center gap-1.5 p-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition active:scale-95">
-                      <QrCode className="w-5 h-5" />
-                      <span className="text-xs font-semibold">Print QR Label</span>
-                      <span className="text-[10px] text-slate-500">Generate label</span>
-                    </button>
-                  </div>
-
-                  {/* Movement History */}
-                  {showHistory && <AssetMovementHistory asset={match} />}
-
-                  {/* Inline service form */}
-                  {showServiceForm && (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3.5 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-slate-800">Quick Service / Repair Log</p>
-                        <button onClick={() => setShowServiceForm(false)} className="p-1.5 text-slate-400 hover:bg-white rounded-lg"><X className="w-4 h-4" /></button>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2.5">
-                        <div>
-                          <label className="block text-[11px] font-medium text-slate-600 mb-1">Type</label>
-                          <select value={serviceForm.record_type} onChange={e => setServiceForm(p => ({ ...p, record_type: e.target.value }))}
-                            className="w-full px-2.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white">
-                            {SERVICE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-medium text-slate-600 mb-1">Result</label>
-                          <select value={serviceForm.result} onChange={e => setServiceForm(p => ({ ...p, result: e.target.value }))}
-                            className="w-full px-2.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white">
-                            <option value="pass">Pass</option>
-                            <option value="fail">Fail</option>
-                            <option value="advisory">Advisory</option>
-                            <option value="n/a">N/A</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-medium text-slate-600 mb-1">Notes</label>
-                        <textarea value={serviceForm.notes} onChange={e => setServiceForm(p => ({ ...p, notes: e.target.value }))} rows={2}
-                          placeholder="Findings, defects, parts replaced…" className="w-full px-2.5 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 resize-none" />
-                      </div>
-                      <button onClick={handleSaveService} disabled={savingService}
-                        className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 transition disabled:opacity-60 active:scale-95">
-                        {savingService ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />} {savingService ? 'Saving…' : 'Save Service Record'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
           {/* Sync action */}
           <div className="pt-1 border-t border-slate-100">
             <button onClick={handleSync} disabled={syncing || !config?.group_id}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium text-sm active:scale-95">
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium text-sm active:scale-95">
               {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               {syncing ? 'Syncing from Asset Panda…' : 'Refresh all from Asset Panda'}
             </button>
@@ -461,6 +437,37 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
             </p>
           </div>
         </div>
+
+        {/* Basket tray — sticky bottom */}
+        {basket.length > 0 && (
+          <div className="sticky bottom-0 bg-white border-t border-slate-200 z-20">
+            <button onClick={() => setBasketExpanded(s => !s)}
+              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 transition">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                  <Layers className="w-3.5 h-3.5 text-emerald-700" />
+                </div>
+                <span className="text-sm font-semibold text-slate-800">Basket: {basket.length} item{basket.length !== 1 ? 's' : ''}</span>
+              </div>
+              {basketExpanded ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronUp className="w-4 h-4 text-slate-400" />}
+            </button>
+            {basketExpanded && (
+              <div className="px-4 pb-3 space-y-2 max-h-[200px] overflow-y-auto">
+                <BulkScanBasket items={basket} onRemove={removeFromBasket} onClear={clearBasket} />
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={() => setShowBulkHistory(true)}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-blue-600 text-white rounded-lg font-semibold text-xs hover:bg-blue-700 transition active:scale-95">
+                    <History className="w-4 h-4" /> History
+                  </button>
+                  <button onClick={() => setShowBookVehicle(true)}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-emerald-700 text-white rounded-lg font-semibold text-xs hover:bg-emerald-800 transition active:scale-95">
+                    <Truck className="w-4 h-4" /> Book to Vehicle
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Overlays */}
@@ -479,12 +486,22 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
           </div>
         </div>
       )}
-      {showBookVehicle && (bulkMode
+      {showBookVehicle && (basket.length > 0
         ? <BookToVehicleModal assets={basket} onClose={() => setShowBookVehicle(false)} onSuccess={clearBasket} />
         : match && <BookToVehicleModal asset={match} onClose={() => setShowBookVehicle(false)} />
       )}
       {showScrap && match && (
         <ScrapModal asset={match} onClose={() => setShowScrap(false)} />
+      )}
+      {showPAT && match && (
+        <PATTestModal asset={match} onClose={() => setShowPAT(false)} />
+      )}
+      {showQuickAdd && (
+        <QuickAddAssetModal scannedValue={scanError || scannedValue} onClose={() => setShowQuickAdd(false)} onCreated={(newAsset) => {
+          setScannedValue(newAsset.serial_number || newAsset.name || '');
+          setScanError('');
+          setShowQuickAdd(false);
+        }} />
       )}
       {showBulkHistory && basket.length > 0 && (
         <div className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center p-4 pt-8 sm:pt-4">
@@ -509,5 +526,16 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
         </div>
       )}
     </div>
+  );
+}
+
+function ActionBtn({ icon: Icon, label, tint, onClick, hidden }) {
+  if (hidden) return null;
+  return (
+    <button onClick={onClick}
+      className={`flex flex-col items-center gap-1 p-2.5 rounded-xl transition active:scale-95 ${tint}`}>
+      <Icon className="w-4 h-4" />
+      <span className="text-[10px] font-semibold leading-tight text-center">{label}</span>
+    </button>
   );
 }
