@@ -167,7 +167,7 @@ function RateItemRow({ item, subcategory, onUpdate }) {
                 <span className="text-xs text-slate-300">—</span>
               )}
             </div>
-            <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', cost_price: item.cost_price ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '' }); setEditing(true); }} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-[#2E5A1A] transition">
+            <button onClick={() => { setForm({ description: item.description, price: item.price ?? '', price_text: item.price_text ?? '', cost_price: item.cost_price ?? '', unit: item.unit ?? '', men: item.men ?? '', notes: item.notes ?? '', effective_date: item.effective_date ?? '', expiry_date: item.expiry_date ?? '' }); setEditing(true); }} className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-[#2E5A1A] transition">
               <Pencil className="w-3.5 h-3.5" />
             </button>
           </div>
