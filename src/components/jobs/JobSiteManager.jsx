@@ -68,7 +68,7 @@ export default function JobSiteManager({ job }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Sites</h2>
+          <h3 className="font-semibold text-slate-900 text-sm">Sites</h3>
           <p className="text-sm text-slate-500 mt-0.5">
             {sites.length === 0 ? 'No additional sites — this job uses the primary location' : `${sites.length} ${sites.length === 1 ? 'site' : 'sites'} within this job`}
           </p>

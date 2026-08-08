@@ -551,7 +551,7 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
             <div className="px-4 py-3 border-b border-slate-100">
               <div className="flex items-center gap-2 mb-2">
                 <Activity className="w-4 h-4 text-[#2E5A1A]" />
-                <h3 className="text-sm font-bold text-slate-900">Activity Feed</h3>
+                <h3 className="text-sm font-semibold text-slate-900">Activity Feed</h3>
                 <span className="ml-auto text-xs text-slate-400">{activityFeed.length} recent</span>
               </div>
               <div className="flex flex-wrap gap-1">

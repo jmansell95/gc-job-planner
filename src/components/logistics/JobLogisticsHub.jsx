@@ -525,7 +525,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-4 sm:px-5 py-3 border-b border-slate-100 flex items-center gap-2 flex-wrap">
           <Boxes className="w-5 h-5 text-emerald-700" />
-          <h2 className="font-semibold text-slate-900">Equipment & Assets</h2>
+          <h3 className="font-semibold text-slate-900 text-sm">Equipment & Assets</h3>
           <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
             {loadableItems.length} items{canSeeCosts && loadableItems.length > 0 ? ` · ${fmt(totalNet)}` : ''}
           </span>
@@ -648,7 +648,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-4 sm:px-5 py-3 border-b border-slate-100 flex items-center gap-2">
           <Truck className="w-5 h-5 text-emerald-700" />
-          <h2 className="font-semibold text-slate-900">Deliveries & Collections</h2>
+          <h3 className="font-semibold text-slate-900 text-sm">Deliveries & Collections</h3>
           <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{deliveries.length}</span>
           {canSeeCosts && (
             <button onClick={() => setShowLoadPlanner(true)} className="inline-flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 font-medium px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition ml-2">

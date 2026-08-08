@@ -247,7 +247,7 @@ export default function AutoFinancialsBreakdown({ job }) {
               <Mountain className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">Drilling Performance</h3>
+              <h3 className="text-sm font-semibold text-slate-900">Drilling Performance</h3>
               <p className="text-[11px] text-slate-400">Rig cost vs metre revenue · {METHOD_LABELS[dm.job_method]?.full || 'Auto-detected'}</p>
             </div>
           </div>

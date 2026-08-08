@@ -97,7 +97,7 @@ export default function DailyCostViewer({ job }) {
           <Receipt className="w-4 h-4 text-cyan-600" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-slate-900">Crew Expenses</h3>
+          <h3 className="text-sm font-semibold text-slate-900">Crew Expenses</h3>
           <p className="text-[11px] text-slate-400">Logged from the End-of-Shift wizard · manager approval & Concur sync</p>
         </div>
         <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{costs.length} {costs.length === 1 ? 'entry' : 'entries'}</span>
