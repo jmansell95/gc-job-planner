@@ -79,6 +79,8 @@ export const settingsGroups = [
   {
     label: 'System',
     items: [
+      { id: 'custom-reports', label: 'Report Builder', icon: FileBarChart, desc: 'Build custom reports from 60+ data sources — pick columns, filter, and export to CSV or PDF', roles: ['admin', 'manager', 'viewer'] },
+      { id: 'client-progress-report', label: 'Client Progress Report', icon: Star, desc: 'Generate a branded client-facing progress report for any job', roles: ['admin', 'manager'] },
       { id: 'demo-data', label: 'Demo Data Manager', icon: Sparkles, desc: 'Populate realistic showcase data or wipe everything for a clean slate', roles: ['admin'] },
       { id: 'system-guide', label: 'System Logic Guide', icon: BookOpen, desc: 'Download a PDF explaining every stat, rule and automation in the system', roles: ['admin', 'manager', 'viewer'] },
       { id: 'custom-fields', label: 'Custom Field Builder', icon: Settings2, desc: 'Add custom fields to jobs, staff, assets, vehicles, clients & suppliers — no code needed', roles: ['admin'] },

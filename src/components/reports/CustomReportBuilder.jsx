@@ -12,16 +12,80 @@ import { format, parseISO, subDays, isWithinInterval } from 'date-fns';
  * columns, apply filters, and export to CSV or print to PDF.
  */
 const DATA_SOURCES = [
+  // ── Core Operations ──
   { id: 'jobs', label: 'Jobs', entity: 'Job', icon: 'Briefcase' },
+  { id: 'projects', label: 'Projects', entity: 'Project', icon: 'FolderKanban' },
   { id: 'staff', label: 'Staff', entity: 'Staff', icon: 'Users' },
+  { id: 'teams', label: 'Teams', entity: 'Team', icon: 'Users' },
   { id: 'rotas', label: 'Rota Assignments', entity: 'RotaAssignment', icon: 'Calendar' },
   { id: 'timesheets', label: 'Timesheets', entity: 'Timesheet', icon: 'Clock' },
+  { id: 'absences', label: 'Absences & Leave', entity: 'Absence', icon: 'CalendarX' },
+  // ── Financial ──
   { id: 'invoices', label: 'Invoices', entity: 'Invoice', icon: 'Receipt' },
   { id: 'cost-items', label: 'Job Cost Items', entity: 'JobCostItem', icon: 'Package' },
+  { id: 'daily-costs', label: 'Daily Costs', entity: 'DailyCost', icon: 'Coins' },
+  { id: 'purchase-orders', label: 'Purchase Orders', entity: 'PurchaseOrder', icon: 'FileText' },
+  { id: 'subcontractor-logs', label: 'Subcontractor Logs', entity: 'SubcontractorLog', icon: 'HardHat' },
+  { id: 'job-billing-contracts', label: 'Billing Contracts', entity: 'JobBillingContract', icon: 'ScrollText' },
+  { id: 'rate-cards', label: 'Rate Card Items', entity: 'RateCardItem', icon: 'Tag' },
+  { id: 'billing-rules', label: 'Billing Rules', entity: 'BillingRule', icon: 'Banknote' },
+  { id: 'boq', label: 'Bill of Quantities', entity: 'JobBillOfQuantities', icon: 'ListChecks' },
+  // ── Assets & Fleet ──
   { id: 'assets', label: 'Site Assets', entity: 'SiteAsset', icon: 'Wrench' },
   { id: 'vehicles', label: 'Vehicles', entity: 'Vehicle', icon: 'Truck' },
-  { id: 'safety-reports', label: 'Safety Reports', entity: 'SafetyReport', icon: 'ShieldAlert' },
+  { id: 'service-records', label: 'Service Records', entity: 'ServiceRecord', icon: 'Wrench' },
+  { id: 'scrap-logs', label: 'Scrap Logs', entity: 'ScrapLog', icon: 'Trash2' },
+  { id: 'asset-returns', label: 'Asset Returns', entity: 'AssetReturnLog', icon: 'PackageCheck' },
+  { id: 'asset-manifests', label: 'Asset Manifests', entity: 'AssetManifest', icon: 'QrCode' },
+  { id: 'equipment-calibrations', label: 'Equipment Calibrations', entity: 'EquipmentCalibration', icon: 'Gauge' },
+  { id: 'vehicle-maintenance', label: 'Vehicle Maintenance Bookings', entity: 'VehicleMaintenanceBooking', icon: 'Wrench' },
+  { id: 'vehicle-location-logs', label: 'Vehicle Location Logs', entity: 'VehicleLocationLog', icon: 'MapPin' },
+  { id: 'geofence-events', label: 'Geofence Events', entity: 'GeofenceEvent', icon: 'MapPin' },
+  // ── Logistics ──
   { id: 'deliveries', label: 'Deliveries', entity: 'DeliveryLog', icon: 'Truck' },
+  { id: 'delivery-legs', label: 'Delivery Legs', entity: 'DeliveryLeg', icon: 'Route' },
+  // ── Geotechnical ──
+  { id: 'investigation-logs', label: 'Investigation Logs', entity: 'InvestigationLog', icon: 'FlaskConical' },
+  { id: 'investigation-sors', label: 'Investigation SORs', entity: 'InvestigationSOR', icon: 'ClipboardList' },
+  { id: 'samples', label: 'Samples', entity: 'Sample', icon: 'FlaskConical' },
+  { id: 'lab-results', label: 'Lab Test Results', entity: 'LabTestResult', icon: 'FlaskConical' },
+  { id: 'monitoring-wells', label: 'Monitoring Wells', entity: 'MonitoringWell', icon: 'Database' },
+  // ── Safety & Compliance ──
+  { id: 'safety-reports', label: 'Safety Reports', entity: 'SafetyReport', icon: 'ShieldAlert' },
+  { id: 'toolbox-talks', label: 'Toolbox Talks', entity: 'ToolboxTalk', icon: 'MessageSquare' },
+  { id: 'environmental-reports', label: 'Environmental Reports', entity: 'EnvironmentalReport', icon: 'Leaf' },
+  { id: 'compliance-items', label: 'Compliance Items', entity: 'ComplianceItem', icon: 'ShieldCheck' },
+  { id: 'briefing-signatures', label: 'Briefing Signatures', entity: 'BriefingSignature', icon: 'PenLine' },
+  // ── Job Details ──
+  { id: 'job-milestones', label: 'Job Milestones', entity: 'JobMilestone', icon: 'Flag' },
+  { id: 'job-comments', label: 'Job Comments', entity: 'JobComment', icon: 'MessageSquare' },
+  { id: 'job-documents', label: 'Job Documents', entity: 'JobDocument', icon: 'FileText' },
+  { id: 'site-photos', label: 'Site Photos', entity: 'SitePhoto', icon: 'Camera' },
+  { id: 'job-delay-logs', label: 'Job Delay Logs', entity: 'JobDelayLog', icon: 'Clock' },
+  { id: 'hotel-bookings', label: 'Hotel Bookings', entity: 'HotelBooking', icon: 'Bed' },
+  // ── HR & Training ──
+  { id: 'staff-reviews', label: 'Staff Reviews', entity: 'StaffReview', icon: 'Star' },
+  { id: 'holiday-accruals', label: 'Holiday Pay Accruals', entity: 'HolidayPayAccrual', icon: 'CalendarDays' },
+  { id: 'training-courses', label: 'Training Courses', entity: 'TrainingCourse', icon: 'GraduationCap' },
+  { id: 'training-bookings', label: 'Training Bookings', entity: 'TrainingBooking', icon: 'GraduationCap' },
+  { id: 'incentive-scores', label: 'Incentive Scores', entity: 'IncentiveScore', icon: 'Trophy' },
+  { id: 'achievements', label: 'Achievements', entity: 'Achievement', icon: 'Award' },
+  { id: 'ts-delegations', label: 'Timesheet Delegations', entity: 'TimesheetDelegation', icon: 'UserCheck' },
+  // ── Contacts ──
+  { id: 'clients', label: 'Clients', entity: 'Client', icon: 'Building2' },
+  { id: 'contractors', label: 'Contractors', entity: 'Contractor', icon: 'HardHat' },
+  { id: 'suppliers', label: 'Suppliers', entity: 'Supplier', icon: 'Truck' },
+  // ── Audit & System ──
+  { id: 'financial-audit-logs', label: 'Financial Audit Logs', entity: 'FinancialAuditLog', icon: 'History' },
+  { id: 'client-feedback', label: 'Client Feedback', entity: 'ClientFeedback', icon: 'Star' },
+  { id: 'weather-logs', label: 'Weather Logs', entity: 'WeatherLog', icon: 'Cloud' },
+  { id: 'bank-holidays', label: 'Bank Holidays', entity: 'BankHoliday', icon: 'Calendar' },
+  { id: 'rota-weeks', label: 'Rota Weeks', entity: 'RotaWeek', icon: 'Calendar' },
+  { id: 'staff-shifts', label: 'Staff Shifts', entity: 'StaffShift', icon: 'Clock' },
+  { id: 'overtime-rates', label: 'Overtime Rates', entity: 'OvertimeRate', icon: 'Timer' },
+  { id: 'trading-entities', label: 'Trading Entities', entity: 'TradingEntity', icon: 'Building2' },
+  { id: 'custom-fields', label: 'Custom Fields', entity: 'CustomField', icon: 'Settings2' },
+  { id: 'help-topics', label: 'Help Topics', entity: 'HelpTopic', icon: 'HelpCircle' },
 ];
 
 // Common fields available on most entities for column selection
