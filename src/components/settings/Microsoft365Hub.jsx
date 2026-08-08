@@ -4,8 +4,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   Calendar, Files, MessageSquare, HardDrive, Loader2, CheckCircle2,
   AlertCircle, ExternalLink, Copy, KeyRound, Building2, Shield, Cloud,
-  RefreshCw, X,
+  RefreshCw, X, Download, FileText,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -53,6 +54,7 @@ const SERVICES = [
 export default function Microsoft365Hub() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [config, setConfig] = useState({ tenant_id: '', client_id: '', client_secret: '' });
   const [settingId, setSettingId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -113,6 +115,13 @@ export default function Microsoft365Hub() {
         icon={Cloud}
         title="Microsoft 365 SSO"
         description="One Azure AD app registration powers Outlook Calendar, SharePoint, Teams, and OneDrive. Staff connect once and get all four services."
+        actions={
+          <button onClick={() => navigate('/m365-setup-guide')} type="button"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-xl text-sm font-semibold hover:bg-[#244715] transition active:scale-95 touch-manipulation shadow-sm">
+            <Download className="w-4 h-4" />
+            <span>IT Setup Guide PDF</span>
+          </button>
+        }
       />
 
       {/* Status banner */}

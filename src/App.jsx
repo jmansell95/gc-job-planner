@@ -22,6 +22,7 @@ import PresentationPack from './pages/PresentationPack';
 import AssetHub from './pages/AssetHub';
 import KeyLogBookDocs from './pages/KeyLogBookDocs';
 import ImprovementRoadmap from './pages/ImprovementRoadmap';
+import Microsoft365SetupGuide from './pages/Microsoft365SetupGuide';
 import PATTestingConsole from './pages/PATTestingConsole';
 import CompliancePage from './pages/CompliancePage';
 import BillingPage from './pages/BillingPage';
@@ -102,6 +103,7 @@ const AuthenticatedApp = () => {
             <Route path="/automations" element={<Navigate to="/admin" replace />} />
             <Route path="/keylogbook-docs" element={<RouteGuard><KeyLogBookDocs /></RouteGuard>} />
             <Route path="/roadmap" element={<RouteGuard><ImprovementRoadmap /></RouteGuard>} />
+            <Route path="/m365-setup-guide" element={<RouteGuard><Microsoft365SetupGuide /></RouteGuard>} />
           </Route>
           <Route path="/rig-hub" element={<Navigate to="/assets" replace />} />
           <Route path="/asset-inventory" element={<Navigate to="/assets" replace />} />
