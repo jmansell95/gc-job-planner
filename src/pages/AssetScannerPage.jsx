@@ -4,11 +4,12 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import {
   ScanLine, X, Package, Truck, Trash2, CheckCircle2,
-  AlertCircle, Lock, Unlock, ArrowLeft, Layers,
+  AlertCircle, Lock, Unlock, ArrowLeft, Layers, Store,
 } from 'lucide-react';
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import BulkScanBasket from '@/components/logistics/BulkScanBasket';
 import BookToVehicleModal from '@/components/assetcommand/BookToVehicleModal';
+import GoodsInScanner from '@/components/logistics/GoodsInScanner';
 import { enableKioskScannerMode, disableKioskScannerMode, isKioskScannerMode } from '@/utils/kioskMode';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -27,6 +28,7 @@ export default function AssetScannerPage() {
   const [scanError, setScanError] = useState('');
   const [showBook, setShowBook] = useState(false);
   const [kioskLocked, setKioskLocked] = useState(isKioskScannerMode());
+  const [mode, setMode] = useState('assets'); // 'assets' | 'goods-in'
 
   const { data: assets = [] } = useQuery({
     queryKey: ['site-assets'],
@@ -80,6 +82,11 @@ export default function AssetScannerPage() {
     queryClient.invalidateQueries({ queryKey: ['deliveries'] });
   };
 
+  // Goods In mode — render the dedicated goods-in scanner interface
+  if (mode === 'goods-in') {
+    return <GoodsInScanner onBack={() => setMode('assets')} />;
+  }
+
   return (
     <div className="fixed inset-0 bg-slate-50 flex flex-col">
       {/* Header */}
@@ -94,6 +101,21 @@ export default function AssetScannerPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Mode toggle — Assets vs Goods In */}
+          <div className="flex bg-slate-100 rounded-xl p-1">
+            <button
+              onClick={() => setMode('assets')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${mode === 'assets' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500'}`}
+            >
+              <ScanLine className="w-3.5 h-3.5" /> Assets
+            </button>
+            <button
+              onClick={() => setMode('goods-in')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${mode === 'goods-in' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500'}`}
+            >
+              <Store className="w-3.5 h-3.5" /> Goods In
+            </button>
+          </div>
           <button
             onClick={toggleKiosk}
             className={`inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95 ${kioskLocked ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-200' : 'bg-slate-100 text-slate-600'}`}

@@ -1,0 +1,103 @@
+{
+  "name": "ConsumableStockItem",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Item name (e.g. '100W Light Bulb', 'Hi-Vis Vest L', 'A4 Paper Ream')"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "ppe",
+        "stationary",
+        "electrical",
+        "tools",
+        "consumables",
+        "cleaning",
+        "other"
+      ],
+      "default": "consumables",
+      "description": "Category for grouping and filtering. 'ppe' = personal protective equipment (vests, gloves, goggles), 'stationary' = office supplies, 'electrical' = bulbs, fuses, leads, 'tools' = consumable tooling (drill bits, blades), 'consumables' = general warehouse consumables, 'cleaning' = cleaning supplies."
+    },
+    "sku": {
+      "type": "string",
+      "description": "Stock keeping unit / product code / supplier part number. Used for quick lookup and reordering."
+    },
+    "barcode": {
+      "type": "string",
+      "description": "Barcode or QR code value printed on the item packaging. Used by the scanner to identify this consumable during goods-in."
+    },
+    "unit": {
+      "type": "string",
+      "default": "each",
+      "description": "Unit of measure (e.g. 'each', 'box', 'pack', 'roll', 'litre')."
+    },
+    "current_stock": {
+      "type": "number",
+      "default": 0,
+      "description": "Current quantity on hand in the depot/warehouse. Updated automatically when GoodsInReceipts are verified."
+    },
+    "minimum_stock": {
+      "type": "number",
+      "default": 0,
+      "description": "Reorder threshold \u2014 when current_stock falls below this, the item is flagged for reorder."
+    },
+    "reorder_quantity": {
+      "type": "number",
+      "description": "Suggested reorder amount when stock drops below minimum."
+    },
+    "storage_location": {
+      "type": "string",
+      "description": "Where this item lives in the depot/warehouse (e.g. 'Bay 3 \u2014 Shelf A', 'Container 2')."
+    },
+    "supplier_id": {
+      "type": "string",
+      "description": "Preferred supplier for this item (linked Supplier record). Used for auto-generating reorder POs."
+    },
+    "supplier_name": {
+      "type": "string",
+      "description": "Supplier name (denormalised for display without joining)."
+    },
+    "unit_cost": {
+      "type": "number",
+      "description": "Cost per unit in GBP. Used for job cost allocation when consumables are assigned to jobs."
+    },
+    "last_stock_count_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the last physical stock count / audit."
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this item is still in use. Inactive items are hidden from the goods-in dropdown but retained for historical records."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about this consumable item."
+    }
+  },
+  "required": [
+    "name",
+    "category"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

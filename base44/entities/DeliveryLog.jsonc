@@ -22,12 +22,13 @@
       "type": "string",
       "enum": [
         "site_delivery",
+        "supplier_delivery",
         "supplier_collection",
         "item_handover",
         "sample_collection",
         "sample_delivery"
       ],
-      "description": "Type of movement: delivering to site, collecting from supplier, internal handover, collecting samples from site, or delivering samples to a laboratory"
+      "description": "Type of movement: 'site_delivery' = delivering to site, 'supplier_delivery' = receiving a delivery from a supplier into the depot or directly to site, 'supplier_collection' = collecting from supplier, 'item_handover' = internal handover, 'sample_collection' = collecting samples from site, 'sample_delivery' = delivering samples to a laboratory"
     },
     "status": {
       "type": "string",

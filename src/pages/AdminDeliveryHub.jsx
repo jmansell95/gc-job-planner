@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Truck, Search, LayoutGrid, List, Filter, Clock, PlayCircle, CheckCircle2, AlertTriangle, ArrowRightLeft, Package, X, Link2, Navigation } from 'lucide-react';
+import { Truck, Search, LayoutGrid, List, Filter, Clock, PlayCircle, CheckCircle2, AlertTriangle, ArrowRightLeft, Package, X, Link2, Navigation, Store, Boxes } from 'lucide-react';
 import { format, isToday, isFuture, isPast } from 'date-fns';
 import DeliveryBoard from '@/components/admin/DeliveryBoard';
 import DeliveryTable from '@/components/admin/DeliveryTable';
@@ -10,11 +10,14 @@ import DeliveryChainBuilder from '@/components/logistics/DeliveryChainBuilder';
 import DriverDayPlanner from '@/components/logistics/DriverDayPlanner';
 import BulkDeliveryReconciliation from '@/components/delivery/BulkDeliveryReconciliation';
 import DeliveryRouteMap from '@/components/delivery/DeliveryRouteMap';
+import GoodsInPanel from '@/components/logistics/GoodsInPanel';
+import ConsumableInventoryManager from '@/components/settings/ConsumableInventoryManager';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 
 const typeFilters = [
   { value: 'all', label: 'All Types', icon: Filter },
   { value: 'site_delivery', label: 'Deliveries', icon: Truck },
+  { value: 'supplier_delivery', label: 'Goods In', icon: Store },
   { value: 'supplier_collection', label: 'Collections', icon: Package },
   { value: 'item_handover', label: 'Handovers', icon: ArrowRightLeft },
 ];
@@ -113,6 +116,12 @@ export default function AdminDeliveryHub() {
         <button onClick={() => setTab('reconcile')} className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'reconcile' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           <CheckCircle2 className="w-4 h-4" /> Reconcile
         </button>
+        <button onClick={() => setTab('goods-in')} className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'goods-in' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          <Store className="w-4 h-4" /> Goods In
+        </button>
+        <button onClick={() => setTab('stock')} className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition ${tab === 'stock' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          <Boxes className="w-4 h-4" /> Stock
+        </button>
       </div>
 
       {/* Day Planner tab — plan a driver's whole day */}
@@ -127,6 +136,12 @@ export default function AdminDeliveryHub() {
           <BulkDeliveryReconciliation />
         </div>
       )}
+
+      {/* Goods In tab — gatekeeper verification of received stock */}
+      {tab === 'goods-in' && <GoodsInPanel />}
+
+      {/* Stock tab — consumable inventory catalog management */}
+      {tab === 'stock' && <ConsumableInventoryManager />}
 
       {/* Board tab content */}
       {tab === 'board' && (

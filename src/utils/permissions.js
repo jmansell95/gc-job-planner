@@ -126,6 +126,13 @@ export const SYSTEM_GROUPS = [
       PERMISSION_MODULES.map(m => [m.key, m.sensitive ? 'none' : 'read'])
     ),
   },
+  {
+    name: 'Scanner Only',
+    description: 'Logistics scanner only — can access the Asset Scanner / Goods In page and nothing else. Use for warehouse staff and depot hands who only need to scan items in and out. No admin dashboard, no schedule, no settings.',
+    is_system: true,
+    is_read_only: false,
+    permissions: Object.fromEntries(PERMISSION_MODULES.map(m => [m.key, 'none'])),
+  },
 ];
 
 // Resolve the effective access level for a module given a profile + platform flag.

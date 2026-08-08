@@ -113,6 +113,18 @@ export function isDriver(profile, isPlatformAdmin) {
   return role === 'field' && profile.delivery_dashboard_enabled === true;
 }
 
+// Check if user is a scanner-only user (logistics scanner app only).
+// These users can only access the /scanner page — no admin dashboard,
+// no schedule, no settings. They book goods in and scan assets out.
+export function isScannerOnly(profile) {
+  if (!profile) return false;
+  const group = profile.permission_group;
+  if (group && group.name === 'Scanner Only') return true;
+  const teamGroup = profile?.team?.permission_group;
+  if (teamGroup && teamGroup.name === 'Scanner Only') return true;
+  return false;
+}
+
 // Check if user is field staff (schedule & profile only)
 export function isFieldStaff(profile, isPlatformAdmin) {
   const role = resolveRole(profile, isPlatformAdmin);
@@ -132,6 +144,11 @@ export function canAccessRoute(profile, isPlatformAdmin, path) {
 
   // Help is available to everyone authenticated
   if (path === '/help') return true;
+
+  // Scanner-only users: scanner page ONLY
+  if (isScannerOnly(profile)) {
+    return path === '/scanner';
+  }
 
   // Drivers: delivery dashboard ONLY
   if (isDriver(profile)) {
@@ -156,6 +173,9 @@ export function canAccessRoute(profile, isPlatformAdmin, path) {
 
 // Resolve landing page based on role.
 export function resolveRoleLandingPage(profile, isPlatformAdmin) {
+  // Scanner-only users go straight to the scanner — they see nothing else
+  if (isScannerOnly(profile)) return '/scanner';
+
   // Drivers go straight to the delivery dashboard — they see nothing else
   if (isDriver(profile)) return '/deliveries';
 

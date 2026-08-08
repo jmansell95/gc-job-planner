@@ -1,0 +1,127 @@
+{
+  "name": "GoodsInReceipt",
+  "type": "object",
+  "properties": {
+    "item_name": {
+      "type": "string",
+      "description": "Name of the item received (e.g. '100W Light Bulb', 'Hi-Vis Vest L'). Denormalised from the ConsumableStockItem when linked, or free-text for ad-hoc items not in the catalog."
+    },
+    "consumable_item_id": {
+      "type": "string",
+      "description": "Linked ConsumableStockItem record. Optional \u2014 receipts can be ad-hoc (no catalog entry). When linked, verifying the receipt updates the consumable's current_stock automatically."
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "ppe",
+        "stationary",
+        "electrical",
+        "tools",
+        "consumables",
+        "cleaning",
+        "other"
+      ],
+      "default": "consumables",
+      "description": "Category of the received item. Copied from the linked ConsumableStockItem when set, or chosen manually for ad-hoc items."
+    },
+    "quantity_received": {
+      "type": "number",
+      "description": "Quantity received in this batch."
+    },
+    "unit": {
+      "type": "string",
+      "default": "each",
+      "description": "Unit of measure (e.g. 'each', 'box', 'pack'). Copied from the linked ConsumableStockItem when set."
+    },
+    "received_by_staff_id": {
+      "type": "string",
+      "description": "Staff member who scanned or entered this receipt (the person who did the goods-in)."
+    },
+    "received_by_name": {
+      "type": "string",
+      "description": "Name of the person who received the goods (denormalised for display)."
+    },
+    "received_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the goods were received."
+    },
+    "supplier_id": {
+      "type": "string",
+      "description": "Supplier the goods came from (linked Supplier record). Optional."
+    },
+    "supplier_name": {
+      "type": "string",
+      "description": "Supplier name (denormalised for display)."
+    },
+    "purchase_order_id": {
+      "type": "string",
+      "description": "Linked PurchaseOrder record if this receipt was against a PO. Used for three-way matching."
+    },
+    "po_number": {
+      "type": "string",
+      "description": "PO reference number (denormalised for display)."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Job these goods are allocated to (if received directly for a specific job rather than general stock)."
+    },
+    "job_name": {
+      "type": "string",
+      "description": "Job name (denormalised for display)."
+    },
+    "delivery_log_id": {
+      "type": "string",
+      "description": "Linked DeliveryLog record if this receipt came via a supplier_delivery task. Links the goods-in to the delivery chain."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_verification",
+        "verified",
+        "rejected"
+      ],
+      "default": "pending_verification",
+      "description": "Verification status. 'pending_verification' = scanned in by any staff member, awaiting gatekeeper review. 'verified' = confirmed by a depot lead/manager \u2014 stock level updated. 'rejected' = discrepancy found, not counted."
+    },
+    "verified_by_staff_id": {
+      "type": "string",
+      "description": "Staff member (depot lead/manager) who verified this receipt."
+    },
+    "verified_by_name": {
+      "type": "string",
+      "description": "Verifier name (denormalised for display)."
+    },
+    "verified_at": {
+      "type": "string",
+      "description": "ISO timestamp when the receipt was verified."
+    },
+    "rejection_reason": {
+      "type": "string",
+      "description": "Reason recorded when a receipt is rejected (e.g. 'Wrong quantity \u2014 10 received, 20 on delivery note')."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about this receipt (condition, discrepancies, etc.)."
+    }
+  },
+  "required": [
+    "item_name",
+    "quantity_received",
+    "received_date"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
