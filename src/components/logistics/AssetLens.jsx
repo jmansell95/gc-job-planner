@@ -228,6 +228,10 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
   const syncMeta = match ? SYNC_META[match.sync_status] || SYNC_META.never : null;
   const isPortable = match?.asset_type === 'portable_appliance';
 
+  const maintTone = match?.maintenance_status === 'overdue' ? 'text-red-600'
+    : match?.maintenance_status === 'due_soon' ? 'text-amber-600'
+    : match?.maintenance_status === 'ok' ? 'text-emerald-600' : 'text-slate-500';
+
   return (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-0 sm:p-4 pt-0 sm:pt-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
@@ -351,34 +355,49 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
                   </div>
                 </div>
 
-                {/* Quick info strip — 3 key stats */}
+                {/* Quick info strip — 3 key stats, fully readable on mobile + web */}
                 <div className="grid grid-cols-3 gap-px bg-slate-100 border-t border-slate-100">
-                  <div className="bg-white px-2.5 py-2">
-                    <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-0.5 mb-0.5"><CalendarClock className="w-2.5 h-2.5" /> Compl.</p>
-                    <p className="text-[11px] font-bold text-slate-700 leading-tight">
+                  <div className="bg-white px-3 py-2.5">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-1 mb-1 whitespace-nowrap"><CalendarClock className="w-3 h-3" /> Compliance</p>
+                    <p className="text-sm font-bold text-slate-800 leading-tight whitespace-nowrap">
                       {match.compliance_expiry_date ? safeFormat(match.compliance_expiry_date, 'dd MMM yy') : 'Lifetime'}
                     </p>
+                    <p className={`text-[10px] font-semibold mt-0.5 whitespace-nowrap ${
+                      match.compliance_status === 'compliant' ? 'text-emerald-600' :
+                      match.compliance_status === 'expiring' ? 'text-amber-600' :
+                      match.compliance_status === 'expired' ? 'text-red-600' : 'text-slate-400'
+                    }`}>
+                      {match.compliance_expiry_date ? (match.compliance_status === 'compliant' ? 'In date' : match.compliance_status === 'expiring' ? 'Expiring' : 'Expired') : 'No expiry'}
+                    </p>
                   </div>
-                  <div className="bg-white px-2.5 py-2">
-                    <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-0.5 mb-0.5"><Wrench className="w-2.5 h-2.5" /> Service</p>
-                    <p className="text-[11px] font-bold text-slate-700 leading-tight">
+                  <div className="bg-white px-3 py-2.5">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-1 mb-1 whitespace-nowrap"><Wrench className="w-3 h-3" /> Last Service</p>
+                    <p className="text-sm font-bold text-slate-800 leading-tight whitespace-nowrap">
                       {match.last_service_date ? safeFormat(match.last_service_date, 'dd MMM yy') : 'None'}
                     </p>
+                    <p className="text-[10px] font-medium text-slate-400 mt-0.5 whitespace-nowrap">
+                      {match.next_service_date ? `Next ${safeFormat(match.next_service_date, 'dd MMM')}` : 'No schedule'}
+                    </p>
                   </div>
-                  <div className="bg-white px-2.5 py-2">
-                    <p className="text-[9px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-0.5 mb-0.5">
-                      {match.asset_type === 'rig' ? <Gauge className="w-2.5 h-2.5" /> : <Clock className="w-2.5 h-2.5" />} {match.asset_type === 'rig' ? 'Hours' : 'Maint.'}
+                  <div className="bg-white px-3 py-2.5">
+                    <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wide flex items-center gap-1 mb-1 whitespace-nowrap">
+                      {match.asset_type === 'rig' ? <Gauge className="w-3 h-3" /> : <Clock className="w-3 h-3" />} {match.asset_type === 'rig' ? 'Op. Hours' : 'Maint.'}
                     </p>
-                    <p className="text-[11px] font-bold leading-tight">
-                      {match.asset_type === 'rig'
-                        ? <span className="text-slate-700">{Math.round(match.operating_hours || 0)}h</span>
-                        : <span className={
-                            match.maintenance_status === 'overdue' ? 'text-red-600' :
-                            match.maintenance_status === 'due_soon' ? 'text-amber-600' :
-                            match.maintenance_status === 'ok' ? 'text-emerald-600' : 'text-slate-500'
-                          }>{(match.maintenance_status || 'unknown').replace(/_/g, ' ')}</span>
-                      }
-                    </p>
+                    {match.asset_type === 'rig' ? (
+                      <>
+                        <p className="text-sm font-bold text-slate-800 leading-tight whitespace-nowrap">{Math.round(match.operating_hours || 0)}h</p>
+                        <p className={`text-[10px] font-semibold mt-0.5 whitespace-nowrap ${maintTone}`}>
+                          {match.service_interval_hours ? `${Math.round(match.hours_since_last_service || 0)}h / ${match.service_interval_hours}h` : (match.maintenance_status || 'unknown').replace(/_/g, ' ')}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className={`text-sm font-bold leading-tight whitespace-nowrap ${maintTone}`}>{(match.maintenance_status || 'unknown').replace(/_/g, ' ')}</p>
+                        <p className="text-[10px] font-medium text-slate-400 mt-0.5 whitespace-nowrap">
+                          {match.responsible_person ? match.responsible_person : 'No keeper'}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -588,7 +607,7 @@ function ActionBtn({ icon: Icon, label, tint, onClick, hidden }) {
     <button onClick={onClick}
       className={`flex flex-col items-center gap-1 p-2.5 rounded-xl transition active:scale-95 ${tint}`}>
       <Icon className="w-4 h-4" />
-      <span className="text-[10px] font-semibold leading-tight text-center">{label}</span>
+      <span className="text-[10px] font-bold uppercase tracking-wide leading-tight text-center">{label}</span>
     </button>
   );
 }
