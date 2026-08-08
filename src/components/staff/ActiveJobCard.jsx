@@ -31,8 +31,12 @@ export default function ActiveJobCard({
   const [showDetails, setShowDetails] = useState(false);
   const status = statusConfig[assignment.status || 'assigned'] || statusConfig.assigned;
   const StatusIcon = status.icon;
+  // Allow starting up to 2 hours before the scheduled start time — crews often
+  // arrive early and shouldn't be blocked from checking in.
   const scheduledStart = new Date(assignment.assigned_date + 'T' + (assignment.start_time || '00:00:00'));
-  const canStart = new Date() >= scheduledStart;
+  const EARLY_START_GRACE_MS = 2 * 60 * 60 * 1000;
+  const canStart = new Date() >= new Date(scheduledStart.getTime() - EARLY_START_GRACE_MS);
+  const isEarlyStart = canStart && new Date() < scheduledStart;
 
   if (!job) return null;
 
@@ -60,7 +64,7 @@ export default function ActiveJobCard({
     primaryButton = (
       <button onClick={() => onOpenShiftWizard(assignment.id)} type="button"
         className="w-full flex items-center justify-center gap-2.5 px-5 py-5 command-gradient text-white rounded-2xl text-lg font-bold shadow-lg shadow-[#2E5A1A]/30 active:scale-95 transition touch-manipulation">
-        <PlayCircle className="w-7 h-7" /> Start Shift
+        <PlayCircle className="w-7 h-7" /> {isEarlyStart ? 'Start Early' : 'Start Shift'}
       </button>
     );
   } else if (isStarted && canPerformActions && hasLeftSite) {
@@ -146,6 +150,14 @@ export default function ActiveJobCard({
 
         {/* Primary action — always visible */}
         <div className="mt-4">{primaryButton}</div>
+
+        {/* Early start notice */}
+        {isAssigned && isEarlyStart && canPerformActions && (
+          <div className="mt-2.5 flex items-center gap-2 px-3.5 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium">
+            <Clock className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            You're starting before your scheduled time ({assignment.start_time}). Your shift is ready when you are.
+          </div>
+        )}
 
         {/* Secondary actions for started jobs */}
         {isStarted && canPerformActions && !hasLeftSite && (

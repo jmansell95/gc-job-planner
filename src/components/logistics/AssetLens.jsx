@@ -233,11 +233,11 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
     : match?.maintenance_status === 'ok' ? 'text-emerald-600' : 'text-slate-500';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-0 sm:p-4 pt-0 sm:pt-4">
+    <div className="fixed inset-0 z-50 flex items-stretch justify-center p-0">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[100vh] sm:max-h-[92vh] overflow-y-auto flex flex-col">
+      <div className="relative bg-white shadow-2xl w-full h-[100dvh] overflow-y-auto flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 sticky top-0 bg-white rounded-t-2xl z-20">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 sticky top-0 bg-white z-20">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center">
               <ScanLine className="w-4.5 h-4.5 text-emerald-700" />

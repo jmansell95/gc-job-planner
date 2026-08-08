@@ -621,12 +621,40 @@ export default function StaffDashboard() {
             <div className="insight-card rounded-2xl">
               <EmptyState icon={CalendarDays} title="No shifts scheduled" message="Check back later — your manager will assign you to upcoming jobs." />
             </div>
-          ) : todaysSorted.length === 0 ? (
-            <div className="insight-card rounded-2xl">
-              <EmptyState icon={CalendarDays} title="No jobs today" message="Check the Upcoming tab for your next shifts." />
-            </div>
-          ) : todaysAllDone ? (
-            <EndOfDayCard />
+          ) : todaysSorted.length === 0 ? (() => {
+            // No jobs today — show a countdown to the next upcoming shift
+            if (upcomingAssignments.length === 0) {
+              return (
+                <div className="insight-card rounded-2xl">
+                  <EmptyState icon={CalendarDays} title="No jobs today" message="Check back later — your manager will assign you to upcoming jobs." />
+                </div>
+              );
+            }
+            const next = [...upcomingAssignments].sort((a, b) => new Date(a.assigned_date) - new Date(b.assigned_date))[0];
+            const nextJob = jobs.find(j => j.id === next.job_id);
+            const nextDate = new Date(next.assigned_date + 'T00:00:00');
+            const daysUntil = Math.ceil((nextDate - new Date(new Date().toDateString())) / (1000 * 60 * 60 * 24));
+            const label = daysUntil === 0 ? 'Later today' : daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`;
+            return (
+              <div className="insight-card rounded-2xl p-5 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-[#2E5A1A]/10 flex items-center justify-center mx-auto mb-3">
+                  <CalendarClock className="w-7 h-7 text-[#2E5A1A]" />
+                </div>
+                <p className="text-sm font-bold text-slate-900 mb-1">No jobs today</p>
+                <p className="text-xs text-slate-500 mb-3">Your next shift is <span className="font-semibold text-[#2E5A1A]">{label}</span></p>
+                <div className="bg-slate-50 rounded-xl border border-slate-200 px-4 py-3 text-left">
+                  <p className="text-sm font-bold text-slate-900 truncate">{nextJob?.name || 'Shift'}</p>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                    <Calendar className="w-3.5 h-3.5" /> {format(nextDate, 'EEEE dd MMM')}
+                    {next.start_time && <><span>·</span><Clock className="w-3.5 h-3.5" /> {next.start_time}</>}
+                  </div>
+                </div>
+                <button onClick={() => setActiveTab('upcoming')} type="button"
+                  className="mt-3 text-xs font-semibold text-[#2E5A1A] hover:underline">View all upcoming →</button>
+              </div>
+            );
+          })() : todaysAllDone ? (
+           <EndOfDayCard />
           ) : (
             <div className="space-y-3">
               {/* Prep strip */}
