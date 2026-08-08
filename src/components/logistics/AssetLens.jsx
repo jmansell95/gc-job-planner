@@ -168,7 +168,7 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
           </div>
 
           {/* Scanner */}
-          <BarcodeScanner onScan={handleScan} placeholder="Scan or type serial / Asset Panda ID…" />
+          <BarcodeScanner onScan={handleScan} placeholder="Scan or type serial / Asset Panda ID…" autoFocus={false} />
 
           {/* Config warning */}
           {!config?.group_id && (
