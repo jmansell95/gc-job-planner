@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -7,7 +7,7 @@ import {
   ArrowDownToLine, TestTube, MapPin, Package, Wrench, Undo2, Ruler,
   Droplets, Calculator, Layers, Gauge, Waves, Camera, FileText, Eye,
   Tablet, User, Download, Loader2, Filter, ChevronDown, HardHat,
-  Activity, Search,
+  Activity, Search, UploadCloud,
 } from 'lucide-react';
 import {
   strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig,
@@ -33,6 +33,9 @@ export default function LogQualityControl() {
   const [selected, setSelected] = useState(new Set());
   const [exporting, setExporting] = useState(false);
   const [exportJobId, setExportJobId] = useState('all');
+  const [pushing, setPushing] = useState(false);
+  const [pushResult, setPushResult] = useState(null);
+  const [opengroundConnected, setOpengroundConnected] = useState(false);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [anomalyOnly, setAnomalyOnly] = useState(false);
@@ -61,6 +64,17 @@ export default function LogQualityControl() {
     queryKey: ['jobs-for-log-qc'],
     queryFn: () => base44.entities.Job.list('-created_date', 200),
   });
+
+  // Check if OpenGround is configured
+  const { data: opengroundSettings } = useQuery({
+    queryKey: ['openground-config-qc'],
+    queryFn: () => base44.entities.AppSetting.filter({ key: 'openground_config' }, '-created_date', 1),
+  });
+
+  useEffect(() => {
+    const cfg = opengroundSettings?.[0]?.value;
+    setOpengroundConnected(!!(cfg?.client_id && cfg?.client_secret));
+  }, [opengroundSettings]);
 
   const jobMap = useMemo(() => {
     const m = {};
@@ -188,6 +202,28 @@ export default function LogQualityControl() {
     }
   };
 
+  const handlePush = async () => {
+    if (exportJobId === 'all') return;
+    setPushing(true);
+    setPushResult(null);
+    try {
+      const res = await base44.functions.invoke('syncOpenGround', { job_id: exportJobId });
+      const d = res.data || res;
+      setPushResult({
+        ok: !!d.ok,
+        msg: d.message || d.error || 'Push complete',
+        logs: d.logs_pushed || 0,
+        boreholes: d.boreholes || 0,
+        importId: d.import_id || '',
+      });
+      if (d.ok) toast({ title: `${d.logs_pushed} logs pushed to OpenGround`, duration: 3000 });
+    } catch (e) {
+      const d = e.response?.data || e;
+      setPushResult({ ok: false, msg: d.error || d.message || e.message || 'Push failed' });
+    }
+    setPushing(false);
+  };
+
   const handleExport = async () => {
     if (exportJobId === 'all') return;
     setExporting(true);
@@ -278,10 +314,36 @@ export default function LogQualityControl() {
               {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               {exporting ? 'Building…' : 'Export AGS'}
             </button>
+            <button onClick={handlePush} disabled={exportJobId === 'all' || pushing || !opengroundConnected}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0">
+              {pushing ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+              {pushing ? 'Pushing…' : 'Push to OpenGround'}
+            </button>
           </div>
         </div>
         {exportableJobs.length === 0 && (
           <p className="text-xs text-amber-700 mt-2">No jobs have approved logs yet. Approve logs below to enable export.</p>
+        )}
+        {!opengroundConnected && (
+          <p className="text-xs text-slate-500 mt-2 flex items-center gap-1.5">
+            <UploadCloud className="w-3.5 h-3.5" />
+            OpenGround not configured — enter your API credentials in Settings → OpenGround Sync to enable direct push.
+          </p>
+        )}
+        {pushResult && (
+          <div className={`mt-3 rounded-lg px-3 py-2.5 text-xs ${pushResult.ok ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+            <p className="flex items-start gap-2">
+              {pushResult.ok ? <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" /> : <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />}
+              <span>{pushResult.msg}</span>
+            </p>
+            {pushResult.ok && pushResult.logs > 0 && (
+              <div className="flex gap-4 mt-2 pl-6">
+                <span><span className="font-bold tabular-nums">{pushResult.logs}</span> logs pushed</span>
+                <span><span className="font-bold tabular-nums">{pushResult.boreholes}</span> boreholes</span>
+                {pushResult.importId && <span className="font-mono text-[10px]">ID: {pushResult.importId}</span>}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

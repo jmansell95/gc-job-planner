@@ -74,6 +74,7 @@ import ZapierWebhookSettings from '@/components/settings/ZapierWebhookSettings';
 import PushNotificationSettings from '@/components/settings/PushNotificationSettings';
 import Microsoft365Hub from '@/components/settings/Microsoft365Hub';
 import IncrementalImportSettings from '@/components/settings/IncrementalImportSettings';
+import OpenGroundSettings from '@/components/settings/OpenGroundSettings';
 import SettingsAccessGuard from '@/components/settings/SettingsAccessGuard';
 import SettingsSidebar from '@/components/SettingsSidebar';
 import { useSettingsAccess } from '@/hooks/useSettingsAccess';
@@ -84,7 +85,7 @@ import { base44 } from '@/api/base44Client';
 // IDs managed by the Integrations Hub — back button returns to 'integrations' from these
 const INTEGRATION_IDS = new Set([
   'geotab-sync', 'holman-sync', 'asset-panda', 'bob-hr', 'concur-sync',
-  'safety-culture', 'ags-import', 'cis-verification', 'payroll-export',
+  'safety-culture', 'ags-import', 'openground-sync', 'cis-verification', 'payroll-export',
   'met-office', 'google-maps', 'whatsapp', 'accounting-sync', 'payment-gateway',
   'microsoft-365',
 ]);
@@ -203,6 +204,7 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'zapier-webhooks': return <ZapierWebhookSettings />;
       case 'push-notifications': return <PushNotificationSettings />;
       case 'incremental-import': return <IncrementalImportSettings />;
+      case 'openground-sync': return <OpenGroundSettings />;
       default: return null;
     }
   };
