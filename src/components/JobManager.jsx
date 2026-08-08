@@ -3,8 +3,6 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, FolderOpen, Copy } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import StatCard from '@/components/dashboard/StatCard';
-import SearchFilterBar from '@/components/SearchFilterBar';
 import { EmptyState, ErrorState, CardGridSkeleton } from '@/components/StateViews';
 import JobDetail from '@/components/JobDetail';
 import JobWizardModal from '@/components/JobWizardModal';
@@ -12,7 +10,6 @@ import PrintReportButton from '@/components/PrintReportButton';
 import JobCreatedModal from '@/components/JobCreatedModal';
 import ProjectManager from '@/components/ProjectManager';
 import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
-import { hasDiscipline, getJobDisciplines, getDisciplineConfig } from '@/utils/jobDisciplines';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 
@@ -83,10 +80,6 @@ export default function JobManager({ onNavigateRota }) {
   const [cloningId, setCloningId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [clientFilter, setClientFilter] = useState('all');
-  const [projectFilter, setProjectFilter] = useState('all');
-  const [disciplineFilter, setDisciplineFilter] = useState('all');
   const [createdJob, setCreatedJob] = useState(null);
   const [view, setView] = useState('jobs'); // 'jobs' | 'projects'
 
@@ -174,21 +167,8 @@ export default function JobManager({ onNavigateRota }) {
       job.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (job.job_reference || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || (job.status || 'planning') === statusFilter;
-    const matchesClient = clientFilter === 'all' || job.client_id === clientFilter;
-    const matchesProject = projectFilter === 'all' || (projectFilter === 'standalone' ? !job.project_id : job.project_id === projectFilter);
-    const primaryType = getJobPrimaryType(job, teams);
-    const matchesType = typeFilter === 'all' || primaryType === typeFilter;
-    const matchesDiscipline = disciplineFilter === 'all' || hasDiscipline(job, disciplineFilter);
-    return matchesSearch && matchesStatus && matchesClient && matchesProject && matchesType && matchesDiscipline;
+    return matchesSearch && matchesStatus;
   });
-
-  // Summary stats — reflect the current filter context
-  const stats = {
-    total: filteredJobs.length,
-    in_progress: filteredJobs.filter(j => (j.status || 'planning') === 'in_progress').length,
-    planning: filteredJobs.filter(j => (j.status || 'planning') === 'planning').length,
-    completed: filteredJobs.filter(j => j.status === 'completed').length,
-  };
 
   if (selectedJob) {
     return <JobDetail job={selectedJob} onBack={() => setSelectedJob(null)} />;
@@ -242,91 +222,49 @@ export default function JobManager({ onNavigateRota }) {
         />
       )}
 
-      {/* Search & Filter — only in Jobs view */}
+      {/* Status buttons + search — only in Jobs view */}
       {view === 'jobs' && jobs.length > 0 && (
-        <>
-          {/* Summary stats — reflect active filters */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-            <StatCard icon={Briefcase} value={jobs.length} label="Total Jobs" gradient="stat-gradient-slate" />
-            <StatCard icon={Briefcase} value={stats.in_progress} label="In Progress" gradient="stat-gradient-emerald" />
-            <StatCard icon={Briefcase} value={stats.planning} label="Planning" gradient="stat-gradient-blue" />
-            <StatCard icon={Briefcase} value={stats.completed} label="Completed" gradient="stat-gradient-cyan" />
-          </div>
-          <SearchFilterBar
-            searchValue={searchQuery}
-            onSearchChange={setSearchQuery}
-            searchPlaceholder="Search jobs by name, location or reference..."
-            showCount
-            totalCount={filteredJobs.length}
-            filters={[
-              {
-                value: statusFilter, onChange: setStatusFilter,
-                options: [
-                  { value: 'all', label: 'All Statuses' },
-                  { value: 'planning', label: 'Planning' },
-                  { value: 'in_progress', label: 'In Progress' },
-                  { value: 'decommissioning', label: 'Decommissioning' },
-                  { value: 'completed', label: 'Completed' },
-                  { value: 'on_hold', label: 'On Hold' },
-                  { value: 'cancelled', label: 'Cancelled' },
-                ]
-              },
-              {
-                value: typeFilter, onChange: setTypeFilter,
-                options: [
-                  { value: 'all', label: 'All Types' },
-                  ...jobTypes.map(jt => ({ value: jt.key, label: jt.label })),
-                ]
-              },
-              {
-                value: clientFilter, onChange: setClientFilter,
-                options: [
-                  { value: 'all', label: 'All Clients' },
-                  ...clients.map(c => ({ value: c.id, label: c.name }))
-                ]
-              },
-              {
-                value: projectFilter, onChange: setProjectFilter,
-                options: [
-                  { value: 'all', label: 'All Projects' },
-                  { value: 'standalone', label: 'Standalone (no project)' },
-                  ...projects.map(p => ({ value: p.id, label: p.name }))
-                ]
-              },
-            ]}
-          />
-          {/* Discipline filter strip — click to filter jobs by discipline */}
-          {(() => {
-            const allDisciplines = new Set();
-            jobs.forEach(j => getJobDisciplines(j).forEach(d => allDisciplines.add(d.type)));
-            const types = [...allDisciplines];
-            if (types.length < 2) return null;
-            return (
-              <div className="flex flex-wrap items-center gap-1.5 mb-4">
+        <div className="mb-5 space-y-3">
+          {/* Status buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { value: 'all', label: 'All', count: jobs.length },
+              { value: 'planning', label: 'Planning', count: jobs.filter(j => (j.status || 'planning') === 'planning').length },
+              { value: 'in_progress', label: 'In Progress', count: jobs.filter(j => (j.status || 'planning') === 'in_progress').length },
+              { value: 'decommissioning', label: 'Decommissioning', count: jobs.filter(j => j.status === 'decommissioning').length },
+              { value: 'completed', label: 'Completed', count: jobs.filter(j => j.status === 'completed').length },
+              { value: 'on_hold', label: 'On Hold', count: jobs.filter(j => j.status === 'on_hold').length },
+              { value: 'cancelled', label: 'Cancelled', count: jobs.filter(j => j.status === 'cancelled').length },
+            ].map(btn => {
+              const active = statusFilter === btn.value;
+              return (
                 <button
-                  onClick={() => setDisciplineFilter('all')}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${disciplineFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                  key={btn.value}
+                  onClick={() => setStatusFilter(btn.value)}
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${
+                    active ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:border-[#2E5A1A]/30 hover:text-slate-900'
+                  }`}
                 >
-                  All Disciplines
+                  {btn.label}
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${active ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>
+                    {btn.count}
+                  </span>
                 </button>
-                {types.map(t => {
-                  const cfg = getDisciplineConfig(t);
-                  const active = disciplineFilter === t;
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => setDisciplineFilter(active ? 'all' : t)}
-                      className={`text-xs font-semibold px-3 py-1.5 rounded-full transition inline-flex items-center gap-1.5 ${cfg.badge} ${active ? 'ring-2 ring-offset-1' : 'hover:opacity-80'}`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                      {cfg.label}
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })()}
-        </>
+              );
+            })}
+          </div>
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search jobs by name, location or reference..."
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10"
+            />
+          </div>
+        </div>
       )}
 
       {/* Jobs Grid — only in Jobs view */}
@@ -355,7 +293,7 @@ export default function JobManager({ onNavigateRota }) {
                       <div className="flex flex-wrap gap-1.5">
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${getJobTypeColor(primaryType, jobTypes).badge}`}>{getJobTypeLabel(primaryType, jobTypes)}</span>
                         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[job.status || 'planning']}`}>{statusLabels[job.status || 'planning']}</span>
-                        <DisciplinePills job={job} size="sm" onFilter={setDisciplineFilter} />
+                        <DisciplinePills job={job} size="sm" />
                       </div>
                       {job.requisition_list_url && <FileText className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" title="Has requisition list" />}
                     </div>
