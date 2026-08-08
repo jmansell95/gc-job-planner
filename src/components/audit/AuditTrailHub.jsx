@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { ShieldCheck, Search, ChevronDown, ChevronRight, FileText, Download, X, Loader2 } from 'lucide-react';
+import { ShieldCheck, Search, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import JobPackView from '@/components/audit/JobPackView';
 import GeneratePackButton from '@/components/audit/GeneratePackButton';
@@ -57,34 +57,12 @@ export default function AuditTrailHub() {
         icon={ShieldCheck}
       />
 
-      {/* Summary banner */}
-      <div className="rounded-2xl overflow-hidden shadow-lg">
-        <div className="hero-gradient p-5 text-white">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-white/90">Total Jobs in Audit System</p>
-              <p className="text-3xl font-bold tabular-nums mt-0.5">{jobs.length}</p>
-            </div>
-            <div className="flex flex-wrap gap-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold tabular-nums">{jobs.filter(j => j.status === 'in_progress').length}</p>
-                <p className="text-[10px] uppercase tracking-wide text-white/80">In Progress</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold tabular-nums">{jobs.filter(j => j.status === 'completed').length}</p>
-                <p className="text-[10px] uppercase tracking-wide text-white/80">Completed</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold tabular-nums">{jobs.filter(j => j.status === 'planning').length}</p>
-                <p className="text-[10px] uppercase tracking-wide text-white/80">Planning</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold tabular-nums">{filtered.length}</p>
-                <p className="text-[10px] uppercase tracking-wide text-white/80">Showing</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatTile label="Total Jobs" value={jobs.length} />
+        <StatTile label="In Progress" value={jobs.filter(j => j.status === 'in_progress').length} />
+        <StatTile label="Completed" value={jobs.filter(j => j.status === 'completed').length} />
+        <StatTile label="Planning" value={jobs.filter(j => j.status === 'planning').length} />
       </div>
 
       {/* Search & filter */}
@@ -187,6 +165,15 @@ export default function AuditTrailHub() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function StatTile({ label, value }) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-3">
+      <p className="text-[10px] uppercase text-slate-400 font-semibold">{label}</p>
+      <p className="text-2xl font-bold text-slate-900 tabular-nums leading-none mt-1">{value}</p>
     </div>
   );
 }

@@ -4,9 +4,18 @@ import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import {
   ShieldCheck, Search, ChevronDown, ChevronRight, Hash, User, Clock,
-  FileText, AlertTriangle, CheckCircle2, Database, Filter, Loader2,
+  FileText, AlertTriangle, CheckCircle2, Loader2,
 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
+
+function StatTile({ label, value }) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-3">
+      <p className="text-[10px] uppercase text-slate-400 font-semibold">{label}</p>
+      <p className="text-2xl font-bold text-slate-900 tabular-nums leading-none mt-1">{value}</p>
+    </div>
+  );
+}
 
 const ACTION_META = {
   create: { label: 'Create', cls: 'bg-emerald-100 text-emerald-700', icon: CheckCircle2 },
@@ -61,34 +70,12 @@ export default function SystemAuditLogViewer() {
         icon={ShieldCheck}
       />
 
-      {/* Summary banner */}
-      <div className="rounded-2xl overflow-hidden shadow-lg">
-        <div className="hero-gradient p-5 text-white">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-white/90">Total Audit Entries</p>
-              <p className="text-3xl font-bold tabular-nums mt-0.5">{logs.length}</p>
-            </div>
-            <div className="flex flex-wrap gap-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold tabular-nums">{logs.filter(l => l.action === 'create').length}</p>
-                <p className="text-[10px] uppercase tracking-wide text-white/80">Creates</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold tabular-nums">{logs.filter(l => l.action === 'update').length}</p>
-                <p className="text-[10px] uppercase tracking-wide text-white/80">Updates</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold tabular-nums">{logs.filter(l => l.action === 'delete').length}</p>
-                <p className="text-[10px] uppercase tracking-wide text-white/80">Deletes</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold tabular-nums">{new Set(logs.map(l => l.entity_name)).size}</p>
-                <p className="text-[10px] uppercase tracking-wide text-white/80">Entities</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatTile label="Total Entries" value={logs.length} />
+        <StatTile label="Creates" value={logs.filter(l => l.action === 'create').length} />
+        <StatTile label="Updates" value={logs.filter(l => l.action === 'update').length} />
+        <StatTile label="Deletes" value={logs.filter(l => l.action === 'delete').length} />
       </div>
 
       {/* Search & filter */}

@@ -51,19 +51,7 @@ export default function CompliancePage() {
 
       {tab === 'safety' && (
         <>
-          {/* Safety sub-tabs */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200/70 shadow-sm p-1.5 inline-flex flex-wrap gap-1">
-            {safetyTabs.map(t => {
-              const Icon = t.icon;
-              const active = safetyTab === t.id;
-              return (
-                <button key={t.id} onClick={() => setSafetyTab(t.id)} type="button"
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${active ? 'bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
-                  <Icon className="w-4 h-4" /> {t.label}
-                </button>
-              );
-            })}
-          </div>
+          <TabBar tabs={safetyTabs} activeTab={safetyTab} onChange={setSafetyTab} />
 
           {safetyTab === 'checks' && <SafetyCultureCheckHub onNavigate={(section) => navigate('/admin', { state: { section } })} />}
           {safetyTab === 'incidents' && <IncidentReporter />}
