@@ -54,10 +54,10 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
     { id: 'scheduling', label: 'Scheduling', icon: Calendar },
     { id: 'staff', label: 'Staff & Teams', icon: Users },
-    { id: 'logistics', label: 'Logistics', icon: Truck },
+    { id: 'logistics', label: 'Logistics', icon: Truck, comingSoon: true },
     { id: 'assets', label: 'Assets & Fleet', icon: Wrench },
     { id: 'compliance', label: 'Compliance & Audit', icon: ShieldCheck },
-    { id: 'billing', label: 'Financial Control', icon: PoundSterling },
+    { id: 'billing', label: 'Financial Control', icon: PoundSterling, comingSoon: true },
     { id: 'settings', label: 'System', icon: Settings },
   ];
 
@@ -89,6 +89,15 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         {navItems.map(item => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
+          if (item.comingSoon) {
+            return (
+              <div key={item.id} className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium opacity-40 cursor-not-allowed select-none">
+                <Icon className="w-[18px] h-[18px] flex-shrink-0 text-white/40" />
+                <span className="text-white/40 flex-1">{item.label}</span>
+                <span className="text-[9px] font-bold text-white/40 bg-white/10 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Soon</span>
+              </div>
+            );
+          }
           return (
             <button key={item.id} type="button" onClick={() => setActiveSection(item.id)}
               className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
@@ -152,7 +161,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     <>
       {/* Mobile Top Header — hamburger + brand + actions */}
       <header className="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-white/10 shadow-sm relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="absolute inset-0 hero-vibrant" />
+        <div className="absolute inset-0 sidebar-modern" />
         <div className="relative z-10 h-14 flex items-center justify-between gap-2 px-3">
           <div className="flex items-center gap-1 min-w-0">
             <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" type="button"
@@ -198,7 +207,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
 
       {/* Desktop Sidebar */}
       <nav className="hidden lg:flex sticky top-0 h-screen w-64 border-r border-black/10 flex-col relative overflow-hidden">
-        <div className="absolute inset-0 hero-vibrant" />
+        <div className="absolute inset-0 sidebar-modern" />
         <div className="relative z-10 flex flex-col h-full">
           {desktopNav}
         </div>

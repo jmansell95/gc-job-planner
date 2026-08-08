@@ -286,6 +286,11 @@
       linear-gradient(135deg, hsl(96 52% 18%) 0%, hsl(100 50% 22%) 55%, hsl(104 48% 20%) 100%);
   }
 
+  /* === Modern Sidebar — refined dark charcoal-green, less vibrant === */
+  .sidebar-modern {
+    background: linear-gradient(180deg, #1c2218 0%, #161b13 100%);
+  }
+
   /* === Vibrant Hero — colorful multi-stop gradient for modern headers === */
   .hero-vibrant {
     background:

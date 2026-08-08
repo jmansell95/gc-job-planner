@@ -1,4 +1,4 @@
-import { LayoutDashboard, AlertTriangle, Warehouse, AlertOctagon, MapPin, Sparkles, Brain, CloudSun, Star, BarChart3, Radar, Wrench } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, Warehouse, AlertOctagon, MapPin, Sparkles, Brain, CloudSun, Star, BarChart3, Radar, Wrench, ShieldCheck } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════
 //  STREAMLINED DASHBOARD REGISTRY
@@ -8,6 +8,7 @@ import { LayoutDashboard, AlertTriangle, Warehouse, AlertOctagon, MapPin, Sparkl
 //  sidebar nav and removed from the dashboard to reduce clutter.
 // ═══════════════════════════════════════════════════════════════════
 export const WIDGET_REGISTRY = {
+  'site-readiness-gate': { title: 'Site Readiness Gate', icon: ShieldCheck },
   'executive-snapshot': { title: 'Executive Snapshot', icon: LayoutDashboard, fullWidth: true },
   'mission-control': { title: 'Mission Control Center', icon: Radar, fullWidth: true },
   'field-priorities': { title: 'Field Priorities', icon: AlertTriangle },
@@ -29,6 +30,7 @@ export const WIDGET_REGISTRY = {
 //  Tier 2 — Insights & Analysis: AI predictions, benchmarks, and deeper analysis
 // ═══════════════════════════════════════════════════════════════════
 export const TIER_GLANCE = [
+  'site-readiness-gate',
   'executive-snapshot',
   'mission-control',
   'field-priorities',
@@ -77,6 +79,7 @@ export const COST_WIDGETS = [];
 // Widgets that show company-wide data (not specific to a job). Hidden when
 // the dashboard is focused on a single job.
 export const GLOBAL_ONLY_WIDGETS = [
+  'site-readiness-gate',
   'executive-snapshot', 'mission-control', 'field-priorities', 'yard-control',
   'exception-monitor', 'live-site-map', 'ai-insights', 'predictive-insights',
   'client-feedback', 'benchmark-comparisons', 'geo-heatmap', 'predictive-maintenance',

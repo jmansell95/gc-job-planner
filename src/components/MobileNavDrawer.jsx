@@ -22,7 +22,7 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'tween', duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-            className="lg:hidden fixed top-0 left-0 bottom-0 z-50 w-[82%] max-w-xs bg-gradient-to-b from-[#2E5A1A] via-[#3a6a1e] to-[#456a1e] border-r border-black/20 flex flex-col shadow-2xl"
+            className="lg:hidden fixed top-0 left-0 bottom-0 z-50 w-[82%] max-w-xs sidebar-modern border-r border-black/20 flex flex-col shadow-2xl"
             style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
             <div className="p-4 border-b border-white/10 flex items-center gap-3">
@@ -77,6 +77,15 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
               {navItems.map(item => {
                 const Icon = item.icon;
                 const isActive = activeSection === item.id;
+                if (item.comingSoon) {
+                  return (
+                    <div key={item.id} className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium opacity-40 cursor-not-allowed select-none">
+                      <Icon className="w-5 h-5 flex-shrink-0 text-white/40" />
+                      <span className="text-white/40 flex-1">{item.label}</span>
+                      <span className="text-[9px] font-bold text-white/40 bg-white/10 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Soon</span>
+                    </div>
+                  );
+                }
                 return (
                   <button key={item.id} type="button"
                     onClick={() => { onNavigate(item.id); onClose(); }}

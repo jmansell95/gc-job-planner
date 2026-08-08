@@ -19,6 +19,7 @@ import ExceptionMonitorWidget from '@/components/dashboard/ExceptionMonitorWidge
 import YardControlWidget from '@/components/dashboard/YardControlWidget';
 import MissionControlWidget from '@/components/dashboard/MissionControlWidget';
 import PredictiveMaintenanceWidget from '@/components/vehicles/PredictiveMaintenanceWidget';
+import SiteReadinessGateWidget from '@/components/dashboard/SiteReadinessGateWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
@@ -88,6 +89,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   const renderWidget = (widgetId) => {
     switch (widgetId) {
+      case 'site-readiness-gate': return <SiteReadinessGateWidget onNavigate={onNavigate} />;
       case 'executive-snapshot': return <ExecutiveSnapshotWidget onNavigate={onNavigate} />;
       case 'mission-control': return <MissionControlWidget onNavigate={onNavigate} />;
       case 'field-priorities': return <FieldPrioritiesWidget />;
@@ -112,32 +114,33 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     <div>
       {/* Hero header — context-aware */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="mb-4 mt-0">
-        <div className="mesh-bg relative overflow-hidden rounded-t-none rounded-b-2xl md:rounded-2xl shadow-lg px-4 py-2.5 sm:px-5 sm:py-3.5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 relative z-10">
+        <div className="bg-white relative overflow-hidden rounded-t-none rounded-b-2xl md:rounded-2xl shadow-sm border border-slate-200/80 px-4 py-3 sm:px-5 sm:py-4">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#2E5A1A] to-[#8DC63F]" />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 relative z-10 pl-2">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="p-2 sm:p-2.5 bg-white/15 ring-1 ring-white/25 rounded-xl flex-shrink-0 backdrop-blur-sm">
+              <div className="p-2 sm:p-2.5 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] rounded-xl flex-shrink-0 shadow-sm">
                 {isAllJobs ? <Grid3x3 className="w-6 h-6 text-white" /> : <Briefcase className="w-6 h-6 text-white" />}
               </div>
               <div className="min-w-0">
                 {isAllJobs ? (
                   <>
-                    <h1 className="text-base sm:text-xl md:text-2xl font-bold text-white tracking-tight truncate">
+                    <h1 className="text-base sm:text-xl md:text-2xl font-bold text-slate-900 tracking-tight truncate">
                       {greeting}{firstName ? `, ${firstName}` : ''}
                     </h1>
-                    <p className="text-white/90 text-xs mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
-                    <p className="text-white/70 text-[11px] mt-0.5">{thisWeekRotas.length} {thisWeekRotas.length === 1 ? 'Shift' : 'Shifts'} This Week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
+                    <p className="text-slate-600 text-xs mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
+                    <p className="text-slate-400 text-[11px] mt-0.5">{thisWeekRotas.length} {thisWeekRotas.length === 1 ? 'Shift' : 'Shifts'} This Week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
                   </>
                 ) : (
                   <>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight truncate">{selectedJob?.name || 'Job'}</h1>
+                      <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 tracking-tight truncate">{selectedJob?.name || 'Job'}</h1>
                       {selectedJob?.status && (
-                        <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-white/20 text-white ring-1 ring-white/30 backdrop-blur-sm">
+                        <span className="text-[11px] px-2.5 py-0.5 rounded-full font-semibold bg-[#2E5A1A]/10 text-[#2E5A1A] ring-1 ring-[#2E5A1A]/20">
                           {titleCase(selectedJob.status.replace(/_/g, ' '))}
                         </span>
                       )}
                     </div>
-                    <p className="text-white/90 text-sm mt-1 flex items-center gap-1.5 flex-wrap">
+                    <p className="text-slate-600 text-sm mt-1 flex items-center gap-1.5 flex-wrap">
                       {selectedJob?.location && <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{selectedJob.location}</span>}
                       {selectedJob?.start_date && selectedJob?.end_date && (
                         <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{format(new Date(selectedJob.start_date), 'dd MMM')} – {format(new Date(selectedJob.end_date), 'dd MMM yyyy')}</span>
@@ -151,15 +154,15 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
               {!isAllJobs && (
                 <div className="flex flex-wrap items-center gap-1.5">
                   {gbp(selectedJob?.budget_amount) && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-                      <span className="text-[11px] text-white/75 font-medium">Budget</span>
-                      <span className="text-sm font-bold text-white tabular-nums">{gbp(selectedJob.budget_amount)}</span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
+                      <span className="text-[11px] text-slate-500 font-medium">Budget</span>
+                      <span className="text-sm font-bold text-slate-900 tabular-nums">{gbp(selectedJob.budget_amount)}</span>
                     </span>
                   )}
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 ring-1 ring-white/25 backdrop-blur-sm">
-                    <Users className="w-3.5 h-3.5 text-white/90" />
-                    <span className="text-sm font-bold text-white tabular-nums">{staffToday}</span>
-                    <span className="text-[11px] text-white/75 font-medium">Crew Today</span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
+                    <Users className="w-3.5 h-3.5 text-[#2E5A1A]" />
+                    <span className="text-sm font-bold text-slate-900 tabular-nums">{staffToday}</span>
+                    <span className="text-[11px] text-slate-500 font-medium">Crew Today</span>
                   </span>
                 </div>
               )}
