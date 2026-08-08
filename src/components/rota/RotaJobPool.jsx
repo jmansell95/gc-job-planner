@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Briefcase, MapPin, Loader2, X, ChevronDown, ChevronRight, Search } from 'lucide-react';
+import { Briefcase, MapPin, Loader2, X, ChevronDown, ChevronRight, Search, Layers, Plus, CheckCircle2 } from 'lucide-react';
 import { startOfWeek, format, addDays } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 
 /**
  * Quick-Assign Job Pool — a collapsible sidebar showing all active jobs.
  * Click a job to open a compact inline assign form (pick staff + day),
- * which creates a RotaAssignment directly. Designed to sit beside the
- * Weekly Rota Builder as a visual drag-alternative for fast assignment.
+ * which creates a RotaAssignment directly. Supports multi-job assignment:
+ * shows existing assignments for the selected staff+day and offers a
+ * "rapid add" mode that keeps the form open for fast multi-job booking.
  */
 export default function RotaJobPool({ weekStart }) {
   const [expanded, setExpanded] = useState(true);
@@ -18,6 +19,7 @@ export default function RotaJobPool({ weekStart }) {
   const [selectedStaff, setSelectedStaff] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [saving, setSaving] = useState(false);
+  const [rapidMode, setRapidMode] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -40,6 +42,21 @@ export default function RotaJobPool({ weekStart }) {
     },
   });
 
+  // Fetch all assignments for this week so we can show existing jobs per staff+day
+  const { data: allRotas = [] } = useQuery({
+    queryKey: ['rotas', ws],
+    queryFn: async () => {
+      const all = await base44.entities.RotaAssignment.list();
+      return all.filter(a => a.week_start === ws && (!a.assignment_type || a.assignment_type === 'job'));
+    },
+  });
+
+  // Existing assignments for the currently selected staff+date
+  const existingForSelection = useMemo(() => {
+    if (!selectedStaff || !selectedDate) return [];
+    return allRotas.filter(r => r.staff_id === selectedStaff && r.assigned_date === selectedDate);
+  }, [allRotas, selectedStaff, selectedDate]);
+
   const filtered = jobs.filter(j => {
     const q = search.toLowerCase().trim();
     if (!q) return true;
@@ -60,10 +77,21 @@ export default function RotaJobPool({ weekStart }) {
       });
       await queryClient.invalidateQueries({ queryKey: ['rotas'] });
       await queryClient.invalidateQueries({ queryKey: ['rota-assignments-dnd'] });
-      toast({ title: 'Assigned', description: `${staff.find(s => s.id === selectedStaff)?.name || 'Staff'} → ${assigningJob.name} on ${format(new Date(selectedDate), 'EEE dd MMM')}` });
-      setAssigningJob(null);
-      setSelectedStaff('');
-      setSelectedDate('');
+      const staffName = staff.find(s => s.id === selectedStaff)?.name || 'Staff';
+      const count = existingForSelection.length + 1;
+      toast({
+        title: count > 1 ? `Job ${count} assigned` : 'Assigned',
+        description: `${staffName} → ${assigningJob.name} on ${format(new Date(selectedDate), 'EEE dd MMM')}`,
+      });
+      if (rapidMode) {
+        // Keep form open, just clear the job selection so manager can pick the next job
+        setAssigningJob(null);
+        setSelectedStaff('');
+      } else {
+        setAssigningJob(null);
+        setSelectedStaff('');
+        setSelectedDate('');
+      }
     } catch (err) {
       toast({ title: 'Assignment failed', description: err.message || 'Could not create assignment.', variant: 'destructive' });
     } finally {
@@ -99,6 +127,21 @@ export default function RotaJobPool({ weekStart }) {
             />
           </div>
 
+          {/* Rapid multi-assign toggle */}
+          <button
+            onClick={() => setRapidMode(v => !v)}
+            className={`w-full mb-2 flex items-center justify-between px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition ${
+              rapidMode ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+            }`}
+          >
+            <span className="flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5" /> Multi-Job Mode
+            </span>
+            <span className={`relative w-7 h-3.5 rounded-full transition ${rapidMode ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+              <span className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-all ${rapidMode ? 'left-3.5' : 'left-0.5'}`} />
+            </span>
+          </button>
+
           {isLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
@@ -115,7 +158,7 @@ export default function RotaJobPool({ weekStart }) {
                         setAssigningJob(null);
                       } else {
                         setAssigningJob(job);
-                        setSelectedDate(days[0]);
+                        if (!selectedDate) setSelectedDate(days[0]);
                       }
                     }}
                     className={`w-full text-left p-2.5 rounded-lg border transition ${
@@ -135,6 +178,27 @@ export default function RotaJobPool({ weekStart }) {
                   {/* Inline assign form */}
                   {assigningJob?.id === job.id && (
                     <div className="mt-1.5 p-2 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                      {/* Existing assignments for this staff+day — multi-job awareness */}
+                      {selectedStaff && selectedDate && existingForSelection.length > 0 && (
+                        <div className="p-1.5 bg-amber-50 border border-amber-200 rounded-md">
+                          <p className="text-[10px] font-bold text-amber-700 mb-1 flex items-center gap-1">
+                            <Layers className="w-3 h-3" /> {existingForSelection.length} job{existingForSelection.length > 1 ? 's' : ''} already on {format(new Date(selectedDate), 'EEE')}
+                          </p>
+                          <div className="space-y-1">
+                            {existingForSelection.map(r => {
+                              const exJob = jobs.find(j => j.id === r.job_id);
+                              return (
+                                <div key={r.id} className="flex items-center gap-1 text-[10px] text-slate-600 bg-white rounded px-1.5 py-1">
+                                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500 flex-shrink-0" />
+                                  <span className="truncate">{exJob?.name || 'Job'}</span>
+                                  {r.start_time && <span className="text-slate-400 ml-auto">{r.start_time}</span>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <p className="text-[9px] text-amber-600 mt-1">This will add as job #{existingForSelection.length + 1}</p>
+                        </div>
+                      )}
                       <select
                         value={selectedStaff}
                         onChange={e => setSelectedStaff(e.target.value)}
@@ -142,7 +206,7 @@ export default function RotaJobPool({ weekStart }) {
                       >
                         <option value="">Select staff...</option>
                         {staff.map(s => (
-                          <option key={s.id} value={s.id}>{s.full_name || s.name}</option>
+                          <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                       </select>
                       <div className="flex gap-1">
@@ -166,7 +230,8 @@ export default function RotaJobPool({ weekStart }) {
                           disabled={!selectedStaff || !selectedDate || saving}
                           className="flex-1 py-1.5 text-xs font-semibold bg-[#2E5A1A] text-white rounded-md hover:bg-[#1c4a12] disabled:opacity-50 transition flex items-center justify-center gap-1"
                         >
-                          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Assign'}
+                          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                          {rapidMode ? 'Add Job' : 'Assign'}
                         </button>
                         <button
                           onClick={() => setAssigningJob(null)}

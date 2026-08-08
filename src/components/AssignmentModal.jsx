@@ -571,6 +571,20 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                   This is the {daySummary.assignments.length + 1}{['st','nd','rd'][Math.min(daySummary.assignments.length, 2)] || 'th'} job today — times auto-fit to avoid overlapping.
                 </div>
               )}
+              {showAutoSuggest && daySummary.assignments.length > 0 && (
+                <div className="space-y-1">
+                  {daySummary.assignments.map((a, i) => {
+                    const exJob = jobs.find(j => j.id === a.job_id);
+                    return (
+                      <div key={a.id || i} className="flex items-center gap-2 text-[11px] bg-white border border-slate-200 rounded-md px-2 py-1.5">
+                        <span className="w-4 h-4 rounded-full bg-[#2E5A1A] text-white text-[8px] font-bold flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                        <span className="font-medium text-slate-700 truncate flex-1">{exJob?.name || 'Job'}</span>
+                        {a.start_time && <span className="text-slate-400 font-mono flex-shrink-0">{a.start_time}{a.end_time ? `–${a.end_time}` : ''}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               {daySummary && daySummary.hasOverlap && (
                 <div className="flex items-center gap-1.5 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-md px-2 py-1.5">
                   <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
