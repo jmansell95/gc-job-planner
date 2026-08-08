@@ -1,16 +1,59 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Calendar, Loader2, CheckCircle2, AlertCircle, ExternalLink, Copy, KeyRound, Building2, Shield } from 'lucide-react';
+import {
+  Calendar, Files, MessageSquare, HardDrive, Loader2, CheckCircle2,
+  AlertCircle, ExternalLink, Copy, KeyRound, Building2, Shield, Cloud,
+  RefreshCw, X,
+} from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import { useToast } from '@/components/ui/use-toast';
 
-const SETTING_KEY = 'outlook_calendar_config';
+const SETTING_KEY = 'm365_config';
 
-export default function OutlookCalendarSettings() {
+const SERVICES = [
+  {
+    id: 'outlook',
+    name: 'Outlook Calendar & Email',
+    icon: Calendar,
+    color: 'bg-blue-100 text-blue-600',
+    desc: 'Two-way rota sync to staff calendars + email notifications',
+    scopes: 'Calendars.ReadWrite, Mail.ReadWrite, User.Read, offline_access',
+    connectorName: 'Microsoft 365 — Outlook',
+  },
+  {
+    id: 'share_point',
+    name: 'SharePoint Documents',
+    icon: Files,
+    color: 'bg-emerald-100 text-emerald-600',
+    desc: 'Mirror job documents to SharePoint folders for corporate records',
+    scopes: 'Files.ReadWrite.All, Sites.ReadWrite.All, User.Read, offline_access',
+    connectorName: 'Microsoft 365 — SharePoint',
+  },
+  {
+    id: 'microsoft_teams',
+    name: 'Teams Notifications',
+    icon: MessageSquare,
+    color: 'bg-violet-100 text-violet-600',
+    desc: 'Send job alerts and assignment notifications to Teams channels',
+    scopes: 'ChannelMessage.Send, Team.ReadBasic.All, Chat.ReadWrite, OnlineMeetings.ReadWrite, User.Read, offline_access',
+    connectorName: 'Microsoft 365 — Teams',
+  },
+  {
+    id: 'one_drive',
+    name: 'OneDrive Files',
+    icon: HardDrive,
+    color: 'bg-amber-100 text-amber-600',
+    desc: 'Upload, download, and manage files in staff OneDrive',
+    scopes: 'Files.ReadWrite.All, User.Read, offline_access',
+    connectorName: 'Microsoft 365 — OneDrive',
+  },
+];
+
+export default function Microsoft365Hub() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [config, setConfig] = useState({ tenant_id: '', client_id: '', client_secret: '', redirect_uri: '' });
+  const [config, setConfig] = useState({ tenant_id: '', client_id: '', client_secret: '' });
   const [settingId, setSettingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -21,7 +64,7 @@ export default function OutlookCalendarSettings() {
         const existing = await base44.entities.AppSetting.filter({ key: SETTING_KEY });
         if (existing.length > 0) {
           setSettingId(existing[0].id);
-          setConfig(existing[0].value || { tenant_id: '', client_id: '', client_secret: '', redirect_uri: '' });
+          setConfig(existing[0].value || { tenant_id: '', client_id: '', client_secret: '' });
         }
       } catch (e) {
         // AppSetting may not exist yet
@@ -41,7 +84,7 @@ export default function OutlookCalendarSettings() {
         setSettingId(created.id);
       }
       await queryClient.invalidateQueries({ queryKey: ['all-integration-configs'] });
-      toast({ title: 'Outlook Calendar credentials saved', description: 'Staff can now connect their Microsoft 365 accounts.' });
+      toast({ title: 'Microsoft 365 credentials saved', description: 'Register the four connectors below using these credentials.' });
     } catch (e) {
       toast({ title: 'Error saving', description: e.message, variant: 'destructive' });
     } finally {
@@ -67,9 +110,9 @@ export default function OutlookCalendarSettings() {
   return (
     <div className="space-y-5">
       <SettingsSectionHeader
-        icon={Calendar}
-        title="Outlook Calendar Sync"
-        description="Connect staff Microsoft 365 / Outlook calendars for two-way rota sync. Each staff member connects their own account."
+        icon={Cloud}
+        title="Microsoft 365 SSO"
+        description="One Azure AD app registration powers Outlook Calendar, SharePoint, Teams, and OneDrive. Staff connect once and get all four services."
       />
 
       {/* Status banner */}
@@ -78,7 +121,7 @@ export default function OutlookCalendarSettings() {
           <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <div>
             <p className="text-sm font-semibold text-emerald-800">Azure AD app registered and ready</p>
-            <p className="text-xs text-emerald-600 mt-0.5">Staff can now connect their Outlook account from the Integrations Hub or their profile page.</p>
+            <p className="text-xs text-emerald-600 mt-0.5">Register the four workspace connectors below using these credentials, then staff can connect their Microsoft 365 accounts.</p>
           </div>
         </div>
       ) : (
@@ -86,7 +129,7 @@ export default function OutlookCalendarSettings() {
           <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-amber-800">Setup required</p>
-            <p className="text-xs text-amber-700 mt-0.5">Create an Azure AD app registration and enter the credentials below. Staff calendar sync won't work until this is configured.</p>
+            <p className="text-xs text-amber-700 mt-0.5">Create one Azure AD app registration with all the scopes below, then enter the credentials here. One app covers all four services.</p>
           </div>
         </div>
       )}
@@ -104,7 +147,7 @@ export default function OutlookCalendarSettings() {
           </li>
           <li className="flex gap-2.5">
             <span className="flex-shrink-0 w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">2</span>
-            <span>Name it "GC Mission Control Calendar Sync" and select "Accounts in this organizational directory only" (single tenant).</span>
+            <span>Name it "GC Mission Control M365 Integration" and select "Accounts in this organizational directory only" (single tenant).</span>
           </li>
           <li className="flex gap-2.5">
             <span className="flex-shrink-0 w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">3</span>
@@ -120,7 +163,12 @@ export default function OutlookCalendarSettings() {
           </li>
           <li className="flex gap-2.5">
             <span className="flex-shrink-0 w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">4</span>
-            <span>Go to "API permissions" → Add permission → Microsoft Graph → Delegated → add <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">Calendars.ReadWrite</code> and <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">User.Read</code> and <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">offline_access</code>.</span>
+            <span>Go to "API permissions" → Add permission → Microsoft Graph → Delegated → add ALL of these scopes:</span>
+          </li>
+          <li className="flex gap-2.5 ml-7">
+            <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+              <code className="text-xs text-slate-700 break-all">Calendars.ReadWrite, Mail.ReadWrite, Files.ReadWrite.All, Sites.ReadWrite.All, ChannelMessage.Send, Team.ReadBasic.All, Chat.ReadWrite, OnlineMeetings.ReadWrite, User.Read, offline_access</code>
+            </div>
           </li>
           <li className="flex gap-2.5">
             <span className="flex-shrink-0 w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">5</span>
@@ -130,6 +178,10 @@ export default function OutlookCalendarSettings() {
             <span className="flex-shrink-0 w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">6</span>
             <span>Copy the <strong>Tenant ID</strong> and <strong>Application (client) ID</strong> from the Overview page, and paste all three values below.</span>
           </li>
+          <li className="flex gap-2.5">
+            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center">7</span>
+            <span>Register the four workspace connectors in <strong>Settings → OAuth Connectors</strong> using the same client_id, client_secret, and tenant_id. One per service (Outlook, SharePoint, Teams, OneDrive).</span>
+          </li>
         </ol>
       </div>
 
@@ -137,7 +189,7 @@ export default function OutlookCalendarSettings() {
       <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
         <div className="flex items-center gap-2">
           <KeyRound className="w-4 h-4 text-[#2E5A1A]" />
-          <h3 className="text-sm font-bold text-slate-800">Azure AD Credentials</h3>
+          <h3 className="text-sm font-bold text-slate-800">Azure AD Credentials (shared across all four services)</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -191,15 +243,40 @@ export default function OutlookCalendarSettings() {
         </div>
       </div>
 
+      {/* Service cards */}
+      <div>
+        <h3 className="text-sm font-bold text-slate-800 mb-3">Services Enabled by This Integration</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {SERVICES.map(service => {
+            const Icon = service.icon;
+            return (
+              <div key={service.id} className="bg-white border border-slate-200 rounded-2xl p-4 flex items-start gap-3">
+                <div className={`w-10 h-10 rounded-xl ${service.color} flex items-center justify-center flex-shrink-0`}>
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-slate-800">{service.name}</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">{service.desc}</p>
+                  <div className="mt-2">
+                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Scopes</p>
+                    <p className="text-xs text-slate-500 mt-0.5 break-words">{service.scopes}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* What happens next */}
       {isConfigured && (
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 space-y-2">
           <h3 className="text-sm font-bold text-blue-800">What happens next?</h3>
           <ul className="text-sm text-blue-700 space-y-1.5 list-disc pl-5">
-            <li>Each staff member sees a "Connect Outlook" button on their profile page.</li>
-            <li>They sign in with their Microsoft 365 work account and consent to calendar access.</li>
-            <li>Their rota assignments automatically sync to their Outlook calendar as events.</li>
-            <li>Calendar changes flow back into the app via webhooks (real-time two-way sync).</li>
+            <li>Register the four workspace connectors in Settings → OAuth Connectors (Outlook, SharePoint, Teams, OneDrive) using the same Azure AD credentials.</li>
+            <li>Each staff member sees a "Connect Microsoft 365" button on their profile page.</li>
+            <li>They sign in once with their Microsoft 365 work account and consent to all four services.</li>
+            <li>Calendar sync, document sharing, Teams notifications, and OneDrive file access all activate from that single connection.</li>
           </ul>
         </div>
       )}
