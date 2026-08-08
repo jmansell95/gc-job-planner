@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, ShieldCheck, ShieldAlert, ShieldX, Satellite, Wrench, Gauge, Fuel } from 'lucide-react';
+import { Truck, ShieldCheck, ShieldAlert, ShieldX, Satellite, Wrench } from 'lucide-react';
 
 /**
  * FleetQuickStats — modern gradient stat tiles showing fleet-wide health at a glance.
