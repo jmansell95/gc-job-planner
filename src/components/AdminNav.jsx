@@ -171,7 +171,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
   return (
     <>
       {/* Mobile Top Header — hamburger + brand + actions */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-white/10 shadow-sm relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <header className="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-white/10 shadow-sm relative" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="absolute inset-0 sidebar-modern" />
         <div className="relative z-10 h-14 flex items-center justify-between gap-2 px-3">
           <div className="flex items-center gap-1 min-w-0">
@@ -193,6 +193,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
                 </span>
               )}
             </button>
+            <div className="h-7 w-px bg-white/20 mx-1.5 flex-shrink-0" />
             <div className="relative">
               <button onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }} aria-label="Profile menu" type="button"
                 className="relative flex items-center justify-center active:scale-95 rounded-full transition flex-shrink-0 touch-manipulation select-none ring-2 ring-transparent hover:ring-white/20">
@@ -234,7 +235,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       </header>
 
       {/* Desktop Sidebar */}
-      <nav className="hidden lg:flex sticky top-0 h-screen w-64 border-r border-black/10 flex-col relative overflow-hidden">
+      <nav className="hidden lg:flex sticky top-0 h-screen w-64 border-r border-black/10 flex-col relative">
         <div className="absolute inset-0 sidebar-modern" />
         <div className="relative z-10 flex flex-col h-full">
           {desktopNav}
