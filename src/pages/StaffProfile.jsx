@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, Bell, UserCog, CalendarClock, TrendingUp, Trophy, ClipboardList, GraduationCap, FileText, UserPlus, Loader2 } from 'lucide-react';
+import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, UserCog, CalendarClock, TrendingUp, Trophy, ClipboardList, GraduationCap, FileText, UserPlus, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import TimesheetHistory from '@/components/staff/TimesheetHistory';
 import StaffBookings from '@/components/staff/StaffBookings';
@@ -167,10 +167,25 @@ export default function StaffProfile() {
               </div>
             </div>
           </div>
-          {/* Quick Actions bar */}
+          {/* Primary navigation — Back to Schedule + Admin (always visible, prominent) */}
+          <div className="flex items-center gap-2 mb-3">
+            <button onClick={() => navigate('/staff-schedule')} type="button"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-[#2E5A1A] ring-1 ring-white/30 text-sm font-bold active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0 shadow-sm">
+              <CalendarClock className="w-4 h-4" />
+              <span>Back to Schedule</span>
+            </button>
+            {canAccessAdmin && (
+              <button onClick={() => navigate('/admin')} type="button"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-semibold active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
+                <LayoutDashboard className="w-4 h-4" />
+                <span>Admin Panel</span>
+              </button>
+            )}
+          </div>
+          {/* Secondary actions — profile management */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
             <button onClick={() => setShowEditDrawer(true)} type="button"
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white text-[#2E5A1A] ring-1 ring-white/30 text-sm font-semibold active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0 shadow-sm">
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
               <UserCog className="w-4 h-4" />
               <span>Edit Profile</span>
             </button>
@@ -179,10 +194,6 @@ export default function StaffProfile() {
               <CalendarPlus className="w-4 h-4" />
               <span>Time Off</span>
             </button>
-            <span className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/10 ring-1 ring-white/10 text-emerald-50 text-sm font-medium whitespace-nowrap flex-shrink-0">
-              <Bell className="w-4 h-4" />
-              <span>Emails On</span>
-            </span>
             {reporters.length > 0 && (
               <button onClick={() => setShowApprovals(true)} type="button"
                 className="relative flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
@@ -193,23 +204,11 @@ export default function StaffProfile() {
                 )}
               </button>
             )}
-            <button onClick={() => navigate('/staff-schedule')} type="button"
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
-              <CalendarClock className="w-4 h-4" />
-              <span>My Schedule</span>
-            </button>
             <button onClick={openChat} type="button"
               className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
               <Sparkles className="w-4 h-4" />
               <span>Assistant</span>
             </button>
-            {canAccessAdmin && (
-              <button onClick={() => navigate('/admin')} type="button"
-                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
-                <LayoutDashboard className="w-4 h-4" />
-                <span>Admin</span>
-              </button>
-            )}
           </div>
         </div>
       </div>
