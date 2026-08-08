@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert, ChevronRight, Wrench, Warehouse, Users, Contact, Zap, FileBarChart, FileUp, ClipboardCheck } from 'lucide-react';
+import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert, ChevronRight, ChevronDown, Wrench, Warehouse, Users, Contact, Zap, FileBarChart, FileUp, ClipboardCheck } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -20,6 +20,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [lensOpen, setLensOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const notifications = useNotifications();
   const notifCount = notifications.count;
@@ -31,6 +32,13 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       try { const res = await base44.functions.invoke('getMyStaffProfile'); setProfile(res.data); } catch (e) {}
     })();
   }, []);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const handler = () => setProfileMenuOpen(false);
+    window.addEventListener('click', handler);
+    return () => window.removeEventListener('click', handler);
+  }, [profileMenuOpen]);
 
   useEffect(() => {
     if (!notifOpen && !drawerOpen) return;
@@ -73,15 +81,43 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             <p className="text-[11px] text-white/60 mt-1.5 font-display font-semibold uppercase tracking-[0.22em]">Admin Panel</p>
           </div>
           {profile && (
-            <button type="button" onClick={() => navigate('/staff-profile')} title={`${profile.name} — ${profile.email}`}
-              className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer touch-manipulation select-none ring-1 ring-white/10">
-              <ProfileAvatar name={profile.name} avatarUrl={profile.avatar_url} size={40} />
-              <div className="min-w-0 flex-1 text-left">
-                <p className="text-sm font-semibold text-white truncate leading-tight">{profile.name}</p>
-                <p className="text-[11px] text-white/50 truncate leading-tight mt-0.5">{profile.email}</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-white/40 flex-shrink-0" />
-            </button>
+            <div className="relative w-full">
+              <button type="button" onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }} title={`${profile.name} — ${profile.email}`}
+                className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition cursor-pointer touch-manipulation select-none ring-1 ring-white/10">
+                <ProfileAvatar name={profile.name} avatarUrl={profile.avatar_url} size={40} />
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="text-sm font-semibold text-white truncate leading-tight">{profile.name}</p>
+                  <p className="text-[11px] text-white/50 truncate leading-tight mt-0.5">{profile.email}</p>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-white/40 flex-shrink-0 transition-transform ${profileMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {profileMenuOpen && (
+                <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50" onClick={(e) => e.stopPropagation()}>
+                  <div className="py-1">
+                    {canViewSchedule && (
+                      <button onClick={() => { navigate('/staff-schedule'); setProfileMenuOpen(false); }} type="button"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                        <CalendarDays className="w-4 h-4 text-slate-400" /> My Schedule
+                      </button>
+                    )}
+                    <button onClick={() => { navigate('/staff-profile'); setProfileMenuOpen(false); }} type="button"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                      <User className="w-4 h-4 text-slate-400" /> My Profile
+                    </button>
+                    <button onClick={() => { navigate('/help'); setProfileMenuOpen(false); }} type="button"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                      <HelpCircle className="w-4 h-4 text-slate-400" /> Help Guides
+                    </button>
+                  </div>
+                  <div className="border-t border-slate-100 py-1">
+                    <button onClick={() => { handleLogout(); setProfileMenuOpen(false); }} type="button"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 transition text-left">
+                      <LogOut className="w-4 h-4" /> Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -129,31 +165,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
           </button>
         </div>
       </div>
-      {/* Personal links + system actions */}
-      <div className="px-3 py-1.5 border-t border-white/10 space-y-0.5">
-        {canViewSchedule && (
-          <button type="button" onClick={() => navigate('/staff-schedule')}
-            className="w-full flex items-center gap-3 px-3.5 py-1.5 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
-            <CalendarDays className="w-[18px] h-[18px] flex-shrink-0" />
-            <span>My Schedule</span>
-          </button>
-        )}
-        <button type="button" onClick={() => navigate('/staff-profile')}
-          className="w-full flex items-center gap-3 px-3.5 py-1.5 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
-          <User className="w-[18px] h-[18px] flex-shrink-0" />
-          <span>My Profile</span>
-        </button>
-        <button type="button" onClick={() => navigate('/help')}
-          className="w-full flex items-center gap-3 px-3.5 py-1.5 rounded-lg text-sm font-medium text-white/75 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
-          <HelpCircle className="w-[18px] h-[18px] flex-shrink-0" />
-          <span>Help Guides</span>
-        </button>
-        <button type="button" onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3.5 py-1.5 rounded-lg text-sm font-medium text-white/80 hover:bg-white/10 hover:text-white transition cursor-pointer touch-manipulation select-none">
-          <LogOut className="w-[18px] h-[18px] flex-shrink-0" />
-          <span>Logout</span>
-        </button>
-      </div>
     </>
   );
 
@@ -173,16 +184,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
-            {canViewSchedule && (
-              <button onClick={() => navigate('/staff-schedule')} aria-label="My Schedule" type="button"
-                className="relative h-10 w-10 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
-                <CalendarDays className="w-[18px] h-[18px]" />
-              </button>
-            )}
-            <button onClick={() => navigate('/help')} aria-label="Help Guides" type="button"
-              className="relative h-10 w-10 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
-              <HelpCircle className="w-[18px] h-[18px]" />
-            </button>
             <button onClick={() => setNotifOpen(true)} aria-label="Notifications" type="button"
               className="relative h-10 w-10 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
               <Bell className="w-[18px] h-[18px]" />
@@ -192,15 +193,42 @@ export default function AdminNav({ activeSection, setActiveSection }) {
                 </span>
               )}
             </button>
-            <button onClick={handleLogout} aria-label="Logout" type="button"
-              className="relative h-10 w-10 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-lg transition flex-shrink-0 touch-manipulation select-none">
-              <LogOut className="w-[18px] h-[18px]" />
-            </button>
-            <div className="h-7 w-px bg-white/20 mx-1 flex-shrink-0" />
-            <button onClick={() => navigate('/staff-profile')} aria-label="My Profile" type="button"
-              className="relative flex items-center justify-center active:scale-95 rounded-full transition flex-shrink-0 touch-manipulation select-none">
-              <ProfileAvatar name={displayName} avatarUrl={displayAvatar} size={32} />
-            </button>
+            <div className="relative">
+              <button onClick={(e) => { e.stopPropagation(); setProfileMenuOpen(!profileMenuOpen); }} aria-label="Profile menu" type="button"
+                className="relative flex items-center justify-center active:scale-95 rounded-full transition flex-shrink-0 touch-manipulation select-none ring-2 ring-transparent hover:ring-white/20">
+                <ProfileAvatar name={displayName} avatarUrl={displayAvatar} size={32} />
+              </button>
+              {profileMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-60 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-50" onClick={(e) => e.stopPropagation()}>
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <p className="text-sm font-semibold text-slate-900 truncate">{displayName || 'User'}</p>
+                    {authUser?.email && <p className="text-xs text-slate-500 truncate mt-0.5">{authUser.email}</p>}
+                  </div>
+                  <div className="py-1">
+                    {canViewSchedule && (
+                      <button onClick={() => { navigate('/staff-schedule'); setProfileMenuOpen(false); }} type="button"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                        <CalendarDays className="w-4 h-4 text-slate-400" /> My Schedule
+                      </button>
+                    )}
+                    <button onClick={() => { navigate('/staff-profile'); setProfileMenuOpen(false); }} type="button"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                      <User className="w-4 h-4 text-slate-400" /> My Profile
+                    </button>
+                    <button onClick={() => { navigate('/help'); setProfileMenuOpen(false); }} type="button"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition text-left">
+                      <HelpCircle className="w-4 h-4 text-slate-400" /> Help Guides
+                    </button>
+                  </div>
+                  <div className="border-t border-slate-100 py-1">
+                    <button onClick={() => { handleLogout(); setProfileMenuOpen(false); }} type="button"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-600 hover:bg-rose-50 transition text-left">
+                      <LogOut className="w-4 h-4" /> Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
