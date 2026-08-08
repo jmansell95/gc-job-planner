@@ -15,7 +15,7 @@ export default function FleetHealthGauge({ percent, size = 116 }) {
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(15,23,42,0.08)" strokeWidth={stroke} />
         <circle
           cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
           strokeLinecap="round" strokeDasharray={c} strokeDashoffset={offset}
@@ -23,10 +23,10 @@ export default function FleetHealthGauge({ percent, size = 116 }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-bold text-white tabular-nums leading-none">
+        <span className="text-3xl font-bold text-slate-900 tabular-nums leading-none">
           {Math.round(clamped)}<span className="text-lg">%</span>
         </span>
-        <span className="text-[10px] text-white/70 font-semibold uppercase tracking-wide mt-0.5">Fleet Health</span>
+        <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide mt-0.5">Fleet Health</span>
       </div>
     </div>
   );

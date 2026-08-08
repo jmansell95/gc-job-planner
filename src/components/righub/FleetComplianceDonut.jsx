@@ -28,16 +28,16 @@ export default function FleetComplianceDonut({ counts, size = 116, onSegmentClic
           </Pie>
         </PieChart>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-2xl font-bold text-white tabular-nums leading-none">{total}</span>
-          <span className="text-[9px] text-white/70 font-semibold uppercase tracking-wide mt-0.5">Assets</span>
+          <span className="text-2xl font-bold text-slate-900 tabular-nums leading-none">{total}</span>
+          <span className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide mt-0.5">Assets</span>
         </div>
       </div>
       <div className="space-y-1.5 hidden sm:block">
         {data.map(d => (
           <button key={d.key} type="button" onClick={() => onSegmentClick?.(d.key)} disabled={!onSegmentClick}
-            className={`flex items-center gap-1.5 text-[11px] text-white/90 font-medium whitespace-nowrap ${onSegmentClick ? 'hover:scale-105 transition cursor-pointer' : 'cursor-default'}`}>
+            className={`flex items-center gap-1.5 text-[11px] text-slate-700 font-medium whitespace-nowrap ${onSegmentClick ? 'hover:scale-105 transition cursor-pointer' : 'cursor-default'}`}>
             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: COLORS[d.key] }} />
-            {d.name} <span className="text-white/60 tabular-nums">{d.value}</span>
+            {d.name} <span className="text-slate-400 tabular-nums">{d.value}</span>
           </button>
         ))}
       </div>

@@ -67,24 +67,24 @@ export default function FleetSyncPanel() {
   };
 
   return (
-    <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-xl ring-1 ring-white/15 px-3.5 py-2 flex-shrink-0">
-      <div className="flex items-center gap-2 text-white/90 min-w-0">
-        <Database className="w-4 h-4 flex-shrink-0" />
+    <div className="flex items-center gap-2.5 bg-slate-50 rounded-xl ring-1 ring-slate-200 px-3.5 py-2 flex-shrink-0 flex-wrap">
+      <div className="flex items-center gap-2 text-slate-900 min-w-0">
+        <Database className="w-4 h-4 flex-shrink-0 text-slate-500" />
         <div className="leading-tight min-w-0">
           <p className="text-xs font-semibold tabular-nums">{pandaLinked} linked</p>
-          <p className="text-[10px] text-white/60 truncate">{lastSync ? new Date(lastSync).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never synced'}</p>
+          <p className="text-[10px] text-slate-500 truncate">{lastSync ? new Date(lastSync).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'never synced'}</p>
         </div>
       </div>
       <button onClick={handleSync} disabled={syncing || !ready}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50 flex-shrink-0">
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A] hover:bg-[#244715] text-white rounded-lg text-xs font-semibold transition disabled:opacity-50 flex-shrink-0">
         <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
         {syncing ? 'Syncing…' : 'Sync Now'}
       </button>
-      <div className="w-px h-8 bg-white/20 flex-shrink-0" />
+      <div className="w-px h-8 bg-slate-200 flex-shrink-0" />
       <button onClick={handleComplianceSync} disabled={complianceSyncing}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-400/90 hover:bg-emerald-400 text-slate-900 rounded-lg text-xs font-semibold transition disabled:opacity-50 flex-shrink-0">
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition disabled:opacity-50 flex-shrink-0">
         <Sparkles className={`w-3.5 h-3.5 ${complianceSyncing ? 'animate-pulse' : ''}`} />
-        {complianceSyncing ? 'Syncing…' : 'Auto-Sync Compliance'}
+        {complianceSyncing ? 'Syncing…' : 'Compliance Sync'}
       </button>
     </div>
   );

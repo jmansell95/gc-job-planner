@@ -3,10 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Truck, Wrench, Search, ExternalLink, PhoneCall, Sparkles,
-  ShieldCheck, ShieldAlert, ShieldX, Satellite,
+  Truck, Wrench, Search, ExternalLink, PhoneCall,
 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader';
 import FleetQuickStats from '@/components/vehicles/FleetQuickStats';
 import FleetVehicleCard from '@/components/vehicles/FleetVehicleCard';
 import FleetInsightsPanel from '@/components/vehicles/FleetInsightsPanel';
@@ -16,13 +14,13 @@ import UsefulNumbersModal from '@/components/UsefulNumbersModal';
 import VehicleDetailDrawer from '@/components/vehicles/VehicleDetailDrawer';
 import GeotabReportModal from '@/components/vehicles/GeotabReportModal';
 import FleetSyncButtons from '@/components/vehicles/FleetSyncButtons';
+import TabBar from '@/components/TabBar';
 import { Skeleton } from '@/components/StateViews';
 import { differenceInDays } from 'date-fns';
 
 function getVehicleStatus(v) {
   const today = new Date();
   const issues = [];
-  // Guard against "null" / "None" strings from old syncs; only trust Holman-synced data
   const holmanSynced = v.holman_sync_status === 'synced';
   const motExpiry = (v.mot_expiry && v.mot_expiry !== 'null' && v.mot_expiry !== 'None') ? v.mot_expiry : null;
   if (motExpiry) {
@@ -48,7 +46,7 @@ function getVehicleStatus(v) {
 
 export default function Vehicles() {
   const navigate = useNavigate();
-  const [view, setView] = useState('fleet'); // 'fleet' | 'maintenance'
+  const [view, setView] = useState('fleet');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
@@ -73,9 +71,6 @@ export default function Vehicles() {
     queryFn: () => base44.entities.Staff.list(),
   });
 
-  // Live GPS locations — uses live_fast mode (cached logs only, no Geotab API
-  // overlay call) so the fleet grid loads instantly. The full "live" mode with
-  // fresh Geotab status is triggered manually via the Sync button.
   const { data: liveData } = useQuery({
     queryKey: ['geotab-live-locations-fleet'],
     queryFn: async () => {
@@ -160,119 +155,113 @@ export default function Vehicles() {
     );
   });
 
+  const fleetTabs = [
+    { id: 'fleet', label: 'Fleet', icon: Truck },
+    { id: 'maintenance', label: 'Maintenance', icon: Wrench, badge: stats.activeBookings || undefined },
+  ];
+
   return (
-    <div className="min-h-screen">
-      <main className="overflow-auto">
-        <div className="w-full">
-          <PageHeader
-            icon={Truck}
-            title="Fleet Command"
-            subtitle="Live tracking · Maintenance · Trip history"
-            actions={
-              <>
-                <button onClick={() => setShowNumbers(true)} className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-white/15 hover:bg-white/25 text-white rounded-lg font-semibold text-xs transition"><PhoneCall className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Numbers</span></button>
-                <div className="flex p-1 bg-white/10 rounded-lg gap-0.5">
-                  <button onClick={() => setView('fleet')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'fleet' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}><Truck className="w-3.5 h-3.5 inline mr-1" /> Fleet</button>
-                  <button onClick={() => setView('maintenance')} className={`px-3 py-1.5 rounded-md text-xs font-semibold transition ${view === 'maintenance' ? 'bg-white text-[#2E5A1A]' : 'text-white/80 hover:bg-white/10'}`}><Wrench className="w-3.5 h-3.5 inline mr-1" /> Maintenance</button>
-                </div>
-                <button onClick={() => navigate('/admin', { state: { section: 'settings', settingsTab: 'vehicles' } })} className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 bg-white text-[#2E5A1A] rounded-lg font-semibold text-xs hover:bg-white/90 transition shadow-sm"><ExternalLink className="w-3.5 h-3.5" /> Manage</button>
-              </>
-            }
+    <div className="space-y-4">
+      <TabBar tabs={fleetTabs} activeTab={view} onChange={setView} />
+
+      {view === 'maintenance' ? (
+        <VehicleMaintenanceManager />
+      ) : (
+        <>
+          {/* Quick stats */}
+          <FleetQuickStats stats={stats} />
+
+          {/* Sync bar */}
+          <FleetSyncButtons
+            liveData={liveData}
+            vehicles={vehicles}
+            onShowReport={() => setShowReport(true)}
           />
 
-          {view === 'maintenance' ? (
-            <VehicleMaintenanceManager />
+          {/* Search & filters */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 space-y-2">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                  placeholder="Search by reg, name, VIN or driver..."
+                  className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10" />
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button onClick={() => setShowNumbers(true)} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition"><PhoneCall className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Numbers</span></button>
+                <button onClick={() => navigate('/admin', { state: { section: 'settings', settingsTab: 'vehicles' } })} className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition"><ExternalLink className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Settings</span></button>
+              </div>
+            </div>
+            {/* Filter button groups — scrollable on mobile */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              <div className="flex gap-1 p-1 bg-slate-100 rounded-lg flex-shrink-0">
+                {[
+                  { val: 'all', label: 'All' },
+                  { val: 'compliant', label: 'OK' },
+                  { val: 'warning', label: 'Attention' },
+                  { val: 'expired', label: 'Critical' },
+                  { val: 'unknown', label: 'No Data' },
+                ].map(opt => (
+                  <button key={opt.val} onClick={() => setStatusFilter(opt.val)}
+                    className={`px-3 py-1.5 rounded-md text-sm font-semibold transition whitespace-nowrap ${statusFilter === opt.val ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-1 p-1 bg-slate-100 rounded-lg flex-shrink-0">
+                {[
+                  { val: 'all', label: 'All Sources' },
+                  { val: 'geotab', label: 'Geotab' },
+                  { val: 'holman', label: 'Holman' },
+                  { val: 'both', label: 'Both' },
+                ].map(opt => (
+                  <button key={opt.val} onClick={() => setSourceFilter(opt.val)}
+                    className={`px-3 py-1.5 rounded-md text-sm font-semibold transition whitespace-nowrap ${sourceFilter === opt.val ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-xs text-slate-400 ml-1 flex-shrink-0 flex items-center">{filtered.length} of {vehicles.length}</span>
+            </div>
+          </div>
+
+          {/* Fleet insights — compact visual widgets in a collapsible panel */}
+          <FleetInsightsPanel
+            liveData={liveData}
+            onShowReport={() => setShowReport(true)}
+            onSelectVehicle={(v) => setSelectedVehicle(v)}
+          />
+
+          {/* Fleet grid */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-56 w-full rounded-xl" />)}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="bg-white rounded-xl border border-slate-200 p-10 text-center">
+              <Truck className="w-10 h-10 text-slate-200 mx-auto mb-2" />
+              <p className="text-sm text-slate-400">{vehicles.length === 0 ? 'No vehicles yet. Add them via Settings → Vehicles.' : 'No vehicles match your filters.'}</p>
+            </div>
           ) : (
-            <>
-              {/* Search & filters — first thing you see */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 mb-4 flex flex-wrap gap-2 items-center">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                    placeholder="Search by reg, name, VIN, make/model or driver..."
-                    className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10" />
-                </div>
-                <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
-                  {[
-                    { val: 'all', label: 'All' },
-                    { val: 'compliant', label: 'OK' },
-                    { val: 'warning', label: 'Attention' },
-                    { val: 'expired', label: 'Critical' },
-                    { val: 'unknown', label: 'No Data' },
-                  ].map(opt => (
-                    <button key={opt.val} onClick={() => setStatusFilter(opt.val)}
-                      className={`px-3 py-1.5 rounded-md text-sm font-semibold transition ${statusFilter === opt.val ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
-                  {[
-                    { val: 'all', label: 'All Sources' },
-                    { val: 'geotab', label: 'Geotab' },
-                    { val: 'holman', label: 'Holman' },
-                    { val: 'both', label: 'Both' },
-                  ].map(opt => (
-                    <button key={opt.val} onClick={() => setSourceFilter(opt.val)}
-                      className={`px-3 py-1.5 rounded-md text-sm font-semibold transition ${sourceFilter === opt.val ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-                <span className="text-xs text-slate-400 ml-1">{filtered.length} of {vehicles.length}</span>
-              </div>
-
-              {/* Modern quick stats ribbon */}
-              <div className="mb-4">
-                <FleetQuickStats stats={stats} />
-              </div>
-
-              {/* Sync bar — prominent, always visible */}
-              <FleetSyncButtons
-                liveData={liveData}
-                vehicles={vehicles}
-                onShowReport={() => setShowReport(true)}
-              />
-
-              {/* Fleet insights — compact visual widgets in a collapsible panel */}
-              <FleetInsightsPanel
-                liveData={liveData}
-                onShowReport={() => setShowReport(true)}
-                onSelectVehicle={(v) => setSelectedVehicle(v)}
-              />
-
-              {/* Fleet grid */}
-              {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-56 w-full rounded-xl" />)}
-                </div>
-              ) : filtered.length === 0 ? (
-                <div className="bg-white rounded-xl border border-slate-200 p-10 text-center">
-                  <Truck className="w-10 h-10 text-slate-200 mx-auto mb-2" />
-                  <p className="text-sm text-slate-400">{vehicles.length === 0 ? 'No vehicles yet. Add them via Settings → Vehicles.' : 'No vehicles match your filters.'}</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {filtered.map(v => (
-                    <FleetVehicleCard
-                      key={v.id}
-                      vehicle={v}
-                      liveLocation={latestByVehicle[v.id]}
-                      nextBooking={nextBookingByVehicle[v.id]}
-                      driverName={staffByVehicle[v.assigned_staff_id]?.name || ''}
-                      onSelect={setSelectedVehicle}
-                      onBookMaintenance={() => { setMaintModalVehicleId(v.id); setShowMaintModal(true); }}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {filtered.map(v => (
+                <FleetVehicleCard
+                  key={v.id}
+                  vehicle={v}
+                  liveLocation={latestByVehicle[v.id]}
+                  nextBooking={nextBookingByVehicle[v.id]}
+                  driverName={staffByVehicle[v.assigned_staff_id]?.name || ''}
+                  onSelect={setSelectedVehicle}
+                  onBookMaintenance={() => { setMaintModalVehicleId(v.id); setShowMaintModal(true); }}
+                />
+              ))}
+            </div>
           )}
+        </>
+      )}
 
-          <UsefulNumbersModal open={showNumbers} onClose={() => setShowNumbers(false)}
-            onLogBooking={() => { setView('maintenance'); }} />
-        </div>
-      </main>
+      <UsefulNumbersModal open={showNumbers} onClose={() => setShowNumbers(false)}
+        onLogBooking={() => { setView('maintenance'); }} />
       <VehicleDetailDrawer vehicle={selectedVehicle} onClose={() => setSelectedVehicle(null)} />
       <MaintenanceBookingModal
         open={showMaintModal}

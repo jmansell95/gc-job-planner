@@ -35,7 +35,7 @@ import TabBar from '@/components/TabBar';
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: Boxes },
   { id: 'rig', label: 'Rigs', icon: Cog },
-  { id: 'lifting', label: 'Lifting Equipment', icon: Anchor },
+  { id: 'lifting', label: 'Lifting', icon: Anchor },
   { id: 'machinery', label: 'Machinery', icon: Wrench },
   { id: 'trailer', label: 'Trailers', icon: Package },
   { id: 'vehicle', label: 'Vehicles', icon: Truck },
@@ -44,6 +44,7 @@ const CATEGORIES = [
 
 export default function AssetHub() {
   const navigate = useNavigate();
+  const [topTab, setTopTab] = useState('assets');
   const [view, setView] = useState('inventory');
   const [category, setCategory] = useState('all');
   const [search, setSearch] = useState('');
@@ -61,7 +62,6 @@ export default function AssetHub() {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showSmartImport, setShowSmartImport] = useState(false);
   const [showBulkQR, setShowBulkQR] = useState(false);
-  const [topTab, setTopTab] = useState('assets');
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
@@ -70,11 +70,6 @@ export default function AssetHub() {
 
   const rigs = useMemo(() => assets.filter(a => a.asset_type === 'rig'), [assets]);
   const equipment = useMemo(() => assets.filter(a => a.asset_type !== 'rig'), [assets]);
-
-  const rigsByMaster = useMemo(() => rigs.map(rig => {
-    const linked = (rig.linked_equipment_ids || []).map(id => assets.find(a => a.id === id)).filter(Boolean);
-    return { rig, linked, rollup: rollupCompliance(rig, linked) };
-  }), [rigs, assets]);
 
   // Category counts
   const categoryCounts = useMemo(() => {
@@ -92,13 +87,6 @@ export default function AssetHub() {
       || (d === null && sd === null && a.compliance_status !== 'compliant');
   }).length, [assets]);
 
-  const rigsWarning = rigsByMaster.filter(r => r.rollup.master === 'expiring' || r.rollup.master === 'expired').length;
-  const equipExpired = equipment.filter(a => a.compliance_status === 'expired').length;
-  const patDue = assets.filter(a => a.asset_type === 'portable_appliance').filter(a => {
-    const d = daysUntil(a.compliance_expiry_date);
-    return a.compliance_status === 'expired' || a.compliance_status === 'expiring' || (d !== null && d <= 30) || (d === null && a.compliance_status !== 'compliant');
-  }).length;
-
   const totalKnown = assets.filter(a => a.compliance_status && a.compliance_status !== 'unknown').length;
   const compliantCount = assets.filter(a => a.compliance_status === 'compliant').length;
   const fleetHealthPct = totalKnown > 0 ? (compliantCount / totalKnown) * 100 : 0;
@@ -109,11 +97,12 @@ export default function AssetHub() {
     return c;
   }, [assets]);
 
-  const pandaLinked = assets.filter(a => a.panda_asset_id).length;
-  const localOnly = assets.length - pandaLinked;
-  const stockIssues = assets.filter(a => a.stock_level === 'out_of_stock' || a.stock_level === 'needs_service').length;
+  const topTabs = [
+    { id: 'assets', label: 'Assets', icon: Wrench },
+    { id: 'fleet', label: 'Fleet', icon: Truck },
+  ];
 
-  const tabs = [
+  const subTabs = [
     { id: 'inventory', label: 'Inventory', icon: Boxes, count: assets.length },
     { id: 'recert', label: 'Re-cert', icon: RefreshCw, badge: recertCount },
     { id: 'certificates', label: 'Certificates', icon: Lock },
@@ -135,176 +124,145 @@ export default function AssetHub() {
     return (a.name || '').toLowerCase().includes(q) || (a.serial_number || '').toLowerCase().includes(q);
   }), [equipment, category, compFilter, search, sourceFilter]);
 
-  if (topTab === 'fleet') {
-    return (
-      <div className="space-y-4">
-        <PageHeader
-          icon={Boxes}
-          title="Assets & Fleet Command"
-          subtitle="Unified inventory — Asset Panda synced + locally created · Rigs, gear, vehicles & PAT"
-        />
-        <TabBar
-          tabs={[
-            { id: 'assets', label: 'Assets', icon: Wrench },
-            { id: 'fleet', label: 'Fleet', icon: Truck },
-          ]}
-          activeTab={topTab}
-          onChange={setTopTab}
-        />
-        <Vehicles />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <PageHeader
         icon={Boxes}
-        title="Assets & Fleet Command"
-        subtitle="Unified inventory — Asset Panda synced + locally created · Rigs, gear, vehicles & PAT"
+        title="Assets & Fleet"
+        subtitle="Rigs, gear, vehicles & PAT — Asset Panda synced + locally created"
         actions={
-          <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={() => navigate('/scanner')} className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><ScanLine className="w-3.5 h-3.5" /> Tablet Scanner</button>
-            <button onClick={() => setShowBulkQR(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><QrCode className="w-3.5 h-3.5" /> Print QR Labels</button>
-            <button onClick={() => setShowSmartImport(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><ScanLine className="w-3.5 h-3.5" /> Smart Import</button>
-            <button onClick={() => setShowBulkUpload(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><Upload className="w-3.5 h-3.5" /> Bulk Upload</button>
-            <button onClick={openAdd} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><Plus className="w-3.5 h-3.5" /> Add Asset</button>
-          </div>
+          topTab === 'assets' && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={() => navigate('/scanner')} className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><ScanLine className="w-3.5 h-3.5" /> Scanner</button>
+              <button onClick={() => setShowBulkQR(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><QrCode className="w-3.5 h-3.5" /> QR Labels</button>
+              <button onClick={() => setShowSmartImport(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><ScanLine className="w-3.5 h-3.5" /> Smart Import</button>
+              <button onClick={() => setShowBulkUpload(true)} className="hidden md:inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-semibold text-xs hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition shadow-sm"><Upload className="w-3.5 h-3.5" /> Bulk Upload</button>
+              <button onClick={openAdd} className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><Plus className="w-3.5 h-3.5" /> Add Asset</button>
+            </div>
+          )
         }
       />
-      <TabBar
-        tabs={[
-          { id: 'assets', label: 'Assets', icon: Wrench },
-          { id: 'fleet', label: 'Fleet', icon: Truck },
-        ]}
-        activeTab={topTab}
-        onChange={setTopTab}
-      />
+      <TabBar tabs={topTabs} activeTab={topTab} onChange={setTopTab} />
 
-      {/* Compliance overview — dark hero-gradient so the white-text charts are readable */}
-      <div className="hero-gradient rounded-2xl p-4 sm:p-5 shadow-lg">
-        <div className="flex flex-col lg:flex-row gap-4 items-center">
-          <div className="flex-1 w-full">
-            <FleetSyncPanel />
-          </div>
-          <div className="flex items-center gap-4 sm:gap-6 bg-white/5 rounded-xl ring-1 ring-white/10 px-4 sm:px-6 py-3">
-            <FleetHealthGauge percent={fleetHealthPct} />
-            <div className="h-16 w-px bg-white/15 hidden sm:block" />
-            <FleetComplianceDonut counts={fleetCounts} onSegmentClick={(k) => { setCompFilter(k); setView('inventory'); }} />
-          </div>
-        </div>
-      </div>
-
-      {/* Tab bar */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 space-y-3">
-        <div className="flex gap-1 p-1 bg-slate-100 rounded-lg flex-wrap">
-          {tabs.map(t => {
-            const TIcon = t.icon;
-            const active = view === t.id;
-            return (
-              <button key={t.id} onClick={() => setView(t.id)} className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-sm font-semibold transition ${active ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
-                <TIcon className="w-4 h-4" /> {t.label}
-                {t.count != null && <span className="text-xs text-slate-400">{t.count}</span>}
-                {t.badge != null && t.badge > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white font-bold">{t.badge}</span>}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Category pills + search (inventory tab only) */}
-        {view === 'inventory' && (
-          <div className="space-y-3">
-            <div className="flex gap-1.5 flex-wrap">
-              {CATEGORIES.map(cat => {
-                const CIcon = cat.icon;
-                const active = category === cat.id;
-                const count = categoryCounts[cat.id] || 0;
-                return (
-                  <button key={cat.id} onClick={() => setCategory(cat.id)} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition ${active ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-                    <CIcon className="w-3.5 h-3.5" /> {cat.label}
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${active ? 'bg-white/20' : 'bg-white text-slate-400'}`}>{count}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or serial..." className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600" />
+      {topTab === 'fleet' ? (
+        <Vehicles />
+      ) : (
+        <>
+          {/* Compliance overview — white card */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
+            <div className="flex flex-col lg:flex-row gap-4 items-center">
+              <div className="flex-1 w-full">
+                <FleetSyncPanel />
               </div>
-              <select value={compFilter} onChange={e => setCompFilter(e.target.value)} className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-emerald-600 bg-white">
-                <option value="all">All Status</option>
-                <option value="compliant">Compliant</option>
-                <option value="expiring">Expiring</option>
-                <option value="expired">Expired</option>
-                <option value="unknown">Unknown</option>
-              </select>
-              <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
-                {[
-                  { val: 'all', label: 'All Sources', Icon: Boxes },
-                  { val: 'panda', label: 'Panda', Icon: Database },
-                  { val: 'local', label: 'Local', Icon: CircleDot },
-                ].map(opt => {
-                  const OIcon = opt.Icon;
-                  const active = sourceFilter === opt.val;
+              <div className="flex items-center gap-4 sm:gap-6 bg-slate-50 rounded-xl ring-1 ring-slate-200 px-4 sm:px-6 py-3">
+                <FleetHealthGauge percent={fleetHealthPct} />
+                <div className="h-16 w-px bg-slate-200 hidden sm:block" />
+                <FleetComplianceDonut counts={fleetCounts} onSegmentClick={(k) => { setCompFilter(k); setView('inventory'); }} />
+              </div>
+            </div>
+          </div>
+
+          <TabBar tabs={subTabs} activeTab={view} onChange={setView} />
+
+          {/* Filters (inventory tab only) */}
+          {view === 'inventory' && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-3 space-y-3">
+              {/* Category pills */}
+              <div className="flex gap-1.5 flex-wrap">
+                {CATEGORIES.map(cat => {
+                  const CIcon = cat.icon;
+                  const active = category === cat.id;
+                  const count = categoryCounts[cat.id] || 0;
                   return (
-                    <button key={opt.val} onClick={() => setSourceFilter(opt.val)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold transition ${active ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
-                      <OIcon className="w-3 h-3" /> {opt.label}
+                    <button key={cat.id} onClick={() => setCategory(cat.id)} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition ${active ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                      <CIcon className="w-3.5 h-3.5" /> {cat.label}
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${active ? 'bg-white/20' : 'bg-white text-slate-400'}`}>{count}</span>
                     </button>
                   );
                 })}
               </div>
-              {category !== 'rig' && (
-                <button onClick={() => { setSelectionMode(m => !m); setSelected(new Set()); }} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition flex-shrink-0 ${selectionMode ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}>
-                  <CheckSquare className="w-4 h-4" /> {selectionMode ? 'Done' : 'Select'}
-                </button>
-              )}
+              {/* Search + filters */}
+              <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
+                <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name or serial..." className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10" />
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <select value={compFilter} onChange={e => setCompFilter(e.target.value)} className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A] bg-white">
+                    <option value="all">All Status</option>
+                    <option value="compliant">Compliant</option>
+                    <option value="expiring">Expiring</option>
+                    <option value="expired">Expired</option>
+                    <option value="unknown">Unknown</option>
+                  </select>
+                  <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
+                    {[
+                      { val: 'all', label: 'All', Icon: Boxes },
+                      { val: 'panda', label: 'Panda', Icon: Database },
+                      { val: 'local', label: 'Local', Icon: CircleDot },
+                    ].map(opt => {
+                      const OIcon = opt.Icon;
+                      const active = sourceFilter === opt.val;
+                      return (
+                        <button key={opt.val} onClick={() => setSourceFilter(opt.val)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold transition ${active ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
+                          <OIcon className="w-3 h-3" /> {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {category !== 'rig' && (
+                    <button onClick={() => { setSelectionMode(m => !m); setSelected(new Set()); }} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition flex-shrink-0 ${selectionMode ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}>
+                      <CheckSquare className="w-4 h-4" /> {selectionMode ? 'Done' : 'Select'}
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Content */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">{[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}</div>
-      ) : view === 'inventory' ? (
-        <AssetInventoryGrid
-          assets={assets}
-          rigs={rigs}
-          category={category}
-          search={search}
-          compFilter={compFilter}
-          sourceFilter={sourceFilter}
-          selectionMode={selectionMode}
-          selected={selected}
-          setSelected={setSelected}
-          onOpenRig={setOpenRig}
-          onOpenEquip={setOpenEquip}
-          onCertVault={setCertVaultRig}
-        />
-      ) : view === 'deployments' ? (
-        <ErrorBoundary><AssetDeploymentsPanel assets={assets} /></ErrorBoundary>
-      ) : view === 'efficiency' ? (
-        <ErrorBoundary><div className="space-y-4"><FleetUtilizationHeatmap assets={assets} /><DrillingEfficiencyPanel assets={assets} /></div></ErrorBoundary>
-      ) : view === 'recert' ? (
-        <ErrorBoundary><RecertPipeline assets={assets} onRecert={(a) => setRecertAsset(a)} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} /></ErrorBoundary>
-      ) : view === 'certificates' ? (
-        <ErrorBoundary><MasterCertificateVault assets={assets} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} /></ErrorBoundary>
-      ) : view === 'scrap' ? (
-        <ErrorBoundary><ScrapPilePanel /></ErrorBoundary>
-      ) : null}
+          {/* Content */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">{[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}</div>
+          ) : view === 'inventory' ? (
+            <AssetInventoryGrid
+              assets={assets}
+              rigs={rigs}
+              category={category}
+              search={search}
+              compFilter={compFilter}
+              sourceFilter={sourceFilter}
+              selectionMode={selectionMode}
+              selected={selected}
+              setSelected={setSelected}
+              onOpenRig={setOpenRig}
+              onOpenEquip={setOpenEquip}
+              onCertVault={setCertVaultRig}
+            />
+          ) : view === 'deployments' ? (
+            <ErrorBoundary><AssetDeploymentsPanel assets={assets} /></ErrorBoundary>
+          ) : view === 'efficiency' ? (
+            <ErrorBoundary><div className="space-y-4"><FleetUtilizationHeatmap assets={assets} /><DrillingEfficiencyPanel assets={assets} /></div></ErrorBoundary>
+          ) : view === 'recert' ? (
+            <ErrorBoundary><RecertPipeline assets={assets} onRecert={(a) => setRecertAsset(a)} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} /></ErrorBoundary>
+          ) : view === 'certificates' ? (
+            <ErrorBoundary><MasterCertificateVault assets={assets} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} /></ErrorBoundary>
+          ) : view === 'scrap' ? (
+            <ErrorBoundary><ScrapPilePanel /></ErrorBoundary>
+          ) : null}
 
-      {/* Bulk cert action bar */}
-      {selectionMode && view === 'inventory' && filteredEquipForBulk.length > 0 && (
-        <div className="sticky bottom-4 z-30 bg-[#2E5A1A] text-white rounded-xl shadow-2xl px-4 py-3 flex items-center justify-between flex-wrap gap-2">
-          <span className="text-sm font-semibold">{selected.size} of {filteredEquipForBulk.length} selected</span>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setBulkCerts(filteredEquipForBulk.filter(a => selected.has(a.id)))} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-bold transition"><Lock className="w-3.5 h-3.5" /> View Certs</button>
-            <button onClick={() => setSelected(new Set(filteredEquipForBulk.map(a => a.id)))} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-semibold transition">Select All</button>
-            <button onClick={() => { setSelected(new Set()); setSelectionMode(false); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-semibold transition"><X className="w-3.5 h-3.5" /> Clear</button>
-          </div>
-        </div>
+          {/* Bulk cert action bar */}
+          {selectionMode && view === 'inventory' && filteredEquipForBulk.length > 0 && (
+            <div className="sticky bottom-4 z-30 bg-[#2E5A1A] text-white rounded-xl shadow-2xl px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+              <span className="text-sm font-semibold">{selected.size} of {filteredEquipForBulk.length} selected</span>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setBulkCerts(filteredEquipForBulk.filter(a => selected.has(a.id)))} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-bold transition"><Lock className="w-3.5 h-3.5" /> View Certs</button>
+                <button onClick={() => setSelected(new Set(filteredEquipForBulk.map(a => a.id)))} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-semibold transition">Select All</button>
+                <button onClick={() => { setSelected(new Set()); setSelectionMode(false); }} className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-semibold transition"><X className="w-3.5 h-3.5" /> Clear</button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Drawers & modals */}
