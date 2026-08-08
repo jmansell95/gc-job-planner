@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
   Plus, Search, Boxes, ScanLine, X, TrendingUp, RefreshCw, Lock, Check,
-  CheckSquare, Upload, Database, MapPin, QrCode,
+  CheckSquare, Upload, Database, MapPin, QrCode, Trash2,
 } from 'lucide-react';
 import Vehicles from '@/pages/Vehicles';
 import { rollupCompliance, daysUntil } from '@/utils/rigRollup';
@@ -24,6 +24,7 @@ import FleetUtilizationHeatmap from '@/components/righub/FleetUtilizationHeatmap
 import BulkAssetUpload from '@/components/righub/BulkAssetUpload';
 import SmartCertImport from '@/components/righub/SmartCertImport';
 import BulkQRPrinter from '@/components/assetcommand/BulkQRPrinter';
+import ScrapPilePanel from '@/components/assetcommand/ScrapPilePanel';
 import AssetInventoryGrid from '@/components/assethub/AssetInventoryGrid';
 import AssetDeploymentsPanel from '@/components/assethub/AssetDeploymentsPanel';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -114,6 +115,7 @@ export default function AssetHub() {
     { id: 'certificates', label: 'Certificates', icon: Lock },
     { id: 'deployments', label: 'Deployments', icon: MapPin },
     { id: 'efficiency', label: 'Efficiency', icon: TrendingUp },
+    { id: 'scrap', label: 'Scrap Pile', icon: Trash2 },
   ];
 
   const headerStats = [
@@ -284,6 +286,8 @@ export default function AssetHub() {
         <ErrorBoundary><RecertPipeline assets={assets} onRecert={(a) => setRecertAsset(a)} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} /></ErrorBoundary>
       ) : view === 'certificates' ? (
         <ErrorBoundary><MasterCertificateVault assets={assets} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} /></ErrorBoundary>
+      ) : view === 'scrap' ? (
+        <ErrorBoundary><ScrapPilePanel /></ErrorBoundary>
       ) : null}
 
       {/* Bulk cert action bar */}

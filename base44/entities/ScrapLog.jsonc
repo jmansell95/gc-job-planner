@@ -1,0 +1,126 @@
+{
+  "name": "ScrapLog",
+  "type": "object",
+  "properties": {
+    "asset_id": {
+      "type": "string",
+      "description": "Linked SiteAsset record that was scrapped"
+    },
+    "asset_name": {
+      "type": "string",
+      "description": "Asset name (denormalised for display without joining)"
+    },
+    "serial_number": {
+      "type": "string",
+      "description": "Serial number of the scrapped asset (denormalised)"
+    },
+    "asset_type": {
+      "type": "string",
+      "description": "Asset type of the scrapped asset (denormalised)"
+    },
+    "scrapped_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the asset was marked for scrap"
+    },
+    "scrapped_by_staff_id": {
+      "type": "string",
+      "description": "Staff member who scrapped the asset via the Asset Lens"
+    },
+    "scrapped_by_name": {
+      "type": "string",
+      "description": "Name of the person who scrapped it (denormalised for display)"
+    },
+    "scrap_category": {
+      "type": "string",
+      "enum": [
+        "steel",
+        "copper",
+        "aluminum",
+        "mixed_metal",
+        "electrical",
+        "other"
+      ],
+      "default": "mixed_metal",
+      "description": "Type of scrap material \u2014 used for sorting the scrap pile and estimating value before weigh-in"
+    },
+    "estimated_weight_kg": {
+      "type": "number",
+      "description": "Estimated weight of the scrap in kg before weigh-in"
+    },
+    "actual_weight_kg": {
+      "type": "number",
+      "description": "Actual weight from the weighbridge ticket"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scrapped",
+        "loaded_for_weigh_in",
+        "weighed_in",
+        "disposed"
+      ],
+      "default": "scrapped",
+      "description": "Scrap lifecycle: 'scrapped' = sitting in the scrap pile, 'loaded_for_weigh_in' = booked onto a vehicle for the scrap yard run, 'weighed_in' = weighbridge ticket recorded with actual weight and value, 'disposed' = fully closed out"
+    },
+    "vehicle_id": {
+      "type": "string",
+      "description": "Vehicle the scrap was loaded onto for the weigh-in trip"
+    },
+    "delivery_log_id": {
+      "type": "string",
+      "description": "Linked DeliveryLog for the weigh-in trip to the scrap yard"
+    },
+    "weigh_in_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the scrap was weighed in at the weighbridge"
+    },
+    "weigh_in_value_gbp": {
+      "type": "number",
+      "description": "Money received from the scrap yard for this item (GBP)"
+    },
+    "weigh_in_ticket_ref": {
+      "type": "string",
+      "description": "Reference number from the weighbridge ticket"
+    },
+    "scrap_yard_supplier_id": {
+      "type": "string",
+      "description": "Linked Supplier record for the scrap yard where it was weighed in"
+    },
+    "scrap_yard_name": {
+      "type": "string",
+      "description": "Scrap yard name (denormalised for display)"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for scrapping (beyond economic repair, obsolete, damaged, etc.)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about this scrap record"
+    }
+  },
+  "required": [
+    "asset_id",
+    "scrapped_date"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

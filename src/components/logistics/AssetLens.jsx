@@ -5,12 +5,15 @@ import {
   Search, X, ScanLine, Loader2, RefreshCw, CheckCircle2, AlertTriangle,
   ShieldCheck, ShieldAlert, ShieldX, Cog, Wrench, Package, Truck, Anchor,
   Database, Clock, Link2, AlertCircle, Camera, FileText, QrCode, Wrench as WrenchIcon,
+  Trash2, History,
 } from 'lucide-react';
 import { safeFormat } from '@/utils/format';
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import AssetPassportDrawer from '@/components/assetcommand/AssetPassportDrawer';
 import AssetQRCard from '@/components/assetcommand/AssetQRCard';
 import BookToVehicleModal from '@/components/assetcommand/BookToVehicleModal';
+import ScrapModal from '@/components/assetcommand/ScrapModal';
+import AssetMovementHistory from '@/components/assetcommand/AssetMovementHistory';
 
 const TYPE_META = {
   rig: { label: 'Rig', icon: Cog, tint: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -56,6 +59,8 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [serviceForm, setServiceForm] = useState({ record_type: 'service', result: 'pass', notes: '' });
   const [savingService, setSavingService] = useState(false);
+  const [showScrap, setShowScrap] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const { data: config = null } = useQuery({
     queryKey: ['assetpanda-config'],
@@ -229,6 +234,12 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
                   <span className="text-xs font-semibold">View Passport</span>
                   <span className="text-[10px] text-white/60">Full details & history</span>
                 </button>
+                <button onClick={() => setShowHistory(s => !s)}
+                  className="flex flex-col items-center gap-1.5 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition">
+                  <History className="w-5 h-5" />
+                  <span className="text-xs font-semibold">Movement History</span>
+                  <span className="text-[10px] text-white/70">Who booked in/out</span>
+                </button>
                 <button onClick={() => setShowServiceForm(s => !s)}
                   className="flex flex-col items-center gap-1.5 p-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition">
                   <Wrench className="w-5 h-5" />
@@ -241,6 +252,12 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
                   <span className="text-xs font-semibold">Book to Vehicle</span>
                   <span className="text-[10px] text-white/70">Load & notify driver</span>
                 </button>
+                <button onClick={() => setShowScrap(true)}
+                  className="flex flex-col items-center gap-1.5 p-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition">
+                  <Trash2 className="w-5 h-5" />
+                  <span className="text-xs font-semibold">Scrap</span>
+                  <span className="text-[10px] text-white/70">Send to scrap pile</span>
+                </button>
                 <button onClick={() => setShowQR(true)}
                   className="flex flex-col items-center gap-1.5 p-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition">
                   <QrCode className="w-5 h-5" />
@@ -248,6 +265,9 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
                   <span className="text-[10px] text-slate-500">Generate label</span>
                 </button>
               </div>
+
+              {/* Movement History */}
+              {showHistory && <AssetMovementHistory asset={match} />}
 
               {/* Inline service form */}
               {showServiceForm && (
@@ -323,6 +343,9 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
       )}
       {showBookVehicle && match && (
         <BookToVehicleModal asset={match} onClose={() => setShowBookVehicle(false)} />
+      )}
+      {showScrap && match && (
+        <ScrapModal asset={match} onClose={() => setShowScrap(false)} />
       )}
     </div>
   );
