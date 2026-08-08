@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
   Plus, Search, Boxes, ScanLine, X, TrendingUp, RefreshCw, Lock, Check,
-  CheckSquare, Upload, Database, MapPin, QrCode, Trash2,
+  CheckSquare, Upload, Database, MapPin, QrCode, Trash2, CircleDot,
 } from 'lucide-react';
 import Vehicles from '@/pages/Vehicles';
 import { rollupCompliance, daysUntil } from '@/utils/rigRollup';
@@ -46,6 +46,7 @@ export default function AssetHub() {
   const [category, setCategory] = useState('all');
   const [search, setSearch] = useState('');
   const [compFilter, setCompFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [openRig, setOpenRig] = useState(null);
   const [openEquip, setOpenEquip] = useState(null);
   const [editorAsset, setEditorAsset] = useState(null);
@@ -107,6 +108,7 @@ export default function AssetHub() {
   }, [assets]);
 
   const pandaLinked = assets.filter(a => a.panda_asset_id).length;
+  const localOnly = assets.length - pandaLinked;
   const stockIssues = assets.filter(a => a.stock_level === 'out_of_stock' || a.stock_level === 'needs_service').length;
 
   const tabs = [
@@ -122,6 +124,7 @@ export default function AssetHub() {
     { label: 'Fleet Health', value: `${Math.round(fleetHealthPct)}%`, icon: ShieldCheck },
     { label: 'Total Assets', value: assets.length, icon: Boxes },
     { label: 'Panda Linked', value: pandaLinked, icon: Database },
+    { label: 'Local Only', value: localOnly, icon: CircleDot },
     { label: 'Need Attn', value: recertCount, icon: ShieldAlert, onClick: () => setView('recert') },
   ];
 
@@ -129,12 +132,14 @@ export default function AssetHub() {
 
   // Bulk cert helpers
   const filteredEquipForBulk = useMemo(() => equipment.filter(a => {
+    if (sourceFilter === 'panda' && !a.panda_asset_id) return false;
+    if (sourceFilter === 'local' && a.panda_asset_id) return false;
     if (category !== 'all' && category !== 'rig' && a.asset_type !== category) return false;
     if (compFilter !== 'all' && (a.compliance_status || 'unknown') !== compFilter) return false;
     const q = search.toLowerCase().trim();
     if (!q) return true;
     return (a.name || '').toLowerCase().includes(q) || (a.serial_number || '').toLowerCase().includes(q);
-  }), [equipment, category, compFilter, search]);
+  }), [equipment, category, compFilter, search, sourceFilter]);
 
   if (topTab === 'fleet') {
     return (
@@ -168,8 +173,8 @@ export default function AssetHub() {
       </div>
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Asset & Fleet Command</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Rigs, lifting gear, machinery, trailers, vehicles & PAT — compliance tracked from Asset Panda</p>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Assets & Fleet Command</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Unified inventory — Asset Panda synced + locally created · Rigs, gear, vehicles & PAT</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => navigate('/scanner')} className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-xs hover:bg-[#244715] transition shadow-sm"><ScanLine className="w-3.5 h-3.5" /> Tablet Scanner</button>
@@ -252,6 +257,22 @@ export default function AssetHub() {
                 <option value="expired">Expired</option>
                 <option value="unknown">Unknown</option>
               </select>
+              <div className="flex gap-1 p-1 bg-slate-100 rounded-lg">
+                {[
+                  { val: 'all', label: 'All Sources', Icon: Boxes },
+                  { val: 'panda', label: 'Panda', Icon: Database },
+                  { val: 'local', label: 'Local', Icon: CircleDot },
+                ].map(opt => {
+                  const OIcon = opt.Icon;
+                  const active = sourceFilter === opt.val;
+                  return (
+                    <button key={opt.val} onClick={() => setSourceFilter(opt.val)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold transition ${active ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>
+                      <OIcon className="w-3 h-3" /> {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
               {category !== 'rig' && (
                 <button onClick={() => { setSelectionMode(m => !m); setSelected(new Set()); }} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition flex-shrink-0 ${selectionMode ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'}`}>
                   <CheckSquare className="w-4 h-4" /> {selectionMode ? 'Done' : 'Select'}
@@ -272,6 +293,7 @@ export default function AssetHub() {
           category={category}
           search={search}
           compFilter={compFilter}
+          sourceFilter={sourceFilter}
           selectionMode={selectionMode}
           selected={selected}
           setSelected={setSelected}

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug, ShieldCheck, ShieldAlert, ShieldX,
-  HelpCircle, ChevronRight, Link2, Lock, ScanLine, Check, CheckSquare,
+  HelpCircle, ChevronRight, Link2, Lock, ScanLine, Check, CheckSquare, Database, CircleDot,
 } from 'lucide-react';
 import { rollupCompliance, COMPLIANCE_META, ASSET_TYPE_META, findParentRig, daysUntil } from '@/utils/rigRollup';
 import RigUtilizationSparkline from '@/components/righub/RigUtilizationSparkline';
@@ -21,11 +21,18 @@ function safeFmt(d) { try { return new Date(d + 'T00:00:00').toLocaleDateString(
  * All items are Asset Panda inventory.
  */
 export default function AssetInventoryGrid({
-  assets, rigs, category, search, compFilter,
+  assets, rigs, category, search, compFilter, sourceFilter = 'all',
   selectionMode, selected, setSelected,
   onOpenRig, onOpenEquip, onCertVault,
 }) {
   const q = search.toLowerCase().trim();
+
+  const matchesSource = (a) => {
+    if (sourceFilter === 'all') return true;
+    if (sourceFilter === 'panda') return !!a.panda_asset_id;
+    if (sourceFilter === 'local') return !a.panda_asset_id;
+    return true;
+  };
 
   const rigsByMaster = useMemo(() => rigs.map(rig => {
     const linked = (rig.linked_equipment_ids || []).map(id => assets.find(a => a.id === id)).filter(Boolean);
@@ -33,18 +40,20 @@ export default function AssetInventoryGrid({
   }), [rigs, assets]);
 
   const filteredRigs = useMemo(() => rigsByMaster.filter(({ rig, rollup }) => {
+    if (!matchesSource(rig)) return false;
     if (compFilter !== 'all' && rollup.master !== compFilter) return false;
     if (!q) return true;
     return (rig.name || '').toLowerCase().includes(q) || (rig.serial_number || '').toLowerCase().includes(q);
-  }), [rigsByMaster, q, compFilter]);
+  }), [rigsByMaster, q, compFilter, sourceFilter]);
 
   const filteredEquip = useMemo(() => assets.filter(a => {
     if (a.asset_type === 'rig') return false;
+    if (!matchesSource(a)) return false;
     if (category !== 'all' && a.asset_type !== category) return false;
     if (compFilter !== 'all' && (a.compliance_status || 'unknown') !== compFilter) return false;
     if (!q) return true;
     return (a.name || '').toLowerCase().includes(q) || (a.serial_number || '').toLowerCase().includes(q);
-  }).map(eq => ({ equip: eq, parentRig: findParentRig(eq.id, rigs) })), [assets, rigs, category, q, compFilter]);
+  }).map(eq => ({ equip: eq, parentRig: findParentRig(eq.id, rigs) })), [assets, rigs, category, q, compFilter, sourceFilter]);
 
   const showRigs = category === 'all' || category === 'rig';
   const showEquip = category !== 'rig';
@@ -85,7 +94,12 @@ export default function AssetInventoryGrid({
                 </div>
                 <div className="flex items-center justify-between mb-2.5">
                   <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${meta.tone}`}><MasterIcon className="w-3.5 h-3.5" /> {meta.label}</span>
-                  <span className="text-xs text-slate-400 flex items-center gap-1"><Link2 className="w-3 h-3" /> {linked.length} linked</span>
+                  <div className="flex items-center gap-1.5">
+                    {rig.panda_asset_id
+                      ? <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200" title="Synced from Asset Panda"><Database className="w-3 h-3" /> Panda</span>
+                      : <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200" title="Created locally — not in Asset Panda"><CircleDot className="w-3 h-3" /> Local</span>}
+                    <span className="text-xs text-slate-400 flex items-center gap-1"><Link2 className="w-3 h-3" /> {linked.length}</span>
+                  </div>
                 </div>
                 <div className="flex gap-1.5">
                   {['compliant', 'expiring', 'expired', 'unknown'].map(k => rollup.counts[k] > 0 && (
@@ -143,7 +157,12 @@ export default function AssetInventoryGrid({
                 </div>
                 <div className="flex items-center justify-between mb-1.5">
                   <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full border ${meta.tone}`}><span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} /> {meta.label}</span>
-                  {parentRig ? <span className="text-[10px] text-emerald-700 font-medium flex items-center gap-0.5"><Link2 className="w-3 h-3" /> {parentRig.name}</span> : <span className="text-[10px] text-slate-400">{equip.storage_location || 'Yard'}</span>}
+                  <div className="flex items-center gap-1">
+                    {equip.panda_asset_id
+                      ? <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200" title="Synced from Asset Panda"><Database className="w-2.5 h-2.5" /> Panda</span>
+                      : <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-500 border border-slate-200" title="Created locally — not in Asset Panda"><CircleDot className="w-2.5 h-2.5" /> Local</span>}
+                    {parentRig && <span className="text-[10px] text-emerald-700 font-medium flex items-center gap-0.5"><Link2 className="w-3 h-3" /> {parentRig.name}</span>}
+                  </div>
                 </div>
                 {d !== null && <p className={`text-[10px] font-medium ${d < 0 ? 'text-red-600' : d <= 30 ? 'text-amber-600' : 'text-slate-400'}`}>{d < 0 ? 'Expired' : `Expires in ${d} days`} · {safeFmt(equip.compliance_expiry_date)}</p>}
               </div>

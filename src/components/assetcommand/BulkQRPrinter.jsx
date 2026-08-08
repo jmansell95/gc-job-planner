@@ -71,7 +71,7 @@ export default function BulkQRPrinter({ onClose }) {
       </style></head>
       <body>
         <h1>Ground Control — Asset QR Labels (${selectedAssets.length})</h1>
-        <p style="font-size:10px;color:#64748b;margin-bottom:16px;">Scan with the Asset Lens in the GC app to view details, log service, or book to a vehicle.</p>
+        <p style="font-size:10px;color:#64748b;margin-bottom:16px;">Scan with the Logistics Hub in the GC app to view details, log service, or book to a vehicle.</p>
         <div class="grid">${labels}</div>
       </body></html>`);
     w.document.close();
@@ -131,7 +131,7 @@ export default function BulkQRPrinter({ onClose }) {
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2">
               <QrCode className="w-4 h-4 text-emerald-700" />
               <span className="text-sm font-medium text-emerald-800 flex-1">{selected.size} asset{selected.size > 1 ? 's' : ''} selected</span>
-              <span className="text-[11px] text-emerald-600">QR encodes serial number — scannable by Asset Lens</span>
+              <span className="text-[11px] text-emerald-600">QR encodes serial number — scannable by Logistics Hub</span>
             </div>
           )}
         </div>

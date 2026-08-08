@@ -95,24 +95,26 @@ export default function VehicleLocationMiniMap({ lat, lng, timestamp, ignition_o
         )}
       </div>
 
-      {/* Address bar with Google Maps link */}
-      <div className="flex items-center gap-1.5 px-2 py-1.5 bg-white border-t border-slate-100">
-        <MapPin className="w-3 h-3 text-[#2E5A1A] flex-shrink-0" />
-        <span className="text-[10px] text-slate-600 truncate flex-1">
-          {addrLoading ? <span className="flex items-center gap-1"><Loader2 className="w-2.5 h-2.5 animate-spin" /> Locating…</span>
-            : address || `${lat.toFixed(4)}, ${lng.toFixed(4)}`}
-        </span>
-        {gmapsUrl && (
-          <a
-            href={gmapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-0.5 text-[10px] font-semibold text-blue-600 hover:text-blue-700 hover:underline flex-shrink-0"
-          >
-            Maps <ExternalLink className="w-2.5 h-2.5" />
-          </a>
-        )}
+      {/* Address bar with Google Maps link — prominent road + postcode display */}
+      <div className="px-2.5 py-2 bg-white border-t border-slate-100">
+        <div className="flex items-center gap-1.5">
+          <MapPin className="w-3.5 h-3.5 text-[#2E5A1A] flex-shrink-0" />
+          <span className="text-xs text-slate-800 font-semibold truncate flex-1">
+            {addrLoading ? <span className="flex items-center gap-1 text-slate-400"><Loader2 className="w-3 h-3 animate-spin" /> Locating…</span>
+              : address || `${lat.toFixed(4)}, ${lng.toFixed(4)}`}
+          </span>
+          {gmapsUrl && (
+            <a
+              href={gmapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-0.5 text-[10px] font-semibold text-blue-600 hover:text-blue-700 hover:underline flex-shrink-0"
+            >
+              Maps <ExternalLink className="w-2.5 h-2.5" />
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

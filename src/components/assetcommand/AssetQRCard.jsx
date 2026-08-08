@@ -47,7 +47,7 @@ export default function AssetQRCard({ asset }) {
           <div class="meta">${(asset.asset_type || '').toUpperCase()}${asset.serial_number ? ' · ' + asset.serial_number : ''}</div>
           <div class="badge">${(asset.compliance_status || 'unknown').toUpperCase()}${asset.compliance_expiry_date ? ' · EXP ' + safeFormat(asset.compliance_expiry_date, 'dd MMM yyyy') : ''}</div>
           <img src="${qrSrc}" alt="QR" />
-          <div class="meta">Scan with Asset Lens · Ground Control</div>
+          <div class="meta">Scan with Logistics Hub · Ground Control</div>
         </div>
       </body></html>`);
     w.document.close();

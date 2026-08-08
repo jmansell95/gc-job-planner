@@ -54,7 +54,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     { id: 'jobs', label: 'Jobs', icon: Briefcase },
     { id: 'scheduling', label: 'Scheduling', icon: Calendar },
     { id: 'staff', label: 'Staff & Teams', icon: Users },
-    { id: 'logistics', label: 'Logistics', icon: Truck },
+    { id: 'logistics', label: 'Deliveries', icon: Truck },
     { id: 'assets', label: 'Assets & Fleet', icon: Wrench },
     { id: 'compliance', label: 'Compliance & Audit', icon: ShieldCheck },
     { id: 'billing', label: 'Financial Control', icon: PoundSterling },
@@ -119,7 +119,7 @@ export default function AdminNav({ activeSection, setActiveSection }) {
             className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <HardHat className="w-4 h-4" />
           </button>
-          <button onClick={() => setLensOpen(true)} type="button" title="Asset Lens"
+          <button onClick={() => setLensOpen(true)} type="button" title="Logistics Hub"
             className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <ScanLine className="w-4 h-4" />
           </button>

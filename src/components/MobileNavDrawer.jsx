@@ -60,7 +60,7 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
                   <button onClick={onAssetLens} type="button"
                     className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition touch-manipulation select-none ring-1 ring-white/15">
                     <ScanLine className="w-4 h-4" />
-                    <span className="text-[10px] font-medium leading-tight text-center">Asset Lens</span>
+                    <span className="text-[10px] font-medium leading-tight text-center">Logistics Hub</span>
                   </button>
                 )}
                 {onAssistant && (

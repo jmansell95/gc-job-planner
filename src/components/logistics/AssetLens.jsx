@@ -243,8 +243,8 @@ export default function AssetLens({ open, onClose, assets: propAssets = [] }) {
               <ScanLine className="w-4.5 h-4.5 text-emerald-700" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-900">Asset Lens</h3>
-              <p className="text-[11px] text-slate-400">Scan or search — everything is automatic</p>
+              <h3 className="font-semibold text-slate-900">Logistics Hub</h3>
+              <p className="text-[11px] text-slate-400">Scan · Search · Book · Sync — all in one place</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition active:scale-90">

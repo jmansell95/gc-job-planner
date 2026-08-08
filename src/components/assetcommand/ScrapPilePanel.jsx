@@ -66,7 +66,7 @@ export default function ScrapPilePanel() {
         <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
           <Trash2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
           <p className="text-sm font-semibold text-slate-600">Scrap pile is empty</p>
-          <p className="text-xs text-slate-400 mt-1">Scan an asset in the Asset Lens and tap "Scrap" to add items here.</p>
+          <p className="text-xs text-slate-400 mt-1">Scan an asset in the Logistics Hub and tap "Scrap" to add items here.</p>
         </div>
       ) : (
         <div className="space-y-4">

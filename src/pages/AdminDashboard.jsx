@@ -22,7 +22,7 @@ const SECTION_LABELS = {
   scheduling: 'Scheduling',
   rota: 'Scheduling',
   calendar: 'Calendar',
-  logistics: 'Logistics',
+  logistics: 'Deliveries',
   timesheets: 'Timesheets',
   teams: 'Staff',
   compliance: 'Compliance & Audit',
