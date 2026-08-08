@@ -1,4 +1,4 @@
-import { LayoutDashboard, AlertTriangle, Warehouse, AlertOctagon, MapPin, Sparkles, Brain, CloudSun, Star, BarChart3, Radar, Wrench, ShieldCheck, Drill, FileBarChart } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, Warehouse, AlertOctagon, MapPin, Sparkles, Brain, CloudSun, Star, BarChart3, Radar, Wrench, ShieldCheck, Drill, FileBarChart, Activity } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════
 //  STREAMLINED DASHBOARD REGISTRY
@@ -25,6 +25,7 @@ export const WIDGET_REGISTRY = {
   'geo-heatmap': { title: 'Geotechnical Risk', icon: MapPin },
   'predictive-maintenance': { title: 'Predictive Maintenance', icon: Wrench },
   'reports-hub': { title: 'Reports Hub', icon: FileBarChart, fullWidth: true },
+  'project-health': { title: 'Project Health', icon: Activity },
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -51,6 +52,7 @@ export const TIER_INSIGHTS = [
   'geo-heatmap',
   'predictive-maintenance',
   'reports-hub',
+  'project-health',
 ];
 
 export const DEFAULT_WIDGETS = [
@@ -87,5 +89,5 @@ export const GLOBAL_ONLY_WIDGETS = [
   'executive-snapshot', 'mission-control', 'field-priorities', 'yard-control',
   'exception-monitor', 'live-site-map', 'ai-insights', 'predictive-insights',
   'client-feedback', 'benchmark-comparisons', 'geo-heatmap', 'predictive-maintenance',
-  'reports-hub',
+  'reports-hub', 'project-health',
 ];

@@ -102,6 +102,7 @@ export default async function(req: Request): Promise<Response> {
             description: String(record.description),
             quantity: qty,
             activeContract,
+            job_date: record.log_date || job.start_date || null,
           });
           if (resolved) {
             const breakdown = {

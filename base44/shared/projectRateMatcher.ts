@@ -124,12 +124,31 @@ export function findBestRateCardMatch(
   return bestScore >= 0.6 ? best : null;
 }
 
+// Filter rate card items by effective date — picks the rate that was active
+// on the job's actual working date. Items without effective_date are always
+// included (backward compatible). Items with expiry_date before the job date
+// are excluded. When multiple versions overlap, the most recently effective
+// one wins (sorted by effective_date descending in the match step).
+function filterByEffectiveDate(items: RateCardItemLike[], jobDate: string | null | undefined): RateCardItemLike[] {
+  if (!jobDate) return items;
+  return items.filter((i: any) => {
+    const eff = i.effective_date as string | undefined;
+    const exp = i.expiry_date as string | undefined;
+    // No effective_date = always active (legacy rates)
+    if (eff && eff > jobDate) return false;
+    if (exp && exp < jobDate) return false;
+    return true;
+  });
+}
+
 // Load rate card items for a project: project-scoped items when the project
 // has any, otherwise the global "our_company" Master Price List items.
-// Returns only items with a usable numeric price.
+// Returns only items with a usable numeric price, filtered by the job's
+// working date when provided (effective-dated rate support).
 export async function loadProjectRateCardItems(
   base44: any,
-  projectId: string | null | undefined
+  projectId: string | null | undefined,
+  jobDate?: string | null
 ): Promise<RateCardItemLike[]> {
   if (projectId) {
     const projectItems = await base44.asServiceRole.entities.RateCardItem.filter(
@@ -138,7 +157,8 @@ export async function loadProjectRateCardItems(
       500
     );
     if (projectItems && projectItems.length > 0) {
-      return projectItems.filter((i: RateCardItemLike) => i.price != null && !isNaN(Number(i.price)));
+      const priced = projectItems.filter((i: RateCardItemLike) => i.price != null && !isNaN(Number(i.price)));
+      return filterByEffectiveDate(priced, jobDate);
     }
   }
   // Fall back to the global Master Price List (our_company, no project)
@@ -147,9 +167,10 @@ export async function loadProjectRateCardItems(
     '-sort_order',
     500
   );
-  return (global || []).filter(
+  const priced = (global || []).filter(
     (i: RateCardItemLike) => i.price != null && !isNaN(Number(i.price)) && !i.project_id
   );
+  return filterByEffectiveDate(priced, jobDate);
 }
 
 // Resolve a charge for an activity description against a project rate card.

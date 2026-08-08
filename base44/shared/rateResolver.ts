@@ -104,8 +104,9 @@ export async function resolveFromRateCards(
   projectId: string | null | undefined,
   description: string,
   quantity: number = 1,
+  jobDate?: string | null,
 ): Promise<ResolvedRate | null> {
-  const items = await loadProjectRateCardItems(base44, projectId);
+  const items = await loadProjectRateCardItems(base44, projectId, jobDate);
   const match = resolveProjectCharge(description, items, quantity);
   if (!match) return null;
   const source: RateSource = projectId && items.length > 0 && items.some((i) => i.project_id === projectId)
@@ -136,9 +137,10 @@ export async function resolveRate(
     description: string;
     quantity?: number;
     activeContract?: { rate_snapshot?: string | null } | null;
+    job_date?: string | null;
   },
 ): Promise<ResolvedRate | null> {
-  const { description, quantity, activeContract, project_id } = params;
+  const { description, quantity, activeContract, project_id, job_date } = params;
   if (!description) return null;
 
   // Level 1 — contract snapshot
@@ -147,8 +149,8 @@ export async function resolveRate(
     if (snapshotMatch) return snapshotMatch;
   }
 
-  // Level 2 + 3 — project / global rate cards
-  return resolveFromRateCards(base44, project_id, description, quantity);
+  // Level 2 + 3 — project / global rate cards (filtered by effective date)
+  return resolveFromRateCards(base44, project_id, description, quantity, job_date);
 }
 
 // ── Load the active contract for a job ──

@@ -31,6 +31,8 @@ function RateItemRow({ item, subcategory, onUpdate }) {
     unit: item.unit ?? '',
     men: item.men ?? '',
     notes: item.notes ?? '',
+    effective_date: item.effective_date ?? '',
+    expiry_date: item.expiry_date ?? '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -52,6 +54,8 @@ function RateItemRow({ item, subcategory, onUpdate }) {
         unit: form.unit || null,
         men: form.men === '' ? null : Number(form.men),
         notes: form.notes || null,
+        effective_date: form.effective_date || null,
+        expiry_date: form.expiry_date || null,
       });
       onUpdate();
       setEditing(false);
@@ -90,6 +94,16 @@ function RateItemRow({ item, subcategory, onUpdate }) {
             </div>
           </div>
           <input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Notes" className={inputCls} />
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-slate-400 font-medium">Effective from</label>
+              <input type="date" value={form.effective_date} onChange={e => setForm({ ...form, effective_date: e.target.value })} className={inputCls} />
+            </div>
+            <div>
+              <label className="text-[10px] text-slate-400 font-medium">Expires on</label>
+              <input type="date" value={form.expiry_date} onChange={e => setForm({ ...form, expiry_date: e.target.value })} className={inputCls} />
+            </div>
+          </div>
           <div className="flex gap-2">
             <button onClick={save} disabled={saving} className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg text-xs font-semibold hover:bg-[#1c4a12] disabled:opacity-50">
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />} Save
@@ -115,6 +129,11 @@ function RateItemRow({ item, subcategory, onUpdate }) {
               {marginPct != null && (
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${marginPct >= 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
                   {marginPct.toFixed(0)}% margin
+                </span>
+              )}
+              {(item.effective_date || item.expiry_date) && (
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200" title={`Effective: ${item.effective_date || 'always'} → ${item.expiry_date || 'no expiry'}`}>
+                  {item.effective_date ? `from ${item.effective_date}` : ''}{item.expiry_date ? ` → ${item.expiry_date}` : ''}
                 </span>
               )}
             </div>

@@ -23,6 +23,7 @@ import SiteReadinessGateWidget from '@/components/dashboard/SiteReadinessGateWid
 import BoreholeProgressWidget from '@/components/dashboard/BoreholeProgressWidget';
 import CrewCertificationPulseWidget from '@/components/dashboard/CrewCertificationPulseWidget';
 import ReportsHubWidget from '@/components/dashboard/ReportsHubWidget';
+import ProjectHealthDashboardWidget from '@/components/dashboard/ProjectHealthDashboardWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
@@ -109,6 +110,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'geo-heatmap': return <GeotechnicalHeatmapWidget />;
       case 'predictive-maintenance': return <PredictiveMaintenanceWidget onSelectVehicle={(v) => onNavigate?.('assets')} />;
       case 'reports-hub': return <ReportsHubWidget onNavigate={onNavigate} />;
+      case 'project-health': return <ProjectHealthDashboardWidget onNavigate={onNavigate} />;
       default: return null;
     }
   };

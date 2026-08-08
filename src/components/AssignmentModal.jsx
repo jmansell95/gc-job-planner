@@ -15,6 +15,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   const [timeConflict, setTimeConflict] = useState(null);
   const [resetting, setResetting] = useState(false);
   const [complianceOverride, setComplianceOverride] = useState(false);
+  const [rigComplianceOverride, setRigComplianceOverride] = useState(false);
   const queryClient = useQueryClient();
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: absences = [] } = useQuery({ queryKey: ['absences'], queryFn: () => base44.entities.Absence.list() });
@@ -83,6 +84,7 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
       setConflictWarnings([]);
       setTimeConflict(null);
       setComplianceOverride(false);
+      setRigComplianceOverride(false);
     }
   }, [isOpen, assignment, defaultStaffId, defaultDate]);
 
@@ -184,6 +186,9 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
   const complianceBlocked = complianceEval.blocked.length > 0;
   const complianceExpiring = complianceEval.expiring.length > 0;
 
+  // Equipment compliance hard-lock: expired rigs cannot be assigned to jobs
+  const rigComplianceBlocked = isDrillingJob && selectedRig && selectedRig.compliance_status === 'expired';
+
   const handleDateChange = (date) => {
     const weekend = isWeekend(date);
     const dayCount = formData.staff_id ? existingRotas.filter(r => r.staff_id === formData.staff_id && r.assigned_date === date && r.id !== assignment?.id).length : 0;
@@ -266,6 +271,11 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
     // Hard block: expired or missing required qualifications can't be assigned unless overridden.
     if (complianceBlocked && !complianceOverride) {
       alert(`Compliance hard-lock — ${selectedStaff?.name || 'this staff member'} is missing or has expired required qualifications:\n\n${complianceEval.blocked.map(q => '• ' + qualLabel(q)).join('\n')}\n\nTo assign anyway, tick "Override compliance block" in the warning below.`);
+      return;
+    }
+    // Hard block: expired rig compliance (LOLER/PUWER) cannot be assigned unless overridden.
+    if (rigComplianceBlocked && !rigComplianceOverride) {
+      alert(`Equipment compliance hard-lock — ${selectedRig?.name || 'this rig'} has expired LOLER/PUWER compliance and cannot be assigned to a job.\n\nTo assign anyway, tick "Override equipment compliance block" in the warning below.`);
       return;
     }
     if (teamMismatch) {
@@ -690,6 +700,23 @@ export default function AssignmentModal({ isOpen, onClose, assignment, defaultSt
                   {complianceEval.expiring.map((q) => qualLabel(q)).join(', ')} expire(s) within 30 days. Assignment is allowed, but book renewal training soon.
                 </p>
               </div>
+            </div>
+          )}
+          {rigComplianceBlocked && (
+            <div className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-3 space-y-2.5">
+              <div className="flex items-start gap-2">
+                <ShieldX className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-red-700">Equipment compliance hard-lock</p>
+                  <p className="text-xs text-red-600 mt-0.5">
+                    {selectedRig?.name} has expired LOLER/PUWER compliance and cannot be assigned to a job until it passes inspection.
+                  </p>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-xs font-medium text-red-700 cursor-pointer bg-white/60 rounded-md px-2.5 py-2 border border-red-200">
+                <input type="checkbox" checked={rigComplianceOverride} onChange={(e) => setRigComplianceOverride(e.target.checked)} className="w-4 h-4 accent-red-600" />
+                Override — assign anyway and accept responsibility
+              </label>
             </div>
           )}
           {conflictWarnings.length > 0 && (

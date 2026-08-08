@@ -72,6 +72,16 @@
       "type": "string",
       "description": "Linked Project \u2014 when set, this rate item belongs to a project-specific rate card (e.g. the East West Rail / EWR schedule of rates). Jobs linked to that project bill against these rates in preference to the global Master Price List. Blank for global company rate card items."
     },
+    "effective_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this rate becomes active. The rate resolver picks the rate that was effective on the job's actual working date, ensuring retrospective billing uses the correct historical rate. Blank = always effective (backward compatible with rates created before this feature)."
+    },
+    "expiry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this rate expires and is superseded by a newer version. The rate resolver skips rates that expired before the job's working date. Blank = no expiry (rate is current until explicitly superseded)."
+    },
     "sort_order": {
       "type": "number",
       "default": 0,

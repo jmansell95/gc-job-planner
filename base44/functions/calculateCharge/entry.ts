@@ -35,7 +35,8 @@ Deno.serve(async (req) => {
       custom_fee,         // if set, return this amount as override
       project_id,        // linked project — enables project rate card auto-pricing
       description,       // activity description — matched against project rate card
-      quantity           // qty for per-unit rate card items (metres, hours, etc.)
+      quantity,          // qty for per-unit rate card items (metres, hours, etc.)
+      job_date           // working date — for effective-dated rate resolution
     } = body;
 
     // Not chargeable — zero out
@@ -62,7 +63,7 @@ Deno.serve(async (req) => {
     // matching RateCardItem for that project and price it directly — before falling
     // back to the generic BillingRule mechanism.
     if (project_id && description && (entity_type === 'investigation' || entity_type === 'task')) {
-      const rateCardItems = await loadProjectRateCardItems(base44, project_id);
+      const rateCardItems = await loadProjectRateCardItems(base44, project_id, job_date);
       const qty = Number(quantity ?? units) || 1;
       const match = resolveProjectCharge(String(description), rateCardItems, qty);
       if (match) {
