@@ -572,16 +572,18 @@ export default function WeeklyRotaBuilder() {
         const jobGroups = Object.entries(byJob);
         return (
           <div className="mb-4 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-emerald-700 to-emerald-600">
+            <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200">
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-white" />
-                <h3 className="text-sm font-bold text-white">Today's Crew</h3>
-                <span className="text-[11px] text-emerald-100">{format(new Date(), 'EEEE dd MMM')}</span>
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center">
+                  <Users className="w-3.5 h-3.5 text-white" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">Today's Crew</h3>
+                <span className="text-[11px] text-slate-400">{format(new Date(), 'EEEE dd MMM')}</span>
               </div>
               <div className="flex items-center gap-3 text-xs">
-                <span className="text-white/90"><strong className="text-white">{todayCrew.length}</strong> on site</span>
-                <span className="text-white/90"><strong className="text-white">{jobGroups.length}</strong> jobs</span>
-                {todayLeave.length > 0 && <span className="text-amber-200"><strong className="text-amber-100">{todayLeave.length}</strong> off</span>}
+                <span className="text-slate-500"><strong className="text-slate-900">{todayCrew.length}</strong> on site</span>
+                <span className="text-slate-500"><strong className="text-slate-900">{jobGroups.length}</strong> jobs</span>
+                {todayLeave.length > 0 && <span className="text-amber-600"><strong className="text-amber-700">{todayLeave.length}</strong> off</span>}
               </div>
             </div>
             {todayRotas.length === 0 ? (

@@ -176,18 +176,18 @@ export default function RotaJobPool({ weekStart }) {
       {/* Header — collapsible */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3.5 bg-gradient-to-r from-[#2E5A1A] to-[#3d6b1f] text-white"
+        className="w-full flex items-center justify-between px-4 py-3.5 bg-slate-50 border-b border-slate-200 hover:bg-slate-100 transition"
       >
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
-            <Briefcase className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm">
+            <Briefcase className="w-4 h-4 text-white" />
           </div>
           <div className="text-left">
-            <span className="font-bold text-sm block leading-tight">Quick Assign</span>
-            <span className="text-[11px] text-white/70">{totalActiveJobs} active jobs · tap to assign</span>
+            <span className="font-bold text-sm block leading-tight text-slate-900">Quick Assign</span>
+            <span className="text-[11px] text-slate-400">{totalActiveJobs} active jobs · tap to assign</span>
           </div>
         </div>
-        {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        {expanded ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
       </button>
 
       {expanded && (
