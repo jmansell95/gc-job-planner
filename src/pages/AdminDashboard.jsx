@@ -11,6 +11,7 @@ import JobManager from '@/components/JobManager';
 import SettingsPage from '@/components/SettingsPage';
 import JobDetail from '@/components/JobDetail';
 import SchedulingHub from '@/components/SchedulingHub';
+import InvestigationHub from '@/components/investigation/InvestigationHub';
 import AdminDeliveryHub from '@/pages/AdminDeliveryHub';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -30,6 +31,7 @@ const SECTION_LABELS = {
   safety: 'Safety',
   'safety-hub': 'Safety Hub',
   'log-qc': 'Audit',
+  investigation: 'Investigation Hub',
   billing: 'Financial Control',
   settings: 'System',
   assets: 'Assets & Fleet',
@@ -135,6 +137,7 @@ export default function AdminDashboard() {
               <SchedulingHub initialTab={activeSection === 'calendar' ? 'calendar' : 'rota'} />
             )}
             {activeSection === 'logistics' && <AdminDeliveryHub />}
+            {activeSection === 'investigation' && <InvestigationHub onNavigate={handleSetActiveSection} />}
             {activeSection === 'settings' && <SettingsPage initialTab={settingsTab} onSelectJob={(job) => { setSelectedJob(job); setActiveSection('job-detail'); }} />}
             </ErrorBoundary>
           </motion.div>

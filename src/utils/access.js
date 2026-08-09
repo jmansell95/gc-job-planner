@@ -10,9 +10,9 @@ import { SECTION_TO_MODULE, normalizePermissions, resolveModuleLevel, canWriteMo
 // assigned permission group). When a permission group IS assigned, these are
 // bypassed in favour of the group's per-module permissions.
 export const ROLE_SECTIONS = {
-  super_admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety', 'safety-hub', 'assets', 'vehicles', 'project-financials', 'staff', 'contacts', 'automations', 'price-list', 'reports', 'import', 'audit'],
-  admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety', 'safety-hub', 'assets', 'vehicles', 'project-financials', 'staff', 'contacts', 'automations', 'price-list', 'reports', 'import', 'audit'],
-  management: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'billing', 'safety', 'safety-hub', 'assets', 'vehicles', 'project-financials', 'reports', 'audit', 'staff', 'settings'],
+  super_admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety', 'safety-hub', 'assets', 'vehicles', 'project-financials', 'staff', 'contacts', 'automations', 'price-list', 'reports', 'import', 'audit', 'investigation'],
+  admin: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'teams', 'billing', 'settings', 'ags-import', 'safety', 'safety-hub', 'assets', 'vehicles', 'project-financials', 'staff', 'contacts', 'automations', 'price-list', 'reports', 'import', 'audit', 'investigation'],
+  management: ['overview', 'jobs', 'rota', 'calendar', 'scheduling', 'logistics', 'timesheets', 'compliance', 'log-qc', 'audit-trail', 'billing', 'safety', 'safety-hub', 'assets', 'vehicles', 'project-financials', 'reports', 'audit', 'staff', 'settings', 'investigation'],
   user: ['overview', 'jobs', 'calendar', 'logistics', 'audit-trail', 'audit', 'compliance', 'staff'],
   read_only: ['overview', 'jobs', 'calendar', 'logistics', 'audit-trail', 'audit', 'compliance', 'staff'],
 };
