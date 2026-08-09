@@ -28,6 +28,8 @@ export const WIDGET_REGISTRY = {
   'project-health': { title: 'Project Health', icon: Activity },
   'carbon-footprint': { title: 'Carbon Footprint', icon: Leaf },
   'system-health': { title: 'System Health & Integrity', icon: HeartPulse },
+  'staff-utilization': { title: 'Crew Utilization', icon: Users },
+  'financial-reconciliation': { title: 'Financial Reconciliation', icon: DollarSign, fullWidth: true },
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -57,6 +59,8 @@ export const TIER_INSIGHTS = [
   'project-health',
   'carbon-footprint',
   'system-health',
+  'staff-utilization',
+  'financial-reconciliation',
 ];
 
 export const DEFAULT_WIDGETS = [
@@ -94,4 +98,5 @@ export const GLOBAL_ONLY_WIDGETS = [
   'exception-monitor', 'live-site-map', 'ai-insights', 'predictive-insights',
   'client-feedback', 'benchmark-comparisons', 'geo-heatmap', 'predictive-maintenance',
   'reports-hub', 'project-health', 'carbon-footprint', 'system-health',
+  'staff-utilization', 'financial-reconciliation',
 ];

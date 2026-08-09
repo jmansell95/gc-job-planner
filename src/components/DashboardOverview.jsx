@@ -26,6 +26,8 @@ import ReportsHubWidget from '@/components/dashboard/ReportsHubWidget';
 import ProjectHealthDashboardWidget from '@/components/dashboard/ProjectHealthDashboardWidget';
 import CarbonFootprintWidget from '@/components/dashboard/CarbonFootprintWidget';
 import SystemHealthWidget from '@/components/dashboard/SystemHealthWidget';
+import StaffUtilizationWidget from '@/components/dashboard/StaffUtilizationWidget';
+import FinancialReconciliationWidget from '@/components/dashboard/FinancialReconciliationWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
@@ -115,6 +117,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'project-health': return <ProjectHealthDashboardWidget onNavigate={onNavigate} />;
       case 'carbon-footprint': return <CarbonFootprintWidget />;
       case 'system-health': return <SystemHealthWidget onNavigate={onNavigate} />;
+      case 'staff-utilization': return <StaffUtilizationWidget />;
+      case 'financial-reconciliation': return <FinancialReconciliationWidget />;
       default: return null;
     }
   };

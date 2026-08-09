@@ -155,7 +155,7 @@ const CATEGORIES = [
       { priority: 'medium', title: 'Vehicle capacity planning & load optimization', desc: 'Load Planner modal matches deliveries to vehicles with live weight and volume capacity bars. Overload warnings flag when a vehicle is exceeded, and the vehicle dropdown shows max capacity per vehicle for quick matching.', status: 'done' },
       { priority: 'medium', title: 'Driver mobile app with offline support', desc: 'Full offline delivery workflow with sync-when-online for areas with no signal. PWA offline mode already in place (offlineSync.js queues actions in localStorage). Delivery Dashboard is mobile-first. Full driver app would need dedicated offline-first delivery UI with background sync — deferred as the PWA covers the core offline need.', status: 'done' },
       { priority: 'high', title: 'Driver Day Planner — multi-stop day builder', desc: 'New "Day Planner" tab in the Logistics Hub lets dispatchers plan a driver\'s entire day in one place. Pick a driver + date, see all stops (deliveries, collections, handovers, sample runs) in a single ordered list with sequence numbers, quick-add new stops of any type, manually reorder with up/down arrows, and auto-optimise the route with Google Maps. The driver\'s dashboard auto-optimises on first load so their day is always organised first → second → third by location.', status: 'done' },
-      { priority: 'low', title: 'Third-party courier integration', desc: 'Book and track third-party courier deliveries for non-fleet shipments. Requires external courier API (DHL, FedEx, Royal Mail) — can be built as a backend function with secrets when a provider is chosen. Deferred pending provider selection.', status: 'done' },
+      { priority: 'low', title: 'Third-party courier integration', desc: 'Book and track third-party courier deliveries for non-fleet shipments. Requires external courier API (DHL, FedEx, Royal Mail) — can be built as a backend function with secrets when a provider is chosen. Deferred pending provider selection.', status: 'deferred' },
       { priority: 'high', title: 'Consumable inventory & goods-in system', desc: 'New ConsumableStockItem entity tracks warehouse consumables (PPE, stationary, electrical, tools, cleaning) with stock levels, minimum/reorder thresholds, supplier links, and storage locations. GoodsInReceipt entity captures the goods-in flow — any staff member can scan or select items and submit a receipt (pending_verification), then a depot lead verifies it to update stock. Low-stock alerts flag items below minimum for reordering. Separate from Asset Panda — consumables don\'t need compliance, depreciation, or serial tracking.', status: 'done' },
       { priority: 'high', title: 'Supplier delivery booking (inbound goods)', desc: 'New "supplier_delivery" delivery type in the DeliveryLog system handles inbound deliveries from suppliers — ordered items delivered to the depot or directly to site. Booked through the Logistics Hub and linked to purchase orders and jobs. The goods-in scanner confirms receipt and routes to the verification queue.', status: 'done' },
       { priority: 'high', title: 'Gatekeeper goods-in verification', desc: 'Two-tier goods-in access: any staff member can do a "Quick Receive" (scan/select item, enter quantity, submit) which creates a pending GoodsInReceipt. A depot lead or manager then verifies the receipt in the Logistics Hub → Goods In tab — verifying updates the consumable stock level automatically. Rejected receipts record a reason. Full audit trail of who received and who verified.', status: 'done' },
@@ -173,6 +173,8 @@ const CATEGORIES = [
       { priority: 'medium', title: 'Real-time site status map', desc: 'Live Site Map widget on the dashboard uses react-leaflet to plot all active jobs with GPS coordinates on an interactive OpenStreetMap. Markers are color-coded by job status with popups showing crew count today. Summary bar shows active job count, crew on site, and mapped sites.', status: 'done' },
       { priority: 'medium', title: 'Benchmark comparisons', desc: 'Benchmark Comparisons dashboard widget compares top/bottom jobs by margin %, crews by utilization rate (30-day rolling), and this-week vs last-week timesheet hours. Color-coded progress bars and a negative-margin callout for jobs running at a loss. Click any job to drill into its detail drawer.', status: 'done' },
       { priority: 'low', title: 'Custom report builder', desc: 'Custom Report Builder settings page lets users build reports from 10 data sources (Jobs, Staff, Rotas, Timesheets, Invoices, Cost Items, Assets, Vehicles, Safety Reports, Deliveries). Pick columns, apply date/status filters, reorder columns, preview live data, and export to CSV or print to PDF.', status: 'done' },
+      { priority: 'high', title: 'Dynamic financial reconciliation widget', desc: 'Financial Reconciliation widget on the dashboard shows a bird\'s-eye WIP grid across every project — earned, invoiced, unbilled, and realization %. Finance can spot which projects need invoicing attention at a glance without drilling into each job.', status: 'done' },
+      { priority: 'medium', title: 'Crew utilization heatmap', desc: 'Crew Utilization widget on the dashboard shows billable vs non-billable hours per field staff member for the current week, with an overall utilization rate and color-coded progress bars. Excludes depot/yard teams automatically.', status: 'done' },
     ],
   },
   {
@@ -182,11 +184,11 @@ const CATEGORIES = [
     color: 'slate',
     items: [
       { priority: 'high', title: 'Xero / Sage accounting sync', desc: 'syncAccounting function pushes sent invoices and subcontractor costs to Xero or Sage via OAuth 2.0. Provider credentials configured in Accounting Sync settings. Admin-only "Sync Now" button triggers a manual push.', status: 'done' },
-      { priority: 'medium', title: 'Microsoft Teams / Slack notifications', desc: 'Send job alerts, assignment notifications, and compliance warnings to team channels. Requires Slack or Microsoft Teams connector authorization — available in the Integrations Hub when ready to connect. The Zapier webhook integration can also route events to Slack/Teams without a direct connector.', status: 'done' },
-      { priority: 'medium', title: 'Google Calendar two-way sync', desc: 'iCal feed export already in place (getStaffICalFeed generates .ics files for any calendar app). Full two-way Google Calendar sync requires the Google Calendar connector — available in the Integrations Hub when ready to connect. The iCal feed covers the one-way export need today.', status: 'done' },
-      { priority: 'medium', title: 'SharePoint document sync', desc: 'Mirror job documents to SharePoint folders for corporate document management. Requires the SharePoint connector — available in the Integrations Hub when ready to connect. The Document Manager already provides version-controlled document management in-app.', status: 'done' },
+      { priority: 'medium', title: 'Microsoft Teams / Slack notifications', desc: 'Zapier webhook integration routes 13 event types to Slack/Teams without a direct connector. Direct Slack/Teams connector authorization is available in the Integrations Hub when ready to connect — adds real-time channel messaging without Zapier as a middleman.', status: 'partial' },
+      { priority: 'medium', title: 'Google Calendar two-way sync', desc: 'iCal feed export is live (getStaffICalFeed generates .ics files for any calendar app). Full two-way Google Calendar sync requires the Google Calendar connector — available in the Integrations Hub when ready to connect.', status: 'partial' },
+      { priority: 'medium', title: 'SharePoint document sync', desc: 'Mirror job documents to SharePoint folders for corporate document management. Requires the SharePoint connector — available in the Integrations Hub when ready to connect. The Document Manager already provides version-controlled document management in-app.', status: 'deferred' },
       { priority: 'low', title: 'Zapier / Make webhook integration', desc: 'Zapier / Make Webhooks settings page + zapierWebhook backend function. Register outbound webhook URLs from Zapier, Make, or n8n. Select which of 13 event types to forward (job.created, rota.published, timesheet.submitted, invoice.paid, etc.). Test button sends a test payload. Events forwarded as POST with JSON body: { event, entity_id, data, timestamp, source }.', status: 'done' },
-      { priority: 'low', title: 'Public REST API', desc: 'Documented API for third-party access to jobs, staff, and financial data with API keys. The Zapier webhook integration exposes key events outbound. Inbound REST API access is a platform-level feature — the App MCP server can expose published app data to AI clients. Backend functions serve as the API layer for all external integrations.', status: 'done' },
+      { priority: 'low', title: 'Public REST API', desc: 'Outbound event forwarding via Zapier webhooks (13 event types) and App MCP server for AI clients. Inbound REST API access with API keys is a platform-level feature — backend functions serve as the API layer for all external integrations.', status: 'partial' },
     ],
   },
   {
@@ -214,6 +216,7 @@ const CATEGORIES = [
       { priority: 'medium', title: 'Email template editor with live preview', desc: 'Email Alerts settings page includes a full visual editor for every system email template — custom subject, intro message, full body template with token insertion, accent colour picker, banner title, footer text, and show/hide banner toggle. A live preview iframe renders the styled HTML email instantly with sample data. Send test email and reset-to-default buttons included. Custom templates can be created and deleted.', status: 'done' },
       { priority: 'low', title: 'Multi-company / white-label support', desc: 'Multi-Company / White-Label settings page + TradingEntity entity. Manage multiple trading entities with separate legal names, CRN, VAT numbers, addresses, logos, and primary/accent colors. Set a default entity. Each entity can white-label the client portal, email banners, and PDF reports. Full CRUD with logo upload.', status: 'done' },
       { priority: 'low', title: 'Data backup & restore', desc: 'Backup & Restore settings page exports a full JSON snapshot of 16 key entities (downloadable), restores from a previous backup file, seeds demo data, and provides a danger-zone database reset with typed confirmation. Last backup date tracked.', status: 'done' },
+      { priority: 'high', title: 'Row-Level Security (RLS) hardening', desc: 'ABAC security audit complete. All sensitive entities now enforce RLS: Staff, SiteAsset, RotaAssignment, Timesheet, Invoice, Job, RateCardItem, InvestigationLog, and all financial/compliance entities. Pattern: reads open to authenticated users, writes restricted to admins (except RotaAssignment update which stays open so field staff can start/complete shifts and sign briefings). Timesheet update locked to admin-only so staff cannot edit approved entries.', status: 'done' },
     ],
   },
   {
@@ -243,6 +246,12 @@ const CATEGORIES = [
     ],
   },
 ];
+
+const STATUS_CONFIG = {
+  done: { label: 'Done', cls: 'bg-emerald-50 text-emerald-600 ring-emerald-200' },
+  partial: { label: 'Partial', cls: 'bg-amber-50 text-amber-600 ring-amber-200' },
+  deferred: { label: 'Deferred', cls: 'bg-slate-100 text-slate-500 ring-slate-200' },
+};
 
 const PRIORITY_CONFIG = {
   high: { label: 'High Priority', icon: AlertCircle, cls: 'bg-rose-50 text-rose-600 ring-rose-200', dot: 'bg-rose-500' },
@@ -309,7 +318,10 @@ export default function ImprovementRoadmap() {
     .priority-high { background: #fee2e2; color: #dc2626; }
     .priority-medium { background: #fef3c7; color: #d97706; }
     .priority-low { background: #f1f5f9; color: #64748b; }
-    .status-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: #dcfce7; color: #16a34a; margin-left: auto; }
+    .status-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: auto; }
+    .status-done { background: #dcfce7; color: #16a34a; }
+    .status-partial { background: #fef3c7; color: #d97706; }
+    .status-deferred { background: #f1f5f9; color: #64748b; }
     .item-title { font-size: 14px; font-weight: 600; color: #1e293b; margin: 4px 0 4px; }
     .item-desc { font-size: 12px; color: #475569; line-height: 1.5; margin: 0; }
     .footer { text-align: center; padding: 20px; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; margin-top: 30px; }
@@ -353,7 +365,7 @@ export default function ImprovementRoadmap() {
         <div class="item">
           <div class="item-header">
             <span class="priority-badge priority-${item.priority}">${item.priority}</span>
-            <span class="status-badge">✓ Done</span>
+            <span class="status-badge status-${item.status || 'done'}">${(item.status || 'done') === 'done' ? '✓ Done' : (item.status === 'partial' ? '◐ Partial' : '○ Deferred')}</span>
           </div>
           <div class="item-title">${item.title}</div>
           <p class="item-desc">${(item.desc || '').replace(/</g, '&lt;')}</p>
@@ -395,6 +407,9 @@ export default function ImprovementRoadmap() {
 
   const totalItems = CATEGORIES.reduce((sum, c) => sum + c.items.length, 0);
   const highCount = CATEGORIES.reduce((sum, c) => sum + c.items.filter(i => i.priority === 'high').length, 0);
+  const doneCount = CATEGORIES.reduce((sum, c) => sum + c.items.filter(i => i.status !== 'partial' && i.status !== 'deferred').length, 0);
+  const partialCount = CATEGORIES.reduce((sum, c) => sum + c.items.filter(i => i.status === 'partial').length, 0);
+  const deferredCount = CATEGORIES.reduce((sum, c) => sum + c.items.filter(i => i.status === 'deferred').length, 0);
 
   return (
     <div className="space-y-4">
@@ -428,6 +443,41 @@ export default function ImprovementRoadmap() {
               {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1) + ' Priority'}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* What's Left Summary */}
+      <div className="max-w-6xl mx-auto px-5 pt-4">
+        <div className="insight-card rounded-2xl p-4 sm:p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            <h3 className="font-bold text-slate-900 text-sm">Master Roadmap Status</h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-emerald-600 tabular-nums">{doneCount}</p>
+              <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Complete</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-amber-600 tabular-nums">{partialCount}</p>
+              <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Partial</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-slate-400 tabular-nums">{deferredCount}</p>
+              <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Deferred</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-slate-900 tabular-nums">{totalItems}</p>
+              <p className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Total Items</p>
+            </div>
+          </div>
+          {(partialCount > 0 || deferredCount > 0) && (
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <p className="text-xs text-slate-500">
+                <span className="font-semibold text-slate-700">{partialCount + deferredCount} items</span> need connector authorization or provider selection to fully complete. See the Integrations and Logistics categories for details.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -475,6 +525,11 @@ export default function ImprovementRoadmap() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="font-semibold text-slate-800 text-sm">{item.title}</h4>
+                            {item.status && item.status !== 'done' && (
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ${STATUS_CONFIG[item.status]?.cls || ''}`}>
+                                {STATUS_CONFIG[item.status]?.label || item.status}
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-slate-500 mt-1 leading-relaxed">{item.desc}</p>
                         </div>
