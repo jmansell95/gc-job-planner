@@ -11,6 +11,7 @@ import { isBeforeSiteOpen } from '@/utils/siteHours';
 import SitePhotoUpload from '@/components/SitePhotoUpload';
 import EquipmentComplianceSection from '@/components/staff/EquipmentComplianceSection';
 import JobDocumentViewer from '@/components/staff/JobDocumentViewer';
+import PredictiveHazardAlerts from '@/components/jobs/PredictiveHazardAlerts';
 
 const statusConfig = {
   assigned: { label: 'Assigned', icon: Clock, color: 'text-slate-500', bg: 'bg-slate-100' },
@@ -202,6 +203,9 @@ export default function ActiveJobCard({
             className="overflow-hidden border-t border-slate-100"
           >
             <div className="p-4 space-y-4">
+              {/* Predictive hazard alerts — shown first so crews see risks before working */}
+              <PredictiveHazardAlerts job={job} compact />
+
               {/* Contacts & info */}
               <div className="space-y-2">
                 {client && (

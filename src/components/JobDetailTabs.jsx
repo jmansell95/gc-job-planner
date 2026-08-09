@@ -35,6 +35,7 @@ import JobContextView from '@/components/JobContextView';
 import JobDependencyManager from '@/components/JobDependencyManager';
 import DrillingWeatherWidget from '@/components/DrillingWeatherWidget';
 import FloodRiskWidget from '@/components/jobs/FloodRiskWidget';
+import PredictiveHazardAlerts from '@/components/jobs/PredictiveHazardAlerts';
 import GeotechDataTab from '@/components/geotech/GeotechDataTab';
 import TabStatRibbon from '@/components/TabStatRibbon';
 import JobSiteManager from '@/components/jobs/JobSiteManager';
@@ -135,6 +136,7 @@ export default function JobDetailTabs({
         jobTypes={jobTypes}
         />
         <JobDependencyManager job={job} />
+        <PredictiveHazardAlerts job={job} />
         {(job.site_lat != null && job.site_lng != null) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <DrillingWeatherWidget

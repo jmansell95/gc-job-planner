@@ -8,6 +8,7 @@ import { calculateSptN } from './shared';
 import CompletedBySelector from './CompletedBySelector';
 import BoreholeProgressSummary from './BoreholeProgressSummary';
 import BoreholeCompletionModal from './BoreholeCompletionModal';
+import VoiceToTextButton from '@/components/ui/VoiceToTextButton';
 import { useConfigLists } from '@/hooks/useConfigLists';
 import { useDrillingRole } from '@/hooks/useDrillingRole';
 
@@ -708,9 +709,12 @@ export default function DrillerLogForm({ staffId, jobId, job, staffName }) {
           )}
 
           <div>
-            <label className={labelCls}>Description / Observations</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className={labelCls}>Description / Observations</label>
+              <VoiceToTextButton onTranscript={(text) => setForm({ ...form, description: (form.description || '') + text })} />
+            </div>
             <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={2}
-              placeholder="Ground conditions, obstructions, water ingress..."
+              placeholder="Ground conditions, obstructions, water ingress... (tap Voice to dictate)"
               className={`${inputCls} resize-none`} />
           </div>
 
