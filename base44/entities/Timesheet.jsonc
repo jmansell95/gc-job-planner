@@ -224,7 +224,11 @@
   "rls": {
     "read": {},
     "create": {},
-    "update": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
     "delete": {
       "$or": [
         {
