@@ -154,5 +154,19 @@
     "staff_id",
     "assigned_date",
     "week_start"
-  ]
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

@@ -1,4 +1,4 @@
-import { LayoutDashboard, AlertTriangle, Warehouse, AlertOctagon, MapPin, Sparkles, Brain, CloudSun, Star, BarChart3, Radar, Wrench, ShieldCheck, Drill, FileBarChart, Activity, Leaf, HeartPulse } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, Warehouse, AlertOctagon, MapPin, Sparkles, Brain, CloudSun, Star, BarChart3, Radar, Wrench, ShieldCheck, Drill, FileBarChart, Activity, Leaf, HeartPulse, Users, DollarSign } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════
 //  STREAMLINED DASHBOARD REGISTRY
