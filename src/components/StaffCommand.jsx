@@ -14,6 +14,7 @@ import HotelBookingsManager from '@/components/staff/HotelBookingsManager';
 import StaffShiftEditor from '@/components/StaffShiftEditor';
 import { useConfigLists } from '@/hooks/useConfigLists';
 import { formatWorkerType } from '@/utils/format';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useAuth } from '@/lib/AuthContext';
 import { complianceDaysUntil } from '@/utils/complianceDate';
 import { CardGridSkeleton } from '@/components/StateViews';
@@ -47,6 +48,7 @@ export default function StaffCommand() {
   const queryClient = useQueryClient();
 
   const [selectedId, setSelectedId] = useState(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [tab, setTab] = useState('profile');
   const [search, setSearch] = useState('');
   const [teamFilter, setTeamFilter] = useState('all');
@@ -186,7 +188,7 @@ export default function StaffCommand() {
 
       {showBulkInvite && <BulkInviteModal onClose={() => setShowBulkInvite(false)} />}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5">
+      <div className="max-w-2xl mx-auto">
         {/* Staff list */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-3 border-b border-slate-100 space-y-2">
@@ -206,7 +208,7 @@ export default function StaffCommand() {
               const linked = getUserForStaff(m);
               const isSel = m.id === selectedId;
               return (
-                <button key={m.id} onClick={() => setSelectedId(m.id)} className={`w-full text-left flex items-center gap-3 px-3 py-3 border-b border-slate-50 transition ${isSel ? 'bg-[#2E5A1A]/5 border-l-[3px] border-l-[#2E5A1A]' : 'hover:bg-slate-50'}`}>
+                <button key={m.id} onClick={() => { setSelectedId(m.id); setDetailOpen(true); }} className={`w-full text-left flex items-center gap-3 px-3 py-3 border-b border-slate-50 transition ${isSel ? 'bg-[#2E5A1A]/5 border-l-[3px] border-l-[#2E5A1A]' : 'hover:bg-slate-50'}`}>
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#2E5A1A] to-[#8DC63F] flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-bold text-xs">{m.name.charAt(0)}</span>
                   </div>
@@ -220,85 +222,77 @@ export default function StaffCommand() {
             })}
           </div>
         </div>
+      </div>
 
-        {/* Detail panel */}
-        {!selected ? (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex items-center justify-center min-h-[400px]">
-            <div className="text-center text-slate-400">
-              <Users className="w-10 h-10 mx-auto mb-2 text-slate-200" />
-              <p className="text-sm font-medium">Select a crew member to manage</p>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            {/* Header */}
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#2E5A1A] to-[#8DC63F] flex items-center justify-center">
-                <span className="text-white font-bold">{selected.name.charAt(0)}</span>
+      {/* Detail Sheet — slide-out panel for editing a crew member */}
+      <Sheet open={detailOpen && !!selected} onOpenChange={setDetailOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#2E5A1A] to-[#8DC63F] flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold">{selected?.name?.charAt(0)}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-slate-900 text-lg">{selected.name}</h3>
-                <p className="text-sm text-slate-400 truncate">{selected.email}</p>
+                <p className="font-bold text-slate-900 text-lg truncate">{selected?.name}</p>
+                <p className="text-sm text-slate-400 truncate">{selected?.email}</p>
               </div>
-              <div className="flex items-center gap-2">
-                {selectedUser ? (
-                  <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200">
-                    <CheckCircle2 className="w-3 h-3" /> Active
-                  </span>
-                ) : selected.invite_sent ? (
-                  <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-medium border border-blue-200">
-                    <Mail className="w-3 h-3" /> Awaiting
-                  </span>
-                ) : (
-                  <button onClick={() => handleInvite(selected)} disabled={inviteLoading === selected.id} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-medium border border-amber-200 hover:bg-amber-100 transition disabled:opacity-50">
-                    <UserPlus className="w-3 h-3" /> {inviteLoading === selected.id ? 'Sending…' : 'Send invite'}
-                  </button>
-                )}
-              </div>
-            </div>
+              {selectedUser ? (
+                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium border border-emerald-200 flex-shrink-0">
+                  <CheckCircle2 className="w-3 h-3" /> Active
+                </span>
+              ) : selected?.invite_sent ? (
+                <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-medium border border-blue-200 flex-shrink-0">
+                  <Mail className="w-3 h-3" /> Awaiting
+                </span>
+              ) : (
+                <button onClick={() => handleInvite(selected)} disabled={inviteLoading === selected?.id} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 font-medium border border-amber-200 hover:bg-amber-100 transition disabled:opacity-50 flex-shrink-0">
+                  <UserPlus className="w-3 h-3" /> {inviteLoading === selected?.id ? 'Sending…' : 'Send invite'}
+                </button>
+              )}
+            </SheetTitle>
+          </SheetHeader>
 
-            {/* Tabs */}
-            <div className="flex gap-1 px-5 border-b border-slate-100 overflow-x-auto">
-              {TABS.map(t => {
-                const Icon = t.icon;
-                const active = tab === t.id;
-                return (
-                  <button key={t.id} onClick={() => setTab(t.id)} className={`inline-flex items-center gap-1.5 px-3 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap ${active ? 'border-[#2E5A1A] text-[#2E5A1A]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
-                    <Icon className="w-4 h-4" /> {t.label}
-                    {t.id === 'compliance' && selectedCompliance.length > 0 && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 rounded-full">{selectedCompliance.length}</span>}
-                    {t.id === 'training' && selectedTraining.length > 0 && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 rounded-full">{selectedTraining.length}</span>}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Tab content */}
-            <div className="p-5 max-h-[calc(100vh-340px)] overflow-y-auto">
-              {tab === 'profile' && (
-                <ProfileTab staff={selected} user={selectedUser} teams={teams} permissionGroups={permissionGroups} vehicles={vehicles} staffList={staff} workerTypeOptions={workerTypeOptions}
-                  onInvite={() => handleInvite(selected)} inviteLoading={inviteLoading === selected.id}
-                  onResetPassword={() => handlePasswordReset(selected)} resetLoading={resetLoading === selected.id}
-                  onDelete={() => handleDelete(selected)} />
-              )}
-              {tab === 'compliance' && (
-                <div>
-                  <ComplianceSummary items={selectedCompliance} />
-                  <StaffComplianceEditor staffId={selected.id} staffName={selected.name} />
-                </div>
-              )}
-              {tab === 'training' && (
-                <TrainingTab bookings={selectedTraining} courses={courses} staffId={selected.id} staffName={selected.name} />
-              )}
-              {tab === 'schedule' && (
-                <ScheduleTab assignments={selectedAssignments} jobs={jobs} staffId={selected.id} />
-              )}
-              {tab === 'bookings' && (
-                <HotelBookingsManager staffId={selected.id} staffName={selected.name} />
-              )}
-            </div>
+          {/* Tabs */}
+          <div className="flex gap-1 border-b border-slate-100 overflow-x-auto">
+            {TABS.map(t => {
+              const Icon = t.icon;
+              const active = tab === t.id;
+              return (
+                <button key={t.id} onClick={() => setTab(t.id)} className={`inline-flex items-center gap-1.5 px-3 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap ${active ? 'border-[#2E5A1A] text-[#2E5A1A]' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
+                  <Icon className="w-4 h-4" /> {t.label}
+                  {t.id === 'compliance' && selectedCompliance.length > 0 && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 rounded-full">{selectedCompliance.length}</span>}
+                  {t.id === 'training' && selectedTraining.length > 0 && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 rounded-full">{selectedTraining.length}</span>}
+                </button>
+              );
+            })}
           </div>
-        )}
-      </div>
+
+          {/* Tab content */}
+          <div className="py-4">
+            {tab === 'profile' && selected && (
+              <ProfileTab staff={selected} user={selectedUser} teams={teams} permissionGroups={permissionGroups} vehicles={vehicles} staffList={staff} workerTypeOptions={workerTypeOptions}
+                onInvite={() => handleInvite(selected)} inviteLoading={inviteLoading === selected.id}
+                onResetPassword={() => handlePasswordReset(selected)} resetLoading={resetLoading === selected.id}
+                onDelete={() => handleDelete(selected)} />
+            )}
+            {tab === 'compliance' && selected && (
+              <div>
+                <ComplianceSummary items={selectedCompliance} />
+                <StaffComplianceEditor staffId={selected.id} staffName={selected.name} />
+              </div>
+            )}
+            {tab === 'training' && selected && (
+              <TrainingTab bookings={selectedTraining} courses={courses} staffId={selected.id} staffName={selected.name} />
+            )}
+            {tab === 'schedule' && selected && (
+              <ScheduleTab assignments={selectedAssignments} jobs={jobs} staffId={selected.id} />
+            )}
+            {tab === 'bookings' && selected && (
+              <HotelBookingsManager staffId={selected.id} staffName={selected.name} />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Add modal */}
       {showAdd && (
