@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   Route, Loader2, Calendar, Clock, Gauge, MapPin, ChevronDown, ChevronRight,
-  Navigation, Zap, TrendingDown, RefreshCw, AlertCircle,
+  Navigation, Zap, TrendingDown, RefreshCw, AlertCircle, ExternalLink,
 } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup } from 'react-leaflet';
+import { batchReverseGeocodeStructured, buildLabelFromParts } from '@/utils/reverseGeocode';
 
 function formatDuration(mins) {
   if (!mins) return '0m';
@@ -50,6 +51,7 @@ function TripRouteMiniMap({ breadcrumbs, start, end }) {
 export default function GeotabTripHistory({ vehicle }) {
   const [expanded, setExpanded] = useState(null);
   const [days, setDays] = useState(7);
+  const [geocodedTrips, setGeocodedTrips] = useState({});
 
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['geotab-trip-history', vehicle?.id, days],
@@ -66,6 +68,39 @@ export default function GeotabTripHistory({ vehicle }) {
     enabled: !!vehicle?.id && !!vehicle?.geotab_device_id,
   });
 
+  const trips = data?.trips || [];
+  const totalDistance = data?.total_distance_km || 0;
+  const totalDuration = trips.reduce((sum, t) => sum + (t.duration_minutes || 0), 0);
+  const breadcrumbs = data?.breadcrumbs || [];
+
+  // Frontend geocoding — resolves raw coordinates to street + postcode addresses.
+  // Must be before any early return to satisfy the rules of hooks.
+  useEffect(() => {
+    if (trips.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const coords = [];
+      for (const t of trips) {
+        if (t.start_lat != null) coords.push({ lat: t.start_lat, lng: t.start_lng });
+        if (t.end_lat != null) coords.push({ lat: t.end_lat, lng: t.end_lng });
+      }
+      if (coords.length === 0) return;
+      const labels = await batchReverseGeocodeStructured(coords);
+      if (cancelled) return;
+      const updated = {};
+      for (const t of trips) {
+        const sKey = t.start_lat != null ? `${Number(t.start_lat).toFixed(4)},${Number(t.start_lng).toFixed(4)}` : null;
+        const eKey = t.end_lat != null ? `${Number(t.end_lat).toFixed(4)},${Number(t.end_lng).toFixed(4)}` : null;
+        updated[t.trip_id] = {
+          start_location: sKey && labels[sKey] ? (buildLabelFromParts(labels[sKey]) || 'Unknown') : 'Unknown',
+          end_location: eKey && labels[eKey] ? (buildLabelFromParts(labels[eKey]) || 'Unknown') : 'Unknown',
+        };
+      }
+      if (!cancelled) setGeocodedTrips(updated);
+    })();
+    return () => { cancelled = true; };
+  }, [trips]);
+
   if (!vehicle?.geotab_device_id) {
     return (
       <div className="text-center py-4 bg-slate-50 rounded-xl">
@@ -74,11 +109,6 @@ export default function GeotabTripHistory({ vehicle }) {
       </div>
     );
   }
-
-  const trips = data?.trips || [];
-  const totalDistance = data?.total_distance_km || 0;
-  const totalDuration = trips.reduce((sum, t) => sum + (t.duration_minutes || 0), 0);
-  const breadcrumbs = data?.breadcrumbs || [];
 
   return (
     <div className="space-y-3">
@@ -141,6 +171,9 @@ export default function GeotabTripHistory({ vehicle }) {
           <div className="space-y-1.5 max-h-80 overflow-y-auto">
             {trips.map((trip, i) => {
               const isExpanded = expanded === i;
+              const geo = geocodedTrips[trip.trip_id];
+              const startLoc = geo?.start_location || 'Resolving...';
+              const endLoc = geo?.end_location || 'Resolving...';
               const tripBreadcrumbs = isExpanded ? (() => {
                 const start = new Date(trip.start_time).getTime();
                 const end = new Date(trip.end_time).getTime();
@@ -165,6 +198,12 @@ export default function GeotabTripHistory({ vehicle }) {
                           {new Date(trip.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500">
+                        <MapPin className="w-2.5 h-2.5 text-emerald-500 flex-shrink-0" />
+                        <span className="truncate">{startLoc}</span>
+                        <Navigation className="w-2.5 h-2.5 text-slate-300 flex-shrink-0" />
+                        <span className="truncate">{endLoc}</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-3 text-[11px] flex-shrink-0">
                       <span className="flex items-center gap-0.5 text-emerald-600 font-semibold"><TrendingDown className="w-3 h-3" />{kmToMi(trip.distance_km).toFixed(1)}mi</span>
@@ -186,9 +225,27 @@ export default function GeotabTripHistory({ vehicle }) {
                         )}
                       </div>
                       <TripRouteMiniMap breadcrumbs={tripBreadcrumbs} start={trip} end={trip} />
-                      <div className="flex items-center gap-3 text-[10px] text-slate-400">
-                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-emerald-500" /> Start: {trip.start_lat?.toFixed(4)}, {trip.start_lng?.toFixed(4)}</span>
-                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-rose-500" /> End: {trip.end_lat?.toFixed(4)}, {trip.end_lng?.toFixed(4)}</span>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <MapPin className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                          <span className="text-slate-700 font-medium truncate flex-1">From: {startLoc}</span>
+                          {trip.start_lat != null && (
+                            <a href={`https://www.google.com/maps?q=${trip.start_lat},${trip.start_lng}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                              className="text-blue-500 hover:text-blue-700 flex-shrink-0">
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <MapPin className="w-3 h-3 text-rose-500 flex-shrink-0" />
+                          <span className="text-slate-700 font-medium truncate flex-1">To: {endLoc}</span>
+                          {trip.end_lat != null && (
+                            <a href={`https://www.google.com/maps?q=${trip.end_lat},${trip.end_lng}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                              className="text-blue-500 hover:text-blue-700 flex-shrink-0">
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}

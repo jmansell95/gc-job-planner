@@ -1,12 +1,35 @@
 import jsPDF from 'jspdf';
+import { batchReverseGeocodeStructured, buildLabelFromParts } from '@/utils/reverseGeocode';
 
 /**
  * Generate a PDF trip history & mileage report for a single vehicle.
+ * Geocodes all trip start/end coordinates to proper street + postcode addresses
+ * before rendering, so the report shows real locations instead of "Unknown".
  * @param {Object} vehicle - Vehicle entity
  * @param {Object} tripData - Result from getVehicleLocationHistory (geotab_history mode)
  * @param {Array} maintenanceBookings - VehicleMaintenanceBooking records for this vehicle
  */
-export function generateVehicleReport(vehicle, tripData, maintenanceBookings = []) {
+export async function generateVehicleReport(vehicle, tripData, maintenanceBookings = []) {
+  // Geocode all trip coordinates to street + postcode addresses.
+  // The backend returns "Unknown location" for all trips — geocoding happens
+  // client-side via BigDataCloud (reliable in browser, unreliable in edge runtime).
+  const trips = tripData?.trips || [];
+  if (trips.length > 0) {
+    const coords = [];
+    for (const t of trips) {
+      if (t.start_lat != null) coords.push({ lat: t.start_lat, lng: t.start_lng });
+      if (t.end_lat != null) coords.push({ lat: t.end_lat, lng: t.end_lng });
+    }
+    if (coords.length > 0) {
+      const labels = await batchReverseGeocodeStructured(coords);
+      for (const t of trips) {
+        const sKey = t.start_lat != null ? `${Number(t.start_lat).toFixed(4)},${Number(t.start_lng).toFixed(4)}` : null;
+        const eKey = t.end_lat != null ? `${Number(t.end_lat).toFixed(4)},${Number(t.end_lng).toFixed(4)}` : null;
+        if (sKey && labels[sKey]) t.start_location = buildLabelFromParts(labels[sKey]) || t.start_location;
+        if (eKey && labels[eKey]) t.end_location = buildLabelFromParts(labels[eKey]) || t.end_location;
+      }
+    }
+  }
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageW = 210;
   const pageH = 297;
@@ -94,20 +117,24 @@ export function generateVehicleReport(vehicle, tripData, maintenanceBookings = [
     doc.text(`Total Drive Time: ${Math.floor(totalDuration / 60)}h ${totalDuration % 60}m`, margin, y); y += 5;
     doc.text(`Total Idle Time: ${Math.floor(totalIdle / 60)}h ${totalIdle % 60}m`, margin, y); y += 8;
 
-    // Trip table header
+    // Trip table header — redesigned to show both Start AND End locations
+    // Column layout (mm from left margin):
+    //   Date(2)  Start(20)  End(36)  Dist(52)  Dur(68)  Max(84)
+    //   Start Location(98)  End Location(140)
     const tableY = y;
     doc.setFillColor(248, 250, 252);
     doc.rect(margin, tableY, contentW, 8, 'F');
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(51, 65, 85);
     doc.text('Date', margin + 2, tableY + 5.5);
-    doc.text('Start', margin + 30, tableY + 5.5);
-    doc.text('End', margin + 65, tableY + 5.5);
-    doc.text('Dist (mi)', margin + 95, tableY + 5.5);
-    doc.text('Duration', margin + 120, tableY + 5.5);
-    doc.text('Max mph', margin + 150, tableY + 5.5);
-    doc.text('Start Location', margin + 170, tableY + 5.5);
+    doc.text('Start', margin + 20, tableY + 5.5);
+    doc.text('End', margin + 36, tableY + 5.5);
+    doc.text('Dist', margin + 52, tableY + 5.5);
+    doc.text('Dur', margin + 66, tableY + 5.5);
+    doc.text('Max', margin + 80, tableY + 5.5);
+    doc.text('From (Street, Postcode)', margin + 92, tableY + 5.5);
+    doc.text('To (Street, Postcode)', margin + 138, tableY + 5.5);
     y = tableY + 8;
 
     // Trip rows
@@ -124,14 +151,18 @@ export function generateVehicleReport(vehicle, tripData, maintenanceBookings = [
       const distMi = ((trip.distance_km || 0) * 0.621371).toFixed(1);
       const dur = trip.duration_minutes >= 60 ? `${Math.floor(trip.duration_minutes / 60)}h ${trip.duration_minutes % 60}m` : `${trip.duration_minutes}m`;
       const maxMph = Math.round((trip.max_speed_kph || 0) * 0.621371);
-      const loc = (trip.start_location || '—').slice(0, 25);
+      // Truncate street+postcode to fit the column width (~44mm at 7.5pt)
+      const fromLoc = (trip.start_location || '—').slice(0, 42);
+      const toLoc = (trip.end_location || '—').slice(0, 42);
+      doc.setFontSize(7.5);
       doc.text(date, margin + 2, y + 5);
-      doc.text(start, margin + 30, y + 5);
-      doc.text(end, margin + 65, y + 5);
-      doc.text(distMi, margin + 95, y + 5);
-      doc.text(dur, margin + 120, y + 5);
-      doc.text(String(maxMph), margin + 150, y + 5);
-      doc.text(loc, margin + 170, y + 5);
+      doc.text(start, margin + 20, y + 5);
+      doc.text(end, margin + 36, y + 5);
+      doc.text(distMi + 'mi', margin + 52, y + 5);
+      doc.text(dur, margin + 66, y + 5);
+      doc.text(String(maxMph), margin + 80, y + 5);
+      doc.text(fromLoc, margin + 92, y + 5);
+      doc.text(toLoc, margin + 138, y + 5);
       y += 6;
       doc.setDrawColor(241, 245, 249);
       doc.line(margin, y, pageW - margin, y);

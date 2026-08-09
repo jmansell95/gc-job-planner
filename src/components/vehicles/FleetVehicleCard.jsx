@@ -121,9 +121,9 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
         base44.entities.VehicleMaintenanceBooking.filter({ vehicle_id: vehicle.id }, '-booking_date', 50),
       ]);
       const tripData = tripRes?.data || tripRes || {};
-      generateVehicleReport(vehicle, tripData, bookingRes || []);
+      await generateVehicleReport(vehicle, tripData, bookingRes || []);
     } catch (_) {
-      generateVehicleReport(vehicle, { trips: [] }, []);
+      await generateVehicleReport(vehicle, { trips: [] }, []);
     }
     setReportLoading(false);
   };
