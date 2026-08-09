@@ -38,27 +38,26 @@ export default function ScheduleSplash({ assignments, jobs, vehicles, clients, t
   return (
     <div className="fixed inset-0 z-50 bg-slate-50 overflow-y-auto">
       {/* Header */}
-      <div className="hero-gradient relative overflow-hidden">
-        <div className="absolute -top-12 -right-8 w-40 h-40 rounded-full bg-[#8DC63F]/10 blur-2xl pointer-events-none" />
+      <div className="bg-white border-b border-slate-200 shadow-sm relative overflow-hidden">
         <div className="relative max-w-2xl mx-auto px-4 md:px-6 py-6 md:py-8">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-sm">
               <Calendar className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Your Schedule</h1>
-              <p className="text-emerald-100 text-sm mt-0.5">
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Your Schedule</h1>
+              <p className="text-slate-500 text-sm mt-0.5">
                 {format(weekStartDate, 'dd MMM')} – {format(weekEndDate, 'dd MMM yyyy')}
               </p>
             </div>
           </div>
-          <p className="text-emerald-100/90 text-sm">
+          <p className="text-slate-600 text-sm">
             {reviewMode
               ? `Hi ${staff.name.split(' ')[0]}, here's a reminder of your assignments for this week.`
               : `Hi ${staff.name.split(' ')[0]}, please review your assignments for this week before starting.`}
           </p>
           {reviewMode && (
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition">
+            <button onClick={onClose} className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition">
               <X className="w-5 h-5" />
             </button>
           )}

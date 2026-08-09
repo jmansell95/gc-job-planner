@@ -28,22 +28,18 @@ export default function StaffHeader({ staff, onShowSchedule }) {
   const firstName = staff?.name?.split(' ')[0] || 'Team';
 
   return (
-    <div className="hero-vibrant relative overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      {/* Decorative leaf accent */}
-      <div className="absolute -top-12 -right-8 w-40 h-40 rounded-full bg-[#8DC63F]/10 blur-2xl pointer-events-none" />
-      <div className="absolute -bottom-16 -left-10 w-32 h-32 rounded-full bg-[#8DC63F]/8 blur-2xl pointer-events-none" />
-
-      <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-3.5 md:py-4">
+    <div className="bg-white border-b border-slate-200 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-3.5 md:py-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <Logo height={40} className="flex-shrink-0" />
             <div className="min-w-0">
-              <p className="text-white font-bold text-sm leading-tight truncate">
+              <p className="text-slate-900 font-bold text-sm leading-tight truncate">
                 {greeting}, {firstName}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <p className="text-white/60 text-xs">{format(new Date(), 'EEE dd MMM · HH:mm')}</p>
-                <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isOnline ? 'bg-emerald-400/20 text-emerald-100' : 'bg-amber-400/20 text-amber-100'}`}>
+                <p className="text-slate-500 text-xs">{format(new Date(), 'EEE dd MMM · HH:mm')}</p>
+                <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                   {isOnline ? <Wifi className="w-2.5 h-2.5" /> : <WifiOff className="w-2.5 h-2.5" />}
                   {isOnline ? 'Live' : 'Offline'}
                 </span>
@@ -52,11 +48,11 @@ export default function StaffHeader({ staff, onShowSchedule }) {
           </div>
           <div className="flex items-center gap-1.5">
             <button onClick={() => setShowNumbers(true)} type="button" aria-label="Useful Numbers"
-              className="w-11 h-11 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white flex items-center justify-center active:scale-95 transition touch-manipulation">
+              className="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center active:scale-95 transition touch-manipulation">
               <Phone className="w-5 h-5" />
             </button>
             <button onClick={() => base44.auth.logout('/login')} type="button" aria-label="Logout"
-              className="w-11 h-11 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/20 text-white flex items-center justify-center active:scale-95 transition touch-manipulation">
+              className="w-11 h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center active:scale-95 transition touch-manipulation">
               <LogOut className="w-5 h-5" />
             </button>
           </div>

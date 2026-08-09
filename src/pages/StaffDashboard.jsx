@@ -431,7 +431,7 @@ export default function StaffDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen page-bg-vibrant">
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
         <div className="w-12 h-12 border-4 border-slate-200 border-t-[#2E5A1A] rounded-full animate-spin"></div>
       </div>
     );
@@ -543,7 +543,7 @@ export default function StaffDashboard() {
     };
 
   return (
-    <div className="page-bg-vibrant min-h-screen pb-20">
+    <div className="bg-slate-50 min-h-screen pb-20">
       <StaffHeader staff={staff} onShowSchedule={() => setShowScheduleSummary(true)} />
       <div className="max-w-6xl mx-auto px-4 md:px-6">
         <Breadcrumbs />

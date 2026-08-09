@@ -19,6 +19,7 @@ import { getCurrentTimeStr, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { computeRotaWarnings } from '@/utils/rotaWarnings';
 import RotaWarningsPanel from '@/components/RotaWarningsPanel';
+import StatCard from '@/components/dashboard/StatCard';
 
 const jobTypeColors = {
   drilling: { bg: 'bg-amber-50', border: 'border-amber-400', text: 'text-amber-800', dot: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700' },
@@ -440,29 +441,30 @@ export default function WeeklyRotaBuilder() {
   return (
     <div>
       {/* Compact action header */}
-      <div className="hero-gradient relative overflow-hidden rounded-2xl mb-4">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm mb-4 overflow-hidden">
         <div className="relative px-4 md:px-5 py-3.5 md:py-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#2E5A1A] to-[#8DC63F]" />
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pl-2">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0 shadow-sm">
                 <Calendar className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg md:text-xl font-bold text-white tracking-tight leading-tight">Rota Builder</h1>
-                <p className="text-emerald-100 text-[11px] md:text-xs">Drag to move · click a cell to add</p>
+                <h1 className="text-lg md:text-xl font-bold text-slate-900 tracking-tight leading-tight">Rota Builder</h1>
+                <p className="text-slate-500 text-[11px] md:text-xs">Drag to move · click a cell to add</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
               <button onClick={handleSmartFill} disabled={smartFillLoading}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium disabled:opacity-50 backdrop-blur-sm">
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition text-sm font-medium disabled:opacity-50">
                 <Copy className="w-4 h-4" /> <span className="hidden sm:inline">{smartFillLoading ? '...' : 'Copy Last Week'}</span>
               </button>
               <button onClick={() => setModal({ isOpen: true, assignment: null, defaultStaffId: '', defaultDate: '' })}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white text-emerald-800 rounded-lg hover:bg-emerald-50 transition text-sm font-semibold shadow-sm">
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#2E5A1A] text-white rounded-lg hover:bg-[#1c4a12] transition text-sm font-semibold shadow-sm">
                 <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Shift</span>
               </button>
               <button onClick={handleSaveDraft} disabled={savingDraft}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white/15 ring-1 ring-white/25 text-white rounded-lg hover:bg-white/25 transition text-sm font-medium disabled:opacity-50 backdrop-blur-sm">
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition text-sm font-medium disabled:opacity-50">
                 {savingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} <span className="hidden sm:inline">Draft</span>
               </button>
               <button onClick={() => handleSubmitWeek()} disabled={publishing}
@@ -499,31 +501,17 @@ export default function WeeklyRotaBuilder() {
             className="text-xs px-2 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 text-slate-600 w-full sm:w-auto" />
         </div>
         <div className="flex gap-3 flex-wrap">
-          <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
-            <span className="w-7 h-7 rounded-lg stat-gradient-emerald flex items-center justify-center"><Calendar className="w-4 h-4 text-white" /></span>
-            <span className="text-sm font-bold text-slate-900">{totalAssignments}</span>
-            <span className="text-xs text-slate-500">shifts</span>
-          </div>
-          <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
-            <span className="w-7 h-7 rounded-lg stat-gradient-blue flex items-center justify-center"><Users className="w-4 h-4 text-white" /></span>
-            <span className="text-sm font-bold text-slate-900">{staffWorking}</span>
-            <span className="text-xs text-slate-500">crew working</span>
-          </div>
-          <div className="bg-white rounded-lg border border-slate-200 px-4 py-2.5 flex items-center gap-2.5 shadow-sm">
-            <span className="w-7 h-7 rounded-lg stat-gradient-amber flex items-center justify-center"><Briefcase className="w-4 h-4 text-white" /></span>
-            <span className="text-sm font-bold text-slate-900">{jobsActive}</span>
-            <span className="text-xs text-slate-500">active jobs</span>
-          </div>
+          <StatCard icon={Calendar} value={totalAssignments} label="Shifts" gradient="stat-gradient-emerald" />
+          <StatCard icon={Users} value={staffWorking} label="Crew Working" gradient="stat-gradient-blue" />
+          <StatCard icon={Briefcase} value={jobsActive} label="Active Jobs" gradient="stat-gradient-amber" />
           {weekRecord && (
-            <div className={`bg-white rounded-lg border px-4 py-2.5 flex items-center gap-2.5 shadow-sm ${isPublished ? 'border-emerald-300' : 'border-amber-300'}`}>
-              <span className={`w-7 h-7 rounded-lg flex items-center justify-center ${isPublished ? 'stat-gradient-emerald' : 'bg-amber-100'}`}>
-                {isPublished ? <CheckCircle2 className="w-4 h-4 text-white" /> : <Clock className="w-4 h-4 text-amber-600" />}
-              </span>
-              <div>
-                <p className={`text-sm font-bold leading-tight ${isPublished ? 'text-emerald-700' : 'text-amber-700'}`}>{isPublished ? 'Published' : 'Draft'}</p>
-                <p className="text-xs text-slate-500 leading-tight">{isPublished ? (weekRecord.published_at ? format(new Date(weekRecord.published_at), 'dd MMM, HH:mm') : 'Sent') : 'In progress'}</p>
-              </div>
-            </div>
+            <StatCard
+              icon={isPublished ? CheckCircle2 : Clock}
+              value={isPublished ? 'Published' : 'Draft'}
+              sub={isPublished ? (weekRecord.published_at ? format(new Date(weekRecord.published_at), 'dd MMM, HH:mm') : 'Sent') : 'In progress'}
+              label="Status"
+              gradient={isPublished ? 'stat-gradient-emerald' : 'stat-gradient-amber'}
+            />
           )}
         </div>
       </div>
