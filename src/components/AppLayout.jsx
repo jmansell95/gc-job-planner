@@ -51,7 +51,7 @@ export default function AppLayout() {
         className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] lg:pt-0"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
-        <div className="px-4 pb-20 lg:pb-6 md:px-6 md:pb-6 lg:pt-6 w-full">
+        <div className="px-4 pb-24 md:px-6 lg:pb-6 lg:pt-6 w-full">
           <Breadcrumbs />
           <Outlet />
         </div>
