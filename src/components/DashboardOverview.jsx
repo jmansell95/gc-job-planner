@@ -30,6 +30,7 @@ import StaffUtilizationWidget from '@/components/dashboard/StaffUtilizationWidge
 import FinancialReconciliationWidget from '@/components/dashboard/FinancialReconciliationWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
+import QuickActionBar from '@/components/dashboard/QuickActionBar';
 import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
 import SiteSnapshotGrid from '@/components/dashboard/SiteSnapshotGrid';
 import JobQuickDrawer from '@/components/dashboard/JobQuickDrawer';
@@ -186,6 +187,18 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
           </div>
         </div>
       </motion.div>
+
+      {/* Quick Action Bar — one-click shortcuts for power users */}
+      {isAllJobs && (
+        <QuickActionBar onAction={(action) => {
+          if (action === 'new-job') onNavigate?.('jobs');
+          else if (action === 'add-staff') onNavigate?.('staff');
+          else if (action === 'raise-invoice') onNavigate?.('billing');
+          else if (action === 'log-incident') onNavigate?.('compliance');
+          else if (action === 'new-delivery') onNavigate?.('logistics');
+          else if (action === 'add-asset') onNavigate?.('assets');
+        }} />
+      )}
 
       {/* State Monitor Bar — live operational pulse */}
       {isAllJobs && (

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug,
-  Plus, Search, Boxes, ScanLine, X, TrendingUp, RefreshCw, Lock,
+  Plus, Search, Boxes, ScanLine, X, TrendingUp, TrendingDown, RefreshCw, Lock,
   CheckSquare, Upload, Database, MapPin, QrCode, Trash2, CircleDot,
 } from 'lucide-react';
 import Vehicles from '@/pages/Vehicles';
@@ -21,6 +21,8 @@ import FleetComplianceDonut from '@/components/righub/FleetComplianceDonut';
 import FleetSyncPanel from '@/components/righub/FleetSyncPanel';
 import DrillingEfficiencyPanel from '@/components/righub/DrillingEfficiencyPanel';
 import FleetUtilizationHeatmap from '@/components/righub/FleetUtilizationHeatmap';
+import AssetUtilizationTrends from '@/components/assethub/AssetUtilizationTrends';
+import DepreciationSchedule from '@/components/assethub/DepreciationSchedule';
 import BulkAssetUpload from '@/components/righub/BulkAssetUpload';
 import SmartCertImport from '@/components/righub/SmartCertImport';
 import BulkQRPrinter from '@/components/assetcommand/BulkQRPrinter';
@@ -108,6 +110,8 @@ export default function AssetHub() {
     { id: 'certificates', label: 'Certificates', icon: Lock },
     { id: 'deployments', label: 'Deployments', icon: MapPin },
     { id: 'efficiency', label: 'Efficiency', icon: TrendingUp },
+    { id: 'utilization', label: 'Utilization', icon: TrendingUp },
+    { id: 'depreciation', label: 'Depreciation', icon: TrendingDown },
     { id: 'scrap', label: 'Scrap Pile', icon: Trash2 },
   ];
 
@@ -243,6 +247,10 @@ export default function AssetHub() {
             <ErrorBoundary><AssetDeploymentsPanel assets={assets} /></ErrorBoundary>
           ) : view === 'efficiency' ? (
             <ErrorBoundary><div className="space-y-4"><FleetUtilizationHeatmap assets={assets} /><DrillingEfficiencyPanel assets={assets} /></div></ErrorBoundary>
+          ) : view === 'utilization' ? (
+            <ErrorBoundary><AssetUtilizationTrends /></ErrorBoundary>
+          ) : view === 'depreciation' ? (
+            <ErrorBoundary><DepreciationSchedule /></ErrorBoundary>
           ) : view === 'recert' ? (
             <ErrorBoundary><RecertPipeline assets={assets} onRecert={(a) => setRecertAsset(a)} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} /></ErrorBoundary>
           ) : view === 'certificates' ? (

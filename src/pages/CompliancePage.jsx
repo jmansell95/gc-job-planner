@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, ShieldAlert, AlertTriangle, BarChart3, HardHat, ClipboardCheck, FlaskConical } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, AlertTriangle, BarChart3, HardHat, ClipboardCheck, FlaskConical, CalendarDays } from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
 import IncidentReporter from '@/components/safety/IncidentReporter';
 import RIDDORStatsPanel from '@/components/safety/RIDDORStatsPanel';
 import ToolboxTalkManager from '@/components/safety/ToolboxTalkManager';
+import ComplianceCalendar from '@/components/compliance/ComplianceCalendar';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
 
@@ -16,6 +17,7 @@ export default function CompliancePage() {
 
   const topTabs = [
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck },
+    { id: 'calendar', label: 'Calendar', icon: CalendarDays },
     { id: 'safety', label: 'Safety', icon: ShieldAlert },
     { id: 'audit-trail', label: 'Audit Trail', icon: ClipboardCheck },
     { id: 'log-qc', label: 'Log QC', icon: FlaskConical },
@@ -39,6 +41,10 @@ export default function CompliancePage() {
 
       {tab === 'compliance' && (
         <SettingsPage initialTab="compliance" standalone />
+      )}
+
+      {tab === 'calendar' && (
+        <ComplianceCalendar />
       )}
 
       {tab === 'audit-trail' && (

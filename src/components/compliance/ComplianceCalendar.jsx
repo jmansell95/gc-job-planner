@@ -1,0 +1,221 @@
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { ChevronLeft, ChevronRight, ShieldCheck, Wrench, Users, Truck } from 'lucide-react';
+import { Skeleton } from '@/components/StateViews';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, startOfWeek, endOfWeek, isToday } from 'date-fns';
+
+const CATEGORY_STYLES = {
+  staff: { color: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-700', icon: Users, label: 'Staff' },
+  vehicle: { color: 'bg-teal-500', light: 'bg-teal-50', text: 'text-teal-700', icon: Truck, label: 'Vehicle' },
+  equipment: { color: 'bg-amber-500', light: 'bg-amber-50', text: 'text-amber-700', icon: Wrench, label: 'Equipment' },
+  company: { color: 'bg-violet-500', light: 'bg-violet-50', text: 'text-violet-700', icon: ShieldCheck, label: 'Company' },
+};
+
+/**
+ * Month-grid calendar showing every compliance expiry (staff certs, vehicle
+ * MOT/tax/insurance, equipment LOLER/PUWER/PAT, company insurance) as
+ * color-coded events. Navigate months, click a day to see all expiries.
+ */
+export default function ComplianceCalendar() {
+  const [month, setMonth] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  const { data: staff = [], isLoading: sl } = useQuery({
+    queryKey: ['staff-compliance-cal'],
+    queryFn: () => base44.entities.Staff.filter({ is_active: true }, 'name', 500),
+  });
+
+  const { data: assets = [], isLoading: al } = useQuery({
+    queryKey: ['assets-compliance-cal'],
+    queryFn: () => base44.entities.SiteAsset.filter({ is_active: true }, 'name', 500),
+  });
+
+  const { data: vehicles = [], isLoading: vl } = useQuery({
+    queryKey: ['vehicles-compliance-cal'],
+    queryFn: () => base44.entities.Vehicle.filter({ is_active: true }, 'name', 500),
+  });
+
+  const isLoading = sl || al || vl;
+
+  // Collect all expiries in the current month view range
+  const expiries = useMemo(() => {
+    const items = [];
+    const monthStart = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
+    const monthEnd = endOfWeek(endOfMonth(month), { weekStartsOn: 1 });
+
+    // Staff compliance items
+    staff.forEach(s => {
+      (s.compliance_items || []).forEach(c => {
+        if (!c.expiry_date) return;
+        const d = new Date(c.expiry_date);
+        if (d >= monthStart && d <= monthEnd) {
+          items.push({ date: d, category: 'staff', title: `${s.name}: ${c.type || c.name || 'Cert'}`, detail: s.name });
+        }
+      });
+    });
+
+    // Assets
+    assets.forEach(a => {
+      if (a.compliance_expiry_date) {
+        const d = new Date(a.compliance_expiry_date);
+        if (d >= monthStart && d <= monthEnd) {
+          items.push({ date: d, category: 'equipment', title: `${a.name}: LOLER/PUWER/PAT`, detail: a.name });
+        }
+      }
+      if (a.next_service_date) {
+        const d = new Date(a.next_service_date);
+        if (d >= monthStart && d <= monthEnd) {
+          items.push({ date: d, category: 'equipment', title: `${a.name}: Service Due`, detail: a.name });
+        }
+      }
+    });
+
+    // Vehicles
+    vehicles.forEach(v => {
+      ['mot_expiry', 'tax_expiry', 'insurance_expiry'].forEach(field => {
+        if (v[field]) {
+          const d = new Date(v[field]);
+          if (d >= monthStart && d <= monthEnd) {
+            const label = field.replace('_expiry', '').toUpperCase();
+            items.push({ date: d, category: 'vehicle', title: `${v.name || v.registration}: ${label}`, detail: v.name || v.registration });
+          }
+        }
+      });
+    });
+
+    return items;
+  }, [staff, assets, vehicles, month]);
+
+  const days = useMemo(() => {
+    return eachDayOfInterval({
+      start: startOfWeek(startOfMonth(month), { weekStartsOn: 1 }),
+      end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }),
+    });
+  }, [month]);
+
+  const expiriesByDay = useMemo(() => {
+    const m = {};
+    expiries.forEach(e => {
+      const key = format(e.date, 'yyyy-MM-dd');
+      if (!m[key]) m[key] = [];
+      m[key].push(e);
+    });
+    return m;
+  }, [expiries]);
+
+  if (isLoading) return <Skeleton className="h-96 rounded-xl" />;
+
+  const selectedDayExpiries = selectedDay ? (expiriesByDay[format(selectedDay, 'yyyy-MM-dd')] || []) : [];
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center">
+            <ShieldCheck className="w-4.5 h-4.5 text-rose-600" />
+          </div>
+          <h3 className="text-sm font-bold text-slate-900">Compliance Calendar</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setMonth(addMonths(month, -1))} className="p-1.5 rounded-lg hover:bg-slate-100 transition">
+            <ChevronLeft className="w-4 h-4 text-slate-500" />
+          </button>
+          <span className="text-sm font-semibold text-slate-700 min-w-[120px] text-center">{format(month, 'MMMM yyyy')}</span>
+          <button onClick={() => setMonth(addMonths(month, 1))} className="p-1.5 rounded-lg hover:bg-slate-100 transition">
+            <ChevronRight className="w-4 h-4 text-slate-500" />
+          </button>
+          <button onClick={() => { setMonth(new Date()); setSelectedDay(new Date()); }} className="ml-1 px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
+            Today
+          </button>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="px-5 py-2 border-b border-slate-50 flex items-center gap-3 flex-wrap">
+        {Object.entries(CATEGORY_STYLES).map(([key, s]) => {
+          const Icon = s.icon;
+          return (
+            <span key={key} className="inline-flex items-center gap-1 text-[11px] text-slate-500">
+              <span className={`w-2 h-2 rounded-full ${s.color}`} />
+              {s.label}
+            </span>
+          );
+        })}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="p-3">
+        <div className="grid grid-cols-7 gap-1 mb-1">
+          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+            <div key={d} className="text-center text-[10px] font-semibold text-slate-400 py-1">{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {days.map(day => {
+            const dayKey = format(day, 'yyyy-MM-dd');
+            const dayExpiries = expiriesByDay[dayKey] || [];
+            const inMonth = isSameMonth(day, month);
+            const isSel = selectedDay && isSameDay(day, selectedDay);
+            const today = isToday(day);
+
+            return (
+              <button
+                key={dayKey}
+                onClick={() => setSelectedDay(day)}
+                className={`min-h-[64px] p-1.5 rounded-lg border text-left transition ${
+                  isSel ? 'border-[#2E5A1A] border-2 bg-[#2E5A1A]/5' :
+                  today ? 'border-[#2E5A1A] bg-[#2E5A1A]/5' :
+                  'border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                } ${!inMonth ? 'opacity-40' : ''}`}
+              >
+                <span className={`text-[11px] font-medium ${today ? 'text-[#2E5A1A] font-bold' : 'text-slate-600'}`}>
+                  {format(day, 'd')}
+                </span>
+                <div className="space-y-0.5 mt-0.5">
+                  {dayExpiries.slice(0, 3).map((e, i) => {
+                    const s = CATEGORY_STYLES[e.category];
+                    return (
+                      <div key={i} className={`text-[9px] px-1 py-0.5 rounded ${s.light} ${s.text} truncate font-medium`}>
+                        {e.title}
+                      </div>
+                    );
+                  })}
+                  {dayExpiries.length > 3 && (
+                    <p className="text-[9px] text-slate-400 px-1">+{dayExpiries.length - 3} more</p>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Selected day details */}
+      {selectedDay && (
+        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/50">
+          <p className="text-xs font-semibold text-slate-700 mb-2">{format(selectedDay, 'EEEE, do MMMM yyyy')}</p>
+          {selectedDayExpiries.length === 0 ? (
+            <p className="text-xs text-slate-400">No compliance expiries on this day.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {selectedDayExpiries.map((e, i) => {
+                const s = CATEGORY_STYLES[e.category];
+                const Icon = s.icon;
+                return (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <span className={`w-5 h-5 rounded ${s.light} flex items-center justify-center flex-shrink-0`}>
+                      <Icon className={`w-3 h-3 ${s.text}`} />
+                    </span>
+                    <span className="text-slate-700">{e.title}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

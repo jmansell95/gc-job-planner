@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import UnifiedRotaBuilder from '@/components/rota/UnifiedRotaBuilder';
 import CalendarView from '@/components/CalendarView';
 import AvailabilityHeatmap from '@/components/rota/AvailabilityHeatmap';
+import TemplateWeekCopy from '@/components/rota/TemplateWeekCopy';
 import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, Grid3x3 } from 'lucide-react';
 import { useSchedulingAssistant } from '@/components/SchedulingAssistantChat';
 import { base44 } from '@/api/base44Client';
@@ -60,6 +61,7 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
           })}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <TemplateWeekCopy targetWeekStart={currentWeekStart} />
           <button onClick={handleGeotabSync} disabled={syncing} type="button"
             className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 active:scale-[0.98] transition shadow-sm touch-manipulation select-none disabled:opacity-60">
             {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation2 className="w-4 h-4" />}

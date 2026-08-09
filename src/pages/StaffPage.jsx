@@ -4,6 +4,9 @@ import { Users, CalendarX, CalendarDays, Star, UserCheck, UsersRound, Building2,
 import SettingsPage from '@/components/SettingsPage';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
+import MissingRatesBanner from '@/components/staff/MissingRatesBanner';
+import StaffDirectoryGrid from '@/components/staff/StaffDirectoryGrid';
+import StaffCostAnalytics from '@/components/staff/StaffCostAnalytics';
 
 export default function StaffPage() {
   const navigate = useNavigate();
@@ -11,6 +14,8 @@ export default function StaffPage() {
 
   const tabs = [
     { id: 'staff', label: 'Crew Members', icon: Users },
+    { id: 'directory', label: 'Directory', icon: Users },
+    { id: 'cost-analytics', label: 'Cost Analytics', icon: Clock },
     { id: 'teams', label: 'Crew Types', icon: UsersRound },
     { id: 'timesheets', label: 'Timesheets', icon: Clock },
     { id: 'clients', label: 'Clients', icon: Building2 },
@@ -29,8 +34,13 @@ export default function StaffPage() {
         title="People & Team Management"
         subtitle="Manage crew members, timesheets, clients, subcontractors and suppliers"
       />
+      <MissingRatesBanner />
+      {tab === 'directory' && <StaffDirectoryGrid onSelect={(s) => navigate('/admin', { state: { section: 'staff-detail', staff: s } })} />}
+      {tab === 'cost-analytics' && <StaffCostAnalytics />}
+      {tab !== 'directory' && tab !== 'cost-analytics' && (
       <TabBar tabs={tabs} activeTab={tab} onChange={setTab} />
-      {tabs.map(t => tab === t.id && (
+      )}
+      {tab !== 'directory' && tab !== 'cost-analytics' && tabs.map(t => tab === t.id && (
         <SettingsPage
           key={t.id}
           initialTab={t.id}

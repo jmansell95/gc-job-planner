@@ -9,6 +9,7 @@ import {
   ShieldCheck, Undo2, Eye, ArrowLeft, ClipboardList, Drill
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
+import BulkApproveBar from '@/components/investigation/BulkApproveBar';
 import { titleCase } from '@/utils/format';
 import {
   strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig,
@@ -30,6 +31,8 @@ export default function InvestigationHub({ onNavigate }) {
   const [reviewFilter, setReviewFilter] = useState('all');
   const [jobFilter, setJobFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [bulkSelected, setBulkSelected] = useState(new Set());
+  const [bulkMode, setBulkMode] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -96,6 +99,20 @@ export default function InvestigationHub({ onNavigate }) {
   const pendingCount = logs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
   const queriedCount = logs.filter(l => l.manager_review_status === 'queried').length;
 
+  const toggleBulkSelect = (id) => {
+    setBulkSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDone = () => {
+    queryClient.invalidateQueries({ queryKey: ['investigation-hub-logs'] });
+    queryClient.invalidateQueries({ queryKey: ['investigation-logs'] });
+    setBulkSelected(new Set());
+  };
+
   return (
     <div>
       {/* Header */}
@@ -120,6 +137,12 @@ export default function InvestigationHub({ onNavigate }) {
               </span>
             )}
             <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-semibold">{logs.length} total</span>
+            <button
+              onClick={() => { setBulkMode(m => !m); setBulkSelected(new Set()); }}
+              className={`text-xs px-2.5 py-1 rounded-full font-semibold transition ${bulkMode ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              {bulkMode ? 'Done' : 'Select'}
+            </button>
           </div>
         </div>
       </div>
@@ -188,7 +211,9 @@ export default function InvestigationHub({ onNavigate }) {
                   log={log}
                   jobName={jobMap[log.job_id]?.name || '—'}
                   isSelected={log.id === selectedLogId}
-                  onClick={() => setSelectedLogId(log.id)}
+                  onClick={() => bulkMode ? toggleBulkSelect(log.id) : setSelectedLogId(log.id)}
+                  bulkMode={bulkMode}
+                  bulkSelected={bulkSelected.has(log.id)}
                 />
               ))
             )}
@@ -217,11 +242,18 @@ export default function InvestigationHub({ onNavigate }) {
           )}
         </div>
       </div>
+      {bulkMode && bulkSelected.size > 0 && (
+        <BulkApproveBar
+          selectedIds={Array.from(bulkSelected)}
+          onClear={() => setBulkSelected(new Set())}
+          onDone={handleBulkDone}
+        />
+      )}
     </div>
   );
 }
 
-function LogListItem({ log, jobName, isSelected, onClick }) {
+function LogListItem({ log, jobName, isSelected, onClick, bulkMode, bulkSelected }) {
   const reviewStatus = log.manager_review_status || 'pending';
   const rc = reviewStatusConfig[reviewStatus];
   const typeConfig = logTypeConfig[log.log_type];
@@ -230,9 +262,14 @@ function LogListItem({ log, jobName, isSelected, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left p-3 transition hover:bg-slate-50 ${isSelected ? 'bg-[#2E5A1A]/5 border-l-2 border-l-[#2E5A1A]' : 'border-l-2 border-l-transparent'}`}
+      className={`w-full text-left p-3 transition hover:bg-slate-50 ${bulkSelected ? 'bg-[#2E5A1A]/10 border-l-2 border-l-[#2E5A1A]' : isSelected ? 'bg-[#2E5A1A]/5 border-l-2 border-l-[#2E5A1A]' : 'border-l-2 border-l-transparent'}`}
     >
       <div className="flex items-center gap-2 flex-wrap mb-1">
+        {bulkMode && (
+          <span className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${bulkSelected ? 'bg-[#2E5A1A] border-[#2E5A1A]' : 'border-slate-300 bg-white'}`}>
+            {bulkSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
+          </span>
+        )}
         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${rc.badge}`}>{rc.label}</span>
         {typeConfig && (
           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${typeConfig.badge}`}>{typeConfig.label}</span>
