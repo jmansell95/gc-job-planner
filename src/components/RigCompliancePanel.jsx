@@ -178,17 +178,21 @@ export default function RigCompliancePanel({ job }) {
 
             {/* Compliance details */}
             <div className="px-4 py-3 space-y-2.5">
-              {asset.compliance_expiry_date && (
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Compliance expiry</span>
-                  <span className={`font-semibold ${
-                    asset.compliance_status === 'expired' ? 'text-rose-600' :
-                    asset.compliance_status === 'expiring' ? 'text-amber-600' : 'text-slate-700'
-                  }`}>
-                    {format(parseISO(asset.compliance_expiry_date), 'dd MMM yyyy')}
-                  </span>
-                </div>
-              )}
+              {asset.compliance_expiry_date && (() => {
+                const d = parseISO(asset.compliance_expiry_date);
+                if (isNaN(d.getTime())) return null;
+                return (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Compliance expiry</span>
+                    <span className={`font-semibold ${
+                      asset.compliance_status === 'expired' ? 'text-rose-600' :
+                      asset.compliance_status === 'expiring' ? 'text-amber-600' : 'text-slate-700'
+                    }`}>
+                      {format(d, 'dd MMM yyyy')}
+                    </span>
+                  </div>
+                );
+              })()}
               {asset.responsible_person && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-400">Responsible person</span>
