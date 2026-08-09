@@ -25,6 +25,7 @@ import CrewCertificationPulseWidget from '@/components/dashboard/CrewCertificati
 import ReportsHubWidget from '@/components/dashboard/ReportsHubWidget';
 import ProjectHealthDashboardWidget from '@/components/dashboard/ProjectHealthDashboardWidget';
 import CarbonFootprintWidget from '@/components/dashboard/CarbonFootprintWidget';
+import SystemHealthWidget from '@/components/dashboard/SystemHealthWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
@@ -113,6 +114,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'reports-hub': return <ReportsHubWidget onNavigate={onNavigate} />;
       case 'project-health': return <ProjectHealthDashboardWidget onNavigate={onNavigate} />;
       case 'carbon-footprint': return <CarbonFootprintWidget />;
+      case 'system-health': return <SystemHealthWidget onNavigate={onNavigate} />;
       default: return null;
     }
   };

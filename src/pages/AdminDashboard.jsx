@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { canAccessSection } from '@/utils/access';
 import { STANDALONE_ROUTES } from '@/utils/standaloneRoutes';
 import AdminNav from '@/components/AdminNav';
+import MobileBottomNav from '@/components/MobileBottomNav';
 import DashboardOverview from '@/components/DashboardOverview';
 import JobManager from '@/components/JobManager';
 import SettingsPage from '@/components/SettingsPage';
@@ -108,7 +109,7 @@ export default function AdminDashboard() {
   return (
     <div className="flex flex-col lg:flex-row min-h-screen page-bg-vibrant">
       <AdminNav activeSection={activeSection} setActiveSection={handleSetActiveSection} />
-      <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] lg:pt-0 lg:pb-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] lg:pt-0 lg:pb-0 pb-16 lg:pb-0" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="px-4 pb-4 md:px-6 md:pb-6 lg:pt-6 w-full">
           <Breadcrumbs sectionLabel={SECTION_LABELS[activeSection]} />
           <motion.div
@@ -139,6 +140,7 @@ export default function AdminDashboard() {
           </motion.div>
         </div>
       </main>
+      <MobileBottomNav />
     </div>
   );
 }

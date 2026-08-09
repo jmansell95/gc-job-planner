@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import AdminNav from '@/components/AdminNav';
+import MobileBottomNav from '@/components/MobileBottomNav';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { STANDALONE_ROUTES, ROUTE_TO_SECTION } from '@/utils/standaloneRoutes';
 
@@ -50,11 +51,12 @@ export default function AppLayout() {
         className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] lg:pt-0"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
-        <div className="px-4 pb-4 md:px-6 md:pb-6 lg:pt-6 w-full">
+        <div className="px-4 pb-20 lg:pb-6 md:px-6 md:pb-6 lg:pt-6 w-full">
           <Breadcrumbs />
           <Outlet />
         </div>
       </main>
+      <MobileBottomNav />
     </div>
   );
 }
