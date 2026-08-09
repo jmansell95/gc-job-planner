@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Search, UserPlus, Loader2, CheckCircle2 } from 'lucide-react';
 import { format, addDays, isWeekend } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import CrewSuggesterAI from '@/components/jobs/CrewSuggesterAI';
 
 const computeWeekStart = (dateStr) => {
   const d = new Date(dateStr + 'T00:00:00');
@@ -88,6 +89,16 @@ export default function QuickAssignStaffModal({ open, onClose, job, allStaff = [
         </DialogHeader>
         <div className="space-y-3">
           <p className="text-sm text-slate-500">Add crew to <span className="font-semibold text-slate-700">{job?.name}</span></p>
+
+          {/* AI Crew Suggester */}
+          {job?.id && (
+            <CrewSuggesterAI
+              job={job}
+              assignedDate={startDate}
+              allStaff={allStaff}
+              onApply={(staffId) => toggleStaff(staffId)}
+            />
+          )}
 
           {/* Date range */}
           <div className="grid grid-cols-2 gap-2">

@@ -119,6 +119,26 @@
     "paid_at": {
       "type": "string",
       "description": "ISO timestamp when the invoice was marked as paid"
+    },
+    "chase_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of automated chase reminders sent for this invoice. Incremented each time the chaseOverdueInvoices function sends a reminder."
+    },
+    "last_chase_at": {
+      "type": "string",
+      "description": "ISO timestamp of the last automated chase reminder. Used to space out reminders (at least 7 days between each escalation)."
+    },
+    "chase_stage": {
+      "type": "string",
+      "enum": [
+        "none",
+        "reminder_1",
+        "reminder_2",
+        "final_notice"
+      ],
+      "default": "none",
+      "description": "Current escalation stage of automated chasing. 'none' = not yet chased; 'reminder_1' = first friendly reminder sent; 'reminder_2' = second firmer reminder; 'final_notice' = final notice before escalation to debt collection."
     }
   },
   "required": [

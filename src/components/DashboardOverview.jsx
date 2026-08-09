@@ -24,6 +24,7 @@ import BoreholeProgressWidget from '@/components/dashboard/BoreholeProgressWidge
 import CrewCertificationPulseWidget from '@/components/dashboard/CrewCertificationPulseWidget';
 import ReportsHubWidget from '@/components/dashboard/ReportsHubWidget';
 import ProjectHealthDashboardWidget from '@/components/dashboard/ProjectHealthDashboardWidget';
+import CarbonFootprintWidget from '@/components/dashboard/CarbonFootprintWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
@@ -111,6 +112,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'predictive-maintenance': return <PredictiveMaintenanceWidget onSelectVehicle={(v) => onNavigate?.('assets')} />;
       case 'reports-hub': return <ReportsHubWidget onNavigate={onNavigate} />;
       case 'project-health': return <ProjectHealthDashboardWidget onNavigate={onNavigate} />;
+      case 'carbon-footprint': return <CarbonFootprintWidget />;
       default: return null;
     }
   };
