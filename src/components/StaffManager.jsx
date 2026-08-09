@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, BellOff, ShieldCheck, Hotel, Truck, KeyRound, Link2, Calendar, IdCard } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, UserPlus, CheckCircle2, Mail, Clock, Bell, BellOff, ShieldCheck, Hotel, Truck, KeyRound, Link2, Calendar, IdCard, Loader2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import StaffComplianceEditor from '@/components/staff/StaffComplianceEditor';
 import HotelBookingsManager from '@/components/staff/HotelBookingsManager';
@@ -359,115 +359,6 @@ export default function StaffManager() {
         </div>
       </div>
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl p-5 border border-emerald-200 mb-6 shadow-sm">
-          <h3 className="font-semibold text-slate-900 mb-4">{editingId ? 'Edit Crew Member' : 'New Crew Member'}</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              { label: 'Full Name', key: 'name', type: 'text', required: true },
-              { label: 'Email Address', key: 'email', type: 'email', required: true },
-              { label: 'Phone Number', key: 'phone', type: 'tel', required: false },
-            ].map(f => (
-              <div key={f.key}>
-                <label className="block text-xs font-medium text-slate-600 mb-1">{f.label}{f.required && ' *'}</label>
-                <input type={f.type} value={formData[f.key]} onChange={e => setFormData({ ...formData, [f.key]: e.target.value })} required={f.required}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
-              </div>
-            ))}
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Worker Type</label>
-              <select value={formData.worker_type} onChange={e => setFormData({ ...formData, worker_type: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                {workerTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Crew *</label>
-              <select value={formData.team_id} onChange={e => setFormData({ ...formData, team_id: e.target.value })} required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="">Select Crew</option>
-                {teams.map(t => {
-                  const parent = teams.find(p => p.id === t.parent_team_id);
-                  return <option key={t.id} value={t.id}>{parent ? `${parent.name} — ${t.name}` : t.name}</option>;
-                })}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Access Level</label>
-              <select value={formData.system_role || 'field'} onChange={e => setFormData({ ...formData, system_role: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="field">Field (schedule & profile only)</option>
-                <option value="read_only">Read Only (read-only dashboard)</option>
-                <option value="user">User (basic office access)</option>
-                <option value="management">Management (operations access)</option>
-                <option value="admin">Admin (full dashboard access)</option>
-                <option value="super_admin">Super Admin (unrestricted + manage users)</option>
-              </select>
-              <p className="text-[11px] text-slate-400 mt-1">Admin & Super Admin are also granted platform-admin rights automatically when linked to a login.</p>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Default Vehicle</label>
-              <select value={formData.default_vehicle_id} onChange={e => setFormData({ ...formData, default_vehicle_id: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="">None (Optional)</option>
-                {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} — {v.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Timesheet Manager</label>
-              <select value={formData.manager_id || ''} onChange={e => setFormData({ ...formData, manager_id: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
-                <option value="">None (Admin approves)</option>
-                {staff.filter(s => s.id !== editingId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {!editingId && (
-            <label className="flex items-center gap-2 mt-4 cursor-pointer">
-              <input type="checkbox" checked={inviteOnCreate} onChange={e => setInviteOnCreate(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-              <span className="text-sm text-slate-600 flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-emerald-600" />
-                Send app invite so they can log in and see their schedule
-              </span>
-            </label>
-          )}
-
-          {editingId && (
-            <label className="flex items-center gap-2 mt-4 cursor-pointer">
-              <input type="checkbox" checked={formData.email_notifications_enabled !== false} onChange={e => setFormData({ ...formData, email_notifications_enabled: e.target.checked })}
-                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-              <span className="text-sm text-slate-600 flex items-center gap-1.5">
-                <Bell className="w-3.5 h-3.5 text-emerald-600" />
-                Receive schedule and assignment emails
-              </span>
-            </label>
-          )}
-
-          <label className="flex items-center gap-2 mt-4 cursor-pointer">
-            <input type="checkbox" checked={formData.delivery_dashboard_enabled === true} onChange={e => setFormData({ ...formData, delivery_dashboard_enabled: e.target.checked })}
-              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-            <span className="text-sm text-slate-600 flex items-center gap-1.5">
-              <Truck className="w-3.5 h-3.5 text-emerald-600" />
-              Driver — delivery dashboard access
-            </span>
-          </label>
-          {formData.delivery_dashboard_enabled && !formData.system_role && (
-            <p className="text-xs text-amber-600 mt-1.5 ml-6">Field staff with this enabled see the Delivery Dashboard only — they won't see their schedule or profile.</p>
-          )}
-
-          <div className="flex gap-2 mt-5">
-            <button type="submit" disabled={submitting} className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm disabled:opacity-50">
-              {submitting ? 'Saving...' : editingId ? 'Update' : 'Add'} Crew Member
-            </button>
-            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm">
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
-
       {staffLoading || teamsLoading ? (
         <CardGridSkeleton count={6} />
       ) : staff.length === 0 ? (
@@ -603,6 +494,124 @@ export default function StaffManager() {
           </div>
         </div>
       )}
+
+      {/* Edit / Add Crew Member Sheet */}
+      <Sheet open={showForm} onOpenChange={(open) => { if (!open) { setShowForm(false); setEditingId(null); } }}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="flex items-center gap-2">
+              <Edit2 className="w-5 h-5 text-emerald-600" />
+              {editingId ? 'Edit Crew Member' : 'New Crew Member'}
+            </SheetTitle>
+          </SheetHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { label: 'Full Name', key: 'name', type: 'text', required: true },
+                { label: 'Email Address', key: 'email', type: 'email', required: true },
+                { label: 'Phone Number', key: 'phone', type: 'tel', required: false },
+              ].map(f => (
+                <div key={f.key}>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">{f.label}{f.required && ' *'}</label>
+                  <input type={f.type} value={formData[f.key]} onChange={e => setFormData({ ...formData, [f.key]: e.target.value })} required={f.required}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm" />
+                </div>
+              ))}
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Worker Type</label>
+                <select value={formData.worker_type} onChange={e => setFormData({ ...formData, worker_type: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
+                  {workerTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Crew *</label>
+                <select value={formData.team_id} onChange={e => setFormData({ ...formData, team_id: e.target.value })} required
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
+                  <option value="">Select Crew</option>
+                  {teams.map(t => {
+                    const parent = teams.find(p => p.id === t.parent_team_id);
+                    return <option key={t.id} value={t.id}>{parent ? `${parent.name} — ${t.name}` : t.name}</option>;
+                  })}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Access Level</label>
+                <select value={formData.system_role || 'field'} onChange={e => setFormData({ ...formData, system_role: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
+                  <option value="field">Field (schedule & profile only)</option>
+                  <option value="read_only">Read Only (read-only dashboard)</option>
+                  <option value="user">User (basic office access)</option>
+                  <option value="management">Management (operations access)</option>
+                  <option value="admin">Admin (full dashboard access)</option>
+                  <option value="super_admin">Super Admin (unrestricted + manage users)</option>
+                </select>
+                <p className="text-[11px] text-slate-400 mt-1">Admin & Super Admin are also granted platform-admin rights automatically when linked to a login.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Default Vehicle</label>
+                <select value={formData.default_vehicle_id} onChange={e => setFormData({ ...formData, default_vehicle_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
+                  <option value="">None (Optional)</option>
+                  {vehicles.map(v => <option key={v.id} value={v.id}>{v.registration_number} — {v.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Timesheet Manager</label>
+                <select value={formData.manager_id || ''} onChange={e => setFormData({ ...formData, manager_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm">
+                  <option value="">None (Admin approves)</option>
+                  {staff.filter(s => s.id !== editingId).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {!editingId && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={inviteOnCreate} onChange={e => setInviteOnCreate(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                <span className="text-sm text-slate-600 flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                  Send app invite so they can log in and see their schedule
+                </span>
+              </label>
+            )}
+
+            {editingId && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={formData.email_notifications_enabled !== false} onChange={e => setFormData({ ...formData, email_notifications_enabled: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+                <span className="text-sm text-slate-600 flex items-center gap-1.5">
+                  <Bell className="w-3.5 h-3.5 text-emerald-600" />
+                  Receive schedule and assignment emails
+                </span>
+              </label>
+            )}
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={formData.delivery_dashboard_enabled === true} onChange={e => setFormData({ ...formData, delivery_dashboard_enabled: e.target.checked })}
+                className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+              <span className="text-sm text-slate-600 flex items-center gap-1.5">
+                <Truck className="w-3.5 h-3.5 text-emerald-600" />
+                Driver — delivery dashboard access
+              </span>
+            </label>
+            {formData.delivery_dashboard_enabled && !formData.system_role && (
+              <p className="text-xs text-amber-600 ml-6">Field staff with this enabled see the Delivery Dashboard only — they won't see their schedule or profile.</p>
+            )}
+
+            <div className="flex gap-2 pt-2 sticky bottom-0 bg-white pb-1">
+              <button type="submit" disabled={submitting} className="flex-1 px-4 py-2.5 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm disabled:opacity-50 flex items-center justify-center gap-2">
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {submitting ? 'Saving...' : editingId ? 'Update Crew Member' : 'Add Crew Member'}
+              </button>
+              <button type="button" onClick={() => { setShowForm(false); setEditingId(null); }} className="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition font-medium text-sm">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </SheetContent>
+      </Sheet>
 
       {/* Compliance Editor Sheet */}
       <Sheet open={!!complianceStaff} onOpenChange={(open) => !open && setComplianceStaff(null)}>
