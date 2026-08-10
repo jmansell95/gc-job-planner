@@ -99,8 +99,8 @@ export default function JobDetailTabs({
           <TabsTrigger value="sites" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><MapPin className="w-3.5 h-3.5 shrink-0" />Sites</TabsTrigger>
           <TabsTrigger value="schedule" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><CalendarDays className="w-3.5 h-3.5 shrink-0" />Schedule</TabsTrigger>
           <TabsTrigger value="activity" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Activity className="w-3.5 h-3.5 shrink-0" />Site Logs</TabsTrigger>
-          <TabsTrigger value="boreholes" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Mountain className="w-3.5 h-3.5 shrink-0" />Boreholes</TabsTrigger>
-          <TabsTrigger value="geotech" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><FlaskConical className="w-3.5 h-3.5 shrink-0" />Geotech</TabsTrigger>
+          {isDrillingJob && <TabsTrigger value="boreholes" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Mountain className="w-3.5 h-3.5 shrink-0" />Boreholes</TabsTrigger>}
+          {isDrillingJob && <TabsTrigger value="geotech" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><FlaskConical className="w-3.5 h-3.5 shrink-0" />Geotech</TabsTrigger>}
           <TabsTrigger value="logistics" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Boxes className="w-3.5 h-3.5 shrink-0" />Logistics</TabsTrigger>
           <TabsTrigger value="compliance" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><ShieldCheck className="w-3.5 h-3.5 shrink-0" />Compliance</TabsTrigger>
           {canSeeCosts && <TabsTrigger value="subcontractors" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><ArrowRightLeft className="w-3.5 h-3.5 shrink-0" />Sub-Cons</TabsTrigger>}
@@ -212,24 +212,28 @@ export default function JobDetailTabs({
         </TabsContent>
       )}
 
-      {/* ── Boreholes Tab ── */}
+      {/* ── Boreholes Tab (drilling jobs only) ── */}
+      {isDrillingJob && (
       <TabsContent value="boreholes" className="space-y-4 mt-0">
         <TabStatRibbon
           icon={Mountain}
-          title={isDrillingJob ? "Drilling Progress" : "Investigation Data"}
+          title="Drilling Progress"
           stats={[
             { icon: Users, value: assignedStaff.length, label: 'Crew', iconColor: 'text-emerald-600' },
-            { icon: Mountain, value: isDrillingJob ? `${(totalMeterage || 0).toFixed(1)}m` : '—', label: 'Total Drilled', iconColor: 'text-blue-600' },
+            { icon: Mountain, value: `${(totalMeterage || 0).toFixed(1)}m`, label: 'Total Drilled', iconColor: 'text-blue-600' },
             { icon: CalendarDays, value: rotas.length, label: 'Shifts Logged', iconColor: 'text-amber-600' },
           ]}
         />
         <BoreholeDrillDown job={job} jobType={primaryType} />
       </TabsContent>
+      )}
 
-      {/* ── Geotech Data Tab (samples, lab tests, monitoring wells, calibration) ── */}
+      {/* ── Geotech Data Tab (drilling jobs only — samples, lab tests, monitoring wells, calibration) ── */}
+      {isDrillingJob && (
       <TabsContent value="geotech" className="space-y-4 mt-0">
         <GeotechDataTab job={job} allStaff={allStaff} suppliers={suppliers} assets={undefined} />
       </TabsContent>
+      )}
 
       {/* ── Accommodation Tab ── */}
       <TabsContent value="accommodation" className="space-y-4 mt-0">
@@ -256,7 +260,7 @@ export default function JobDetailTabs({
             compact={true}
           />
         )}
-        <RigCompliancePanel job={job} />
+        {isDrillingJob && <RigCompliancePanel job={job} />}
       </TabsContent>
 
       {/* ── Financials Tab (merged with Footprint) ── */}

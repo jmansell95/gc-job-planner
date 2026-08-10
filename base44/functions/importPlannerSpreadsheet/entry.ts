@@ -816,7 +816,7 @@ export default async function(req) {
       }
     }
 
-    const allAssignments = teamAssignments.concat(plantAssignments);
+    let allAssignments = teamAssignments.concat(plantAssignments);
 
     if (allAssignments.length === 0) {
       return Response.json({ error: `No assignment rows could be read from any tab in this file. Sheets found: ${workbook.SheetNames.join(', ')}` }, { status: 422 });
@@ -1146,13 +1146,51 @@ export default async function(req) {
     const jobUpdates = [];
     let jobFoundCount = 0;
 
+    // Active-jobs-only filter: skip any job that resolves to 'completed' status.
+    // The user wants only currently active (in_progress) or planned jobs imported
+    // so the system stays clean and focused on live work. Completed jobs are
+    // excluded entirely — their assignments, rotas, and cost items are dropped.
+    const skippedCompletedJobs = [];
+    const activeJobBaseKeys = new Set();
+    for (const baseKey of uniqueJobBaseKeys) {
+      const rawName = jobNameByBaseKey[baseKey];
+      const jobRealDates = (jobRealDatesByBaseKey[baseKey] || jobDatesByBaseKey[baseKey] || []).sort();
+      const jobDates = (jobDatesByBaseKey[baseKey] || []).sort();
+      const jobStatus = determineJobStatus(jobRealDates, rawName, jobHasSubbies[baseKey], jobDates);
+      if (jobStatus === 'completed') {
+        skippedCompletedJobs.push({ name: rawName, status: jobStatus, end_date: jobRealDates[jobRealDates.length - 1] || '' });
+        continue;
+      }
+      activeJobBaseKeys.add(baseKey);
+    }
+    // Filter assignments to only those belonging to active jobs — completed
+    // job assignments are dropped so they don't create orphaned rotas/cost items.
+    allAssignments = allAssignments.filter(a => {
+      if (!a.job_name) return true; // non-job entries (leave/sick/training) are kept
+      const bk = keyToMaster[extractJobBaseKey(a.job_name)] || extractJobBaseKey(a.job_name);
+      return activeJobBaseKeys.has(bk);
+    });
+    teamAssignments = teamAssignments.filter(a => {
+      if (!a.job_name) return true;
+      const bk = keyToMaster[extractJobBaseKey(a.job_name)] || extractJobBaseKey(a.job_name);
+      return activeJobBaseKeys.has(bk);
+    });
+    plantAssignments = plantAssignments.filter(a => {
+      if (!a.job_name) return true;
+      const bk = keyToMaster[extractJobBaseKey(a.job_name)] || extractJobBaseKey(a.job_name);
+      return activeJobBaseKeys.has(bk);
+    });
+    if (skippedCompletedJobs.length > 0) {
+      warnings.push(`Active-jobs-only filter: skipped ${skippedCompletedJobs.length} completed job(s) — only planning/in_progress jobs imported. Skipped: ${skippedCompletedJobs.slice(0, 10).map(j => j.name).join(', ')}${skippedCompletedJobs.length > 10 ? '…' : ''}`);
+    }
+    // Replace uniqueJobBaseKeys with only active jobs
+    uniqueJobBaseKeys.clear();
+    for (const k of activeJobBaseKeys) uniqueJobBaseKeys.add(k);
+
     for (const baseKey of uniqueJobBaseKeys) {
       const rawName = jobNameByBaseKey[baseKey];
       const parsed = parseJobName(rawName);
       const jobDates = (jobDatesByBaseKey[baseKey] || []).sort();
-      // Use real (non-carried-forward) dates for status — carry-forward from
-      // merged cells would otherwise extend completed jobs into the current
-      // week, and date extrapolation can create false future assignments.
       const jobRealDates = (jobRealDatesByBaseKey[baseKey] || jobDatesByBaseKey[baseKey] || []).sort();
       const jobStatus = determineJobStatus(jobRealDates, rawName, jobHasSubbies[baseKey], jobDates);
 
