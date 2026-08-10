@@ -170,7 +170,7 @@ export default function JobManager({ onNavigateRota }) {
       (job.job_reference || '').toLowerCase().includes(searchQuery.toLowerCase());
     const jobStatus = job.status || 'planning';
     const matchesStatus = statusFilter === 'all' ||
-      (statusFilter === 'active' && (jobStatus === 'planning' || jobStatus === 'in_progress' || jobStatus === 'decommissioning')) ||
+      (statusFilter === 'active' && (jobStatus === 'planning' || jobStatus === 'in_progress')) ||
       jobStatus === statusFilter;
     return matchesSearch && matchesStatus;
   });

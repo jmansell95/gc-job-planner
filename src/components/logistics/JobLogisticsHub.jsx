@@ -64,6 +64,12 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   const { data: rateCardItems = [] } = useQuery({ queryKey: ['rate-card-items-logistics'], queryFn: () => base44.entities.RateCardItem.list('-created_date', 500) });
   const { data: clients = [] } = useQuery({ queryKey: ['clients-logistics'], queryFn: () => base44.entities.Client.list() });
   const { data: equipmentCompliance = [] } = useQuery({ queryKey: ['equipment-compliance-logistics'], queryFn: () => base44.entities.ComplianceItem.filter({ category: 'equipment' }) });
+  // Fetch all rig assignments across active jobs so we can exclude rigs already
+  // on another job from the rig picker — prevents a rig being double-booked.
+  const { data: allRigAssignments = [] } = useQuery({
+    queryKey: ['all-rig-assignments'],
+    queryFn: () => base44.entities.JobAssetAssignment.filter({ role: 'primary_rig', status: { $in: ['assigned', 'on_site'] } }),
+  });
   const ownedAssets = (siteAssets || []).filter(a => a.is_active && a.asset_type !== 'rig' && a.stock_level !== 'out_of_stock' && a.stock_level !== 'needs_service');
 
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -145,7 +151,22 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
 
   // Rigs sourced from SiteAsset (synced from Asset Panda) — excludes non-rig equipment.
   // Accepts both the new is_rig flag and the legacy asset_type === 'rig' classification.
-  const allRigs = (siteAssets || []).filter(a => (a.is_rig === true || a.asset_type === 'rig') && a.is_active !== false);
+  // Exclude rigs already assigned to OTHER active jobs so they can't be double-booked.
+  const rigsOnOtherJobs = new Set(
+    (allRigAssignments || [])
+      .filter(a => a.job_id !== jobId)
+      .map(a => a.asset_id)
+  );
+  // Also exclude rigs already on THIS job (from JobCostItem) to avoid duplicates.
+  const rigsOnThisJob = new Set(
+    (items || []).filter(c => c.site_asset_id).map(c => c.site_asset_id)
+  );
+  const allRigs = (siteAssets || []).filter(a =>
+    (a.is_rig === true || a.asset_type === 'rig') &&
+    a.is_active !== false &&
+    !rigsOnOtherJobs.has(a.id) &&
+    !rigsOnThisJob.has(a.id)
+  );
   const formCatalogueItems = catalogueItems.filter(c => {
     const linkedAsset = c.site_asset_id ? assetMap[c.site_asset_id] : null;
     if (linkedAsset?.asset_type === 'rig') return false;
