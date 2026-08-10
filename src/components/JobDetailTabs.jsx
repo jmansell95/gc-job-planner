@@ -81,7 +81,7 @@ function Field({ label, children }) {
 
 export default function JobDetailTabs({
   job, primaryType, assignedStaff, rotas, allStaff, vehicles, rotasByDate, sortedDates,
-  client, contractor, suppliers, contractors, canSeeCosts, isDrillingJob, totalCost,
+  client, contractor, suppliers, contractors, canSeeCosts, isDrillingJob, isGroundworksJob, totalCost,
   staffCosts, totalMeterage, hotelBookings, colors, statusBadge, statusLabels,
   startDate, endDate, jobProject, siblingJobs, onProjectClick, jobTypes = []
 }) {

@@ -106,9 +106,9 @@ export default function JobDetailHero({
         </div>
 
         {/* Progress bars */}
-        {(targetMetres > 0 || (canSeeCosts && budget > 0 && actualCost > 0)) && (
+        {((isDrillingJob && targetMetres > 0) || (canSeeCosts && budget > 0 && actualCost > 0)) && (
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {targetMetres > 0 && (
+            {isDrillingJob && targetMetres > 0 && (
               <ProgressBar
                 label="Drilling Progress"
                 value={drilledMetres.toFixed(1)}

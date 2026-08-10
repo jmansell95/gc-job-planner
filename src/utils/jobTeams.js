@@ -8,6 +8,11 @@
  */
 
 const DRILLING_TYPES = ['drilling', 'cp_drilling', 'rotary_drilling'];
+const GROUNDWORKS_TYPES = ['groundworks', 'trial_pit'];
+
+// Discipline array type keys (the new `disciplines` array on Job)
+const DRILLING_DISCIPLINE_TYPES = ['drilling', 'coring'];
+const GROUNDWORKS_DISCIPLINE_TYPES = ['groundworks', 'trial_pit'];
 
 export const JOB_TYPE_COLORS = {
   emerald: { bg: 'bg-emerald-100', text: 'text-emerald-800', dot: 'bg-emerald-500', border: 'border-emerald-200', bar: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200' },
@@ -64,16 +69,48 @@ export function isDrillingJobType(jobType, jobTypes = []) {
 }
 
 /**
- * Whether a job is a drilling job — checks the legacy `job_type` first, then
- * falls back to whether any of its required teams handle drilling.
+ * Whether a job is a drilling job — checks the `disciplines` array first
+ * (the new source of truth), then falls back to the legacy `job_type` and
+ * required teams.
  */
 export function isDrillingJob(job, teams = [], jobTypes = []) {
   if (!job) return false;
+  // Check disciplines array first (new source of truth)
+  if (Array.isArray(job.disciplines) && job.disciplines.length > 0) {
+    return job.disciplines.some(d => DRILLING_DISCIPLINE_TYPES.includes(d.type));
+  }
+  // Legacy fallback
   if (job.job_type) return isDrillingJobType(job.job_type, jobTypes);
   const teamIds = getJobTeamIds(job);
   return teamIds.some(id => {
     const team = teams.find(t => t.id === id);
     return team && isDrillingJobType(team.job_type, jobTypes);
+  });
+}
+
+/** True when a job type string is a groundworks type (trial pits, excavation). */
+export function isGroundworksJobType(jobType, jobTypes = []) {
+  if (!jobType) return false;
+  return GROUNDWORKS_TYPES.includes(jobType);
+}
+
+/**
+ * Whether a job is a groundworks job — checks the `disciplines` array first
+ * (the new source of truth), then falls back to the legacy `job_type` and
+ * required teams.
+ */
+export function isGroundworksJob(job, teams = [], jobTypes = []) {
+  if (!job) return false;
+  // Check disciplines array first (new source of truth)
+  if (Array.isArray(job.disciplines) && job.disciplines.length > 0) {
+    return job.disciplines.some(d => GROUNDWORKS_DISCIPLINE_TYPES.includes(d.type));
+  }
+  // Legacy fallback
+  if (job.job_type) return isGroundworksJobType(job.job_type, jobTypes);
+  const teamIds = getJobTeamIds(job);
+  return teamIds.some(id => {
+    const team = teams.find(t => t.id === id);
+    return team && isGroundworksJobType(team.job_type, jobTypes);
   });
 }
 

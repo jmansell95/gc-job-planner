@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import PrintReportButton from '@/components/PrintReportButton';
 import JobWizardModal from '@/components/JobWizardModal';
 import JobDetailHero from '@/components/JobDetailHero';
-import { getJobPrimaryType, isDrillingJob as isDrillingJobByTeams, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
+import { getJobPrimaryType, isDrillingJob as isDrillingJobByTeams, isGroundworksJob as isGroundworksJobByTeams, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import { getCrewLabel } from '@/utils/terminology';
 import { canViewCostings } from '@/utils/access';
 import { getTotalMetres } from '@/utils/geotechBilling';
@@ -104,6 +104,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
   const sortedDates = Object.keys(rotasByDate).sort();
 
   const isDrillingJob = isDrillingJobByTeams(job, teams, jobTypes);
+  const isGroundworksJob = isGroundworksJobByTeams(job, teams, jobTypes);
   const { data: invLogs = [] } = useQuery({
     queryKey: ['investigation-logs', job.id],
     queryFn: () => base44.entities.InvestigationLog.filter({ job_id: job.id }),
@@ -309,6 +310,7 @@ export default function JobDetail({ job: initialJob, onBack }) {
         contractors={contractors}
         canSeeCosts={canSeeCosts}
         isDrillingJob={isDrillingJob}
+        isGroundworksJob={isGroundworksJob}
         totalCost={totalCost}
         staffCosts={staffCosts}
         totalMeterage={totalMeterage}
