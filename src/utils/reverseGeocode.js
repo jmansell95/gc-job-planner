@@ -1,10 +1,25 @@
-// Reverse geocode utility — uses BigDataCloud's free client-side API
-// (no API key, no rate limit). Cached per-coordinate to avoid duplicate calls.
-// This runs in the browser where BigDataCloud is reliably accessible,
-// unlike the backend function environment where external API calls can fail.
+// Reverse geocode utility — uses Nominatim (OpenStreetMap) for UK road + postcode
+// data, with BigDataCloud as a fast fallback. Nominatim has excellent UK address
+// coverage (road names, postcodes) but is rate-limited to 1 req/sec. BigDataCloud
+// is faster (no rate limit) but its free tier doesn't include street-level data
+// and returns `postCode` (camelCase), not `postcode`.
+// Cached per-coordinate to avoid duplicate calls.
 
 const cache = new Map();        // key → formatted label
 const structuredCache = new Map(); // key → structured parts
+
+// Nominatim rate limiter — max 1 request per second (their usage policy)
+let lastNominatimCall = 0;
+const NOMINATIM_MIN_INTERVAL = 1100; // 1.1s for safety margin
+
+async function nominatimRateLimit() {
+  const now = Date.now();
+  const elapsed = now - lastNominatimCall;
+  if (elapsed < NOMINATIM_MIN_INTERVAL) {
+    await new Promise(r => setTimeout(r, NOMINATIM_MIN_INTERVAL - elapsed));
+  }
+  lastNominatimCall = Date.now();
+}
 
 // Build a readable UK-style address from structured parts.
 // Priority: street + postcode (most specific), then progressively looser
@@ -36,20 +51,30 @@ export function buildLabelFromParts(parts) {
   return null;
 }
 
-// Build a readable UK-style address from BigDataCloud response fields.
-function formatAddress(json) {
-  if (!json) return null;
-  return buildLabelFromParts(parseStructured(json));
+// Parse Nominatim (OpenStreetMap) response into structured parts.
+// Nominatim returns { address: { road, suburb, city, postcode, ... } }
+function parseNominatim(json) {
+  if (!json?.address) return null;
+  const a = json.address;
+  return {
+    road: a.road || a.pedestrian || a.footway || a.path || a.cycleway || '',
+    suburb: a.suburb || a.neighbourhood || a.hamlet || a.locality || '',
+    town: a.city || a.town || a.village || a.municipality || '',
+    postcode: a.postcode || '',
+    country: a.country || '',
+  };
 }
 
-// Return structured address parts for richer UI display (separate street, postcode, etc.)
-function parseStructured(json) {
+// Parse BigDataCloud response (fallback).
+// NOTE: BigDataCloud's free tier returns `postCode` (camelCase), NOT `postcode`.
+// It also does NOT return `street` or `streetName` — only town-level data.
+function parseBigDataCloud(json) {
   if (!json) return null;
   return {
     road: json.street || json.streetName || '',
     suburb: json.locality || json.subLocality || json.neighbourhood || '',
     town: json.city || json.principalSubdivision || '',
-    postcode: json.postcode || '',
+    postcode: json.postCode || json.postcode || '',
     country: json.countryName || '',
   };
 }
@@ -59,24 +84,46 @@ export async function reverseGeocode(lat, lng) {
   const key = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}`;
   if (cache.has(key)) return cache.get(key);
 
+  let parts = null;
+
+  // Try Nominatim first — has road + postcode for UK addresses
   try {
+    await nominatimRateLimit();
     const res = await fetch(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`,
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
       { headers: { Accept: 'application/json' } }
     );
     if (res.ok) {
       const json = await res.json();
-      if (json) {
-        const label = formatAddress(json);
-        if (label) {
-          cache.set(key, label);
-          structuredCache.set(key, parseStructured(json));
-          return label;
-        }
-      }
+      parts = parseNominatim(json);
     }
   } catch (_) {
-    // network error — fall through
+    // network error — fall through to BigDataCloud
+  }
+
+  // Fallback: BigDataCloud (faster but no road data in free tier)
+  if (!parts) {
+    try {
+      const res = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`,
+        { headers: { Accept: 'application/json' } }
+      );
+      if (res.ok) {
+        const json = await res.json();
+        parts = parseBigDataCloud(json);
+      }
+    } catch (_) {
+      // network error — fall through to coordinates
+    }
+  }
+
+  if (parts) {
+    const label = buildLabelFromParts(parts);
+    if (label) {
+      cache.set(key, label);
+      structuredCache.set(key, parts);
+      return label;
+    }
   }
 
   // Fall back to coordinates rather than "Unknown location" — gives the user
@@ -98,6 +145,8 @@ export async function reverseGeocodeStructured(lat, lng) {
 
 // Batch geocode multiple coordinate pairs with caching.
 // Returns a map of "lat,lng" → label.
+// Processes sequentially to respect Nominatim's 1 req/sec rate limit.
+// The cache prevents redundant calls for coordinates already resolved.
 export async function batchReverseGeocode(coords) {
   const results = {};
   const unique = [];
@@ -112,21 +161,16 @@ export async function batchReverseGeocode(coords) {
       unique.push({ lat, lng, key });
     }
   }
-  // Process in small batches to avoid overwhelming the browser's connection
-  // pool (browsers limit ~6 concurrent connections per origin). Sending 100+
-  // parallel requests causes some to fail silently, returning "Unknown location".
-  const BATCH_SIZE = 8;
-  for (let i = 0; i < unique.length; i += BATCH_SIZE) {
-    const batch = unique.slice(i, i + BATCH_SIZE);
-    await Promise.all(batch.map(async ({ lat, lng, key }) => {
-      results[key] = await reverseGeocode(lat, lng);
-    }));
+  // Sequential — Nominatim rate-limits to 1 req/sec
+  for (const { lat, lng, key } of unique) {
+    results[key] = await reverseGeocode(lat, lng);
   }
   return results;
 }
 
 // Batch geocode returning structured parts (road, postcode, etc.) per coordinate.
 // Returns a map of "lat,lng" → { road, suburb, town, postcode, country }.
+// Processes sequentially to respect Nominatim's 1 req/sec rate limit.
 export async function batchReverseGeocodeStructured(coords) {
   const results = {};
   const unique = [];
@@ -141,12 +185,9 @@ export async function batchReverseGeocodeStructured(coords) {
       unique.push({ lat, lng, key });
     }
   }
-  const BATCH_SIZE = 8;
-  for (let i = 0; i < unique.length; i += BATCH_SIZE) {
-    const batch = unique.slice(i, i + BATCH_SIZE);
-    await Promise.all(batch.map(async ({ lat, lng, key }) => {
-      results[key] = await reverseGeocodeStructured(lat, lng);
-    }));
+  // Sequential — Nominatim rate-limits to 1 req/sec
+  for (const { lat, lng, key } of unique) {
+    results[key] = await reverseGeocodeStructured(lat, lng);
   }
   return results;
 }

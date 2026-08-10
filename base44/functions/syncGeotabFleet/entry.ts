@@ -175,7 +175,7 @@ export default async function(req: Request): Promise<Response> {
       geotabGet('VehicleType', undefined, 1000),
       geotabGet('DeviceStatusInfo', undefined, 1000),
       geotabGet('Trip', { fromDate: tripFromDate }, 2000),
-      geotabGet('Exception', { fromDate: safetyFromDate }, 5000),
+      geotabGet('ExceptionEvent', { fromDate: safetyFromDate }, 5000),
       geotabGet('Rule', undefined, 2000),
     ]);
 
