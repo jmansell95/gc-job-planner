@@ -188,7 +188,7 @@ export default function StaffCommand() {
 
       {showBulkInvite && <BulkInviteModal onClose={() => setShowBulkInvite(false)} />}
 
-      <div className="max-w-2xl mx-auto">
+      <div>
         {/* Staff list */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-3 border-b border-slate-100 space-y-2">
