@@ -12,6 +12,7 @@ import TripTimelineEnhanced from '@/components/vehicles/TripTimelineEnhanced';
 import TravelReconciliationReport from '@/components/vehicles/TravelReconciliationReport';
 import MaintenanceTimeline from '@/components/vehicles/MaintenanceTimeline';
 import MOTHistoryTimeline from '@/components/vehicles/MOTHistoryTimeline';
+import SafetyEventsDrillDown from '@/components/vehicles/SafetyEventsDrillDown';
 import { generateVehicleReport } from '@/utils/vehiclePdfReport';
 
 function getVehicleStatus(v) {
@@ -84,7 +85,7 @@ function SpecTile({ icon: Icon, label, value, source, color }) {
 }
 
 export default function VehicleDetailDrawer({ vehicle, onClose }) {
-  const [activeTab, setActiveTab] = useState('live'); // 'live' | 'spec' | 'compliance' | 'reconciliation'
+  const [activeTab, setActiveTab] = useState('live'); // 'live' | 'spec' | 'compliance' | 'reconciliation' | 'safety'
   const [reportLoading, setReportLoading] = useState(false);
 
   const handleDownloadReport = async () => {
@@ -261,8 +262,14 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
           </button>
           <button onClick={() => setActiveTab('reconciliation')}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition ${activeTab === 'reconciliation' ? 'bg-white text-cyan-700 shadow-sm' : 'text-slate-500'}`}>
-            <Route className="w-3.5 h-3.5" /> Travel Reconciliation
+            <Route className="w-3.5 h-3.5" /> Travel
           </button>
+          {vehicle.geotab_sync_status === 'synced' && (
+            <button onClick={() => setActiveTab('safety')}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition ${activeTab === 'safety' ? 'bg-white text-red-700 shadow-sm' : 'text-slate-500'}`}>
+              <ShieldAlert className="w-3.5 h-3.5" /> Safety
+            </button>
+          )}
         </div>
 
         {/* ═════════════ LIVE OPS TAB (Geotab) ═════════════ */}
@@ -323,7 +330,11 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
                     <User className="w-3 h-3" /> Last detected driver: <span className="font-semibold text-slate-700">{vehicle.geotab_driver_name}</span>
                   </div>
                 )}
-                <p className="text-[10px] text-slate-400 mt-1.5">Events from the last 30 days · Geotab Exception data</p>
+                <button onClick={() => setActiveTab('safety')}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-xs font-bold text-red-700 transition">
+                  <ShieldAlert className="w-3.5 h-3.5" /> View Full Violation Log with Dates & Times
+                </button>
+                <p className="text-[10px] text-slate-400 mt-1.5">Events from the last 30 days · Click above to drill down</p>
               </div>
             )}
 
@@ -477,6 +488,13 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
         {activeTab === 'reconciliation' && (
           <div className="px-5 py-4">
             <TravelReconciliationReport vehicle={vehicle} />
+          </div>
+        )}
+
+        {/* ═════════════ SAFETY DRILL-DOWN TAB ═════════════ */}
+        {activeTab === 'safety' && (
+          <div className="px-5 py-4">
+            <SafetyEventsDrillDown vehicle={vehicle} />
           </div>
         )}
       </div>
