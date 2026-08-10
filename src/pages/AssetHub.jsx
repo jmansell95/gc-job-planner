@@ -33,6 +33,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { Skeleton } from '@/components/StateViews';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
+import SettingsPage from '@/components/SettingsPage';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: Boxes },
@@ -112,6 +113,9 @@ export default function AssetHub() {
     { id: 'efficiency', label: 'Efficiency', icon: TrendingUp },
     { id: 'utilization', label: 'Utilization', icon: TrendingUp },
     { id: 'depreciation', label: 'Depreciation', icon: TrendingDown },
+    { id: 'equipment-library', label: 'Equipment Sets', icon: Boxes },
+    { id: 'asset-manifests', label: 'Van Manifests', icon: QrCode },
+    { id: 'asset-lifecycle', label: 'Lifecycle', icon: TrendingDown },
     { id: 'scrap', label: 'Scrap Pile', icon: Trash2 },
   ];
 
@@ -257,6 +261,12 @@ export default function AssetHub() {
             <ErrorBoundary><MasterCertificateVault assets={assets} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} /></ErrorBoundary>
           ) : view === 'scrap' ? (
             <ErrorBoundary><ScrapPilePanel /></ErrorBoundary>
+          ) : view === 'equipment-library' ? (
+            <ErrorBoundary><SettingsPage initialTab="equipment-library" standalone /></ErrorBoundary>
+          ) : view === 'asset-manifests' ? (
+            <ErrorBoundary><SettingsPage initialTab="asset-manifests" standalone /></ErrorBoundary>
+          ) : view === 'asset-lifecycle' ? (
+            <ErrorBoundary><SettingsPage initialTab="asset-lifecycle" standalone /></ErrorBoundary>
           ) : null}
 
           {/* Bulk cert action bar */}

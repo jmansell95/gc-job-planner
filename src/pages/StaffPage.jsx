@@ -25,6 +25,7 @@ export default function StaffPage() {
     { id: 'holiday-accrual', label: 'Holiday Accrual', icon: CalendarDays },
     { id: 'staff-reviews', label: 'Performance Reviews', icon: Star },
     { id: 'timesheet-delegation', label: 'Approval Delegation', icon: UserCheck },
+    { id: 'access-levels', label: 'Permission Groups', icon: UserCheck },
   ];
 
   return (

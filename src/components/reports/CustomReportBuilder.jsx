@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { FileBarChart, Plus, Trash2, Download, Loader2, Settings2 } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
+import SearchableSelect from '@/components/SearchableSelect';
 import { useToast } from '@/components/ui/use-toast';
 import { format, parseISO, subDays, isWithinInterval } from 'date-fns';
 
@@ -83,7 +84,6 @@ const DATA_SOURCES = [
   { id: 'rota-weeks', label: 'Rota Weeks', entity: 'RotaWeek', icon: 'Calendar' },
   { id: 'staff-shifts', label: 'Staff Shifts', entity: 'StaffShift', icon: 'Clock' },
   { id: 'overtime-rates', label: 'Overtime Rates', entity: 'OvertimeRate', icon: 'Timer' },
-  { id: 'trading-entities', label: 'Trading Entities', entity: 'TradingEntity', icon: 'Building2' },
   { id: 'custom-fields', label: 'Custom Fields', entity: 'CustomField', icon: 'Settings2' },
   { id: 'help-topics', label: 'Help Topics', entity: 'HelpTopic', icon: 'HelpCircle' },
 ];
@@ -262,16 +262,15 @@ export default function CustomReportBuilder() {
 
           {/* Data source */}
           <div className="insight-card rounded-2xl p-4">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Data Source</label>
-            <select
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">Data Source</label>
+            <SearchableSelect
               value={sourceId}
-              onChange={e => { setSourceId(e.target.value); setPreviewData(null); }}
-              className="w-full mt-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-emerald-600"
-            >
-              {DATA_SOURCES.map(s => (
-                <option key={s.id} value={s.id}>{s.label}</option>
-              ))}
-            </select>
+              onChange={(val) => { setSourceId(val); setPreviewData(null); }}
+              options={DATA_SOURCES.map(s => ({ value: s.id, label: s.label }))}
+              placeholder="Choose a data source…"
+              searchPlaceholder="Search data sources…"
+              emptyText="No data sources found"
+            />
           </div>
 
           {/* Filters */}

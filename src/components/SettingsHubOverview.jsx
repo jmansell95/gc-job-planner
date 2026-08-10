@@ -8,6 +8,7 @@ import {
   Sparkles, QrCode, ArrowUpDown, TrendingUp, FileSpreadsheet, ScrollText,
   History, Gauge, Link2, Search, ChevronRight, GitBranch, Lock, AlertTriangle,
   Database, Webhook, Bell, Settings2, Coins, Wrench, FileUp, Layers,
+  Satellite, Radio, Landmark, ShieldAlert, Cloud, MapPin, MessageCircle, CreditCard,
 } from 'lucide-react';
 
 const INTEGRATION_SETTING_KEYS = [
@@ -68,41 +69,33 @@ export default function SettingsHubOverview({ onNavigate }) {
   }, [allSettings]);
 
   const groups = [
-    { group: 'People & Teams', icon: Users, accent: 'from-emerald-500 to-teal-600', items: [
-      { id: 'access-levels', icon: ShieldCheck, label: 'Permission Groups', value: '—', sub: 'Access control roles', color: 'slate' },
+    { group: 'Integrations', icon: Link2, accent: 'from-blue-500 to-cyan-600', items: [
+      { id: 'geotab-sync', icon: Satellite, label: 'Geotab GPS', value: '—', sub: 'Live fleet tracking', color: 'blue' },
+      { id: 'holman-sync', icon: Radio, label: 'Holman Fleet', value: '—', sub: 'MOT, service & mileage', color: 'cyan' },
+      { id: 'asset-panda', icon: Database, label: 'Asset Panda', value: '—', sub: 'Inventory & stock sync', color: 'violet' },
+      { id: 'bob-hr', icon: Users, label: 'Bob HR', value: '—', sub: 'Time-off bridge', color: 'emerald' },
+      { id: 'concur-sync', icon: Landmark, label: 'SAP Concur', value: '—', sub: 'Expenses & GL codes', color: 'indigo' },
+      { id: 'safety-culture', icon: ShieldAlert, label: 'SafetyCulture', value: '—', sub: 'Audit & inspection sync', color: 'rose' },
+      { id: 'ags-import', icon: FileUp, label: 'KeyLogBook / AGS', value: '—', sub: 'Borehole data sync', color: 'amber' },
+      { id: 'openground-sync', icon: Database, label: 'OpenGround', value: '—', sub: 'Bentley cloud push', color: 'cyan' },
+      { id: 'cis-verification', icon: ShieldCheck, label: 'CIS Verification', value: '—', sub: 'HMRC subcontractor check', color: 'slate' },
+      { id: 'met-office', icon: Cloud, label: 'Met Office', value: '—', sub: 'Weather forecasts', color: 'blue' },
+      { id: 'google-maps', icon: MapPin, label: 'Google Maps', value: '—', sub: 'Geocoding & routing', color: 'rose' },
+      { id: 'whatsapp', icon: MessageCircle, label: 'WhatsApp', value: '—', sub: 'Crew alerts', color: 'emerald' },
+      { id: 'accounting-sync', icon: FileSpreadsheet, label: 'Xero / Sage', value: '—', sub: 'Accounting sync', color: 'blue' },
+      { id: 'payment-gateway', icon: CreditCard, label: 'Stripe Payments', value: '—', sub: 'Client portal payments', color: 'violet' },
+      { id: 'microsoft-365', icon: Building2, label: 'Microsoft 365', value: '—', sub: 'Azure AD SSO & Teams', color: 'indigo' },
+      { id: 'zapier-webhooks', icon: Webhook, label: 'Zapier / Make', value: '—', sub: 'Outbound webhooks', color: 'amber' },
+      { id: 'push-notifications', icon: Bell, label: 'Push Notifications', value: '—', sub: 'Browser push alerts', color: 'blue' },
     ]},
-    { group: 'Operations', icon: Activity, accent: 'from-blue-500 to-cyan-600', items: [
-      { id: 'asset-manifests', icon: QrCode, label: 'Van Manifest QRs', value: '—', sub: 'QR print-outs for bulky items', color: 'violet' },
-      { id: 'equipment-library', icon: Boxes, label: 'Equipment Sets', value: costPresets.length, sub: 'Pre-built sets', color: 'emerald' },
+    { group: 'System Configuration', icon: Sparkles, accent: 'from-slate-500 to-slate-700', items: [
       { id: 'job-types', icon: Tag, label: 'Job Types', value: '—', sub: 'Types & colours', color: 'slate' },
       { id: 'dropdowns', icon: ListChecks, label: 'Dropdown Manager', value: '—', sub: 'Edit every dropdown', color: 'violet' },
-    ]},
-    { group: 'Compliance & Review', icon: ShieldCheck, accent: 'from-rose-500 to-pink-600', items: [
-      { id: 'compliance-rules', icon: Gauge, label: 'Compliance Rules', value: '—', sub: 'LOLER, PUWER & PAT intervals', color: 'slate' },
-    ]},
-    { group: 'Finance & Billing', icon: Receipt, accent: 'from-emerald-600 to-green-700', items: [
-      { id: 'billing', icon: Banknote, label: 'Billing Rules', value: billingRules.length, sub: 'Charge rules', color: 'blue' },
-      { id: 'data-exchange', icon: ArrowUpDown, label: 'Data Exchange', value: '—', sub: 'Bulk import / export CSV', color: 'cyan' },
-      { id: 'overtime', icon: Timer, label: 'Overtime', value: '—', sub: 'Rate multipliers', color: 'rose' },
-      { id: 'business-rules', icon: Scale, label: 'Business Rules', value: '—', sub: 'Hours & travel rules', color: 'slate' },
-    ]},
-    { group: 'Financial Control', icon: TrendingUp, accent: 'from-amber-500 to-orange-600', items: [
-      { id: 'expense-presets', icon: Receipt, label: 'Expense Presets', value: '—', sub: 'Quick-add crew expenses', color: 'amber' },
-      { id: 'subcon-markup', icon: TrendingUp, label: 'Sub-Con Markup', value: '—', sub: 'Default markup %', color: 'emerald' },
-      { id: 'gl-mapping', icon: FileSpreadsheet, label: 'GL Code Mapping', value: '—', sub: 'Map to SAP Concur GL', color: 'slate' },
-      { id: 'billing-pipeline', icon: GitBranch, label: 'Billing Pipeline', value: '—', sub: 'Contract & retention lifecycle', color: 'indigo' },
-      { id: 'billing-contracts', icon: ScrollText, label: 'Billing Contracts', value: '—', sub: 'Locked per-job terms', color: 'indigo' },
-      { id: 'purchase-orders', icon: FileText, label: 'Purchase Orders', value: '—', sub: 'POs & 3-way matching', color: 'blue' },
-      { id: 'financial-audit', icon: History, label: 'Financial Audit Log', value: '—', sub: 'Tamper-evident history', color: 'rose' },
-      { id: 'job-alerts', icon: Gauge, label: 'Job Budget Alerts', value: '—', sub: 'Budget & margin alerts', color: 'amber' },
-    ]},
-    { group: 'Communication', icon: Mail, accent: 'from-violet-500 to-purple-600', items: [
       { id: 'global-branding', icon: Palette, label: 'Global Branding', value: '—', sub: 'Email colours & banners', color: 'violet' },
       { id: 'login-branding', icon: Lock, label: 'Login Page Customizer', value: '—', sub: 'Login & reset screen branding', color: 'blue' },
       { id: 'portal-branding', icon: Palette, label: 'Portal Branding Editor', value: '—', sub: 'Client & sub-contractor portal', color: 'violet' },
+      { id: 'email-templates', icon: Mail, label: 'Email Templates', value: '—', sub: 'Branded email templates', color: 'blue' },
       { id: 'email-alerts', icon: Mail, label: 'Email Alerts', value: '—', sub: 'Templates & timing', color: 'blue' },
-    ]},
-    { group: 'System', icon: Sparkles, accent: 'from-slate-500 to-slate-700', items: [
       { id: 'automations', icon: Zap, label: 'Automations', value: '—', sub: 'Background automations & alerts', color: 'amber' },
       { id: 'planner-import', icon: FileSpreadsheet, label: 'Planner Import', value: '—', sub: 'Upload weekly rota spreadsheet', color: 'blue' },
       { id: 'csv-import', icon: FileUp, label: 'CSV Bulk Import', value: '—', sub: 'Bulk import any entity via CSV', color: 'cyan' },
@@ -112,10 +105,6 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'custom-fields', icon: Settings2, label: 'Custom Field Builder', value: '—', sub: 'Add fields to any entity', color: 'slate' },
       { id: 'dashboard-themes', icon: Palette, label: 'Dashboard Color Themes', value: '—', sub: 'Personalize accent colours', color: 'violet' },
       { id: 'backup-restore', icon: Database, label: 'Backup & Restore', value: '—', sub: 'Snapshot & reset', color: 'rose' },
-      { id: 'multi-currency', icon: Coins, label: 'Multi-Currency', value: '—', sub: 'Exchange rates vs GBP', color: 'amber' },
-      { id: 'multi-company', icon: Building2, label: 'Multi-Company / White-Label', value: '—', sub: 'Trading entities & branding', color: 'indigo' },
-      { id: 'asset-lifecycle', icon: Wrench, label: 'Asset Lifecycle', value: '—', sub: 'Depreciation & replacement', color: 'slate' },
-      { id: 'push-notifications', icon: Bell, label: 'Push Notifications', value: '—', sub: 'Browser push alerts', color: 'blue' },
     ]},
   ];
 

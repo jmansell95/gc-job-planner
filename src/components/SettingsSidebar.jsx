@@ -1,15 +1,18 @@
 import React from 'react';
-import { settingsGroups } from '@/components/SettingsNav';
+import { settingsGroups, HUB_MIGRATED_ITEMS } from '@/components/SettingsNav';
 
 /**
  * Settings Sidebar — persistent left navigation for the settings area.
- * Shows all settings categories and items grouped by domain.
- * Clicking an item navigates to that setting's content panel.
+ * Only shows items that have NOT migrated to operational hubs.
+ * Migrated items (billing rules, compliance rules, etc.) are rendered as
+ * tabs inside their respective hub pages (Financial Control, Compliance,
+ * Assets, Staff) instead of here.
  */
 export default function SettingsSidebar({ activeTab, onNavigate, items }) {
   const itemMap = Object.fromEntries(items.map(i => [i.id, i]));
   const groups = settingsGroups
-    .map(g => ({ ...g, items: g.items.filter(i => itemMap[i.id]) }))
+    .filter(g => g.label !== '_hidden_migrated')
+    .map(g => ({ ...g, items: g.items.filter(i => itemMap[i.id] && !HUB_MIGRATED_ITEMS.has(i.id)) }))
     .filter(g => g.items.length > 0);
 
   return (

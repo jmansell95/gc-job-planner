@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PoundSterling, Receipt, FileBarChart, FileText, Banknote, TrendingDown, FileCheck, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { PoundSterling, Receipt, FileBarChart, FileText, Banknote, TrendingDown, FileCheck, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
 import InvoiceDiscrepancyWidget from '@/components/billing/InvoiceDiscrepancyWidget';
 import AgedDebtorsDashboard from '@/components/billing/AgedDebtorsDashboard';
@@ -78,6 +78,18 @@ export default function BillingPage() {
     { id: 'billing-readiness', label: 'Billing Readiness', icon: FileCheck },
     { id: 'rate-card', label: 'Price List', icon: Receipt },
     { id: 'billing', label: 'Billing Rules', icon: Banknote },
+    { id: 'billing-pipeline', label: 'Pipeline', icon: FileBarChart },
+    { id: 'billing-contracts', label: 'Contracts', icon: FileText },
+    { id: 'purchase-orders', label: 'Purchase Orders', icon: FileText },
+    { id: 'overtime', label: 'Overtime', icon: Clock },
+    { id: 'business-rules', label: 'Business Rules', icon: Receipt },
+    { id: 'expense-presets', label: 'Expense Presets', icon: Receipt },
+    { id: 'subcon-markup', label: 'Sub-Con Markup', icon: TrendingDown },
+    { id: 'gl-mapping', label: 'GL Mapping', icon: FileBarChart },
+    { id: 'data-exchange', label: 'Data Exchange', icon: ArrowRight },
+    { id: 'payroll-export', label: 'Payroll Export', icon: FileText },
+    { id: 'financial-audit', label: 'Audit Log', icon: FileCheck },
+    { id: 'job-alerts', label: 'Budget Alerts', icon: FileCheck },
     { id: 'custom-reports', label: 'Custom Reports', icon: FileBarChart },
     { id: 'client-progress-report', label: 'Client Reports', icon: FileText },
   ];
@@ -91,7 +103,7 @@ export default function BillingPage() {
         title="Financial Control"
         subtitle="Invoicing, debtors, billing rules, rate cards & financial reports"
       />
-      <FinancialOverviewWidget onSelectTab={setTab} />
+      {isPipelineTab && <FinancialOverviewWidget onSelectTab={setTab} />}
       {isPipelineTab && <PipelineFlow activeTab={tab} onSelect={setTab} />}
       <TabBar tabs={tabs} activeTab={tab} onChange={setTab} />
       {tab === 'invoicing' && (

@@ -17,9 +17,11 @@ export default function CompliancePage() {
 
   const topTabs = [
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck },
+    { id: 'compliance-rules', label: 'Rules', icon: ShieldCheck },
     { id: 'calendar', label: 'Calendar', icon: CalendarDays },
     { id: 'safety', label: 'Safety', icon: ShieldAlert },
     { id: 'audit-trail', label: 'Audit Trail', icon: ClipboardCheck },
+    { id: 'system-audit-log', label: 'System Log', icon: ClipboardCheck },
     { id: 'log-qc', label: 'Log QC', icon: FlaskConical },
   ];
 
@@ -41,6 +43,14 @@ export default function CompliancePage() {
 
       {tab === 'compliance' && (
         <SettingsPage initialTab="compliance" standalone />
+      )}
+
+      {tab === 'compliance-rules' && (
+        <SettingsPage initialTab="compliance-rules" standalone />
+      )}
+
+      {tab === 'system-audit-log' && (
+        <SettingsPage initialTab="system-audit-log" standalone />
       )}
 
       {tab === 'calendar' && (
