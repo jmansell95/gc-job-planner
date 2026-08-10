@@ -149,11 +149,12 @@ export default async function(req: Request): Promise<Response> {
         const ruleName = rule?.name || ex.rule?.name || 'Unknown Rule';
         const violationType = classifyRule(ruleName);
         const dt = ex.dateTime ? new Date(ex.dateTime) : null;
+        // Send raw ISO datetime — the frontend formats date/time in the
+        // browser where locale + timezone support is guaranteed. Deno's
+        // toLocaleDateString('en-GB') can return empty strings.
         return {
           id: ex.id || `${ex.device?.id}-${ex.dateTime}`,
           datetime: dt?.toISOString() || null,
-          date: dt ? dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
-          time: dt ? dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—',
           violation_type: violationType,
           violation_label: VIOLATION_LABELS[violationType] || ruleName,
           rule_name: ruleName,

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
@@ -7,7 +7,7 @@ import {
   Car, FileBarChart, X, Route, Zap, Filter,
 } from 'lucide-react';
 import GeotabReportModal from '@/components/vehicles/GeotabReportModal';
-import { reverseGeocode } from '@/utils/reverseGeocode';
+import { useReverseGeocode } from '@/hooks/useReverseGeocode';
 
 // Default UK centre
 const UK_CENTER = [52.3, -1.5];
@@ -56,8 +56,6 @@ export default function GeotabLiveMap() {
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState(null);
   const [filterMoving, setFilterMoving] = useState('all'); // 'all' | 'moving' | 'stopped'
-  const [selectedAddress, setSelectedAddress] = useState(null);
-
   const { data: liveData, isLoading, refetch } = useQuery({
     queryKey: ['geotab-live-locations'],
     queryFn: async () => {
@@ -85,16 +83,8 @@ export default function GeotabLiveMap() {
     enabled: !!selectedVehicle?.vehicle_id,
   });
 
-  // Geocode the selected vehicle's live coordinates to a street address
-  useEffect(() => {
-    if (!selectedVehicle?.lat || !selectedVehicle?.lng) { setSelectedAddress(null); return; }
-    let cancelled = false;
-    (async () => {
-      const addr = await reverseGeocode(selectedVehicle.lat, selectedVehicle.lng);
-      if (!cancelled) setSelectedAddress(addr);
-    })();
-    return () => { cancelled = true; };
-  }, [selectedVehicle?.lat, selectedVehicle?.lng]);
+  // Two-phase geocode the selected vehicle's live coordinates
+  const { label: selectedAddress } = useReverseGeocode(selectedVehicle?.lat, selectedVehicle?.lng);
 
   const allVehicles = liveData?.vehicles || [];
   const vehicles = useMemo(() => {

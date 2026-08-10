@@ -7,7 +7,7 @@ import {
   Square, Activity, Timer, ExternalLink,
 } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Popup } from 'react-leaflet';
-import { batchReverseGeocodeStructured, buildLabelFromParts } from '@/utils/reverseGeocode';
+import { reverseGeocodeFast, reverseGeocodeUpgrade, buildLabelFromParts } from '@/utils/reverseGeocode';
 
 const KM_TO_MI = 0.621371;
 function kmToMi(km) { return (Number(km) || 0) * KM_TO_MI; }
@@ -361,48 +361,80 @@ export default function TripTimelineEnhanced({ vehicle }) {
     enabled: !!vehicle?.id && !!vehicle?.geotab_device_id,
   });
 
-  // Frontend geocoding — the backend function's external geocoding calls can
-  // fail in the edge runtime. We always geocode trip coordinates here in the
-  // browser where BigDataCloud is reliably accessible. The cache prevents
-  // redundant API calls for coordinates already resolved.
+  // Two-phase frontend geocoding: BigDataCloud first (instant, parallel) then
+  // Nominatim upgrade (sequential, rate-limited). This makes trip locations
+  // appear instantly instead of showing coordinates for 10+ seconds.
   const trips = data?.trips || [];
   useEffect(() => {
     if (trips.length === 0) return;
     let cancelled = false;
+
     (async () => {
       const coords = [];
       for (const t of trips) {
-        if (t.start_lat != null) coords.push({ lat: t.start_lat, lng: t.start_lng });
-        if (t.end_lat != null) coords.push({ lat: t.end_lat, lng: t.end_lng });
+        if (t.start_lat != null) coords.push({ lat: t.start_lat, lng: t.start_lng, tripId: t.trip_id, type: 'start' });
+        if (t.end_lat != null) coords.push({ lat: t.end_lat, lng: t.end_lng, tripId: t.trip_id, type: 'end' });
         for (const s of (t.stops || [])) {
-          if (s.lat != null) coords.push({ lat: s.lat, lng: s.lng });
+          if (s.lat != null) coords.push({ lat: s.lat, lng: s.lng, tripId: t.trip_id, type: 'stop', stopIndex: t.stops.indexOf(s) });
         }
       }
       if (coords.length === 0) return;
-      const labels = await batchReverseGeocodeStructured(coords);
+
+      // Phase 1: Fast BigDataCloud — all in parallel, instant
+      const fastParts = {};
+      await Promise.all(coords.map(async (c) => {
+        if (cancelled) return;
+        try {
+          fastParts[`${c.lat.toFixed(4)},${c.lng.toFixed(4)}`] = await reverseGeocodeFast(c.lat, c.lng);
+        } catch (_) {}
+      }));
       if (cancelled) return;
+
+      const buildLoc = (lat, lng, fallback) => {
+        const key = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}`;
+        const parts = fastParts[key];
+        const label = buildLabelFromParts(parts);
+        return label || (lat != null ? `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}` : fallback);
+      };
+
       const updated = {};
       for (const t of trips) {
-        const sKey = t.start_lat != null ? `${Number(t.start_lat).toFixed(4)},${Number(t.start_lng).toFixed(4)}` : null;
-        const eKey = t.end_lat != null ? `${Number(t.end_lat).toFixed(4)},${Number(t.end_lng).toFixed(4)}` : null;
-        // Use geocoded address; fall back to coordinates (never "Unknown location")
-        const startLoc = sKey && labels[sKey]
-          ? (buildLabelFromParts(labels[sKey]) || t.start_location)
-          : (t.start_lat != null ? `${Number(t.start_lat).toFixed(4)}, ${Number(t.start_lng).toFixed(4)}` : t.start_location);
-        const endLoc = eKey && labels[eKey]
-          ? (buildLabelFromParts(labels[eKey]) || t.end_location)
-          : (t.end_lat != null ? `${Number(t.end_lat).toFixed(4)}, ${Number(t.end_lng).toFixed(4)}` : t.end_location);
+        const startLoc = t.start_lat != null ? buildLoc(t.start_lat, t.start_lng, t.start_location) : t.start_location;
+        const endLoc = t.end_lat != null ? buildLoc(t.end_lat, t.end_lng, t.end_location) : t.end_location;
         const stopLocs = (t.stops || []).map(s => {
-          const stKey = s.lat != null ? `${Number(s.lat).toFixed(4)},${Number(s.lng).toFixed(4)}` : null;
-          const sl = stKey && labels[stKey] ? buildLabelFromParts(labels[stKey]) : null;
-          // Stop fallback to coordinates too
-          const fallbackLoc = s.lat != null ? `${Number(s.lat).toFixed(4)}, ${Number(s.lng).toFixed(4)}` : (s.location || '—');
-          return sl ? { ...s, location: sl } : { ...s, location: fallbackLoc };
+          const loc = s.lat != null ? buildLoc(s.lat, s.lng, s.location || '—') : (s.location || '—');
+          return { ...s, location: loc };
         });
         updated[t.trip_id] = { start_location: startLoc, end_location: endLoc, stops: stopLocs };
       }
       if (!cancelled) setGeocodedTrips(updated);
+
+      // Phase 2: Nominatim upgrade — sequential (rate-limited)
+      for (const c of coords) {
+        if (cancelled) return;
+        const key = `${Number(c.lat).toFixed(4)},${Number(c.lng).toFixed(4)}`;
+        const existing = fastParts[key];
+        if (existing?.road) continue; // already have street data
+        try {
+          const upgraded = await reverseGeocodeUpgrade(c.lat, c.lng);
+          if (cancelled || !upgraded) continue;
+          fastParts[key] = upgraded;
+          // Rebuild the geocoded trips map with upgraded data
+          const rebuilt = {};
+          for (const t of trips) {
+            const startLoc = t.start_lat != null ? buildLoc(t.start_lat, t.start_lng, t.start_location) : t.start_location;
+            const endLoc = t.end_lat != null ? buildLoc(t.end_lat, t.end_lng, t.end_location) : t.end_location;
+            const stopLocs = (t.stops || []).map(s => {
+              const loc = s.lat != null ? buildLoc(s.lat, s.lng, s.location || '—') : (s.location || '—');
+              return { ...s, location: loc };
+            });
+            rebuilt[t.trip_id] = { start_location: startLoc, end_location: endLoc, stops: stopLocs };
+          }
+          if (!cancelled) setGeocodedTrips(rebuilt);
+        } catch (_) {}
+      }
     })();
+
     return () => { cancelled = true; };
   }, [trips]);
 

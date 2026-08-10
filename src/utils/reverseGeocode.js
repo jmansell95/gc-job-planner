@@ -79,6 +79,69 @@ function parseBigDataCloud(json) {
   };
 }
 
+// Fast geocode using BigDataCloud only — no rate limit, instant response.
+// Returns structured parts (may lack road/street data in free tier, but
+// always has town + postcode). Used as phase 1 of two-phase geocoding so
+// the UI shows SOMETHING immediately instead of coordinates.
+export async function reverseGeocodeFast(lat, lng) {
+  if (lat == null || lng == null) return null;
+  const key = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}`;
+
+  // If we already have structured data cached (from a previous Nominatim
+  // upgrade), return it instantly — no network call needed.
+  if (structuredCache.has(key)) return structuredCache.get(key);
+
+  try {
+    const res = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`,
+      { headers: { Accept: 'application/json' } }
+    );
+    if (res.ok) {
+      const json = await res.json();
+      const parts = parseBigDataCloud(json);
+      if (parts) {
+        structuredCache.set(key, parts);
+        const label = buildLabelFromParts(parts);
+        if (label) cache.set(key, label);
+        return parts;
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+
+// Upgrade geocode using Nominatim — rate-limited (1 req/sec) but has
+// road/street names + accurate postcodes. Called AFTER reverseGeocodeFast
+// to improve the result in the background. Skips if we already have
+// road-level data cached.
+export async function reverseGeocodeUpgrade(lat, lng) {
+  if (lat == null || lng == null) return null;
+  const key = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}`;
+
+  // If we already have road-level data, no need to upgrade
+  const existing = structuredCache.get(key);
+  if (existing?.road) return existing;
+
+  try {
+    await nominatimRateLimit();
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+      { headers: { Accept: 'application/json' } }
+    );
+    if (res.ok) {
+      const json = await res.json();
+      const parts = parseNominatim(json);
+      if (parts) {
+        structuredCache.set(key, parts);
+        const label = buildLabelFromParts(parts);
+        if (label) cache.set(key, label);
+        return parts;
+      }
+    }
+  } catch (_) {}
+  return structuredCache.get(key) || null;
+}
+
 export async function reverseGeocode(lat, lng) {
   if (lat == null || lng == null) return 'Unknown location';
   const key = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}`;

@@ -6,7 +6,20 @@ import {
   MapPin, Filter, ChevronDown, ChevronRight, AlertTriangle, Zap,
   TrendingDown, CornerUpRight, Activity, AlertCircle, FileDown,
 } from 'lucide-react';
-import { reverseGeocode, reverseGeocodeStructured } from '@/utils/reverseGeocode';
+import { reverseGeocodeFast, reverseGeocodeUpgrade, buildLabelFromParts } from '@/utils/reverseGeocode';
+
+// Format date/time from an ISO datetime string in the browser's locale.
+// The backend sends raw ISO datetime — the browser handles timezone
+// conversion + locale formatting correctly (Deno's toLocaleDateString
+// can return empty strings for 'en-GB').
+function formatEventDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function formatEventTime(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
 
 const VIOLATION_META = {
   harsh_braking: { label: 'Harsh Braking', Icon: AlertCircle, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
@@ -60,17 +73,28 @@ export default function SafetyEventsDrillDown({ vehicle }) {
   const events = data?.events || [];
   const summary = data?.summary || {};
 
+  // Enrich events with frontend-formatted date/time from the ISO datetime.
+  // The backend sends raw datetime; the browser formats it correctly.
+  const enrichedEvents = useMemo(() => {
+    return events.map(e => ({
+      ...e,
+      date: formatEventDate(e.datetime),
+      time: formatEventTime(e.datetime),
+    }));
+  }, [events]);
+
   const filteredEvents = useMemo(() => {
-    if (filterType === 'all') return events;
-    return events.filter(e => e.violation_type === filterType);
-  }, [events, filterType]);
+    if (filterType === 'all') return enrichedEvents;
+    return enrichedEvents.filter(e => e.violation_type === filterType);
+  }, [enrichedEvents, filterType]);
 
   // Group events by date for the timeline view
   const groupedByDate = useMemo(() => {
     const groups = {};
     for (const e of filteredEvents) {
-      if (!groups[e.date]) groups[e.date] = [];
-      groups[e.date].push(e);
+      const dateKey = e.date || '—';
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push(e);
     }
     return Object.entries(groups).sort((a, b) => {
       const da = new Date(a[1][0]?.datetime || 0).getTime();
@@ -79,36 +103,50 @@ export default function SafetyEventsDrillDown({ vehicle }) {
     });
   }, [filteredEvents]);
 
-  // Geocode event locations (batch, only for first 30 events)
-  // Fetches both a readable label AND structured parts (road, postcode) so the
-  // expanded detail can show the street name and postcode separately.
+  // Two-phase geocoding: BigDataCloud first (instant, parallel) then Nominatim
+  // upgrade (sequential, rate-limited). This makes addresses appear instantly
+  // instead of showing coordinates for 10+ seconds while Nominatim queues.
   useEffect(() => {
     if (filteredEvents.length === 0) return;
     const needsGeocoding = filteredEvents.filter(e => e.latitude && e.longitude && addresses[e.id] === undefined).slice(0, 30);
     if (needsGeocoding.length === 0) return;
     let cancelled = false;
+
     (async () => {
-      const newAddrs = {};
-      const newStructured = {};
-      for (const e of needsGeocoding) {
+      // Phase 1: Fast BigDataCloud — all in parallel, instant
+      const fastResults = {};
+      await Promise.all(needsGeocoding.map(async (e) => {
         if (cancelled) return;
         try {
-          const [label, parts] = await Promise.all([
-            reverseGeocode(e.latitude, e.longitude),
-            reverseGeocodeStructured(e.latitude, e.longitude),
-          ]);
-          newAddrs[e.id] = label;
-          newStructured[e.id] = parts;
+          const parts = await reverseGeocodeFast(e.latitude, e.longitude);
+          fastResults[e.id] = {
+            label: buildLabelFromParts(parts),
+            parts,
+          };
         } catch (_) {
-          newAddrs[e.id] = null;
-          newStructured[e.id] = null;
+          fastResults[e.id] = { label: null, parts: null };
         }
-      }
-      if (!cancelled) {
-        setAddresses(prev => ({ ...prev, ...newAddrs }));
-        setStructuredAddresses(prev => ({ ...prev, ...newStructured }));
+      }));
+      if (cancelled) return;
+      setAddresses(prev => ({ ...prev, ...Object.fromEntries(Object.entries(fastResults).map(([k, v]) => [k, v.label])) }));
+      setStructuredAddresses(prev => ({ ...prev, ...Object.fromEntries(Object.entries(fastResults).map(([k, v]) => [k, v.parts])) }));
+
+      // Phase 2: Nominatim upgrade — sequential (rate-limited 1 req/sec)
+      // Only for events that don't have road-level data yet
+      for (const e of needsGeocoding) {
+        if (cancelled) return;
+        const fastParts = fastResults[e.id]?.parts;
+        if (fastParts?.road) continue; // already have street data
+        try {
+          const upgradedParts = await reverseGeocodeUpgrade(e.latitude, e.longitude);
+          if (cancelled || !upgradedParts) continue;
+          const upgradedLabel = buildLabelFromParts(upgradedParts);
+          setAddresses(prev => ({ ...prev, [e.id]: upgradedLabel }));
+          setStructuredAddresses(prev => ({ ...prev, [e.id]: upgradedParts }));
+        } catch (_) {}
       }
     })();
+
     return () => { cancelled = true; };
   }, [filteredEvents, addresses]);
 

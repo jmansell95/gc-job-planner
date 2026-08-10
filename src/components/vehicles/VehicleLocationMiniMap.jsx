@@ -1,33 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { MapContainer, TileLayer, Marker, CircleMarker } from 'react-leaflet';
 import { MapPin, Clock, Navigation, ExternalLink, Loader2 } from 'lucide-react';
-import { reverseGeocodeStructured, buildLabelFromParts } from '@/utils/reverseGeocode';
+import { useReverseGeocode } from '@/hooks/useReverseGeocode';
 
 /**
  * A small, non-interactive Leaflet "snapshot" map showing a vehicle's last
  * known GPS position. Designed to sit inside a fleet card — no zoom controls,
  * no dragging, just a static pin thumbnail with a last-seen timestamp and
- * a Google Maps link. Uses the same shared reverseGeocode utility as the
- * trip history so location labels are consistent across the app.
+ * a Google Maps link. Uses the two-phase reverse geocode hook so the address
+ * appears instantly (BigDataCloud) then upgrades to street-level (Nominatim).
  */
 export default function VehicleLocationMiniMap({ lat, lng, timestamp, ignition_on, speed_kph, driver_name }) {
-  const [address, setAddress] = useState(null);
-  const [addrLoading, setAddrLoading] = useState(false);
-
-  // Reverse geocode using the shared utility — returns structured parts
-  // (road, suburb, postcode) so we can show "Street, Postcode" format.
-  useEffect(() => {
-    if (lat == null || lng == null) { setAddress(null); return; }
-    let cancelled = false;
-    setAddrLoading(true);
-    reverseGeocodeStructured(lat, lng).then(parts => {
-      if (cancelled) return;
-      setAddress(buildLabelFromParts(parts));
-    }).finally(() => {
-      if (!cancelled) setAddrLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [lat, lng]);
+  // Two-phase geocoding: instant BigDataCloud → background Nominatim upgrade
+  const { label: address, isLoading: addrLoading } = useReverseGeocode(lat, lng);
 
   const gmapsUrl = lat != null && lng != null
     ? `https://www.google.com/maps?q=${lat},${lng}`
