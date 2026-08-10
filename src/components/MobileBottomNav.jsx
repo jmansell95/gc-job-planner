@@ -65,6 +65,10 @@ export default function MobileBottomNav() {
             <button
               key={item.id}
               onClick={() => {
+                if (item.id === 'alerts') {
+                  window.dispatchEvent(new CustomEvent('gc-open-notifications'));
+                  return;
+                }
                 if (item.path) navigate(item.path);
               }}
               className={`flex flex-col items-center justify-center flex-1 relative active:scale-95 transition ${

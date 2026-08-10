@@ -48,6 +48,14 @@ export default function AdminNav({ activeSection, setActiveSection }) {
     return () => { document.body.style.overflow = prev; };
   }, [notifOpen, drawerOpen]);
 
+  // Allow the mobile bottom-nav Alerts button (a sibling component with no
+  // shared state) to open the notification center via a custom DOM event.
+  useEffect(() => {
+    const handler = () => setNotifOpen(true);
+    window.addEventListener('gc-open-notifications', handler);
+    return () => window.removeEventListener('gc-open-notifications', handler);
+  }, []);
+
   // Fallback to the auth user's name when the staff profile fetch fails
   // (common on published-site cold starts). Prevents the avatar showing '?'
   // when profile is null but the user is still logged in.
