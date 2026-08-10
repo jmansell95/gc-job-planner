@@ -33,9 +33,9 @@ export default function PresentationPack() {
         }
       />
       <div className="insight-card rounded-2xl overflow-hidden">
-        <div className="hero-gradient px-6 py-6 md:px-10 md:py-8 text-white">
+        <div className="px-6 py-6 md:px-10 md:py-8 bg-gradient-to-br from-[#f0fdf4] to-slate-50 border-b border-slate-100">
           <img src={EMBLEM_URL} alt="Ground Control" className="h-12 mb-3 object-contain" />
-          <p className="text-white/80 text-sm md:text-base">AI, automation & financial value proposition — a full 45-minute briefing, print-ready.</p>
+          <p className="text-slate-600 text-sm md:text-base">AI, automation & financial value proposition — a full 45-minute briefing, print-ready.</p>
         </div>
 
         <div className="p-6 md:p-10">

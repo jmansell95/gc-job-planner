@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, ScanLine, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert, ChevronRight, ChevronDown, PanelLeftClose, PanelLeftOpen, Wrench, Warehouse, Users, Contact, Zap, FileBarChart, FileUp, ClipboardCheck, FlaskConical } from 'lucide-react';
+import { Briefcase, Calendar, CalendarDays, Grid3x3, LogOut, Settings, Bell, HardHat, Sparkles, Menu, HelpCircle, Receipt, User, Truck, Boxes, Car, Clock, ShieldCheck, PoundSterling, ShieldAlert, ChevronRight, ChevronDown, PanelLeftClose, PanelLeftOpen, Wrench, Warehouse, Users, Contact, Zap, FileBarChart, FileUp, ClipboardCheck, FlaskConical } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -204,14 +204,10 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       {/* Compact action cluster — single row of quick actions */}
       <div className={`${collapsed ? 'px-1.5' : 'px-3'} pt-1.5 pb-1.5 border-t border-white/10 space-y-1.5`}>
         {!collapsed && <GlobalSearch />}
-        <div className={`grid ${collapsed ? 'grid-cols-1 gap-1.5' : 'grid-cols-4 gap-2'}`}>
+        <div className={`grid ${collapsed ? 'grid-cols-1 gap-1.5' : 'grid-cols-3 gap-2'}`}>
           <button onClick={openDrillingIntelligence} type="button" title="Drilling Intelligence"
             className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <HardHat className="w-4 h-4" />
-          </button>
-          <button onClick={() => setLensOpen(true)} type="button" title="Logistics Hub"
-            className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
-            <ScanLine className="w-4 h-4" />
           </button>
           <button onClick={openChat} type="button" title="Ask Assistant"
             className="h-9 flex items-center justify-center rounded-lg bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">

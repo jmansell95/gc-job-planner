@@ -440,7 +440,7 @@ export default function ImprovementRoadmap() {
         ]}
         actions={
           <button onClick={handleDownloadPDF} disabled={pdfLoading} type="button"
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 ring-1 ring-white/25 text-white text-sm font-medium active:scale-95 transition touch-manipulation disabled:opacity-60">
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#2E5A1A] text-white rounded-lg font-semibold text-sm hover:bg-[#1c4a12] active:scale-95 transition shadow-sm disabled:opacity-60">
             {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             <span className="hidden sm:inline">{pdfLoading ? 'Preparing...' : 'Download PDF'}</span>
           </button>
