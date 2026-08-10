@@ -1,0 +1,130 @@
+{
+  "name": "POAPriceLock",
+  "type": "object",
+  "properties": {
+    "rate_card_item_id": {
+      "type": "string",
+      "description": "Linked RateCardItem that was POA (price=null, price_text='POA') at the time this lock was created. The item that needed pricing."
+    },
+    "rate_card_item_description": {
+      "type": "string",
+      "description": "Denormalised description of the POA rate card item (for display without joining)."
+    },
+    "rate_card_source": {
+      "type": "string",
+      "enum": [
+        "our_company",
+        "supplier"
+      ],
+      "default": "our_company",
+      "description": "Which rate card this POA item came from."
+    },
+    "project_id": {
+      "type": "string",
+      "description": "Linked Project \u2014 when this lock is project-scoped (applies to all jobs under this project). Blank for job-specific or global locks."
+    },
+    "job_id": {
+      "type": "string",
+      "description": "Linked Job \u2014 when this lock is job-specific. Blank for project-scoped or global locks."
+    },
+    "agreed_price": {
+      "type": "number",
+      "description": "The agreed price in GBP \u2014 the price the contracts team negotiated with the client for this POA item."
+    },
+    "agreed_price_text": {
+      "type": "string",
+      "description": "Raw agreed price text when the price is not a simple number (e.g. 'TBC', 'varies')."
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unit of measure (denormalised from the RateCardItem \u2014 e.g. 'sum', 'day', 'm')."
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1,
+      "description": "Quantity this price applies to (e.g. 2 mobilisations). The total charge = agreed_price \u00d7 quantity."
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "global",
+        "project",
+        "job"
+      ],
+      "default": "job",
+      "description": "How widely this lock applies. 'global' = applies to all jobs (updates the rate card for everyone); 'project' = applies to all jobs under this project; 'job' = applies to one specific job only."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "agreed",
+        "expired",
+        "withdrawn"
+      ],
+      "default": "agreed",
+      "description": "Lock lifecycle. 'pending' = draft quote (not yet agreed with client); 'agreed' = client has agreed the price, charges can be stamped; 'expired' = past the expiry date; 'withdrawn' = cancelled by the contracts team."
+    },
+    "agreed_by_name": {
+      "type": "string",
+      "description": "Name of the contracts team member who agreed this price with the client."
+    },
+    "agreed_at": {
+      "type": "string",
+      "description": "ISO timestamp when the price was agreed/locked."
+    },
+    "client_reference": {
+      "type": "string",
+      "description": "Client's purchase order number or quote reference for this POA agreement."
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this locked price takes effect. The rate resolver uses this lock only for work done on or after this date."
+    },
+    "expiry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this locked price expires. Blank = open-ended (price stays locked until explicitly withdrawn)."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Negotiation notes \u2014 what was agreed, any conditions, special terms."
+    },
+    "stamped_records": {
+      "type": "number",
+      "default": 0,
+      "description": "Count of cost logs that were retroactively stamped when this lock was created. Updated by the lockPOAPrice function."
+    },
+    "stamped_value_gbp": {
+      "type": "number",
+      "default": 0,
+      "description": "Total GBP value of charges retroactively stamped when this lock was created. Updated by the lockPOAPrice function."
+    }
+  },
+  "required": [
+    "rate_card_item_id",
+    "rate_card_item_description",
+    "agreed_price",
+    "scope",
+    "status"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

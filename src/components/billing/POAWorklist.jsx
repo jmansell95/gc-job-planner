@@ -1,0 +1,314 @@
+import React, { useState, useMemo } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  Search, Lock, Loader2, AlertCircle, CheckCircle2, FileQuestion,
+  Users, Wrench, Package, Building2, Globe, FolderKanban, Briefcase,
+  TrendingUp, PoundSterling,
+} from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import SettingsSectionHeader from '@/components/SettingsSectionHeader';
+import POAPriceLockModal from '@/components/billing/POAPriceLockModal';
+
+const fmt = (n) => n != null && !isNaN(n) ? '£' + Number(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+
+const CATEGORY_META = {
+  labour: { label: 'Labour', icon: Users, color: 'text-emerald-700 bg-emerald-50' },
+  plant: { label: 'Plant', icon: Wrench, color: 'text-blue-700 bg-blue-50' },
+  materials: { label: 'Materials', icon: Package, color: 'text-amber-700 bg-amber-50' },
+};
+
+const SOURCE_META = {
+  our_company: { label: 'Our Rate Card', icon: Building2 },
+  supplier: { label: 'Supplier', icon: Building2 },
+};
+
+/**
+ * POA Worklist — shows all rate card items that are currently POA
+ * (price = null, price_text = "POA"), with their lock status.
+ * The contracts team uses this to identify outstanding POA items
+ * and lock in prices for specific jobs or projects.
+ */
+export default function POAWorklist() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [query, setQuery] = useState('');
+  const [filterSource, setFilterSource] = useState('all');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [filterLock, setFilterLock] = useState('all'); // all, locked, unlocked
+  const [lockModalItem, setLockModalItem] = useState(null);
+
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ['rate-card-items'],
+    queryFn: () => base44.entities.RateCardItem.list('-created_date', 1000),
+  });
+
+  const { data: locks = [] } = useQuery({
+    queryKey: ['poa-locks'],
+    queryFn: () => base44.entities.POAPriceLock.list('-agreed_at', 500),
+  });
+
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => base44.entities.Project.list(),
+  });
+
+  const { data: jobs = [] } = useQuery({
+    queryKey: ['jobs'],
+    queryFn: () => base44.entities.Job.list('-created_date', 500),
+  });
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['rate-card-items'] });
+    queryClient.invalidateQueries({ queryKey: ['poa-locks'] });
+  };
+
+  // POA items = price is null
+  const poaItems = useMemo(() => {
+    return items.filter((i) => i.price == null || isNaN(Number(i.price)));
+  }, [items]);
+
+  // Map of rate_card_item_id → locks
+  const locksByItem = useMemo(() => {
+    const map = {};
+    for (const l of locks) {
+      if (!map[l.rate_card_item_id]) map[l.rate_card_item_id] = [];
+      map[l.rate_card_item_id].push(l);
+    }
+    return map;
+  }, [locks]);
+
+  // Apply filters
+  const filtered = useMemo(() => {
+    let list = poaItems;
+    if (filterSource !== 'all') {
+      list = list.filter((i) => i.rate_card_source === filterSource);
+    }
+    if (filterCategory !== 'all') {
+      list = list.filter((i) => i.category === filterCategory);
+    }
+    if (filterLock === 'locked') {
+      list = list.filter((i) => locksByItem[i.id]?.length > 0);
+    } else if (filterLock === 'unlocked') {
+      list = list.filter((i) => !locksByItem[i.id]?.length);
+    }
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      list = list.filter((i) =>
+        (i.description || '').toLowerCase().includes(q) ||
+        (i.subcategory || '').toLowerCase().includes(q)
+      );
+    }
+    return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  }, [poaItems, filterSource, filterCategory, filterLock, query, locksByItem]);
+
+  // Stats
+  const stats = useMemo(() => {
+    const total = poaItems.length;
+    const locked = poaItems.filter((i) => locksByItem[i.id]?.length > 0).length;
+    const unlocked = total - locked;
+    const lockedValue = locks.reduce((sum, l) => sum + (Number(l.stamped_value_gbp) || 0), 0);
+    return { total, locked, unlocked, lockedValue };
+  }, [poaItems, locks, locksByItem]);
+
+  const getProjectName = (id) => projects.find((p) => p.id === id)?.name || 'Unknown Project';
+  const getJobName = (id) => jobs.find((j) => j.id === id)?.name || 'Unknown Job';
+
+  return (
+    <div className="space-y-4">
+      <SettingsSectionHeader
+        icon={FileQuestion}
+        title="POA Price Lock Manager"
+        description="Manage Price on Application items — lock in agreed prices for outstanding POA rates and apply them to jobs"
+      />
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <FileQuestion className="w-4 h-4 text-amber-500" />
+            <p className="text-xs text-slate-500 font-medium">Total POA Items</p>
+          </div>
+          <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Lock className="w-4 h-4 text-emerald-500" />
+            <p className="text-xs text-slate-500 font-medium">Price Locked</p>
+          </div>
+          <p className="text-2xl font-bold text-emerald-700">{stats.locked}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <AlertCircle className="w-4 h-4 text-red-500" />
+            <p className="text-xs text-slate-500 font-medium">Outstanding</p>
+          </div>
+          <p className="text-2xl font-bold text-red-600">{stats.unlocked}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <PoundSterling className="w-4 h-4 text-blue-500" />
+            <p className="text-xs text-slate-500 font-medium">Value Stamped</p>
+          </div>
+          <p className="text-2xl font-bold text-blue-700">{fmt(stats.lockedValue)}</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row gap-2.5">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search POA items by description or subcategory..."
+              className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-[#2E5A1A]"
+            />
+          </div>
+          <select
+            value={filterSource}
+            onChange={(e) => setFilterSource(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-[#2E5A1A]"
+          >
+            <option value="all">All Sources</option>
+            <option value="our_company">Our Rate Card</option>
+            <option value="supplier">Supplier</option>
+          </select>
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-[#2E5A1A]"
+          >
+            <option value="all">All Categories</option>
+            <option value="labour">Labour</option>
+            <option value="plant">Plant</option>
+            <option value="materials">Materials</option>
+          </select>
+          <select
+            value={filterLock}
+            onChange={(e) => setFilterLock(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:border-[#2E5A1A]"
+          >
+            <option value="all">All Lock Status</option>
+            <option value="unlocked">Outstanding Only</option>
+            <option value="locked">Locked Only</option>
+          </select>
+        </div>
+      </div>
+
+      {/* POA Items List */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-12 px-4">
+            <CheckCircle2 className="w-10 h-10 text-emerald-300 mx-auto mb-2" />
+            <p className="text-sm font-medium text-slate-500">
+              {stats.total === 0 ? 'No POA items in the rate card' : 'No POA items match your filters'}
+            </p>
+            <p className="text-xs text-slate-400 mt-1">
+              {stats.total === 0
+                ? 'All rate card items have prices. Great job!'
+                : 'Try adjusting your filters or search query.'}
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 max-h-[60vh] overflow-y-auto">
+            {filtered.map((item) => {
+              const itemLocks = locksByItem[item.id] || [];
+              const isLocked = itemLocks.length > 0;
+              const CatIcon = CATEGORY_META[item.category]?.icon || Package;
+              return (
+                <div key={item.id} className="px-4 py-3 hover:bg-slate-50/50 transition">
+                  <div className="flex items-start gap-3">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${CATEGORY_META[item.category]?.color || 'bg-slate-100'}`}>
+                      <CatIcon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-slate-800">{item.description}</p>
+                        {item.price_text && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                            {item.price_text}
+                          </span>
+                        )}
+                        {item.subcategory && (
+                          <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                            {item.subcategory}
+                          </span>
+                        )}
+                        {item.unit && (
+                          <span className="text-[10px] text-slate-400">/{item.unit}</span>
+                        )}
+                      </div>
+
+                      {/* Lock badges */}
+                      {isLocked && (
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                          {itemLocks.map((lock) => {
+                            const scopeIcon = lock.scope === 'global' ? Globe : lock.scope === 'project' ? FolderKanban : Briefcase;
+                            const ScopeIcon = scopeIcon;
+                            const scopeLabel = lock.scope === 'global'
+                              ? 'Global'
+                              : lock.scope === 'project'
+                                ? getProjectName(lock.project_id)
+                                : getJobName(lock.job_id);
+                            return (
+                              <span
+                                key={lock.id}
+                                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                title={`Locked by ${lock.agreed_by_name} on ${new Date(lock.agreed_at).toLocaleDateString('en-GB')}${lock.client_reference ? ` — Ref: ${lock.client_reference}` : ''}`}
+                              >
+                                <Lock className="w-2.5 h-2.5" />
+                                {fmt(lock.agreed_price)}
+                                <span className="text-emerald-500 font-normal">·</span>
+                                <ScopeIcon className="w-2.5 h-2.5" />
+                                {scopeLabel}
+                                {lock.stamped_records > 0 && (
+                                  <span className="text-emerald-400 font-normal">({lock.stamped_records} stamped)</span>
+                                )}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-shrink-0">
+                      <button
+                        onClick={() => setLockModalItem(item)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-[#2E5A1A] text-white hover:bg-[#1c4a12]"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        {isLocked ? 'Add Lock' : 'Lock Price'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Lock Modal */}
+      {lockModalItem && (
+        <POAPriceLockModal
+          item={lockModalItem}
+          projects={projects}
+          jobs={jobs}
+          existingLocks={locksByItem[lockModalItem.id] || []}
+          onClose={() => setLockModalItem(null)}
+          onLocked={() => {
+            setLockModalItem(null);
+            refresh();
+            toast({ title: 'POA price locked', description: 'All matching unpriced logs have been stamped.' });
+          }}
+        />
+      )}
+    </div>
+  );
+}

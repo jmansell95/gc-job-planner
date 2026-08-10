@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { resolveRate, loadActiveContract } from '../../shared/rateResolver.ts';
+import { resolvePOAPrice } from '../../shared/poaResolver.ts';
 
 // ============================================================
 // stampBillingCharge — auto-stamps charge_amount + billing_rule_id
@@ -143,6 +144,47 @@ export default async function(req: Request): Promise<Response> {
     // For delivery_type matching, also try matching the delivery_type value
     if (!rule && entityName === 'DeliveryLog' && record.delivery_type) {
       rule = rules.find((r: any) => String(r.name || '').toLowerCase().trim() === String(record.delivery_type).toLowerCase());
+    }
+
+    // ── POA lock check — before giving up, check if a POA price lock exists ──
+    // This catches items that are POA in the rate card but have been priced
+    // by the contracts team via a POAPriceLock record.
+    if (record.job_id && descValue) {
+      try {
+        const job = await base44.asServiceRole.entities.Job.get(record.job_id);
+        if (job) {
+          const poaQty = entityName === 'InvestigationLog'
+            ? (Number(record.units_completed) || ((Number(record.depth_to) || 0) - (Number(record.depth_from) || 0)) || 1)
+            : 1;
+          const poaResolved = await resolvePOAPrice(base44.asServiceRole, {
+            job_id: record.job_id,
+            project_id: job.project_id,
+            description: descValue,
+            quantity: poaQty,
+            job_date: record.log_date || record.date || job.start_date || null,
+          });
+          if (poaResolved) {
+            const poaBreakdown = {
+              source: poaResolved.rate_source,
+              poa_lock_id: poaResolved.poa_lock_id,
+              rate_card_item_id: poaResolved.rate_card_item_id,
+              unit_price: poaResolved.unit_price,
+              quantity: poaResolved.quantity,
+              total: poaResolved.total,
+              lock_scope: poaResolved.lock_scope,
+            };
+            try {
+              await base44.asServiceRole.entities[entityName].update(entityId, {
+                chargeable: true,
+                charge_amount: poaResolved.total,
+                charge_breakdown: JSON.stringify(poaBreakdown),
+                billing_status: 'auto',
+              });
+            } catch (e) { /* non-fatal */ }
+            return Response.json({ ok: true, entity_id: entityId, stamped: true, source: 'poa_lock', charge_amount: poaResolved.total });
+          }
+        }
+      } catch (_) { /* POA check failed — fall through to no_charge */ }
     }
 
     // No matching rule — stamp as no_charge (chargeable=false, £0)

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PoundSterling, Receipt, FileBarChart, FileText, Banknote, TrendingDown, FileCheck, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
+import { PoundSterling, Receipt, FileBarChart, FileText, Banknote, TrendingDown, FileCheck, ArrowRight, CheckCircle2, Clock, Lock } from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
 import InvoiceDiscrepancyWidget from '@/components/billing/InvoiceDiscrepancyWidget';
 import AgedDebtorsDashboard from '@/components/billing/AgedDebtorsDashboard';
 import BillingReadinessReport from '@/components/billing/BillingReadinessReport';
 import FinancialOverviewWidget from '@/components/billing/FinancialOverviewWidget';
+import POAWorklist from '@/components/billing/POAWorklist';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
 
@@ -77,6 +78,7 @@ export default function BillingPage() {
     { id: 'aged-debtors', label: 'Aged Debtors', icon: TrendingDown },
     { id: 'billing-readiness', label: 'Billing Readiness', icon: FileCheck },
     { id: 'rate-card', label: 'Price List', icon: Receipt },
+    { id: 'poa-lock', label: 'POA Locks', icon: Lock },
     { id: 'billing', label: 'Billing Rules', icon: Banknote },
     { id: 'billing-pipeline', label: 'Pipeline', icon: FileBarChart },
     { id: 'billing-contracts', label: 'Contracts', icon: FileText },
@@ -119,7 +121,8 @@ export default function BillingPage() {
           <NextStepButton currentTab={tab} onSelect={setTab} />
         </>
       )}
-      {tab !== 'invoicing' && tab !== 'aged-debtors' && tab !== 'billing-readiness' && tabs.map(t => tab === t.id && (
+      {tab === 'poa-lock' && <POAWorklist />}
+      {tab !== 'invoicing' && tab !== 'aged-debtors' && tab !== 'billing-readiness' && tab !== 'poa-lock' && tabs.map(t => tab === t.id && (
         <SettingsPage
           key={t.id}
           initialTab={t.id}
