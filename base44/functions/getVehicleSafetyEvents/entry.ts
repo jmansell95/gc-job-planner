@@ -129,18 +129,32 @@ export default async function(req: Request): Promise<Response> {
       return Array.isArray(json?.result) ? json.result : [];
     }
 
-    const [exceptions, ruleList] = await Promise.all([
+    const [exceptions, ruleList, driverList] = await Promise.all([
       geotabGet('ExceptionEvent', {
         deviceSearch: { id: vehicle.geotab_device_id },
         fromDate: fromDate.toISOString(),
         toDate: toDate.toISOString(),
       }, limit),
       geotabGet('Rule', undefined, 2000),
+      geotabGet('Driver', undefined, 5000),
     ]);
 
-    // Build rule lookup map
+    // Build lookup maps
     const ruleMap: Record<string, any> = {};
     for (const r of ruleList) ruleMap[r.id] = r;
+    const driverMap: Record<string, any> = {};
+    for (const d of driverList) driverMap[d.id] = d;
+
+    // Parse a Geotab TimeSpan string "HH:MM:SS.fffffff" into seconds
+    function parseDuration(durationStr: string | null): number | null {
+      if (!durationStr || typeof durationStr !== 'string') return null;
+      const parts = durationStr.split(':');
+      if (parts.length < 3) return null;
+      const h = parseInt(parts[0], 10) || 0;
+      const m = parseInt(parts[1], 10) || 0;
+      const s = parseFloat(parts[2]) || 0;
+      return h * 3600 + m * 60 + s;
+    }
 
     // Process events into a clean structure
     const events = exceptions
@@ -148,20 +162,22 @@ export default async function(req: Request): Promise<Response> {
         const rule = ex.rule?.id ? ruleMap[ex.rule.id] : null;
         const ruleName = rule?.name || ex.rule?.name || 'Unknown Rule';
         const violationType = classifyRule(ruleName);
-        const dt = ex.dateTime ? new Date(ex.dateTime) : null;
-        // Send raw ISO datetime — the frontend formats date/time in the
-        // browser where locale + timezone support is guaranteed. Deno's
-        // toLocaleDateString('en-GB') can return empty strings.
+        // Geotab ExceptionEvent uses `activeFrom` for the event start time
+        // (not `dateTime`). Fall back to `createdDateTime` if missing.
+        const dtStr = ex.activeFrom || ex.createdDateTime || null;
+        const dt = dtStr ? new Date(dtStr) : null;
+        // Look up driver name from the Driver map (ExceptionEvent only has driver.id)
+        const driver = ex.driver?.id ? driverMap[ex.driver.id] : null;
         return {
-          id: ex.id || `${ex.device?.id}-${ex.dateTime}`,
-          datetime: dt?.toISOString() || null,
+          id: ex.id || `${ex.device?.id}-${dtStr}`,
+          datetime: dt && !isNaN(dt.getTime()) ? dt.toISOString() : null,
           violation_type: violationType,
           violation_label: VIOLATION_LABELS[violationType] || ruleName,
           rule_name: ruleName,
-          driver_name: ex.driver?.name || null,
+          driver_name: driver?.name || driver?.firstName || null,
           speed_kph: ex.speed != null ? Number(ex.speed) : null,
           speed_limit_kph: ex.maximumSpeed != null ? Number(ex.maximumSpeed) : null,
-          duration_seconds: ex.duration != null ? Number(ex.duration) : null,
+          duration_seconds: parseDuration(ex.duration),
           latitude: ex.latitude != null ? Number(ex.latitude) : null,
           longitude: ex.longitude != null ? Number(ex.longitude) : null,
           device_name: ex.device?.name || null,
