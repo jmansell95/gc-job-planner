@@ -102,11 +102,28 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Extract rate values
-    const flatFee = Number(rule.flat_fee) || 0;
-    const mileRate = Number(rule.per_mile_rate) || 0;
-    const hourRate = Number(rule.per_hour_rate) || 0;
-    const unitRate = Number(rule.per_unit_rate) || 0;
+    // ── Rate Card Link ──
+    // When a BillingRule has a rate_card_item_id, pull the rate dynamically from
+    // the linked RateCardItem instead of using the hardcoded rate fields. This
+    // makes the Master Price List the single source of truth — update the rate
+    // card and all linked billing rules update automatically.
+    let rateCardItem: any = null;
+    let rateCardSource = '';
+    if (rule.rate_card_item_id) {
+      try {
+        rateCardItem = await base44.asServiceRole.entities.RateCardItem.get(rule.rate_card_item_id);
+        if (rateCardItem) {
+          rateCardSource = rateCardItem.description || 'Rate Card';
+        }
+      } catch (_) { /* rate card item deleted — fall back to rule rates */ }
+    }
+
+    // Extract rate values — use rate card price when linked, otherwise rule fields
+    const rateCardPrice = rateCardItem ? Number(rateCardItem.price) || 0 : null;
+    const flatFee = rateCardPrice != null ? rateCardPrice : (Number(rule.flat_fee) || 0);
+    const mileRate = rateCardPrice != null ? rateCardPrice : (Number(rule.per_mile_rate) || 0);
+    const hourRate = rateCardPrice != null ? rateCardPrice : (Number(rule.per_hour_rate) || 0);
+    const unitRate = rateCardPrice != null ? rateCardPrice : (Number(rule.per_unit_rate) || 0);
     const actualMiles = Number(miles) || 0;
     const actualMins = Number(duration_minutes) || 0;
     const actualUnits = Number(units) || 1;
@@ -166,7 +183,14 @@ Deno.serve(async (req) => {
     // details, rule names, and component labels. Other users get the charge
     // amount (needed for entity saves) but a redacted breakdown.
     const breakdown = canViewCostings
-      ? { rule_name: rule.name, method: rule.charge_method, components, total: chargeAmount }
+      ? {
+          rule_name: rule.name,
+          method: rule.charge_method,
+          rate_card_linked: !!rateCardItem,
+          rate_card_source: rateCardSource || null,
+          components,
+          total: chargeAmount,
+        }
       : { total: chargeAmount };
 
     return Response.json({
