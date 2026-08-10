@@ -37,17 +37,21 @@ export const WIDGET_REGISTRY = {
 //  Tier 1 — At a Glance: live operational widgets for quick situational awareness
 //  Tier 2 — Insights & Analysis: AI predictions, benchmarks, and deeper analysis
 // ═══════════════════════════════════════════════════════════════════
+// Curated default set — only the most essential, fully-clickable widgets
+// show by default. The rest are available via the Customize button.
 export const TIER_GLANCE = [
-  'site-readiness-gate',
-  'borehole-progress',
-  'crew-cert-pulse',
   'executive-snapshot',
   'mission-control',
+  'site-readiness-gate',
   'field-priorities',
   'exception-monitor',
+  'yard-control',
 ];
 
 export const TIER_INSIGHTS = [
+  'borehole-progress',
+  'crew-cert-pulse',
+  'live-site-map',
   'ai-insights',
   'predictive-insights',
   'site-weather',

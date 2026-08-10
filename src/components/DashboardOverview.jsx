@@ -99,27 +99,27 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
   const renderWidget = (widgetId) => {
     switch (widgetId) {
       case 'site-readiness-gate': return <SiteReadinessGateWidget onNavigate={onNavigate} />;
-      case 'borehole-progress': return <BoreholeProgressWidget />;
-      case 'crew-cert-pulse': return <CrewCertificationPulseWidget />;
+      case 'borehole-progress': return <BoreholeProgressWidget onNavigate={onNavigate} />;
+      case 'crew-cert-pulse': return <CrewCertificationPulseWidget onNavigate={onNavigate} />;
       case 'executive-snapshot': return <ExecutiveSnapshotWidget onNavigate={onNavigate} />;
       case 'mission-control': return <MissionControlWidget onNavigate={onNavigate} />;
-      case 'field-priorities': return <FieldPrioritiesWidget />;
+      case 'field-priorities': return <FieldPrioritiesWidget onNavigate={onNavigate} />;
       case 'yard-control': return <YardControlWidget onNavigate={onNavigate} />;
       case 'exception-monitor': return <ExceptionMonitorWidget onNavigate={onNavigate} />;
-      case 'live-site-map': return <LiveSiteMapWidget />;
-      case 'ai-insights': return <AiInsightsWidget />;
-      case 'predictive-insights': return <PredictiveInsightsWidget />;
+      case 'live-site-map': return <LiveSiteMapWidget onNavigate={onNavigate} />;
+      case 'ai-insights': return <AiInsightsWidget onNavigate={onNavigate} />;
+      case 'predictive-insights': return <PredictiveInsightsWidget onNavigate={onNavigate} />;
       case 'site-weather': return <SiteWeatherOverviewWidget onSelectJob={openJobDrawer} />;
-      case 'client-feedback': return <ClientFeedbackWidget />;
-      case 'benchmark-comparisons': return <BenchmarkComparisonsWidget />;
-      case 'geo-heatmap': return <GeotechnicalHeatmapWidget />;
+      case 'client-feedback': return <ClientFeedbackWidget onNavigate={onNavigate} />;
+      case 'benchmark-comparisons': return <BenchmarkComparisonsWidget onNavigate={onNavigate} />;
+      case 'geo-heatmap': return <GeotechnicalHeatmapWidget onNavigate={onNavigate} />;
       case 'predictive-maintenance': return <PredictiveMaintenanceWidget onSelectVehicle={(v) => onNavigate?.('assets')} />;
       case 'reports-hub': return <ReportsHubWidget onNavigate={onNavigate} />;
       case 'project-health': return <ProjectHealthDashboardWidget onNavigate={onNavigate} />;
-      case 'carbon-footprint': return <CarbonFootprintWidget />;
+      case 'carbon-footprint': return <CarbonFootprintWidget onNavigate={onNavigate} />;
       case 'system-health': return <SystemHealthWidget onNavigate={onNavigate} />;
-      case 'staff-utilization': return <StaffUtilizationWidget />;
-      case 'financial-reconciliation': return <FinancialReconciliationWidget />;
+      case 'staff-utilization': return <StaffUtilizationWidget onNavigate={onNavigate} />;
+      case 'financial-reconciliation': return <FinancialReconciliationWidget onNavigate={onNavigate} />;
       default: return null;
     }
   };

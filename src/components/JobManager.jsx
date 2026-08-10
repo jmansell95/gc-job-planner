@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, FolderOpen, Copy } from 'lucide-react';
+import { Plus, Trash2, Edit2, Briefcase, FileText, Eye, Search, MapPin, FolderOpen, Copy, LayoutGrid, BarChart3 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import { EmptyState, ErrorState, CardGridSkeleton } from '@/components/StateViews';
 import JobDetail from '@/components/JobDetail';
@@ -9,6 +9,7 @@ import JobWizardModal from '@/components/JobWizardModal';
 import PrintReportButton from '@/components/PrintReportButton';
 import JobCreatedModal from '@/components/JobCreatedModal';
 import ProjectManager from '@/components/ProjectManager';
+import JobKanbanBoard from '@/components/dashboard/JobKanbanBoard';
 import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
@@ -79,9 +80,10 @@ export default function JobManager({ onNavigateRota }) {
   const [editingJob, setEditingJob] = useState(null);
   const [cloningId, setCloningId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('active');
   const [createdJob, setCreatedJob] = useState(null);
   const [view, setView] = useState('jobs'); // 'jobs' | 'projects'
+  const [layoutView, setLayoutView] = useState('grid'); // 'grid' | 'kanban'
 
   const queryClient = useQueryClient();
 
@@ -166,7 +168,10 @@ export default function JobManager({ onNavigateRota }) {
       job.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (job.job_reference || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || (job.status || 'planning') === statusFilter;
+    const jobStatus = job.status || 'planning';
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'active' && (jobStatus === 'planning' || jobStatus === 'in_progress' || jobStatus === 'decommissioning')) ||
+      jobStatus === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -190,6 +195,16 @@ export default function JobManager({ onNavigateRota }) {
                 <FolderOpen className="w-3.5 h-3.5" /> Projects
               </button>
             </div>
+            {view === 'jobs' && (
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+                <button onClick={() => setLayoutView('grid')} className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition ${layoutView === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                  <LayoutGrid className="w-3.5 h-3.5" /> Grid
+                </button>
+                <button onClick={() => setLayoutView('kanban')} className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition ${layoutView === 'kanban' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                  <BarChart3 className="w-3.5 h-3.5" /> Kanban
+                </button>
+              </div>
+            )}
             <PrintReportButton buildHtml={buildJobsPrintHtml} label="Print Jobs List" />
             <button
               onClick={() => { setEditingJob(null); setShowWizard(true); }}
@@ -228,6 +243,7 @@ export default function JobManager({ onNavigateRota }) {
           {/* Status buttons */}
           <div className="flex flex-wrap items-center gap-2">
             {[
+              { value: 'active', label: 'Active', count: jobs.filter(j => ['planning','in_progress','decommissioning'].includes(j.status || 'planning')).length },
               { value: 'all', label: 'All', count: jobs.length },
               { value: 'planning', label: 'Planning', count: jobs.filter(j => (j.status || 'planning') === 'planning').length },
               { value: 'in_progress', label: 'In Progress', count: jobs.filter(j => (j.status || 'planning') === 'in_progress').length },
@@ -267,9 +283,13 @@ export default function JobManager({ onNavigateRota }) {
         </div>
       )}
 
-      {/* Jobs Grid — only in Jobs view */}
+      {/* Jobs Grid/Kanban — only in Jobs view */}
       {view === 'jobs' && (
         <>
+          {layoutView === 'kanban' ? (
+            <JobKanbanBoard onSelectJob={(job) => setSelectedJob(job)} />
+          ) : (
+          <>
           {isLoading ? (
             <CardGridSkeleton count={6} />
           ) : isError ? (
@@ -352,6 +372,8 @@ export default function JobManager({ onNavigateRota }) {
                 );
               })}
             </div>
+          )}
+          </>
           )}
         </>
       )}

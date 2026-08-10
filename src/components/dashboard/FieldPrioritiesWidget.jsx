@@ -14,7 +14,7 @@ import ModernBadge from '@/components/ui/ModernBadge';
  * - Deliveries scheduled today
  * - Unacknowledged schedule changes
  */
-export default function FieldPrioritiesWidget() {
+export default function FieldPrioritiesWidget({ onNavigate }) {
   const today = new Date().toISOString().slice(0, 10);
   const in7Days = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 
@@ -34,9 +34,9 @@ export default function FieldPrioritiesWidget() {
   });
 
   const priorities = [
-    { id: 'deliveries', icon: Truck, label: 'Deliveries Due Today', count: deliveries.length, variant: 'info', desc: deliveries.length > 0 ? `${deliveries.length} pending delivery/dollection task(s)` : 'No deliveries scheduled' },
-    { id: 'briefings', icon: ClipboardCheck, label: 'Briefings Pending', count: assignments.length, variant: assignments.length > 0 ? 'warning' : 'ok', desc: assignments.length > 0 ? `${assignments.length} crew member(s) need briefing sign-off` : 'All briefings complete' },
-    { id: 'safety', icon: ShieldAlert, label: 'Open Safety Items', count: safetyReports.length, variant: safetyReports.length > 0 ? 'danger' : 'ok', desc: safetyReports.length > 0 ? `${safetyReports.length} open safety report(s)` : 'No open safety items' },
+    { id: 'deliveries', icon: Truck, label: 'Deliveries Due Today', count: deliveries.length, variant: 'info', desc: deliveries.length > 0 ? `${deliveries.length} pending delivery/collection task(s)` : 'No deliveries scheduled', nav: 'logistics' },
+    { id: 'briefings', icon: ClipboardCheck, label: 'Briefings Pending', count: assignments.length, variant: assignments.length > 0 ? 'warning' : 'ok', desc: assignments.length > 0 ? `${assignments.length} crew member(s) need briefing sign-off` : 'All briefings complete', nav: 'scheduling' },
+    { id: 'safety', icon: ShieldAlert, label: 'Open Safety Items', count: safetyReports.length, variant: safetyReports.length > 0 ? 'danger' : 'ok', desc: safetyReports.length > 0 ? `${safetyReports.length} open safety report(s)` : 'No open safety items', nav: 'compliance' },
   ];
 
   const totalActions = priorities.reduce((sum, p) => sum + p.count, 0);
@@ -56,7 +56,7 @@ export default function FieldPrioritiesWidget() {
           {priorities.map(p => {
             const Icon = p.icon;
             return (
-              <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50/50 transition">
+              <button key={p.id} onClick={() => onNavigate?.(p.nav)} className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50/50 transition text-left group">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
                   p.variant === 'danger' ? 'bg-rose-50' : p.variant === 'warning' ? 'bg-amber-50' : p.variant === 'info' ? 'bg-blue-50' : 'bg-emerald-50'
                 }`}>
@@ -69,7 +69,8 @@ export default function FieldPrioritiesWidget() {
                   <p className="text-xs text-slate-400 truncate">{p.desc}</p>
                 </div>
                 {p.count > 0 && <ModernBadge variant={p.variant}>{p.count}</ModernBadge>}
-              </div>
+                <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition flex-shrink-0" />
+              </button>
             );
           })}
         </div>

@@ -3,8 +3,9 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { GripVertical, Eye, EyeOff, Settings2, Check, RotateCcw } from 'lucide-react';
 import { WIDGET_REGISTRY, DEFAULT_WIDGETS, TIER_META, WIDGET_TIER } from '@/components/dashboard/registry';
 
-const ORDER_KEY = 'dashboard-widget-order';
-const HIDDEN_KEY = 'dashboard-widget-hidden';
+// v2 keys — reset all users to the new curated 6-widget default
+const ORDER_KEY = 'dashboard-widget-order-v2';
+const HIDDEN_KEY = 'dashboard-widget-hidden-v2';
 
 function loadOrder() {
   try {
