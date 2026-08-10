@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, LogOut, HelpCircle, User, CalendarDays, HardHat, ScanLine, Truck, Bell } from 'lucide-react';
+import { X, Sparkles, LogOut, HelpCircle, User, CalendarDays, HardHat, Truck, Bell } from 'lucide-react';
 import Logo from '@/components/Logo';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 
-export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onHelp, onProfile, onDrillingIntelligence, onAssetLens, onDeliveries, onNotifications, notifCount = 0, profile }) {
+export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSection, onNavigate, onLogout, onAssistant, onHelp, onProfile, onDrillingIntelligence, onDeliveries, onNotifications, notifCount = 0, profile }) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -48,19 +48,12 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
             {/* Power Tools — mobile parity with the desktop sidebar action cluster */}
             <div className="px-3 pt-4 pb-1">
               <p className="px-1 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45">Power Tools</p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {onDrillingIntelligence && (
                   <button onClick={onDrillingIntelligence} type="button"
                     className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition touch-manipulation select-none ring-1 ring-white/15">
                     <HardHat className="w-4 h-4" />
                     <span className="text-[10px] font-medium leading-tight text-center">Drilling AI</span>
-                  </button>
-                )}
-                {onAssetLens && (
-                  <button onClick={onAssetLens} type="button"
-                    className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition touch-manipulation select-none ring-1 ring-white/15">
-                    <ScanLine className="w-4 h-4" />
-                    <span className="text-[10px] font-medium leading-tight text-center">Logistics Hub</span>
                   </button>
                 )}
                 {onAssistant && (

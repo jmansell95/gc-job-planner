@@ -9,7 +9,6 @@ import { useDrillingIntelligence } from '@/components/DrillingIntelligenceChat';
 import { useNavigate } from 'react-router-dom';
 import MobileNavDrawer from '@/components/MobileNavDrawer';
 import GlobalSearch from '@/components/GlobalSearch';
-import AssetLens from '@/components/logistics/AssetLens';
 import { canAccessSection } from '@/utils/access';
 import Logo from '@/components/Logo';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
@@ -19,7 +18,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
   const { user: authUser } = useAuth();
   const [notifOpen, setNotifOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [lensOpen, setLensOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [collapsed, setCollapsed] = useState(() => {
@@ -315,7 +313,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
         onDrillingIntelligence={() => { openDrillingIntelligence(); setDrawerOpen(false); }}
         onNotifications={() => { setNotifOpen(true); setDrawerOpen(false); }}
         notifCount={notifCount}
-        onAssetLens={() => { setLensOpen(true); setDrawerOpen(false); }}
         onDeliveries={() => { navigate('/deliveries'); setDrawerOpen(false); }}
         onHelp={() => { navigate('/help'); setDrawerOpen(false); }}
         onProfile={() => { navigate('/staff-profile'); setDrawerOpen(false); }}
@@ -323,7 +320,6 @@ export default function AdminNav({ activeSection, setActiveSection }) {
       />
 
       <NotificationCenter isOpen={notifOpen} onClose={() => setNotifOpen(false)} onNavigate={setActiveSection} notifications={notifications} />
-      <AssetLens open={lensOpen} onClose={() => setLensOpen(false)} />
     </>
   );
 }
