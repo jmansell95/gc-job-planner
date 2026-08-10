@@ -79,10 +79,25 @@ function parseBigDataCloud(json) {
   };
 }
 
-// Fast geocode using BigDataCloud only — no rate limit, instant response.
-// Returns structured parts (may lack road/street data in free tier, but
-// always has town + postcode). Used as phase 1 of two-phase geocoding so
-// the UI shows SOMETHING immediately instead of coordinates.
+// Parse Photon (Komoot) response — free, no rate limit, has street + postcode.
+// Photon is based on OpenStreetMap data and supports CORS (client-side use).
+// Response: { features: [{ properties: { street, postcode, city, country, ... } }] }
+function parsePhoton(json) {
+  if (!json?.features?.[0]?.properties) return null;
+  const p = json.features[0].properties;
+  return {
+    road: p.street || p.name || '',
+    suburb: p.neighbourhood || p.locality || p.suburb || '',
+    town: p.city || p.town || p.village || p.county || p.state || '',
+    postcode: p.postcode || '',
+    country: p.country || '',
+  };
+}
+
+// Fast geocode using Photon (Komoot) — free, no rate limit, has street + postcode.
+// Falls back to BigDataCloud if Photon fails. Returns structured parts with
+// road/suburb/town/postcode. Used as phase 1 of two-phase geocoding so the UI
+// shows street-level data immediately instead of coordinates.
 export async function reverseGeocodeFast(lat, lng) {
   if (lat == null || lng == null) return null;
   const key = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}`;
@@ -91,6 +106,26 @@ export async function reverseGeocodeFast(lat, lng) {
   // upgrade), return it instantly — no network call needed.
   if (structuredCache.has(key)) return structuredCache.get(key);
 
+  // Primary: Photon — has street + postcode, no rate limit, supports CORS
+  try {
+    const res = await fetch(
+      `https://photon.komoot.io/reverse?lon=${lng}&lat=${lat}`,
+      { headers: { Accept: 'application/json' } }
+    );
+    if (res.ok) {
+      const json = await res.json();
+      const parts = parsePhoton(json);
+      if (parts && (parts.road || parts.town || parts.postcode)) {
+        structuredCache.set(key, parts);
+        const label = buildLabelFromParts(parts);
+        if (label) cache.set(key, label);
+        return parts;
+      }
+    }
+  } catch (_) {}
+
+  // Fallback: BigDataCloud — no street data in free tier but always returns
+  // town + postcode. Better than showing raw coordinates.
   try {
     const res = await fetch(
       `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`,

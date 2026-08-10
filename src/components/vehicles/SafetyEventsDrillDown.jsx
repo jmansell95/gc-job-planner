@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
@@ -54,6 +54,7 @@ export default function SafetyEventsDrillDown({ vehicle }) {
   const [addresses, setAddresses] = useState({});
   const [structuredAddresses, setStructuredAddresses] = useState({});
   const [exporting, setExporting] = useState(false);
+  const geocodedRef = useRef(new Set());
 
   const fromDate = useMemo(() => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString(), [days]);
 
@@ -103,17 +104,25 @@ export default function SafetyEventsDrillDown({ vehicle }) {
     });
   }, [filteredEvents]);
 
-  // Two-phase geocoding: BigDataCloud first (instant, parallel) then Nominatim
-  // upgrade (sequential, rate-limited). This makes addresses appear instantly
-  // instead of showing coordinates for 10+ seconds while Nominatim queues.
+  // Two-phase geocoding: Photon first (instant, parallel, has street+postcode)
+  // then Nominatim upgrade (sequential, rate-limited) as a safety net.
+  //
+  // CRITICAL: The dependency array is [filteredEvents] only — NOT addresses.
+  // If addresses is in the deps, the effect re-runs after phase 1 setAddresses,
+  // the cleanup sets cancelled=true, and the phase 2 Nominatim upgrades get
+  // killed before they complete. A ref tracks geocoded IDs to avoid re-runs.
   useEffect(() => {
     if (filteredEvents.length === 0) return;
-    const needsGeocoding = filteredEvents.filter(e => e.latitude && e.longitude && addresses[e.id] === undefined).slice(0, 30);
+    const needsGeocoding = filteredEvents.filter(e => e.latitude && e.longitude && !geocodedRef.current.has(e.id)).slice(0, 30);
     if (needsGeocoding.length === 0) return;
+
+    // Mark as geocoded immediately so re-renders don't re-trigger
+    needsGeocoding.forEach(e => geocodedRef.current.add(e.id));
+
     let cancelled = false;
 
     (async () => {
-      // Phase 1: Fast BigDataCloud — all in parallel, instant
+      // Phase 1: Photon — all in parallel, instant, has street + postcode
       const fastResults = {};
       await Promise.all(needsGeocoding.map(async (e) => {
         if (cancelled) return;
@@ -148,7 +157,7 @@ export default function SafetyEventsDrillDown({ vehicle }) {
     })();
 
     return () => { cancelled = true; };
-  }, [filteredEvents, addresses]);
+  }, [filteredEvents]);
 
   const handleExportCSV = () => {
     if (filteredEvents.length === 0) return;
