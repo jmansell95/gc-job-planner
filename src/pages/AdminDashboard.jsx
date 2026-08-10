@@ -110,7 +110,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen page-bg-vibrant">
-      <AdminNav activeSection={activeSection} setActiveSection={handleSetActiveSection} />
+      <AdminNav activeSection={activeSection} setActiveSection={handleSetActiveSection} onSettingsTabClick={(tab) => { setSettingsTab(tab); setActiveSection('settings'); }} />
       <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] lg:pt-0">
         <div className="px-4 pb-24 md:px-6 lg:pb-4 lg:pt-6 w-full">
           <Breadcrumbs sectionLabel={SECTION_LABELS[activeSection]} />

@@ -9,17 +9,19 @@ import { useDrillingIntelligence } from '@/components/DrillingIntelligenceChat';
 import { useNavigate } from 'react-router-dom';
 import MobileNavDrawer from '@/components/MobileNavDrawer';
 import GlobalSearch from '@/components/GlobalSearch';
-import { canAccessSection } from '@/utils/access';
+import { canAccessSection, resolveRole } from '@/utils/access';
+import { settingsGroups, HUB_MIGRATED_ITEMS, accessibleSettingsItems } from '@/components/SettingsNav';
 import Logo from '@/components/Logo';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 
-export default function AdminNav({ activeSection, setActiveSection }) {
+export default function AdminNav({ activeSection, setActiveSection, onSettingsTabClick }) {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const [notifOpen, setNotifOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [systemExpanded, setSystemExpanded] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('gc-sidebar-collapsed') === 'true'; } catch { return false; }
   });
@@ -194,16 +196,55 @@ export default function AdminNav({ activeSection, setActiveSection }) {
               </div>
             );
           }
+          const isSettings = item.id === 'settings' && !collapsed && onSettingsTabClick;
           return (
-            <button key={item.id} type="button" onClick={() => setActiveSection(item.id)} title={collapsed ? item.label : undefined}
-              className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-3'} ${collapsed ? 'px-0 py-2.5' : 'px-3.5 py-2'} rounded-xl text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
-                isActive
-                  ? 'command-gradient text-white shadow-lg glow-brand ring-1 ring-[#8DC63F]/30'
-                  : 'text-white/75 hover:bg-white/10 hover:text-white'
-              }`}>
-              <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? 'text-[#8DC63F]' : ''}`} />
-              {!collapsed && <span>{item.label}</span>}
-            </button>
+            <div key={item.id}>
+              <div className="flex items-center gap-0.5">
+                <button type="button" onClick={() => setActiveSection(item.id)} title={collapsed ? item.label : undefined}
+                  className={`flex-1 flex items-center ${collapsed ? 'justify-center' : 'gap-3'} ${collapsed ? 'px-0 py-2.5' : 'px-3.5 py-2'} rounded-xl text-sm font-medium transition cursor-pointer touch-manipulation select-none ${
+                    isActive
+                      ? 'command-gradient text-white shadow-lg glow-brand ring-1 ring-[#8DC63F]/30'
+                      : 'text-white/75 hover:bg-white/10 hover:text-white'
+                  }`}>
+                  <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? 'text-[#8DC63F]' : ''}`} />
+                  {!collapsed && <span className={isSettings ? 'flex-1 text-left' : ''}>{item.label}</span>}
+                </button>
+                {isSettings && (
+                  <button type="button" onClick={() => setSystemExpanded(!systemExpanded)} title={systemExpanded ? 'Collapse settings' : 'Expand settings'}
+                    className="w-7 h-9 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition flex-shrink-0">
+                    {systemExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                  </button>
+                )}
+              </div>
+              {isSettings && systemExpanded && (
+                <div className="ml-4 mt-0.5 mb-1 space-y-0.5 max-h-[400px] overflow-y-auto no-scrollbar">
+                  {settingsGroups
+                    .filter(g => g.label !== '_hidden_migrated')
+                    .map(group => {
+                      const accessible = accessibleSettingsItems(resolveRole(profile) || 'admin', profile);
+                      const groupItems = group.items.filter(i =>
+                        !HUB_MIGRATED_ITEMS.has(i.id) && i.id !== 'hub' && accessible.find(a => a.id === i.id)
+                      );
+                      if (groupItems.length === 0) return null;
+                      return (
+                        <div key={group.label}>
+                          <p className="px-2 py-1 text-[9px] font-bold text-white/40 uppercase tracking-wider">{group.label}</p>
+                          {groupItems.map(sub => {
+                            const SubIcon = sub.icon;
+                            return (
+                              <button key={sub.id} type="button" onClick={() => onSettingsTabClick(sub.id)}
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white/60 hover:bg-white/10 hover:text-white transition text-left">
+                                <SubIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                                <span className="truncate">{sub.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>

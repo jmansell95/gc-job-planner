@@ -46,7 +46,7 @@ export default function AppLayout() {
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen page-bg-vibrant">
-      <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} />
+      <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} onSettingsTabClick={(tab) => navigate('/admin', { state: { section: 'settings', settingsTab: tab } })} />
       <main
         className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] lg:pt-0"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}

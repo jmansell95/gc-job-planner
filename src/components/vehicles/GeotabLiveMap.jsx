@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
@@ -7,6 +7,7 @@ import {
   Car, FileBarChart, X, Route, Zap, Filter,
 } from 'lucide-react';
 import GeotabReportModal from '@/components/vehicles/GeotabReportModal';
+import { reverseGeocode } from '@/utils/reverseGeocode';
 
 // Default UK centre
 const UK_CENTER = [52.3, -1.5];
@@ -55,6 +56,7 @@ export default function GeotabLiveMap() {
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState(null);
   const [filterMoving, setFilterMoving] = useState('all'); // 'all' | 'moving' | 'stopped'
+  const [selectedAddress, setSelectedAddress] = useState(null);
 
   const { data: liveData, isLoading, refetch } = useQuery({
     queryKey: ['geotab-live-locations'],
@@ -82,6 +84,17 @@ export default function GeotabLiveMap() {
     },
     enabled: !!selectedVehicle?.vehicle_id,
   });
+
+  // Geocode the selected vehicle's live coordinates to a street address
+  useEffect(() => {
+    if (!selectedVehicle?.lat || !selectedVehicle?.lng) { setSelectedAddress(null); return; }
+    let cancelled = false;
+    (async () => {
+      const addr = await reverseGeocode(selectedVehicle.lat, selectedVehicle.lng);
+      if (!cancelled) setSelectedAddress(addr);
+    })();
+    return () => { cancelled = true; };
+  }, [selectedVehicle?.lat, selectedVehicle?.lng]);
 
   const allVehicles = liveData?.vehicles || [];
   const vehicles = useMemo(() => {
@@ -256,8 +269,8 @@ export default function GeotabLiveMap() {
                   <p className="text-sm font-bold text-slate-700 mt-1">{selectedVehicle.speed_kph} <span className="text-[10px] font-normal">km/h</span></p>
                 </div>
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
-                  <p className="text-[10px] uppercase font-semibold text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" /> Coordinates</p>
-                  <p className="text-xs font-mono text-slate-600 mt-1">{selectedVehicle.lat.toFixed(4)}, {selectedVehicle.lng.toFixed(4)}</p>
+                  <p className="text-[10px] uppercase font-semibold text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" /> Location</p>
+                  <p className="text-xs text-slate-600 mt-1">{selectedAddress || (selectedVehicle.lat != null ? `${selectedVehicle.lat.toFixed(4)}, ${selectedVehicle.lng.toFixed(4)}` : '—')}</p>
                 </div>
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
                   <p className="text-[10px] uppercase font-semibold text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3" /> Last Seen</p>

@@ -175,7 +175,7 @@ export default async function(req: Request): Promise<Response> {
       geotabGet('VehicleType', undefined, 1000),
       geotabGet('DeviceStatusInfo', undefined, 1000),
       geotabGet('Trip', { fromDate: tripFromDate }, 2000),
-      geotabGet('ExceptionEvent', { fromDate: safetyFromDate }, 5000),
+      geotabGet('ExceptionEvent', { fromDate: safetyFromDate }, 10000),
       geotabGet('Rule', undefined, 2000),
     ]);
 
@@ -418,6 +418,44 @@ export default async function(req: Request): Promise<Response> {
           vehiclesUpdated++;
         } catch (_) {}
       }
+    }
+
+    // ── Second pass: update safety stats for ALL vehicles with a Geotab device ──
+    // The group filter above may exclude some devices from the main loop, but
+    // safety events are fetched for ALL devices. This pass ensures every local
+    // vehicle with a geotab_device_id gets up-to-date safety telemetry — even
+    // if its device was filtered out by the group filter.
+    for (const v of vehicles) {
+      if (!v.geotab_device_id) continue;
+      if (deviceVehicleMap[v.geotab_device_id]) continue; // already updated above
+      const safety = safetyByDevice[v.geotab_device_id];
+      const safetyUpdate: any = {
+        geotab_sync_status: 'synced',
+        last_geotab_sync: now,
+      };
+      if (safety) {
+        safetyUpdate.safety_harsh_braking_count = safety.harsh_braking;
+        safetyUpdate.safety_speeding_count = safety.speeding;
+        safetyUpdate.safety_harsh_accel_count = safety.harsh_accel;
+        safetyUpdate.safety_harsh_cornering_count = safety.harsh_cornering;
+        safetyUpdate.safety_event_count = safety.total;
+        safetyUpdate.driver_risk_score = Math.max(0, Math.round(100 - (safety.total / 20) * 100));
+        safetyUpdate.safety_events_last_sync = now;
+        if (safety.driver_name) safetyUpdate.geotab_driver_name = safety.driver_name;
+      } else {
+        // No events for this device in the last 30 days — reset to safe
+        safetyUpdate.safety_harsh_braking_count = 0;
+        safetyUpdate.safety_speeding_count = 0;
+        safetyUpdate.safety_harsh_accel_count = 0;
+        safetyUpdate.safety_harsh_cornering_count = 0;
+        safetyUpdate.safety_event_count = 0;
+        safetyUpdate.driver_risk_score = 100;
+        safetyUpdate.safety_events_last_sync = now;
+      }
+      try {
+        await base44.asServiceRole.entities.Vehicle.update(v.id, safetyUpdate);
+        vehiclesUpdated++;
+      } catch (_) {}
     }
 
     // ── Store live location logs ──
