@@ -6,7 +6,7 @@ import {
   MapPin, Filter, ChevronDown, ChevronRight, AlertTriangle, Zap,
   TrendingDown, CornerUpRight, Activity, AlertCircle, FileDown,
 } from 'lucide-react';
-import { reverseGeocode } from '@/utils/reverseGeocode';
+import { reverseGeocode, reverseGeocodeStructured } from '@/utils/reverseGeocode';
 
 const VIOLATION_META = {
   harsh_braking: { label: 'Harsh Braking', Icon: AlertCircle, bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
@@ -39,6 +39,7 @@ export default function SafetyEventsDrillDown({ vehicle }) {
   const [filterType, setFilterType] = useState('all');
   const [expandedEvent, setExpandedEvent] = useState(null);
   const [addresses, setAddresses] = useState({});
+  const [structuredAddresses, setStructuredAddresses] = useState({});
   const [exporting, setExporting] = useState(false);
 
   const fromDate = useMemo(() => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString(), [days]);
@@ -78,24 +79,35 @@ export default function SafetyEventsDrillDown({ vehicle }) {
     });
   }, [filteredEvents]);
 
-  // Geocode event locations (batch, only for first 20 events)
+  // Geocode event locations (batch, only for first 30 events)
+  // Fetches both a readable label AND structured parts (road, postcode) so the
+  // expanded detail can show the street name and postcode separately.
   useEffect(() => {
     if (filteredEvents.length === 0) return;
-    const needsGeocoding = filteredEvents.filter(e => e.latitude && e.longitude && addresses[e.id] === undefined).slice(0, 20);
+    const needsGeocoding = filteredEvents.filter(e => e.latitude && e.longitude && addresses[e.id] === undefined).slice(0, 30);
     if (needsGeocoding.length === 0) return;
     let cancelled = false;
     (async () => {
       const newAddrs = {};
+      const newStructured = {};
       for (const e of needsGeocoding) {
         if (cancelled) return;
         try {
-          const addr = await reverseGeocode(e.latitude, e.longitude);
-          newAddrs[e.id] = addr;
+          const [label, parts] = await Promise.all([
+            reverseGeocode(e.latitude, e.longitude),
+            reverseGeocodeStructured(e.latitude, e.longitude),
+          ]);
+          newAddrs[e.id] = label;
+          newStructured[e.id] = parts;
         } catch (_) {
           newAddrs[e.id] = null;
+          newStructured[e.id] = null;
         }
       }
-      if (!cancelled) setAddresses(prev => ({ ...prev, ...newAddrs }));
+      if (!cancelled) {
+        setAddresses(prev => ({ ...prev, ...newAddrs }));
+        setStructuredAddresses(prev => ({ ...prev, ...newStructured }));
+      }
     })();
     return () => { cancelled = true; };
   }, [filteredEvents, addresses]);
@@ -103,14 +115,20 @@ export default function SafetyEventsDrillDown({ vehicle }) {
   const handleExportCSV = () => {
     if (filteredEvents.length === 0) return;
     setExporting(true);
-    const headers = ['Date', 'Time', 'Violation Type', 'Rule', 'Driver', 'Speed (km/h)', 'Speed Limit (km/h)', 'Duration', 'Location', 'Severity'];
-    const rows = filteredEvents.map(e => [
-      e.date, e.time, e.violation_label, e.rule_name, e.driver_name || '',
-      e.speed_kph || '', e.speed_limit_kph || '',
-      formatDuration(e.duration_seconds) || '',
-      addresses[e.id] || (e.latitude ? `${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}` : ''),
-      e.severity,
-    ]);
+    const headers = ['Date', 'Time', 'Violation Type', 'Rule', 'Driver', 'Speed (km/h)', 'Speed Limit (km/h)', 'Duration', 'Street', 'Postcode', 'Area', 'Coordinates', 'Severity'];
+    const rows = filteredEvents.map(e => {
+      const parts = structuredAddresses[e.id];
+      return [
+        e.date, e.time, e.violation_label, e.rule_name, e.driver_name || '',
+        e.speed_kph || '', e.speed_limit_kph || '',
+        formatDuration(e.duration_seconds) || '',
+        parts?.road || '',
+        parts?.postcode || '',
+        parts?.town || '',
+        e.latitude ? `${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}` : '',
+        e.severity,
+      ];
+    });
     const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -192,7 +210,9 @@ export default function SafetyEventsDrillDown({ vehicle }) {
               { key: 'harsh_braking', label: 'Braking', count: summary.harsh_braking },
               { key: 'harsh_accel', label: 'Accel', count: summary.harsh_accel },
               { key: 'harsh_cornering', label: 'Cornering', count: summary.harsh_cornering },
-              { key: 'other', label: 'Other', count: (summary.seatbelt || 0) + (summary.idling || 0) + (summary.other || 0) },
+              { key: 'seatbelt', label: 'Seatbelt', count: summary.seatbelt },
+              { key: 'idling', label: 'Idling', count: summary.idling },
+              { key: 'other', label: 'Other', count: summary.other },
             ].map(f => (
               <button key={f.key} onClick={() => setFilterType(f.key)}
                 className={`px-2 py-1 rounded-full text-[10px] font-bold transition ${filterType === f.key ? 'bg-cyan-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
@@ -251,6 +271,7 @@ export default function SafetyEventsDrillDown({ vehicle }) {
                                 <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" /> {e.time}</span>
                                 {e.driver_name && <span className="flex items-center gap-0.5"><User className="w-2.5 h-2.5" /> {e.driver_name}</span>}
                                 {e.speed_kph != null && <span className="flex items-center gap-0.5"><Gauge className="w-2.5 h-2.5" /> {Math.round(e.speed_kph)} km/h</span>}
+                                {addresses[e.id] && <span className="flex items-center gap-0.5 truncate"><MapPin className="w-2.5 h-2.5" /> {addresses[e.id]}</span>}
                               </div>
                             </div>
                           </button>
@@ -258,6 +279,18 @@ export default function SafetyEventsDrillDown({ vehicle }) {
                           {/* Expanded detail */}
                           {isExpanded && (
                             <div className="px-3 pb-3 pt-1 space-y-2 border-t border-slate-200/60 bg-white/50">
+                              {/* Date & Time row */}
+                              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                <div>
+                                  <p className="text-[9px] uppercase font-semibold text-slate-400 flex items-center gap-1"><Calendar className="w-2.5 h-2.5" /> Date</p>
+                                  <p className="text-slate-700 font-medium">{e.date}</p>
+                                </div>
+                                <div>
+                                  <p className="text-[9px] uppercase font-semibold text-slate-400 flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> Time</p>
+                                  <p className="text-slate-700 font-medium">{e.time}</p>
+                                </div>
+                              </div>
+
                               <div className="grid grid-cols-2 gap-2 text-[11px]">
                                 <div>
                                   <p className="text-[9px] uppercase font-semibold text-slate-400">Rule</p>
@@ -280,14 +313,50 @@ export default function SafetyEventsDrillDown({ vehicle }) {
                                   </div>
                                 )}
                               </div>
-                              {hasLocation && (
-                                <div>
-                                  <p className="text-[9px] uppercase font-semibold text-slate-400 flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> Location</p>
-                                  <p className="text-[11px] text-slate-600 mt-0.5">
-                                    {addr || (addr === null ? `${e.latitude.toFixed(4)}, ${e.longitude.toFixed(4)}` : 'Resolving...')}
-                                  </p>
-                                </div>
-                              )}
+
+                              {/* Location with street name + postcode */}
+                              {hasLocation && (() => {
+                                const parts = structuredAddresses[e.id];
+                                const road = parts?.road || '';
+                                const postcode = parts?.postcode || '';
+                                const town = parts?.town || '';
+                                return (
+                                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-2 space-y-1.5">
+                                    <p className="text-[9px] uppercase font-semibold text-slate-400 flex items-center gap-1"><MapPin className="w-2.5 h-2.5" /> Location</p>
+                                    {parts === undefined ? (
+                                      <p className="text-[11px] text-slate-400">Resolving address...</p>
+                                    ) : parts === null ? (
+                                      <p className="text-[11px] text-slate-500">{e.latitude.toFixed(4)}, {e.longitude.toFixed(4)}</p>
+                                    ) : (
+                                      <>
+                                        {road && (
+                                          <div className="flex items-baseline gap-1.5">
+                                            <span className="text-[9px] uppercase font-semibold text-slate-400 w-12">Street</span>
+                                            <span className="text-[11px] text-slate-700 font-medium">{road}</span>
+                                          </div>
+                                        )}
+                                        {postcode && (
+                                          <div className="flex items-baseline gap-1.5">
+                                            <span className="text-[9px] uppercase font-semibold text-slate-400 w-12">Postcode</span>
+                                            <span className="text-[11px] text-slate-700 font-medium">{postcode}</span>
+                                          </div>
+                                        )}
+                                        {town && !road && (
+                                          <div className="flex items-baseline gap-1.5">
+                                            <span className="text-[9px] uppercase font-semibold text-slate-400 w-12">Area</span>
+                                            <span className="text-[11px] text-slate-700 font-medium">{town}</span>
+                                          </div>
+                                        )}
+                                        <div className="flex items-baseline gap-1.5">
+                                          <span className="text-[9px] uppercase font-semibold text-slate-400 w-12">Coords</span>
+                                          <span className="text-[10px] text-slate-400 tabular-nums">{e.latitude.toFixed(4)}, {e.longitude.toFixed(4)}</span>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+
                               {e.driver_name && (
                                 <div className="flex items-center gap-2 pt-1.5 border-t border-slate-100">
                                   <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
