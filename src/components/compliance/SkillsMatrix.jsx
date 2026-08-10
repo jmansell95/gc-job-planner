@@ -1,7 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Loader2, ShieldCheck, Search, AlertCircle } from 'lucide-react';
+import {
+  Loader2, Search, AlertCircle, ShieldCheck, ShieldAlert, ShieldX,
+  Users, GraduationCap, ChevronDown, ChevronRight, UserCircle
+} from 'lucide-react';
 
 const QUAL_TYPES = [
   { key: 'cscs_card', label: 'CSCS', short: 'CSCS' },
@@ -34,16 +37,40 @@ function getStatus(complianceItem) {
 }
 
 const STATUS_STYLES = {
-  compliant: { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', label: '✓' },
-  expiring: { bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500', label: '⚠' },
-  expired: { bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500', label: '✗' },
-  missing: { bg: 'bg-slate-100', text: 'text-slate-400', dot: 'bg-slate-300', label: '—' },
-  unknown: { bg: 'bg-slate-50', text: 'text-slate-400', dot: 'bg-slate-300', label: '?' },
-  na: { bg: 'bg-slate-50', text: 'text-slate-300', dot: 'bg-slate-200', label: 'N/A' },
+  compliant: { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Valid', icon: ShieldCheck },
+  expiring: { bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500', label: 'Expiring', icon: ShieldAlert },
+  expired: { bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500', label: 'Expired', icon: ShieldX },
+  missing: { bg: 'bg-slate-100', text: 'text-slate-400', dot: 'bg-slate-300', label: 'Missing', icon: AlertCircle },
+  unknown: { bg: 'bg-slate-50', text: 'text-slate-400', dot: 'bg-slate-300', label: 'Unknown', icon: AlertCircle },
+  na: { bg: 'bg-slate-50', text: 'text-slate-300', dot: 'bg-slate-200', label: 'N/A', icon: ShieldCheck },
 };
+
+// Mini progress ring — shows compliant % as a filled arc
+function ProgressRing({ pct, size = 44 }) {
+  const stroke = 4;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ;
+  const color = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#f43f5e';
+  return (
+    <svg width={size} height={size} className="flex-shrink-0">
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#e2e8f0" strokeWidth={stroke} />
+      <circle
+        cx={size/2} cy={size/2} r={r} fill="none" stroke={color}
+        strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={offset}
+        strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`}
+        style={{ transition: 'stroke-dashoffset 0.4s cubic-bezier(0.16,1,0.3,1)' }}
+      />
+      <text x="50%" y="50%" dy="0.35em" textAnchor="middle" fontSize="11" fontWeight="700" fill={color}>
+        {pct}%
+      </text>
+    </svg>
+  );
+}
 
 export default function SkillsMatrix() {
   const [search, setSearch] = useState('');
+  const [expandedGroups, setExpandedGroups] = useState({});
 
   const { data: staff = [], isLoading: staffLoading } = useQuery({
     queryKey: ['staff-skills-matrix'],
@@ -54,7 +81,6 @@ export default function SkillsMatrix() {
     queryFn: () => base44.entities.ComplianceItem.filter({ category: 'staff' }),
   });
 
-  // Build lookup: staffId + qualType -> compliance item
   const itemMap = useMemo(() => {
     const map = {};
     for (const c of complianceItems) {
@@ -64,27 +90,68 @@ export default function SkillsMatrix() {
     return map;
   }, [complianceItems]);
 
-  const filteredStaff = useMemo(() => {
-    if (!search.trim()) return staff;
-    const q = search.toLowerCase();
-    return staff.filter(s => (s.name || '').toLowerCase().includes(q) || (s.job_title || '').toLowerCase().includes(q));
-  }, [staff, search]);
-
-  // Compute summary stats
-  const stats = useMemo(() => {
-    let compliant = 0, expiring = 0, expired = 0, missing = 0;
-    for (const s of staff) {
-      for (const qt of QUAL_TYPES) {
+  // Build per-staff compliance data
+  const staffData = useMemo(() => {
+    return staff.map(s => {
+      const quals = QUAL_TYPES.map(qt => {
         const item = itemMap[`${s.id}|${qt.key}`];
         const status = getStatus(item);
-        if (status === 'compliant') compliant++;
-        else if (status === 'expiring') expiring++;
-        else if (status === 'expired') expired++;
-        else if (status === 'missing') missing++;
-      }
-    }
-    return { compliant, expiring, expired, missing };
+        return { ...qt, status, item, expiry: item?.expiry_date };
+      });
+      const compliant = quals.filter(q => q.status === 'compliant').length;
+      const actionable = quals.filter(q => q.status === 'expired' || q.status === 'missing').length;
+      const expiring = quals.filter(q => q.status === 'expiring').length;
+      const pct = quals.length > 0 ? Math.round((compliant / quals.length) * 100) : 0;
+      return { staff: s, quals, compliant, actionable, expiring, pct };
+    });
   }, [staff, itemMap]);
+
+  // Training gaps — staff with expired or missing certs
+  const gaps = useMemo(() => {
+    return staffData
+      .filter(d => d.actionable > 0 || d.expiring > 0)
+      .sort((a, b) => b.actionable - a.actionable || b.expiring - a.expiring);
+  }, [staffData]);
+
+  // Group by job_title (or "Unassigned" if blank)
+  const grouped = useMemo(() => {
+    const groups = {};
+    staffData.forEach(d => {
+      const key = d.staff.job_title || 'Unassigned';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(d);
+    });
+    return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [staffData]);
+
+  const filteredStaff = useMemo(() => {
+    if (!search.trim()) return grouped;
+    const q = search.toLowerCase();
+    return grouped
+      .map(([group, members]) => [group, members.filter(d =>
+        (d.staff.name || '').toLowerCase().includes(q) ||
+        (d.staff.job_title || '').toLowerCase().includes(q)
+      )])
+      .filter(([, members]) => members.length > 0);
+  }, [grouped, search]);
+
+  // Summary stats
+  const stats = useMemo(() => {
+    let compliant = 0, expiring = 0, expired = 0, missing = 0;
+    staffData.forEach(d => {
+      d.quals.forEach(q => {
+        if (q.status === 'compliant') compliant++;
+        else if (q.status === 'expiring') expiring++;
+        else if (q.status === 'expired') expired++;
+        else if (q.status === 'missing') missing++;
+      });
+    });
+    return { compliant, expiring, expired, missing };
+  }, [staffData]);
+
+  const toggleGroup = (group) => {
+    setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
+  };
 
   if (staffLoading || compLoading) {
     return (
@@ -96,25 +163,75 @@ export default function SkillsMatrix() {
 
   return (
     <div className="space-y-4">
-      {/* Summary */}
-      <div className="grid grid-cols-4 gap-2">
-        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
-          <p className="text-[10px] font-medium text-emerald-600 uppercase tracking-wide">Compliant</p>
+      {/* Summary tiles */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2.5">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+            <p className="text-[10px] font-medium text-emerald-600 uppercase tracking-wide">Valid</p>
+          </div>
           <p className="text-xl font-bold text-emerald-700 tabular-nums">{stats.compliant}</p>
         </div>
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
-          <p className="text-[10px] font-medium text-amber-600 uppercase tracking-wide">Expiring</p>
+        <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2.5">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
+            <p className="text-[10px] font-medium text-amber-600 uppercase tracking-wide">Expiring</p>
+          </div>
           <p className="text-xl font-bold text-amber-700 tabular-nums">{stats.expiring}</p>
         </div>
-        <div className="rounded-lg bg-rose-50 border border-rose-200 px-3 py-2">
-          <p className="text-[10px] font-medium text-rose-600 uppercase tracking-wide">Expired</p>
+        <div className="rounded-xl bg-rose-50 border border-rose-200 px-3 py-2.5">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <ShieldX className="w-3.5 h-3.5 text-rose-600" />
+            <p className="text-[10px] font-medium text-rose-600 uppercase tracking-wide">Expired</p>
+          </div>
           <p className="text-xl font-bold text-rose-700 tabular-nums">{stats.expired}</p>
         </div>
-        <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2">
-          <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Missing</p>
+        <div className="rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <AlertCircle className="w-3.5 h-3.5 text-slate-500" />
+            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Missing</p>
+          </div>
           <p className="text-xl font-bold text-slate-600 tabular-nums">{stats.missing}</p>
         </div>
       </div>
+
+      {/* Training Gaps alert — only show staff with issues */}
+      {gaps.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-amber-100 flex items-center gap-2">
+            <GraduationCap className="w-4 h-4 text-amber-600" />
+            <h3 className="text-sm font-bold text-slate-800">Training Gaps — {gaps.length} staff need attention</h3>
+          </div>
+          <div className="divide-y divide-amber-50 max-h-48 overflow-y-auto">
+            {gaps.map(d => (
+              <div key={d.staff.id} className="px-4 py-2.5 flex items-center gap-3">
+                <UserCircle className="w-7 h-7 text-slate-300 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-800 truncate">{d.staff.name}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{d.staff.job_title || '—'}</p>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {d.quals.filter(q => q.status === 'expired').map(q => (
+                    <span key={q.key} className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 font-medium" title={`${q.label} — expired`}>
+                      {q.short} ✗
+                    </span>
+                  ))}
+                  {d.quals.filter(q => q.status === 'missing').map(q => (
+                    <span key={q.key} className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-600 font-medium" title={`${q.label} — not recorded`}>
+                      {q.short} ?
+                    </span>
+                  ))}
+                  {d.quals.filter(q => q.status === 'expiring').map(q => (
+                    <span key={q.key} className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium" title={`${q.label} — expiring soon`}>
+                      {q.short} ⚠
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative">
@@ -128,53 +245,68 @@ export default function SkillsMatrix() {
         />
       </div>
 
-      {/* Matrix */}
+      {/* Grouped staff cards */}
       {filteredStaff.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <AlertCircle className="w-8 h-8 text-slate-300 mb-2" />
           <p className="text-sm text-slate-500">No staff found</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="text-left px-3 py-2.5 font-semibold text-slate-700 text-xs whitespace-nowrap sticky left-0 bg-slate-50 z-10">
-                  Staff Member
-                </th>
-                {QUAL_TYPES.map(qt => (
-                  <th key={qt.key} className="px-2 py-2.5 text-center font-semibold text-slate-600 text-xs whitespace-nowrap" title={qt.label}>
-                    {qt.short}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStaff.map((s, i) => (
-                <tr key={s.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}>
-                  <td className="px-3 py-2 whitespace-nowrap sticky left-0 bg-inherit z-10 border-r border-slate-100">
-                    <p className="font-medium text-slate-800 text-xs">{s.name}</p>
-                    {s.job_title && <p className="text-[10px] text-slate-400 truncate max-w-[140px]">{s.job_title}</p>}
-                  </td>
-                  {QUAL_TYPES.map(qt => {
-                    const item = itemMap[`${s.id}|${qt.key}`];
-                    const status = getStatus(item);
-                    const style = STATUS_STYLES[status];
-                    return (
-                      <td key={qt.key} className="px-2 py-2 text-center">
-                        <div
-                          className={`w-7 h-7 rounded-lg ${style.bg} ${style.text} flex items-center justify-center text-xs font-bold mx-auto`}
-                          title={item ? `${qt.label}: ${item.title || ''}${item.expiry_date ? ` (exp ${item.expiry_date})` : ''}` : `${qt.label}: not recorded`}
-                        >
-                          {style.label}
+        <div className="space-y-3">
+          {filteredStaff.map(([group, members]) => {
+            const isExpanded = expandedGroups[group] !== false; // default expanded
+            const groupCompliant = members.filter(d => d.pct === 100).length;
+            const groupPct = members.length > 0
+              ? Math.round(members.reduce((s, d) => s + d.pct, 0) / members.length)
+              : 0;
+            return (
+              <div key={group} className="rounded-xl border border-slate-200 overflow-hidden">
+                {/* Group header */}
+                <button
+                  onClick={() => toggleGroup(group)}
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 transition text-left"
+                >
+                  {isExpanded ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+                  <Users className="w-4 h-4 text-slate-500" />
+                  <span className="text-sm font-bold text-slate-800 flex-1">{group}</span>
+                  <span className="text-xs text-slate-500">{members.length} staff · {groupCompliant} fully compliant</span>
+                  <ProgressRing pct={groupPct} size={32} />
+                </button>
+                {/* Members */}
+                {isExpanded && (
+                  <div className="divide-y divide-slate-50">
+                    {members.map(d => (
+                      <div key={d.staff.id} className="px-4 py-3 flex items-center gap-3 hover:bg-slate-50/50 transition">
+                        {/* Progress ring */}
+                        <ProgressRing pct={d.pct} />
+                        {/* Name + title */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate">{d.staff.name}</p>
+                          <p className="text-[11px] text-slate-400 truncate">{d.staff.job_title || 'No title'}</p>
                         </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        {/* Qualification chips */}
+                        <div className="flex items-center gap-1 flex-wrap justify-end">
+                          {d.quals.map(q => {
+                            const style = STATUS_STYLES[q.status];
+                            const SIcon = style.icon;
+                            return (
+                              <span
+                                key={q.key}
+                                className={`inline-flex items-center justify-center w-7 h-7 rounded-lg ${style.bg} ${style.text} text-[10px] font-bold`}
+                                title={`${q.label}: ${style.label}${q.expiry ? ` (exp ${q.expiry})` : ''}`}
+                              >
+                                {q.status === 'compliant' ? '✓' : q.status === 'expired' ? '✗' : q.status === 'missing' ? '?' : q.status === 'expiring' ? '⚠' : q.status === 'na' ? '—' : '?'}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -183,9 +315,9 @@ export default function SkillsMatrix() {
         {Object.entries(STATUS_STYLES).filter(([k]) => k !== 'na').map(([key, style]) => (
           <div key={key} className="flex items-center gap-1.5">
             <span className={`w-4 h-4 rounded ${style.bg} ${style.text} flex items-center justify-center text-[10px] font-bold`}>
-              {style.label}
+              {style.label === 'Valid' ? '✓' : style.label === 'Expired' ? '✗' : style.label === 'Missing' ? '?' : style.label === 'Expiring' ? '⚠' : '?'}
             </span>
-            <span className="text-slate-500 capitalize">{key}</span>
+            <span className="text-slate-500">{style.label}</span>
           </div>
         ))}
       </div>

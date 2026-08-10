@@ -33,6 +33,7 @@ export default function InvestigationHub({ onNavigate }) {
   const [typeFilter, setTypeFilter] = useState('all');
   const [bulkSelected, setBulkSelected] = useState(new Set());
   const [bulkMode, setBulkMode] = useState(false);
+  const [compactMode, setCompactMode] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -98,6 +99,9 @@ export default function InvestigationHub({ onNavigate }) {
 
   const pendingCount = logs.filter(l => (l.manager_review_status || 'pending') === 'pending').length;
   const queriedCount = logs.filter(l => l.manager_review_status === 'queried').length;
+  const maxDepth = logs.reduce((max, l) => l.depth_to != null ? Math.max(max, l.depth_to) : max, 0);
+  const boreholeCount = new Set(logs.filter(l => l.borehole_ref).map(l => l.borehole_ref)).size;
+  const latestDate = logs.length > 0 ? logs[0].date : null;
 
   const toggleBulkSelect = (id) => {
     setBulkSelected(prev => {
@@ -115,34 +119,60 @@ export default function InvestigationHub({ onNavigate }) {
 
   return (
     <div>
-      {/* Header */}
-      <div className="insight-card rounded-2xl p-4 sm:p-5 mb-4">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="p-2.5 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] rounded-xl shadow-sm">
-            <FlaskConical className="w-6 h-6 text-white" />
+      {/* Header — sticky with live metrics */}
+      <div className="insight-card rounded-2xl mb-4 sticky top-0 z-30 shadow-md overflow-hidden">
+        <div className="p-4 sm:p-5">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="p-2.5 bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] rounded-xl shadow-sm">
+              <FlaskConical className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900">Investigation Hub</h2>
+              <p className="text-sm text-slate-500">Cross-job review workspace for all site logs, borehole data, and field activity</p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {pendingCount > 0 && (
+                <span className="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5" /> {pendingCount} pending
+                </span>
+              )}
+              {queriedCount > 0 && (
+                <span className="text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1">
+                  <XCircle className="w-3.5 h-3.5" /> {queriedCount} queried
+                </span>
+              )}
+              <button
+                onClick={() => setCompactMode(c => !c)}
+                className={`text-xs px-2.5 py-1 rounded-full font-semibold transition ${compactMode ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                {compactMode ? 'Detailed' : 'Compact'}
+              </button>
+              <button
+                onClick={() => { setBulkMode(m => !m); setBulkSelected(new Set()); }}
+                className={`text-xs px-2.5 py-1 rounded-full font-semibold transition ${bulkMode ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                {bulkMode ? 'Done' : 'Select'}
+              </button>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-lg sm:text-xl font-bold text-slate-900">Investigation Hub</h2>
-            <p className="text-sm text-slate-500">Cross-job review workspace for all site logs, borehole data, and field activity</p>
+        </div>
+        {/* Summary metrics bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-slate-100 border-t border-slate-100">
+          <div className="bg-white px-4 py-2.5">
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">Total Logs</p>
+            <p className="text-lg font-bold text-slate-900 tabular-nums">{logs.length}</p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {pendingCount > 0 && (
-              <span className="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1">
-                <AlertTriangle className="w-3.5 h-3.5" /> {pendingCount} pending
-              </span>
-            )}
-            {queriedCount > 0 && (
-              <span className="text-xs bg-red-100 text-red-700 px-2.5 py-1 rounded-full font-semibold inline-flex items-center gap-1">
-                <XCircle className="w-3.5 h-3.5" /> {queriedCount} queried
-              </span>
-            )}
-            <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-semibold">{logs.length} total</span>
-            <button
-              onClick={() => { setBulkMode(m => !m); setBulkSelected(new Set()); }}
-              className={`text-xs px-2.5 py-1 rounded-full font-semibold transition ${bulkMode ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-            >
-              {bulkMode ? 'Done' : 'Select'}
-            </button>
+          <div className="bg-white px-4 py-2.5">
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">Boreholes</p>
+            <p className="text-lg font-bold text-blue-700 tabular-nums">{boreholeCount}</p>
+          </div>
+          <div className="bg-white px-4 py-2.5">
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">Max Depth</p>
+            <p className="text-lg font-bold text-slate-900 tabular-nums">{maxDepth > 0 ? `${maxDepth.toFixed(1)}m` : '—'}</p>
+          </div>
+          <div className="bg-white px-4 py-2.5">
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">Latest Entry</p>
+            <p className="text-lg font-bold text-slate-900 tabular-nums">{latestDate ? format(new Date(latestDate), 'dd MMM') : '—'}</p>
           </div>
         </div>
       </div>
@@ -214,6 +244,7 @@ export default function InvestigationHub({ onNavigate }) {
                   onClick={() => bulkMode ? toggleBulkSelect(log.id) : setSelectedLogId(log.id)}
                   bulkMode={bulkMode}
                   bulkSelected={bulkSelected.has(log.id)}
+                  compactMode={compactMode}
                 />
               ))
             )}
@@ -253,7 +284,7 @@ export default function InvestigationHub({ onNavigate }) {
   );
 }
 
-function LogListItem({ log, jobName, isSelected, onClick, bulkMode, bulkSelected }) {
+function LogListItem({ log, jobName, isSelected, onClick, bulkMode, bulkSelected, compactMode }) {
   const reviewStatus = log.manager_review_status || 'pending';
   const rc = reviewStatusConfig[reviewStatus];
   const typeConfig = logTypeConfig[log.log_type];
@@ -262,7 +293,7 @@ function LogListItem({ log, jobName, isSelected, onClick, bulkMode, bulkSelected
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left p-3 transition hover:bg-slate-50 ${bulkSelected ? 'bg-[#2E5A1A]/10 border-l-2 border-l-[#2E5A1A]' : isSelected ? 'bg-[#2E5A1A]/5 border-l-2 border-l-[#2E5A1A]' : 'border-l-2 border-l-transparent'}`}
+      className={`w-full text-left ${compactMode ? 'p-2' : 'p-3'} transition hover:bg-slate-50 ${bulkSelected ? 'bg-[#2E5A1A]/10 border-l-2 border-l-[#2E5A1A]' : isSelected ? 'bg-[#2E5A1A]/5 border-l-2 border-l-[#2E5A1A]' : 'border-l-2 border-l-transparent'}`}
     >
       <div className="flex items-center gap-2 flex-wrap mb-1">
         {bulkMode && (
@@ -565,14 +596,20 @@ function BoreholeContextPanel({ context, onSelectLog, selectedLogId }) {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="p-4 border-b border-slate-100 bg-blue-50/50">
+      <div className="p-4 border-b border-slate-100 bg-blue-50/50 sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-blue-100 rounded-lg">
             <Drill className="w-4 h-4 text-blue-700" />
           </div>
-          <div>
+          <div className="flex-1">
             <h3 className="text-sm font-bold text-slate-900">{ref}</h3>
             <p className="text-xs text-slate-500">{all.length} logs · {totalDepth > 0 ? `${totalDepth.toFixed(1)}m max depth` : 'no depth data'}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold tabular-nums">{all.length}</span>
+            {totalDepth > 0 && (
+              <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold tabular-nums">{totalDepth.toFixed(1)}m</span>
+            )}
           </div>
         </div>
       </div>
