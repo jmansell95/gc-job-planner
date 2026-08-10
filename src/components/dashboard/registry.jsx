@@ -72,6 +72,10 @@ export const DEFAULT_WIDGETS = [
   ...TIER_INSIGHTS,
 ];
 
+// By default, only the 6 At-a-Glance widgets are visible. All Insights
+// widgets start hidden — users enable them via the Customize button.
+export const DEFAULT_HIDDEN = [...TIER_INSIGHTS];
+
 // Tier metadata for section headers
 export const TIER_META = {
   glance: { label: 'At a Glance', icon: Radar, color: 'emerald' },

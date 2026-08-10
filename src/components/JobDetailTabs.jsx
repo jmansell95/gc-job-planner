@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Boxes, PoundSterling, FolderOpen, FileText, Eye, Download, Activity, Mountain,
   LayoutGrid, CalendarDays, ShieldCheck, Users, Briefcase, Truck, User, HardHat,
-  Phone, MapPin, Send, CheckCircle2, UsersRound, CalendarClock, Ruler, StickyNote, Hotel, ArrowRightLeft,
+  Phone, Send, CheckCircle2, UsersRound, CalendarClock, Ruler, StickyNote, Hotel,
   Camera, Clock, FlaskConical
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -96,21 +96,17 @@ export default function JobDetailTabs({
       <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl shadow-sm px-1 py-2 mb-4">
         <TabsList className="flex w-full flex-nowrap overflow-x-auto no-scrollbar h-auto p-1 gap-1 justify-start sm:justify-center">
           <TabsTrigger value="context" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><LayoutGrid className="w-3.5 h-3.5 shrink-0" />Summary</TabsTrigger>
-          <TabsTrigger value="sites" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><MapPin className="w-3.5 h-3.5 shrink-0" />Sites</TabsTrigger>
           <TabsTrigger value="schedule" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><CalendarDays className="w-3.5 h-3.5 shrink-0" />Schedule</TabsTrigger>
           <TabsTrigger value="activity" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Activity className="w-3.5 h-3.5 shrink-0" />Site Logs</TabsTrigger>
           {isDrillingJob && <TabsTrigger value="boreholes" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Mountain className="w-3.5 h-3.5 shrink-0" />Boreholes</TabsTrigger>}
           {isDrillingJob && <TabsTrigger value="geotech" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><FlaskConical className="w-3.5 h-3.5 shrink-0" />Geotech</TabsTrigger>}
           <TabsTrigger value="logistics" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Boxes className="w-3.5 h-3.5 shrink-0" />Logistics</TabsTrigger>
-          <TabsTrigger value="compliance" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><ShieldCheck className="w-3.5 h-3.5 shrink-0" />Compliance</TabsTrigger>
-          {canSeeCosts && <TabsTrigger value="subcontractors" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><ArrowRightLeft className="w-3.5 h-3.5 shrink-0" />Sub-Cons</TabsTrigger>}
           {canSeeCosts && <TabsTrigger value="financials" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><PoundSterling className="w-3.5 h-3.5 shrink-0" />Financials</TabsTrigger>}
-          <TabsTrigger value="accommodation" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><Hotel className="w-3.5 h-3.5 shrink-0" />Hotels</TabsTrigger>
           <TabsTrigger value="documents" className="text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md flex-shrink-0 whitespace-nowrap"><FolderOpen className="w-3.5 h-3.5 shrink-0" />Documents</TabsTrigger>
         </TabsList>
       </div>
 
-      {/* ── Context Tab (multi-pane high-density view) ── */}
+      {/* ── Summary Tab (multi-pane high-density view) ── */}
       <TabsContent value="context" className="mt-0 space-y-4">
         <JobContextView
         job={job}
@@ -135,6 +131,7 @@ export default function JobDetailTabs({
         onProjectClick={onProjectClick}
         jobTypes={jobTypes}
         />
+        <JobSiteManager job={job} />
         <JobDependencyManager job={job} />
         <PredictiveHazardAlerts job={job} />
         {(job.site_lat != null && job.site_lng != null) && (
@@ -155,11 +152,6 @@ export default function JobDetailTabs({
         )}
       </TabsContent>
 
-      {/* ── Sites Tab ── */}
-      <TabsContent value="sites" className="space-y-4 mt-0">
-        <JobSiteManager job={job} />
-      </TabsContent>
-
       {/* ── Schedule Tab ── */}
       <TabsContent value="schedule" className="space-y-4 mt-0">
         <TabStatRibbon
@@ -177,11 +169,11 @@ export default function JobDetailTabs({
         <StaffActivityBreakdown job={job} assignedStaff={assignedStaff} primaryType={primaryType} />
       </TabsContent>
 
-      {/* ── Site Logs Tab ── */}
+      {/* ── Site Logs & Compliance Tab ── */}
       <TabsContent value="activity" className="space-y-4 mt-0">
         <TabStatRibbon
           icon={Activity}
-          title="Site Activity"
+          title="Site Logs & Compliance"
           stats={[
             { icon: Users, value: assignedStaff.length, label: 'Crew On Job', iconColor: 'text-emerald-600' },
             { icon: CalendarDays, value: rotas.filter(r => r.status === 'started' || r.status === 'completed').length, label: 'Active Shifts', iconColor: 'text-blue-600' },
@@ -189,28 +181,24 @@ export default function JobDetailTabs({
           ]}
         />
         <InvestigationLogManager job={job} isDrillingJob={isDrillingJob} assignedStaff={assignedStaff} allStaff={allStaff} canSeeCosts={canSeeCosts} onViewBoreholes={() => setActiveTab('boreholes')} />
+        <JobHazardMap job={job} />
+        {isDrillingJob && <RigCompliancePanel job={job} />}
       </TabsContent>
 
-      {/* ── Logistics Tab ── */}
+      {/* ── Logistics Tab (includes accommodation) ── */}
       <TabsContent value="logistics" className="space-y-4 mt-0">
         <TabStatRibbon
           icon={Boxes}
-          title="Logistics Overview"
+          title="Logistics & Accommodation"
           stats={[
             { icon: Truck, value: assignedVehicles.length, label: 'Vehicles', iconColor: 'text-violet-600' },
             { icon: Users, value: assignedStaff.length, label: 'Crew', iconColor: 'text-emerald-600' },
-            { icon: Boxes, value: suppliers?.length || 0, label: 'Suppliers', iconColor: 'text-blue-600' },
+            { icon: Hotel, value: hotelBookings?.length || 0, label: 'Hotel Bookings', iconColor: 'text-amber-600' },
           ]}
         />
         <JobLogisticsHub jobId={job.id} job={job} suppliers={suppliers} contractors={contractors} canSeeCosts={canSeeCosts} isDrillingJob={isDrillingJob} />
+        <JobHotelBookings job={job} assignedStaff={assignedStaff} allStaff={allStaff} />
       </TabsContent>
-
-      {/* ── Sub-Contractors Tab ── */}
-      {canSeeCosts && (
-        <TabsContent value="subcontractors" className="space-y-4 mt-0">
-          <SubcontractorLogManager job={job} />
-        </TabsContent>
-      )}
 
       {/* ── Boreholes Tab (drilling jobs only) ── */}
       {isDrillingJob && (
@@ -235,38 +223,11 @@ export default function JobDetailTabs({
       </TabsContent>
       )}
 
-      {/* ── Accommodation Tab ── */}
-      <TabsContent value="accommodation" className="space-y-4 mt-0">
-        <JobHotelBookings job={job} assignedStaff={assignedStaff} allStaff={allStaff} />
-      </TabsContent>
-
-      {/* ── Compliance Tab ── */}
-      <TabsContent value="compliance" className="space-y-4 mt-0">
-        <TabStatRibbon
-          icon={ShieldCheck}
-          title="Compliance & Safety"
-          stats={[
-            { icon: ShieldCheck, value: assignedVehicles.length, label: 'Vehicles to Check', iconColor: 'text-emerald-600' },
-            { icon: Users, value: assignedStaff.length, label: 'Crew On Site', iconColor: 'text-blue-600' },
-            { icon: CalendarDays, value: sortedDates?.length || 0, label: 'Active Days', iconColor: 'text-amber-600' },
-          ]}
-        />
-        <JobHazardMap job={job} />
-        {(job.site_lat != null && job.site_lng != null) && (
-          <DrillingWeatherWidget
-            lat={job.site_lat}
-            lng={job.site_lng}
-            locationName={job.location}
-            compact={true}
-          />
-        )}
-        {isDrillingJob && <RigCompliancePanel job={job} />}
-      </TabsContent>
-
-      {/* ── Financials Tab (merged with Footprint) ── */}
+      {/* ── Financials Tab (includes sub-contractors) ── */}
       {canSeeCosts && (
         <TabsContent value="financials" className="space-y-4 mt-0">
           <AutoFinancialsBreakdown job={job} />
+          <SubcontractorLogManager job={job} />
           <JobFinancialFootprint job={job} />
           <BOQManager job={job} />
           <DailyCostViewer job={job} />

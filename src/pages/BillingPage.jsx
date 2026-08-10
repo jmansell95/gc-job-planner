@@ -5,6 +5,7 @@ import SettingsPage from '@/components/SettingsPage';
 import InvoiceDiscrepancyWidget from '@/components/billing/InvoiceDiscrepancyWidget';
 import AgedDebtorsDashboard from '@/components/billing/AgedDebtorsDashboard';
 import BillingReadinessReport from '@/components/billing/BillingReadinessReport';
+import FinancialOverviewWidget from '@/components/billing/FinancialOverviewWidget';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
 
@@ -26,9 +27,10 @@ export default function BillingPage() {
     <div className="space-y-4">
       <PageHeader
         icon={PoundSterling}
-        title="Financial Management"
-        subtitle="Invoicing, price lists, billing rules, custom reports & client progress reports"
+        title="Financial Control"
+        subtitle="Invoicing, debtors, billing rules, rate cards & financial reports"
       />
+      <FinancialOverviewWidget onSelectTab={setTab} />
       <TabBar tabs={tabs} activeTab={tab} onChange={setTab} />
       {tab === 'invoicing' && <InvoiceDiscrepancyWidget />}
       {tab === 'aged-debtors' && <AgedDebtorsDashboard />}

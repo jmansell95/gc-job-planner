@@ -13,7 +13,7 @@ import { Briefcase, PanelLeftClose, PanelLeft, Zap } from 'lucide-react';
  * floating button, so it doesn't eat vertical space until you need it.
  */
 export default function UnifiedRotaBuilder() {
-  const [showPool, setShowPool] = useState(true);
+  const [showPool, setShowPool] = useState(false);
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
   return (
