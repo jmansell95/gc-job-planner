@@ -151,13 +151,25 @@ export default async function(req: Request): Promise<Response> {
         const unit = getVal(row, 'unit', 'uom') || 'nr';
         const notes = getVal(row, 'notes', 'note');
 
-        // Try to match against rate card by SOR ref first, then by description
+        // Try to match against rate card by description (exact first, then contains).
+        // RateCardItem doesn't have a sor_ref field, so we match on description.
         let matchedRateId: string | null = null;
-        if (sorRef) {
-          const byRef = rateItems.find((r: any) =>
-            String(r.sort_order || '').includes(sorRef) || String(r.description || '').includes(sorRef)
+        if (description) {
+          const descLower = description.toLowerCase().trim();
+          // Exact match first
+          const exact = rateItems.find((r: any) =>
+            String(r.description || '').toLowerCase().trim() === descLower
           );
-          if (byRef) matchedRateId = byRef.id;
+          if (exact) {
+            matchedRateId = exact.id;
+          } else {
+            // Contains match (description includes the SOR description or vice versa)
+            const contains = rateItems.find((r: any) => {
+              const rDesc = String(r.description || '').toLowerCase().trim();
+              return rDesc && (rDesc.includes(descLower) || descLower.includes(rDesc));
+            });
+            if (contains) matchedRateId = contains.id;
+          }
         }
 
         payload.push({

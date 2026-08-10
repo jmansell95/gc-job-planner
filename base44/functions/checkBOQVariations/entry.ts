@@ -41,11 +41,18 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ ok: true, checked: 0, overruns: [], updated: [] });
     }
 
-    // Load actual work logs
-    const [invLogs, timesheets] = await Promise.all([
+    // Load actual work logs + billing rules (to resolve rate_card_item_id from billing_rule_id)
+    const [invLogs, timesheets, billingRules] = await Promise.all([
       base44.asServiceRole.entities.InvestigationLog.filter({ job_id: jobId }),
       base44.asServiceRole.entities.Timesheet.filter({ job_id: jobId }),
+      base44.asServiceRole.entities.BillingRule.list('-created_date', 500),
     ]);
+
+    // Map billing_rule_id → rate_card_item_id (BillingRule links to RateCardItem)
+    const billingRuleToRateItem: Record<string, string> = {};
+    for (const br of billingRules) {
+      if (br.rate_card_item_id) billingRuleToRateItem[br.id] = br.rate_card_item_id;
+    }
 
     // Build actual-quantity map keyed by rate_card_item_id
     const actualByRateItem: Record<string, number> = {};
@@ -57,7 +64,11 @@ export default async function(req: Request): Promise<Response> {
       if (log.manager_review_status === 'queried') continue;
       const qty = Number(log.units_completed) ||
         ((Number(log.depth_to) || 0) - (Number(log.depth_from) || 0)) || 1;
-      const rateId = log.billing_rule_id; // when stamped, this holds the rate card item id
+      // Resolve the rate_card_item_id: the log's billing_rule_id points to a
+      // BillingRule, which in turn links to a RateCardItem via rate_card_item_id.
+      const rateId = log.billing_rule_id
+        ? (billingRuleToRateItem[log.billing_rule_id] || log.billing_rule_id)
+        : null;
       const desc = String(log.description || '').toLowerCase().trim();
       if (rateId) {
         actualByRateItem[rateId] = (actualByRateItem[rateId] || 0) + qty;
@@ -72,8 +83,9 @@ export default async function(req: Request): Promise<Response> {
     for (const ts of timesheets) {
       if (ts.is_break) continue;
       if (ts.status === 'rejected' || ts.status === 'deleted') continue;
-      const rateId = ts.billing_rule_id;
-      if (!rateId) continue;
+      if (!ts.billing_rule_id) continue;
+      // Resolve rate_card_item_id from the billing rule
+      const rateId = billingRuleToRateItem[ts.billing_rule_id] || ts.billing_rule_id;
       const qty = Number(ts.units_completed) || 1; // most tasks are per-sum
       actualByRateItem[rateId] = (actualByRateItem[rateId] || 0) + qty;
     }
