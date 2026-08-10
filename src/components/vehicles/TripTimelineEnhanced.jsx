@@ -385,12 +385,19 @@ export default function TripTimelineEnhanced({ vehicle }) {
       for (const t of trips) {
         const sKey = t.start_lat != null ? `${Number(t.start_lat).toFixed(4)},${Number(t.start_lng).toFixed(4)}` : null;
         const eKey = t.end_lat != null ? `${Number(t.end_lat).toFixed(4)},${Number(t.end_lng).toFixed(4)}` : null;
-        const startLoc = sKey && labels[sKey] ? (buildLabelFromParts(labels[sKey]) || t.start_location) : t.start_location;
-        const endLoc = eKey && labels[eKey] ? (buildLabelFromParts(labels[eKey]) || t.end_location) : t.end_location;
+        // Use geocoded address; fall back to coordinates (never "Unknown location")
+        const startLoc = sKey && labels[sKey]
+          ? (buildLabelFromParts(labels[sKey]) || t.start_location)
+          : (t.start_lat != null ? `${Number(t.start_lat).toFixed(4)}, ${Number(t.start_lng).toFixed(4)}` : t.start_location);
+        const endLoc = eKey && labels[eKey]
+          ? (buildLabelFromParts(labels[eKey]) || t.end_location)
+          : (t.end_lat != null ? `${Number(t.end_lat).toFixed(4)}, ${Number(t.end_lng).toFixed(4)}` : t.end_location);
         const stopLocs = (t.stops || []).map(s => {
           const stKey = s.lat != null ? `${Number(s.lat).toFixed(4)},${Number(s.lng).toFixed(4)}` : null;
           const sl = stKey && labels[stKey] ? buildLabelFromParts(labels[stKey]) : null;
-          return sl ? { ...s, location: sl } : s;
+          // Stop fallback to coordinates too
+          const fallbackLoc = s.lat != null ? `${Number(s.lat).toFixed(4)}, ${Number(s.lng).toFixed(4)}` : (s.location || '—');
+          return sl ? { ...s, location: sl } : { ...s, location: fallbackLoc };
         });
         updated[t.trip_id] = { start_location: startLoc, end_location: endLoc, stops: stopLocs };
       }

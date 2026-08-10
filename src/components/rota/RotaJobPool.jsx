@@ -35,7 +35,7 @@ const DISCIPLINE_META = {
 };
 const DEFAULT_META = { label: 'General', color: 'slate', dot: 'bg-slate-400', header: 'bg-slate-50 text-slate-700', ring: 'ring-slate-200' };
 
-export default function RotaJobPool({ weekStart }) {
+export default function RotaJobPool({ weekStart, embedded = false }) {
   const [expanded, setExpanded] = useState(true);
   const [search, setSearch] = useState('');
   const [assigningJob, setAssigningJob] = useState(null);
@@ -172,23 +172,25 @@ export default function RotaJobPool({ weekStart }) {
   const totalActiveJobs = jobs.length;
 
   return (
-    <div className="insight-card rounded-2xl overflow-hidden">
-      {/* Header — collapsible */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3.5 bg-slate-50 border-b border-slate-200 hover:bg-slate-100 transition"
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm">
-            <Briefcase className="w-4 h-4 text-white" />
+    <div className={embedded ? "" : "insight-card rounded-2xl overflow-hidden"}>
+      {/* Header — collapsible (hidden when embedded in a modal) */}
+      {!embedded && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full flex items-center justify-between px-4 py-3.5 bg-slate-50 border-b border-slate-200 hover:bg-slate-100 transition"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm">
+              <Briefcase className="w-4 h-4 text-white" />
+            </div>
+            <div className="text-left">
+              <span className="font-bold text-sm block leading-tight text-slate-900">Quick Assign</span>
+              <span className="text-[11px] text-slate-400">{totalActiveJobs} active jobs · tap to assign</span>
+            </div>
           </div>
-          <div className="text-left">
-            <span className="font-bold text-sm block leading-tight text-slate-900">Quick Assign</span>
-            <span className="text-[11px] text-slate-400">{totalActiveJobs} active jobs · tap to assign</span>
-          </div>
-        </div>
-        {expanded ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
-      </button>
+          {expanded ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+        </button>
+      )}
 
       {expanded && (
         <div className="p-3 sm:p-4">

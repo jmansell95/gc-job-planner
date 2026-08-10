@@ -91,9 +91,14 @@ export default function GeotabTripHistory({ vehicle }) {
       for (const t of trips) {
         const sKey = t.start_lat != null ? `${Number(t.start_lat).toFixed(4)},${Number(t.start_lng).toFixed(4)}` : null;
         const eKey = t.end_lat != null ? `${Number(t.end_lat).toFixed(4)},${Number(t.end_lng).toFixed(4)}` : null;
+        // Use geocoded address; fall back to coordinates (never "Unknown")
         updated[t.trip_id] = {
-          start_location: sKey && labels[sKey] ? (buildLabelFromParts(labels[sKey]) || 'Unknown') : 'Unknown',
-          end_location: eKey && labels[eKey] ? (buildLabelFromParts(labels[eKey]) || 'Unknown') : 'Unknown',
+          start_location: sKey && labels[sKey]
+            ? (buildLabelFromParts(labels[sKey]) || (t.start_lat != null ? `${Number(t.start_lat).toFixed(4)}, ${Number(t.start_lng).toFixed(4)}` : '—'))
+            : (t.start_lat != null ? `${Number(t.start_lat).toFixed(4)}, ${Number(t.start_lng).toFixed(4)}` : '—'),
+          end_location: eKey && labels[eKey]
+            ? (buildLabelFromParts(labels[eKey]) || (t.end_lat != null ? `${Number(t.end_lat).toFixed(4)}, ${Number(t.end_lng).toFixed(4)}` : '—'))
+            : (t.end_lat != null ? `${Number(t.end_lat).toFixed(4)}, ${Number(t.end_lng).toFixed(4)}` : '—'),
         };
       }
       if (!cancelled) setGeocodedTrips(updated);

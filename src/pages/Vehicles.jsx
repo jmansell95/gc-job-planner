@@ -200,7 +200,7 @@ export default function Vehicles() {
                   { val: 'compliant', label: 'OK' },
                   { val: 'warning', label: 'Attention' },
                   { val: 'expired', label: 'Critical' },
-                  { val: 'unknown', label: 'No Data' },
+                  { val: 'unknown', label: 'Not Synced' },
                 ].map(opt => (
                   <button key={opt.val} onClick={() => setStatusFilter(opt.val)}
                     className={`px-3 py-1.5 rounded-md text-sm font-semibold transition whitespace-nowrap ${statusFilter === opt.val ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'}`}>

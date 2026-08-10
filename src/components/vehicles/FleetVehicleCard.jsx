@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Truck, ShieldCheck, ShieldAlert, ShieldX, Wrench, Gauge,
   Satellite, Link2, Car, Hash, Navigation, Zap, Clock, Palette,
-  FileText, Loader2, BadgeCheck, AlertTriangle,
+  FileText, Loader2, BadgeCheck, AlertTriangle, CloudOff, Receipt, CalendarCheck,
 } from 'lucide-react';
 import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
 import { generateVehicleReport } from '@/utils/vehiclePdfReport';
@@ -13,7 +13,7 @@ const LEVEL_BADGE = {
   compliant: { label: 'OK', Icon: ShieldCheck, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   warning: { label: 'Attention', Icon: ShieldAlert, cls: 'bg-amber-50 text-amber-700 border-amber-200' },
   expired: { label: 'Critical', Icon: ShieldX, cls: 'bg-red-50 text-red-700 border-red-200' },
-  unknown: { label: 'No Data', Icon: ShieldX, cls: 'bg-slate-50 text-slate-500 border-slate-200' },
+  unknown: { label: 'Not Synced', Icon: CloudOff, cls: 'bg-slate-50 text-slate-500 border-slate-200' },
 };
 
 const LEVEL_ACCENT = {
@@ -167,6 +167,24 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
               {motDays != null && motDays >= 0 && motDays <= 30 && <span className="opacity-80">({motDays}d)</span>}
             </span>
           )}
+          {/* Tax status badge */}
+          {(() => {
+            const taxDue = vehicle.tax_due_date;
+            const taxDays = taxDue ? differenceInDays(new Date(taxDue + 'T00:00:00'), new Date()) : null;
+            if (vehicle.tax_status === 'untaxed' || (taxDays != null && taxDays < 0)) {
+              return <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-red-500 text-white"><Receipt className="w-3 h-3" /> TAX EXPIRED</span>;
+            }
+            if (vehicle.tax_status === 'sorn') {
+              return <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-slate-200 text-slate-600"><Receipt className="w-3 h-3" /> SORN</span>;
+            }
+            if (taxDays != null && taxDays <= 30) {
+              return <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-amber-500 text-white"><Receipt className="w-3 h-3" /> TAX DUE ({taxDays}d)</span>;
+            }
+            if (vehicle.tax_status === 'taxed' || (taxDays != null && taxDays > 30)) {
+              return <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-emerald-500 text-white"><Receipt className="w-3 h-3" /> TAX OK</span>;
+            }
+            return null;
+          })()}
         </div>
 
         {/* Live motion status badge */}
@@ -247,6 +265,11 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
           {vehicle.co2_emissions_g_km && (
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-50 text-green-600 font-medium" title="CO2 emissions">
               {vehicle.co2_emissions_g_km}g/km
+            </span>
+          )}
+          {vehicle.last_service_date && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium flex items-center gap-1" title={`Last serviced ${new Date(vehicle.last_service_date + 'T00:00:00').toLocaleDateString('en-GB')}`}>
+              <CalendarCheck className="w-2.5 h-2.5" /> {new Date(vehicle.last_service_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
             </span>
           )}
         </div>

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   X, Truck, Gauge, CalendarClock, Wrench, Link2, Satellite,
   ShieldCheck, ShieldAlert, ShieldX, Hash, Fuel, Palette, Car, User, Users,
-  MapPin, Navigation, Clock, Activity, Zap, Radio, Database, FileText, Loader2, Route,
+  MapPin, Navigation, Clock, Activity, Zap, Radio, Database, FileText, Loader2, Route, CloudOff,
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { differenceInDays } from 'date-fns';
@@ -45,7 +45,7 @@ const LEVEL_BADGE = {
   compliant: { label: 'Compliant', Icon: ShieldCheck, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   warning: { label: 'Attention', Icon: ShieldAlert, cls: 'bg-amber-50 text-amber-700 border-amber-200' },
   expired: { label: 'Critical', Icon: ShieldX, cls: 'bg-red-50 text-red-700 border-red-200' },
-  unknown: { label: 'No Data', Icon: ShieldX, cls: 'bg-slate-50 text-slate-500 border-slate-200' },
+  unknown: { label: 'Not Synced', Icon: CloudOff, cls: 'bg-slate-50 text-slate-500 border-slate-200' },
 };
 
 const FUEL_LABELS = {

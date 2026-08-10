@@ -19,14 +19,48 @@ export async function generateVehicleReport(vehicle, tripData, maintenanceBookin
     for (const t of trips) {
       if (t.start_lat != null) coords.push({ lat: t.start_lat, lng: t.start_lng });
       if (t.end_lat != null) coords.push({ lat: t.end_lat, lng: t.end_lng });
+      // Also collect stop coordinates so they get geocoded too
+      for (const s of (t.stops || [])) {
+        if (s.lat != null) coords.push({ lat: s.lat, lng: s.lng });
+      }
     }
     if (coords.length > 0) {
       const labels = await batchReverseGeocodeStructured(coords);
       for (const t of trips) {
         const sKey = t.start_lat != null ? `${Number(t.start_lat).toFixed(4)},${Number(t.start_lng).toFixed(4)}` : null;
         const eKey = t.end_lat != null ? `${Number(t.end_lat).toFixed(4)},${Number(t.end_lng).toFixed(4)}` : null;
-        if (sKey && labels[sKey]) t.start_location = buildLabelFromParts(labels[sKey]) || t.start_location;
-        if (eKey && labels[eKey]) t.end_location = buildLabelFromParts(labels[eKey]) || t.end_location;
+        // Start location: use geocoded address, fall back to coordinates, then "—"
+        if (sKey && labels[sKey]) {
+          t.start_location = buildLabelFromParts(labels[sKey]) || t.start_location;
+        } else if (t.start_lat != null) {
+          t.start_location = `${Number(t.start_lat).toFixed(4)}, ${Number(t.start_lng).toFixed(4)}`;
+        } else {
+          t.start_location = '—';
+        }
+        // End location: same fallback logic
+        if (eKey && labels[eKey]) {
+          t.end_location = buildLabelFromParts(labels[eKey]) || t.end_location;
+        } else if (t.end_lat != null) {
+          t.end_location = `${Number(t.end_lat).toFixed(4)}, ${Number(t.end_lng).toFixed(4)}`;
+        } else {
+          t.end_location = '—';
+        }
+        // Geocode stop locations too
+        for (const s of (t.stops || [])) {
+          if (s.lat == null) continue;
+          const stKey = `${Number(s.lat).toFixed(4)},${Number(s.lng).toFixed(4)}`;
+          if (labels[stKey]) {
+            s.location = buildLabelFromParts(labels[stKey]) || s.location;
+          } else {
+            s.location = `${Number(s.lat).toFixed(4)}, ${Number(s.lng).toFixed(4)}`;
+          }
+        }
+      }
+    } else {
+      // No coordinates at all — at least clear the "Unknown location" text
+      for (const t of trips) {
+        if (!t.start_location || t.start_location === 'Unknown location' || t.start_location === 'Unknown') t.start_location = '—';
+        if (!t.end_location || t.end_location === 'Unknown location' || t.end_location === 'Unknown') t.end_location = '—';
       }
     }
   }
