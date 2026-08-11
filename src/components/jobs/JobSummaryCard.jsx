@@ -113,10 +113,20 @@ export default function JobSummaryCard({
           </div>
         </div>
 
+        {/* Job Reference — prominent badge below pills */}
+        {job.job_reference && (
+          <div className="inline-flex items-center gap-1.5 bg-[#2E5A1A]/8 text-[#2E5A1A] rounded-md px-2.5 py-1 text-xs font-bold tracking-wide w-fit">
+            <FileText className="w-3.5 h-3.5" />
+            <span className="text-[10px] uppercase opacity-60 font-semibold">Job Reference</span>
+            <span className="opacity-30">·</span>
+            {job.job_reference}
+          </div>
+        )}
+
         {/* Title */}
         <h3 className="font-bold text-slate-900 text-base leading-tight line-clamp-2">{job.name}</h3>
 
-        {/* Project + ref + client */}
+        {/* Project + client */}
         <div className="space-y-0.5">
           {project && (
             <button onClick={onProjectClick} className="flex items-center gap-1.5 hover:underline">
@@ -124,12 +134,6 @@ export default function JobSummaryCard({
               <span className="text-xs font-medium text-indigo-600 truncate">{project.name}</span>
               <span className="text-[10px] text-slate-400">· {siblingCount} job{siblingCount !== 1 ? 's' : ''}</span>
             </button>
-          )}
-          {job.job_reference && (
-            <div className="inline-flex items-center gap-1.5 bg-[#2E5A1A]/8 text-[#2E5A1A] rounded-md px-2 py-0.5 text-xs font-bold tracking-wide w-fit">
-              <FileText className="w-3 h-3" />
-              {job.job_reference}
-            </div>
           )}
           {client && <p className="text-xs text-slate-400 truncate">{client.name}</p>}
         </div>
