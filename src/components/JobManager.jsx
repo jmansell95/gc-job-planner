@@ -12,6 +12,7 @@ import ProjectManager from '@/components/ProjectManager';
 import JobKanbanBoard from '@/components/dashboard/JobKanbanBoard';
 import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
+import JobSummaryCard from '@/components/jobs/JobSummaryCard';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 
 const fmtDate = (d) => {
@@ -97,6 +98,29 @@ export default function JobManager({ onNavigateRota }) {
   const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: () => base44.entities.Team.list() });
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200) });
+  const { data: rotas = [] } = useQuery({ queryKey: ['rotas-for-jobs'], queryFn: () => base44.entities.RotaAssignment.list('-created_date', 5000) });
+  const { data: costItems = [] } = useQuery({ queryKey: ['cost-items-for-jobs'], queryFn: () => base44.entities.JobCostItem.list('-created_date', 5000) });
+
+  // Compute crew count (unique staff) and rig count (internal_equipment) per job
+  const crewCountByJob = React.useMemo(() => {
+    const m = {};
+    for (const r of rotas) {
+      if (!r.job_id) continue;
+      if (!m[r.job_id]) m[r.job_id] = new Set();
+      if (r.staff_id) m[r.job_id].add(r.staff_id);
+    }
+    const out = {};
+    for (const [k, s] of Object.entries(m)) out[k] = s.size;
+    return out;
+  }, [rotas]);
+  const rigCountByJob = React.useMemo(() => {
+    const m = {};
+    for (const ci of costItems) {
+      if (ci.category !== 'internal_equipment') continue;
+      m[ci.job_id] = (m[ci.job_id] || 0) + 1;
+    }
+    return m;
+  }, [costItems]);
 
   const handleEdit = (job) => {
     setEditingJob(job);
@@ -302,73 +326,26 @@ export default function JobManager({ onNavigateRota }) {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredJobs.map((job) => {
                 const client = clients.find(c => c.id === job.client_id);
-                const primaryType = getJobPrimaryType(job, teams);
                 const project = projects.find(p => p.id === job.project_id);
                 const siblingCount = project ? jobs.filter(j => j.project_id === project.id).length : 0;
                 return (
-                <div key={job.id} className="card-modern rounded-xl overflow-hidden flex flex-col group">
-                  <div className={`h-1.5 ${getJobTypeColor(primaryType, jobTypes).bar}`} />
-                  <div className="p-5 flex-1">
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="flex flex-wrap gap-1.5">
-                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${getJobTypeColor(primaryType, jobTypes).badge}`}>{getJobTypeLabel(primaryType, jobTypes)}</span>
-                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[job.status || 'planning']}`}>{statusLabels[job.status || 'planning']}</span>
-                        <DisciplinePills job={job} size="sm" />
-                      </div>
-                      {job.requisition_list_url && <FileText className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" title="Has requisition list" />}
-                    </div>
-                    <h3 className="font-bold text-slate-900 text-base mb-1 truncate">{job.name}</h3>
-                    {project && (
-                      <button onClick={() => { setView('projects'); }} className="flex items-center gap-1.5 mb-1 hover:underline">
-                        <FolderOpen className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
-                        <span className="text-xs font-medium text-indigo-600 truncate">{project.name}</span>
-                        <span className="text-[10px] text-slate-400">· {siblingCount} job{siblingCount !== 1 ? 's' : ''}</span>
-                      </button>
-                    )}
-                    {job.job_reference && <p className="text-xs text-slate-400 mb-1 truncate">Ref: {job.job_reference}</p>}
-                    {client && <p className="text-xs text-slate-400 mb-1.5 truncate">{client.name}</p>}
-                    <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-3">
-                      <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="truncate">{job.location}</span>
-                    </div>
-                    {/* Prominent date block */}
-                    {(() => {
-                      const duration = calcDuration(job.start_date, job.end_date);
-                      return (
-                        <div className="flex items-stretch gap-2.5 mb-1">
-                           <div className="flex flex-col items-center justify-center min-w-[52px] px-2 py-1.5 rounded-lg bg-slate-900 text-white">
-                             <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 leading-none">Start</span>
-                             <span className="text-base font-bold leading-tight mt-0.5">{fmtDateShort(job.start_date).split(' ')[0]}</span>
-                             <span className="text-[10px] font-medium text-slate-300 leading-none">{fmtDateShort(job.start_date).split(' ')[1]}</span>
-                           </div>
-                           <div className="flex flex-col items-center justify-center min-w-[52px] px-2 py-1.5 rounded-lg bg-slate-700 text-white">
-                             <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 leading-none">End</span>
-                             <span className="text-base font-bold leading-tight mt-0.5">{fmtDateShort(job.end_date).split(' ')[0]}</span>
-                             <span className="text-[10px] font-medium text-slate-300 leading-none">{fmtDateShort(job.end_date).split(' ')[1]}</span>
-                           </div>
-                           {duration != null && (
-                             <span className={`inline-flex items-center self-center text-xs font-bold px-2 py-0.5 rounded-full ${
-                               duration === 1 ? 'bg-blue-50 text-blue-700' :
-                               duration <= 7 ? 'bg-emerald-50 text-emerald-700' :
-                               duration <= 30 ? 'bg-amber-50 text-amber-700' :
-                               'bg-violet-50 text-violet-700'
-                             }`}>
-                               {duration} {duration === 1 ? 'day' : 'days'}
-                             </span>
-                           )}
-                         </div>
-                      );
-                    })()}
-                  </div>
-                  <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <button onClick={() => setSelectedJob(job)} className="flex items-center gap-1.5 text-sm font-medium text-[#2E5A1A] hover:text-[#1c4a12] transition"><Eye className="w-4 h-4" /> View Details</button>
-                    <div className="flex gap-1">
-                      <button onClick={() => handleEdit(job)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
-                      <button onClick={() => handleClone(job)} disabled={cloningId === job.id} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition disabled:opacity-50" title="Clone job"><Copy className="w-4 h-4" /></button>
-                      <button onClick={() => handleDelete(job.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </div>
-                </div>
+                  <JobSummaryCard
+                    key={job.id}
+                    job={job}
+                    client={client}
+                    project={project}
+                    siblingCount={siblingCount}
+                    crewCount={crewCountByJob[job.id] || 0}
+                    rigCount={rigCountByJob[job.id] || 0}
+                    jobTypes={jobTypes}
+                    teams={teams}
+                    cloningId={cloningId}
+                    onView={(j) => setSelectedJob(j)}
+                    onEdit={(j) => handleEdit(j)}
+                    onClone={(j) => handleClone(j)}
+                    onDelete={(id) => handleDelete(id)}
+                    onProjectClick={() => setView('projects')}
+                  />
                 );
               })}
             </div>
