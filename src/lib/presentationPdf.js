@@ -252,6 +252,14 @@ export async function buildPresentationPDF(logoUrl) {
   y = drawPullQuote(doc, margin, pageW, y, C.pullQuotes.integrations);
   drawFooter(doc, margin, pageW, pageH);
 
+  // === Customisable Dashboard ===
+  doc.addPage();
+  drawSectionHeader(doc, margin, pageW, 'Customisable Dashboard', 'Your layout, your widgets — saved per user, synced everywhere');
+  y = 120;
+  y = drawPoints(doc, margin, pageW, C.dashboardPoints, y);
+  y = drawPullQuote(doc, margin, pageW, y, C.pullQuotes.dashboard);
+  drawFooter(doc, margin, pageW, pageH);
+
   // === Safety & Compliance ===
   doc.addPage();
   drawSectionHeader(doc, margin, pageW, 'Safety & Compliance', 'Risk mitigation and audit-ready records');

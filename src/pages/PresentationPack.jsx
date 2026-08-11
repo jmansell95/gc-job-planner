@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, Loader2, ShieldCheck, TrendingUp, Map, FileText, Sparkles, Clock, HardHat, FileClock, Link2, Smartphone, Building2, GitBranch, Users, ScrollText } from 'lucide-react';
+import { Download, Loader2, ShieldCheck, TrendingUp, Map, FileText, Sparkles, Clock, HardHat, FileClock, Link2, Smartphone, Building2, GitBranch, Users, ScrollText, Grid3x3 } from 'lucide-react';
 import { buildPresentationPDF } from '@/lib/presentationPdf';
 import { EMBLEM_URL } from '@/components/Logo';
 import PageHeader from '@/components/PageHeader';
@@ -49,7 +49,8 @@ export default function PresentationPack() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
             <PreviewItem icon={FileText} title="Executive Summary" desc="Headline outcomes and the ask, at a glance" />
-            <PreviewItem icon={Link2} title="Integrations & Ecosystem" desc="Concur, Bob HR, CIS, OpenGround, SafetyCulture" />
+            <PreviewItem icon={Link2} title="Integrations & Ecosystem" desc="SafetyCulture, Concur, Bob HR, CIS, OpenGround" />
+            <PreviewItem icon={Grid3x3} title="Customisable Dashboard" desc="Per-user layouts, drag-and-drop, resize widgets" />
             <PreviewItem icon={ShieldCheck} title="Safety & Compliance" desc="5 points with proof lines + pull quote" />
             <PreviewItem icon={Smartphone} title="Field Crew Experience" desc="Mobile-first, offline, less admin not more" />
             <PreviewItem icon={TrendingUp} title="Financial Performance" desc="5 points with proof lines + pull quote" />

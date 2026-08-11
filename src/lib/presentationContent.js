@@ -5,13 +5,15 @@
 // ============================================================
 
 export const coverStats = [
-  { label: 'Compliance sync', value: 'Live', tone: '#8DC63F' },
+  { label: 'SafetyCulture sync', value: 'Every 30 min', tone: '#8DC63F' },
+  { label: 'Dashboard', value: 'Per-user', tone: '#2E5A1A' },
   { label: 'AGS export', value: 'One click', tone: '#2E5A1A' },
   { label: 'Billing leakage', value: 'Eliminated', tone: '#1d4ed8' },
 ];
 
 export const safetyOutcomes = [
-  'Compliance status synced live — expired assets never reach site',
+  'SafetyCulture is the single source of truth — syncs every 30 minutes',
+  'Red alert banner on every page when critical issues are open',
   'GPS-tagged hazard map for every service encountered',
   'Manager review on every field log — same day, not month-end',
   'One-click, legally-defensible audit pack for HSE or client',
@@ -108,7 +110,30 @@ export const aiPoints = [
   },
 ];
 
+export const dashboardPoints = [
+  {
+    title: 'Customisable, drag-and-drop dashboard',
+    body: 'Every manager can build their own dashboard — drag widgets to rearrange, toggle which ones are visible, and resize each widget from small to large. The layout saves automatically and follows the user across every login and every device, so the dashboard they see is always the dashboard they built.',
+    proof: 'Layout stored per-user in the DashboardLayout entity — not just in browser localStorage. Log in on a new phone, your layout is there.',
+  },
+  {
+    title: 'Two-tier widget system',
+    body: 'Widgets are grouped into "At a Glance" (live operational pulse — site readiness, mission control, yard status) and "Insights & Analysis" (AI predictions, benchmarks, geotechnical risk). Start with the six essential widgets and enable deeper analytics as needed — no clutter, just clarity.',
+    proof: 'Six curated widgets visible by default; 16 more available via the Customize button.',
+  },
+  {
+    title: 'Job-scoped dashboard',
+    body: 'Filter the entire dashboard to a single job — all widgets, stats and site snapshots re-scope to that job instantly. Switch back to "All Jobs" for the company-wide view. One dashboard, two perspectives, zero page reloads.',
+    proof: 'Job selector bar drives every widget via React context — no refetch, no flicker.',
+  },
+];
+
 export const integrationsPoints = [
+  {
+    title: 'SafetyCulture — single source of truth for safety',
+    body: 'All safety audits, incidents, toolbox talks and compliance checks are synced from SafetyCulture every 30 minutes. The Safety Hub shows critical alerts, open audits and overdue actions in one place — and every safety page links straight back to SafetyCulture for the full audit detail. Legacy compliance data has been archived; SafetyCulture is the only source.',
+    proof: 'Automated 30-minute sync + webhook receiver + red alert banner on every page when critical issues are open.',
+  },
   {
     title: 'SAP Concur — expense sync & reconciliation',
     body: 'Approved site expenses and sub-contractor costs export to SAP Concur as Quick Expenses with GL codes mapped automatically, then lock to prevent audit mismatches. A reverse-sync pulls Concur report IDs and approval status back so finance can trace every expense to its report.',
@@ -130,9 +155,9 @@ export const integrationsPoints = [
     proof: 'Detectors route KeyLogBook diary entries as Site Logs, not installation pipes.',
   },
   {
-    title: 'SafetyCulture & AssetPanda — evidence & asset sync',
-    body: 'SafetyCulture audits auto-link to the contractor record by email, keeping the safety evidence chain intact. AssetPanda syncs asset and compliance status live so rig, machinery and lifting-gear data is always current — no manual re-keying between systems.',
-    proof: 'Audits and asset status arrive automatically — never manually attached.',
+    title: 'AssetPanda — live asset & compliance sync',
+    body: 'AssetPanda syncs asset and compliance status live so rig, machinery and lifting-gear data is always current — stock levels, warehouse locations and condition all pulled automatically. No manual re-keying between systems, and expired or needs-service items are auto-deactivated.',
+    proof: 'Asset status arrives automatically — never manually attached.',
   },
 ];
 
@@ -298,7 +323,8 @@ export const roiPoints = [
 export const agenda = [
   { step: '01', title: 'Opening & Executive Summary', mins: '5 min', body: 'Set the scene: why we built this, what changes for the business. Read the two-outcome summary (safety + margin) and state the ask up front so the room knows where this is going.' },
   { step: '02', title: 'Integrations & Ecosystem', mins: '4 min', body: 'Show the connected system — SAP Concur, Bob HR, HMRC CIS, OpenGround, SafetyCulture, AssetPanda. Frame it as one platform replacing five disjointed tools and the reconciliation spreadsheets between them.' },
-  { step: '03', title: 'Safety & Compliance Demo', mins: '8 min', body: 'Live compliance tiles → one expired asset card → Asset Passport audit trail. Then Log QC dashboard, an anomaly flag and a bulk approve. End on the hazard map. The most visceral "before vs after" moment.' },
+  { step: '02b', title: 'Customisable Dashboard', mins: '3 min', body: 'Show the Customize button — drag a widget, resize it, toggle one on. Emphasise: the layout saves per-user and follows them across devices. Every manager gets their own dashboard.' },
+  { step: '03', title: 'Safety & Compliance Demo', mins: '8 min', body: 'Open the Safety Hub — critical alerts, open audits, overdue actions, all synced from SafetyCulture. Show the red alert banner. Then Log QC dashboard, an anomaly flag and a bulk approve. End on the hazard map.' },
   { step: '04', title: 'Field Crew Experience', mins: '4 min', body: 'Show the mobile daily workflow on a phone view — arrive, sign briefing, log, submit. Emphasise: the crew enters LESS, not more. The app removes admin, it does not add it.' },
   { step: '05', title: 'Financial Performance Demo', mins: '8 min', body: 'Open a drilling job → Site Logs (days logged + meterage) → Billing tab (calculated charge from the rate card). Run the one-click AGS export live. Connect site activity straight to the P&L.' },
   { step: '06', title: 'AI & Automation', mins: '6 min', body: 'Demo the Staff Assistant answering a live question. Mention the Drilling Intelligence and Scheduling agents, the automated stand-up digest and milestone auto-push. Position AI as the reading/checking/chasing layer, not a replacement for the engineer.' },
@@ -319,8 +345,12 @@ export const script = [
   {
     phase: 'Section 1 — Safety & Compliance (8 min)',
     items: [
-      { tag: 'Show', text: 'Compliance → Site Assets. The compliance tiles, then one expired or expiring asset card.' },
-      { tag: 'Say', text: '"Every rig, machine, trailer and piece of lifting gear is synced live from our compliance system. If something expires or needs service, it is deactivated here and cannot be added to a job. That block happens at the yard — not after the asset has reached site."' },
+      { tag: 'Show', text: 'Compliance & Audit → Safety Hub. The critical alerts, open audits and overdue actions — all synced from SafetyCulture.' },
+      { tag: 'Say', text: '"This is the Safety Hub. Every audit, incident and corrective action syncs from SafetyCulture every 30 minutes. If a critical issue is open, a red banner appears on every page in the app — no one can miss it. SafetyCulture is our single source of truth for safety."' },
+      { tag: 'Show', text: 'Click through to the Incidents tab. Point at the near-miss and RIDDOR-reportable counts.' },
+      { tag: 'Say', text: '"Every near-miss, accident and dangerous occurrence is tracked here, with AI-assisted root cause analysis and RIDDOR flagging built in."' },
+      { tag: 'Show', text: 'Navigate to Assets & Fleet. The compliance tiles, then one expired or expiring asset card.' },
+      { tag: 'Say', text: '"Every rig, machine, trailer and piece of lifting gear is synced live from AssetPanda. If something expires or needs service, it is deactivated here and cannot be added to a job. That block happens at the yard — not after the asset has reached site."' },
       { tag: 'Show', text: 'Click that asset → Asset Passport. The maintenance timeline, responsible person, service history.' },
       { tag: 'Say', text: '"This is the full audit trail for that asset — last service, next service, who is responsible. If HSE walk in tomorrow, this is what we hand them, in one click, not after a morning in the filing cabinet."' },
       { tag: 'Ask', text: '"Honestly — how long would it take us to pull that together for an auditor today?"' },
@@ -343,10 +373,18 @@ export const script = [
     ],
   },
   {
+    phase: 'Section 2b — Customisable Dashboard (3 min)',
+    items: [
+      { tag: 'Show', text: 'Click the Customize button on the dashboard. Drag a widget to a new position. Click the size button to make it full-width.' },
+      { tag: 'Say', text: '"Every manager builds their own dashboard. Drag widgets around, resize them, show or hide the ones you use. It saves automatically — log in on your phone tomorrow and your layout is there. No two managers need to see the same thing."' },
+      { tag: 'Ask', text: '"How much time do you spend every morning opening different screens to get the information you need?"' },
+    ],
+  },
+  {
     phase: 'Section 3 — Integrations & AI (10 min)',
     items: [
       { tag: 'Show', text: 'Settings → SAP Concur Sync, Bob HR Sync, CIS Verification. Point at the "Connected" status on each.' },
-      { tag: 'Say', text: '"This is not a standalone app — it is connected to the systems we already pay for. Expenses sync to Concur, holidays sync to Bob HR, subcontractors are verified against HMRC, logs export to OpenGround. One platform, not five."' },
+      { tag: 'Say', text: '"This is not a standalone app — it is connected to the systems we already pay for. SafetyCulture syncs every 30 minutes, expenses sync to Concur, holidays sync to Bob HR, subcontractors are verified against HMRC, logs export to OpenGround. One platform, not five."' },
       { tag: 'Show', text: 'Open the Staff Assistant chat. Ask it a live question: "Which rigs need service next?"' },
       { tag: 'Say', text: '"That answer came from our live asset data — it did not guess. The AI does the reading and the checking so the engineer can do the engineering."' },
       { tag: 'Ask', text: '"How much time do we spend every week just gathering information to make a decision?"' },
@@ -374,6 +412,7 @@ export const script = [
 ];
 
 export const pullQuotes = {
+  dashboard: 'Every manager sees a different dashboard — the one they built. It saves automatically and follows them across every login and every device. No two managers need to see the same thing.',
   safety: 'Safety is no longer a folder of paper that gets audited once a year. It is a live, queryable record of every decision made on site — available the moment it is asked for.',
   finance: 'Margin is protected at the point of capture, not recovered at the point of invoice. We are billing what actually happened on site — every time.',
   ai: 'The AI does not replace the engineer — it does the reading, the checking and the chasing so the engineer can do the engineering.',
