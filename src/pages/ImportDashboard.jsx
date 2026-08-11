@@ -5,7 +5,7 @@ import {
   UploadCloud, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle,
   Users, Briefcase, CalendarDays, Trash2, HardHat, AlertCircle, RefreshCw,
   ChevronDown, ChevronRight, MapPin, Building2, UserX, Layers, Clock,
-  Palmtree, Thermometer, GraduationCap, Building, Filter, Warehouse
+  Palmtree, Thermometer, GraduationCap, Building, Filter, Warehouse, X
 } from 'lucide-react';
 import ImportCompleteModal from '@/components/import/ImportCompleteModal';
 import ImportProgressModal from '@/components/import/ImportProgressModal';
@@ -149,9 +149,9 @@ export default function ImportDashboard() {
     <div className="page-bg-vibrant min-h-screen p-4 md:p-6 space-y-6">
       {/* Upload Card */}
       <div className="insight-card rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-slate-800 mb-1">1. Upload Spreadsheet</h2>
+        <h2 className="text-lg font-semibold text-slate-800 mb-1">Upload Spreadsheet</h2>
         <p className="text-sm text-slate-500 mb-4">
-          Select your <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">.xlsx</code> planner file. Only two tabs are processed: <strong>"Team Planner 2026_GW+Depot"</strong> (groundworks &amp; depot staff) and <strong>"Drillers"</strong> (drilling crews &amp; rig assignments). All other tabs are ignored. Every import <strong>rebuilds jobs, rotas, and cost items</strong> from the spreadsheet — staff and teams are preserved.
+           Select your <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">.xlsx</code> planner file. Only two tabs are processed: <strong>"Team Planner 2026_GW+Depot"</strong> (groundworks &amp; depot staff) and <strong>"Drillers"</strong> (drilling crews &amp; rig assignments). All other tabs are ignored. Every import <strong>rebuilds jobs, rotas, and cost items</strong> from the spreadsheet — <strong>staff, teams, and crew member types are never touched</strong>; the import matches names only.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
@@ -187,7 +187,7 @@ export default function ImportDashboard() {
         {/* Clean-slate warning */}
         <div className="mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
           <RefreshCw className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span><strong>Import Guard:</strong> Staff and teams are <strong>preserved</strong> — the import only rebuilds jobs, rotas, rig assignments, cost items, training bookings, and absences from the spreadsheet. Unmatched staff are skipped (add them in Staff Command first, then re-import). The import runs in 3 phases to avoid timeouts on large files.</span>
+          <span><strong>Import Guard:</strong> Staff, teams, and crew member types are <strong>never modified</strong> — the import matches names only and skips anyone not found in Staff Command. Add missing staff manually in Staff Command first, then re-import. The import rebuilds jobs, rotas, rig assignments, cost items, training bookings, and absences in 3 phases to avoid timeouts on large files.</span>
         </div>
 
         {error && (
@@ -198,17 +198,26 @@ export default function ImportDashboard() {
         )}
       </div>
 
-      {/* Preview / Full Breakdown */}
+      {/* Review Breakdown — Popup Modal */}
       {preview && (
-        <div className="space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-800">Review Import Breakdown</h2>
+                <p className="text-sm text-slate-500">
+                  Date range: <span className="font-medium text-slate-700">{preview.summary.date_range.from}</span> →{' '}
+                  <span className="font-medium text-slate-700">{preview.summary.date_range.to}</span>
+                  <span className="ml-2 text-xs text-slate-400">(today: {preview.summary.today})</span>
+                </p>
+              </div>
+              <button onClick={() => { setPreview(null); setFile(null); setFileUrl(null); }} disabled={applying} className="p-2 hover:bg-slate-100 rounded-lg transition">
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-6 space-y-4">
           {/* Summary tiles */}
           <div className="insight-card rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-slate-800 mb-1">2. Review Full Breakdown</h2>
-            <p className="text-sm text-slate-500 mb-4">
-              Date range: <span className="font-medium text-slate-700">{preview.summary.date_range.from}</span> →{' '}
-              <span className="font-medium text-slate-700">{preview.summary.date_range.to}</span>
-              <span className="ml-2 text-xs text-slate-400">(today: {preview.summary.today})</span>
-            </p>
 
             {/* Full wipe summary */}
             <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
@@ -224,12 +233,12 @@ export default function ImportDashboard() {
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.cost_items_deleted || 0}</span> cost items</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.training_bookings_deleted || 0}</span> training bookings</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.absences_deleted || 0}</span> absences</div>
-                <div className="bg-emerald-50 rounded-lg px-3 py-2 col-span-2"><span className="text-emerald-600 font-bold">✓</span> <span className="text-emerald-700">Staff &amp; teams preserved</span></div>
+                <div className="bg-emerald-50 rounded-lg px-3 py-2 col-span-2"><span className="text-emerald-600 font-bold">✓</span> <span className="text-emerald-700">Staff, teams &amp; crew types never touched</span></div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
-              <StatTile icon={Users} label="Staff" total={preview.summary.staff.total} sub={`${preview.summary.staff.replaced || 0} replaced · ${preview.summary.staff.new || 0} new`} color="blue" />
+              <StatTile icon={Users} label="Staff" total={preview.summary.staff.total} sub={`${preview.summary.staff.found || 0} matched · ${preview.summary.staff.unmatched_skipped || 0} unmatched`} color="blue" />
               <StatTile icon={Briefcase} label="Jobs" total={preview.summary.jobs.total} sub={`${preview.summary.jobs.new} new`} color="emerald" />
               <StatTile icon={CalendarDays} label="Rotas" total={preview.summary.rotas.to_create} sub={`${preview.summary.rotas.carried_forward || 0} merged`} color="amber" />
               <StatTile icon={UserX} label="Unmatched" total={preview.summary.staff.unmatched_skipped || 0} sub="add in Staff Command" color="rose" />
@@ -267,7 +276,7 @@ export default function ImportDashboard() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-indigo-900">Subcontractors: {preview.summary.staff.subcontractors}</p>
-                  <p className="text-xs text-indigo-700">→ Created as staff in Subcontractors section</p>
+                  <p className="text-xs text-indigo-700">→ matched to existing staff (never modified)</p>
                 </div>
               </div>
               <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -276,7 +285,7 @@ export default function ImportDashboard() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-cyan-900">Agency: {preview.summary.staff.agency}</p>
-                  <p className="text-xs text-cyan-700">→ Grouped by supplying agency</p>
+                  <p className="text-xs text-cyan-700">→ matched to existing staff (never modified)</p>
                 </div>
               </div>
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -285,7 +294,7 @@ export default function ImportDashboard() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-emerald-900">Direct Employees: {preview.summary.staff.direct_employees}</p>
-                  <p className="text-xs text-emerald-700">→ crew-section teams</p>
+                  <p className="text-xs text-emerald-700">→ matched to existing staff (never modified)</p>
                 </div>
               </div>
             </div>
@@ -470,7 +479,7 @@ export default function ImportDashboard() {
                 </h3>
               </div>
               <p className="text-xs text-slate-500 mb-3">
-                These staff have linked login accounts but don't appear in this spreadsheet. They will be marked as <strong>inactive (left the company)</strong> on import.
+                These staff have linked login accounts but don't appear in this spreadsheet. They are <strong>not modified</strong> — the import never touches staff records.
               </p>
               <div className="space-y-1.5 max-h-60 overflow-y-auto">
                 {preview.leavers.map((l, i) => (
@@ -822,7 +831,7 @@ export default function ImportDashboard() {
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 flex items-start gap-2 mb-4">
               <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>
-                Confirming will <strong>delete all existing jobs, rotas, rig assignments, cost items, training bookings, and absences</strong>, then rebuild them from the two active tabs (<strong>"Team Planner 2026_GW+Depot"</strong> and <strong>"Drillers"</strong>). <strong>Staff and teams are preserved</strong> — unmatched staff are skipped. The import runs in 3 phases (jobs &amp; rotas → cost items → training &amp; absences) to avoid timeouts on large files.
+                Confirming will <strong>delete all existing jobs, rotas, rig assignments, cost items, training bookings, and absences</strong>, then rebuild them from the two active tabs. <strong>Staff, teams, and crew member types are never touched</strong> — the import matches names only and skips anyone not in Staff Command. The import runs in 3 phases to avoid timeouts on large files.
               </span>
             </div>
             <div className="flex gap-3">
@@ -842,6 +851,8 @@ export default function ImportDashboard() {
               </button>
             </div>
           </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -853,7 +864,7 @@ export default function ImportDashboard() {
             <Step n={1} title="Upload your planner file">The Excel file is uploaded and parsed directly — no third-party AI involved.</Step>
             <Step n={2} title="Only two tabs are processed">The <strong>"Team Planner 2026_GW+Depot"</strong> tab rebuilds groundworks/depot staff, jobs, teams and rotas. The <strong>"Drillers"</strong> tab rebuilds drilling crews and links rigs to their jobs. Every other tab is completely ignored — no legacy import.</Step>
             <Step n={3} title="Date-aware job status">Jobs with all past dates are marked <strong>completed</strong>. Jobs with any today/future dates are marked <strong>in_progress</strong>. New jobs with no dates yet are <strong>planning</strong>.</Step>
-            <Step n={4} title="Import Guard — staff preserved">Staff and teams are managed manually in Staff Command and Team Manager. The import matches spreadsheet names to existing staff — unmatched staff are skipped with a warning so you can add them manually before re-importing.</Step>
+            <Step n={4} title="Import Guard — match only, never overwrite">Staff, teams, and crew member types are managed manually in Staff Command and Team Manager. The import <strong>matches names only</strong> — it never creates, updates, or deletes staff records. Unmatched staff are skipped with a warning so you can add them manually before re-importing.</Step>
             <Step n={5} title="Absences &amp; training">Non-job days (holiday, sick, training) create Absence records in the Absence Manager — grouped by staff and week. Training courses create TrainingCourse + TrainingBooking records linked to staff.</Step>
             <Step n={6} title="Full breakdown review">See every staff member, every job, every section, every sheet, and every warning before you confirm — so you can drill down and verify everything is correct.</Step>
             <Step n={7} title="Phased rebuild">On confirm, the import runs in 3 phases to avoid timeouts on large files: (1) jobs &amp; rotas, (2) rig &amp; crew cost items, (3) training &amp; absences. Each phase does less work so it completes within the serverless timeout.</Step>

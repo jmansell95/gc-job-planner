@@ -1050,31 +1050,11 @@ export default async function(req) {
       staffJobTitleByKey[key] = inferJobTitle(sections[0]) || inferJobTitleFromSheet(sAssignments[0]?.sheet_name) || '';
     }
 
-    let createdStaffRecords = [];
-    if (skipPurgeAndJobs) {
-      // Resume mode (phases 2-3) — staff were already created in phase 1.
-      // Just build the staffMap from existing staff. Do NOT delete/recreate
-      // or all rota references from phase 1 will be orphaned.
-      for (const key of uniqueStaffKeys) {
-        const name = staffNameByKey[key];
-        let staff = staffByName.get(key);
-        if (!staff) {
-          const email = generateEmail(name, new Set());
-          staff = staffByEmail.get(email.toLowerCase());
-        }
-        if (!staff && existingStaff.length > 0) {
-          const fuzzy = fuzzyFindStaff(name, existingStaff, 0.70);
-          if (fuzzy) staff = fuzzy.staff;
-        }
-        if (staff) {
-          staffFoundCount++;
-          staffMap.set(key, staff);
-        }
-      }
-    } else {
-    // Phase 1 — full staff replacement (delete + recreate from spreadsheet)
-    // Accumulate used emails across the loop so duplicate names get unique emails
-    const usedEmails = new Set([...staffByEmail.keys()]);
+    // Match-only mode — staff are managed manually in Staff Command.
+    // The import NEVER creates, updates, or deletes staff records, crew
+    // members, or crew member types. It only matches spreadsheet names to
+    // existing staff (by name, email, or fuzzy match) so rota assignments
+    // can be linked to the correct staff_id. Unmatched staff are skipped.
     for (const key of uniqueStaffKeys) {
       const name = staffNameByKey[key];
       let staff = staffByName.get(key);
@@ -1082,7 +1062,6 @@ export default async function(req) {
         const email = generateEmail(name, new Set());
         staff = staffByEmail.get(email.toLowerCase());
       }
-      // Fuzzy fallback: match to existing staff with a similar name
       if (!staff && existingStaff.length > 0) {
         const fuzzy = fuzzyFindStaff(name, existingStaff, 0.70);
         if (fuzzy) {
@@ -1090,77 +1069,18 @@ export default async function(req) {
           staffLinkMethods[key] = { method: fuzzy.method, matched_to: fuzzy.staff.name, score: Math.round(fuzzy.score * 100) };
         }
       }
-
-      const workerType = staffWorkerTypeByKey[key] || 'direct_employee';
-      const team = staffTeamByKey[key] || fallbackTeam;
-      const jobTitle = staffJobTitleByKey[key] || '';
-      const email = generateEmail(name, usedEmails);
-      usedEmails.add(email.toLowerCase());
-
-      // Resolve agency/subcontractor contractor record
-      let agencyId = '';
-      if (workerType === 'agency' && staffAgencyNameByKey[key]) {
-        const agency = await findOrCreateAgency(base44, staffAgencyNameByKey[key], contractorMaps, dryRun);
-        agencyId = agency.id;
-      }
-      // Ensure the subcontractor company exists as a Contractor record so it
-      // can be linked on crew cost items. Subcontractor workers don't have a
-      // dedicated contractor_id field on Staff (only agency_id), but creating
-      // the Contractor here means the cost-item step can find it by name.
-      if (workerType === 'subcontractor' && staffSubcontractorNameByKey[key]) {
-        await findOrCreateSubcontractor(base44, staffSubcontractorNameByKey[key], contractorMaps, dryRun);
-      }
-
       if (staff) {
-        // Duplicate found — delete existing and replace with imported data
         staffFoundCount++;
-        staffReplacedCount++;
-        staffToDelete.push(staff.id);
-        newStaffPayloads.push({
-          name, email, worker_type: workerType, team_id: team.id || '',
-          job_title: jobTitle, agency_id: agencyId, is_active: true,
-        });
-        newStaffKeys.push(key);
+        staffMap.set(key, staff);
       } else {
-        staffCreatedCount++;
-        newStaffPayloads.push({
-          name, email, worker_type: workerType, team_id: team.id || '',
-          job_title: jobTitle, agency_id: agencyId, is_active: true,
-        });
-        newStaffKeys.push(key);
+        unmatchedStaffNames.push(name);
       }
     }
-
-    // Delete existing duplicate staff records (batch)
-    if (staffToDelete.length > 0 && !dryRun) {
-      for (let i = 0; i < staffToDelete.length; i += 400) {
-        const batch = staffToDelete.slice(i, i + 400);
-        await base44.asServiceRole.entities.Staff.deleteMany({ id: { $in: batch } });
-      }
+    const createdStaffRecords = [];
+    if (unmatchedStaffNames.length > 0) {
+      warnings.push(`Import Guard: ${unmatchedStaffNames.length} staff in the spreadsheet were not found in Staff Command — skipped (add them manually, then re-import): ${unmatchedStaffNames.slice(0, 15).join(', ')}${unmatchedStaffNames.length > 15 ? '…' : ''}`);
     }
 
-    // Create new staff records (batch)
-    if (newStaffPayloads.length > 0 && !dryRun) {
-      for (let i = 0; i < newStaffPayloads.length; i += 400) {
-        const batch = newStaffPayloads.slice(i, i + 400);
-        const created = await base44.asServiceRole.entities.Staff.bulkCreate(batch);
-        createdStaffRecords = createdStaffRecords.concat(created);
-      }
-    } else if (dryRun) {
-      createdStaffRecords = newStaffPayloads.map((p, i) => ({
-        id: `temp_staff_${newStaffKeys[i]}`, ...p,
-      }));
-    }
-    for (let i = 0; i < createdStaffRecords.length; i++) {
-      staffMap.set(newStaffKeys[i], createdStaffRecords[i]);
-    }
-    } // end else (skipPurgeAndJobs === false)
-
-    if (staffReplacedCount > 0) {
-      warnings.push(`Auto-Create: ${staffReplacedCount} existing staff record(s) replaced (deleted + recreated) to match the spreadsheet. ${staffCreatedCount} new staff record(s) created.`);
-    } else if (staffCreatedCount > 0) {
-      warnings.push(`Auto-Create: ${staffCreatedCount} new staff record(s) created from the spreadsheet.`);
-    }
 
     const newStaff = createdStaffRecords;
     const usersInvited = 0;
@@ -2184,10 +2104,11 @@ export default async function(req) {
       staff: {
         total: uniqueStaffKeys.size,
         found: staffFoundCount,
-        replaced: staffReplacedCount,
-        new: staffCreatedCount,
+        matched: staffFoundCount,
+        replaced: 0,
+        new: 0,
         updates: 0,
-        unmatched_skipped: 0,
+        unmatched_skipped: unmatchedStaffNames.length,
         subcontractors: subbieCount,
         agency: agencyCount,
         direct_employees: uniqueStaffKeys.size - subbieCount - agencyCount,
