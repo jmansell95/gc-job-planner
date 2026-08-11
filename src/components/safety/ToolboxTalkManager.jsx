@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { HardHat, Plus, Trash2, CheckCircle2, Calendar, Users, Clock, X } from 'lucide-react';
+import { HardHat, Plus, Trash2, CheckCircle2, Calendar, Users, Clock, X, ShieldAlert, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -86,6 +86,19 @@ export default function ToolboxTalkManager() {
 
   return (
     <div className="space-y-4">
+      {/* SafetyCulture link */}
+      <div className="insight-card rounded-2xl p-3.5 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+          <ShieldAlert className="w-4.5 h-4.5 text-white" />
+        </div>
+        <p className="text-xs text-slate-500 flex-1 min-w-0">
+          Use <strong className="text-slate-700">SafetyCulture</strong> templates for digital toolbox talk delivery & sign-off.
+        </p>
+        <a href="https://app.safetyculture.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-[#2E5A1A] hover:underline flex-shrink-0">
+          Open <ExternalLink className="w-3 h-3" />
+        </a>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="insight-card rounded-xl p-4">

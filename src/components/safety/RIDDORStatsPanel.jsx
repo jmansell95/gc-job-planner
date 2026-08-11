@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   AlertTriangle, Activity, TrendingDown, FileWarning, Loader2,
-  ShieldAlert, Calendar, Users,
+  ShieldAlert, Calendar, Users, ExternalLink,
 } from 'lucide-react';
 
 /**
@@ -63,6 +63,19 @@ export default function RIDDORStatsPanel() {
 
   return (
     <div className="space-y-4">
+      {/* SafetyCulture link */}
+      <div className="insight-card rounded-2xl p-3.5 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+          <ShieldAlert className="w-4.5 h-4.5 text-white" />
+        </div>
+        <p className="text-xs text-slate-500 flex-1 min-w-0">
+          All stats are pulled from <strong className="text-slate-700">SafetyCulture</strong> audits & incident reports.
+        </p>
+        <a href="https://app.safetyculture.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-[#2E5A1A] hover:underline flex-shrink-0">
+          Open <ExternalLink className="w-3 h-3" />
+        </a>
+      </div>
+
       {/* Period selector */}
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium text-slate-500">Period:</span>
