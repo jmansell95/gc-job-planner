@@ -193,7 +193,7 @@ function BookWeighInModal({ item, vehicles, staff, suppliers, onClose, onBooked 
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md" onClick={() => !saving && onClose()}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto overscroll-contain p-4 bg-slate-950/60 backdrop-blur-md" onClick={() => !saving && onClose()}>
       <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-w-md w-full max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="sticky top-0 bg-white border-b border-slate-100 px-5 py-3.5 flex items-center justify-between z-10">
           <div className="flex items-center gap-2"><div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center"><Truck className="w-4 h-4 text-emerald-700" /></div><div><h3 className="font-bold text-slate-900">Book to Weigh-In</h3><p className="text-[11px] text-slate-400">Load scrap onto a vehicle for the yard run</p></div></div>
@@ -245,7 +245,7 @@ function RecordWeighInModal({ item, onClose, onSaved }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md" onClick={() => !saving && onClose()}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto overscroll-contain p-4 bg-slate-950/60 backdrop-blur-md" onClick={() => !saving && onClose()}>
       <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-w-md w-full max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="sticky top-0 bg-white border-b border-slate-100 px-5 py-3.5 flex items-center justify-between z-10">
           <div className="flex items-center gap-2"><div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center"><Scale className="w-4 h-4 text-blue-700" /></div><div><h3 className="font-bold text-slate-900">Record Weigh-In</h3><p className="text-[11px] text-slate-400">Enter weighbridge ticket details</p></div></div>
