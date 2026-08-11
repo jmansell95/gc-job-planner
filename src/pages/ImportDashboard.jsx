@@ -202,13 +202,14 @@ export default function ImportDashboard() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
-              <StatTile icon={Users} label="Staff" total={preview.summary.staff.total} sub={`${preview.summary.staff.found || 0} matched`} color="blue" />
+              <StatTile icon={Users} label="Staff" total={preview.summary.staff.total} sub={`${preview.summary.staff.replaced || 0} replaced · ${preview.summary.staff.new || 0} new`} color="blue" />
               <StatTile icon={Briefcase} label="Jobs" total={preview.summary.jobs.total} sub={`${preview.summary.jobs.new} new`} color="emerald" />
               <StatTile icon={CalendarDays} label="Rotas" total={preview.summary.rotas.to_create} sub={`${preview.summary.rotas.carried_forward || 0} merged`} color="amber" />
               <StatTile icon={UserX} label="Unmatched" total={preview.summary.staff.unmatched_skipped || 0} sub="add in Staff Command" color="rose" />
               <StatTile icon={CheckCircle2} label="Completed Jobs" total={preview.summary.jobs.completed} sub="past dates" color="slate" />
               <StatTile icon={Clock} label="In Progress" total={preview.summary.jobs.in_progress} sub="today/future" color="teal" />
               <StatTile icon={Layers} label="Projects" total={(preview.summary.projects?.existing_matched || 0) + (preview.summary.projects?.new_created || 0)} sub={`${preview.summary.projects?.new_created || 0} new`} color="violet" />
+              <StatTile icon={HardHat} label="Crew Cost Items" total={preview.summary.crew_cost_items?.total || 0} sub={`${preview.summary.crew_cost_items?.labour || 0} labour · ${preview.summary.crew_cost_items?.contractor_supplied || 0} subcon`} color="teal" />
               <StatTile icon={GraduationCap} label="Training" total={(preview.summary.training?.courses_new || 0) + (preview.summary.training?.courses_matched || 0)} sub={`${preview.summary.training?.bookings_created || 0} bookings`} color="indigo" />
               <StatTile icon={Palmtree} label="Absences" total={preview.summary.absences?.created || 0} sub={`${preview.summary.absences?.holiday || 0} hol · ${preview.summary.absences?.sick || 0} sick`} color="rose" />
               {preview.summary.jobs?.filtered_as_non_jobs > 0 && (
@@ -239,7 +240,7 @@ export default function ImportDashboard() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-indigo-900">Subcontractors: {preview.summary.staff.subcontractors}</p>
-                  <p className="text-xs text-indigo-700">→ Subcontractors team</p>
+                  <p className="text-xs text-indigo-700">→ Created as staff in Subcontractors section</p>
                 </div>
               </div>
               <div className="bg-cyan-50 border border-cyan-200 rounded-xl px-4 py-3 flex items-center gap-3">

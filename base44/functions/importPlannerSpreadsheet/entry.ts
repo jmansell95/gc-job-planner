@@ -2364,6 +2364,7 @@ export default async function(req) {
       });
     }
     let rigAssignmentCount = 0;
+    let crewCostItemsCreated = 0;
     if (writePhase === 'all' || writePhase === 'cost_items') {
     if (rigCostItemPayloads.length > 0 && !dryRun) {
       for (let i = 0; i < rigCostItemPayloads.length; i += 400) {
@@ -2377,7 +2378,6 @@ export default async function(req) {
 
     // Create crew JobCostItem records (labour + contractor_supplied) —
     // payloads were built in step 8b so the count appears in the dry-run preview.
-    let crewCostItemsCreated = 0;
     if (crewCostItemPayloads.length > 0 && !dryRun) {
       for (let i = 0; i < crewCostItemPayloads.length; i += 400) {
         const batch = crewCostItemPayloads.slice(i, i + 400);

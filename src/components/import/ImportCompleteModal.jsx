@@ -57,9 +57,9 @@ export default function ImportCompleteModal({ result, onClose, type = 'planner' 
           {/* === Visual flow (planner only) === */}
           {isPlanner && (
             <div className="flex items-center justify-center gap-2 sm:gap-3 text-xs font-medium">
-              <FlowStep icon={Trash2} label="Wiped" sub={`${s.purge?.staff_deleted || 0}+ records`} color="rose" />
-              <FlowArrow />
               <FlowStep icon={FileSpreadsheet} label="Parsed" sub={`${s.total_assignments_parsed || 0} rows`} color="amber" />
+              <FlowArrow />
+              <FlowStep icon={Users} label="Staff Synced" sub={`${s.staff?.replaced || 0} replaced`} color="blue" />
               <FlowArrow />
               <FlowStep icon={Sparkles} label="Rebuilt" sub={`${s.rotas?.created || s.rotas?.to_create || 0} rotas`} color="emerald" />
             </div>
@@ -68,30 +68,32 @@ export default function ImportCompleteModal({ result, onClose, type = 'planner' 
           {/* === Stat tiles === */}
           {isPlanner ? (
             <>
-              {/* Purge strip */}
+              {/* Purge strip — Staff & Teams preserved, only operational data wiped */}
               <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Trash2 className="w-4 h-4 text-rose-600" />
-                  <p className="text-sm font-bold text-rose-800">Wiped & Rebuilt</p>
+                  <p className="text-sm font-bold text-rose-800">Wiped (Staff & Teams Preserved)</p>
                 </div>
-                <div className="grid grid-cols-5 gap-2">
-                  <MiniStat value={s.purge?.staff_deleted || 0} label="Staff" />
-                  <MiniStat value={s.purge?.jobs_deleted || 0} label="Jobs" />
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   <MiniStat value={s.purge?.rotas_deleted || 0} label="Rotas" />
-                  <MiniStat value={s.purge?.teams_deleted || 0} label="Teams" />
+                  <MiniStat value={s.purge?.jobs_deleted || 0} label="Jobs" />
+                  <MiniStat value={s.purge?.crews_deleted || 0} label="Crews" />
                   <MiniStat value={s.purge?.cost_items_deleted || 0} label="Cost Items" />
+                  <MiniStat value={s.purge?.asset_assignments_deleted || 0} label="Assets" />
+                  <MiniStat value={s.purge?.training_bookings_deleted || 0} label="Training" />
                 </div>
               </div>
 
               {/* Created tiles */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <VisualStat icon={Users} value={s.staff?.new || 0} label="Staff Created" sub={`${s.staff?.subcontractors || 0} subcon`} gradient="stat-gradient-blue" />
+                <VisualStat icon={Users} value={(s.staff?.new || 0) + (s.staff?.replaced || 0)} label="Staff Synced" sub={`${s.staff?.replaced || 0} replaced · ${s.staff?.subcontractors || 0} subcon created`} gradient="stat-gradient-blue" />
                 <VisualStat icon={Briefcase} value={s.jobs?.new || 0} label="Jobs Created" sub={`${s.jobs?.completed || 0} done`} gradient="stat-gradient-emerald" />
                 {s.jobs?.filtered_as_non_jobs > 0 && (
                   <VisualStat icon={Filter} value={s.jobs?.filtered_as_non_jobs || 0} label="Filtered" sub="not real jobs" gradient="stat-gradient-amber" />
                 )}
                 <VisualStat icon={CalendarDays} value={s.rotas?.created || 0} label="Rotas Created" sub={`${s.rotas?.duplicates_collapsed || 0} dupes`} gradient="stat-gradient-amber" />
                 <VisualStat icon={Layers} value={(s.projects?.existing_matched || 0) + (s.projects?.new_created || 0)} label="Projects" sub={`${s.projects?.new_created || 0} new`} gradient="stat-gradient-violet" />
+                <VisualStat icon={HardHat} value={s.crew_cost_items?.created || s.crew_cost_items?.total || 0} label="Crew Cost Items" sub={`${s.crew_cost_items?.labour || 0} labour · ${s.crew_cost_items?.contractor_supplied || 0} subcon`} gradient="stat-gradient-teal" />
                 <VisualStat icon={GraduationCap} value={(s.training?.courses_new || 0) + (s.training?.courses_matched || 0)} label="Training" sub={`${s.training?.bookings_created || 0} bookings`} gradient="stat-gradient-indigo" />
                 <VisualStat icon={Palmtree} value={s.absences?.created || 0} label="Absences" sub={`${s.absences?.holiday || 0} hol`} gradient="stat-gradient-rose" />
                 <VisualStat icon={Layers} value={s.rig_assignments?.total || 0} label="Rig & Gear" sub={`${s.rig_assignments?.rigs || 0} rigs · ${s.rig_assignments?.linked_equipment || 0} gear`} gradient="stat-gradient-amber" />
@@ -284,6 +286,7 @@ function FlowStep({ icon: Icon, label, sub, color }) {
     rose: 'bg-rose-100 text-rose-600',
     amber: 'bg-amber-100 text-amber-600',
     emerald: 'bg-emerald-100 text-emerald-600',
+    blue: 'bg-blue-100 text-blue-600',
   };
   return (
     <div className="flex flex-col items-center gap-1">
