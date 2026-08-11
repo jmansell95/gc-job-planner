@@ -568,17 +568,25 @@ function parseSheet(sheet, sheetName) {
       continue;
     }
 
-    // Company names are always subcontractor companies — track and skip the row.
-    // Person names after a company name are linked to that contractor.
+    // Company names: only track as subcontractor in actual subcontractor sections.
+    // In regular crew sections (Cable Percussion, Rotary, etc.), a company name
+    // is just a note/heading — it does NOT make subsequent person names into
+    // subcontractors. Direct employee drillers listed after a company name in a
+    // regular section stay as direct employees.
+    // Don't skip the row — process date columns so job assignments on the
+    // company name row (e.g. "Kingsnorth" written on SDA's row) are captured
+    // for job dates. Marked is_company_row so they're excluded from rota/staff.
     if (isCompanyName) {
-      currentSubcontractorName = entityName;
-      continue;
+      if (isSubSection) {
+        currentSubcontractorName = entityName;
+      }
     }
 
-    const entityIsSubbie = isSubSection || (!!currentSubcontractorName);
+    const entityIsSubbie = isSubSection;
     const entityIsAgency = isAgencySectionFlag;
     const entityAgencyName = isAgencySectionFlag ? currentAgencyName : '';
     const entitySubcontractorName = (!entityIsAgency && currentSubcontractorName) ? currentSubcontractorName : '';
+    const isCompanyRow = isCompanyName;
 
     let hadAssignment = false;
     // Iterate date columns in ORDER (sorted by column number) so carry-forward
@@ -698,6 +706,7 @@ function parseSheet(sheet, sheetName) {
         agency_name: entityAgencyName || undefined,
         subcontractor_name: entitySubcontractorName || undefined,
         is_potential_asset: isAssetName,
+        is_company_row: isCompanyRow,
       });
       hadAssignment = true;
     }
@@ -712,6 +721,7 @@ function parseSheet(sheet, sheetName) {
         agency_name: entityAgencyName || undefined,
         subcontractor_name: entitySubcontractorName || undefined,
         is_potential_asset: isAssetName,
+        is_company_row: isCompanyRow,
       });
     }
   }
@@ -971,6 +981,9 @@ export default async function(req) {
     const uniqueStaffKeys = new Set();
     const staffNameByKey = {};
     for (const a of teamAssignments) {
+      // Skip company name rows — they're subcontractor companies (e.g. SDA),
+      // not staff. They're used for job dates and contractor cost items only.
+      if (a.is_company_row) continue;
       const key = nameKey(a.staff_name);
       uniqueStaffKeys.add(key);
       staffNameByKey[key] = a.staff_name;
