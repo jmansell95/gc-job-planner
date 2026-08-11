@@ -891,25 +891,31 @@ export default async function(req) {
     // -----------------------------------------------------------------------
     let purgeSummary = { rotas_deleted: 0, jobs_deleted: 0, crews_deleted: 0, asset_assignments_deleted: 0, training_bookings_deleted: 0, absences_deleted: 0, cost_items_deleted: 0 };
     if (skipPurgeAndJobs) {
-      // Resume mode — jobs already created in a prior call. Only purge rotas,
-      // cost items, training bookings, and absences (the records we're about
-      // to re-create). Jobs and crews are preserved.
-      const [allRotas, allCostItems, allTrainingBookings, allAbsences] = await Promise.all([
-        base44.asServiceRole.entities.RotaAssignment.list('-created_date', 5000),
-        base44.asServiceRole.entities.JobCostItem.list('-created_date', 5000),
-        base44.asServiceRole.entities.TrainingBooking.list('-created_date', 5000),
-        base44.asServiceRole.entities.Absence.list('-created_date', 5000),
-      ]);
-      purgeSummary.rotas_deleted = allRotas.length;
-      purgeSummary.cost_items_deleted = allCostItems.length;
-      purgeSummary.training_bookings_deleted = allTrainingBookings.length;
-      purgeSummary.absences_deleted = allAbsences.length;
+      // Resume mode — jobs already created in a prior call. Only purge the
+      // records that THIS write phase will re-create, so records from other
+      // phases are preserved. Jobs and crews are always preserved.
+      const fetches = [];
+      const fetchLabels = [];
+      if (writePhase === 'all' || writePhase === 'rotas') { fetches.push(base44.asServiceRole.entities.RotaAssignment.list('-created_date', 5000)); fetchLabels.push('rotas'); }
+      if (writePhase === 'all' || writePhase === 'cost_items') { fetches.push(base44.asServiceRole.entities.JobCostItem.list('-created_date', 5000)); fetchLabels.push('cost_items'); }
+      if (writePhase === 'all' || writePhase === 'training_absences') {
+        fetches.push(base44.asServiceRole.entities.TrainingBooking.list('-created_date', 5000));
+        fetches.push(base44.asServiceRole.entities.Absence.list('-created_date', 5000));
+        fetchLabels.push('training', 'absences');
+      }
+      const fetchResults = await Promise.all(fetches);
+      const fetched = {};
+      fetchLabels.forEach((label, i) => { fetched[label] = fetchResults[i]; });
+      if (fetched.rotas) purgeSummary.rotas_deleted = fetched.rotas.length;
+      if (fetched.cost_items) purgeSummary.cost_items_deleted = fetched.cost_items.length;
+      if (fetched.training) purgeSummary.training_bookings_deleted = fetched.training.length;
+      if (fetched.absences) purgeSummary.absences_deleted = fetched.absences.length;
       if (!dryRun) {
         const deleteOps = [];
-        if (allRotas.length > 0) deleteOps.push(base44.asServiceRole.entities.RotaAssignment.deleteMany({}));
-        if (allCostItems.length > 0) deleteOps.push(base44.asServiceRole.entities.JobCostItem.deleteMany({}));
-        if (allTrainingBookings.length > 0) deleteOps.push(base44.asServiceRole.entities.TrainingBooking.deleteMany({}));
-        if (allAbsences.length > 0) deleteOps.push(base44.asServiceRole.entities.Absence.deleteMany({}));
+        if (fetched.rotas && fetched.rotas.length > 0) deleteOps.push(base44.asServiceRole.entities.RotaAssignment.deleteMany({}));
+        if (fetched.cost_items && fetched.cost_items.length > 0) deleteOps.push(base44.asServiceRole.entities.JobCostItem.deleteMany({}));
+        if (fetched.training && fetched.training.length > 0) deleteOps.push(base44.asServiceRole.entities.TrainingBooking.deleteMany({}));
+        if (fetched.absences && fetched.absences.length > 0) deleteOps.push(base44.asServiceRole.entities.Absence.deleteMany({}));
         if (deleteOps.length > 0) await Promise.all(deleteOps);
       }
     } else {
@@ -1820,7 +1826,7 @@ export default async function(req) {
     }
 
     let createdTrainingBookings = 0;
-    if (newBookingPayloads.length > 0 && !dryRun) {
+    if (newBookingPayloads.length > 0 && !dryRun && (writePhase === 'all' || writePhase === 'training_absences')) {
       for (let i = 0; i < newBookingPayloads.length; i += 400) {
         const batch = newBookingPayloads.slice(i, i + 400);
         await base44.asServiceRole.entities.TrainingBooking.bulkCreate(batch);
@@ -1879,7 +1885,7 @@ export default async function(req) {
     }
 
     let createdAbsences = 0;
-    if (absencePayloads.length > 0 && !dryRun) {
+    if (absencePayloads.length > 0 && !dryRun && (writePhase === 'all' || writePhase === 'training_absences')) {
       for (let i = 0; i < absencePayloads.length; i += 400) {
         const batch = absencePayloads.slice(i, i + 400);
         await base44.asServiceRole.entities.Absence.bulkCreate(batch);

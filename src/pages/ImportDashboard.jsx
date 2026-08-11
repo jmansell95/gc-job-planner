@@ -57,23 +57,39 @@ export default function ImportDashboard() {
     }
   };
 
+  const [applyPhase, setApplyPhase] = useState('');
+
   const handleApply = async () => {
     if (!file) return;
     setApplying(true);
     setError(null);
     try {
-      const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, dry_run: false });
-      setApplyResult(res.data);
-      const s = res.data.summary;
+      // Phased import — each phase does less work to avoid serverless timeouts
+      // on large spreadsheets (6k+ rows). Jobs are created in phase 1 only;
+      // subsequent phases use skip_purge_and_jobs to preserve them.
+      const phases = [
+        { label: 'Jobs & purge', params: { dry_run: false, skip_purge_and_jobs: false, write_phase: 'rotas' } },
+        { label: 'Cost items', params: { dry_run: false, skip_purge_and_jobs: true, write_phase: 'cost_items' } },
+        { label: 'Training & absences', params: { dry_run: false, skip_purge_and_jobs: true, write_phase: 'training_absences' } },
+      ];
+      let lastResult = null;
+      for (const phase of phases) {
+        setApplyPhase(phase.label);
+        const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, ...phase.params });
+        lastResult = res.data;
+      }
+      setApplyResult(lastResult);
+      const s = lastResult.summary;
       toast({
         title: 'Import complete',
-        description: `Wiped ${s.purge.staff_deleted} staff, ${s.purge.jobs_deleted} jobs, ${s.purge.teams_deleted} teams. Created ${s.rotas.created} rotas, ${s.staff.new} staff, ${s.jobs.new} jobs.`
+        description: `Created ${s.jobs.new} jobs, ${s.rotas.created || s.rotas.to_create} rotas, ${s.rig_assignments.created || 0} rig assignments, ${s.crew_cost_items.created || 0} crew cost items.`
       });
     } catch (e) {
       const msg = e?.response?.data?.error || e.message || 'Import failed';
       setError(msg);
     } finally {
       setApplying(false);
+      setApplyPhase('');
     }
   };
 
