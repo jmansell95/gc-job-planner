@@ -332,22 +332,46 @@ function extractRigNumber(name) {
   return null;
 }
 
+// Common colour keywords used in spreadsheet rig names (e.g. "Dando 2000 - White").
+// Used to disambiguate duplicate rig models by matching against the asset's colour field.
+const COLOUR_KEYWORDS = ['white', 'blue', 'green', 'orange', 'red', 'grey', 'gray',
+  'yellow', 'black', 'silver', 'green & white', 'blue+white', 'green and white'];
+
+function extractColour(name) {
+  if (!name) return null;
+  const lower = String(name).toLowerCase();
+  // Check multi-word colours first (longer matches take priority)
+  const sorted = [...COLOUR_KEYWORDS].sort((a, b) => b.length - a.length);
+  for (const c of sorted) {
+    const pattern = c.replace(/&/g, '&').replace(/\+/g, '\\+');
+    if (new RegExp(`\\b${pattern}\\b`).test(lower)) return c;
+  }
+  return null;
+}
+
 // Fuzzy match an asset name from the spreadsheet against a list of SiteAsset
 // records. Tries exact nameKey first, then serial-number containment, then
 // rig-number matching, then fuzzy name similarity.
+// When multiple assets match equally (e.g. two "Comacchio 405"s), colour
+// disambiguation picks the one whose colour field matches a colour keyword
+// in the query name. The excludeIds Set prevents the same physical rig from
+// being matched to two different jobs.
 // Returns { asset, score, method } or null if no match above threshold.
-export function fuzzyFindAsset(queryName, assetList, assetMaps, threshold = 0.50) {
+export function fuzzyFindAsset(queryName, assetList, assetMaps, threshold = 0.50, excludeIds = null) {
   const queryKey = nameKey(queryName);
   if (!queryKey) return null;
+  const exclude = excludeIds || new Set();
+  const queryColour = extractColour(queryName);
 
-  // 1. Exact nameKey match via the pre-built map
+  // 1. Exact nameKey match via the pre-built map (skip excluded)
   const exact = assetMaps.byNameKey.get(queryKey);
-  if (exact) return { asset: exact, score: 1, method: 'exact' };
+  if (exact && !exclude.has(exact.id)) return { asset: exact, score: 1, method: 'exact' };
 
   // 2. Serial-number containment: spreadsheet rig name contains a known serial
   //    (e.g. "Rig 1 (GC-R1-023)" matches serial "GC-R1-023") or vice versa.
   for (const [serial, asset] of assetMaps.bySerial) {
     if (serial.length < 3) continue;
+    if (exclude.has(asset.id)) continue;
     if (queryKey.includes(serial) || serial.includes(queryKey)) {
       return { asset, score: 0.95, method: 'serial' };
     }
@@ -355,27 +379,49 @@ export function fuzzyFindAsset(queryName, assetList, assetMaps, threshold = 0.50
 
   // 3. Rig-number matching: extract a rig number from the query and match it
   //    to assets whose names contain the same rig number. This handles cases
-  //    like "R1" matching "Truck-mounted Rig 1" or "CP Rig 1 (GC-R1-023)".
+  //    like "R1" matching "Truck-mounted Rig 1" or "GEO 405" matching
+  //    "Comacchio 405". When multiple assets share the same rig number (e.g.
+  //    two Comacchio 405s with different serials), colour disambiguation and
+  //    the excludeIds set ensure each physical rig is matched only once.
   const queryRigNum = extractRigNumber(queryKey);
   if (queryRigNum) {
-    let rigMatch = null;
+    const rigMatches = [];
     for (const a of assetList) {
       if (!a.name) continue;
+      if (exclude.has(a.id)) continue;
       const assetRigNum = extractRigNumber(a.name);
       if (assetRigNum === queryRigNum) {
         // Prefer rigs over other asset types
-        if (!rigMatch || (a.is_rig && !rigMatch.is_rig)) rigMatch = a;
+        if (a.is_rig || a.asset_type === 'rig' || !rigMatches.some(m => m.is_rig || m.asset_type === 'rig')) {
+          rigMatches.push(a);
+        }
       }
     }
-    if (rigMatch) return { asset: rigMatch, score: 0.88, method: 'rig_number' };
+    if (rigMatches.length > 0) {
+      // If the query name contains a colour, prefer the asset whose colour matches
+      if (queryColour) {
+        const colourMatch = rigMatches.find(a => {
+          if (!a.colour) return false;
+          const assetColour = a.colour.toLowerCase().trim();
+          return assetColour.includes(queryColour) || queryColour.includes(assetColour);
+        });
+        if (colourMatch) return { asset: colourMatch, score: 0.92, method: 'rig_number+colour' };
+      }
+      // Otherwise return the first match (excludeIds already filtered out used rigs)
+      return { asset: rigMatches[0], score: 0.88, method: 'rig_number' };
+    }
   }
 
-  // 4. Fuzzy name similarity
+  // 4. Fuzzy name similarity — also applies colour disambiguation when multiple
+  //    assets have similar names (e.g. "Dando 2000" appearing twice with different
+  //    colours).
   let bestMatch = null;
   let bestScore = 0;
   let bestMethod = '';
+  let bestColourMatch = false;
   for (const a of assetList) {
     if (!a.name) continue;
+    if (exclude.has(a.id)) continue;
     const assetKey = nameKey(a.name);
     if (!assetKey || assetKey === queryKey) continue;
 
@@ -387,15 +433,20 @@ export function fuzzyFindAsset(queryName, assetList, assetMaps, threshold = 0.50
     }
     const score = Math.min(1, Math.max(tokSim, strSim) + subBonus);
 
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = a;
-      bestMethod = tokSim >= strSim ? 'token' : 'levenshtein';
+    if (score >= threshold) {
+      const assetColourMatch = queryColour && a.colour && a.colour.toLowerCase().includes(queryColour);
+      // Prefer colour-matched assets over non-colour-matched at the same score
+      if (score > bestScore || (score === bestScore && assetColourMatch && !bestColourMatch)) {
+        bestScore = score;
+        bestMatch = a;
+        bestMethod = tokSim >= strSim ? 'token' : 'levenshtein';
+        bestColourMatch = assetColourMatch;
+      }
     }
   }
 
-  if (bestScore >= threshold) {
-    return { asset: bestMatch, score: bestScore, method: bestMethod };
+  if (bestMatch) {
+    return { asset: bestMatch, score: bestScore, method: bestColourMatch ? bestMethod + '+colour' : bestMethod };
   }
   return null;
 }

@@ -1598,19 +1598,34 @@ export default async function(req) {
     const unmatchedAssetNames = new Set();
     const fuzzyAssetMatches = [];
     const jobDrillingMethodUpdates = []; // { id, drilling_method }
+    // Track which rigs are matched to which job — prevents the same physical rig
+    // (e.g. "Comacchio 405" serial 5572) from being assigned to two different
+    // jobs when the spreadsheet has multiple "GEO 405" rows (one per crew).
+    // Per-job tracking allows the same rig to appear on multiple dates for the
+    // same job without being excluded.
+    const rigIdToJobId = new Map(); // rig_id → job_id
 
     for (const pa of plantAssignments) {
       if (!pa.job_name || !pa.staff_name) continue;
       const job = findJobForAssignment(pa.job_name);
       if (!job) continue;
 
-      const match = fuzzyFindAsset(pa.staff_name, allAssets, assetMaps);
+      // Exclude rigs already matched to a DIFFERENT job
+      const excludeIds = new Set();
+      for (const [rigId, jobId] of rigIdToJobId) {
+        if (jobId !== job.id) excludeIds.add(rigId);
+      }
+
+      const match = fuzzyFindAsset(pa.staff_name, allAssets, assetMaps, 0.50, excludeIds);
       if (!match) {
         assetMatchBreakdown.unmatched++;
         unmatchedAssetNames.add(pa.staff_name);
         continue;
       }
       const asset = match.asset;
+      // Record this rig → job mapping so subsequent rows for a different job
+      // get the next available rig of the same model
+      if (asset.is_rig || asset.asset_type === 'rig') rigIdToJobId.set(asset.id, job.id);
       if (match.method === 'exact') assetMatchBreakdown.exact++;
       else if (match.method === 'serial') assetMatchBreakdown.serial++;
       else { assetMatchBreakdown.fuzzy++; fuzzyAssetMatches.push({ query: pa.staff_name, matched: asset.name, score: Math.round(match.score * 100), method: match.method }); }
