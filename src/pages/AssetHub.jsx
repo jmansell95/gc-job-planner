@@ -153,14 +153,15 @@ export default function AssetHub() {
         <Vehicles />
       ) : (
         <>
-          {/* Sub-tabs + fleet sync + fleet health — all inline, borderless, sits with the menu bar */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <TabBar tabs={subTabs} activeTab={view} onChange={setView} />
-            <div className="flex items-center gap-3 ml-auto pl-2 flex-shrink-0">
-              <FleetSyncPanel />
-              <div className="h-10 w-px bg-slate-200 hidden sm:block" />
-              <FleetHealthGauge percent={fleetHealthPct} size={76} />
-              <FleetComplianceDonut counts={fleetCounts} size={76} onSegmentClick={(k) => { setCompFilter(k); setView('inventory'); }} />
+          <TabBar tabs={subTabs} activeTab={view} onChange={setView} />
+
+          {/* Fleet health strip — slim, borderless, sits flush under the tab bar */}
+          <div className="flex items-center justify-between gap-3 flex-wrap py-1">
+            <FleetSyncPanel />
+            <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0">
+              <FleetHealthGauge percent={fleetHealthPct} size={72} />
+              <div className="h-9 w-px bg-slate-200 hidden sm:block" />
+              <FleetComplianceDonut counts={fleetCounts} size={72} onSegmentClick={(k) => { setCompFilter(k); setView('inventory'); }} />
             </div>
           </div>
 
