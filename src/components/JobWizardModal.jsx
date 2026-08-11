@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import ProjectSelect from '@/components/ProjectSelect';
 import SubcontractorAssignments from '@/components/SubcontractorAssignments';
-import DisciplineEditor from '@/components/disciplines/DisciplineEditor';
+import DisciplineBuilder from '@/components/disciplines/DisciplineBuilder';
 import { getJobDisciplines, getPrimaryDisciplineType } from '@/utils/jobDisciplines';
 import { getJobTypeColor, getJobTypeLabel, isDrillingJobType } from '@/utils/jobTeams';
 
@@ -164,7 +164,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
         clean.disciplines = clean.disciplines.map((d, i) => ({
           type: d.type,
           status: d.status || 'planning',
-          drilling_method: i === 0 ? (clean.drilling_method || 'not_applicable') : (d.drilling_method || 'not_applicable'),
+          drilling_method: d.drilling_method || (i === 0 ? clean.drilling_method : 'not_applicable') || 'not_applicable',
           start_date: d.start_date || clean.start_date,
           end_date: d.end_date || clean.end_date,
           revenue_method: i === 0 ? (clean.revenue_method || 'none') : (d.revenue_method || 'none'),
@@ -176,6 +176,10 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
         clean.primary_discipline = clean.disciplines[0].type;
         // Mirror primary discipline into legacy fields for backward compat
         if (!clean.job_type) clean.job_type = clean.primary_discipline;
+        // Mirror the primary discipline's drilling method to the job-level field
+        if (clean.disciplines[0].drilling_method && clean.disciplines[0].drilling_method !== 'not_applicable') {
+          clean.drilling_method = clean.disciplines[0].drilling_method;
+        }
       } else {
         delete clean.disciplines;
       }
@@ -371,10 +375,11 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                       <input type="text" value={form.job_reference || ''} onChange={e => set('job_reference', e.target.value)} placeholder="PO / quote no." className={inputCls} />
                     </div>
                   </div>
-                  <div>
-                    <DisciplineEditor
+                  <div className="rounded-xl border border-slate-200 p-4 bg-slate-50/50">
+                    <DisciplineBuilder
                       disciplines={form.disciplines || []}
                       onChange={(disciplines) => set('disciplines', disciplines)}
+                      teams={teams}
                     />
                   </div>
                   <div>

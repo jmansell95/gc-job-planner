@@ -158,10 +158,12 @@ export default function JobSummaryCard({
           )}
         </div>
 
-        {/* Details grid */}
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs pt-0.5">
-          {job.project_manager && <DetailItem icon={User} label="PM" value={job.project_manager} />}
-          {job.site_contact_name && <DetailItem icon={Phone} label="Site" value={job.site_contact_name} />}
+        {/* Details grid — full contact & management info */}
+        <div className="grid grid-cols-1 gap-y-1.5 text-xs pt-0.5 border-t border-slate-100 pt-2.5">
+          {job.project_manager && <DetailItem icon={User} label="Project Manager" value={job.project_manager} />}
+          {job.site_contact_name && <DetailItem icon={User} label="Site Contact" value={job.site_contact_name} />}
+          {job.site_contact_phone && <DetailItem icon={Phone} label="Site Phone" value={job.site_contact_phone} />}
+          {job.job_reference && <DetailItem icon={FileText} label="Reference" value={job.job_reference} />}
         </div>
 
         {/* Notes preview */}
