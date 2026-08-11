@@ -72,17 +72,34 @@ export default function ImportDashboard() {
         { label: 'Cost items', params: { dry_run: false, skip_purge_and_jobs: true, write_phase: 'cost_items' } },
         { label: 'Training & absences', params: { dry_run: false, skip_purge_and_jobs: true, write_phase: 'training_absences' } },
       ];
-      let lastResult = null;
+      const phaseResults = [];
       for (const phase of phases) {
         setApplyPhase(phase.label);
         const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, ...phase.params });
-        lastResult = res.data;
+        phaseResults.push(res.data);
       }
-      setApplyResult(lastResult);
-      const s = lastResult.summary;
+      // Merge the 3 phase summaries into one result for the completion modal
+      const r1 = phaseResults[0]?.summary || {};
+      const r2 = phaseResults[1]?.summary || {};
+      const r3 = phaseResults[2]?.summary || {};
+      const mergedResult = {
+        ...phaseResults[phaseResults.length - 1],
+        summary: {
+          ...r1,
+          ...r3,
+          rotas: { created: r1.rotas?.created || 0, duplicates_collapsed: r1.rotas?.duplicates_collapsed || 0 },
+          rig_assignments: { created: r2.rig_assignments?.created || 0, total: r2.rig_assignments?.total || 0 },
+          crew_cost_items: { created: r2.crew_cost_items?.created || 0, total: r2.crew_cost_items?.total || 0 },
+          training: { ...r3.training, bookings_created: r3.training?.bookings_created || 0 },
+          absences: { ...r3.absences, created: r3.absences?.created || 0 },
+          jobs: r1.jobs || {},
+          purge: r1.purge || {},
+        },
+      };
+      setApplyResult(mergedResult);
       toast({
         title: 'Import complete',
-        description: `Created ${s.jobs.new} jobs, ${s.rotas.created || s.rotas.to_create} rotas, ${s.rig_assignments.created || 0} rig assignments, ${s.crew_cost_items.created || 0} crew cost items.`
+        description: `Created ${r1.jobs?.new || 0} jobs, ${r1.rotas?.created || 0} rotas, ${r2.rig_assignments?.created || 0} rig assignments, ${r2.crew_cost_items?.created || 0} crew cost items, ${r3.training?.bookings_created || 0} training bookings, ${r3.absences?.created || 0} absences.`
       });
     } catch (e) {
       const msg = e?.response?.data?.error || e.message || 'Import failed';
@@ -107,7 +124,7 @@ export default function ImportDashboard() {
       <div className="insight-card rounded-2xl p-6">
         <h2 className="text-lg font-semibold text-slate-800 mb-1">1. Upload Spreadsheet</h2>
         <p className="text-sm text-slate-500 mb-4">
-          Select your <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">.xlsx</code> planner file. <strong>All tabs are processed in one go</strong> — active tabs (<strong>"Team Planner 2026_GW+Depot"</strong> and <strong>"Drillers"</strong>) rebuild staff, jobs and rotas; all other tabs are matched as historical data. Every import <strong>wipes all old rota data</strong> and replaces it with the spreadsheet contents.
+          Select your <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">.xlsx</code> planner file. Only two tabs are processed: <strong>"Team Planner 2026_GW+Depot"</strong> (groundworks &amp; depot staff) and <strong>"Drillers"</strong> (drilling crews &amp; rig assignments). All other tabs are ignored. Every import <strong>rebuilds jobs, rotas, and cost items</strong> from the spreadsheet — staff and teams are preserved.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
@@ -143,7 +160,7 @@ export default function ImportDashboard() {
         {/* Clean-slate warning */}
         <div className="mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
           <RefreshCw className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span><strong>Full wipe mode:</strong> Importing will delete ALL existing staff, teams, jobs, drilling crews, rota assignments, asset assignments, training bookings, and absences — then rebuild everything fresh from this spreadsheet. All tabs are processed in one pass — no separate legacy upload needed.</span>
+          <span><strong>Import Guard:</strong> Staff and teams are <strong>preserved</strong> — the import only rebuilds jobs, rotas, rig assignments, cost items, training bookings, and absences from the spreadsheet. Unmatched staff are skipped (add them in Staff Command first, then re-import). The import runs in 3 phases to avoid timeouts on large files.</span>
         </div>
 
         {error && (
@@ -170,26 +187,25 @@ export default function ImportDashboard() {
             <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <Trash2 className="w-4 h-4 text-red-600" />
-                <p className="text-sm font-semibold text-red-800">Full Wipe — Everything Will Be Deleted</p>
+                <p className="text-sm font-semibold text-red-800">Records That Will Be Replaced</p>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
-                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.staff_deleted}</span> staff</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.jobs_deleted}</span> jobs</div>
-                <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.teams_deleted}</span> teams</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.crews_deleted}</span> crews</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.rotas_deleted}</span> rotas</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.asset_assignments_deleted}</span> asset assignments</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.cost_items_deleted || 0}</span> cost items</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.training_bookings_deleted || 0}</span> training bookings</div>
                 <div className="bg-white rounded-lg px-3 py-2"><span className="text-red-600 font-bold">{preview.summary.purge.absences_deleted || 0}</span> absences</div>
+                <div className="bg-emerald-50 rounded-lg px-3 py-2 col-span-2"><span className="text-emerald-600 font-bold">✓</span> <span className="text-emerald-700">Staff &amp; teams preserved</span></div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
-              <StatTile icon={Users} label="Staff" total={preview.summary.staff.total} sub={`${preview.summary.staff.new} new`} color="blue" />
+              <StatTile icon={Users} label="Staff" total={preview.summary.staff.total} sub={`${preview.summary.staff.found || 0} matched`} color="blue" />
               <StatTile icon={Briefcase} label="Jobs" total={preview.summary.jobs.total} sub={`${preview.summary.jobs.new} new`} color="emerald" />
               <StatTile icon={CalendarDays} label="Rotas" total={preview.summary.rotas.to_create} sub={`${preview.summary.rotas.carried_forward || 0} merged`} color="amber" />
-              <StatTile icon={UserX} label="Leavers" total={preview.summary.staff.leavers_detected} sub="not in file" color="rose" />
+              <StatTile icon={UserX} label="Unmatched" total={preview.summary.staff.unmatched_skipped || 0} sub="add in Staff Command" color="rose" />
               <StatTile icon={CheckCircle2} label="Completed Jobs" total={preview.summary.jobs.completed} sub="past dates" color="slate" />
               <StatTile icon={Clock} label="In Progress" total={preview.summary.jobs.in_progress} sub="today/future" color="teal" />
               <StatTile icon={Layers} label="Projects" total={(preview.summary.projects?.existing_matched || 0) + (preview.summary.projects?.new_created || 0)} sub={`${preview.summary.projects?.new_created || 0} new`} color="violet" />
@@ -778,7 +794,7 @@ export default function ImportDashboard() {
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 flex items-start gap-2 mb-4">
               <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>
-                Confirming will <strong>delete ALL existing staff, teams, jobs, crews, rotas, training bookings, and absences</strong>, then rebuild everything fresh from the two active tabs in this spreadsheet (<strong>"Team Planner 2026_GW+Depot"</strong> and <strong>"Drillers"</strong>). All other tabs are ignored.
+                Confirming will <strong>delete all existing jobs, rotas, rig assignments, cost items, training bookings, and absences</strong>, then rebuild them from the two active tabs (<strong>"Team Planner 2026_GW+Depot"</strong> and <strong>"Drillers"</strong>). <strong>Staff and teams are preserved</strong> — unmatched staff are skipped. The import runs in 3 phases (jobs &amp; rotas → cost items → training &amp; absences) to avoid timeouts on large files.
               </span>
             </div>
             <div className="flex gap-3">
@@ -787,7 +803,7 @@ export default function ImportDashboard() {
                 disabled={applying}
                 className="command-gradient text-white px-5 py-3 rounded-xl font-semibold text-sm flex items-center gap-2 disabled:opacity-50 transition hover:shadow-lg"
               >
-                {applying ? <><Loader2 className="w-4 h-4 animate-spin" /> Applying…</> : <><CheckCircle2 className="w-4 h-4" /> Confirm &amp; Apply Import</>}
+                {applying ? <><Loader2 className="w-4 h-4 animate-spin" /> {applyPhase ? `Applying: ${applyPhase}…` : 'Applying…'}</> : <><CheckCircle2 className="w-4 h-4" /> Confirm &amp; Apply Import</>}
               </button>
               <button
                 onClick={() => { setPreview(null); setFile(null); setFileUrl(null); }}
@@ -809,10 +825,10 @@ export default function ImportDashboard() {
             <Step n={1} title="Upload your planner file">The Excel file is uploaded and parsed directly — no third-party AI involved.</Step>
             <Step n={2} title="Only two tabs are processed">The <strong>"Team Planner 2026_GW+Depot"</strong> tab rebuilds groundworks/depot staff, jobs, teams and rotas. The <strong>"Drillers"</strong> tab rebuilds drilling crews and links rigs to their jobs. Every other tab is completely ignored — no legacy import.</Step>
             <Step n={3} title="Date-aware job status">Jobs with all past dates are marked <strong>completed</strong>. Jobs with any today/future dates are marked <strong>in_progress</strong>. New jobs with no dates yet are <strong>planning</strong>.</Step>
-            <Step n={4} title="Leaver detection">Staff with linked logins who aren't in this spreadsheet are flagged as leavers and will be marked inactive on import.</Step>
+            <Step n={4} title="Import Guard — staff preserved">Staff and teams are managed manually in Staff Command and Team Manager. The import matches spreadsheet names to existing staff — unmatched staff are skipped with a warning so you can add them manually before re-importing.</Step>
             <Step n={5} title="Absences &amp; training">Non-job days (holiday, sick, training) create Absence records in the Absence Manager — grouped by staff and week. Training courses create TrainingCourse + TrainingBooking records linked to staff.</Step>
-            <Step n={6} title="Full breakdown review">See every staff member, every job, every section, every sheet, and every leaver before you confirm — so you can drill down and verify everything is correct.</Step>
-            <Step n={7} title="Full wipe &amp; rebuild">On confirm, ALL existing staff, teams, jobs, drilling crews, rota assignments, asset assignments, training bookings, and absences are deleted. The spreadsheet becomes the single source of truth — everything is rebuilt fresh from scratch every time you upload. All tabs are included in one pass.</Step>
+            <Step n={6} title="Full breakdown review">See every staff member, every job, every section, every sheet, and every warning before you confirm — so you can drill down and verify everything is correct.</Step>
+            <Step n={7} title="Phased rebuild">On confirm, the import runs in 3 phases to avoid timeouts on large files: (1) jobs &amp; rotas, (2) rig &amp; crew cost items, (3) training &amp; absences. Each phase does less work so it completes within the serverless timeout.</Step>
           </ol>
         </div>
       )}
