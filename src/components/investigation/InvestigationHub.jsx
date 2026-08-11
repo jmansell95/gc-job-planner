@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Skeleton, EmptyState } from '@/components/StateViews';
 import BulkApproveBar from '@/components/investigation/BulkApproveBar';
+import OpenGroundExportBar from '@/components/investigation/OpenGroundExportBar';
 import { titleCase } from '@/utils/format';
 import {
   strataConfig, serviceEncounterConfig, pitStabilityConfig, reviewStatusConfig,
@@ -176,6 +177,9 @@ export default function InvestigationHub({ onNavigate }) {
           </div>
         </div>
       </div>
+
+      {/* OpenGround export — approved logs can be downloaded or pushed */}
+      <OpenGroundExportBar logs={logs} jobs={jobs} />
 
       {/* 3-column workspace */}
       <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_320px] gap-4">

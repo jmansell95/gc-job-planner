@@ -22,11 +22,11 @@ export default function FleetHealthGauge({ percent, size = 116 }) {
           className="transition-all duration-700 ease-out"
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-bold text-slate-900 tabular-nums leading-none">
-          {Math.round(clamped)}<span className="text-lg">%</span>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <span style={{ fontSize: size * 0.26 }} className="font-bold text-slate-900 tabular-nums leading-none">
+          {Math.round(clamped)}<span style={{ fontSize: size * 0.15 }}>%</span>
         </span>
-        <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide mt-0.5">Fleet Health</span>
+        <span style={{ fontSize: Math.max(7, size * 0.1) }} className="text-slate-500 font-semibold uppercase tracking-wide mt-0.5">Fleet Health</span>
       </div>
     </div>
   );

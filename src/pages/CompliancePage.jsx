@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, ShieldAlert, AlertTriangle, BarChart3, HardHat, ClipboardCheck, FlaskConical, CalendarDays } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, AlertTriangle, BarChart3, HardHat, ClipboardCheck, CalendarDays } from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
 import IncidentReporter from '@/components/safety/IncidentReporter';
@@ -22,7 +22,6 @@ export default function CompliancePage() {
     { id: 'safety', label: 'Safety', icon: ShieldAlert },
     { id: 'audit-trail', label: 'Audit Trail', icon: ClipboardCheck },
     { id: 'system-audit-log', label: 'System Log', icon: ClipboardCheck },
-    { id: 'log-qc', label: 'Log QC', icon: FlaskConical },
   ];
 
   const safetyTabs = [
@@ -59,10 +58,6 @@ export default function CompliancePage() {
 
       {tab === 'audit-trail' && (
         <SettingsPage initialTab="audit-trail" standalone onSelectJob={(job) => navigate('/admin', { state: { section: 'job-detail', job } })} />
-      )}
-
-      {tab === 'log-qc' && (
-        <SettingsPage initialTab="log-qc" standalone onSelectJob={(job) => navigate('/admin', { state: { section: 'job-detail', job } })} />
       )}
 
       {tab === 'safety' && (

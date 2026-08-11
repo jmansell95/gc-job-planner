@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { ShieldCheck, Search, ChevronDown, ChevronRight, FileText } from 'lucide-react';
-import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import JobPackView from '@/components/audit/JobPackView';
 import GeneratePackButton from '@/components/audit/GeneratePackButton';
 
@@ -50,12 +49,14 @@ export default function AuditTrailHub() {
   }, [jobs, query, statusFilter]);
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-5">
-      <SettingsSectionHeader
-        title="Audit Trail & Job Packs"
-        description="ISO-compliant audit trail — search for a job and expand its full Job Pack: personnel, technical activity, compliance sign-offs, equipment, commercial confirmations, and a chronological timeline from start to finish."
-        icon={ShieldCheck}
-      />
+    <div className="space-y-4">
+      {/* Context banner — distinguishes this from the System Audit Log */}
+      <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 flex items-center gap-2.5">
+        <FileText className="w-4 h-4 text-slate-500 flex-shrink-0" />
+        <p className="text-xs text-slate-600">
+          <span className="font-semibold text-slate-700">Job Pack audit trail</span> — ISO-compliant per-job traceability. For system-level entity mutations, use the <span className="font-semibold">System Log</span> tab.
+        </p>
+      </div>
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

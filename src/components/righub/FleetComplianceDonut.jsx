@@ -28,8 +28,8 @@ export default function FleetComplianceDonut({ counts, size = 116, onSegmentClic
           </Pie>
         </PieChart>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-2xl font-bold text-slate-900 tabular-nums leading-none">{total}</span>
-          <span className="text-[9px] text-slate-500 font-semibold uppercase tracking-wide mt-0.5">Assets</span>
+          <span style={{ fontSize: size * 0.22 }} className="font-bold text-slate-900 tabular-nums leading-none">{total}</span>
+          <span style={{ fontSize: Math.max(7, size * 0.1) }} className="text-slate-500 font-semibold uppercase tracking-wide mt-0.5">Assets</span>
         </div>
       </div>
       <div className="space-y-1.5 hidden sm:block">

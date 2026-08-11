@@ -6,7 +6,6 @@ import {
   ShieldCheck, Search, ChevronDown, ChevronRight, Hash, User, Clock,
   FileText, AlertTriangle, CheckCircle2, Loader2,
 } from 'lucide-react';
-import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 function StatTile({ label, value }) {
   return (
@@ -63,12 +62,14 @@ export default function SystemAuditLogViewer() {
   }, [logs, query, entityFilter, actionFilter]);
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-5">
-      <SettingsSectionHeader
-        title="System Audit Log"
-        description="ISO 27001 tamper-evident audit trail — every mutation to critical entities is recorded with SHA-256 record hashing and chain linking for non-repudiation."
-        icon={ShieldCheck}
-      />
+    <div className="space-y-4">
+      {/* Context banner — distinguishes this from the Job Pack Audit Trail */}
+      <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 flex items-center gap-2.5">
+        <Hash className="w-4 h-4 text-slate-500 flex-shrink-0" />
+        <p className="text-xs text-slate-600">
+          <span className="font-semibold text-slate-700">System-level audit log</span> — tracks every database mutation with SHA-256 hashing. For per-job audit packs, use the <span className="font-semibold">Audit Trail</span> tab.
+        </p>
+      </div>
 
       {/* Summary stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

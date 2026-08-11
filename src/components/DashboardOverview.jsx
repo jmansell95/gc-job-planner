@@ -190,14 +190,16 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
       {/* Quick Action Bar — one-click shortcuts for power users */}
       {isAllJobs && (
-        <QuickActionBar onAction={(action) => {
-          if (action === 'new-job') onNavigate?.('jobs');
-          else if (action === 'add-staff') onNavigate?.('staff');
-          else if (action === 'raise-invoice') onNavigate?.('billing');
-          else if (action === 'log-incident') onNavigate?.('compliance');
-          else if (action === 'new-delivery') onNavigate?.('logistics');
-          else if (action === 'add-asset') onNavigate?.('assets');
-        }} />
+        <div className="mb-4">
+          <QuickActionBar onAction={(action) => {
+            if (action === 'new-job') onNavigate?.('jobs');
+            else if (action === 'add-staff') onNavigate?.('staff');
+            else if (action === 'raise-invoice') onNavigate?.('billing');
+            else if (action === 'log-incident') onNavigate?.('compliance');
+            else if (action === 'new-delivery') onNavigate?.('logistics');
+            else if (action === 'add-asset') onNavigate?.('assets');
+          }} />
+        </div>
       )}
 
       {/* State Monitor Bar — live operational pulse */}
