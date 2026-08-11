@@ -33,7 +33,6 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { Skeleton } from '@/components/StateViews';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
-import SettingsPage from '@/components/SettingsPage';
 
 const CATEGORIES = [
   { id: 'all', label: 'All', icon: Boxes },
@@ -65,7 +64,6 @@ export default function AssetHub() {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showSmartImport, setShowSmartImport] = useState(false);
   const [showBulkQR, setShowBulkQR] = useState(false);
-  const [equipSub, setEquipSub] = useState('equipment-library');
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
@@ -112,7 +110,6 @@ export default function AssetHub() {
     { id: 'deployments', label: 'Deployments', icon: MapPin },
     { id: 'performance', label: 'Performance', icon: TrendingUp },
     { id: 'lifecycle', label: 'Lifecycle', icon: TrendingDown },
-    { id: 'equipment-sets', label: 'Equipment Sets', icon: Boxes },
     { id: 'scrap', label: 'Scrap Pile', icon: Trash2 },
   ];
 
@@ -262,23 +259,10 @@ export default function AssetHub() {
             </ErrorBoundary>
           ) : view === 'lifecycle' ? (
             <ErrorBoundary>
-              <div className="space-y-6">
-                <DepreciationSchedule />
-                <SettingsPage initialTab="asset-lifecycle" standalone />
-              </div>
+              <DepreciationSchedule />
             </ErrorBoundary>
           ) : view === 'scrap' ? (
             <ErrorBoundary><ScrapPilePanel /></ErrorBoundary>
-          ) : view === 'equipment-sets' ? (
-            <ErrorBoundary>
-              <div className="space-y-4">
-                <div className="flex gap-2">
-                  <button onClick={() => setEquipSub('equipment-library')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${equipSub === 'equipment-library' ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Equipment Library</button>
-                  <button onClick={() => setEquipSub('asset-manifests')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${equipSub === 'asset-manifests' ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Van Manifests</button>
-                </div>
-                <SettingsPage initialTab={equipSub} standalone />
-              </div>
-            </ErrorBoundary>
           ) : null}
 
           {/* Bulk cert action bar */}

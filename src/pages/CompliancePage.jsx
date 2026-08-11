@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, ShieldAlert, AlertTriangle, BarChart3, HardHat, ClipboardCheck, CalendarDays } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, AlertTriangle, BarChart3, HardHat, ClipboardCheck, CalendarDays, Settings } from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
 import IncidentReporter from '@/components/safety/IncidentReporter';
@@ -14,10 +14,10 @@ export default function CompliancePage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('compliance');
   const [safetyTab, setSafetyTab] = useState('checks');
+  const [complianceView, setComplianceView] = useState('manager');
 
   const topTabs = [
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck },
-    { id: 'compliance-rules', label: 'Rules', icon: ShieldCheck },
     { id: 'calendar', label: 'Calendar', icon: CalendarDays },
     { id: 'safety', label: 'Safety', icon: ShieldAlert },
     { id: 'audit-trail', label: 'Audit Trail', icon: ClipboardCheck },
@@ -41,11 +41,21 @@ export default function CompliancePage() {
       <TabBar tabs={topTabs} activeTab={tab} onChange={setTab} />
 
       {tab === 'compliance' && (
-        <SettingsPage initialTab="compliance" standalone />
-      )}
-
-      {tab === 'compliance-rules' && (
-        <SettingsPage initialTab="compliance-rules" standalone />
+        <div className="space-y-3">
+          <div className="flex gap-1 p-1 bg-slate-100 rounded-lg w-fit">
+            <button onClick={() => setComplianceView('manager')} className={`px-3.5 py-1.5 rounded-md text-xs font-semibold transition ${complianceView === 'manager' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
+              <ShieldCheck className="w-3.5 h-3.5 inline mr-1.5" />Records
+            </button>
+            <button onClick={() => setComplianceView('rules')} className={`px-3.5 py-1.5 rounded-md text-xs font-semibold transition ${complianceView === 'rules' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
+              <Settings className="w-3.5 h-3.5 inline mr-1.5" />Rules
+            </button>
+          </div>
+          {complianceView === 'manager' ? (
+            <SettingsPage initialTab="compliance" standalone />
+          ) : (
+            <SettingsPage initialTab="compliance-rules" standalone />
+          )}
+        </div>
       )}
 
       {tab === 'system-audit-log' && (
