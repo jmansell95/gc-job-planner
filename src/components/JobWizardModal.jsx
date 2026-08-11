@@ -9,8 +9,8 @@ import {
 import ProjectSelect from '@/components/ProjectSelect';
 import SubcontractorAssignments from '@/components/SubcontractorAssignments';
 import DisciplineBuilder from '@/components/disciplines/DisciplineBuilder';
-import { getJobDisciplines, getPrimaryDisciplineType } from '@/utils/jobDisciplines';
-import { getJobTypeColor, getJobTypeLabel, isDrillingJobType } from '@/utils/jobTeams';
+import { getJobDisciplines } from '@/utils/jobDisciplines';
+import { getJobTypeColor, isDrillingJobType } from '@/utils/jobTeams';
 
 const inputCls = "w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:border-[#2E5A1A] focus:ring-2 focus:ring-[#2E5A1A]/10 text-sm transition";
 
@@ -72,7 +72,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
       setError('');
       setSubAssignments([]);
       setOriginalSubIds([]);
-      setForm(editingJob ? { ...emptyForm, ...editingJob } : emptyForm);
+      setForm(editingJob ? { ...emptyForm, ...editingJob, disciplines: getJobDisciplines(editingJob) } : emptyForm);
       if (editingJob?.id) {
         base44.entities.SubcontractorLog.filter({ job_id: editingJob.id }, '-date', 200).then(logs => {
           const mapped = logs.map(l => ({
@@ -358,22 +358,9 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                       </div>
                     </div>
                   )}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Job Type</label>
-                      <select value={form.job_type || ''} onChange={e => {
-                        const jt = jobTypes.find(t => t.key === e.target.value);
-                        set('job_type', e.target.value);
-                        if (jt) applyTemplate(jt);
-                      }} className={inputCls}>
-                        <option value="">Select Type</option>
-                        {jobTypes.map(jt => <option key={jt.id} value={jt.key}>{jt.label}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Reference</label>
-                      <input type="text" value={form.job_reference || ''} onChange={e => set('job_reference', e.target.value)} placeholder="PO / quote no." className={inputCls} />
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Reference</label>
+                    <input type="text" value={form.job_reference || ''} onChange={e => set('job_reference', e.target.value)} placeholder="PO / quote no." className={inputCls} />
                   </div>
                   <div className="rounded-xl border border-slate-200 p-4 bg-slate-50/50">
                     <DisciplineBuilder
@@ -672,7 +659,6 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <ReviewRow label="Name" value={form.name} />
                     <ReviewRow label="Location" value={form.location} />
-                    <ReviewRow label="Type" value={getJobTypeLabel(form.job_type, jobTypes) || form.job_type} />
                     <ReviewRow label="Client" value={clients.find(c => c.id === form.client_id)?.name} />
                     <ReviewRow label="Project" value={projects.find(p => p.id === form.project_id)?.name} />
                     <ReviewRow label="Schedule" value={form.start_date && form.end_date ? `${fmtDate(form.start_date)} → ${fmtDate(form.end_date)}` : ''} />
