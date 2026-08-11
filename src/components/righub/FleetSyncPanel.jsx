@@ -67,7 +67,7 @@ export default function FleetSyncPanel() {
   };
 
   return (
-    <div className="flex items-center gap-2.5 bg-slate-50 rounded-xl ring-1 ring-slate-200 px-3.5 py-2 flex-shrink-0 flex-wrap">
+    <div className="flex items-center gap-2.5 px-3.5 py-1.5 flex-shrink-0 flex-wrap">
       <div className="flex items-center gap-2 text-slate-900 min-w-0">
         <Database className="w-4 h-4 flex-shrink-0 text-slate-500" />
         <div className="leading-tight min-w-0">

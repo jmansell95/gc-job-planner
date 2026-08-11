@@ -439,12 +439,23 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                 )}
               </div>
 
-              {/* Rigs */}
+              {/* Rigs — capped at 2 with "view all" link */}
               {jobRigs.length > 0 ? (
                 <div className="space-y-2 mb-3 pl-2" onClick={(e) => e.stopPropagation()}>
-                  {jobRigs.map(r => (
+                  {jobRigs.slice(0, 2).map(r => (
                     <RigCard key={r.id} rigAsset={r} assetMap={assetMap} costItems={activeAssetItems} jobId={job.id} />
                   ))}
+                  {jobRigs.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onSelectJob(job); }}
+                      className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#2E5A1A] bg-[#2E5A1A]/8 hover:bg-[#2E5A1A]/15 rounded-lg transition"
+                    >
+                      <Cog className="w-3.5 h-3.5" />
+                      View all {jobRigs.length} rigs on this job
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2.5 mb-3 pl-4">

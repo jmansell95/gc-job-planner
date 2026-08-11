@@ -156,21 +156,16 @@ export default function AssetHub() {
         <Vehicles />
       ) : (
         <>
-          {/* Compliance overview — white card */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-            <div className="flex flex-col lg:flex-row gap-4 items-center">
-              <div className="flex-1 w-full">
-                <FleetSyncPanel />
-              </div>
-              <div className="flex items-center gap-4 sm:gap-6 bg-slate-50 rounded-xl ring-1 ring-slate-200 px-4 sm:px-6 py-3">
-                <FleetHealthGauge percent={fleetHealthPct} />
-                <div className="h-16 w-px bg-slate-200 hidden sm:block" />
-                <FleetComplianceDonut counts={fleetCounts} onSegmentClick={(k) => { setCompFilter(k); setView('inventory'); }} />
-              </div>
+          {/* Sub-tabs + fleet sync + fleet health — all inline, borderless, sits with the menu bar */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <TabBar tabs={subTabs} activeTab={view} onChange={setView} />
+            <div className="flex items-center gap-3 ml-auto pl-2 flex-shrink-0">
+              <FleetSyncPanel />
+              <div className="h-10 w-px bg-slate-200 hidden sm:block" />
+              <FleetHealthGauge percent={fleetHealthPct} size={76} />
+              <FleetComplianceDonut counts={fleetCounts} size={76} onSegmentClick={(k) => { setCompFilter(k); setView('inventory'); }} />
             </div>
           </div>
-
-          <TabBar tabs={subTabs} activeTab={view} onChange={setView} />
 
           {/* Filters (inventory tab only) */}
           {view === 'inventory' && (
