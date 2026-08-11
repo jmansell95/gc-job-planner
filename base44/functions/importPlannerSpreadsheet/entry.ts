@@ -1523,9 +1523,18 @@ export default async function(req) {
         unmatchedSiteGroups[site].push(job.id);
       }
     }
-    if (jobProjectUpdates.length > 0 && !dryRun) {
-      for (let i = 0; i < jobProjectUpdates.length; i += 400) {
-        await base44.asServiceRole.entities.Job.bulkUpdate(jobProjectUpdates.slice(i, i + 400));
+    // Deduplicate by job ID — jobMap can have multiple keys pointing to the
+    // same job (fuzzy matching), which would produce duplicate IDs in bulkUpdate.
+    const dedupedJobProjectUpdates = [];
+    const seenProjectUpdateIds = new Set();
+    for (const u of jobProjectUpdates) {
+      if (seenProjectUpdateIds.has(u.id)) continue;
+      seenProjectUpdateIds.add(u.id);
+      dedupedJobProjectUpdates.push(u);
+    }
+    if (dedupedJobProjectUpdates.length > 0 && !dryRun) {
+      for (let i = 0; i < dedupedJobProjectUpdates.length; i += 400) {
+        await base44.asServiceRole.entities.Job.bulkUpdate(dedupedJobProjectUpdates.slice(i, i + 400));
       }
     }
     let newProjectsCreated = 0;
@@ -1548,8 +1557,11 @@ export default async function(req) {
       const createdProjects = await base44.asServiceRole.entities.Project.bulkCreate(newProjectPayloads);
       newProjectsCreated = createdProjects.length;
       const newProjectLinks = [];
+      const seenNewProjectLinkIds = new Set();
       for (let i = 0; i < createdProjects.length; i++) {
         for (const jobId of unmatchedSiteGroups[unmatchedSiteNames[i]]) {
+          if (seenNewProjectLinkIds.has(jobId)) continue;
+          seenNewProjectLinkIds.add(jobId);
           newProjectLinks.push({ id: jobId, project_id: createdProjects[i].id });
         }
       }
@@ -1690,10 +1702,17 @@ export default async function(req) {
     }
     const dedupedRigAssignments = [...rigByJobAsset.values()];
 
-    // Apply drilling_method enrichment from matched rigs
-    if (jobDrillingMethodUpdates.length > 0 && !dryRun) {
-      for (let i = 0; i < jobDrillingMethodUpdates.length; i += 400) {
-        await base44.asServiceRole.entities.Job.bulkUpdate(jobDrillingMethodUpdates.slice(i, i + 400));
+    // Apply drilling_method enrichment from matched rigs (deduplicate by job ID)
+    const dedupedDrillingUpdates = [];
+    const seenDrillUpdateIds = new Set();
+    for (const u of jobDrillingMethodUpdates) {
+      if (seenDrillUpdateIds.has(u.id)) continue;
+      seenDrillUpdateIds.add(u.id);
+      dedupedDrillingUpdates.push(u);
+    }
+    if (dedupedDrillingUpdates.length > 0 && !dryRun) {
+      for (let i = 0; i < dedupedDrillingUpdates.length; i += 400) {
+        await base44.asServiceRole.entities.Job.bulkUpdate(dedupedDrillingUpdates.slice(i, i + 400));
       }
     }
 
