@@ -1081,6 +1081,8 @@ export default async function(req) {
       staffJobTitleByKey[key] = inferJobTitle(sections[0]) || inferJobTitleFromSheet(sAssignments[0]?.sheet_name) || '';
     }
 
+    // Accumulate used emails across the loop so duplicate names get unique emails
+    const usedEmails = new Set([...staffByEmail.keys()]);
     for (const key of uniqueStaffKeys) {
       const name = staffNameByKey[key];
       let staff = staffByName.get(key);
@@ -1100,7 +1102,8 @@ export default async function(req) {
       const workerType = staffWorkerTypeByKey[key] || 'direct_employee';
       const team = staffTeamByKey[key] || fallbackTeam;
       const jobTitle = staffJobTitleByKey[key] || '';
-      const email = generateEmail(name, new Set([...staffByEmail.keys()]));
+      const email = generateEmail(name, usedEmails);
+      usedEmails.add(email.toLowerCase());
 
       // Resolve agency/subcontractor contractor record
       let agencyId = '';
