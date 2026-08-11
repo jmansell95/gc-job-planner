@@ -78,7 +78,25 @@ export default function JobSummaryCard({
             </span>
             <DisciplinePills job={job} size="sm" />
           </div>
-          {job.requisition_list_url && <FileText className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" title="Has requisition list" />}
+          {/* Mini calendar tile — top-right corner */}
+          <div className="flex-shrink-0 relative">
+            <div className="w-14 rounded-lg overflow-hidden shadow-sm border border-slate-200 bg-white">
+              <div className={`h-1.5 bg-gradient-to-r ${status.grad}`} />
+              <div className="px-1.5 pt-1 pb-1.5 text-center">
+                <div className="text-[8px] font-bold uppercase tracking-wider text-[#2E5A1A] leading-none">
+                  {job.start_date ? format(parseISO(job.start_date), 'MMM') : 'TBC'}
+                </div>
+                <div className="text-base font-bold text-slate-800 leading-none mt-0.5 tabular-nums">
+                  {job.start_date ? format(parseISO(job.start_date), 'dd') : '—'}
+                </div>
+                <div className="text-[8px] text-slate-400 leading-none mt-1 flex items-center justify-center gap-0.5">
+                  <CalendarClock className="w-2.5 h-2.5" />
+                  {job.end_date ? format(parseISO(job.end_date), 'dd MMM') : '—'}
+                </div>
+              </div>
+            </div>
+            {job.requisition_list_url && <FileText className="w-3 h-3 text-[#2E5A1A] absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-slate-100" title="Has requisition list" />}
+          </div>
         </div>
 
         {/* Title */}
@@ -124,21 +142,6 @@ export default function JobSummaryCard({
           {job.meterage_target != null && job.meterage_target > 0 && (
             <StatTile icon={Ruler} label="Target" value={`${job.meterage_target}m`} gradient="from-fuchsia-500 to-pink-600" />
           )}
-        </div>
-
-        {/* Date range */}
-        <div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-50/80 rounded-lg px-2.5 py-2 border border-slate-100">
-          <CalendarClock className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0 space-y-0.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Start</span>
-              <span className="font-semibold text-slate-700">{fmtDateShort(job.start_date)}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">End</span>
-              <span className="font-semibold text-slate-700">{fmtDateShort(job.end_date)}</span>
-            </div>
-          </div>
         </div>
 
         {/* Details grid */}
