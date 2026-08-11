@@ -757,18 +757,24 @@ export default async function(req) {
     //      admin-only UploadFile integration that fails on the published site).
     //   2. A previously-uploaded file URL (file_url) — legacy fallback.
     let dryRun = true;
+    let skipPurgeAndJobs = false;
+    let writePhase = 'all'; // 'all' | 'rotas' | 'cost_items' | 'training_absences'
     let arrayBuffer: ArrayBuffer;
     const contentType = req.headers.get('content-type') || '';
     if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
       const filePart = formData.get('file');
       dryRun = formData.get('dry_run') !== 'false';
+      skipPurgeAndJobs = formData.get('skip_purge_and_jobs') === 'true';
+      writePhase = formData.get('write_phase') || 'all';
       if (!filePart) return Response.json({ error: 'A spreadsheet file is required.' }, { status: 400 });
       arrayBuffer = await (filePart as File).arrayBuffer();
     } else {
       const body = await req.json();
       const fileUrl = body.file_url;
       dryRun = body.dry_run !== false;
+      skipPurgeAndJobs = body.skip_purge_and_jobs === true;
+      writePhase = body.write_phase || 'all';
       if (!fileUrl) return Response.json({ error: 'file_url is required' }, { status: 400 });
       const fileRes = await fetch(fileUrl);
       if (!fileRes.ok) return Response.json({ error: 'Could not download the uploaded file' }, { status: 422 });
@@ -884,6 +890,29 @@ export default async function(req) {
     //    rota assignments, rig/asset assignments, and job dates/status.
     // -----------------------------------------------------------------------
     let purgeSummary = { rotas_deleted: 0, jobs_deleted: 0, crews_deleted: 0, asset_assignments_deleted: 0, training_bookings_deleted: 0, absences_deleted: 0, cost_items_deleted: 0 };
+    if (skipPurgeAndJobs) {
+      // Resume mode — jobs already created in a prior call. Only purge rotas,
+      // cost items, training bookings, and absences (the records we're about
+      // to re-create). Jobs and crews are preserved.
+      const [allRotas, allCostItems, allTrainingBookings, allAbsences] = await Promise.all([
+        base44.asServiceRole.entities.RotaAssignment.list('-created_date', 5000),
+        base44.asServiceRole.entities.JobCostItem.list('-created_date', 5000),
+        base44.asServiceRole.entities.TrainingBooking.list('-created_date', 5000),
+        base44.asServiceRole.entities.Absence.list('-created_date', 5000),
+      ]);
+      purgeSummary.rotas_deleted = allRotas.length;
+      purgeSummary.cost_items_deleted = allCostItems.length;
+      purgeSummary.training_bookings_deleted = allTrainingBookings.length;
+      purgeSummary.absences_deleted = allAbsences.length;
+      if (!dryRun) {
+        const deleteOps = [];
+        if (allRotas.length > 0) deleteOps.push(base44.asServiceRole.entities.RotaAssignment.deleteMany({}));
+        if (allCostItems.length > 0) deleteOps.push(base44.asServiceRole.entities.JobCostItem.deleteMany({}));
+        if (allTrainingBookings.length > 0) deleteOps.push(base44.asServiceRole.entities.TrainingBooking.deleteMany({}));
+        if (allAbsences.length > 0) deleteOps.push(base44.asServiceRole.entities.Absence.deleteMany({}));
+        if (deleteOps.length > 0) await Promise.all(deleteOps);
+      }
+    } else {
     // Parallel fetch — rotas, jobs, crews, asset assignments, cost items, training, absences.
     // Teams and Staff are NOT fetched for deletion — they are preserved (Import Guard).
     const [allRotas, allJobs, allCrews, allAssetAssignments, allCostItems, allTrainingBookings, allAbsences] = await Promise.all([
@@ -914,6 +943,7 @@ export default async function(req) {
       if (deleteOps.length > 0) await Promise.all(deleteOps);
       warnings.push(`Import Guard: preserved all Teams and Staff. Wiped ${purgeSummary.rotas_deleted} rotas, ${purgeSummary.jobs_deleted} jobs, ${purgeSummary.crews_deleted} crews, ${purgeSummary.asset_assignments_deleted} asset assignments, ${purgeSummary.cost_items_deleted} cost items, ${purgeSummary.training_bookings_deleted} training bookings, ${purgeSummary.absences_deleted} absences.`);
     }
+    } // end else (skipPurgeAndJobs === false)
 
     // -----------------------------------------------------------------------
     // 3. Load Existing Teams (Import Guard — no team creation)
@@ -1175,11 +1205,20 @@ export default async function(req) {
       }
     }
 
-    const existingJobs = []; // After full wipe, no existing jobs
+    // In resume mode, load the jobs created in the prior call so we can
+    // match rota/cost-item assignments to them. In fresh mode, jobs were
+    // just purged so existingJobs is empty.
+    const existingJobs = skipPurgeAndJobs
+      ? await base44.asServiceRole.entities.Job.list('-created_date', 5000)
+      : [];
     const jobByName = new Map();
     const jobByReference = new Map();
+    const jobByCanonKey = new Map();
     for (const j of existingJobs) {
-      if (j.name) jobByName.set(nameKey(j.name), j);
+      if (j.name) {
+        jobByName.set(nameKey(j.name), j);
+        jobByCanonKey.set(canonicalJobKey(j.name), j);
+      }
       if (j.job_reference) jobByReference.set(j.job_reference.toLowerCase(), j);
     }
 
@@ -1212,7 +1251,7 @@ export default async function(req) {
 
       let job = null;
       if (parsed.job_reference) job = jobByReference.get(parsed.job_reference.toLowerCase());
-      if (!job) job = jobByName.get(baseKey);
+      if (!job) job = jobByCanonKey.get(baseKey) || jobByName.get(baseKey);
       // Fuzzy fallback: match to already-created jobs with a similar name.
       // Handles variations across tabs (e.g. "EWR Site" → "I260124 - EWR")
       // so the same job isn't created twice under slightly different names.
@@ -1238,6 +1277,16 @@ export default async function(req) {
       }
       if (!job && jobMap.size > 0) {
         const fuzzy = fuzzyFindJob(rawName, [...jobMap.values()], 0.65);
+        if (fuzzy) {
+          job = fuzzy.job;
+          jobMap.set(baseKey, job);
+        }
+      }
+      // Resume mode: fuzzy match against all existing jobs (not just jobMap,
+      // which starts empty). This catches jobs whose canonical keys don't
+      // exactly match due to the keyToMaster merging.
+      if (!job && skipPurgeAndJobs && existingJobs.length > 0) {
+        const fuzzy = fuzzyFindJob(rawName, existingJobs, 0.65);
         if (fuzzy) {
           job = fuzzy.job;
           jobMap.set(baseKey, job);
@@ -1740,7 +1789,7 @@ export default async function(req) {
     }
 
     let createdCourses = [];
-    if (newCoursePayloads.length > 0 && !dryRun) {
+    if (newCoursePayloads.length > 0 && !dryRun && (writePhase === 'all' || writePhase === 'training_absences')) {
       createdCourses = await base44.asServiceRole.entities.TrainingCourse.bulkCreate(newCoursePayloads);
     } else if (dryRun) {
       createdCourses = newCoursePayloads.map((p, i) => ({ id: `temp_course_${newCourseKeys[i]}`, ...p }));
@@ -2135,6 +2184,7 @@ export default async function(req) {
 
     // --- Apply ---
     let createdCount = 0;
+    if (writePhase === 'all' || writePhase === 'rotas') {
     if (rotasToCreate.length > 0) {
       for (let i = 0; i < rotasToCreate.length; i += 400) {
         const batch = rotasToCreate.slice(i, i + 400);
@@ -2142,27 +2192,26 @@ export default async function(req) {
         createdCount += batch.length;
       }
     }
+    }
 
     // Create JobCostItem records (not JobAssetAssignment) so rigs and gear
     // appear in the job's Logistics tab → Equipment & Assets section. This
     // matches the manual "Add Rig & Gear" flow which creates JobCostItem
     // records with category 'internal_equipment' and site_asset_id set.
-    let rigAssignmentCount = 0;
+    // Batched via bulkCreate (was sequential — 424 individual creates caused
+    // serverless timeouts).
+    const rigCostItemPayloads = [];
     for (const ra of dedupedRigAssignments) {
       const raJob = findJobForAssignment(ra.job_name);
       const jobStart = ra.assigned_date || raJob?.start_date || '';
       const jobEnd = raJob?.end_date || '';
-      // Count actual on-site days from the collected assignment dates — not the
-      // full job span. This prevents active jobs with months of old history from
-      // being billed for every day in the span; only days the rig was actually
-      // scheduled count toward the day-rate quantity.
       const rigDates = rigDatesByJobAsset.get(`${ra.job_id}|${ra.asset_id}`);
       let rigQuantity = 1;
       const rigUnitLabel = ra.unit_label || 'day';
       if (rigUnitLabel === 'day' && rigDates && rigDates.size > 0) {
         rigQuantity = rigDates.size;
       }
-      await base44.asServiceRole.entities.JobCostItem.create({
+      rigCostItemPayloads.push({
         job_id: ra.job_id,
         category: 'internal_equipment',
         description: ra.asset_name,
@@ -2182,7 +2231,17 @@ export default async function(req) {
           ? `Auto-linked from planner import${ra.rate_card_item_id ? ' — day rate from Our Rate Card' : ''}`
           : 'Included in rig day rate (auto-linked from planner import)',
       });
-      rigAssignmentCount++;
+    }
+    let rigAssignmentCount = 0;
+    if (writePhase === 'all' || writePhase === 'cost_items') {
+    if (rigCostItemPayloads.length > 0 && !dryRun) {
+      for (let i = 0; i < rigCostItemPayloads.length; i += 400) {
+        const batch = rigCostItemPayloads.slice(i, i + 400);
+        await base44.asServiceRole.entities.JobCostItem.bulkCreate(batch);
+        rigAssignmentCount += batch.length;
+      }
+    } else {
+      rigAssignmentCount = rigCostItemPayloads.length;
     }
 
     // Create crew JobCostItem records (labour + contractor_supplied) —
@@ -2197,6 +2256,7 @@ export default async function(req) {
     } else {
       crewCostItemsCreated = crewCostItemPayloads.length;
     }
+    } else { rigAssignmentCount = rigCostItemPayloads.length; crewCostItemsCreated = 0; }
 
     // Completed jobs are preserved with their 'completed' status so they remain
     // visible in the planner and job lists. Previously these were deleted, which
