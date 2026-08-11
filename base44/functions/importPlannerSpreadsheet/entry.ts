@@ -83,6 +83,11 @@ const NON_WORK_SECTION_KEYWORDS = [
 
 const SUBCONTRACTOR_PATTERNS = ['subbies', 'subcontractor', 'sub-contractor', 'subby', 'sub.con', 'sub con', 'sub-con'];
 
+// Known labour agencies that appear as section headers in the planner.
+// Workers listed under these headers are agency labourers supplied by that
+// company — not direct employees or subcontractors.
+const KNOWN_AGENCY_NAMES = ['daniel owen', 'city sites', 'black swan'];
+
 function isSubcontractor(name) {
   const lower = normalizeName(name).toLowerCase();
   if (SUBCONTRACTOR_PATTERNS.some(p => lower.includes(p))) return true;
@@ -92,7 +97,21 @@ function isSubcontractor(name) {
 function isAgencySection(name) {
   if (!name) return false;
   const lower = normalizeName(name).toLowerCase();
-  return lower.includes('agency');
+  if (lower.includes('agency')) return true;
+  return KNOWN_AGENCY_NAMES.some(a => lower.includes(a));
+}
+
+// Extract the agency name from a section header if it contains a known
+// agency name. Returns title-cased agency name, or '' if not found.
+function extractAgencyNameFromSection(sectionName) {
+  if (!sectionName) return '';
+  const lower = normalizeName(sectionName).toLowerCase();
+  for (const agency of KNOWN_AGENCY_NAMES) {
+    if (lower.includes(agency)) {
+      return agency.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+  }
+  return '';
 }
 
 function isDepotSection(name) {
@@ -480,7 +499,15 @@ function parseSheet(sheet, sheetName) {
         currentSection = normalizeSection(rawSection);
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
-        if (!isAgencySectionFlag) currentAgencyName = '';
+        if (!isAgencySectionFlag) {
+          currentAgencyName = '';
+        } else {
+          // If the section header itself contains a known agency name (e.g.
+          // "Daniel Owen", "City Sites", "Black Swan"), use it as the agency
+          // name so workers below are grouped under the correct supplier.
+          const extracted = extractAgencyNameFromSection(rawSection);
+          if (extracted) currentAgencyName = extracted;
+        }
         currentSubcontractorName = '';
         if (currentSection) sectionsFound.add(currentSection);
       }
@@ -509,7 +536,15 @@ function parseSheet(sheet, sheetName) {
         currentSection = normalizeSection(rawSection);
         isSubSection = isSubcontractor(currentSection);
         isAgencySectionFlag = isAgencySection(currentSection);
-        if (!isAgencySectionFlag) currentAgencyName = '';
+        if (!isAgencySectionFlag) {
+          currentAgencyName = '';
+        } else {
+          // If the section header itself contains a known agency name (e.g.
+          // "Daniel Owen", "City Sites", "Black Swan"), use it as the agency
+          // name so workers below are grouped under the correct supplier.
+          const extracted = extractAgencyNameFromSection(rawSection);
+          if (extracted) currentAgencyName = extracted;
+        }
         currentSubcontractorName = '';
         if (currentSection) sectionsFound.add(currentSection);
         foundSection = true;
@@ -974,7 +1009,7 @@ export default async function(req) {
     const agencyTeam = findTeam(AGENCY_TEAM_NAME) || findTeam('Agency') || existingTeams[0] || { id: '', name: AGENCY_TEAM_NAME };
     const fallbackTeam = findTeam(DIRECT_EMPLOYEE_TEAM_NAME) || findTeam('Drilling') || existingTeams[0] || { id: '', name: DIRECT_EMPLOYEE_TEAM_NAME };
     const drillingTeam = findTeam('Drilling') || findTeam('Drilling (Dynamic)') || fallbackTeam;
-    const depotTeam = findTeam('Depot') || findTeam('Depot Staff') || fallbackTeam;
+    const depotTeam = findTeam(DEPOT_TEAM_NAME) || findTeam('Depot') || findTeam('Depot Staff') || findTeam('Yard') || fallbackTeam;
 
     // Map crew sections to existing teams by fuzzy name match
     const crewSections = [...new Set(teamAssignments.map(a => a.crew_section).filter(Boolean))];
@@ -1133,6 +1168,13 @@ export default async function(req) {
       if (workerType === 'agency' && staffAgencyNameByKey[key]) {
         const agency = await findOrCreateAgency(base44, staffAgencyNameByKey[key], contractorMaps, dryRun);
         agencyId = agency.id;
+      }
+      // Ensure the subcontractor company exists as a Contractor record so it
+      // can be linked on crew cost items. Subcontractor workers don't have a
+      // dedicated contractor_id field on Staff (only agency_id), but creating
+      // the Contractor here means the cost-item step can find it by name.
+      if (workerType === 'subcontractor' && staffSubcontractorNameByKey[key]) {
+        await findOrCreateSubcontractor(base44, staffSubcontractorNameByKey[key], contractorMaps, dryRun);
       }
 
       if (staff) {

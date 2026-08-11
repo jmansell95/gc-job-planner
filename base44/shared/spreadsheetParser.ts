@@ -16,6 +16,8 @@ export const SECTION_KEYWORDS = [
   'subbies', 'subcontractor', 'sub-contractor', 'subby', 'drilling subbies',
   'sub.con', 'sub con', 'sub-con', 'field teams',
   'agency', 'bh', 'bank holiday', 'absence',
+  // Known labour agencies used as section headers in the planner
+  'daniel owen', 'city sites', 'black swan',
 ];
 
 export const NON_PERSON_WORDS = [
