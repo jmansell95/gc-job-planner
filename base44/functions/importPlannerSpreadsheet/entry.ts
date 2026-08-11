@@ -1439,12 +1439,29 @@ export default async function(req) {
         responsible_person: asset.responsible_person || '',
       });
 
-      // Enrich job drilling_method from the matched rig's rig_type
+      // Enrich job drilling_method from the matched rig's rig_type.
+      // Properly computes 'mixed' when both CP and rotary rigs are assigned
+      // (previous logic only set the first rig's type and never upgraded to mixed).
+      // Also ensures job_type is 'drilling' when any rig is matched.
       if (asset.is_rig && asset.rig_type && asset.rig_type !== 'n/a') {
-        const current = job.drilling_method;
-        if (!current || current === 'not_applicable') {
-          jobDrillingMethodUpdates.push({ id: job.id, drilling_method: asset.rig_type });
-          job.drilling_method = asset.rig_type; // update in-memory copy
+        const current = job.drilling_method || 'not_applicable';
+        let newMethod = current;
+        if (current === 'not_applicable') {
+          newMethod = asset.rig_type;
+        } else if (current !== asset.rig_type && current !== 'mixed') {
+          newMethod = 'mixed';
+        }
+        const updates = {};
+        if (newMethod !== current) {
+          updates.drilling_method = newMethod;
+          job.drilling_method = newMethod;
+        }
+        if (job.job_type !== 'drilling') {
+          updates.job_type = 'drilling';
+          job.job_type = 'drilling';
+        }
+        if (Object.keys(updates).length > 0) {
+          jobDrillingMethodUpdates.push({ id: job.id, ...updates });
         }
       }
 
@@ -1473,6 +1490,19 @@ export default async function(req) {
     for (const ra of rigAssignments) {
       const key = `${ra.job_id}|${ra.asset_id}|${ra.assigned_date || ''}`;
       if (!rigAssignmentMap.has(key)) rigAssignmentMap.set(key, ra);
+    }
+
+    // Build job+date → rig pool map for linking drillers to rigs on rota entries.
+    // Only actual rigs (not lifting gear) are included. Each rig appears once
+    // per job per date; drillers consume rigs from the pool in order so no two
+    // drillers on the same job+date get the same rig.
+    const rigPoolByJobDate = new Map();
+    for (const ra of rigAssignmentMap.values()) {
+      if (!ra.is_rig) continue;
+      if (!ra.assigned_date) continue;
+      const key = `${ra.job_id}|${ra.assigned_date}`;
+      if (!rigPoolByJobDate.has(key)) rigPoolByJobDate.set(key, []);
+      rigPoolByJobDate.get(key).push(ra);
     }
     // Further deduplicate by (job_id, asset_id) keeping the earliest date.
     // Also collect ALL unique on-site dates per (job_id, asset_id) so the rig
@@ -1575,10 +1605,34 @@ export default async function(req) {
         nonJobCounts[a.non_job_type]++;
         nonJobDays.push({ staff_id: staff.id, staff_name: staff.name, date: a.date, type: a.non_job_type, label: a.non_job_label });
       } else if (job) {
+        // Link rig to driller using the rig pool for this job+date.
+        // Matches CP drillers to CP rigs and rotary drillers to rotary rigs,
+        // falling back to any available rig. Each rig is consumed from the
+        // pool so no two drillers share the same rig on the same date.
+        let rigAssetId = null;
+        const rigPool = rigPoolByJobDate.get(`${job.id}|${a.date}`);
+        if (rigPool && rigPool.length > 0) {
+          const staffTitle = (staff.job_title || '').toLowerCase();
+          const isRotaryDriller = staffTitle.includes('rotary');
+          const isCpDriller = staffTitle.includes('cable') || staffTitle.includes('cp');
+          let matchedRig = null;
+          if (isRotaryDriller) {
+            matchedRig = rigPool.find(r => r.rig_type === 'rotary');
+          } else if (isCpDriller) {
+            matchedRig = rigPool.find(r => r.rig_type === 'cp');
+          }
+          if (!matchedRig) matchedRig = rigPool[0];
+          if (matchedRig) {
+            rigAssetId = matchedRig.asset_id;
+            const idx = rigPool.indexOf(matchedRig);
+            if (idx >= 0) rigPool.splice(idx, 1);
+          }
+        }
         rotasToCreate.push({
           staff_id: staff.id, job_id: job.id, assigned_date: a.date,
           week_start: getWeekStart(a.date),
           status: (a.is_legacy || a.date < TODAY) ? 'completed' : 'assigned',
+          rig_asset_id: rigAssetId || undefined,
         });
       }
     }
