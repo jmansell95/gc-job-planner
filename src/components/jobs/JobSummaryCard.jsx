@@ -115,7 +115,7 @@ export default function JobSummaryCard({
 
         {/* Job Reference — prominent badge below pills */}
         {job.job_reference && (
-          <div className="-mt-2 inline-flex items-center gap-1.5 bg-[#2E5A1A]/8 text-[#2E5A1A] rounded-md px-2.5 py-1 text-xs font-bold tracking-wide w-fit">
+          <div className="-mt-[43px] inline-flex items-center gap-1.5 bg-[#2E5A1A]/8 text-[#2E5A1A] rounded-md px-2.5 py-1 text-xs font-bold tracking-wide w-fit">
             <FileText className="w-3.5 h-3.5" />
             <span className="text-[10px] uppercase opacity-60 font-semibold">Job Reference</span>
             <span className="opacity-30">·</span>
