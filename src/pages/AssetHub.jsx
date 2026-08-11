@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Cog, Wrench, Package, Truck, Anchor, Plug,
-  Plus, Search, Boxes, ScanLine, X, TrendingUp, TrendingDown, RefreshCw, Lock,
+  Plus, Search, Boxes, ScanLine, X, TrendingUp, TrendingDown, RefreshCw, Lock, ShieldCheck,
   CheckSquare, Upload, Database, MapPin, QrCode, Trash2, CircleDot,
 } from 'lucide-react';
 import Vehicles from '@/pages/Vehicles';
@@ -65,6 +65,7 @@ export default function AssetHub() {
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showSmartImport, setShowSmartImport] = useState(false);
   const [showBulkQR, setShowBulkQR] = useState(false);
+  const [equipSub, setEquipSub] = useState('equipment-library');
 
   const { data: assets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
@@ -107,15 +108,11 @@ export default function AssetHub() {
 
   const subTabs = [
     { id: 'inventory', label: 'Inventory', icon: Boxes, count: assets.length },
-    { id: 'recert', label: 'Re-cert', icon: RefreshCw, badge: recertCount },
-    { id: 'certificates', label: 'Certificates', icon: Lock },
+    { id: 'compliance', label: 'Compliance', icon: ShieldCheck, badge: recertCount },
     { id: 'deployments', label: 'Deployments', icon: MapPin },
-    { id: 'efficiency', label: 'Efficiency', icon: TrendingUp },
-    { id: 'utilization', label: 'Utilization', icon: TrendingUp },
-    { id: 'depreciation', label: 'Depreciation', icon: TrendingDown },
-    { id: 'equipment-library', label: 'Equipment Sets', icon: Boxes },
-    { id: 'asset-manifests', label: 'Van Manifests', icon: QrCode },
-    { id: 'asset-lifecycle', label: 'Lifecycle', icon: TrendingDown },
+    { id: 'performance', label: 'Performance', icon: TrendingUp },
+    { id: 'lifecycle', label: 'Lifecycle', icon: TrendingDown },
+    { id: 'equipment-sets', label: 'Equipment Sets', icon: Boxes },
     { id: 'scrap', label: 'Scrap Pile', icon: Trash2 },
   ];
 
@@ -244,24 +241,43 @@ export default function AssetHub() {
             />
           ) : view === 'deployments' ? (
             <ErrorBoundary><AssetDeploymentsPanel assets={assets} /></ErrorBoundary>
-          ) : view === 'efficiency' ? (
-            <ErrorBoundary><div className="space-y-4"><FleetUtilizationHeatmap assets={assets} /><DrillingEfficiencyPanel assets={assets} /></div></ErrorBoundary>
-          ) : view === 'utilization' ? (
-            <ErrorBoundary><AssetUtilizationTrends /></ErrorBoundary>
-          ) : view === 'depreciation' ? (
-            <ErrorBoundary><DepreciationSchedule /></ErrorBoundary>
-          ) : view === 'recert' ? (
-            <ErrorBoundary><RecertPipeline assets={assets} onRecert={(a) => setRecertAsset(a)} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} /></ErrorBoundary>
-          ) : view === 'certificates' ? (
-            <ErrorBoundary><MasterCertificateVault assets={assets} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} /></ErrorBoundary>
+          ) : view === 'compliance' ? (
+            <ErrorBoundary>
+              <div className="space-y-6">
+                <RecertPipeline assets={assets} onRecert={(a) => setRecertAsset(a)} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} />
+                <div>
+                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide mb-3 px-1">Certificate Vault</h3>
+                  <MasterCertificateVault assets={assets} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} />
+                </div>
+              </div>
+            </ErrorBoundary>
+          ) : view === 'performance' ? (
+            <ErrorBoundary>
+              <div className="space-y-6">
+                <FleetUtilizationHeatmap assets={assets} />
+                <DrillingEfficiencyPanel assets={assets} />
+                <AssetUtilizationTrends />
+              </div>
+            </ErrorBoundary>
+          ) : view === 'lifecycle' ? (
+            <ErrorBoundary>
+              <div className="space-y-6">
+                <DepreciationSchedule />
+                <SettingsPage initialTab="asset-lifecycle" standalone />
+              </div>
+            </ErrorBoundary>
           ) : view === 'scrap' ? (
             <ErrorBoundary><ScrapPilePanel /></ErrorBoundary>
-          ) : view === 'equipment-library' ? (
-            <ErrorBoundary><SettingsPage initialTab="equipment-library" standalone /></ErrorBoundary>
-          ) : view === 'asset-manifests' ? (
-            <ErrorBoundary><SettingsPage initialTab="asset-manifests" standalone /></ErrorBoundary>
-          ) : view === 'asset-lifecycle' ? (
-            <ErrorBoundary><SettingsPage initialTab="asset-lifecycle" standalone /></ErrorBoundary>
+          ) : view === 'equipment-sets' ? (
+            <ErrorBoundary>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <button onClick={() => setEquipSub('equipment-library')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${equipSub === 'equipment-library' ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Equipment Library</button>
+                  <button onClick={() => setEquipSub('asset-manifests')} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${equipSub === 'asset-manifests' ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Van Manifests</button>
+                </div>
+                <SettingsPage initialTab={equipSub} standalone />
+              </div>
+            </ErrorBoundary>
           ) : null}
 
           {/* Bulk cert action bar */}
