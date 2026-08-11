@@ -100,6 +100,7 @@ export default function JobManager({ onNavigateRota }) {
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200) });
   const { data: rotas = [] } = useQuery({ queryKey: ['rotas-for-jobs'], queryFn: () => base44.entities.RotaAssignment.list('-created_date', 5000) });
   const { data: costItems = [] } = useQuery({ queryKey: ['cost-items-for-jobs'], queryFn: () => base44.entities.JobCostItem.list('-created_date', 5000) });
+  const { data: siteAssets = [] } = useQuery({ queryKey: ['site-assets-for-rig-count'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 5000) });
 
   // Compute crew count (unique staff) and rig count (internal_equipment) per job
   const crewCountByJob = React.useMemo(() => {
@@ -114,19 +115,25 @@ export default function JobManager({ onNavigateRota }) {
     return out;
   }, [rotas]);
   const rigCountByJob = React.useMemo(() => {
-    // Count UNIQUE rigs per job by site_asset_id — multiple crew cost items
-    // linked to the same rig (e.g. 3 crew on 1 rig) should count as 1 rig.
+    // Count UNIQUE rigs per job — cross-reference with SiteAsset to only
+    // count actual rigs (is_rig / asset_type === 'rig'), NOT lifting gear
+    // (shackles, slings, hooks) that are also category 'internal_equipment'.
+    const rigAssetIds = new Set();
+    for (const a of siteAssets) {
+      if (a.is_rig || a.asset_type === 'rig') rigAssetIds.add(a.id);
+    }
     const m = {};
     for (const ci of costItems) {
       if (ci.category !== 'internal_equipment') continue;
       if (!ci.site_asset_id) continue;
+      if (!rigAssetIds.has(ci.site_asset_id)) continue;
       if (!m[ci.job_id]) m[ci.job_id] = new Set();
       m[ci.job_id].add(ci.site_asset_id);
     }
     const out = {};
     for (const [k, s] of Object.entries(m)) out[k] = s.size;
     return out;
-  }, [costItems]);
+  }, [costItems, siteAssets]);
 
   const handleEdit = (job) => {
     setEditingJob(job);
