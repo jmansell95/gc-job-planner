@@ -1,23 +1,20 @@
 import React from 'react';
 import {
-  MapPin, Calendar, CalendarClock, Users, Clock, Ruler, PoundSterling, Layers,
+  MapPin, CalendarClock, Users, Ruler, PoundSterling, Layers,
   FileText, Eye, Edit2, Copy, Trash2, FolderOpen, User, Phone, Mountain, Wrench, StickyNote,
+  TrendingUp, Clock, CheckCircle2, AlertTriangle, CircleDashed,
 } from 'lucide-react';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
 
-const statusBadge = {
-  planning: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
-  in_progress: 'bg-[#2E5A1A]/15 text-[#2E5A1A] ring-1 ring-[#2E5A1A]/20',
-  decommissioning: 'bg-orange-100 text-orange-700 ring-1 ring-orange-200',
-  completed: 'bg-teal-100 text-teal-700 ring-1 ring-teal-200',
-  on_hold: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
-  cancelled: 'bg-red-100 text-red-700 ring-1 ring-red-200',
-};
-const statusLabels = {
-  planning: 'Planning', in_progress: 'In Progress', decommissioning: 'Decommissioning',
-  completed: 'Completed', on_hold: 'On Hold', cancelled: 'Cancelled',
+const STATUS_META = {
+  planning: { label: 'Planning', icon: CircleDashed, grad: 'from-slate-500 to-slate-600', chip: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200' },
+  in_progress: { label: 'In Progress', icon: TrendingUp, grad: 'from-[#2E5A1A] to-[#4d7c2a]', chip: 'bg-[#2E5A1A]/15 text-[#2E5A1A] ring-1 ring-[#2E5A1A]/20' },
+  decommissioning: { label: 'Decommissioning', icon: AlertTriangle, grad: 'from-orange-500 to-amber-600', chip: 'bg-orange-100 text-orange-700 ring-1 ring-orange-200' },
+  completed: { label: 'Completed', icon: CheckCircle2, grad: 'from-teal-500 to-cyan-600', chip: 'bg-teal-100 text-teal-700 ring-1 ring-teal-200' },
+  on_hold: { label: 'On Hold', icon: Clock, grad: 'from-amber-500 to-yellow-600', chip: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200' },
+  cancelled: { label: 'Cancelled', icon: AlertTriangle, grad: 'from-red-500 to-rose-600', chip: 'bg-red-100 text-red-700 ring-1 ring-red-200' },
 };
 
 const fmtDateShort = (d) => {
@@ -31,13 +28,14 @@ const calcDuration = (start, end) => {
   } catch { return null; }
 };
 
-function DateBlock({ label, date, bg }) {
-  const parts = fmtDateShort(date).split(' ');
+function StatTile({ icon: Icon, label, value, gradient }) {
   return (
-    <div className={`flex flex-col items-center justify-center min-w-[48px] px-2 py-1.5 rounded-lg ${bg} text-white`}>
-      <span className="text-[9px] font-semibold uppercase tracking-wider text-white/60 leading-none">{label}</span>
-      <span className="text-sm font-bold leading-tight mt-0.5">{parts[0]}</span>
-      <span className="text-[10px] font-medium text-white/80 leading-none">{parts[1] || ''}</span>
+    <div className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 bg-gradient-to-br ${gradient} text-white`}>
+      <Icon className="w-4 h-4 flex-shrink-0 opacity-90" />
+      <div className="min-w-0">
+        <div className="text-[9px] font-semibold uppercase tracking-wider opacity-70 leading-none">{label}</div>
+        <div className="text-sm font-bold leading-tight mt-0.5 truncate">{value}</div>
+      </div>
     </div>
   );
 }
@@ -62,16 +60,22 @@ export default function JobSummaryCard({
   const isDrillingJob = ['cp', 'rotary', 'mixed'].includes(job.drilling_method);
   const methodLabel = { cp: 'CP', rotary: 'Rotary', mixed: 'Mixed' }[job.drilling_method] || '';
   const siteCount = Array.isArray(job.sites) ? job.sites.length : 0;
+  const status = STATUS_META[job.status || 'planning'] || STATUS_META.planning;
+  const StatusIcon = status.icon;
 
   return (
-    <div className="card-modern rounded-xl overflow-hidden flex flex-col group">
-      <div className={`h-1.5 ${colors.bar}`} />
-      <div className="p-4 flex-1 space-y-2.5">
-        {/* Badges */}
+    <div className="vibrant-card rounded-xl overflow-hidden flex flex-col group">
+      {/* Gradient header strip — status-colored */}
+      <div className={`h-2 bg-gradient-to-r ${status.grad}`} />
+
+      <div className="p-4 flex-1 space-y-3">
+        {/* Badges row */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-wrap gap-1.5">
             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${colors.badge}`}>{getJobTypeLabel(primaryType, jobTypes)}</span>
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusBadge[job.status || 'planning']}`}>{statusLabels[job.status || 'planning']}</span>
+            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${status.chip}`}>
+              <StatusIcon className="w-3 h-3" /> {status.label}
+            </span>
             <DisciplinePills job={job} size="sm" />
           </div>
           {job.requisition_list_url && <FileText className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" title="Has requisition list" />}
@@ -104,31 +108,35 @@ export default function JobSummaryCard({
           )}
         </div>
 
-        {/* Date blocks */}
-        <div className="flex items-stretch gap-2">
-          <DateBlock label="Start" date={job.start_date} bg="bg-slate-900" />
-          <DateBlock label="End" date={job.end_date} bg="bg-slate-700" />
-          {duration != null && (
-            <span className={`inline-flex items-center self-center text-xs font-bold px-2 py-0.5 rounded-full ${
-              duration === 1 ? 'bg-blue-50 text-blue-700' :
-              duration <= 7 ? 'bg-emerald-50 text-emerald-700' :
-              duration <= 30 ? 'bg-amber-50 text-amber-700' :
-              'bg-violet-50 text-violet-700'
-            }`}>
-              <CalendarClock className="w-3 h-3 mr-1" />{duration} {duration === 1 ? 'day' : 'days'}
-            </span>
+        {/* Colorful stat tiles — the "pop" row */}
+        <div className="grid grid-cols-2 gap-2">
+          <StatTile icon={CalendarClock} label="Duration" value={duration != null ? `${duration} ${duration === 1 ? 'day' : 'days'}` : 'TBC'} gradient={duration == null ? 'from-slate-400 to-slate-500' : duration <= 7 ? 'from-blue-500 to-indigo-600' : duration <= 30 ? 'from-amber-500 to-orange-600' : 'from-violet-500 to-purple-600'} />
+          <StatTile icon={Users} label="Crew" value={crewCount > 0 ? `${crewCount} ${crewCount === 1 ? 'person' : 'people'}` : 'Unassigned'} gradient={crewCount > 0 ? 'from-emerald-500 to-teal-600' : 'from-slate-400 to-slate-500'} />
+          {isDrillingJob && (
+            <StatTile icon={Mountain} label="Method" value={methodLabel} gradient="from-cyan-500 to-blue-600" />
           )}
+          {rigCount > 0 && (
+            <StatTile icon={Wrench} label="Rigs" value={`${rigCount} ${rigCount === 1 ? 'rig' : 'rigs'}`} gradient="from-orange-500 to-red-600" />
+          )}
+          {job.budget_amount != null && job.budget_amount > 0 && (
+            <StatTile icon={PoundSterling} label="Budget" value={`£${Number(job.budget_amount).toLocaleString()}`} gradient="from-[#2E5A1A] to-[#4d7c2a]" />
+          )}
+          {job.meterage_target != null && job.meterage_target > 0 && (
+            <StatTile icon={Ruler} label="Target" value={`${job.meterage_target}m`} gradient="from-fuchsia-500 to-pink-600" />
+          )}
+        </div>
+
+        {/* Date range */}
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <span className="font-semibold text-slate-700">{fmtDateShort(job.start_date)}</span>
+          <span className="text-slate-300">→</span>
+          <span className="font-semibold text-slate-700">{fmtDateShort(job.end_date)}</span>
         </div>
 
         {/* Details grid */}
         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs pt-0.5">
           {job.project_manager && <DetailItem icon={User} label="PM" value={job.project_manager} />}
           {job.site_contact_name && <DetailItem icon={Phone} label="Site" value={job.site_contact_name} />}
-          {isDrillingJob && methodLabel && <DetailItem icon={Mountain} label="Method" value={methodLabel} />}
-          {job.budget_amount != null && job.budget_amount > 0 && <DetailItem icon={PoundSterling} label="Budget" value={`£${Number(job.budget_amount).toLocaleString()}`} />}
-          {job.meterage_target != null && job.meterage_target > 0 && <DetailItem icon={Ruler} label="Target" value={`${job.meterage_target}m`} />}
-          {crewCount > 0 && <DetailItem icon={Users} label="Crew" value={`${crewCount} ${crewCount === 1 ? 'person' : 'people'}`} />}
-          {rigCount > 0 && <DetailItem icon={Wrench} label="Rigs" value={`${rigCount} ${rigCount === 1 ? 'rig' : 'rigs'}`} />}
         </div>
 
         {/* Notes preview */}
