@@ -7,6 +7,7 @@ import TabBar from '@/components/TabBar';
 import MissingRatesBanner from '@/components/staff/MissingRatesBanner';
 import StaffDirectoryGrid from '@/components/staff/StaffDirectoryGrid';
 import StaffCostAnalytics from '@/components/staff/StaffCostAnalytics';
+import StaffUtilizationWidget from '@/components/dashboard/StaffUtilizationWidget';
 
 export default function StaffPage() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export default function StaffPage() {
     { id: 'staff', label: 'Crew Members', icon: Users },
     { id: 'directory', label: 'Directory', icon: Users },
     { id: 'cost-analytics', label: 'Cost Analytics', icon: Clock },
+    { id: 'utilization', label: 'Utilization', icon: Users },
     { id: 'teams', label: 'Crew Types', icon: UsersRound },
     { id: 'timesheets', label: 'Timesheets', icon: Clock },
     { id: 'clients', label: 'Clients', icon: Building2 },
@@ -38,10 +40,13 @@ export default function StaffPage() {
       <MissingRatesBanner />
       {tab === 'directory' && <StaffDirectoryGrid onSelect={(s) => navigate('/admin', { state: { section: 'staff-detail', staff: s } })} />}
       {tab === 'cost-analytics' && <StaffCostAnalytics />}
-      {tab !== 'directory' && tab !== 'cost-analytics' && (
+      {tab === 'utilization' && (
+        <StaffUtilizationWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
+      )}
+      {tab !== 'directory' && tab !== 'cost-analytics' && tab !== 'utilization' && (
       <TabBar tabs={tabs} activeTab={tab} onChange={setTab} />
       )}
-      {tab !== 'directory' && tab !== 'cost-analytics' && tabs.map(t => tab === t.id && (
+      {tab !== 'directory' && tab !== 'cost-analytics' && tab !== 'utilization' && tabs.map(t => tab === t.id && (
         <SettingsPage
           key={t.id}
           initialTab={t.id}

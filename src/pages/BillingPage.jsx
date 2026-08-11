@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PoundSterling, Receipt, FileBarChart, FileText, Banknote, TrendingDown, FileCheck, ArrowRight, CheckCircle2, Clock, Lock } from 'lucide-react';
+import { PoundSterling, Receipt, FileBarChart, FileText, Banknote, TrendingDown, FileCheck, ArrowRight, CheckCircle2, Clock, Lock, TrendingUp } from 'lucide-react';
 import SettingsPage from '@/components/SettingsPage';
 import InvoiceDiscrepancyWidget from '@/components/billing/InvoiceDiscrepancyWidget';
 import AgedDebtorsDashboard from '@/components/billing/AgedDebtorsDashboard';
 import BillingReadinessReport from '@/components/billing/BillingReadinessReport';
 import FinancialOverviewWidget from '@/components/billing/FinancialOverviewWidget';
 import POAWorklist from '@/components/billing/POAWorklist';
+import FinancialReconciliationWidget from '@/components/dashboard/FinancialReconciliationWidget';
+import BenchmarkComparisonsWidget from '@/components/dashboard/BenchmarkComparisonsWidget';
+import ProjectHealthDashboardWidget from '@/components/dashboard/ProjectHealthDashboardWidget';
+import ClientFeedbackWidget from '@/components/dashboard/ClientFeedbackWidget';
+import ReportsHubWidget from '@/components/dashboard/ReportsHubWidget';
 import PageHeader from '@/components/PageHeader';
 import TabBar from '@/components/TabBar';
 
@@ -91,6 +96,7 @@ export default function BillingPage() {
     { id: 'poa-lock', label: 'POA Locks', icon: Lock },
     { id: 'billing', label: 'Billing Rules', icon: Banknote },
     { id: 'billing-pipeline', label: 'Pipeline', icon: FileBarChart },
+    { id: 'insights', label: 'Insights', icon: TrendingUp },
     { id: 'billing-contracts', label: 'Contracts', icon: FileText },
     { id: 'purchase-orders', label: 'Purchase Orders', icon: FileText },
     { id: 'overtime', label: 'Overtime', icon: Clock },
@@ -145,7 +151,20 @@ export default function BillingPage() {
 
       {/* Non-pipeline content */}
       {tab === 'poa-lock' && <POAWorklist />}
-      {!isPipelineTab && tab !== 'poa-lock' && tabs.map(t => tab === t.id && (
+      {tab === 'insights' && (
+        <div className="space-y-4">
+          <FinancialReconciliationWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <ProjectHealthDashboardWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
+            <BenchmarkComparisonsWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <ClientFeedbackWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
+            <ReportsHubWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
+          </div>
+        </div>
+      )}
+      {!isPipelineTab && tab !== 'poa-lock' && tab !== 'insights' && tabs.map(t => tab === t.id && (
         <SettingsPage
           key={t.id}
           initialTab={t.id}

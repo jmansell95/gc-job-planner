@@ -29,6 +29,9 @@ import BulkQRPrinter from '@/components/assetcommand/BulkQRPrinter';
 import ScrapPilePanel from '@/components/assetcommand/ScrapPilePanel';
 import AssetInventoryGrid from '@/components/assethub/AssetInventoryGrid';
 import AssetDeploymentsPanel from '@/components/assethub/AssetDeploymentsPanel';
+import YardControlWidget from '@/components/dashboard/YardControlWidget';
+import PredictiveMaintenanceWidget from '@/components/vehicles/PredictiveMaintenanceWidget';
+import PredictiveInsightsWidget from '@/components/dashboard/PredictiveInsightsWidget';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { Skeleton } from '@/components/StateViews';
 import PageHeader from '@/components/PageHeader';
@@ -108,6 +111,7 @@ export default function AssetHub() {
     { id: 'inventory', label: 'Inventory', icon: Boxes, count: assets.length },
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck, badge: recertCount },
     { id: 'deployments', label: 'Deployments', icon: MapPin },
+    { id: 'yard', label: 'Yard', icon: Package },
     { id: 'performance', label: 'Performance', icon: TrendingUp },
     { id: 'lifecycle', label: 'Lifecycle', icon: TrendingDown },
     { id: 'scrap', label: 'Scrap Pile', icon: Trash2 },
@@ -249,12 +253,20 @@ export default function AssetHub() {
                 </div>
               </div>
             </ErrorBoundary>
+          ) : view === 'yard' ? (
+            <ErrorBoundary>
+              <YardControlWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
+            </ErrorBoundary>
           ) : view === 'performance' ? (
             <ErrorBoundary>
               <div className="space-y-6">
                 <FleetUtilizationHeatmap assets={assets} />
                 <DrillingEfficiencyPanel assets={assets} />
                 <AssetUtilizationTrends />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <PredictiveMaintenanceWidget onSelectVehicle={(v) => navigate('/admin', { state: { section: 'assets' } })} />
+                  <PredictiveInsightsWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
+                </div>
               </div>
             </ErrorBoundary>
           ) : view === 'lifecycle' ? (

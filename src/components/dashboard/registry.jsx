@@ -1,35 +1,26 @@
-import { LayoutDashboard, AlertTriangle, Warehouse, AlertOctagon, MapPin, Sparkles, Brain, CloudSun, Star, BarChart3, Radar, Wrench, ShieldCheck, Drill, FileBarChart, Activity, Leaf, HeartPulse, Users, DollarSign } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, AlertOctagon, MapPin, Sparkles, CloudSun, Drill, HeartPulse } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════
 //  STREAMLINED DASHBOARD REGISTRY
 //  Only widgets that DON'T have a dedicated page live on the dashboard.
-//  Everything else (jobs, billing, compliance, assets, vehicles,
-//  scheduling, logistics, timesheets, settings) is accessed via the
-//  sidebar nav and removed from the dashboard to reduce clutter.
+//  Moved to dedicated pages:
+//   - site-readiness-gate, crew-cert-pulse, carbon-footprint → Compliance
+//   - yard-control, predictive-maintenance, predictive-insights → Assets
+//   - financial-reconciliation, benchmark-comparisons, reports-hub,
+//     project-health, client-feedback → Billing
+//   - staff-utilization → Staff
 // ═══════════════════════════════════════════════════════════════════
 export const WIDGET_REGISTRY = {
-  'site-readiness-gate': { title: 'Site Readiness Gate', icon: ShieldCheck },
-  'borehole-progress': { title: 'Borehole Progress', icon: Drill },
-  'crew-cert-pulse': { title: 'Crew Certification Pulse', icon: ShieldCheck },
   'executive-snapshot': { title: 'Executive Snapshot', icon: LayoutDashboard, fullWidth: true },
-  'mission-control': { title: 'Mission Control Center', icon: Radar, fullWidth: true },
+  'mission-control': { title: 'Mission Control Center', icon: MapPin, fullWidth: true },
   'field-priorities': { title: 'Field Priorities', icon: AlertTriangle },
-  'yard-control': { title: 'Yard Control', icon: Warehouse },
   'exception-monitor': { title: 'Needs Attention', icon: AlertOctagon, fullWidth: true },
+  'borehole-progress': { title: 'Borehole Progress', icon: Drill },
   'live-site-map': { title: 'Live Site Map', icon: MapPin, fullWidth: true },
   'ai-insights': { title: 'AI Weekly Insights', icon: Sparkles },
-  'predictive-insights': { title: 'Predictive AI Insights', icon: Brain },
   'site-weather': { title: 'Site Weather Conditions', icon: CloudSun },
-  'client-feedback': { title: 'Client Feedback', icon: Star },
-  'benchmark-comparisons': { title: 'Benchmark Comparisons', icon: BarChart3 },
   'geo-heatmap': { title: 'Geotechnical Risk', icon: MapPin },
-  'predictive-maintenance': { title: 'Predictive Maintenance', icon: Wrench },
-  'reports-hub': { title: 'Reports Hub', icon: FileBarChart, fullWidth: true },
-  'project-health': { title: 'Project Health', icon: Activity },
-  'carbon-footprint': { title: 'Carbon Footprint', icon: Leaf },
   'system-health': { title: 'System Health & Integrity', icon: HeartPulse },
-  'staff-utilization': { title: 'Crew Utilization', icon: Users },
-  'financial-reconciliation': { title: 'Financial Reconciliation', icon: DollarSign, fullWidth: true },
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -37,34 +28,20 @@ export const WIDGET_REGISTRY = {
 //  Tier 1 — At a Glance: live operational widgets for quick situational awareness
 //  Tier 2 — Insights & Analysis: AI predictions, benchmarks, and deeper analysis
 // ═══════════════════════════════════════════════════════════════════
-// Curated default set — only the most essential, fully-clickable widgets
-// show by default. The rest are available via the Customize button.
 export const TIER_GLANCE = [
   'executive-snapshot',
   'mission-control',
-  'site-readiness-gate',
   'field-priorities',
   'exception-monitor',
-  'yard-control',
 ];
 
 export const TIER_INSIGHTS = [
   'borehole-progress',
-  'crew-cert-pulse',
   'live-site-map',
   'ai-insights',
-  'predictive-insights',
   'site-weather',
-  'client-feedback',
-  'benchmark-comparisons',
   'geo-heatmap',
-  'predictive-maintenance',
-  'reports-hub',
-  'project-health',
-  'carbon-footprint',
   'system-health',
-  'staff-utilization',
-  'financial-reconciliation',
 ];
 
 export const DEFAULT_WIDGETS = [
@@ -72,14 +49,14 @@ export const DEFAULT_WIDGETS = [
   ...TIER_INSIGHTS,
 ];
 
-// By default, only the 6 At-a-Glance widgets are visible. All Insights
+// By default, only the 4 At-a-Glance widgets are visible. All Insights
 // widgets start hidden — users enable them via the Customize button.
 export const DEFAULT_HIDDEN = [...TIER_INSIGHTS];
 
 // Tier metadata for section headers
 export const TIER_META = {
-  glance: { label: 'At a Glance', icon: Radar, color: 'emerald' },
-  insights: { label: 'Insights & Analysis', icon: Brain, color: 'blue' },
+  glance: { label: 'At a Glance', icon: MapPin, color: 'emerald' },
+  insights: { label: 'Insights & Analysis', icon: Sparkles, color: 'blue' },
 };
 
 // Map each widget to its tier
@@ -101,10 +78,6 @@ export const COST_WIDGETS = [];
 // Widgets that show company-wide data (not specific to a job). Hidden when
 // the dashboard is focused on a single job.
 export const GLOBAL_ONLY_WIDGETS = [
-  'site-readiness-gate', 'borehole-progress', 'crew-cert-pulse',
-  'executive-snapshot', 'mission-control', 'field-priorities', 'yard-control',
-  'exception-monitor', 'live-site-map', 'ai-insights', 'predictive-insights',
-  'client-feedback', 'benchmark-comparisons', 'geo-heatmap', 'predictive-maintenance',
-  'reports-hub', 'project-health', 'carbon-footprint', 'system-health',
-  'staff-utilization', 'financial-reconciliation',
+  'executive-snapshot', 'mission-control', 'field-priorities', 'exception-monitor',
+  'borehole-progress', 'live-site-map', 'ai-insights', 'geo-heatmap', 'system-health',
 ];

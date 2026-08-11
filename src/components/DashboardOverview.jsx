@@ -10,24 +10,12 @@ import ExecutiveSnapshotWidget from '@/components/dashboard/ExecutiveSnapshotWid
 import GeotechnicalHeatmapWidget from '@/components/dashboard/GeotechnicalHeatmapWidget';
 import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
 import FieldPrioritiesWidget from '@/components/dashboard/FieldPrioritiesWidget';
-import PredictiveInsightsWidget from '@/components/dashboard/PredictiveInsightsWidget';
 import LiveSiteMapWidget from '@/components/dashboard/LiveSiteMapWidget';
-import ClientFeedbackWidget from '@/components/dashboard/ClientFeedbackWidget';
-import BenchmarkComparisonsWidget from '@/components/dashboard/BenchmarkComparisonsWidget';
 import SiteWeatherOverviewWidget from '@/components/dashboard/SiteWeatherOverviewWidget';
 import ExceptionMonitorWidget from '@/components/dashboard/ExceptionMonitorWidget';
-import YardControlWidget from '@/components/dashboard/YardControlWidget';
 import MissionControlWidget from '@/components/dashboard/MissionControlWidget';
-import PredictiveMaintenanceWidget from '@/components/vehicles/PredictiveMaintenanceWidget';
-import SiteReadinessGateWidget from '@/components/dashboard/SiteReadinessGateWidget';
 import BoreholeProgressWidget from '@/components/dashboard/BoreholeProgressWidget';
-import CrewCertificationPulseWidget from '@/components/dashboard/CrewCertificationPulseWidget';
-import ReportsHubWidget from '@/components/dashboard/ReportsHubWidget';
-import ProjectHealthDashboardWidget from '@/components/dashboard/ProjectHealthDashboardWidget';
-import CarbonFootprintWidget from '@/components/dashboard/CarbonFootprintWidget';
 import SystemHealthWidget from '@/components/dashboard/SystemHealthWidget';
-import StaffUtilizationWidget from '@/components/dashboard/StaffUtilizationWidget';
-import FinancialReconciliationWidget from '@/components/dashboard/FinancialReconciliationWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import QuickActionBar from '@/components/dashboard/QuickActionBar';
@@ -98,28 +86,16 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
 
   const renderWidget = (widgetId) => {
     switch (widgetId) {
-      case 'site-readiness-gate': return <SiteReadinessGateWidget onNavigate={onNavigate} />;
       case 'borehole-progress': return <BoreholeProgressWidget onNavigate={onNavigate} />;
-      case 'crew-cert-pulse': return <CrewCertificationPulseWidget onNavigate={onNavigate} />;
       case 'executive-snapshot': return <ExecutiveSnapshotWidget onNavigate={onNavigate} />;
       case 'mission-control': return <MissionControlWidget onNavigate={onNavigate} />;
       case 'field-priorities': return <FieldPrioritiesWidget onNavigate={onNavigate} />;
-      case 'yard-control': return <YardControlWidget onNavigate={onNavigate} />;
       case 'exception-monitor': return <ExceptionMonitorWidget onNavigate={onNavigate} />;
       case 'live-site-map': return <LiveSiteMapWidget onNavigate={onNavigate} />;
       case 'ai-insights': return <AiInsightsWidget onNavigate={onNavigate} />;
-      case 'predictive-insights': return <PredictiveInsightsWidget onNavigate={onNavigate} />;
       case 'site-weather': return <SiteWeatherOverviewWidget onSelectJob={openJobDrawer} />;
-      case 'client-feedback': return <ClientFeedbackWidget onNavigate={onNavigate} />;
-      case 'benchmark-comparisons': return <BenchmarkComparisonsWidget onNavigate={onNavigate} />;
       case 'geo-heatmap': return <GeotechnicalHeatmapWidget onNavigate={onNavigate} />;
-      case 'predictive-maintenance': return <PredictiveMaintenanceWidget onSelectVehicle={(v) => onNavigate?.('assets')} />;
-      case 'reports-hub': return <ReportsHubWidget onNavigate={onNavigate} />;
-      case 'project-health': return <ProjectHealthDashboardWidget onNavigate={onNavigate} />;
-      case 'carbon-footprint': return <CarbonFootprintWidget onNavigate={onNavigate} />;
       case 'system-health': return <SystemHealthWidget onNavigate={onNavigate} />;
-      case 'staff-utilization': return <StaffUtilizationWidget onNavigate={onNavigate} />;
-      case 'financial-reconciliation': return <FinancialReconciliationWidget onNavigate={onNavigate} />;
       default: return null;
     }
   };

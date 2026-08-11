@@ -12,6 +12,9 @@ import IncidentReporter from '@/components/safety/IncidentReporter';
 import RIDDORStatsPanel from '@/components/safety/RIDDORStatsPanel';
 import ToolboxTalkManager from '@/components/safety/ToolboxTalkManager';
 import ComplianceCalendar from '@/components/compliance/ComplianceCalendar';
+import SiteReadinessGateWidget from '@/components/dashboard/SiteReadinessGateWidget';
+import CrewCertificationPulseWidget from '@/components/dashboard/CrewCertificationPulseWidget';
+import CarbonFootprintWidget from '@/components/dashboard/CarbonFootprintWidget';
 import { resolveRole } from '@/utils/access';
 
 const SC_URL = 'https://app.safetyculture.com';
@@ -44,11 +47,15 @@ export default function CompliancePage() {
 
   const tabs = [
     { id: 'safety-hub', label: 'Safety Hub', icon: ShieldAlert },
+    { id: 'readiness', label: 'Readiness', icon: ShieldCheck },
     { id: 'incidents', label: 'Incidents', icon: AlertTriangle },
     { id: 'stats', label: 'H&S Stats', icon: BarChart3 },
     { id: 'toolbox', label: 'Toolbox Talks', icon: HardHat },
+    { id: 'environmental', label: 'Environmental', icon: TrendingUp },
     { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   ];
+
+  const navToAdmin = (section) => navigate('/admin', { state: { section } });
 
   // Access guard — management & admin only
   if (!canAccess) {
@@ -152,7 +159,14 @@ export default function CompliancePage() {
 
       {/* ── Tab Content ── */}
       {tab === 'safety-hub' && (
-        <SafetyCultureCheckHub onNavigate={(section) => navigate('/admin', { state: { section } })} />
+        <SafetyCultureCheckHub onNavigate={navToAdmin} />
+      )}
+
+      {tab === 'readiness' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <SiteReadinessGateWidget onNavigate={navToAdmin} />
+          <CrewCertificationPulseWidget onNavigate={navToAdmin} />
+        </div>
       )}
 
       {tab === 'incidents' && (
@@ -192,6 +206,10 @@ export default function CompliancePage() {
           </p>
           <ToolboxTalkManager />
         </div>
+      )}
+
+      {tab === 'environmental' && (
+        <CarbonFootprintWidget onNavigate={navToAdmin} />
       )}
 
       {tab === 'calendar' && (
