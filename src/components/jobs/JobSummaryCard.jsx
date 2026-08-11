@@ -127,10 +127,18 @@ export default function JobSummaryCard({
         </div>
 
         {/* Date range */}
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <span className="font-semibold text-slate-700">{fmtDateShort(job.start_date)}</span>
-          <span className="text-slate-300">→</span>
-          <span className="font-semibold text-slate-700">{fmtDateShort(job.end_date)}</span>
+        <div className="flex items-start gap-2 text-xs text-slate-500 bg-slate-50/80 rounded-lg px-2.5 py-2 border border-slate-100">
+          <CalendarClock className="w-4 h-4 text-[#2E5A1A] flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Start</span>
+              <span className="font-semibold text-slate-700">{fmtDateShort(job.start_date)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">End</span>
+              <span className="font-semibold text-slate-700">{fmtDateShort(job.end_date)}</span>
+            </div>
+          </div>
         </div>
 
         {/* Details grid */}

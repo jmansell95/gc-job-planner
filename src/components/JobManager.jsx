@@ -114,12 +114,18 @@ export default function JobManager({ onNavigateRota }) {
     return out;
   }, [rotas]);
   const rigCountByJob = React.useMemo(() => {
+    // Count UNIQUE rigs per job by site_asset_id — multiple crew cost items
+    // linked to the same rig (e.g. 3 crew on 1 rig) should count as 1 rig.
     const m = {};
     for (const ci of costItems) {
       if (ci.category !== 'internal_equipment') continue;
-      m[ci.job_id] = (m[ci.job_id] || 0) + 1;
+      if (!ci.site_asset_id) continue;
+      if (!m[ci.job_id]) m[ci.job_id] = new Set();
+      m[ci.job_id].add(ci.site_asset_id);
     }
-    return m;
+    const out = {};
+    for (const [k, s] of Object.entries(m)) out[k] = s.size;
+    return out;
   }, [costItems]);
 
   const handleEdit = (job) => {
