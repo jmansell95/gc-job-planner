@@ -34,7 +34,7 @@ export default function ImportProgressModal({
   const hasError = !!error;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-pop-in">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">

@@ -156,7 +156,7 @@ export default function PATTestForm({ asset, onClose }) {
   const resultTone = form.result === 'fail' ? 'text-red-600' : form.result === 'advisory' ? 'text-amber-600' : 'text-emerald-600';
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-start sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4">
       <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[100vh] sm:max-h-[92vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white z-10 border-b border-slate-100 px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3">

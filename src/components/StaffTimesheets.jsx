@@ -400,7 +400,7 @@ export default function StaffTimesheets({ staffId, staffName }) {
 
       {/* Withdraw modal */}
       {withdrawingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => !withdrawing && setWithdrawingId(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4" onClick={() => !withdrawing && setWithdrawingId(null)}>
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-5" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-2.5 mb-2">
               <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-600" /></div>

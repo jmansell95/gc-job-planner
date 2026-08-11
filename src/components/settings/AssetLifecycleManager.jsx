@@ -156,7 +156,7 @@ export default function AssetLifecycleManager() {
 
       {/* Edit drawer */}
       {selectedAsset && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSelectedAsset(null)}>
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50 flex items-center justify-center overflow-y-auto overscroll-contain p-4" onClick={() => setSelectedAsset(null)}>
           <div className="bg-white rounded-t-2xl sm:rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-slate-800 mb-4">{selectedAsset.name}</h3>
             {editing ? (

@@ -27,7 +27,7 @@ export default function BadgeDetailModal({ badge, achievement, score, onClose })
   const progress = !isEarned ? getBadgeProgress(badge, score) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-0 sm:px-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md px-0 sm:p-4" onClick={onClose}>
       <div
         className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}

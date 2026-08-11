@@ -102,7 +102,7 @@ export default function BoreholeCompletionModal({ boreholeRef, boreholeLogs, job
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => !saving && onClose()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4" onClick={() => !saving && onClose()}>
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-2.5 px-5 pt-5 pb-3 border-b border-slate-100">
           <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center"><Ban className="w-5 h-5 text-blue-700" /></div>

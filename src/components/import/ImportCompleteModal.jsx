@@ -22,7 +22,7 @@ export default function ImportCompleteModal({ result, onClose, type = 'planner' 
   const isPlanner = type === 'planner';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 backdrop-blur-sm p-3 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/60 backdrop-blur-md p-3 sm:p-6">
       <div className="relative w-full max-w-3xl my-4 insight-card rounded-3xl overflow-hidden shadow-2xl">
         {/* Close button */}
         <button

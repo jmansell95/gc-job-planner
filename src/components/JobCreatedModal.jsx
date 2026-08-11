@@ -5,7 +5,7 @@ import DisciplinePills from '@/components/disciplines/DisciplinePills';
 export default function JobCreatedModal({ job, onView, onBuildRota, onLater, onClose }) {
   if (!job) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full overflow-hidden">
         <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 px-6 py-6 text-center relative">
           <button onClick={onClose} className="absolute top-3 right-3 text-white/70 hover:text-white transition">

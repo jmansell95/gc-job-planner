@@ -115,7 +115,7 @@ export default function JobQuickDrawer({ job, onClose, onOpenFullDetails }) {
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-50"
           />
           <motion.div
             initial={isMobile ? { y: '100%' } : { x: '100%' }}

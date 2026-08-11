@@ -9,7 +9,7 @@ export default function NotificationCenter({ isOpen, onClose, onNavigate, notifi
     <AnimatePresence>
       {isOpen && (
         <motion.div key="nc-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
-          onClick={onClose} className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-[65]" />
+          onClick={onClose} className="fixed inset-0 bg-slate-900/30 backdrop-blur-md z-[65]" />
       )}
       {isOpen && (
         <motion.div key="nc-panel" initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}

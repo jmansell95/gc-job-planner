@@ -71,7 +71,7 @@ export default function RequestTrainingModal({ staffId, staffName, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[65] bg-black/50 flex items-end sm:items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-[65] bg-slate-950/60 backdrop-blur-md flex items-center justify-center overflow-y-auto overscroll-contain" onClick={onClose}>
       <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between z-10">

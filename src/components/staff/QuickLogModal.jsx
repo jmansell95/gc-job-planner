@@ -18,7 +18,7 @@ export default function QuickLogModal({ open, onClose, staff, jobs = [], default
   const jobType = selectedJob?.job_type || '';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md" onClick={onClose}>
       <div
         className="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl w-full sm:max-w-lg max-h-[92vh] sm:max-h-[85vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}

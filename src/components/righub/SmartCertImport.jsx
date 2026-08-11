@@ -198,7 +198,7 @@ export default function SmartCertImport({ onClose }) {
   const errorCount = results.filter(r => r.error).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 overflow-y-auto" onClick={() => !processing && onClose()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-4 overflow-y-auto" onClick={() => !processing && onClose()}>
       <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full my-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <div>

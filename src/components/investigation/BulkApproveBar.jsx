@@ -97,7 +97,7 @@ export default function BulkApproveBar({ selectedIds, onClear, onDone }) {
       </div>
 
       {showQuery && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-slate-950/60 backdrop-blur-md p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">

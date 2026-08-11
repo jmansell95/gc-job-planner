@@ -158,7 +158,7 @@ export default function SmartUploadWizard({ staffId, staffName, onClose }) {
   // === STEP: TYPE SELECTION ===
   if (step === STEPS.TYPE) {
     return (
-      <div className="fixed inset-0 z-[65] bg-black/50 flex items-end sm:items-center justify-center" onClick={onClose}>
+      <div className="fixed inset-0 z-[65] bg-slate-950/60 backdrop-blur-md flex items-center justify-center overflow-y-auto overscroll-contain" onClick={onClose}>
         <div className="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
           <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between z-10">
             <div className="flex items-center gap-2.5">
@@ -230,7 +230,7 @@ export default function SmartUploadWizard({ staffId, staffName, onClose }) {
   // === STEP: AI EXTRACTION ===
   if (step === STEPS.EXTRACT) {
     return (
-      <div className="fixed inset-0 z-[65] bg-black/50 flex items-center justify-center px-4">
+      <div className="fixed inset-0 z-[65] bg-slate-950/60 backdrop-blur-md flex items-center justify-center overflow-y-auto overscroll-contain p-4">
         <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center">
           <div className="relative w-20 h-20 mx-auto mb-5">
             <div className="absolute inset-0 rounded-full bg-emerald-100 animate-ping opacity-60" />
@@ -256,7 +256,7 @@ export default function SmartUploadWizard({ staffId, staffName, onClose }) {
   // === STEP: REVIEW & CONFIRM ===
   if (step === STEPS.REVIEW) {
     return (
-      <div className="fixed inset-0 z-[65] bg-black/50 flex items-end sm:items-center justify-center" onClick={onClose}>
+      <div className="fixed inset-0 z-[65] bg-slate-950/60 backdrop-blur-md flex items-center justify-center overflow-y-auto overscroll-contain" onClick={onClose}>
         <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
           <div className="sticky top-0 bg-white px-5 py-4 border-b border-slate-100 flex items-center justify-between z-10">
             <div className="flex items-center gap-2.5">

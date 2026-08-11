@@ -15,7 +15,7 @@ export default function MobileNavDrawer({ isOpen, onClose, navItems, activeSecti
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="lg:hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm"
+            className="lg:hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-md"
           />
           <motion.aside
             initial={{ x: '-100%' }}

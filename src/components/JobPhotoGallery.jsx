@@ -75,7 +75,7 @@ export default function JobPhotoGallery({ job }) {
       )}
 
       {current && (
-        <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4" onClick={closeLightbox}>
+        <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center overflow-y-auto overscroll-contain p-4" onClick={closeLightbox}>
           <button onClick={closeLightbox} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 transition">
             <X className="w-5 h-5" />
           </button>
