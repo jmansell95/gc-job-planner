@@ -11,14 +11,36 @@
       "items": {
         "type": "string"
       },
-      "description": "Ordered list of visible widget IDs. Widgets not in this list are hidden."
+      "description": "Ordered list of all known widget IDs (visible + hidden). Controls the drag-and-drop arrangement of widgets on the dashboard."
+    },
+    "hidden_widgets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Widget IDs that are currently hidden via the Customize panel. These stay in widget_order so their position is preserved when toggled back on, but are not rendered."
     },
     "widget_sizes": {
       "type": "object",
-      "description": "Map of widget ID to size ('sm', 'md', 'lg'). Controls how many grid columns each widget spans on large screens."
+      "description": "Map of widget ID to size ('sm', 'md', 'lg'). Controls how many grid columns each widget spans on large screens. 'sm' = half width, 'md' = half width (default), 'lg' = full width. Stored so each user's sizing preference persists across logins."
     }
   },
   "required": [
     "staff_id"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {},
+    "update": {},
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }
