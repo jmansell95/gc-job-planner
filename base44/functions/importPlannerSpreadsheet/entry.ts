@@ -88,58 +88,8 @@ const SUBCONTRACTOR_PATTERNS = ['subbies', 'subcontractor', 'sub-contractor', 's
 // company — not direct employees or subcontractors.
 const KNOWN_AGENCY_NAMES = ['daniel owen', 'city sites', 'black swan'];
 
-function isSubcontractor(name) {
-  const lower = normalizeName(name).toLowerCase();
-  if (SUBCONTRACTOR_PATTERNS.some(p => lower.includes(p))) return true;
-  return looksLikeCompanyName(name);
-}
-
-function isAgencySection(name) {
-  if (!name) return false;
-  const lower = normalizeName(name).toLowerCase();
-  if (lower.includes('agency')) return true;
-  return KNOWN_AGENCY_NAMES.some(a => lower.includes(a));
-}
-
-// Extract the agency name from a section header if it contains a known
-// agency name. Returns title-cased agency name, or '' if not found.
-function extractAgencyNameFromSection(sectionName) {
-  if (!sectionName) return '';
-  const lower = normalizeName(sectionName).toLowerCase();
-  for (const agency of KNOWN_AGENCY_NAMES) {
-    if (lower.includes(agency)) {
-      return agency.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    }
-  }
-  return '';
-}
-
-function isDepotSection(name) {
-  if (!name) return false;
-  const lower = normalizeName(name).toLowerCase();
-  return DEPOT_ALIASES.some(a => lower === a || lower.includes(a));
-}
-
-const YARD_DEPOT_EXACT_TEXTS = ['yard', 'depot', 'yard/depot', 'yard - depot', 'yard depot', 'warehouse', 'dartford depot', 'dartford yard', 'yard duty', 'depot duty'];
-
-function isYardDepotText(text) {
-  if (!text) return false;
-  const lower = normalizeName(text).toLowerCase().trim();
-  return YARD_DEPOT_EXACT_TEXTS.includes(lower);
-}
-
-function isNonWorkSection(name) {
-  if (!name) return false;
-  const lower = normalizeName(name).toLowerCase().trim();
-  return NON_WORK_SECTION_KEYWORDS.some(kw => lower === kw || lower.includes(kw));
-}
-
-function normalizeSection(section) {
-  if (!section) return section;
-  if (isNonWorkSection(section)) return ''; // Non-work sections are NOT teams
-  if (isDepotSection(section)) return DEPOT_TEAM_NAME;
-  return section;
-}
+import { isSubcontractor, isAgencySection, extractAgencyNameFromSection, isDepotSection, isYardDepotText, isNonWorkSection, normalizeSection } from '../../shared/plannerHelpers.ts';
+import { FORCE_COMPLETE_MARKERS, TARGET_SHEET_PATTERNS } from '../../shared/plannerConstants.ts';
 
 function generateEmail(name, existingEmails) {
   const clean = normalizeName(name).toLowerCase().replace(/[^a-z0-9\s.-]/g, '').trim();
@@ -205,11 +155,6 @@ function getMostCommon(arr) {
   return maxItem;
 }
 
-// Force-complete markers — planners can add [DONE], [CLOSED], [COMPLETE] or
-// [COMPLETED] to a job name in the spreadsheet to force it to completed status
-// regardless of its dates. This gives planners explicit control over job lifecycle.
-const FORCE_COMPLETE_MARKERS = ['[done]', '[closed]', '[complete]', '[completed]'];
-
 function hasForceCompleteMarker(jobName) {
   if (!jobName) return false;
   const lower = normalizeName(jobName).toLowerCase();
@@ -240,17 +185,6 @@ function determineJobStatus(dates, jobName, hasSubbies, allDates) {
 function isPlantPlannerSheet(sheetName) {
   return String(sheetName || '').toLowerCase().includes('plant');
 }
-
-// Target sheet patterns — ONLY these two tabs are imported. Every other
-// tab (Team Planner 2026_Drilling, Plant Planner, Team Planner, ARCHIVED,
-// etc.) is completely ignored.
-//   • "Team Planner 2026_GW+Depot" → Groundworkers and Depot Staff
-//   • "Drillers" → Drilling crews AND rig-to-job assignments
-const TARGET_SHEET_PATTERNS = [
-  /team\s*planner.*2026.*gw\+depot/i,
-  /team\s*planner.*2026.*drilling/i,
-  /^\s*drillers\s*$/i,
-];
 
 function isTargetSheet(sheetName) {
   return TARGET_SHEET_PATTERNS.some(p => p.test(String(sheetName || '')));
@@ -2079,10 +2013,27 @@ export default async function(req) {
     // -----------------------------------------------------------------------
     // 8. Build full audit breakdown
     // -----------------------------------------------------------------------
-    const subbieCount = [...uniqueStaffKeys].filter(k => {
-      const inSub = teamAssignments.some(a => nameKey(a.staff_name) === k && a.is_subcontractor_section);
-      return inSub;
-    }).length;
+    // Collect unique subcontractor company names (company rows under subbie sections)
+    const subCompanyNames = new Set();
+    for (const a of teamAssignments) {
+      if (!a.is_subcontractor_section) continue;
+      if (a.subcontractor_name) subCompanyNames.add(a.subcontractor_name);
+      else if (a.is_company_row) subCompanyNames.add(a.staff_name);
+    }
+    // Create Contractor records for each subcontractor company found
+    const subcontractorBreakdown = {};
+    for (const sn of subCompanyNames) {
+      const sub = await findOrCreateSubcontractor(base44, sn, contractorMaps, dryRun);
+      const subJobs = [...new Set(teamAssignments.filter(a =>
+        a.is_subcontractor_section && (a.subcontractor_name === sn || (a.is_company_row && a.staff_name === sn))
+      ).map(a => a.job_name).filter(Boolean))];
+      subcontractorBreakdown[sn] = { contractor_id: sub.id, jobs: subJobs.slice(0, 20) };
+    }
+    const subcontractorCompanyCount = Object.keys(subcontractorBreakdown).length;
+
+    const subbieCount = [...uniqueStaffKeys].filter(k =>
+      teamAssignments.some(a => nameKey(a.staff_name) === k && a.is_subcontractor_section)
+    ).length;
 
     const agencyCount = [...uniqueStaffKeys].filter(k =>
       teamAssignments.some(a => nameKey(a.staff_name) === k && a.is_agency_section)
@@ -2307,6 +2258,11 @@ export default async function(req) {
         total: Object.keys(agencyBreakdown).length,
         new: newAgencies.length,
         breakdown: agencyBreakdown,
+      },
+      subcontractors: {
+        total: subcontractorCompanyCount,
+        staff_count: subbieCount,
+        breakdown: subcontractorBreakdown,
       },
       sections_detected: [...allSectionsDetected],
       legacy: {
