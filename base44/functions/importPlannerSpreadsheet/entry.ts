@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import * as XLSX from 'npm:xlsx@0.18.5';
 import { buildContractorMaps, findOrCreateAgency, findOrCreateSubcontractor, buildAssetMaps, fuzzyFindAsset, assetRole, fuzzyFindStaff, fuzzyFindJob } from '../../shared/entityRegistry.ts';
 import { findRigRateCardItem } from '../../shared/rigRateMatcher.ts';
-import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, looksLikeAssetName, normalizeName, nameKey, findProjectForJob, extractSiteName, isActualTrainingCourse, extractTrainingCourseTitle, inferTrainingCategory, isLikelyRealJob, canonicalJobKey } from '../../shared/spreadsheetParser.ts';
+import { cellToDate, getWeekStart, categorizeNonJobCell, isSectionHeader, isNonPersonName, looksLikeCompanyName, looksLikePersonName, looksLikeAssetName, normalizeName, nameKey, findProjectForJob, extractSiteName, isActualTrainingCourse, extractTrainingCourseTitle, inferTrainingCategory, isLikelyRealJob, isLikelyRealJobStrict, canonicalJobKey } from '../../shared/spreadsheetParser.ts';
 
 // ---------------------------------------------------------------------------
 // Team & Plant Planner Spreadsheet Import — Clean-Slate Edition
@@ -1034,6 +1034,40 @@ export default async function(req) {
     const newStaff = []; // Always empty — no staff created
     const usersInvited = 0;
     let leaversMarked = 0; // Always 0 — no leaver detection
+
+    // -----------------------------------------------------------------------
+    // 4b. Recovery pass — recover real job/site names that were incorrectly
+    // filtered as non-jobs during parsing. The parser's isLikelyRealJob
+    // rejects names that look like person names, but many real UK place names
+    // look like person names (e.g. "Hemel Hempstead", "Mickleham Priory").
+    // Now that we have the staff list, we can confirm: if a filtered label
+    // does NOT match any staff member AND passes the strict real-job check
+    // (which skips the person-name filter), it's a real job — recover it.
+    // -----------------------------------------------------------------------
+    const staffNameKeys = new Set();
+    for (const s of existingStaff) {
+      if (s.name) staffNameKeys.add(nameKey(s.name));
+    }
+    let recoveredJobs = 0;
+    const recoveredJobNames = new Set();
+    for (const a of allAssignments) {
+      if (!a.filtered_as_non_job || !a.non_job_label) continue;
+      const label = a.non_job_label;
+      // Skip if it matches a staff member's name — it's a person name in the grid
+      if (staffNameKeys.has(nameKey(label))) continue;
+      // Skip if it doesn't pass the strict real-job check (role headers, serials, etc.)
+      if (!isLikelyRealJobStrict(label)) continue;
+      // Recover: it's a real job name that was incorrectly filtered
+      a.job_name = label;
+      a.non_job_type = undefined;
+      a.non_job_label = undefined;
+      a.filtered_as_non_job = false;
+      recoveredJobs++;
+      recoveredJobNames.add(label);
+    }
+    if (recoveredJobs > 0) {
+      warnings.push(`Recovery pass: recovered ${recoveredJobs} assignment(s) for ${recoveredJobNames.size} real job(s) that were incorrectly filtered as non-jobs (place names that look like person names): ${[...recoveredJobNames].slice(0, 15).join(', ')}${recoveredJobNames.size > 15 ? '…' : ''}`);
+    }
 
     // -----------------------------------------------------------------------
     // 5. Resolve Jobs — with date-aware status

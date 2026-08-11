@@ -152,7 +152,11 @@ export function categorizeNonJobCell(cellValue) {
   // Working from home — non-billable but available (same category as depot
   // duty). "Home" / "WFH" / "Working from home" means the staff member is
   // working but not on a client site, so yard_depot is the right category.
-  if (/^home$|^wfh$|working from home/.test(lower)) return 'yard_depot';
+  // Also catches the common typo "Working form home".
+  if (/^home$|^wfh$|working from home|working form home/.test(lower)) return 'yard_depot';
+
+  // "H/Day" = Holiday Day (abbreviated). Common in the planner.
+  if (/^h\/day$|^h-day$|^hday$/.test(lower)) return 'annual_leave';
 
   // Overheads / internal work (not client jobs). NOTE: yard/depot/dartford
   // are NOT training — they are treated as job assignments to a Yard/Depot
@@ -354,6 +358,26 @@ export function isLikelyRealJob(jobName) {
   // But protect real jobs that contain building/site keywords (e.g.
   // "Kingsnorth Power Station" looks like a person name but is a real job).
   if (looksLikePersonName(s) && !BUILDING_SITE_KEYWORDS.some(kw => lower.includes(kw))) return false;
+  return true;
+}
+
+// Strict real-job check used during the recovery pass (after staff are
+// loaded). It applies every isLikelyRealJob filter EXCEPT the
+// looksLikePersonName check — because many real UK place names look like
+// person names (e.g. "Hemel Hempstead", "Mickleham Priory"). The recovery
+// pass then confirms the name is NOT a known staff member before treating
+// it as a real job, so actual person names are still filtered out.
+export function isLikelyRealJobStrict(jobName) {
+  if (!jobName) return false;
+  const s = String(jobName).trim();
+  if (s.length < 3) return false;
+  const lower = s.toLowerCase();
+  for (const pattern of NON_JOB_NAME_PATTERNS) {
+    if (pattern.test(lower)) return false;
+  }
+  for (const kw of ROLE_HEADER_KEYWORDS) {
+    if (lower === kw || lower.includes(kw)) return false;
+  }
   return true;
 }
 
