@@ -12,9 +12,9 @@ import TabBar from '@/components/TabBar';
 
 // Pipeline flow bar — shows the billing workflow as connected steps
 const PIPELINE_STEPS = [
-  { id: 'billing-readiness', label: 'Ready to Bill', icon: FileCheck, desc: 'Unbilled work' },
-  { id: 'invoicing', label: 'Invoicing', icon: PoundSterling, desc: 'Raise & check' },
-  { id: 'aged-debtors', label: 'Aged Debtors', icon: TrendingDown, desc: 'Chase overdue' },
+  { id: 'billing-readiness', label: 'Ready to Bill', icon: FileCheck, desc: 'Unbilled work', blurb: 'Review all completed work that hasn\'t been invoiced yet. This is the start of the billing cycle — confirm what\'s ready before raising invoices.' },
+  { id: 'invoicing', label: 'Invoicing', icon: PoundSterling, desc: 'Raise & check', blurb: 'Raise invoices for the work you confirmed in the previous step and check for discrepancies before sending them to clients.' },
+  { id: 'aged-debtors', label: 'Aged Debtors', icon: TrendingDown, desc: 'Chase overdue', blurb: 'Track outstanding invoices and chase overdue payments. This is the final step — keep cash flowing by following up on unpaid invoices.' },
 ];
 
 function PipelineFlow({ activeTab, onSelect }) {
@@ -51,20 +51,19 @@ function PipelineFlow({ activeTab, onSelect }) {
   );
 }
 
-function NextStepButton({ currentTab, onSelect }) {
-  const idx = PIPELINE_STEPS.findIndex(s => s.id === currentTab);
-  if (idx < 0 || idx >= PIPELINE_STEPS.length - 1) return null;
-  const next = PIPELINE_STEPS[idx + 1];
-  const NextIcon = next.icon;
+function PipelineIntro({ activeTab }) {
+  const step = PIPELINE_STEPS.find(s => s.id === activeTab);
+  if (!step) return null;
+  const Icon = step.icon;
   return (
-    <div className="flex justify-end pt-2">
-      <button
-        onClick={() => onSelect(next.id)}
-        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white text-sm font-semibold shadow-sm hover:shadow-md transition"
-      >
-        Next: {next.label}
-        <NextIcon className="w-4 h-4" />
-      </button>
+    <div className="bg-gradient-to-br from-[#2E5A1A]/5 to-[#8DC63F]/5 rounded-xl border border-[#2E5A1A]/15 px-4 py-3 flex items-start gap-3">
+      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center flex-shrink-0">
+        <Icon className="w-4.5 h-4.5 text-white" />
+      </div>
+      <div>
+        <p className="text-sm font-bold text-slate-900">{step.label} — Step {PIPELINE_STEPS.findIndex(s => s.id === activeTab) + 1} of {PIPELINE_STEPS.length}</p>
+        <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{step.blurb}</p>
+      </div>
     </div>
   );
 }
@@ -110,15 +109,20 @@ export default function BillingPage() {
       <TabBar tabs={tabs} activeTab={tab} onChange={setTab} />
       {tab === 'invoicing' && (
         <>
+          <PipelineIntro activeTab={tab} />
           <InvoiceDiscrepancyWidget />
-          <NextStepButton currentTab={tab} onSelect={setTab} />
         </>
       )}
-      {tab === 'aged-debtors' && <AgedDebtorsDashboard />}
+      {tab === 'aged-debtors' && (
+        <>
+          <PipelineIntro activeTab={tab} />
+          <AgedDebtorsDashboard />
+        </>
+      )}
       {tab === 'billing-readiness' && (
         <>
+          <PipelineIntro activeTab={tab} />
           <BillingReadinessReport onSelectJob={(job) => navigate('/admin', { state: { section: 'job-detail', job } })} />
-          <NextStepButton currentTab={tab} onSelect={setTab} />
         </>
       )}
       {tab === 'poa-lock' && <POAWorklist />}

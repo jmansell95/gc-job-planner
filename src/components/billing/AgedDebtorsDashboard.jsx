@@ -70,7 +70,7 @@ export default function AgedDebtorsDashboard() {
 
     const chartData = BUCKETS.map((b, i) => ({
       label: b.label,
-      value: bucketTotals[i] || 0,
+      value: buckets[i] || 0,
       color: b.color,
     }));
 
