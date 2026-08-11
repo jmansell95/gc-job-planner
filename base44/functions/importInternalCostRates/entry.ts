@@ -28,20 +28,34 @@ const INTERNAL_COSTS_SUBCATEGORY = 'Internal Crew Costs';
 // Map staff-list role labels to DE-roles-sheet role names.
 // The Staff List uses specific labels ("Lead CP Driller", "Lead Rotary Driller")
 // while the DE roles sheet uses combined labels ("Lead CP or Rotary Driller").
+// Assistant Driller is a distinct role — must NOT be collapsed into Lead Driller.
 const ROLE_ALIASES: Record<string, string> = {
   'lead cp driller': 'Lead CP or Rotary Driller',
   'lead rotary driller': 'Lead CP or Rotary Driller',
   'cp driller': 'Lead CP or Rotary Driller',
   'rotary driller': 'Lead CP or Rotary Driller',
   'driller': 'Lead CP or Rotary Driller',
+  'assistant driller': 'Assistant Driller',
+  'groundworks supervisor': 'Groundwork Supervisor',
+  'groundworks manager': 'Groundwork Manager',
 };
 
-function findRoleKey(roleLabel: string): string {
+function findRoleKey(roleLabel: string, availableRoles: string[] = []): string {
   if (!roleLabel) return '';
   const lower = normalizeName(roleLabel).toLowerCase();
   if (ROLE_ALIASES[lower]) return ROLE_ALIASES[lower];
-  // Try partial match — "CP" in the role → Lead CP or Rotary Driller
-  if (lower.includes('cp') || lower.includes('rotary') || lower.includes('driller')) {
+  // Try exact match against available roles first (case-insensitive)
+  for (const r of availableRoles) {
+    if (normalizeName(r).toLowerCase() === lower) return r;
+  }
+  // Try partial match against available roles
+  for (const r of availableRoles) {
+    if (lower.includes(normalizeName(r).toLowerCase()) || normalizeName(r).toLowerCase().includes(lower)) {
+      return r;
+    }
+  }
+  // Fallback: "CP" or "rotary" in the role → Lead CP or Rotary Driller (but NOT "assistant")
+  if (!lower.includes('assistant') && (lower.includes('cp') || lower.includes('rotary'))) {
     return 'Lead CP or Rotary Driller';
   }
   return roleLabel.trim();
@@ -176,7 +190,7 @@ export default async function(req: Request): Promise<Response> {
 
     for (const sl of staffList) {
       const matchedStaff = fuzzyFindStaff(sl.name, allStaff, 0.70);
-      const roleKey = findRoleKey(sl.role);
+      const roleKey = findRoleKey(sl.role, Object.keys(roleRates));
       const rates = roleRates[roleKey] || roleRates[sl.role.trim()];
 
       if (!rates) {
