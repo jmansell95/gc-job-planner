@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   PoundSterling, Search, Plus, Pencil, Check, X, Users, Wrench, Package,
-  Loader2, Receipt, Building2, TrendingUp, Percent, Copy, Upload, AlertTriangle
+  Loader2, Receipt, Building2, TrendingUp, Percent, Copy, Upload, AlertTriangle,
+  HardHat, Calendar, FileSpreadsheet
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
@@ -233,10 +234,72 @@ function AddRateForm({ category, subcategory, source, supplierId, onAdded }) {
   );
 }
 
+// Rate card source tabs — shared between MPL and Drilling Rates views.
+// Shows: Chargeable Rates | Internal Costs | Drilling Rates 2026 | [year-specific draft suppliers]
+// Year selector groups draft rate cards by year for visual organisation.
+function RateCardSourceTabs({
+  activeRateCard, setActiveRateCard,
+  isOurCard, isInternalCosts, isDrillingRates,
+  internalCostsSupplier, internalCostItemCount,
+  suppliersWithItems, draftSuppliersForYear, items,
+  availableYears, activeYear, setActiveYear,
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+      {/* Year selector — visual organisation of rate cards by year */}
+      {availableYears.length > 1 && (
+        <div className="px-4 pt-3 pb-1 flex items-center gap-2 border-b border-slate-100">
+          <Calendar className="w-3.5 h-3.5 text-slate-400" />
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Year:</span>
+          <div className="flex gap-1">
+            {availableYears.map(yr => (
+              <button key={yr} onClick={() => setActiveYear(yr)}
+                className={`px-2.5 py-1 rounded-md text-xs font-bold transition ${activeYear === yr ? 'bg-[#2E5A1A] text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+                {yr}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="flex gap-1.5 px-3 pt-3 overflow-x-auto no-scrollbar border-b border-slate-100">
+        {/* Chargeable Rates (live) */}
+        <button onClick={() => setActiveRateCard('our_company')}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${isOurCard ? 'border-[#2E5A1A] text-[#2E5A1A] bg-[#2E5A1A]/5' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+          <Receipt className="w-4 h-4" /> Chargeable Rates
+        </button>
+        {/* Internal Costs */}
+        <button onClick={() => setActiveRateCard('internal_costs')}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${isInternalCosts ? 'border-amber-600 text-amber-700 bg-amber-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+          <HardHat className="w-4 h-4" /> Internal Costs
+          {internalCostItemCount > 0 && <span className="text-xs text-slate-400">({internalCostItemCount})</span>}
+        </button>
+        {/* Drilling Rates 2026 */}
+        <button onClick={() => setActiveRateCard('drilling_rates')}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${isDrillingRates ? 'border-blue-600 text-blue-700 bg-blue-50/50' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+          <FileSpreadsheet className="w-4 h-4" /> Drilling Rates 2026
+        </button>
+        {/* Year-specific draft suppliers */}
+        {draftSuppliersForYear.map(s => (
+          <button key={s.id} onClick={() => setActiveRateCard(s.id)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${activeRateCard === s.id ? 'border-[#2E5A1A] text-[#2E5A1A] bg-[#2E5A1A]/5' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            <Building2 className="w-4 h-4" /> {s.name}
+            <span className="text-xs text-slate-400">({items.filter(i => i.supplier_id === s.id).length})</span>
+          </button>
+        ))}
+        {suppliersWithItems.length === 0 && draftSuppliersForYear.length === 0 && (
+          <span className="px-3 py-2 text-xs text-slate-400 whitespace-nowrap">No draft rate cards yet — use "Clone to Draft" to create next year's rates</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function RateCardManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeRateCard, setActiveRateCard] = useState('our_company'); // 'our_company' or supplier_id
+  // 'our_company' = Chargeable Rates, 'internal_costs' = Internal Costs tab,
+  // 'drilling_rates' = Drilling Rates 2026 (SOR), or a supplier_id
+  const [activeRateCard, setActiveRateCard] = useState('our_company');
   const [activeCategory, setActiveCategory] = useState('labour');
   const [query, setQuery] = useState('');
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -244,11 +307,36 @@ export default function RateCardManager() {
   const [bulkScope, setBulkScope] = useState('category');
   const [bulkApplying, setBulkApplying] = useState(false);
   const [viewMode, setViewMode] = useState('master');
+  const [activeYear, setActiveYear] = useState(new Date().getFullYear());
   const [cloneOpen, setCloneOpen] = useState(false);
   const [clonePct, setClonePct] = useState('');
   const [cloning, setCloning] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingInternal, setUploadingInternal] = useState(false);
   const masterFileInputRef = useRef(null);
+  const internalFileInputRef = useRef(null);
+
+  const INTERNAL_COSTS_SUPPLIER_NAME = 'Internal Costs';
+
+  const handleInternalUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingInternal(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await base44.functions.invoke('importInternalCostRates', formData);
+      toast({
+        title: 'Internal cost rates imported',
+        description: `${res.data.summary.role_items_created} role rates + ${res.data.summary.staff_items_created} staff rates loaded into "Internal Costs".`,
+      });
+      refresh();
+    } catch (err) {
+      toast({ title: 'Upload failed', description: err?.message || 'Could not process file', variant: 'destructive' });
+    }
+    setUploadingInternal(false);
+    if (internalFileInputRef.current) internalFileInputRef.current.value = '';
+  };
 
   const handleMasterUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -281,17 +369,46 @@ export default function RateCardManager() {
   };
 
   const isOurCard = activeRateCard === 'our_company';
-  const activeSupplier = isOurCard ? null : suppliers.find(s => s.id === activeRateCard);
+  const isInternalCosts = activeRateCard === 'internal_costs';
+  const isDrillingRates = activeRateCard === 'drilling_rates';
+  const internalCostsSupplier = useMemo(() => suppliers.find(s => s.name === INTERNAL_COSTS_SUPPLIER_NAME), [suppliers]);
+  const activeSupplier = isOurCard || isInternalCosts || isDrillingRates ? null : suppliers.find(s => s.id === activeRateCard);
 
-  // Suppliers that have ingested rate card items
+  // Extract year from supplier names like "Our Rate Card — 2027 Draft"
+  const parseYearFromName = (name) => {
+    const m = String(name || '').match(/(20\d{2})/);
+    return m ? parseInt(m[1]) : null;
+  };
+
+  // All available years — current year + any years found in draft supplier names
+  const availableYears = useMemo(() => {
+    const years = new Set([new Date().getFullYear()]);
+    for (const s of suppliers) {
+      const y = parseYearFromName(s.name);
+      if (y) years.add(y);
+    }
+    return [...years].sort((a, b) => b - a);
+  }, [suppliers]);
+
+  // Suppliers that have ingested rate card items, EXCLUDING the Internal Costs supplier
+  // (which gets its own dedicated tab)
   const suppliersWithItems = useMemo(() => {
     const supplierIds = new Set(items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id).map(i => i.supplier_id));
-    return suppliers.filter(s => supplierIds.has(s.id));
+    return suppliers.filter(s => supplierIds.has(s.id) && s.name !== INTERNAL_COSTS_SUPPLIER_NAME);
   }, [items, suppliers]);
+
+  // Draft suppliers for the selected year (year-based rate cards)
+  const draftSuppliersForYear = useMemo(() => {
+    return suppliersWithItems.filter(s => {
+      const y = parseYearFromName(s.name);
+      return y === activeYear;
+    });
+  }, [suppliersWithItems, activeYear]);
 
   const filtered = useMemo(() => {
     let list = items.filter(i => {
       if (isOurCard) return i.rate_card_source !== 'supplier';
+      if (isInternalCosts) return i.rate_card_source === 'supplier' && internalCostsSupplier && i.supplier_id === internalCostsSupplier.id;
       return i.rate_card_source === 'supplier' && i.supplier_id === activeRateCard;
     }).filter(i => i.category === activeCategory);
     if (query.trim()) {
@@ -303,7 +420,7 @@ export default function RateCardManager() {
       );
     }
     return list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  }, [items, activeCategory, query, isOurCard, activeRateCard]);
+  }, [items, activeCategory, query, isOurCard, isInternalCosts, internalCostsSupplier, activeRateCard]);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -318,13 +435,15 @@ export default function RateCardManager() {
   const counts = useMemo(() => {
     const scoped = isOurCard
       ? items.filter(i => i.rate_card_source !== 'supplier')
-      : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeRateCard);
+      : isInternalCosts
+        ? items.filter(i => i.rate_card_source === 'supplier' && internalCostsSupplier && i.supplier_id === internalCostsSupplier.id)
+        : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeRateCard);
     return {
       labour: scoped.filter(i => i.category === 'labour').length,
       plant: scoped.filter(i => i.category === 'plant').length,
       materials: scoped.filter(i => i.category === 'materials').length,
     };
-  }, [items, isOurCard, activeRateCard]);
+  }, [items, isOurCard, isInternalCosts, internalCostsSupplier, activeRateCard]);
 
   const totalForCard = counts.labour + counts.plant + counts.materials;
 
@@ -332,7 +451,9 @@ export default function RateCardManager() {
   const health = useMemo(() => {
     const scoped = isOurCard
       ? items.filter(i => i.rate_card_source !== 'supplier')
-      : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeRateCard);
+      : isInternalCosts
+        ? items.filter(i => i.rate_card_source === 'supplier' && internalCostsSupplier && i.supplier_id === internalCostsSupplier.id)
+        : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeRateCard);
     const withPrice = scoped.filter(i => i.price != null && i.price > 0);
     const missingCost = scoped.filter(i => (i.cost_price == null || i.cost_price === '') && i.price != null);
     const zeroMargin = withPrice.filter(i => i.cost_price != null && i.cost_price >= i.price);
@@ -362,7 +483,9 @@ export default function RateCardManager() {
     } else {
       const scoped = isOurCard
         ? items.filter(i => i.rate_card_source !== 'supplier')
-        : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeRateCard);
+        : isInternalCosts
+          ? items.filter(i => i.rate_card_source === 'supplier' && internalCostsSupplier && i.supplier_id === internalCostsSupplier.id)
+          : items.filter(i => i.rate_card_source === 'supplier' && i.supplier_id === activeRateCard);
       targetItems = scoped.filter(i => i.price != null);
     }
     if (targetItems.length === 0) {
@@ -395,7 +518,7 @@ export default function RateCardManager() {
     const pct = parseFloat(clonePct);
     const multiplier = isNaN(pct) ? 1 : 1 + pct / 100;
     const nextYear = new Date().getFullYear() + 1;
-    const draftName = `Our Rate Card — ${nextYear} Draft`;
+    const draftName = `Chargeable Rates — ${nextYear} Draft`;
     setCloning(true);
     try {
       const sourceItems = items.filter(i => i.rate_card_source !== 'supplier' && i.price != null);
@@ -438,13 +561,10 @@ export default function RateCardManager() {
   if (viewMode === 'project') {
     return (
       <div className="space-y-4">
-        <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (day rates, labour, plant) and Drilling SOR (meterage & investigation rates)" />
+        <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (chargeable rates, internal costs, drilling rates) and Project Rate Cards" />
         <div className="flex gap-1.5 bg-slate-100 p-1 rounded-lg w-fit">
           <button onClick={() => setViewMode('master')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
             Master Price List
-          </button>
-          <button onClick={() => setViewMode('sor')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
-            Drilling SOR 2026
           </button>
           <button onClick={() => setViewMode('project')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
             Project Rate Cards
@@ -455,21 +575,35 @@ export default function RateCardManager() {
     );
   }
 
-  if (viewMode === 'sor') {
+  // "Drilling Rates 2026" tab — render SOR inline within the MPL view
+  if (isDrillingRates) {
     return (
       <div className="space-y-4">
-        <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (day rates, labour, plant) and Drilling SOR (meterage & investigation rates)" />
+        <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (chargeable rates, internal costs, drilling rates) and Project Rate Cards" />
         <div className="flex gap-1.5 bg-slate-100 p-1 rounded-lg w-fit">
-          <button onClick={() => setViewMode('master')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
+          <button onClick={() => { setViewMode('master'); setActiveRateCard('our_company'); }} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
             Master Price List
-          </button>
-          <button onClick={() => setViewMode('sor')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
-            Drilling SOR 2026
           </button>
           <button onClick={() => setViewMode('project')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
             Project Rate Cards
           </button>
         </div>
+        {/* Rate card source tabs — same row as MPL so Drilling Rates is always accessible */}
+        <RateCardSourceTabs
+          activeRateCard={activeRateCard}
+          setActiveRateCard={setActiveRateCard}
+          isOurCard={false}
+          isInternalCosts={false}
+          isDrillingRates={true}
+          internalCostsSupplier={internalCostsSupplier}
+          internalCostItemCount={items.filter(i => i.supplier_id === internalCostsSupplier?.id).length}
+          suppliersWithItems={suppliersWithItems}
+          draftSuppliersForYear={draftSuppliersForYear}
+          items={items}
+          availableYears={availableYears}
+          activeYear={activeYear}
+          setActiveYear={setActiveYear}
+        />
         <SORRateCardManager />
       </div>
     );
@@ -477,22 +611,37 @@ export default function RateCardManager() {
 
   return (
     <div className="space-y-4">
-      <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (day rates, labour, plant) and Drilling SOR (meterage & investigation rates)" />
+      <SettingsSectionHeader icon={Receipt} title="Rate Card Manager" description="Master Price List (chargeable rates, internal costs, drilling rates) and Project Rate Cards" />
       <div className="flex gap-1.5 bg-slate-100 p-1 rounded-lg w-fit">
         <button onClick={() => setViewMode('master')} className="px-4 py-2 rounded-md text-sm font-semibold transition bg-white text-[#2E5A1A] shadow-sm">
           Master Price List
-        </button>
-        <button onClick={() => setViewMode('sor')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
-          Drilling SOR 2026
         </button>
         <button onClick={() => setViewMode('project')} className="px-4 py-2 rounded-md text-sm font-semibold transition text-slate-500">
           Project Rate Cards
         </button>
       </div>
+      {/* Rate card source tabs — Chargeable Rates | Internal Costs | Drilling Rates 2026 | Drafts */}
+      <RateCardSourceTabs
+        activeRateCard={activeRateCard}
+        setActiveRateCard={setActiveRateCard}
+        isOurCard={isOurCard}
+        isInternalCosts={isInternalCosts}
+        isDrillingRates={isDrillingRates}
+        internalCostsSupplier={internalCostsSupplier}
+        internalCostItemCount={items.filter(i => i.supplier_id === internalCostsSupplier?.id).length}
+        suppliersWithItems={suppliersWithItems}
+        draftSuppliersForYear={draftSuppliersForYear}
+        items={items}
+        availableYears={availableYears}
+        activeYear={activeYear}
+        setActiveYear={setActiveYear}
+      />
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 flex-wrap">
-        {isOurCard ? <Receipt className="w-5 h-5 text-[#2E5A1A]" /> : <Building2 className="w-5 h-5 text-[#2E5A1A]" />}
-        <h2 className="font-semibold text-slate-900">{isOurCard ? 'Master Price List — Our Rate Card' : `Rate Card — ${activeSupplier?.name || 'Supplier'}`}</h2>
+        {isOurCard ? <Receipt className="w-5 h-5 text-[#2E5A1A]" /> : isInternalCosts ? <HardHat className="w-5 h-5 text-amber-600" /> : <Building2 className="w-5 h-5 text-[#2E5A1A]" />}
+        <h2 className="font-semibold text-slate-900">
+          {isOurCard ? 'Master Price List — Chargeable Rates' : isInternalCosts ? 'Internal Costs — Crew Day Rates' : `Rate Card — ${activeSupplier?.name || 'Supplier'}`}
+        </h2>
         <span className="ml-auto text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{totalForCard} rates</span>
         {/* Health pills */}
         <div className="flex items-center gap-1.5 flex-wrap">
@@ -522,23 +671,15 @@ export default function RateCardManager() {
             </button>
           </>
         )}
-      </div>
-
-      {/* Rate card source tabs */}
-      <div className="flex gap-1.5 px-3 pt-3 overflow-x-auto no-scrollbar border-b border-slate-100">
-        <button onClick={() => setActiveRateCard('our_company')}
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${isOurCard ? 'border-[#2E5A1A] text-[#2E5A1A] bg-[#2E5A1A]/5' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-          <Receipt className="w-4 h-4" /> Our Rate Card
-        </button>
-        {suppliersWithItems.map(s => (
-          <button key={s.id} onClick={() => setActiveRateCard(s.id)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-sm font-medium transition border-b-2 whitespace-nowrap ${activeRateCard === s.id ? 'border-[#2E5A1A] text-[#2E5A1A] bg-[#2E5A1A]/5' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-            <Building2 className="w-4 h-4" /> {s.name}
-            <span className="text-xs text-slate-400">({s.rate_card_item_count || items.filter(i => i.supplier_id === s.id).length})</span>
-          </button>
-        ))}
-        {suppliersWithItems.length === 0 && (
-          <span className="px-3 py-2 text-xs text-slate-400 whitespace-nowrap">No supplier rate cards yet — upload one under Suppliers</span>
+        {isInternalCosts && (
+          <>
+            <input ref={internalFileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleInternalUpload} className="hidden" />
+            <button onClick={() => internalFileInputRef.current?.click()} disabled={uploadingInternal}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 flex-shrink-0">
+              {uploadingInternal ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              {uploadingInternal ? 'Processing...' : 'Upload Internal Costs'}
+            </button>
+          </>
         )}
       </div>
 
@@ -580,7 +721,7 @@ export default function RateCardManager() {
             <div className="flex flex-col sm:flex-row gap-2">
               <select value={bulkScope} onChange={e => setBulkScope(e.target.value)} className="px-3 py-2 border border-amber-300 rounded-lg text-sm bg-white focus:outline-none focus:border-amber-500">
                 <option value="category">This category only ({CATEGORY_META[activeCategory].label})</option>
-                <option value="card">Entire rate card ({isOurCard ? 'Our Rate Card' : activeSupplier?.name || 'Supplier'})</option>
+                <option value="card">Entire rate card ({isOurCard ? 'Chargeable Rates' : isInternalCosts ? 'Internal Costs' : activeSupplier?.name || 'Supplier'})</option>
               </select>
               <input type="number" step="0.1" value={bulkPct} onChange={e => setBulkPct(e.target.value)} placeholder="e.g. 5 or -3" className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-sm bg-white focus:outline-none focus:border-amber-500" />
               <button onClick={applyBulkAdjustment} disabled={bulkApplying} className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 disabled:opacity-50 transition">
@@ -595,7 +736,7 @@ export default function RateCardManager() {
             <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800">
               <Copy className="w-3.5 h-3.5" /> Clone Live Rate Card to a {new Date().getFullYear() + 1} Draft
             </div>
-            <p className="text-xs text-emerald-700">Copies every rate from "Our Rate Card" into a new draft supplier tab so you can prepare next year's prices without affecting live billing. Optionally apply an uplift %.</p>
+            <p className="text-xs text-emerald-700">Copies every rate from "Chargeable Rates" into a new draft supplier tab so you can prepare next year's prices without affecting live billing. Optionally apply an uplift %.</p>
             <div className="flex flex-col sm:flex-row gap-2">
               <input type="number" step="0.1" value={clonePct} onChange={e => setClonePct(e.target.value)} placeholder="Uplift % (e.g. 5, or leave blank)" className="flex-1 px-3 py-2 border border-emerald-300 rounded-lg text-sm bg-white focus:outline-none focus:border-emerald-500" />
               <button onClick={cloneToDraft} disabled={cloning} className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] disabled:opacity-50 transition">
@@ -621,7 +762,7 @@ export default function RateCardManager() {
           <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-slate-300" /></div>
         ) : grouped.length === 0 ? (
           <div className="text-center py-12 text-sm text-slate-400">
-            {isOurCard ? 'No rates found for this category.' : 'No items ingested for this supplier yet. Upload their rate card in Settings → Suppliers.'}
+            {isOurCard ? 'No rates found for this category.' : isInternalCosts ? 'No internal cost rates yet. Upload your crew costs spreadsheet to populate this rate card.' : 'No items ingested for this supplier yet. Upload their rate card in Settings → Suppliers.'}
           </div>
         ) : (
           grouped.map(([subcategory, subItems]) => (
@@ -630,7 +771,7 @@ export default function RateCardManager() {
                 <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">{subcategory}</p>
               </div>
               {subItems.map(item => <RateItemRow key={item.id} item={item} onUpdate={refresh} />)}
-              <AddRateForm category={activeCategory} subcategory={subcategory} source={isOurCard ? 'our_company' : 'supplier'} supplierId={isOurCard ? null : activeRateCard} onAdded={refresh} />
+              <AddRateForm category={activeCategory} subcategory={subcategory} source={isOurCard ? 'our_company' : 'supplier'} supplierId={isOurCard ? null : (isInternalCosts ? internalCostsSupplier?.id : activeRateCard)} onAdded={refresh} />
             </div>
           ))
         )}
