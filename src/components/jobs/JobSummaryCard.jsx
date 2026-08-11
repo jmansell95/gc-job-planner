@@ -125,7 +125,12 @@ export default function JobSummaryCard({
               <span className="text-[10px] text-slate-400">· {siblingCount} job{siblingCount !== 1 ? 's' : ''}</span>
             </button>
           )}
-          {job.job_reference && <p className="text-xs text-slate-400 truncate">Ref: {job.job_reference}</p>}
+          {job.job_reference && (
+            <div className="inline-flex items-center gap-1.5 bg-[#2E5A1A]/8 text-[#2E5A1A] rounded-md px-2 py-0.5 text-xs font-bold tracking-wide w-fit">
+              <FileText className="w-3 h-3" />
+              {job.job_reference}
+            </div>
+          )}
           {client && <p className="text-xs text-slate-400 truncate">{client.name}</p>}
         </div>
 
@@ -163,7 +168,6 @@ export default function JobSummaryCard({
           {job.project_manager && <DetailItem icon={User} label="Project Manager" value={job.project_manager} />}
           {job.site_contact_name && <DetailItem icon={User} label="Site Contact" value={job.site_contact_name} />}
           {job.site_contact_phone && <DetailItem icon={Phone} label="Site Phone" value={job.site_contact_phone} />}
-          {job.job_reference && <DetailItem icon={FileText} label="Reference" value={job.job_reference} />}
         </div>
 
         {/* Notes preview */}
