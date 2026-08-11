@@ -80,16 +80,6 @@ export default function BackupRestoreManager() {
     }
   };
 
-  const handleSeedDemo = async () => {
-    if (!confirm('This will populate realistic demo data. Continue?')) return;
-    try {
-      await base44.functions.invoke('seedDemoData');
-      toast({ title: '✓ Demo data seeded' });
-    } catch (err) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    }
-  };
-
   const handleReset = async () => {
     if (!confirm('⚠️ WARNING: This will permanently delete ALL data. This cannot be undone. Type DELETE to confirm.') === true) return;
     const confirmation = prompt('Type DELETE to confirm permanent data wipe:');
@@ -110,7 +100,7 @@ export default function BackupRestoreManager() {
       <SettingsSectionHeader
         icon={Database}
         title="Data Backup & Restore"
-        description="Export a full data snapshot for disaster recovery, restore from a previous backup, or manage demo data."
+        description="Export a full data snapshot for disaster recovery or restore from a previous backup."
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -154,25 +144,6 @@ export default function BackupRestoreManager() {
             {restoring ? <><Loader2 className="w-4 h-4 animate-spin" /> Restoring…</> : <><Upload className="w-4 h-4" /> Choose Backup File</>}
             <input type="file" accept=".json" onChange={handleRestore} disabled={restoring} className="hidden" />
           </label>
-        </div>
-
-        {/* Demo Data */}
-        <div className="insight-card rounded-2xl p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-lg stat-gradient-amber flex items-center justify-center">
-              <RefreshCw className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-800">Seed Demo Data</p>
-              <p className="text-xs text-slate-500">Populate realistic showcase records</p>
-            </div>
-          </div>
-          <p className="text-xs text-slate-500 mb-3">
-            Fills the database with realistic demo jobs, staff, rotas, and costs for training or showcase purposes.
-          </p>
-          <Button onClick={handleSeedDemo} variant="outline" className="w-full border-amber-300 text-amber-700 hover:bg-amber-50">
-            <RefreshCw className="w-4 h-4 mr-1" /> Seed Demo Data
-          </Button>
         </div>
 
         {/* Reset */}

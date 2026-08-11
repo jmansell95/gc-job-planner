@@ -35,7 +35,6 @@ import FinancialDataExchange from '@/components/billing/FinancialDataExchange';
 import AGSImportSettings from '@/components/AGSImportSettings';
 import ImportDashboard from '@/pages/ImportDashboard';
 import SafetyCultureSettings from '@/components/SafetyCultureSettings';
-import DemoDataManager from '@/components/DemoDataManager';
 import SystemLogicGuide from '@/components/SystemLogicGuide';
 import PermissionGroupManager from '@/components/PermissionGroupManager';
 import ExpensePresetManager from '@/components/settings/ExpensePresetManager';
@@ -61,7 +60,6 @@ import PaymentGatewaySettings from '@/components/settings/PaymentGatewaySettings
 import CustomReportBuilder from '@/components/reports/CustomReportBuilder';
 import HolidayAccrualManager from '@/components/staff/HolidayAccrualManager';
 import StaffReviewManager from '@/components/staff/StaffReviewManager';
-import CsvBulkImport from '@/components/import/CsvBulkImport';
 import TimesheetDelegationManager from '@/components/settings/TimesheetDelegationManager';
 import DashboardThemeSettings from '@/components/settings/DashboardThemeSettings';
 import CustomFieldBuilder from '@/components/settings/CustomFieldBuilder';
@@ -165,7 +163,6 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'ags-import': return <AGSImportSettings />;
       case 'planner-import': return <ImportDashboard />;
       case 'safety-culture': return <SafetyCultureSettings />;
-      case 'demo-data': return <DemoDataManager />;
       case 'system-guide': return <SystemLogicGuide />;
       case 'custom-reports': return <CustomReportBuilder />;
       case 'expense-presets': return <ExpensePresetManager />;
@@ -190,7 +187,6 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'microsoft-365': return <Microsoft365Hub />;
       case 'holiday-accrual': return <HolidayAccrualManager />;
       case 'staff-reviews': return <StaffReviewManager />;
-      case 'csv-import': return <CsvBulkImport />;
       case 'timesheet-delegation': return <TimesheetDelegationManager />;
       case 'dashboard-themes': return <DashboardThemeSettings />;
       case 'custom-fields': return <CustomFieldBuilder />;
