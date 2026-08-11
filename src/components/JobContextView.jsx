@@ -17,6 +17,8 @@ import PortalLinkManager from '@/components/PortalLinkManager';
 import QuickAssignStaffModal from '@/components/jobs/QuickAssignStaffModal';
 import DecommissioningBanner from '@/components/decommissioning/DecommissioningBanner';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
+import DisciplineEditorModal from '@/components/disciplines/DisciplineEditorModal';
+import { Pencil } from 'lucide-react';
 
 const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const fmt2 = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -215,6 +217,7 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
   const [activeActivity, setActiveActivity] = useState('all');
   const [showProjectJobs, setShowProjectJobs] = useState(false);
   const [showAssignStaff, setShowAssignStaff] = useState(false);
+  const [showDisciplineEditor, setShowDisciplineEditor] = useState(false);
 
   const { data: fin, isLoading: finLoading, error: finError, refetch, isFetching } = useQuery({
     queryKey: ['auto-job-financials', job.id],
@@ -287,8 +290,16 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
       {/* Decommissioning banner — shown when job is in decommissioning */}
       <DecommissioningBanner job={job} />
 
-      {/* Multi-discipline pills — at-a-glance visibility of all active disciplines */}
-      <DisciplinePills job={job} size="md" showStatus />
+      {/* Multi-discipline pills — at-a-glance visibility, with inline edit */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <DisciplinePills job={job} size="md" showStatus />
+        <button
+          onClick={() => setShowDisciplineEditor(true)}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#2E5A1A] bg-[#2E5A1A]/10 hover:bg-[#2E5A1A]/20 px-3 py-1.5 rounded-lg transition flex-shrink-0"
+        >
+          <Pencil className="w-3.5 h-3.5" /> Edit Disciplines
+        </button>
+      </div>
 
       {/* Visual crew composition — direct / subcontractor / agency breakdown */}
       <CrewCompositionBar assignedStaff={assignedStaff} rotas={rotas} contractors={contractors} />
@@ -641,6 +652,9 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
 
       {/* Quick assign staff modal */}
       <QuickAssignStaffModal open={showAssignStaff} onClose={() => setShowAssignStaff(false)} job={job} allStaff={allStaff} rotas={rotas} />
+
+      {/* Discipline editor modal */}
+      <DisciplineEditorModal open={showDisciplineEditor} onClose={() => setShowDisciplineEditor(false)} job={job} />
     </div>
   );
 }
