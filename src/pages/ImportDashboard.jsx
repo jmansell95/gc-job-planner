@@ -762,7 +762,7 @@ export default function ImportDashboard() {
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 flex items-start gap-2 mb-4">
               <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>
-                Confirming will <strong>delete ALL existing staff, teams, jobs, crews, rotas, training bookings, and absences</strong>, then rebuild everything fresh from this spreadsheet — including all legacy tabs as historical data.
+                Confirming will <strong>delete ALL existing staff, teams, jobs, crews, rotas, training bookings, and absences</strong>, then rebuild everything fresh from the two active tabs in this spreadsheet (<strong>"Team Planner 2026_GW+Depot"</strong> and <strong>"Drillers"</strong>). All other tabs are ignored.
               </span>
             </div>
             <div className="flex gap-3">
@@ -791,7 +791,7 @@ export default function ImportDashboard() {
           <h2 className="text-lg font-semibold text-slate-800 mb-3">How it works</h2>
           <ol className="space-y-3 text-sm text-slate-600">
             <Step n={1} title="Upload your planner file">The Excel file is uploaded and parsed directly — no third-party AI involved.</Step>
-            <Step n={2} title="All tabs processed in one go">Active tabs (<strong>"Team Planner 2026_GW+Depot"</strong> &amp; <strong>"Drillers"</strong>) rebuild staff, jobs, teams and rotas. All other tabs are matched as historical data — their staff and jobs are fuzzy-matched to the freshly created records so nothing is lost. No separate legacy upload needed.</Step>
+            <Step n={2} title="Only two tabs are processed">The <strong>"Team Planner 2026_GW+Depot"</strong> tab rebuilds groundworks/depot staff, jobs, teams and rotas. The <strong>"Drillers"</strong> tab rebuilds drilling crews and links rigs to their jobs. Every other tab is completely ignored — no legacy import.</Step>
             <Step n={3} title="Date-aware job status">Jobs with all past dates are marked <strong>completed</strong>. Jobs with any today/future dates are marked <strong>in_progress</strong>. New jobs with no dates yet are <strong>planning</strong>.</Step>
             <Step n={4} title="Leaver detection">Staff with linked logins who aren't in this spreadsheet are flagged as leavers and will be marked inactive on import.</Step>
             <Step n={5} title="Absences &amp; training">Non-job days (holiday, sick, training) create Absence records in the Absence Manager — grouped by staff and week. Training courses create TrainingCourse + TrainingBooking records linked to staff.</Step>
