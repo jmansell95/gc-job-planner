@@ -8,6 +8,7 @@ import {
   Palmtree, Thermometer, GraduationCap, Building, Filter, Warehouse
 } from 'lucide-react';
 import ImportCompleteModal from '@/components/import/ImportCompleteModal';
+import ImportProgressModal from '@/components/import/ImportProgressModal';
 
 export default function ImportDashboard() {
   const { toast } = useToast();
@@ -29,15 +30,34 @@ export default function ImportDashboard() {
     if (!file) return;
     setUploading(true);
     setError(null);
+    setProgressModal({
+      steps: [{ label: 'Uploading spreadsheet' }, { label: 'Parsing tabs & date columns' }, { label: 'Matching staff, jobs & rigs' }, { label: 'Building preview' }],
+      currentStep: 0,
+      complete: false,
+      title: '',
+      message: '',
+      error: null,
+    });
     try {
-      // Pass the file directly to the backend function via multipart form data.
-      // This bypasses the UploadFile integration which fails on the published
-      // site (requires admin-level file access). The backend reads it via
-      // req.formData() — same pattern as the AGS import.
-      toast({ title: 'Analyzing spreadsheet…', description: file.name });
+      // Stagger the step indicator so the user sees progress while the single
+      // backend call runs (the call itself is atomic — we can't get real-time
+      // progress from it, so we advance the visual indicator on a timer).
+      const stepTimer = setInterval(() => {
+        setProgressModal(prev => prev && !prev.complete ? { ...prev, currentStep: Math.min(prev.currentStep + 1, prev.steps.length - 1) } : prev);
+      }, 3000);
       await runAnalysis();
+      clearInterval(stepTimer);
+      setProgressModal(prev => ({
+        ...prev,
+        currentStep: prev.steps.length,
+        complete: true,
+        title: 'Analysis complete',
+        message: 'Review the full breakdown below, then confirm to apply the import.',
+        error: null,
+      }));
     } catch (e) {
       setError(e.message || 'Analysis failed');
+      setProgressModal(prev => ({ ...prev, complete: false, error: e.message || 'Analysis failed' }));
     } finally {
       setUploading(false);
     }
@@ -52,29 +72,31 @@ export default function ImportDashboard() {
     } catch (e) {
       const msg = e?.response?.data?.error || e.message || 'Analysis failed';
       setError(msg);
+      throw e;
     } finally {
       setAnalyzing(false);
     }
   };
 
   const [applyPhase, setApplyPhase] = useState('');
+  const [progressModal, setProgressModal] = useState(null); // { steps, currentStep, complete, title, message, error }
 
   const handleApply = async () => {
     if (!file) return;
     setApplying(true);
     setError(null);
-    try {
-      // Phased import — each phase does less work to avoid serverless timeouts
-      // on large spreadsheets (6k+ rows). Jobs are created in phase 1 only;
-      // subsequent phases use skip_purge_and_jobs to preserve them.
-      const phases = [
+    const phases = [
         { label: 'Jobs & purge', params: { dry_run: false, skip_purge_and_jobs: false, write_phase: 'rotas' } },
         { label: 'Cost items', params: { dry_run: false, skip_purge_and_jobs: true, write_phase: 'cost_items' } },
         { label: 'Training & absences', params: { dry_run: false, skip_purge_and_jobs: true, write_phase: 'training_absences' } },
       ];
+    setProgressModal({ steps: phases.map(p => ({ label: p.label })), currentStep: 0, complete: false, title: '', message: '', error: null });
+    try {
       const phaseResults = [];
-      for (const phase of phases) {
+      for (let i = 0; i < phases.length; i++) {
+        const phase = phases[i];
         setApplyPhase(phase.label);
+        setProgressModal(prev => ({ ...prev, currentStep: i }));
         const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, ...phase.params });
         phaseResults.push(res.data);
       }
@@ -97,6 +119,9 @@ export default function ImportDashboard() {
         },
       };
       setApplyResult(mergedResult);
+      // Clear the progress modal — the ImportCompleteModal takes over to
+      // show the full results breakdown.
+      setProgressModal(null);
       toast({
         title: 'Import complete',
         description: `Created ${r1.jobs?.new || 0} jobs, ${r1.rotas?.created || 0} rotas, ${r2.rig_assignments?.created || 0} rig assignments, ${r2.crew_cost_items?.created || 0} crew cost items, ${r3.training?.bookings_created || 0} training bookings, ${r3.absences?.created || 0} absences.`
@@ -104,6 +129,7 @@ export default function ImportDashboard() {
     } catch (e) {
       const msg = e?.response?.data?.error || e.message || 'Import failed';
       setError(msg);
+      setProgressModal(prev => ({ ...prev, complete: false, error: msg }));
     } finally {
       setApplying(false);
       setApplyPhase('');
@@ -116,6 +142,7 @@ export default function ImportDashboard() {
     setFile(null);
     setFileUrl(null);
     setError(null);
+    setProgressModal(null);
   };
 
   return (
@@ -836,6 +863,20 @@ export default function ImportDashboard() {
 
       {/* Completion pop-up modal */}
       {applyResult && <ImportCompleteModal result={applyResult} onClose={handleReset} type="planner" />}
+
+      {/* Progress modal — shown during analyze and apply */}
+      {progressModal && (
+        <ImportProgressModal
+          open={!!progressModal}
+          steps={progressModal.steps}
+          currentStep={progressModal.currentStep}
+          complete={progressModal.complete}
+          completeTitle={progressModal.title}
+          completeMessage={progressModal.message}
+          error={progressModal.error}
+          onClose={() => setProgressModal(null)}
+        />
+      )}
     </div>
   );
 }
