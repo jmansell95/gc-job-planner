@@ -24,6 +24,7 @@ import IncentiveDashboard from '@/components/staff/IncentiveDashboard';
 import NoCrewProfileState from '@/components/staff/NoCrewProfileState';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import RedAlertBanner from '@/components/safety/RedAlertBanner';
 
 const ABSENCE_REASONS = [
   { value: 'holiday', label: 'Holiday' },
@@ -150,6 +151,7 @@ export default function StaffProfile() {
 
   return (
     <div className="bg-slate-50 min-h-screen">
+      <RedAlertBanner />
       {/* Header with Quick Actions bar */}
       <div className="bg-white border-b border-slate-200 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-5">

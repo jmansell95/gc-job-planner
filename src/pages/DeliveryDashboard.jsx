@@ -16,6 +16,7 @@ import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } 
 import { saveOfflineDelivery, hasOfflineDelivery } from '@/utils/offlineSync';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import StaffHeader from '@/components/staff/StaffHeader';
+import RedAlertBanner from '@/components/safety/RedAlertBanner';
 import SyncHUD from '@/components/staff/SyncHUD';
 import StaffAlerts from '@/components/staff/StaffAlerts';
 import StatCard from '@/components/dashboard/StatCard';
@@ -356,6 +357,7 @@ export default function DeliveryDashboard() {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20">
+      <RedAlertBanner />
       <StaffHeader staff={staff} />
       <Breadcrumbs />
 

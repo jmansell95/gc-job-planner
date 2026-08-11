@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { buildWebhookUrl } from '@/utils/appBaseUrl';
-import { ShieldAlert, Loader2, Save, ExternalLink, CheckCircle2, XCircle, FileWarning, Copy, ChevronDown, ChevronUp, Webhook, KeyRound, BookOpen, AlertCircle } from 'lucide-react';
+import { ShieldAlert, Loader2, Save, ExternalLink, CheckCircle2, XCircle, FileWarning, Copy, ChevronDown, ChevronUp, Webhook, KeyRound, BookOpen, AlertCircle, RefreshCw } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 
 const ACCENT = '#2E5A1A';
@@ -64,6 +64,24 @@ export default function SafetyCultureSettings() {
   const [expandedPayload, setExpandedPayload] = useState(null);
 
   const copyToClipboard = (text) => { navigator.clipboard?.writeText(text); };
+
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+
+  const handleSyncNow = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await base44.functions.invoke('syncSafetyCulture');
+      setSyncResult(res.data || res);
+      queryClient.invalidateQueries({ queryKey: ['safety-reports'] });
+      queryClient.invalidateQueries({ queryKey: ['safetyculture-config'] });
+    } catch (e) {
+      setSyncResult({ error: e.message || 'Sync failed — check your API token.' });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!config) return;
@@ -209,12 +227,25 @@ export default function SafetyCultureSettings() {
             </div>
             <p className="text-[11px] text-slate-400 mt-1">Add this URL in SafetyCulture → Integrations → Webhooks, and append <code className="px-1 bg-slate-100 rounded">?webhook_secret=YOUR_SECRET</code>.</p>
           </div>
-          <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 transition disabled:opacity-50"
-            style={{ background: ACCENT }}>
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save Configuration
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={handleSave} disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-semibold hover:opacity-90 transition disabled:opacity-50"
+              style={{ background: ACCENT }}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Save Configuration
+            </button>
+            <button onClick={handleSyncNow} disabled={syncing || !form?.api_token}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:border-[#2E5A1A] hover:text-[#2E5A1A] transition disabled:opacity-50"
+              title={!form?.api_token ? 'Add an API token first' : 'Pull recent audits from SafetyCulture now'}>
+              {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              Sync Now
+            </button>
+          </div>
+          {syncResult && (
+            <div className={`text-sm rounded-lg px-3 py-2 ${syncResult.error ? 'bg-red-50 border border-red-100 text-red-700' : 'bg-emerald-50 border border-emerald-100 text-emerald-700'}`}>
+              {syncResult.error ? syncResult.error : `Sync complete: ${syncResult.stored || 0} new, ${syncResult.updated || 0} updated, ${syncResult.linked_jobs || 0} jobs linked.`}
+            </div>
+          )}
         </div>
       </div>
 

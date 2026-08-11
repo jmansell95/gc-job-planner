@@ -24,6 +24,7 @@ import TodayPrepStrip from '@/components/staff/TodayPrepStrip';
 import SyncHUD from '@/components/staff/SyncHUD';
 import StaffTabBar from '@/components/staff/StaffTabBar';
 import StaffHeader from '@/components/staff/StaffHeader';
+import RedAlertBanner from '@/components/safety/RedAlertBanner';
 import StaffAlerts from '@/components/staff/StaffAlerts';
 import ActiveJobCard from '@/components/staff/ActiveJobCard';
 import IncentiveQuickLook from '@/components/staff/IncentiveQuickLook';
@@ -544,6 +545,7 @@ export default function StaffDashboard() {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20">
+      <RedAlertBanner />
       <StaffHeader staff={staff} onShowSchedule={() => setShowScheduleSummary(true)} />
       <div className="max-w-6xl mx-auto px-4 md:px-6">
         <Breadcrumbs />

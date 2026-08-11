@@ -15,6 +15,7 @@ import InvestigationHub from '@/components/investigation/InvestigationHub';
 import AdminDeliveryHub from '@/pages/AdminDeliveryHub';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import RedAlertBanner from '@/components/safety/RedAlertBanner';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 
 const SECTION_LABELS = {
@@ -111,6 +112,8 @@ export default function AdminDashboard() {
   return (
     <div className="flex flex-col lg:flex-row min-h-screen page-bg-vibrant">
       <AdminNav activeSection={activeSection} setActiveSection={handleSetActiveSection} onSettingsTabClick={(tab) => { setSettingsTab(tab); setActiveSection('settings'); }} />
+      <div className="flex-1 flex flex-col min-h-0">
+        <RedAlertBanner />
       <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] lg:pt-0">
         <div className="px-4 pb-24 md:px-6 lg:pb-4 lg:pt-6 w-full">
           <Breadcrumbs sectionLabel={SECTION_LABELS[activeSection]} />
@@ -144,6 +147,7 @@ export default function AdminDashboard() {
         </div>
       </main>
       <MobileBottomNav />
+      </div>
     </div>
   );
 }
