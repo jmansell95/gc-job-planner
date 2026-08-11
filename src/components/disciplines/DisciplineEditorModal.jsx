@@ -38,16 +38,11 @@ export default function DisciplineEditorModal({ open, onClose, job }) {
         if (disciplines[0].drilling_method && disciplines[0].drilling_method !== 'not_applicable') {
           clean.drilling_method = disciplines[0].drilling_method;
         }
-        // Mirror required teams from the primary discipline
-        if (Array.isArray(disciplines[0].required_team_ids)) {
-          clean.required_team_ids = disciplines[0].required_team_ids;
-        }
       } else {
         // Clear legacy fields when all disciplines removed
         clean.job_type = '';
         clean.primary_discipline = '';
         clean.drilling_method = 'not_applicable';
-        clean.required_team_ids = [];
       }
       await base44.entities.Job.update(job.id, clean);
       queryClient.invalidateQueries({ queryKey: ['jobs'] });

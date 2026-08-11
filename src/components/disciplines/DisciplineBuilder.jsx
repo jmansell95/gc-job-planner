@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Mountain, HardHat, Wrench, Warehouse, Users, Layers, CircleDashed,
-  User, Briefcase, Star, X, Plus, ChevronDown, ChevronRight, UsersRound,
+  User, Briefcase, Star, X, Plus, ChevronDown, ChevronRight,
   Sparkles,
 } from 'lucide-react';
 import { DISCIPLINE_CONFIG, getDisciplineConfig } from '@/utils/jobDisciplines';
@@ -61,7 +61,7 @@ function getIcon(type) {
   return DISCIPLINE_ICONS[type] || Briefcase;
 }
 
-export default function DisciplineBuilder({ disciplines, onChange, teams = [] }) {
+export default function DisciplineBuilder({ disciplines, onChange }) {
   const items = Array.isArray(disciplines) ? disciplines : [];
   const [expanded, setExpanded] = useState({});
 
@@ -90,16 +90,6 @@ export default function DisciplineBuilder({ disciplines, onChange, teams = [] })
     const moved = items[idx];
     const rest = items.filter((_, i) => i !== idx);
     onChange([moved, ...rest]);
-  };
-
-  const toggleTeam = (idx, teamId) => {
-    const d = items[idx];
-    const current = Array.isArray(d.required_team_ids) ? d.required_team_ids : [];
-    updateDiscipline(idx, {
-      required_team_ids: current.includes(teamId)
-        ? current.filter((t) => t !== teamId)
-        : [...current, teamId],
-    });
   };
 
   const toggleExpand = (type) => {
@@ -281,34 +271,6 @@ export default function DisciplineBuilder({ disciplines, onChange, teams = [] })
                       </div>
                     )}
 
-                    {/* Required teams */}
-                    {teams.length > 0 && (
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                          Required Teams <span className="text-slate-300 font-normal normal-case tracking-normal">· who can be assigned to this track</span>
-                        </label>
-                        <div className="flex flex-wrap gap-1.5">
-                          {teams.map((t) => {
-                            const selected = (Array.isArray(d.required_team_ids) ? d.required_team_ids : []).includes(t.id);
-                            return (
-                              <button
-                                key={t.id}
-                                type="button"
-                                onClick={() => toggleTeam(i, t.id)}
-                                className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition font-medium ${
-                                  selected
-                                    ? `${tone.bar} text-white border-transparent`
-                                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                                }`}
-                              >
-                                <UsersRound className="w-3 h-3" />
-                                {t.name}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>

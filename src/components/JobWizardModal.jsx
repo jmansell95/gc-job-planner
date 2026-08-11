@@ -16,10 +16,11 @@ const inputCls = "w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:ou
 
 const STEPS = [
   { id: 1, label: 'Identity', icon: Briefcase },
-  { id: 2, label: 'Schedule & Contacts', icon: CalendarDays },
-  { id: 3, label: 'Billing', icon: Receipt },
-  { id: 4, label: 'Sub-Contractors', icon: Building2 },
-  { id: 5, label: 'Review', icon: Check },
+  { id: 2, label: 'Required Teams', icon: Users },
+  { id: 3, label: 'Schedule & Contacts', icon: CalendarDays },
+  { id: 4, label: 'Billing', icon: Receipt },
+  { id: 5, label: 'Sub-Contractors', icon: Building2 },
+  { id: 6, label: 'Review', icon: Check },
 ];
 
 const REVENUE_METHODS = [
@@ -132,8 +133,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
 
   const stepValid = () => {
     if (step === 1) return !!form.name?.trim() && !!form.location?.trim();
-    if (step === 2) return !!form.start_date && !!form.end_date && new Date(form.end_date) >= new Date(form.start_date);
-    if (step === 3) {
+    if (step === 3) return !!form.start_date && !!form.end_date && new Date(form.end_date) >= new Date(form.start_date);
+    if (step === 4) {
       // Validate billing-specific required fields
       if (form.revenue_method === 'flat_fee' && !form.client_charge) return false;
       if (form.revenue_method === 'unit_rate' && !form.unit_price) return false;
@@ -366,7 +367,6 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                     <DisciplineBuilder
                       disciplines={form.disciplines || []}
                       onChange={(disciplines) => set('disciplines', disciplines)}
-                      teams={teams}
                     />
                   </div>
                   <div>
@@ -406,24 +406,11 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                 </div>
               )}
 
-              {/* STEP 2 — Schedule & Contacts */}
+              {/* STEP 2 — Required Teams */}
               {step === 2 && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Start Date <span className="text-red-500">*</span></label>
-                      <input type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} className={inputCls} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">End Date <span className="text-red-500">*</span></label>
-                      <input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)} className={inputCls} />
-                    </div>
-                  </div>
-                  {form.start_date && form.end_date && new Date(form.end_date) < new Date(form.start_date) && (
-                    <p className="text-xs text-red-600">End date is before start date.</p>
-                  )}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Required Teams <span className="text-xs text-slate-400 font-normal">· who can be assigned</span></label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Required Teams <span className="text-xs text-slate-400 font-normal">· who can be assigned to this job</span></label>
                     {teams.length === 0 ? (
                       <p className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">No teams yet — add them in Settings.</p>
                     ) : (
@@ -439,7 +426,27 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                         })}
                       </div>
                     )}
+                    <p className="text-[11px] text-slate-400 mt-2">Staff outside these teams will see a soft warning when assigned to this job.</p>
                   </div>
+                </div>
+              )}
+
+              {/* STEP 3 — Schedule & Contacts */}
+              {step === 3 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Start Date <span className="text-red-500">*</span></label>
+                      <input type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">End Date <span className="text-red-500">*</span></label>
+                      <input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)} className={inputCls} />
+                    </div>
+                  </div>
+                  {form.start_date && form.end_date && new Date(form.end_date) < new Date(form.start_date) && (
+                    <p className="text-xs text-red-600">End date is before start date.</p>
+                  )}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">Project Manager</label>
@@ -476,8 +483,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                 </div>
               )}
 
-              {/* STEP 3 — Billing & Financials */}
-              {step === 3 && (
+              {/* STEP 4 — Billing & Financials */}
+              {step === 4 && (
                 <div className="space-y-4">
                   {/* Revenue method selector — the key field */}
                   <div>
@@ -640,8 +647,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                 </div>
               )}
 
-              {/* STEP 4 — Sub-Contractors */}
-              {step === 4 && (
+              {/* STEP 5 — Sub-Contractors */}
+              {step === 5 && (
                 <SubcontractorAssignments
                   assignments={subAssignments}
                   onChange={setSubAssignments}
@@ -649,8 +656,8 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
                 />
               )}
 
-              {/* STEP 5 — Review */}
-              {step === 5 && (
+              {/* STEP 6 — Review */}
+              {step === 6 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-[#2E5A1A]">
                     <Sparkles className="w-4 h-4" />
@@ -727,7 +734,7 @@ export default function JobWizardModal({ open, onClose, onCreated, editingJob })
               <ChevronLeft className="w-4 h-4" /> Back
             </button>
           )}
-          {step < 5 ? (
+          {step < 6 ? (
             <button type="button" onClick={() => stepValid() && setStep(step + 1)} disabled={!stepValid()} className="flex-1 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-lg text-sm font-semibold hover:bg-[#1c4a12] transition disabled:opacity-40 flex items-center justify-center gap-1.5">
               Continue <ChevronRight className="w-4 h-4" />
             </button>
