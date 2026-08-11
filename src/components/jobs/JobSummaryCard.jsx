@@ -28,13 +28,27 @@ const calcDuration = (start, end) => {
   } catch { return null; }
 };
 
-function StatTile({ icon: Icon, label, value, gradient }) {
+const STAT_TONES = {
+  slate: 'bg-slate-100 text-slate-500',
+  blue: 'bg-blue-100 text-blue-600',
+  emerald: 'bg-emerald-100 text-emerald-600',
+  amber: 'bg-amber-100 text-amber-600',
+  violet: 'bg-violet-100 text-violet-600',
+  cyan: 'bg-cyan-100 text-cyan-600',
+  orange: 'bg-orange-100 text-orange-600',
+  brand: 'bg-[#2E5A1A]/10 text-[#2E5A1A]',
+  fuchsia: 'bg-fuchsia-100 text-fuchsia-600',
+};
+
+function StatTile({ icon: Icon, label, value, tone = 'slate' }) {
   return (
-    <div className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 bg-gradient-to-br ${gradient} text-white`}>
-      <Icon className="w-4 h-4 flex-shrink-0 opacity-90" />
+    <div className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 bg-slate-50/70 border border-slate-100/80">
+      <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${STAT_TONES[tone]}`}>
+        <Icon className="w-3.5 h-3.5" />
+      </div>
       <div className="min-w-0">
-        <div className="text-[9px] font-semibold uppercase tracking-wider opacity-70 leading-none">{label}</div>
-        <div className="text-sm font-bold leading-tight mt-0.5 truncate">{value}</div>
+        <div className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 leading-none">{label}</div>
+        <div className="text-sm font-bold text-slate-800 leading-tight mt-0.5 truncate">{value}</div>
       </div>
     </div>
   );
@@ -126,21 +140,21 @@ export default function JobSummaryCard({
           )}
         </div>
 
-        {/* Colorful stat tiles — the "pop" row */}
+        {/* Stat tiles — subtle, modern */}
         <div className="grid grid-cols-2 gap-2">
-          <StatTile icon={CalendarClock} label="Duration" value={duration != null ? `${duration} ${duration === 1 ? 'day' : 'days'}` : 'TBC'} gradient={duration == null ? 'from-slate-400 to-slate-500' : duration <= 7 ? 'from-blue-500 to-indigo-600' : duration <= 30 ? 'from-amber-500 to-orange-600' : 'from-violet-500 to-purple-600'} />
-          <StatTile icon={Users} label="Crew" value={crewCount > 0 ? `${crewCount} ${crewCount === 1 ? 'person' : 'people'}` : 'Unassigned'} gradient={crewCount > 0 ? 'from-emerald-500 to-teal-600' : 'from-slate-400 to-slate-500'} />
+          <StatTile icon={CalendarClock} label="Duration" value={duration != null ? `${duration} ${duration === 1 ? 'day' : 'days'}` : 'TBC'} tone={duration == null ? 'slate' : duration <= 7 ? 'blue' : duration <= 30 ? 'amber' : 'violet'} />
+          <StatTile icon={Users} label="Crew" value={crewCount > 0 ? `${crewCount} ${crewCount === 1 ? 'person' : 'people'}` : 'Unassigned'} tone={crewCount > 0 ? 'emerald' : 'slate'} />
           {isDrillingJob && (
-            <StatTile icon={Mountain} label="Method" value={methodLabel} gradient="from-cyan-500 to-blue-600" />
+            <StatTile icon={Mountain} label="Method" value={methodLabel} tone="cyan" />
           )}
           {rigCount > 0 && (
-            <StatTile icon={Wrench} label="Rigs" value={`${rigCount} ${rigCount === 1 ? 'rig' : 'rigs'}`} gradient="from-orange-500 to-red-600" />
+            <StatTile icon={Wrench} label="Rigs" value={`${rigCount} ${rigCount === 1 ? 'rig' : 'rigs'}`} tone="orange" />
           )}
           {job.budget_amount != null && job.budget_amount > 0 && (
-            <StatTile icon={PoundSterling} label="Budget" value={`£${Number(job.budget_amount).toLocaleString()}`} gradient="from-[#2E5A1A] to-[#4d7c2a]" />
+            <StatTile icon={PoundSterling} label="Budget" value={`£${Number(job.budget_amount).toLocaleString()}`} tone="brand" />
           )}
           {job.meterage_target != null && job.meterage_target > 0 && (
-            <StatTile icon={Ruler} label="Target" value={`${job.meterage_target}m`} gradient="from-fuchsia-500 to-pink-600" />
+            <StatTile icon={Ruler} label="Target" value={`${job.meterage_target}m`} tone="fuchsia" />
           )}
         </div>
 
