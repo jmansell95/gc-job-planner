@@ -85,12 +85,23 @@ export default function JobSummaryCard({
       <div className="p-4 flex-1 space-y-3">
         {/* Badges row */}
         <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-wrap gap-1.5">
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${colors.badge}`}>{getJobTypeLabel(primaryType, jobTypes)}</span>
-            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${status.chip}`}>
-              <StatusIcon className="w-3 h-3" /> {status.label}
-            </span>
-            <DisciplinePills job={job} size="sm" />
+          <div className="flex flex-col gap-1">
+            <div className="flex flex-wrap gap-1.5">
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${colors.badge}`}>{getJobTypeLabel(primaryType, jobTypes)}</span>
+              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${status.chip}`}>
+                <StatusIcon className="w-3 h-3" /> {status.label}
+              </span>
+              <DisciplinePills job={job} size="sm" />
+            </div>
+            {/* Job Reference — prominent badge tucked just under the pills */}
+            {job.job_reference && (
+              <div className="inline-flex items-center gap-1.5 bg-[#2E5A1A]/8 text-[#2E5A1A] rounded-md px-2.5 py-1 text-xs font-bold tracking-wide w-fit">
+                <FileText className="w-3.5 h-3.5" />
+                <span className="text-[10px] uppercase opacity-60 font-semibold">Job Reference</span>
+                <span className="opacity-30">·</span>
+                {job.job_reference}
+              </div>
+            )}
           </div>
           {/* Mini calendar tile — top-right corner */}
           <div className="flex-shrink-0 relative">
@@ -112,16 +123,6 @@ export default function JobSummaryCard({
             {job.requisition_list_url && <FileText className="w-3 h-3 text-[#2E5A1A] absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-slate-100" title="Has requisition list" />}
           </div>
         </div>
-
-        {/* Job Reference — prominent badge below pills */}
-        {job.job_reference && (
-          <div className="-mt-[43px] inline-flex items-center gap-1.5 bg-[#2E5A1A]/8 text-[#2E5A1A] rounded-md px-2.5 py-1 text-xs font-bold tracking-wide w-fit">
-            <FileText className="w-3.5 h-3.5" />
-            <span className="text-[10px] uppercase opacity-60 font-semibold">Job Reference</span>
-            <span className="opacity-30">·</span>
-            {job.job_reference}
-          </div>
-        )}
 
         {/* Title */}
         <h3 className="font-bold text-slate-900 text-base leading-tight line-clamp-2">{job.name}</h3>
