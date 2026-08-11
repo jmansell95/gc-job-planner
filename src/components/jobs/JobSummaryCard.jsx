@@ -58,7 +58,7 @@ export default function JobSummaryCard({
   const colors = getJobTypeColor(primaryType, jobTypes);
   const duration = calcDuration(job.start_date, job.end_date);
   const isDrillingJob = ['cp', 'rotary', 'mixed'].includes(job.drilling_method);
-  const methodLabel = { cp: 'CP', rotary: 'Rotary', mixed: 'Mixed' }[job.drilling_method] || '';
+  const methodLabel = { cp: 'CP', rotary: 'Rotary', mixed: 'CP + Rotary' }[job.drilling_method] || '';
   const siteCount = Array.isArray(job.sites) ? job.sites.length : 0;
   const status = STATUS_META[job.status || 'planning'] || STATUS_META.planning;
   const StatusIcon = status.icon;

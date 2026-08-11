@@ -7,6 +7,7 @@ import { Calendar, CalendarDays, CalendarClock, Navigation2, Loader2, Grid3x3 } 
 import { useSchedulingAssistant } from '@/components/SchedulingAssistantChat';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
+import TabBar from '@/components/TabBar';
 
 // Unified scheduling hub — combines the weekly rota builder and the calendar
 // view behind a single sidebar entry. `initialTab` lets legacy "rota" /
@@ -49,17 +50,7 @@ export default function SchedulingHub({ initialTab = 'rota' }) {
   return (
     <div>
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <div className="flex gap-1.5 bg-white rounded-xl border border-slate-200 p-1.5 w-fit shadow-sm">
-          {tabs.map((t) => {
-            const Icon = t.icon;
-            return (
-              <button key={t.id} onClick={() => setTab(t.id)} type="button"
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition ${tab === t.id ? 'bg-[#2E5A1A] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
-                <Icon className="w-4 h-4" /> {t.label}
-              </button>
-            );
-          })}
-        </div>
+        <TabBar tabs={tabs} activeTab={tab} onChange={setTab} />
         <div className="flex items-center gap-2 flex-wrap">
           <TemplateWeekCopy targetWeekStart={currentWeekStart} />
           <button onClick={handleGeotabSync} disabled={syncing} type="button"

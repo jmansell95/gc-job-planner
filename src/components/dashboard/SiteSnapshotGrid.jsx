@@ -344,7 +344,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
 
           const drillingMethod = job.drilling_method || (job.disciplines || []).find(d => d.drilling_method && d.drilling_method !== 'not_applicable')?.drilling_method;
           const methodLabel = drillingMethod && drillingMethod !== 'not_applicable'
-            ? (drillingMethod === 'cp' ? 'CP' : drillingMethod === 'rotary' ? 'Rotary' : drillingMethod === 'mixed' ? 'Mixed' : null)
+            ? (drillingMethod === 'cp' ? 'CP' : drillingMethod === 'rotary' ? 'Rotary' : drillingMethod === 'mixed' ? 'CP + Rotary' : null)
             : null;
 
           let timelineProgress = null;
@@ -406,37 +406,46 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                 <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-[#2E5A1A] group-hover:translate-x-0.5 transition flex-shrink-0 mt-1" />
               </div>
 
-              {/* Stats row */}
-              <div className="flex items-center gap-2 mb-3 pl-2">
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 text-xs">
-                  <Cog className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="font-bold text-slate-700">{jobRigs.length}</span>
-                  <span className="text-slate-400">{jobRigs.length === 1 ? 'Rig' : 'Rigs'}</span>
-                </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 text-xs">
-                  <Wrench className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="font-bold text-slate-700">{jobGear.length}</span>
-                  <span className="text-slate-400">Gear</span>
-                </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 text-xs">
-                  <Users className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="font-bold text-slate-700">{crewToday.length}</span>
-                  <span className="text-slate-400">Crew</span>
-                </div>
-                {activityCount > 0 && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 text-xs">
-                    <Activity className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="font-bold text-slate-700">{activityCount}</span>
-                    <span className="text-slate-400">Logs</span>
+              {/* Stats row — gradient tiles matching job cards */}
+              <div className="grid grid-cols-2 gap-2 mb-3 pl-2">
+                <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 bg-gradient-to-br from-orange-500 to-red-600 text-white">
+                  <Cog className="w-4 h-4 flex-shrink-0 opacity-90" />
+                  <div className="min-w-0">
+                    <div className="text-[9px] font-semibold uppercase tracking-wider opacity-70 leading-none">Rigs</div>
+                    <div className="text-sm font-bold leading-tight mt-0.5 truncate">{jobRigs.length} {jobRigs.length === 1 ? 'rig' : 'rigs'}</div>
                   </div>
-                )}
-                {activeLegs.length > 0 && (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 text-xs">
-                    <Truck className="w-3.5 h-3.5 text-amber-500" />
-                    <span className="font-bold text-slate-700">{activeLegs.length}</span>
-                    <span className="text-slate-400">Legs</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 bg-gradient-to-br from-indigo-500 to-blue-600 text-white">
+                  <Wrench className="w-4 h-4 flex-shrink-0 opacity-90" />
+                  <div className="min-w-0">
+                    <div className="text-[9px] font-semibold uppercase tracking-wider opacity-70 leading-none">Gear</div>
+                    <div className="text-sm font-bold leading-tight mt-0.5 truncate">{jobGear.length} {jobGear.length === 1 ? 'item' : 'items'}</div>
                   </div>
-                )}
+                </div>
+                <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+                  <Users className="w-4 h-4 flex-shrink-0 opacity-90" />
+                  <div className="min-w-0">
+                    <div className="text-[9px] font-semibold uppercase tracking-wider opacity-70 leading-none">Crew</div>
+                    <div className="text-sm font-bold leading-tight mt-0.5 truncate">{crewToday.length} {crewToday.length === 1 ? 'person' : 'people'}</div>
+                  </div>
+                </div>
+                {activityCount > 0 ? (
+                  <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 bg-gradient-to-br from-violet-500 to-purple-600 text-white">
+                    <Activity className="w-4 h-4 flex-shrink-0 opacity-90" />
+                    <div className="min-w-0">
+                      <div className="text-[9px] font-semibold uppercase tracking-wider opacity-70 leading-none">Logs</div>
+                      <div className="text-sm font-bold leading-tight mt-0.5 truncate">{activityCount}</div>
+                    </div>
+                  </div>
+                ) : activeLegs.length > 0 ? (
+                  <div className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 bg-gradient-to-br from-amber-500 to-orange-600 text-white">
+                    <Truck className="w-4 h-4 flex-shrink-0 opacity-90" />
+                    <div className="min-w-0">
+                      <div className="text-[9px] font-semibold uppercase tracking-wider opacity-70 leading-none">Legs</div>
+                      <div className="text-sm font-bold leading-tight mt-0.5 truncate">{activeLegs.length}</div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               {/* Rigs — capped at 2 with "view all" link */}

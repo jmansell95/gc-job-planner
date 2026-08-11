@@ -42,12 +42,12 @@ export default function CompliancePage() {
 
       {tab === 'compliance' && (
         <div className="space-y-3">
-          <div className="flex gap-1 p-1 bg-slate-100 rounded-lg w-fit">
-            <button onClick={() => setComplianceView('manager')} className={`px-3.5 py-1.5 rounded-md text-xs font-semibold transition ${complianceView === 'manager' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
-              <ShieldCheck className="w-3.5 h-3.5 inline mr-1.5" />Records
+          <div className="flex gap-1 p-1 bg-white/80 backdrop-blur-md rounded-xl border border-slate-200/70 shadow-sm w-fit">
+            <button onClick={() => setComplianceView('manager')} className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${complianceView === 'manager' ? 'bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+              <ShieldCheck className="w-4 h-4" />Records
             </button>
-            <button onClick={() => setComplianceView('rules')} className={`px-3.5 py-1.5 rounded-md text-xs font-semibold transition ${complianceView === 'rules' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
-              <Settings className="w-3.5 h-3.5 inline mr-1.5" />Rules
+            <button onClick={() => setComplianceView('rules')} className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold transition ${complianceView === 'rules' ? 'bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'}`}>
+              <Settings className="w-4 h-4" />Rules
             </button>
           </div>
           {complianceView === 'manager' ? (
