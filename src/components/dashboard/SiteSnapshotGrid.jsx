@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   MapPin, Cog, ShieldCheck, ShieldAlert, ShieldX,
-  ChevronRight, AlertTriangle, Activity, Radio, ClipboardList, CalendarClock, ChevronDown, Link2, Wrench, Package, Anchor, Users, Briefcase, Truck
+  ChevronRight, AlertTriangle, Activity, Radio, ClipboardList, CalendarClock, ChevronDown, Link2, Wrench, Package, Anchor, Users, Briefcase, Truck, Hash, Mountain
 } from 'lucide-react';
 import { format, differenceInCalendarDays } from 'date-fns';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
@@ -378,9 +378,6 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                       {st.label}
                     </span>
                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{getJobTypeLabel(primaryType)}</span>
-                    {methodLabel && (
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200">{methodLabel}</span>
-                    )}
                     {weatherData[job.id] && (() => {
                       const w = weatherData[job.id];
                       const wInfo = WEATHER_CODE_MAP[w?.current?.weather_code] || WEATHER_CODE_MAP[3];
@@ -395,7 +392,9 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                       );
                     })()}
                     {job.job_reference && (
-                      <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">{job.job_reference}</span>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-semibold text-slate-500 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-lg border border-slate-200 shadow-sm">
+                        <Hash className="w-2.5 h-2.5 text-[#2E5A1A]" />{job.job_reference}
+                      </span>
                     )}
                   </div>
                   <h3 className="font-bold text-slate-900 text-base leading-snug line-clamp-2">{job.name}</h3>
@@ -435,7 +434,17 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                     <div className="text-sm font-bold text-slate-800 leading-tight mt-0.5 truncate">{crewToday.length} {crewToday.length === 1 ? 'person' : 'people'}</div>
                   </div>
                 </div>
-                {activityCount > 0 ? (
+                {methodLabel ? (
+                  <div className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 bg-slate-50/70 border border-slate-100/80">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-cyan-100 text-cyan-600">
+                      <Mountain className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[9px] font-semibold uppercase tracking-wider text-slate-400 leading-none">Method</div>
+                      <div className="text-sm font-bold text-slate-800 leading-tight mt-0.5 truncate">{methodLabel}</div>
+                    </div>
+                  </div>
+                ) : activityCount > 0 ? (
                   <div className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 bg-slate-50/70 border border-slate-100/80">
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-violet-100 text-violet-600">
                       <Activity className="w-3.5 h-3.5" />
