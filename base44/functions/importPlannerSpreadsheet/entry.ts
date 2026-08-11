@@ -1081,6 +1081,29 @@ export default async function(req) {
       staffJobTitleByKey[key] = inferJobTitle(sections[0]) || inferJobTitleFromSheet(sAssignments[0]?.sheet_name) || '';
     }
 
+    let createdStaffRecords = [];
+    if (skipPurgeAndJobs) {
+      // Resume mode (phases 2-3) — staff were already created in phase 1.
+      // Just build the staffMap from existing staff. Do NOT delete/recreate
+      // or all rota references from phase 1 will be orphaned.
+      for (const key of uniqueStaffKeys) {
+        const name = staffNameByKey[key];
+        let staff = staffByName.get(key);
+        if (!staff) {
+          const email = generateEmail(name, new Set());
+          staff = staffByEmail.get(email.toLowerCase());
+        }
+        if (!staff && existingStaff.length > 0) {
+          const fuzzy = fuzzyFindStaff(name, existingStaff, 0.70);
+          if (fuzzy) staff = fuzzy.staff;
+        }
+        if (staff) {
+          staffFoundCount++;
+          staffMap.set(key, staff);
+        }
+      }
+    } else {
+    // Phase 1 — full staff replacement (delete + recreate from spreadsheet)
     // Accumulate used emails across the loop so duplicate names get unique emails
     const usedEmails = new Set([...staffByEmail.keys()]);
     for (const key of uniqueStaffKeys) {
@@ -1117,28 +1140,16 @@ export default async function(req) {
         staffFoundCount++;
         staffReplacedCount++;
         staffToDelete.push(staff.id);
-        // Build new payload from the spreadsheet
         newStaffPayloads.push({
-          name,
-          email,
-          worker_type: workerType,
-          team_id: team.id || '',
-          job_title: jobTitle,
-          agency_id: agencyId,
-          is_active: true,
+          name, email, worker_type: workerType, team_id: team.id || '',
+          job_title: jobTitle, agency_id: agencyId, is_active: true,
         });
         newStaffKeys.push(key);
       } else {
-        // No match — create new
         staffCreatedCount++;
         newStaffPayloads.push({
-          name,
-          email,
-          worker_type: workerType,
-          team_id: team.id || '',
-          job_title: jobTitle,
-          agency_id: agencyId,
-          is_active: true,
+          name, email, worker_type: workerType, team_id: team.id || '',
+          job_title: jobTitle, agency_id: agencyId, is_active: true,
         });
         newStaffKeys.push(key);
       }
@@ -1153,7 +1164,6 @@ export default async function(req) {
     }
 
     // Create new staff records (batch)
-    let createdStaffRecords = [];
     if (newStaffPayloads.length > 0 && !dryRun) {
       for (let i = 0; i < newStaffPayloads.length; i += 400) {
         const batch = newStaffPayloads.slice(i, i + 400);
@@ -1168,6 +1178,7 @@ export default async function(req) {
     for (let i = 0; i < createdStaffRecords.length; i++) {
       staffMap.set(newStaffKeys[i], createdStaffRecords[i]);
     }
+    } // end else (skipPurgeAndJobs === false)
 
     if (staffReplacedCount > 0) {
       warnings.push(`Auto-Create: ${staffReplacedCount} existing staff record(s) replaced (deleted + recreated) to match the spreadsheet. ${staffCreatedCount} new staff record(s) created.`);
