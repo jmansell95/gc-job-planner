@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Briefcase, CalendarDays, Users, PoundSterling, StickyNote, FileText, Upload, Eye, Download, RefreshCw, X, Ruler, UsersRound, ChevronRight, ChevronLeft, Check, MapPin, Loader2 } from 'lucide-react';
-import { isDrillingJobType } from '@/utils/jobTeams';
+import { getJobDisciplines } from '@/utils/jobDisciplines';
 import EquipmentManager from '@/components/EquipmentManager';
 import FormSection from '@/components/forms/FormSection';
 import ChipMultiSelect from '@/components/forms/ChipMultiSelect';
 import ProjectSelect from '@/components/ProjectSelect';
+import DisciplineBuilder from '@/components/disciplines/DisciplineBuilder';
 
 const inputCls = "w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm";
 
@@ -31,7 +32,8 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200) });
 
   const selectedTeamIds = Array.isArray(formData.required_team_ids) ? formData.required_team_ids : [];
-  const showMeterage = isDrillingJobType(formData.job_type, jobTypes) || teams.some(t => selectedTeamIds.includes(t.id) && isDrillingJobType(t.job_type, jobTypes));
+  const disciplines = getJobDisciplines(formData);
+  const showMeterage = disciplines.some(d => d.type === 'drilling');
 
   const toggleTeam = (teamId) => {
     const next = selectedTeamIds.includes(teamId) ? selectedTeamIds.filter(id => id !== teamId) : [...selectedTeamIds, teamId];
@@ -96,11 +98,12 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
             <Field label="Job Reference" hint="PO / quote no.">
               <input type="text" value={formData.job_reference || ''} onChange={(e) => setFormData({ ...formData, job_reference: e.target.value })} placeholder="e.g. PO-10245" className={inputCls} />
             </Field>
-            <Field label="Job Type">
-              <select value={formData.job_type || ''} onChange={(e) => setFormData({ ...formData, job_type: e.target.value })} className={inputCls}>
-                <option value="">Select Type</option>
-                {jobTypes.map(jt => <option key={jt.id} value={jt.key}>{jt.label}</option>)}
-              </select>
+            <Field label="Disciplines" hint="Stack one or more work tracks" full>
+              <DisciplineBuilder
+                disciplines={Array.isArray(formData.disciplines) ? formData.disciplines : []}
+                onChange={(disciplines) => setFormData({ ...formData, disciplines })}
+                teams={teams}
+              />
             </Field>
             <Field label="Location" full required>
               <input type="text" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} required className={inputCls} />
@@ -251,7 +254,7 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
               <ReviewRow label="Name" value={formData.name} />
               <ReviewRow label="Project" value={projects.find(p => p.id === formData.project_id)?.name} />
               <ReviewRow label="Location" value={formData.location} />
-              <ReviewRow label="Job Type" value={jobTypes.find(jt => jt.key === formData.job_type)?.label || formData.job_type} />
+              <ReviewRow label="Disciplines" value={disciplines.map(d => d.type).join(', ') || '—'} />
               <ReviewRow label="Schedule" value={formData.start_date && formData.end_date ? `${formData.start_date} → ${formData.end_date}` : ''} />
               <ReviewRow label="Client" value={clients.find(c => c.id === formData.client_id)?.name} />
               <ReviewRow label="Teams" value={selectedTeamIds.map(id => teams.find(t => t.id === id)?.name).filter(Boolean).join(', ')} />

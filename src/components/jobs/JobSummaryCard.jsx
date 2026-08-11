@@ -5,7 +5,6 @@ import {
   TrendingUp, Clock, CheckCircle2, AlertTriangle, CircleDashed,
 } from 'lucide-react';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
-import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
 
 const STATUS_META = {
@@ -68,8 +67,6 @@ export default function JobSummaryCard({
   job, client, project, siblingCount, crewCount, rigCount, jobTypes, teams, cloningId,
   onView, onEdit, onClone, onDelete, onProjectClick,
 }) {
-  const primaryType = getJobPrimaryType(job, teams);
-  const colors = getJobTypeColor(primaryType, jobTypes);
   const duration = calcDuration(job.start_date, job.end_date);
   const isDrillingJob = ['cp', 'rotary', 'mixed'].includes(job.drilling_method);
   const methodLabel = { cp: 'CP', rotary: 'Rotary', mixed: 'CP + Rotary' }[job.drilling_method] || '';
@@ -87,7 +84,6 @@ export default function JobSummaryCard({
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-col gap-1">
             <div className="flex flex-wrap gap-1.5">
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${colors.badge}`}>{getJobTypeLabel(primaryType, jobTypes)}</span>
               <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${status.chip}`}>
                 <StatusIcon className="w-3 h-3" /> {status.label}
               </span>
