@@ -68,7 +68,10 @@ export default async function(req: Request): Promise<Response> {
       const server = cfg.server || 'my.geotab.com';
       const apiUrl = `https://${server.replace(/^https?:\/\//, '')}/apiv1`;
 
-      // Authenticate
+      // Authenticate — with a 5s timeout so slow Geotab responses don't
+      // block the entire trip history request.
+      const authController = new AbortController();
+      const authTimeout = setTimeout(() => authController.abort(), 5000);
       const authRes = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,7 +79,9 @@ export default async function(req: Request): Promise<Response> {
           method: 'Authenticate',
           params: { userName: cfg.username, password: cfg.password, database: cfg.database },
         }),
+        signal: authController.signal,
       }).catch(() => null);
+      clearTimeout(authTimeout);
 
       if (!authRes || !authRes.ok) {
         return Response.json({ ok: false, error: 'Geotab authentication failed' });
@@ -131,6 +136,10 @@ export default async function(req: Request): Promise<Response> {
       const dayFetches = [...tripDays].map(async (dayStr) => {
         const dayStart = new Date(dayStr + 'T00:00:00.000Z');
         const dayEnd = new Date(Math.min(dayStart.getTime() + dayMs, toDate.getTime()));
+        // Per-day 10s timeout — if one day's LogRecord fetch hangs, we still
+        // get the rest of the days' data instead of blocking the whole request.
+        const dayController = new AbortController();
+        const dayTimeout = setTimeout(() => dayController.abort(), 10000);
         const logRes = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -147,7 +156,9 @@ export default async function(req: Request): Promise<Response> {
               resultsLimit: 5000,
             },
           }),
+          signal: dayController.signal,
         }).catch(() => null);
+        clearTimeout(dayTimeout);
         const logJson = logRes ? await logRes.json().catch(() => null) : null;
         return Array.isArray(logJson?.result) ? logJson.result : [];
       });
@@ -350,6 +361,11 @@ export default async function(req: Request): Promise<Response> {
           if (cfg.username && cfg.password && cfg.database) {
             const server = cfg.server || 'my.geotab.com';
             const apiUrl = `https://${server.replace(/^https?:\/\//, '')}/apiv1`;
+            // 4s timeout on the Geotab auth call — if Geotab is slow or
+            // unreachable, we skip the fresh status overlay and return
+            // cached logs instantly so the live map always loads fast.
+            const liveAuthController = new AbortController();
+            const liveAuthTimeout = setTimeout(() => liveAuthController.abort(), 4000);
             const authRes = await fetch(apiUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -357,10 +373,14 @@ export default async function(req: Request): Promise<Response> {
                 method: 'Authenticate',
                 params: { userName: cfg.username, password: cfg.password, database: cfg.database },
               }),
+              signal: liveAuthController.signal,
             });
+            clearTimeout(liveAuthTimeout);
             const authJson = authRes.ok ? await authRes.json().catch(() => null) : null;
             const creds = authJson?.result?.credentials;
             if (creds?.sessionId) {
+              const statusController = new AbortController();
+              const statusTimeout = setTimeout(() => statusController.abort(), 4000);
               const statusRes = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -372,7 +392,9 @@ export default async function(req: Request): Promise<Response> {
                     resultsLimit: 500,
                   },
                 }),
+                signal: statusController.signal,
               });
+              clearTimeout(statusTimeout);
               const statusJson = statusRes.ok ? await statusRes.json().catch(() => null) : null;
               const statusList: any[] = Array.isArray(statusJson?.result) ? statusJson.result : [];
               for (const s of statusList) {

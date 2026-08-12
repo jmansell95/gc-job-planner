@@ -123,13 +123,13 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
   const { data: liveLocations = [] } = useQuery({
     queryKey: ['geotab-live-locations-fleet'],
     queryFn: async () => {
-      const res = await base44.functions.invoke('getVehicleLocationHistory', { mode: 'live', limit: 500 });
+      const res = await base44.functions.invoke('getVehicleLocationHistory', { mode: 'live_fast', limit: 500 });
       const data = res?.data ?? res;
       const arr = Array.isArray(data) ? data : (Array.isArray(data?.vehicles) ? data.vehicles : (Array.isArray(data?.locations) ? data.locations : []));
       return arr;
     },
     enabled: !!vehicle,
-    refetchInterval: 30000,
+    refetchInterval: 15000,
   });
 
   const latestLoc = useMemo(() => {
@@ -174,7 +174,7 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-blue-950/60 backdrop-blur-md" />
       <div
         className="relative w-full h-full bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right"
         onClick={e => e.stopPropagation()}

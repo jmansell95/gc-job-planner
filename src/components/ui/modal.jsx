@@ -71,7 +71,7 @@ export default function Modal({
 
   return (
     <div
-      className={cn('fixed inset-0', z, 'flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-4 overflow-y-auto overscroll-contain')}
+      className={cn('fixed inset-0', z, 'flex items-center justify-center bg-blue-950/60 backdrop-blur-md p-4 overflow-y-auto overscroll-contain')}
       onClick={(e) => { if (closeOnBackdrop && e.target === e.currentTarget) onClose?.(); }}
     >
       <div
