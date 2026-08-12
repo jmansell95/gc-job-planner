@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Navigation, Truck, Package, Clock, CheckCircle2, PlayCircle, Phone, ChevronDown, CloudOff, ArrowRightLeft, XCircle, ClipboardList, FileText, FlaskConical } from 'lucide-react';
+import { MapPin, Navigation, Truck, Package, Clock, CheckCircle2, PlayCircle, Phone, ChevronDown, CloudOff, ArrowRightLeft, XCircle, ClipboardList, FileText, FlaskConical, ScanLine } from 'lucide-react';
 import { format } from 'date-fns';
 
 const typeConfig = {
@@ -18,7 +18,7 @@ const statusConfig = {
   failed: { label: 'Failed', icon: Clock, badge: 'bg-red-50 text-red-700 ring-1 ring-red-200' }
 };
 
-export default function DeliveryCard({ delivery, job, vehicle, vehicleTotalWeight = 0, onStart, onComplete, canPerformActions = true, isOfflinePending = false, defaultExpanded = false }) {
+export default function DeliveryCard({ delivery, job, vehicle, vehicleTotalWeight = 0, onStart, onComplete, onScanCollect, canPerformActions = true, isOfflinePending = false, defaultExpanded = false }) {
   const [expanded, setExpanded] = useState(defaultExpanded || delivery.status === 'in_progress');
   const type = typeConfig[delivery.delivery_type] || typeConfig.site_delivery;
   const status = statusConfig[delivery.status] || statusConfig.pending;
@@ -173,6 +173,14 @@ export default function DeliveryCard({ delivery, job, vehicle, vehicleTotalWeigh
             >
               <Navigation className="w-5 h-5" /> Navigate
             </a>
+          )}
+          {delivery.delivery_type === 'supplier_collection' && onScanCollect && (
+            <button
+              onClick={() => onScanCollect(delivery)}
+              className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 active:scale-[0.98] transition touch-manipulation shadow-sm"
+            >
+              <ScanLine className="w-5 h-5" /> Scan to Collect
+            </button>
           )}
           <div className="flex gap-2">
             {isPending && (

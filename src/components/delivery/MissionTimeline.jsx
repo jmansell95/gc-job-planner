@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Package, ArrowRightLeft, Clock, Navigation, Phone, PlayCircle, CheckCircle2, Truck, User, FlaskConical } from 'lucide-react';
+import { MapPin, Package, ArrowRightLeft, Clock, Navigation, Phone, PlayCircle, CheckCircle2, Truck, User, FlaskConical, ScanLine } from 'lucide-react';
 import { format } from 'date-fns';
 
 const typeConfig = {
@@ -18,7 +18,7 @@ function legTone(minutes) {
   return { line: 'bg-red-400', text: 'text-red-600', label: 'Heavy' };
 }
 
-export default function MissionTimeline({ deliveries, jobs, vehicles, allStaff, onStart, onComplete, canPerformActions, autoExpandId }) {
+export default function MissionTimeline({ deliveries, jobs, vehicles, allStaff, onStart, onComplete, onScanCollect, canPerformActions, autoExpandId }) {
   // Sort by optimized sequence index; unoptimized go last by scheduled order
   const sorted = [...deliveries].sort((a, b) => {
     const aIdx = a.optimized_sequence_index;
@@ -180,7 +180,11 @@ export default function MissionTimeline({ deliveries, jobs, vehicles, allStaff, 
                         <Navigation className="w-4 h-4" /> Navigate
                       </a>
                     )}
-                    {isPending && (
+                    {delivery.delivery_type === 'supplier_collection' && onScanCollect ? (
+                      <button onClick={() => onScanCollect(delivery)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 active:scale-95 transition touch-manipulation">
+                        <ScanLine className="w-4 h-4" /> Scan to Collect
+                      </button>
+                    ) : isPending && (
                       <button onClick={() => onStart(delivery.id)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 active:scale-95 transition touch-manipulation">
                         <PlayCircle className="w-4 h-4" /> Start
                       </button>

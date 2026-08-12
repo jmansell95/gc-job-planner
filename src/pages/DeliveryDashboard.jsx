@@ -7,6 +7,7 @@ import { format, isFuture, isToday } from 'date-fns';
 import { EmptyState, Skeleton, SkeletonText } from '@/components/StateViews';
 import DeliveryCard from '@/components/delivery/DeliveryCard';
 import DeliveryCompleteModal from '@/components/delivery/DeliveryCompleteModal';
+import SiteCollectionScanner from '@/components/logistics/SiteCollectionScanner';
 import MissionTimeline from '@/components/delivery/MissionTimeline';
 import RouteOptimizeBar from '@/components/delivery/RouteOptimizeBar';
 import DriverLegChainView from '@/components/logistics/DriverLegChainView';
@@ -44,6 +45,7 @@ export default function DeliveryDashboard() {
   const [staff, setStaff] = useState(null);
   const [loading, setLoading] = useState(true);
   const [completeDelivery, setCompleteDelivery] = useState(null);
+  const [scanDelivery, setScanDelivery] = useState(null);
   const [autoExpandId, setAutoExpandId] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const queryClient = useQueryClient();
@@ -351,6 +353,7 @@ export default function DeliveryDashboard() {
     vehicleTotalWeight: vehicleDateWeightMap[`${delivery.vehicle_id}_${delivery.scheduled_date}`] || 0,
     onStart: handleStart,
     onComplete: (d) => setCompleteDelivery(d),
+    onScanCollect: (d) => setScanDelivery(d),
     canPerformActions,
     isOfflinePending: hasOfflineDelivery(delivery.id)
   });
@@ -413,6 +416,7 @@ export default function DeliveryDashboard() {
               allStaff={allStaff}
               onStart={handleStart}
               onComplete={(d) => setCompleteDelivery(d)}
+              onScanCollect={(d) => setScanDelivery(d)}
               canPerformActions={canPerformActions}
               autoExpandId={autoExpandId}
             />
@@ -443,6 +447,14 @@ export default function DeliveryDashboard() {
           </div>
         )}
       </div>
+
+      {/* Site collection scanner */}
+      {scanDelivery && (
+        <SiteCollectionScanner
+          delivery={scanDelivery}
+          onClose={() => setScanDelivery(null)}
+        />
+      )}
 
       {/* Complete modal */}
       <DeliveryCompleteModal

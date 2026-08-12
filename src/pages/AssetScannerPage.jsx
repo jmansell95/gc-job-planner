@@ -1,15 +1,17 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import {
   ScanLine, X, Package, Truck, Trash2, CheckCircle2,
-  AlertCircle, Lock, Unlock, ArrowLeft, Layers, Store,
+  AlertCircle, Lock, Unlock, ArrowLeft, Layers, Store, PackageOpen,
 } from 'lucide-react';
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import BulkScanBasket from '@/components/logistics/BulkScanBasket';
 import BookToVehicleModal from '@/components/assetcommand/BookToVehicleModal';
 import GoodsInScanner from '@/components/logistics/GoodsInScanner';
+import SiteCollectMode from '@/components/logistics/SiteCollectMode';
+import SiteCollectionScanner from '@/components/logistics/SiteCollectionScanner';
 import { enableKioskScannerMode, disableKioskScannerMode, isKioskScannerMode } from '@/utils/kioskMode';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -28,7 +30,13 @@ export default function AssetScannerPage() {
   const [scanError, setScanError] = useState('');
   const [showBook, setShowBook] = useState(false);
   const [kioskLocked, setKioskLocked] = useState(isKioskScannerMode());
-  const [mode, setMode] = useState('assets'); // 'assets' | 'goods-in'
+  const [mode, setMode] = useState('assets'); // 'assets' | 'goods-in' | 'site-collect'
+  const [scanDelivery, setScanDelivery] = useState(null);
+  const [staffProfile, setStaffProfile] = useState(null);
+
+  useEffect(() => {
+    base44.functions.invoke('getMyStaffProfile').then(res => setStaffProfile(res.data)).catch(() => {});
+  }, []);
 
   const { data: assets = [] } = useQuery({
     queryKey: ['site-assets'],
@@ -87,6 +95,38 @@ export default function AssetScannerPage() {
     return <GoodsInScanner onBack={() => setMode('assets')} />;
   }
 
+  // Site Collect mode — show the driver's collection tasks
+  if (mode === 'site-collect') {
+    return (
+      <>
+        <div className="fixed inset-0 bg-slate-50 flex flex-col">
+          <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-shrink-0 safe-area-top">
+            <div className="flex items-center gap-2.5">
+              <button onClick={() => setMode('assets')} className="p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition active:scale-95">
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                <PackageOpen className="w-5 h-5 text-blue-700" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-slate-900 leading-tight">Site Collection</h1>
+                <p className="text-xs text-slate-400">Scan QR codes to collect items from site</p>
+              </div>
+            </div>
+          </header>
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-2xl mx-auto w-full p-4">
+              <SiteCollectMode staff={staffProfile} onOpenScanner={(d) => setScanDelivery(d)} />
+            </div>
+          </div>
+        </div>
+        {scanDelivery && (
+          <SiteCollectionScanner delivery={scanDelivery} onClose={() => setScanDelivery(null)} />
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-slate-50 flex flex-col">
       {/* Header */}
@@ -114,6 +154,12 @@ export default function AssetScannerPage() {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${mode === 'goods-in' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500'}`}
             >
               <Store className="w-3.5 h-3.5" /> Goods In
+            </button>
+            <button
+              onClick={() => setMode('site-collect')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${mode === 'site-collect' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+            >
+              <PackageOpen className="w-3.5 h-3.5" /> Collect
             </button>
           </div>
           <button

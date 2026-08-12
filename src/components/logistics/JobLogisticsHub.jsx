@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Boxes, Plus, FileCheck, Undo2, ExternalLink, User, Truck, X, Loader2, Package
+  Boxes, Plus, FileCheck, Undo2, ExternalLink, User, Truck, X, Loader2, Package, QrCode
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format, eachDayOfInterval, isWeekend, differenceInCalendarDays } from 'date-fns';
@@ -17,6 +17,7 @@ import DeliveryList from '@/components/logistics/DeliveryList';
 import RigAssemblyGroup from '@/components/logistics/RigAssemblyGroup';
 import RigGearPickerModal from '@/components/logistics/RigGearPickerModal';
 import { findRigRateCardItem } from '@/components/logistics/rigRateMatcher';
+import SiteManifestPDF from '@/components/logistics/SiteManifestPDF';
 import { useBillingLock } from '@/hooks/useBillingLock';
 import BillingLockBanner from '@/components/billing/BillingLockBanner';
 
@@ -82,6 +83,7 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
   const [applyingPreset, setApplyingPreset] = useState(false);
   const [addingRigGear, setAddingRigGear] = useState(false);
   const [showRigPicker, setShowRigPicker] = useState(false);
+  const [showManifest, setShowManifest] = useState(false);
   const [updatingIds, setUpdatingIds] = useState(new Set());
   const [offHiringId, setOffHiringId] = useState(null);
   const [offHireDate, setOffHireDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -559,6 +561,10 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
                 className="inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3.5 sm:px-4 sm:py-2.5 rounded-xl bg-[#2E5A1A] hover:bg-[#1c4a12] active:scale-[0.98] transition shadow-md w-full sm:w-auto">
                 <Plus className="w-4 h-4" /> Add Billable Item
               </button>
+              <button onClick={() => setShowManifest(true)}
+                className="inline-flex items-center justify-center gap-2 text-sm text-slate-700 font-semibold px-4 py-3.5 sm:px-4 sm:py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 active:scale-[0.98] transition shadow-sm w-full sm:w-auto">
+                <QrCode className="w-4 h-4 text-blue-600" /> Print Site Manifest
+              </button>
               {isDrillingJob && allRigs.length > 0 && (
                 <button onClick={() => setShowRigPicker(true)} disabled={addingRigGear}
                   className="inline-flex items-center justify-center gap-2 text-sm text-white font-semibold px-4 py-3 sm:px-4 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 transition shadow-sm disabled:opacity-50 w-full sm:w-auto">
@@ -746,6 +752,9 @@ export default function JobLogisticsHub({ jobId, job, suppliers: externalSupplie
             </div>
           </div>
         </div>
+      )}
+      {showManifest && (
+        <SiteManifestPDF jobId={jobId} jobName={job?.name || ''} onClose={() => setShowManifest(false)} />
       )}
     </div>
   );
