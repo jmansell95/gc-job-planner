@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  CheckCircle2, AlertTriangle, XCircle, Truck, Wrench, Calendar,
+  CheckCircle2, AlertTriangle, XCircle, Truck, Wrench, Navigation,
   ShieldCheck, ShieldAlert, ShieldX, ArrowRight, Package, Clock,
 } from 'lucide-react';
 import { differenceInDays } from 'date-fns';
@@ -10,26 +10,28 @@ import { differenceInDays } from 'date-fns';
  * Pops up the moment an asset is scanned, showing:
  *   - Asset identity (name, serial, type)
  *   - Live compliance status (green/amber/red)
- *   - Quick actions (Book to Vehicle, View Details, etc.)
- *   - Auto-dismisses after a few seconds or on next scan
+ *   - Quick actions: Start Shift (rigs/vehicles) OR Book to Vehicle (equipment),
+ *     Details (opens the full Asset Command Drawer)
+ *   - Auto-dismisses on next scan or dismiss button
  */
-export default function ScanResultCard({ asset, onBookToVehicle, onViewDetails, onDismiss }) {
+export default function ScanResultCard({ asset, onBookToVehicle, onDriveAway, onOpenCommand, onDismiss }) {
   if (!asset) return null;
 
-  // Compliance status
   const expiryDate = asset.compliance_expiry_date;
   const daysToExpiry = expiryDate ? differenceInDays(new Date(expiryDate + 'T00:00:00'), new Date()) : null;
   const status = asset.compliance_status || 'unknown';
 
   const STATUS_META = {
-    compliant: { Icon: ShieldCheck, color: 'emerald', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', label: 'Compliant' },
-    expiring: { Icon: ShieldAlert, color: 'amber', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', label: 'Expiring Soon' },
-    expired: { Icon: ShieldX, color: 'red', bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', label: 'Expired' },
-    unknown: { Icon: ShieldAlert, color: 'slate', bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-600', label: 'No Compliance Data' },
+    compliant: { Icon: ShieldCheck, bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', label: 'Compliant' },
+    expiring: { Icon: ShieldAlert, bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', label: 'Expiring Soon' },
+    expired: { Icon: ShieldX, bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700', label: 'Expired' },
+    unknown: { Icon: ShieldAlert, bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-600', label: 'No Compliance Data' },
   };
   const statusMeta = STATUS_META[status] || STATUS_META.unknown;
   const StatusIcon = statusMeta.Icon;
   const canDispatch = status === 'compliant' || status === 'unknown';
+
+  const isDriveable = asset.asset_type === 'rig' || asset.asset_type === 'vehicle';
 
   const TYPE_ICONS = {
     rig: Wrench, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Package, portable_appliance: Wrench,
@@ -77,19 +79,33 @@ export default function ScanResultCard({ asset, onBookToVehicle, onViewDetails, 
 
       {/* Quick actions */}
       <div className="px-4 pb-3 flex gap-2">
+        {isDriveable ? (
+          <button
+            onClick={() => onDriveAway?.(asset)}
+            disabled={!canDispatch}
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition ${
+              canDispatch
+                ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95'
+                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+            }`}
+          >
+            <Navigation className="w-3.5 h-3.5" /> Start Shift
+          </button>
+        ) : (
+          <button
+            onClick={() => onBookToVehicle?.(asset)}
+            disabled={!canDispatch}
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition ${
+              canDispatch
+                ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95'
+                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+            }`}
+          >
+            <Truck className="w-3.5 h-3.5" /> Book to Vehicle
+          </button>
+        )}
         <button
-          onClick={() => onBookToVehicle?.(asset)}
-          disabled={!canDispatch}
-          className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition ${
-            canDispatch
-              ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95'
-              : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-          }`}
-        >
-          <Truck className="w-3.5 h-3.5" /> Book to Vehicle
-        </button>
-        <button
-          onClick={() => onViewDetails?.(asset)}
+          onClick={() => onOpenCommand?.(asset)}
           className="px-3 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200 transition active:scale-95"
         >
           Details

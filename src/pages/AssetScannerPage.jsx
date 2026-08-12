@@ -10,6 +10,9 @@ import {
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import BulkScanBasket from '@/components/logistics/BulkScanBasket';
 import ScanResultCard from '@/components/assetcommand/ScanResultCard';
+import AssetCommandDrawer from '@/components/assetcommand/AssetCommandDrawer';
+import DriveAwayModal from '@/components/assetcommand/DriveAwayModal';
+import ReportFaultModal from '@/components/assetcommand/ReportFaultModal';
 import BookToVehicleModal from '@/components/assetcommand/BookToVehicleModal';
 import GoodsInScanner from '@/components/logistics/GoodsInScanner';
 import SiteCollectMode from '@/components/logistics/SiteCollectMode';
@@ -36,6 +39,9 @@ export default function AssetScannerPage() {
   const [scanDelivery, setScanDelivery] = useState(null);
   const [staffProfile, setStaffProfile] = useState(null);
   const [scanResult, setScanResult] = useState(null);
+  const [commandAsset, setCommandAsset] = useState(null);
+  const [driveAwayAsset, setDriveAwayAsset] = useState(null);
+  const [faultAsset, setFaultAsset] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const searchRef = useRef(null);
@@ -289,7 +295,8 @@ export default function AssetScannerPage() {
             <ScanResultCard
               asset={scanResult}
               onBookToVehicle={(asset) => { setShowBook(true); }}
-              onViewDetails={(asset) => navigate('/assets')}
+              onDriveAway={(asset) => { setDriveAwayAsset(asset); setScanResult(null); }}
+              onOpenCommand={(asset) => { setCommandAsset(asset); setScanResult(null); }}
               onDismiss={() => setScanResult(null)}
             />
           )}
@@ -343,6 +350,38 @@ export default function AssetScannerPage() {
       {/* Book modal */}
       {showBook && (
         <BookToVehicleModal assets={basket} onClose={() => setShowBook(false)} onSuccess={handleBooked} />
+      )}
+
+      {/* Asset Command Drawer — self-contained details + actions */}
+      {commandAsset && (
+        <AssetCommandDrawer
+          asset={commandAsset}
+          allAssets={assets}
+          staffProfile={staffProfile}
+          onClose={() => setCommandAsset(null)}
+          onDriveAway={(asset) => { setCommandAsset(null); setDriveAwayAsset(asset); }}
+          onBookToVehicle={(asset) => { setCommandAsset(null); setBasket([asset]); setShowBook(true); }}
+          onReportFault={(asset) => { setCommandAsset(null); setFaultAsset(asset); }}
+        />
+      )}
+
+      {/* Drive Away — start shift & drive to job */}
+      {driveAwayAsset && (
+        <DriveAwayModal
+          asset={driveAwayAsset}
+          staffProfile={staffProfile}
+          onClose={() => setDriveAwayAsset(null)}
+          onSuccess={() => { setDriveAwayAsset(null); setLastScan(''); }}
+        />
+      )}
+
+      {/* Report Fault */}
+      {faultAsset && (
+        <ReportFaultModal
+          asset={faultAsset}
+          staffProfile={staffProfile}
+          onClose={() => setFaultAsset(null)}
+        />
       )}
     </div>
   );
