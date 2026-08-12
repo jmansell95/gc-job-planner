@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import BulkScanBasket from '@/components/logistics/BulkScanBasket';
+import ScanResultCard from '@/components/assetcommand/ScanResultCard';
 import BookToVehicleModal from '@/components/assetcommand/BookToVehicleModal';
 import GoodsInScanner from '@/components/logistics/GoodsInScanner';
 import SiteCollectMode from '@/components/logistics/SiteCollectMode';
@@ -33,6 +34,7 @@ export default function AssetScannerPage() {
   const [mode, setMode] = useState('assets'); // 'assets' | 'goods-in' | 'site-collect'
   const [scanDelivery, setScanDelivery] = useState(null);
   const [staffProfile, setStaffProfile] = useState(null);
+  const [scanResult, setScanResult] = useState(null); // Hilti-style immediate feedback
 
   useEffect(() => {
     base44.functions.invoke('getMyStaffProfile').then(res => setStaffProfile(res.data)).catch(() => {});
@@ -55,10 +57,12 @@ export default function AssetScannerPage() {
     if (!found) {
       setScanError(val);
       setLastScan('');
+      setScanResult(null);
       return;
     }
     setScanError('');
     setLastScan(found.name);
+    setScanResult(found); // Show Hilti-style immediate action card
     setBasket((prev) => {
       if (prev.find((a) => a.id === found.id)) {
         toast({ title: 'Already in basket', description: found.name });
@@ -185,12 +189,14 @@ export default function AssetScannerPage() {
             <BarcodeScanner onScan={handleScan} placeholder="Scan or type serial number…" autoFocus={false} />
           </div>
 
-          {/* Last scan feedback */}
-          {lastScan && !scanError && (
-            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 animate-pop-in">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-              <p className="text-sm text-emerald-800 font-semibold truncate">Added: {lastScan}</p>
-            </div>
+          {/* Hilti-style immediate scan result card */}
+          {scanResult && !scanError && (
+            <ScanResultCard
+              asset={scanResult}
+              onBookToVehicle={(asset) => { setShowBook(true); }}
+              onViewDetails={(asset) => navigate('/assets')}
+              onDismiss={() => setScanResult(null)}
+            />
           )}
           {scanError && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">

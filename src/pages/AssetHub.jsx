@@ -29,7 +29,6 @@ import BulkQRPrinter from '@/components/assetcommand/BulkQRPrinter';
 import ScrapPilePanel from '@/components/assetcommand/ScrapPilePanel';
 import AssetInventoryGrid from '@/components/assethub/AssetInventoryGrid';
 import AssetDeploymentsPanel from '@/components/assethub/AssetDeploymentsPanel';
-import YardControlWidget from '@/components/dashboard/YardControlWidget';
 import PredictiveMaintenanceWidget from '@/components/vehicles/PredictiveMaintenanceWidget';
 import PredictiveInsightsWidget from '@/components/dashboard/PredictiveInsightsWidget';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -111,7 +110,6 @@ export default function AssetHub() {
     { id: 'inventory', label: 'Inventory', icon: Boxes, count: assets.length },
     { id: 'compliance', label: 'Compliance', icon: ShieldCheck, badge: recertCount },
     { id: 'deployments', label: 'Deployments', icon: MapPin },
-    { id: 'yard', label: 'Yard', icon: Package },
     { id: 'performance', label: 'Performance', icon: TrendingUp },
     { id: 'lifecycle', label: 'Lifecycle', icon: TrendingDown },
     { id: 'scrap', label: 'Scrap Pile', icon: Trash2 },
@@ -160,9 +158,9 @@ export default function AssetHub() {
           <div className="flex items-center justify-between gap-3 flex-wrap py-1">
             <FleetSyncPanel />
             <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0">
-              <FleetHealthGauge percent={fleetHealthPct} size={72} />
+              <FleetHealthGauge percent={fleetHealthPct} size={96} />
               <div className="h-9 w-px bg-slate-200 hidden sm:block" />
-              <FleetComplianceDonut counts={fleetCounts} size={72} onSegmentClick={(k) => { setCompFilter(k); setView('inventory'); }} />
+              <FleetComplianceDonut counts={fleetCounts} size={96} onSegmentClick={(k) => { setCompFilter(k); setView('inventory'); }} />
             </div>
           </div>
 
@@ -252,10 +250,6 @@ export default function AssetHub() {
                   <MasterCertificateVault assets={assets} onOpenAsset={(a) => a.asset_type === 'rig' ? setOpenRig(a) : setOpenEquip(a)} />
                 </div>
               </div>
-            </ErrorBoundary>
-          ) : view === 'yard' ? (
-            <ErrorBoundary>
-              <YardControlWidget onNavigate={(section) => navigate('/admin', { state: { section } })} />
             </ErrorBoundary>
           ) : view === 'performance' ? (
             <ErrorBoundary>
