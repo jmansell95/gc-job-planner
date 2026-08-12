@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import {
   ScanLine, X, Package, Truck, Trash2, CheckCircle2,
   AlertCircle, Lock, Unlock, ArrowLeft, Layers, Store, PackageOpen,
+  Search, Wrench, ChevronRight, Plus,
 } from 'lucide-react';
 import BarcodeScanner from '@/components/staff/BarcodeScanner';
 import BulkScanBasket from '@/components/logistics/BulkScanBasket';
@@ -16,11 +17,11 @@ import SiteCollectionScanner from '@/components/logistics/SiteCollectionScanner'
 import { enableKioskScannerMode, disableKioskScannerMode, isKioskScannerMode } from '@/utils/kioskMode';
 import { useToast } from '@/components/ui/use-toast';
 
+const TYPE_ICONS = { rig: Wrench, machinery: Wrench, trailer: Package, vehicle: Truck, lifting: Package, portable_appliance: Wrench };
+
 /**
  * Asset Scanner — full-screen, kiosk-style page optimised for tablets.
- * Camera-first design: scan items into a basket, then bulk-book them
- * onto a vehicle. A "Kiosk" toggle pins this device to the scanner so
- * the app auto-opens here on every load.
+ * Camera-first design with real-time text search fallback.
  */
 export default function AssetScannerPage() {
   const navigate = useNavigate();
@@ -31,10 +32,13 @@ export default function AssetScannerPage() {
   const [scanError, setScanError] = useState('');
   const [showBook, setShowBook] = useState(false);
   const [kioskLocked, setKioskLocked] = useState(isKioskScannerMode());
-  const [mode, setMode] = useState('assets'); // 'assets' | 'goods-in' | 'site-collect'
+  const [mode, setMode] = useState('assets');
   const [scanDelivery, setScanDelivery] = useState(null);
   const [staffProfile, setStaffProfile] = useState(null);
-  const [scanResult, setScanResult] = useState(null); // Hilti-style immediate feedback
+  const [scanResult, setScanResult] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const searchRef = useRef(null);
 
   useEffect(() => {
     base44.functions.invoke('getMyStaffProfile').then(res => setStaffProfile(res.data)).catch(() => {});
@@ -45,6 +49,26 @@ export default function AssetScannerPage() {
     queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
   });
 
+  // Real-time search — filters as you type, matches name, serial, equipment_type, compliance_category
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q || q.length < 2) return [];
+    return assets
+      .filter(a => {
+        const name = (a.name || '').toLowerCase();
+        const serial = (a.serial_number || '').toLowerCase();
+        const equip = (a.equipment_type || '').toLowerCase();
+        const cat = (a.compliance_category || '').toLowerCase();
+        const panda = (a.panda_asset_id || '').toLowerCase();
+        return (
+          name.includes(q) || serial.includes(q) || equip.includes(q) ||
+          cat.includes(q) || panda.includes(q) ||
+          name.startsWith(q) || serial.startsWith(q)
+        );
+      })
+      .slice(0, 12);
+  }, [assets, searchQuery]);
+
   const handleScan = useCallback((val) => {
     const q = val.trim().toLowerCase();
     if (!q) return;
@@ -52,7 +76,10 @@ export default function AssetScannerPage() {
       const sn = (a.serial_number || '').toLowerCase().trim();
       const pid = (a.panda_asset_id || '').toLowerCase().trim();
       const nm = (a.name || '').toLowerCase().trim();
-      return sn === q || pid === q || nm === q || (sn && sn.includes(q)) || (pid && pid.includes(q));
+      const equip = (a.equipment_type || '').toLowerCase().trim();
+      return sn === q || pid === q || nm === q ||
+        (sn && sn.includes(q)) || (pid && pid.includes(q)) ||
+        (nm && nm.includes(q)) || (equip && equip.includes(q));
     });
     if (!found) {
       setScanError(val);
@@ -62,7 +89,9 @@ export default function AssetScannerPage() {
     }
     setScanError('');
     setLastScan(found.name);
-    setScanResult(found); // Show Hilti-style immediate action card
+    setScanResult(found);
+    setSearchQuery('');
+    setShowSearch(false);
     setBasket((prev) => {
       if (prev.find((a) => a.id === found.id)) {
         toast({ title: 'Already in basket', description: found.name });
@@ -71,6 +100,22 @@ export default function AssetScannerPage() {
       return [...prev, found];
     });
   }, [assets, toast]);
+
+  // Tap a search result to add it
+  const handleSelectResult = (asset) => {
+    setScanError('');
+    setLastScan(asset.name);
+    setScanResult(asset);
+    setSearchQuery('');
+    setShowSearch(false);
+    setBasket((prev) => {
+      if (prev.find((a) => a.id === asset.id)) {
+        toast({ title: 'Already in basket', description: asset.name });
+        return prev;
+      }
+      return [...prev, asset];
+    });
+  };
 
   const removeFromBasket = (id) => setBasket((prev) => prev.filter((a) => a.id !== id));
   const clearBasket = () => setBasket([]);
@@ -91,22 +136,21 @@ export default function AssetScannerPage() {
     clearBasket();
     setShowBook(false);
     setLastScan('');
+    setScanResult(null);
     queryClient.invalidateQueries({ queryKey: ['deliveries'] });
   };
 
-  // Goods In mode — render the dedicated goods-in scanner interface
   if (mode === 'goods-in') {
     return <GoodsInScanner onBack={() => setMode('assets')} />;
   }
 
-  // Site Collect mode — show the driver's collection tasks
   if (mode === 'site-collect') {
     return (
       <>
         <div className="fixed inset-0 bg-slate-50 flex flex-col">
           <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-shrink-0 safe-area-top">
             <div className="flex items-center gap-2.5">
-              <button onClick={() => setMode('assets')} className="p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition active:scale-95">
+              <button onClick={() => setMode('assets')} className="p-2.5 text-slate-500 hover:bg-slate-100 rounded-xl transition active:scale-95">
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
@@ -119,7 +163,7 @@ export default function AssetScannerPage() {
             </div>
           </header>
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-2xl mx-auto w-full p-4">
+            <div className="max-w-3xl xl:max-w-4xl mx-auto w-full p-4">
               <SiteCollectMode staff={staffProfile} onOpenScanner={(d) => setScanDelivery(d)} />
             </div>
           </div>
@@ -145,23 +189,22 @@ export default function AssetScannerPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* Mode toggle — Assets vs Goods In */}
           <div className="flex bg-slate-100 rounded-xl p-1">
             <button
               onClick={() => setMode('assets')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${mode === 'assets' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500'}`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition active:scale-95 ${mode === 'assets' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500'}`}
             >
               <ScanLine className="w-3.5 h-3.5" /> Assets
             </button>
             <button
               onClick={() => setMode('goods-in')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${mode === 'goods-in' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500'}`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition active:scale-95 ${mode === 'goods-in' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500'}`}
             >
               <Store className="w-3.5 h-3.5" /> Goods In
             </button>
             <button
               onClick={() => setMode('site-collect')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition ${mode === 'site-collect' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition active:scale-95 ${mode === 'site-collect' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
             >
               <PackageOpen className="w-3.5 h-3.5" /> Collect
             </button>
@@ -183,10 +226,62 @@ export default function AssetScannerPage() {
 
       {/* Main content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto w-full p-4 space-y-4">
-          {/* Scanner card */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
-            <BarcodeScanner onScan={handleScan} placeholder="Scan or type serial number…" autoFocus={false} />
+        <div className="max-w-3xl xl:max-w-4xl mx-auto w-full p-4 space-y-4">
+          {/* Scanner card with live search */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 relative">
+            <BarcodeScanner
+              onScan={handleScan}
+              onSearch={(val) => { setSearchQuery(val); setShowSearch(true); setScanError(''); }}
+              placeholder="Scan barcode or type to search (e.g. shackle)…"
+              autoFocus={false}
+            />
+
+            {/* Live search results dropdown */}
+            {showSearch && searchQuery.trim().length >= 2 && (
+              <div className="mt-2 border border-slate-200 rounded-xl overflow-hidden bg-white shadow-lg max-h-80 overflow-y-auto">
+                <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
+                  <Search className="w-3.5 h-3.5 text-slate-400" />
+                  <p className="text-xs font-semibold text-slate-600">
+                    {searchResults.length} match{searchResults.length !== 1 ? 'es' : ''} for "{searchQuery}"
+                  </p>
+                </div>
+                {searchResults.length === 0 ? (
+                  <div className="px-4 py-6 text-center">
+                    <p className="text-sm text-slate-400">No assets found</p>
+                    <p className="text-xs text-slate-300 mt-1">Try a different name, serial, or equipment type</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {searchResults.map(asset => {
+                      const Icon = TYPE_ICONS[asset.asset_type] || Package;
+                      return (
+                        <button
+                          key={asset.id}
+                          onClick={() => handleSelectResult(asset)}
+                          className="w-full flex items-center gap-3 px-3 py-3 hover:bg-emerald-50 transition active:scale-[0.99] text-left"
+                        >
+                          <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+                            <Icon className="w-4 h-4 text-slate-500" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{asset.name}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {asset.serial_number && (
+                                <span className="text-[11px] text-slate-500 font-mono">{asset.serial_number}</span>
+                              )}
+                              {asset.equipment_type && (
+                                <span className="text-[11px] text-slate-400 truncate">· {asset.equipment_type}</span>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Hilti-style immediate scan result card */}
@@ -218,8 +313,8 @@ export default function AssetScannerPage() {
               <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
                 <Package className="w-10 h-10 text-slate-300" />
               </div>
-              <p className="text-slate-500 font-medium text-base">Scan items to add them to the basket</p>
-              <p className="text-slate-400 text-sm mt-1">Point the camera at an Asset Panda QR label</p>
+              <p className="text-slate-500 font-medium text-base">Scan or search to add items</p>
+              <p className="text-slate-400 text-sm mt-1">Point camera at a QR label or type a name like "shackle"</p>
             </div>
           )}
         </div>
@@ -228,7 +323,7 @@ export default function AssetScannerPage() {
       {/* Sticky action bar */}
       {basket.length > 0 && (
         <footer className="bg-white border-t border-slate-200 px-4 py-3 flex-shrink-0 safe-area-bottom">
-          <div className="max-w-2xl mx-auto flex gap-2">
+          <div className="max-w-3xl xl:max-w-4xl mx-auto flex gap-2">
             <button
               onClick={() => setShowBook(true)}
               className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3.5 bg-emerald-700 text-white rounded-xl font-bold text-sm hover:bg-emerald-800 transition shadow-sm active:scale-95"

@@ -242,7 +242,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
   return (
     <>
       {/* Mobile Top Header — hamburger + brand + actions */}
-      <header className="lg:hidden fixed top-0 inset-x-0 z-40 border-b border-white/10 shadow-sm relative" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <header className="xl:hidden fixed top-0 inset-x-0 z-40 border-b border-white/10 shadow-sm relative" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="absolute inset-0 sidebar-modern" />
         <div className="relative z-10 h-14 flex items-center justify-between gap-2 px-3">
           <div className="flex items-center gap-1 min-w-0">
@@ -306,7 +306,7 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
       </header>
 
       {/* Desktop Sidebar */}
-      <nav className={`hidden lg:flex sticky top-0 h-screen ${collapsed ? 'w-16' : 'w-64'} border-r border-black/10 flex-col relative transition-all duration-300`}>
+      <nav className={`hidden xl:flex sticky top-0 h-screen ${collapsed ? 'w-16' : 'w-64'} border-r border-black/10 flex-col relative transition-all duration-300`}>
         <div className="absolute inset-0 sidebar-modern" />
         <div className="relative z-10 flex flex-col h-full">
           {desktopNav}

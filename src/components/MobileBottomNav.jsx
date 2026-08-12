@@ -36,7 +36,7 @@ export default function MobileBottomNav() {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-lg border-t border-slate-200 safe-area-bottom"
+      className="xl:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-lg border-t border-slate-200 safe-area-bottom"
       style={{ boxShadow: '0 -4px 24px -8px rgba(15, 23, 42, 0.12)' }}
     >
       <div className="flex items-stretch justify-around px-1 h-14">

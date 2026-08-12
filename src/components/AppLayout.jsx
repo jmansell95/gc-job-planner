@@ -46,15 +46,15 @@ export default function AppLayout() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen page-bg-vibrant">
+    <div className="flex flex-col xl:flex-row min-h-screen page-bg-vibrant">
       <AdminNav activeSection={activeSection} setActiveSection={setActiveSection} onSettingsTabClick={(tab) => navigate('/admin', { state: { section: 'settings', settingsTab: tab } })} />
       <div className="flex-1 flex flex-col min-h-0">
         <RedAlertBanner />
         <main
-          className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] lg:pt-0"
+          className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] xl:pt-0"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          <div className="px-4 pb-24 md:px-6 lg:pb-6 lg:pt-6 w-full">
+          <div className="px-4 pb-24 md:px-6 xl:pb-6 xl:pt-6 w-full">
             <Breadcrumbs />
             <Outlet />
           </div>

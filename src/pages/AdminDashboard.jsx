@@ -110,12 +110,12 @@ export default function AdminDashboard() {
   }, [profile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen page-bg-vibrant">
+    <div className="flex flex-col xl:flex-row min-h-screen page-bg-vibrant">
       <AdminNav activeSection={activeSection} setActiveSection={handleSetActiveSection} onSettingsTabClick={(tab) => { setSettingsTab(tab); setActiveSection('settings'); }} />
       <div className="flex-1 flex flex-col min-h-0">
         <RedAlertBanner />
-      <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] lg:pt-0">
-        <div className="px-4 pb-24 md:px-6 lg:pb-4 lg:pt-6 w-full">
+      <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] xl:pt-0">
+        <div className="px-4 pb-24 md:px-6 xl:pb-4 xl:pt-6 w-full">
           <Breadcrumbs sectionLabel={SECTION_LABELS[activeSection]} />
           <motion.div
             key={activeSection}
