@@ -170,13 +170,14 @@ export default async function(req: Request): Promise<Response> {
       return Array.isArray(json?.result) ? json.result : [];
     }
 
-    const [allDevices, vehicleTypeList, statuses, allTrips, exceptions, ruleList] = await Promise.all([
+    const [allDevices, vehicleTypeList, statuses, allTrips, exceptions, ruleList, driverList] = await Promise.all([
       geotabGet('Device', undefined, 1000),
       geotabGet('VehicleType', undefined, 1000),
       geotabGet('DeviceStatusInfo', undefined, 1000),
       geotabGet('Trip', { fromDate: tripFromDate }, 2000),
       geotabGet('ExceptionEvent', { fromDate: safetyFromDate }, 10000),
       geotabGet('Rule', undefined, 2000),
+      geotabGet('Driver', undefined, 1000),
     ]);
 
     // Filter devices by group membership (client-side — Geotab's groupSearch is unreliable)
@@ -214,6 +215,23 @@ export default async function(req: Request): Promise<Response> {
     const ruleMap: Record<string, any> = {};
     for (const r of ruleList) {
       ruleMap[r.id] = r;
+    }
+
+    // Build map: device_id → keeper driver name from the Geotab Driver entity.
+    // Driver.defaultDevice links a driver to their primary vehicle — this is the
+    // FIXED keeper assignment that shows as "Assigned: <name>" on vehicle cards.
+    const keeperByDevice: Record<string, string> = {};
+    for (const driver of driverList) {
+      const devId = driver.defaultDevice?.id;
+      const name = driver.name || [driver.firstName, driver.lastName].filter(Boolean).join(' ');
+      if (devId && name) keeperByDevice[devId] = name;
+    }
+
+    // Load staff for best-effort keeper → Staff record name matching
+    const allStaff = await base44.asServiceRole.entities.Staff.list('-created_date', 500);
+    const staffByName: Record<string, string> = {};
+    for (const s of allStaff) {
+      if (s.name) staffByName[s.name.toLowerCase().trim()] = s.id;
     }
 
     // Aggregate safety events per device
@@ -352,6 +370,14 @@ export default async function(req: Request): Promise<Response> {
         }
       }
 
+      // Set the Geotab keeper (fixed assignment) — from Driver.defaultDevice
+      const keeperName = keeperByDevice[deviceId];
+      if (keeperName) {
+        detailUpdate.geotab_keeper_name = keeperName;
+        const matchedStaffId = staffByName[keeperName.toLowerCase().trim()];
+        if (matchedStaffId) detailUpdate.geotab_keeper_staff_id = matchedStaffId;
+      }
+
       // Merge safety telemetry stats into the update payload
       const safety = safetyByDevice[deviceId];
       if (safety) {
@@ -389,6 +415,13 @@ export default async function(req: Request): Promise<Response> {
         if (d.comment) {
           const colourMatch = d.comment.match(/colou?r[:\s]+([a-zA-Z]+)/i);
           if (colourMatch) createPayload.color = colourMatch[1].charAt(0).toUpperCase() + colourMatch[1].slice(1).toLowerCase();
+        }
+        // Set the Geotab keeper (fixed assignment) on auto-created vehicles
+        const keeperName = keeperByDevice[deviceId];
+        if (keeperName) {
+          createPayload.geotab_keeper_name = keeperName;
+          const matchedStaffId = staffByName[keeperName.toLowerCase().trim()];
+          if (matchedStaffId) createPayload.geotab_keeper_staff_id = matchedStaffId;
         }
         // Fallback: decode make and year from the VIN WMI + year code
         if (vin && (!vt?.make || !vt?.year)) {

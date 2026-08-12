@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Truck, ShieldCheck, ShieldAlert, ShieldX, Wrench, Gauge,
-  Satellite, Link2, Car, Hash, Navigation, Zap, Clock, Palette,
+  Satellite, Link2, Car, Hash, Navigation, Zap, Clock, Palette, User,
   FileText, Loader2, BadgeCheck, AlertTriangle, CloudOff, Receipt, CalendarCheck,
 } from 'lucide-react';
 import VehicleLocationMiniMap from '@/components/vehicles/VehicleLocationMiniMap';
@@ -204,6 +204,36 @@ export default function FleetVehicleCard({ vehicle, liveLocation, nextBooking, d
             </span>
           )}
         </div>
+
+        {/* Assigned keeper — FIXED assignment from Geotab (Driver.defaultDevice) */}
+        {(vehicle.geotab_keeper_name || vehicle.assigned_staff_id) && (
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200" title="Fixed vehicle keeper — synced from Geotab">
+              <User className="w-3 h-3" /> Assigned: {vehicle.geotab_keeper_name || driverName || '—'}
+            </span>
+          </div>
+        )}
+
+        {/* Driving Now — LIVE operator from active DeliveryLog task */}
+        {vehicle.current_operator_name && (
+          <>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white shadow-sm">
+                <span className="relative w-2 h-2 rounded-full bg-white">
+                  <span className="absolute inset-0 rounded-full bg-white animate-ping opacity-75" />
+                </span>
+                <Navigation className="w-3 h-3" /> Driving: {vehicle.current_operator_name}
+              </span>
+            </div>
+            {vehicle.current_job_name && (
+              <p className="text-[10px] text-emerald-700 font-medium mb-2 leading-tight pl-0.5">
+                {vehicle.current_delivery_type === 'supplier_collection' ? 'Collecting' : 'Delivering'}
+                {vehicle.current_delivery_items ? ` ${vehicle.current_delivery_items.substring(0, 36)}${vehicle.current_delivery_items.length > 36 ? '…' : ''}` : ''}
+                {' '}for <span className="font-bold">{vehicle.current_job_name}</span>
+              </p>
+            )}
+          </>
+        )}
 
         {/* Driver safety risk badge — from Geotab Exception events */}
         {vehicle.geotab_sync_status === 'synced' && vehicle.safety_event_count != null && (

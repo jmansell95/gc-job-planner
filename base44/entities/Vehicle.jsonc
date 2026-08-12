@@ -186,6 +186,54 @@
       "type": "string",
       "description": "Name of the driver currently/last detected by Geotab for this vehicle. Pulled from Geotab Exception events (safety telemetry) and DeviceStatusInfo. Shown on the Job Detail page so managers can see who is driving the vehicle assigned to a job."
     },
+    "geotab_keeper_name": {
+      "type": "string",
+      "description": "Name of the vehicle's assigned keeper/primary driver from Geotab (the Driver entity's defaultDevice link). This is the FIXED assignment \u2014 who the vehicle belongs to. Updated automatically during Geotab sync. Shown as the 'Assigned' badge on vehicle cards."
+    },
+    "geotab_keeper_staff_id": {
+      "type": "string",
+      "description": "Linked Staff record matching the Geotab keeper name (best-effort name match). Blank when no Staff record matches the Geotab driver name."
+    },
+    "current_operator_id": {
+      "type": "string",
+      "description": "Staff ID of the driver currently driving this vehicle (LIVE). Set automatically when a DeliveryLog task moves to 'in_progress' and cleared when the task completes. This is the dynamic 'Driving Now' status \u2014 reflects who is actually behind the wheel right now, driven by delivery/collection/handover activity rather than hardware."
+    },
+    "current_operator_name": {
+      "type": "string",
+      "description": "Name of the live driver (denormalised for display). Shown as the 'Driving Now' badge on vehicle cards and the live map."
+    },
+    "current_delivery_id": {
+      "type": "string",
+      "description": "ID of the active DeliveryLog task the live driver is performing. Cleared when the task completes."
+    },
+    "current_job_id": {
+      "type": "string",
+      "description": "Job ID of the active delivery task (denormalised for display)."
+    },
+    "current_job_name": {
+      "type": "string",
+      "description": "Job name of the active delivery task (denormalised for display on the live map and vehicle card)."
+    },
+    "current_delivery_type": {
+      "type": "string",
+      "enum": [
+        "site_delivery",
+        "supplier_delivery",
+        "supplier_collection",
+        "item_handover",
+        "sample_collection",
+        "sample_delivery"
+      ],
+      "description": "Type of the active delivery task the live driver is performing."
+    },
+    "current_delivery_items": {
+      "type": "string",
+      "description": "Items being delivered/collected in the active task (denormalised for the 'Driving Now' badge context)."
+    },
+    "operator_updated_at": {
+      "type": "string",
+      "description": "ISO timestamp of when the live operator status was last updated."
+    },
     "safety_harsh_braking_count": {
       "type": "number",
       "default": 0,
