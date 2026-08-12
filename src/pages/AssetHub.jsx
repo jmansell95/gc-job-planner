@@ -42,7 +42,6 @@ const CATEGORIES = [
   { id: 'lifting', label: 'Lifting', icon: Anchor },
   { id: 'machinery', label: 'Machinery', icon: Wrench },
   { id: 'trailer', label: 'Trailers', icon: Package },
-  { id: 'vehicle', label: 'Vehicles', icon: Truck },
   { id: 'portable_appliance', label: 'PAT', icon: Plug },
 ];
 
@@ -67,17 +66,20 @@ export default function AssetHub() {
   const [showSmartImport, setShowSmartImport] = useState(false);
   const [showBulkQR, setShowBulkQR] = useState(false);
 
-  const { data: assets = [], isLoading } = useQuery({
+  const { data: allAssets = [], isLoading } = useQuery({
     queryKey: ['site-assets'],
     queryFn: () => base44.entities.SiteAsset.list('-created_date', 500),
   });
+
+  // Vehicles are managed in the dedicated Fleet tab — exclude them from the Assets inventory
+  const assets = useMemo(() => allAssets.filter(a => a.asset_type !== 'vehicle'), [allAssets]);
 
   const rigs = useMemo(() => assets.filter(a => a.asset_type === 'rig'), [assets]);
   const equipment = useMemo(() => assets.filter(a => a.asset_type !== 'rig'), [assets]);
 
   // Category counts
   const categoryCounts = useMemo(() => {
-    const c = { all: assets.length, rig: 0, lifting: 0, machinery: 0, trailer: 0, vehicle: 0, portable_appliance: 0 };
+    const c = { all: assets.length, rig: 0, lifting: 0, machinery: 0, trailer: 0, portable_appliance: 0 };
     assets.forEach(a => { if (c[a.asset_type] != null) c[a.asset_type]++; });
     return c;
   }, [assets]);
