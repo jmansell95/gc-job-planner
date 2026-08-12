@@ -1,6 +1,6 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, Home } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ChevronRight, Home, ArrowLeft } from 'lucide-react';
 
 // Route-level labels for known paths. The last entry is always the current
 // page (non-link). Paths not listed here fall back to auto-generation from
@@ -58,6 +58,7 @@ function autoGenerateTrail(pathname) {
 
 export default function Breadcrumbs({ sectionLabel }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   let trail = ROUTE_MAP[pathname] || autoGenerateTrail(pathname);
 
   // Allow pages with internal section navigation (e.g. AdminDashboard) to
@@ -77,25 +78,42 @@ export default function Breadcrumbs({ sectionLabel }) {
     }
   }
 
+  const handleBack = () => {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <nav aria-label="Breadcrumb" className="mb-4">
-      <div className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-white/80 backdrop-blur-sm border border-slate-200/70 shadow-sm text-sm overflow-hidden">
-        <Link to="/" className="flex items-center gap-1 text-slate-400 hover:text-[#2E5A1A] transition font-medium flex-shrink-0">
-          <Home className="w-3.5 h-3.5" /><span className="hidden sm:inline">Home</span>
-        </Link>
-        {trail.map((item, i) => {
-          const isLast = i === trail.length - 1;
-          return (
-            <React.Fragment key={i}>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
-              {item.to && !isLast ? (
-                <Link to={item.to} className="text-slate-400 hover:text-[#2E5A1A] transition font-medium truncate">{item.label}</Link>
-              ) : (
-                <span className={`truncate ${isLast ? 'text-[#2E5A1A] font-semibold' : 'text-slate-500 font-medium'}`}>{item.label}</span>
-              )}
-            </React.Fragment>
-          );
-        })}
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={handleBack}
+          className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 active:scale-95 transition text-sm font-semibold shadow-sm flex-shrink-0"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="hidden sm:inline">Back</span>
+        </button>
+        <div className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-white/80 backdrop-blur-sm border border-slate-200/70 shadow-sm text-sm overflow-hidden">
+          <Link to="/" className="flex items-center gap-1 text-slate-400 hover:text-[#2E5A1A] transition font-medium flex-shrink-0">
+            <Home className="w-3.5 h-3.5" /><span className="hidden sm:inline">Home</span>
+          </Link>
+          {trail.map((item, i) => {
+            const isLast = i === trail.length - 1;
+            return (
+              <React.Fragment key={i}>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
+                {item.to && !isLast ? (
+                  <Link to={item.to} className="text-slate-400 hover:text-[#2E5A1A] transition font-medium truncate">{item.label}</Link>
+                ) : (
+                  <span className={`truncate ${isLast ? 'text-[#2E5A1A] font-semibold' : 'text-slate-500 font-medium'}`}>{item.label}</span>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
       </div>
     </nav>
   );

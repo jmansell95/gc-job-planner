@@ -176,7 +176,7 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-2xl h-full bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right"
+        className="relative w-full h-full bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right"
         onClick={e => e.stopPropagation()}
       >
         {/* ── Header ── */}
