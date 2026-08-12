@@ -173,10 +173,10 @@ export default function VehicleDetailDrawer({ vehicle, onClose }) {
   const motionColor = isMoving ? 'emerald' : latestLoc?.ignition_on ? 'amber' : 'slate';
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-blue-950/60 backdrop-blur-md" />
       <div
-        className="relative w-full h-full bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right"
+        className="relative w-full max-w-5xl max-h-[calc(100dvh-2rem)] bg-white rounded-2xl shadow-2xl overflow-y-auto animate-in zoom-in-95"
         onClick={e => e.stopPropagation()}
       >
         {/* ── Header ── */}

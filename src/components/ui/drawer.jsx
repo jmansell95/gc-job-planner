@@ -27,17 +27,21 @@ const DrawerOverlay = React.forwardRef(({ className, ...props }, ref) => (
 ))
 DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
+// Drawer now renders as a centered popup box (same as Dialog/Modal) for
+// site-wide visual consistency. The drag handle is removed since it only
+// makes sense for a bottom-attached sheet.
 const DrawerContent = React.forwardRef(({ className, children, ...props }, ref) => (
   <DrawerPortal>
     <DrawerOverlay />
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-2xl border border-slate-200/80 bg-background shadow-[0_8px_40px_-12px_rgba(15,23,42,0.25),0_4px_16px_-8px_rgba(15,23,42,0.15)]",
+        "fixed inset-0 z-50 grid w-full gap-4 bg-background p-4 pt-14 overflow-y-auto overscroll-contain max-h-[100dvh]",
+        "sm:left-[50%] sm:top-[50%] sm:max-w-3xl sm:translate-x-[-50%] sm:translate-y-[-50%] sm:max-h-[calc(100dvh-3rem)] sm:rounded-2xl sm:border sm:border-slate-200/80 sm:p-8 sm:pt-8",
+        "shadow-[0_8px_40px_-12px_rgba(15,23,42,0.25),0_4px_16px_-8px_rgba(15,23,42,0.15),0_0_0_1px_rgba(255,255,255,0.5)]",
         className
       )}
       {...props}>
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-slate-300" />
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>

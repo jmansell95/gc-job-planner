@@ -25,17 +25,18 @@ const SheetOverlay = React.forwardRef(({ className, ...props }, ref) => (
 ))
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName
 
+// All Sheet variants now render as a centered popup box (same as Dialog).
+// The `side` prop is kept for backward compatibility but no longer affects
+// positioning — every drawer is a centered modal for visual consistency.
 const sheetVariants = cva(
-  "fixed z-50 gap-4 bg-background p-6 transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out",
+  "fixed z-50 gap-4 bg-background transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
   {
     variants: {
       side: {
-        top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
-        bottom:
-          "inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        left: "inset-y-0 left-0 h-full w-full border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-xl",
-        right:
-          "inset-y-0 right-0 h-full w-full border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-xl",
+        top: "",
+        bottom: "",
+        left: "",
+        right: "",
       },
     },
     defaultVariants: {
@@ -51,9 +52,10 @@ const SheetContent = React.forwardRef(({ side = "right", className, children, ..
       ref={ref}
       className={cn(
         sheetVariants({ side }),
-        "overflow-y-auto overscroll-contain",
-        // Modern layered shadow that makes the drawer pop on desktop
-        "shadow-[0_8px_40px_-12px_rgba(15,23,42,0.25),0_4px_16px_-8px_rgba(15,23,42,0.15)]",
+        // Centered popup box — identical to DialogContent for site-wide consistency
+        "inset-0 grid w-full p-4 pt-14 overflow-y-auto overscroll-contain max-h-[100dvh]",
+        "sm:left-[50%] sm:top-[50%] sm:max-w-3xl sm:translate-x-[-50%] sm:translate-y-[-50%] sm:max-h-[calc(100dvh-3rem)] sm:rounded-2xl sm:border sm:border-slate-200/80 sm:p-8 sm:pt-8",
+        "shadow-[0_8px_40px_-12px_rgba(15,23,42,0.25),0_4px_16px_-8px_rgba(15,23,42,0.15),0_0_0_1px_rgba(255,255,255,0.5)]",
         className
       )}
       {...props}>

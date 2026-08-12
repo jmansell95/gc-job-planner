@@ -74,9 +74,9 @@ export default function AssetPassportDrawer({ asset, allAssets = [], onClose, on
   const vaultAssetNames = { [asset.id]: asset.name, ...Object.fromEntries(linkedItems.map(i => [i.id, i.name])) };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-xl h-full bg-white shadow-2xl flex flex-col animate-in slide-in-from-right">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-blue-950/60 backdrop-blur-md" onClick={onClose} />
+      <div className="relative w-full max-w-xl max-h-[calc(100dvh-2rem)] bg-white rounded-2xl shadow-2xl flex flex-col animate-in zoom-in-95 overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 flex-shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
