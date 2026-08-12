@@ -4,7 +4,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "description": "Name of this access level (e.g. 'Full Access', 'Read Only', 'Field Supervisor')."
+      "description": "Name of this access level (e.g. 'Super Admin', 'Field Team', 'Office Staff')."
     },
     "description": {
       "type": "string",
@@ -13,7 +13,7 @@
     "is_system": {
       "type": "boolean",
       "default": false,
-      "description": "True for built-in groups (Super Admin, Read Only). System groups can't be deleted."
+      "description": "True for built-in groups (Super Admin, Field Staff, Read Only). System groups can't be deleted."
     },
     "is_read_only": {
       "type": "boolean",
@@ -87,6 +87,16 @@
           ],
           "default": "none"
         },
+        "safety": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none",
+          "description": "Safety & Compliance Hub \u2014 audits, incidents, toolbox talks, environmental. Write = can report incidents and manage toolbox talks."
+        },
         "log-qc": {
           "type": "string",
           "enum": [
@@ -114,6 +124,16 @@
           ],
           "default": "none"
         },
+        "staff": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none",
+          "description": "Staff Management \u2014 directory, cost analytics, permission group assignments. Write = can add/edit staff and assign permission groups."
+        },
         "billing": {
           "type": "string",
           "enum": [
@@ -122,6 +142,26 @@
             "write"
           ],
           "default": "none"
+        },
+        "assets": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none",
+          "description": "Asset Hub \u2014 rigs, plant, vehicles, lifting gear, PAT testing, compliance passports. Write = can add/edit assets and log services."
+        },
+        "logistics": {
+          "type": "string",
+          "enum": [
+            "none",
+            "read",
+            "write"
+          ],
+          "default": "none",
+          "description": "Logistics & Deliveries \u2014 delivery dashboard, route optimisation, goods in, driver day planner. Write = can create/edit delivery tasks and routes."
         },
         "settings": {
           "type": "string",
@@ -147,5 +187,23 @@
   },
   "required": [
     "name"
-  ]
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

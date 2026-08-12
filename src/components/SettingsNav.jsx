@@ -98,7 +98,7 @@ export const settingsGroups = [
       { id: 'asset-manifests', label: 'Van Manifest QRs', icon: QrCode, desc: 'Create QR print-outs for bulky items (casing, rig tooling) — crews scan one sheet to log returns', roles: ['admin'] },
       { id: 'equipment-library', label: 'Equipment Sets', icon: Package, desc: 'Pre-built equipment sets (presets) — individual items now sync from Asset Panda' },
       { id: 'asset-lifecycle', label: 'Asset Lifecycle', icon: Wrench, desc: 'Track assets from acquisition to disposal — depreciation, book value & replacement planning', roles: ['admin'] },
-      { id: 'access-levels', label: 'Permission Groups', icon: ShieldCheck, desc: 'Create permission groups and assign them to each crew member from Staff Command', roles: ['admin'] },
+      { id: 'access-levels', label: 'Permission Groups', icon: ShieldCheck, desc: 'Create permission groups and assign them to each crew member from Staff Command', roles: ['super_admin'] },
       { id: 'absences', label: 'Absences', icon: CalendarX, desc: 'Manage staff absences and leave' },
       { id: 'holiday-accrual', label: 'Holiday Accrual', icon: CalendarDays, desc: 'Track holiday pay accruals for staff' },
       { id: 'staff-reviews', label: 'Performance Reviews', icon: Star, desc: 'Manage staff performance reviews' },
@@ -125,7 +125,10 @@ export const allSettingsItems = settingsGroups.flatMap(g => g.items);
 // checked first — 'none' hides the entire settings area.
 export function accessibleSettingsItems(role, profile) {
   if (!role) return [];
-  const effective = role === 'super_admin' ? 'admin' : role;
+
+  // Super admins see everything — including the permission groups page
+  // which is locked to super_admin only.
+  if (role === 'super_admin') return allSettingsItems;
 
   // Permission group gate: if the group grants no access to the settings
   // module, hide every settings item.
@@ -134,7 +137,7 @@ export function accessibleSettingsItems(role, profile) {
     if (settingsLevel === 'none') return [];
   }
 
-  return allSettingsItems.filter(i => !i.roles || i.roles.includes(effective));
+  return allSettingsItems.filter(i => !i.roles || i.roles.includes(role));
 }
 
 // The sidebar nav UI component has been removed — the Settings Command Hub
