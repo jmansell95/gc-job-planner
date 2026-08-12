@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import {
   X, Cog, Wrench, Package, Truck, Anchor, ShieldCheck, ShieldAlert, ShieldX,
   HelpCircle, Clock, CalendarClock, Database, Plug, Navigation,
-  AlertTriangle, History, FileText,
+  AlertTriangle, History, FileText, MapPin, ArrowRight,
 } from 'lucide-react';
 import { safeFormat } from '@/utils/format';
 import { daysUntil } from '@/utils/rigRollup';
@@ -58,6 +62,31 @@ function Row({ label, value, mono }) {
  */
 export default function AssetCommandDrawer({ asset, allAssets = [], staffProfile, onClose, onDriveAway, onBookToVehicle, onReportFault }) {
   const [tab, setTab] = useState('overview');
+  const navigate = useNavigate();
+  const today = format(new Date(), 'yyyy-MM-dd');
+
+  // Fetch today's job assignment for the current staff member — shows
+  // context about where they're supposed to be right in the passport.
+  const { data: todayAssignment } = useQuery({
+    queryKey: ['passport-today-job', staffProfile?.id, today],
+    queryFn: async () => {
+      if (!staffProfile?.id) return null;
+      const all = await base44.entities.RotaAssignment.filter({ staff_id: staffProfile.id, assigned_date: today });
+      return all.find(a => a.assignment_type === 'job' && a.job_id) || null;
+    },
+    enabled: !!staffProfile?.id,
+  });
+
+  const { data: todayJob } = useQuery({
+    queryKey: ['passport-today-job-detail', todayAssignment?.job_id],
+    queryFn: async () => {
+      if (!todayAssignment?.job_id) return null;
+      const jobs = await base44.entities.Job.filter({ id: todayAssignment.job_id });
+      return jobs[0] || null;
+    },
+    enabled: !!todayAssignment?.job_id,
+  });
+
   if (!asset) return null;
 
   const typeMeta = TYPE_META[asset.asset_type] || TYPE_META.machinery;
@@ -167,6 +196,26 @@ export default function AssetCommandDrawer({ asset, allAssets = [], staffProfile
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {tab === 'overview' && (
             <>
+              {/* Current Job context — links the passport to the staff schedule */}
+              {todayJob && (
+                <button
+                  onClick={() => navigate('/staff-schedule')}
+                  className="w-full flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl p-3 hover:bg-emerald-100 transition active:scale-[0.99] text-left mb-3"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-white border border-emerald-200 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-4 h-4 text-emerald-700" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold uppercase text-emerald-600 tracking-wide">Your Current Job</p>
+                    <p className="text-sm font-bold text-slate-900 truncate">{todayJob.name}</p>
+                    {todayJob.location && (
+                      <p className="text-[11px] text-slate-500 truncate">{todayJob.location}</p>
+                    )}
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                </button>
+              )}
+
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="font-mono bg-slate-100 text-slate-600 px-2 py-1 rounded">{asset.serial_number || 'No serial'}</span>
                 {asset.rig_type && asset.rig_type !== 'n/a' && <span className="uppercase font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">{asset.rig_type}</span>}

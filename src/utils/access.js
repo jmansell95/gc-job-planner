@@ -162,9 +162,9 @@ export function canAccessRoute(profile, isPlatformAdmin, path) {
 
   const role = resolveRole(profile, isPlatformAdmin);
 
-  // Field staff: staff dashboard + profile only
+  // Field staff: staff dashboard + profile + scanner hub
   if (role === 'field') {
-    return path === '/staff-schedule' || path === '/staff-profile';
+    return path === '/staff-schedule' || path === '/staff-profile' || path === '/scanner';
   }
 
   // All office roles (super_admin, admin, management, user, read_only): full access

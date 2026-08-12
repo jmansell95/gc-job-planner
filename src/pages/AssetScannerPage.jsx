@@ -14,6 +14,9 @@ import AssetCommandDrawer from '@/components/assetcommand/AssetCommandDrawer';
 import DriveAwayModal from '@/components/assetcommand/DriveAwayModal';
 import ReportFaultModal from '@/components/assetcommand/ReportFaultModal';
 import BookToVehicleModal from '@/components/assetcommand/BookToVehicleModal';
+import FieldHubTabs from '@/components/fieldhub/FieldHubTabs';
+import MyGearTab from '@/components/fieldhub/MyGearTab';
+import MyTodayTab from '@/components/fieldhub/MyTodayTab';
 import GoodsInScanner from '@/components/logistics/GoodsInScanner';
 import SiteCollectMode from '@/components/logistics/SiteCollectMode';
 import SiteCollectionScanner from '@/components/logistics/SiteCollectionScanner';
@@ -44,11 +47,14 @@ export default function AssetScannerPage() {
   const [faultAsset, setFaultAsset] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [hubTab, setHubTab] = useState('scan');
   const searchRef = useRef(null);
 
   useEffect(() => {
     base44.functions.invoke('getMyStaffProfile').then(res => setStaffProfile(res.data)).catch(() => {});
   }, []);
+
+  const isHubAdmin = staffProfile?.is_admin || staffProfile?.system_role === 'super_admin';
 
   const { data: assets = [] } = useQuery({
     queryKey: ['site-assets'],
@@ -233,6 +239,11 @@ export default function AssetScannerPage() {
       {/* Main content */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl xl:max-w-4xl mx-auto w-full p-4 space-y-4">
+          {/* Field Hub Tabs */}
+          <FieldHubTabs activeTab={hubTab} onChange={setHubTab} isAdmin={isHubAdmin} />
+
+          {hubTab === 'scan' && (
+            <>
           {/* Scanner card with live search */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 relative">
             <BarcodeScanner
@@ -324,11 +335,21 @@ export default function AssetScannerPage() {
               <p className="text-slate-400 text-sm mt-1">Point camera at a QR label or type a name like "shackle"</p>
             </div>
           )}
+            </>
+          )}
+
+          {hubTab === 'mygear' && (
+            <MyGearTab staffProfile={staffProfile} allAssets={assets} onOpenAsset={setCommandAsset} />
+          )}
+
+          {hubTab === 'mytoday' && (
+            <MyTodayTab staffProfile={staffProfile} allAssets={assets} />
+          )}
         </div>
       </div>
 
       {/* Sticky action bar */}
-      {basket.length > 0 && (
+      {hubTab === 'scan' && basket.length > 0 && (
         <footer className="bg-white border-t border-slate-200 px-4 py-3 flex-shrink-0 safe-area-bottom">
           <div className="max-w-3xl xl:max-w-4xl mx-auto flex gap-2">
             <button

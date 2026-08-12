@@ -19,6 +19,7 @@ export default function DriveAwayModal({ asset, staffProfile, onClose, onSuccess
   const [jobId, setJobId] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [clearedRigName, setClearedRigName] = useState(null);
 
   const isVehicle = asset?.asset_type === 'vehicle';
   const isRig = asset?.asset_type === 'rig';
@@ -36,42 +37,44 @@ export default function DriveAwayModal({ asset, staffProfile, onClose, onSuccess
   const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
   const canSubmit = jobId && !saving && staffProfile?.id;
 
+  // Pre-fill the job from today's existing assignment so the driller doesn't
+  // have to re-select if they're already scheduled onto a job today.
+  const { data: todayAssignment } = useQuery({
+    queryKey: ['drive-today-assignment', staffProfile?.id, today],
+    queryFn: async () => {
+      if (!staffProfile?.id) return null;
+      const all = await base44.entities.RotaAssignment.filter({ staff_id: staffProfile.id, assigned_date: today });
+      return all.find(a => a.assignment_type === 'job' && a.job_id) || null;
+    },
+    enabled: !!staffProfile?.id,
+  });
+
+  React.useEffect(() => {
+    if (todayAssignment?.job_id && !jobId) setJobId(todayAssignment.job_id);
+  }, [todayAssignment, jobId]);
+
   const handleSubmit = async () => {
     if (!jobId) { toast({ title: 'Select a job to drive to', variant: 'destructive' }); return; }
     if (!staffProfile?.id) { toast({ title: 'No staff profile linked to your account', description: 'Ask an admin to link your user to a Staff record.', variant: 'destructive' }); return; }
     setSaving(true);
     try {
-      const assignment = {
-        staff_id: staffProfile.id,
-        assigned_date: today,
-        week_start: weekStart,
-        job_id: jobId,
-        assignment_type: 'job',
-        status: 'assigned',
-      };
-      if (isRig) assignment.rig_asset_id = asset.id;
-      if (isVehicle) assignment.vehicle_id = asset.id;
-      await base44.entities.RotaAssignment.create(assignment);
-
-      if (isVehicle) {
-        await base44.entities.Vehicle.update(asset.id, {
-          current_operator_id: staffProfile.id,
-          current_operator_name: staffProfile.name,
-          operator_updated_at: new Date().toISOString(),
-          current_job_id: jobId,
-          current_job_name: selectedJob?.name || '',
-        });
-      }
+      const res = await base44.functions.invoke('bookAssetToStaff', { asset_id: asset.id, job_id: jobId });
+      const result = res.data || {};
 
       queryClient.invalidateQueries({ queryKey: ['rota-assignments'] });
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       queryClient.invalidateQueries({ queryKey: ['site-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['my-gear-rota'] });
+      queryClient.invalidateQueries({ queryKey: ['my-today-rota'] });
+      queryClient.invalidateQueries({ queryKey: ['passport-today-job'] });
+      setClearedRigName(result.cleared_old_rig ? result.old_rig_name : null);
       setConfirmed(true);
       if (onSuccess) onSuccess({ job: selectedJob });
-      setTimeout(() => onClose(), 1800);
+      setTimeout(() => onClose(), 2200);
     } catch (err) {
       console.error('Drive away error:', err);
-      toast({ title: 'Error', description: 'Could not start shift.', variant: 'destructive' });
+      const msg = err?.response?.data?.error || err?.message || 'Could not start shift.';
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
     }
     setSaving(false);
   };
@@ -101,6 +104,11 @@ export default function DriveAwayModal({ asset, staffProfile, onClose, onSuccess
             </div>
             <p className="font-bold text-slate-900 mb-1">You're booked in!</p>
             <p className="text-sm text-slate-500">{asset.name} is assigned to you for {selectedJob?.name || 'the job'} today.</p>
+            {clearedRigName && (
+              <p className="text-xs text-amber-600 mt-2 bg-amber-50 rounded-lg px-3 py-2">
+                You've been checked out of {clearedRigName} automatically.
+              </p>
+            )}
           </div>
         ) : (
           <div className="p-5 space-y-4">
