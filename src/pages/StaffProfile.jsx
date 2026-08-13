@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, UserCog, CalendarClock, TrendingUp, Trophy, ClipboardList, GraduationCap, FileText, UserPlus, Loader2 } from 'lucide-react';
+import { HardHat, Sparkles, LayoutDashboard, ClipboardCheck, CalendarPlus, X, Clock, Wrench, ShieldCheck, Users, UserCog, UserCircle, CalendarClock, TrendingUp, Trophy, ClipboardList, GraduationCap, FileText, UserPlus, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import TimesheetHistory from '@/components/staff/TimesheetHistory';
 import StaffBookings from '@/components/staff/StaffBookings';
@@ -23,7 +23,7 @@ import StaffPerformanceCharts from '@/components/staff/StaffPerformanceCharts';
 import IncentiveDashboard from '@/components/staff/IncentiveDashboard';
 import NoCrewProfileState from '@/components/staff/NoCrewProfileState';
 import ProfileAvatar from '@/components/ui/ProfileAvatar';
-import Breadcrumbs from '@/components/Breadcrumbs';
+import FieldPageShell from '@/components/field/FieldPageShell';
 import RedAlertBanner from '@/components/safety/RedAlertBanner';
 
 const ABSENCE_REASONS = [
@@ -150,71 +150,50 @@ export default function StaffProfile() {
   const canAccessAdmin = isOfficeStaff(staff, staff.is_admin);
 
   return (
-    <div className="bg-slate-50 min-h-screen">
+    <FieldPageShell
+      title="My Profile"
+      subtitle={`${staff.name}${staff.team?.name ? ' · ' + staff.team.name : ''}`}
+      icon={UserCircle}
+      onBack={() => navigate('/staff-schedule')}
+      actions={
+        <button onClick={() => setShowEditDrawer(true)} type="button"
+          className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition active:scale-95 touch-manipulation">
+          <UserCog className="w-4 h-4 text-slate-600" />
+        </button>
+      }
+    >
       <RedAlertBanner />
-      {/* Header with Quick Actions bar */}
-      <div className="bg-white border-b border-slate-200 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="relative max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-5">
-          <div className="flex items-center gap-3 mb-4">
-            <ProfileAvatar name={staff.name} avatarUrl={staff.avatar_url} size={48} />
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-slate-900 text-lg font-bold truncate">{staff.name}</p>
-                {staff.team?.name && <p className="text-slate-500 text-sm truncate">· {staff.team.name}</p>}
-                {roleLabel && (
-                  <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-[#2E5A1A]/10 text-[#2E5A1A] font-semibold ring-1 ring-[#2E5A1A]/20 whitespace-nowrap">
-                    <ShieldCheck className="w-3 h-3" /> {roleLabel}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          {/* Primary navigation — Back to Schedule + Admin (always visible, prominent) */}
-          <div className="flex items-center gap-2 mb-3">
-            <button onClick={() => navigate('/staff-schedule')} type="button"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2E5A1A] text-white text-sm font-bold active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0 shadow-sm">
-              <CalendarClock className="w-4 h-4" />
-              <span>Back to Schedule</span>
+      <div className="max-w-4xl mx-auto px-4 pt-3">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          {canAccessAdmin && (
+            <button onClick={() => navigate('/admin')} type="button"
+              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Admin</span>
             </button>
-            {canAccessAdmin && (
-              <button onClick={() => navigate('/admin')} type="button"
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
-                <LayoutDashboard className="w-4 h-4" />
-                <span>Admin Panel</span>
-              </button>
-            )}
-          </div>
-          {/* Secondary actions — profile management */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-            <button onClick={() => setShowEditDrawer(true)} type="button"
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
-              <UserCog className="w-4 h-4" />
-              <span>Edit Profile</span>
+          )}
+          <button onClick={() => setShowAbsenceForm(true)} type="button"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
+            <CalendarPlus className="w-4 h-4" />
+            <span>Time Off</span>
+          </button>
+          {reporters.length > 0 && (
+            <button onClick={() => setShowApprovals(true)} type="button"
+              className="relative flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
+              <ClipboardCheck className="w-4 h-4" />
+              <span>Approvals</span>
+              {pendingCount > 0 && (
+                <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center">{pendingCount}</span>
+              )}
             </button>
-            <button onClick={() => setShowAbsenceForm(true)} type="button"
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
-              <CalendarPlus className="w-4 h-4" />
-              <span>Time Off</span>
-            </button>
-            {reporters.length > 0 && (
-              <button onClick={() => setShowApprovals(true)} type="button"
-                className="relative flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
-                <ClipboardCheck className="w-4 h-4" />
-                <span>Approvals</span>
-                {pendingCount > 0 && (
-                  <span className="min-w-[20px] h-5 px-1.5 bg-amber-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center">{pendingCount}</span>
-                )}
-              </button>
-            )}
-            <button onClick={openChat} type="button"
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
-              <Sparkles className="w-4 h-4" />
-              <span>Assistant</span>
-            </button>
-          </div>
+          )}
+          <button onClick={openChat} type="button"
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium active:scale-95 transition touch-manipulation whitespace-nowrap flex-shrink-0">
+            <Sparkles className="w-4 h-4" />
+            <span>Assistant</span>
+          </button>
         </div>
       </div>
-      <Breadcrumbs />
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 md:px-6 pt-5 md:pt-8" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
@@ -374,6 +353,6 @@ export default function StaffProfile() {
           </div>
         </div>
       )}
-    </div>
+    </FieldPageShell>
   );
 }

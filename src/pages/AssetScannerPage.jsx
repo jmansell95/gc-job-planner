@@ -197,57 +197,58 @@ export default function AssetScannerPage() {
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-50 flex flex-col">
-      {/* Header — gradient brand bar */}
-      <header className="bg-gradient-to-r from-[#2E5A1A] to-[#1c4a12] px-4 py-3 flex items-center justify-between flex-shrink-0 safe-area-top shadow-md">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
-            <ScanLine className="w-5 h-5 text-white" />
+    <div className="fixed inset-0 page-bg-vibrant flex flex-col">
+      {/* Header — sticky blur bar */}
+      <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-shrink-0 safe-area-top">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {!kioskLocked && (
+            <button onClick={() => navigate(isHubAdmin ? '/admin' : '/staff-schedule')} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition flex-shrink-0 active:scale-95 touch-manipulation">
+              <ArrowLeft className="w-5 h-5 text-slate-600" />
+            </button>
+          )}
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm flex-shrink-0">
+            <ScanLine className="w-4 h-4 text-white" />
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-white leading-tight">Asset Scanner</h1>
-            <p className="text-xs text-white/70">{basket.length} item{basket.length !== 1 ? 's' : ''} in basket</p>
+          <div className="min-w-0">
+            <h1 className="text-base font-bold text-slate-900 leading-tight">Asset Scanner</h1>
+            <p className="text-[11px] text-slate-500">{basket.length} item{basket.length !== 1 ? 's' : ''} in basket</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex bg-white/10 backdrop-blur-sm rounded-xl p-1">
-            <button
-              onClick={() => setMode('assets')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition active:scale-95 ${mode === 'assets' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-white/70'}`}
-            >
-              <ScanLine className="w-3.5 h-3.5" /> Assets
-            </button>
-            {isHubAdmin && (
-              <button
-                onClick={() => setMode('goods-in')}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition active:scale-95 ${mode === 'goods-in' ? 'bg-white text-amber-700 shadow-sm' : 'text-white/70'}`}
-              >
-                <Store className="w-3.5 h-3.5" /> Goods In
-              </button>
-            )}
-            <button
-              onClick={() => setMode('site-collect')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition active:scale-95 ${mode === 'site-collect' ? 'bg-white text-blue-700 shadow-sm' : 'text-white/70'}`}
-            >
-              <PackageOpen className="w-3.5 h-3.5" /> Collect
-            </button>
-          </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
           {isHubAdmin && (
             <button
               onClick={toggleKiosk}
-              className={`inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95 ${kioskLocked ? 'bg-amber-400/90 text-amber-900 ring-1 ring-amber-300' : 'bg-white/10 text-white/70'}`}
+              className={`inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95 ${kioskLocked ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-200' : 'bg-slate-100 text-slate-600'}`}
             >
               {kioskLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
               <span className="hidden sm:inline">{kioskLocked ? 'Kiosk On' : 'Kiosk'}</span>
             </button>
           )}
-          {!kioskLocked && (
-            <button onClick={() => navigate(isHubAdmin ? '/admin' : '/staff-schedule')} className="p-2.5 text-white/70 hover:bg-white/10 rounded-xl transition active:scale-95">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          )}
         </div>
       </header>
+      {/* Mode toggles — horizontal scroll pills */}
+      <div className="bg-white/80 backdrop-blur-lg border-b border-slate-200 px-4 py-2.5 flex gap-2 flex-shrink-0 overflow-x-auto no-scrollbar">
+        <button
+          onClick={() => setMode('assets')}
+          className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition active:scale-95 ${mode === 'assets' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'}`}
+        >
+          <ScanLine className="w-3.5 h-3.5" /> Assets
+        </button>
+        {isHubAdmin && (
+          <button
+            onClick={() => setMode('goods-in')}
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition active:scale-95 ${mode === 'goods-in' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'}`}
+          >
+            <Store className="w-3.5 h-3.5" /> Goods In
+          </button>
+        )}
+        <button
+          onClick={() => setMode('site-collect')}
+          className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-semibold transition active:scale-95 ${mode === 'site-collect' ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'}`}
+        >
+          <PackageOpen className="w-3.5 h-3.5" /> Collect
+        </button>
+      </div>
 
       {/* Main content */}
       <div className="flex-1 overflow-y-auto">

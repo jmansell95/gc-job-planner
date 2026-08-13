@@ -23,13 +23,14 @@ import AdHocVisitModal from '@/components/staff/AdHocVisitModal';
 import TodayPrepStrip from '@/components/staff/TodayPrepStrip';
 import SyncHUD from '@/components/staff/SyncHUD';
 import StaffTabBar from '@/components/staff/StaffTabBar';
-import StaffHeader from '@/components/staff/StaffHeader';
+import FieldPageShell from '@/components/field/FieldPageShell';
+import StaffHeaderActions from '@/components/field/StaffHeaderActions';
 import RedAlertBanner from '@/components/safety/RedAlertBanner';
 import StaffAlerts from '@/components/staff/StaffAlerts';
 import ActiveJobCard from '@/components/staff/ActiveJobCard';
 import IncentiveQuickLook from '@/components/staff/IncentiveQuickLook';
 import DrillingWeatherWidget from '@/components/DrillingWeatherWidget';
-import Breadcrumbs from '@/components/Breadcrumbs';
+
 
 export default function StaffDashboard() {
   const navigate = useNavigate();
@@ -544,12 +545,14 @@ export default function StaffDashboard() {
     };
 
   return (
-    <div className="bg-slate-50 min-h-screen pb-20">
+    <FieldPageShell
+      title="My Schedule"
+      subtitle={`${new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}, ${staff?.name?.split(' ')[0] || 'Team'} · ${format(new Date(), 'EEE dd MMM · HH:mm')}`}
+      icon={Calendar}
+      actions={<StaffHeaderActions staff={staff} />}
+      contentClassName="pb-20"
+    >
       <RedAlertBanner />
-      <StaffHeader staff={staff} onShowSchedule={() => setShowScheduleSummary(true)} />
-      <div className="max-w-6xl mx-auto px-4 md:px-6">
-        <Breadcrumbs />
-      </div>
 
       {/* Today Tab — zero-scroll, action-first */}
       {activeTab === 'today' && (
@@ -862,6 +865,6 @@ export default function StaffDashboard() {
           onClose={() => setShowScheduleSummary(false)}
         />
       )}
-    </div>
+    </FieldPageShell>
   );
 }

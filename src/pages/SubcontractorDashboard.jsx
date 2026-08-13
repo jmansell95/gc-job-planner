@@ -8,13 +8,16 @@ import SubconDelayReport from '@/components/subcontractors/SubconDelayReport';
 import SyncHUD from '@/components/staff/SyncHUD';
 import WeeklyProgress from '@/components/staff/WeeklyProgress';
 import { useToast } from '@/components/ui/use-toast';
-import PageHeader from '@/components/PageHeader';
+import { useNavigate } from 'react-router-dom';
+import FieldPageShell from '@/components/field/FieldPageShell';
+import StaffHeaderActions from '@/components/field/StaffHeaderActions';
 
 // Sub-contractor "Lite" portal — a minimalist daily logging interface.
 // Sub-contractors log their day (including metres drilled), see their weekly
 // progress, and trust the Sync HUD that their data reached the office.
 export default function SubcontractorDashboard() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [staff, setStaff] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -72,17 +75,13 @@ export default function SubcontractorDashboard() {
     .reduce((sum, l) => sum + (l.units_completed || 0), 0);
 
   return (
-    <div className="bg-slate-50 space-y-4">
-      <PageHeader
-        icon={HardHat}
-        title={`Welcome, ${staff.name.split(' ')[0]}`}
-        subtitle="Sub-contractor daily logging portal"
-        stats={[
-          { label: 'Today', value: `${meterageToday.toFixed(1)}m`, icon: CheckCircle2 },
-          { label: 'Total Logs', value: sentLogs.length, icon: Send },
-        ]}
-      />
-
+    <FieldPageShell
+      title="Sub-contractor Portal"
+      subtitle={`Welcome, ${staff.name.split(' ')[0]}`}
+      icon={HardHat}
+      onBack={() => navigate('/staff-schedule')}
+      actions={<StaffHeaderActions staff={staff} />}
+    >
       <div className="max-w-2xl mx-auto px-4 pt-5 space-y-4" style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
         {/* Sync HUD — persistent confidence indicator */}
         <SyncHUD />
@@ -166,6 +165,6 @@ export default function SubcontractorDashboard() {
           )}
         </div>
       </div>
-    </div>
+    </FieldPageShell>
   );
 }

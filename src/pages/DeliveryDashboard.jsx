@@ -15,8 +15,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/lib/AuthContext';
 import { isWithinSiteHours, isBeforeSiteOpen, SITE_OPEN_TIME, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { saveOfflineDelivery, hasOfflineDelivery } from '@/utils/offlineSync';
-import Breadcrumbs from '@/components/Breadcrumbs';
-import StaffHeader from '@/components/staff/StaffHeader';
+
+import FieldPageShell from '@/components/field/FieldPageShell';
+import StaffHeaderActions from '@/components/field/StaffHeaderActions';
 import RedAlertBanner from '@/components/safety/RedAlertBanner';
 import SyncHUD from '@/components/staff/SyncHUD';
 import StaffAlerts from '@/components/staff/StaffAlerts';
@@ -359,10 +360,14 @@ export default function DeliveryDashboard() {
   });
 
   return (
-    <div className="bg-slate-50 min-h-screen pb-20">
+    <FieldPageShell
+      title="My Deliveries"
+      subtitle={`${new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}, ${staff?.name?.split(' ')[0] || 'Team'} · ${format(new Date(), 'EEE dd MMM · HH:mm')}`}
+      icon={Truck}
+      actions={<StaffHeaderActions staff={staff} />}
+      contentClassName="pb-20"
+    >
       <RedAlertBanner />
-      <StaffHeader staff={staff} />
-      <Breadcrumbs />
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-4 space-y-3">
@@ -465,6 +470,6 @@ export default function DeliveryDashboard() {
         staffList={allStaff}
         currentDriverName={staff?.name || ''}
       />
-    </div>
+    </FieldPageShell>
   );
 }
