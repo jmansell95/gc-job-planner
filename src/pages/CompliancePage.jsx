@@ -106,30 +106,24 @@ export default function CompliancePage() {
             </a>
           </div>
 
-          {/* Live stat tiles */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
-            {[
-              { icon: AlertTriangle, label: 'Critical Alerts', value: criticalReports.length, sub: 'Open red alerts', tone: 'rose' },
-              { icon: ClipboardCheck, label: 'Open Audits', value: openReports.length, sub: 'Awaiting close-out', tone: 'amber' },
-              { icon: CalendarDays, label: 'Overdue Actions', value: overdueActions.length, sub: 'Past due date', tone: 'rose' },
-              { icon: FileText, label: 'Total Audits', value: reports.length, sub: 'All time', tone: 'emerald' },
-            ].map((s) => {
-              const Icon = s.icon;
-              return (
-                <div key={s.label} className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 ring-1 ring-white/15">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
-                      <Icon className="w-4 h-4 text-white" />
-                    </div>
-                    <p className="text-[10px] font-bold text-white/70 uppercase tracking-wide truncate">{s.label}</p>
-                  </div>
-                  <p className="text-2xl font-extrabold text-white tabular-nums leading-none">
-                    {loadingReports ? <Loader2 className="w-5 h-5 animate-spin inline" /> : s.value}
-                  </p>
-                  <p className="text-[11px] text-white/60 mt-1 truncate">{s.sub}</p>
-                </div>
-              );
-            })}
+          {/* Info banner — SafetyCulture not synced */}
+          <div className="mt-5 flex items-start gap-3 bg-white/10 backdrop-blur-md rounded-2xl p-4 ring-1 ring-white/15">
+            <div className="w-9 h-9 rounded-lg bg-amber-400/20 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-4.5 h-4.5 text-amber-300" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-white">No SafetyCulture data synced</p>
+              <p className="text-xs text-white/70 mt-0.5">
+                Audit, incident and inspection data is not currently being pulled from SafetyCulture.
+                Configure the integration in Settings → Integrations → SafetyCulture to start syncing.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/admin', { state: { section: 'settings' } })}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition flex-shrink-0"
+            >
+              <Zap className="w-3.5 h-3.5" /> Configure
+            </button>
           </div>
         </div>
       </div>

@@ -12,7 +12,7 @@ import StateMonitorBar from '@/components/dashboard/StateMonitorBar';
  */
 export default function CommandCentreSection({ monitors, onNavigate }) {
   const { data: jobs = [] } = useQuery({ queryKey: ['mc-jobs'], queryFn: () => base44.entities.Job.list('-updated_date', 200) });
-  const { data: invoices = [] } = useQuery({ queryKey: ['mc-invoices'], queryFn: () => base44.entities.Invoice.list('-created_date', 50) });
+  const { data: invoices = [] } = useQuery({ queryKey: ['mc-invoices'], queryFn: () => base44.entities.Invoice.list('-issue_date', 200) });
   const { data: timesheets = [] } = useQuery({ queryKey: ['mc-timesheets'], queryFn: () => base44.entities.Timesheet.list('-created_date', 50) });
   const { data: safetyReports = [] } = useQuery({ queryKey: ['mc-safety'], queryFn: () => base44.entities.SafetyReport.filter({ status: 'open' }) });
   const { data: siteAssets = [] } = useQuery({ queryKey: ['mc-assets'], queryFn: () => base44.entities.SiteAsset.list('-created_date', 500) });
@@ -132,18 +132,6 @@ export default function CommandCentreSection({ monitors, onNavigate }) {
                 <p className="text-lg font-bold tabular-nums text-slate-800 leading-none">{gbp(m.totalInvoiceValue)}</p>
                 <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mt-0.5">Outstanding</p>
                 <p className="text-[10px] text-slate-400 mt-0.5">{m.pendingInvoices} pending · {m.overdueInvoices} overdue</p>
-              </div>
-            </div>
-
-            {/* Safety */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
-                <AlertTriangle className="w-4 h-4 text-slate-500" />
-              </div>
-              <div>
-                <p className={`text-lg font-bold tabular-nums leading-none ${m.criticalSafety > 0 ? 'text-rose-600' : 'text-slate-800'}`}>{m.openSafety}</p>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mt-0.5">Open Safety</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">{m.criticalSafety > 0 ? `${m.criticalSafety} critical` : 'No critical'}</p>
               </div>
             </div>
 

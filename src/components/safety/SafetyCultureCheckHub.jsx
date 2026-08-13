@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   ShieldAlert, ShieldCheck, Car, Wrench, ClipboardCheck, FileText, Loader2,
-  ExternalLink, AlertTriangle, Users, Calendar, ChevronRight, Search,
+  ExternalLink, AlertTriangle, Users, Calendar, ChevronRight, Search, Zap,
 } from 'lucide-react';
 const ACCENT = '#2E5A1A';
 
@@ -99,6 +99,30 @@ export default function SafetyCultureCheckHub({ onNavigate }) {
     { key: 'plant', label: 'Plant & Equipment' },
     { key: 'powra', label: 'POWRAs' },
   ];
+
+  // No data synced — show info message instead of zero-value stats
+  if (!isLoading && reports.length === 0) {
+    return (
+      <div className="insight-card rounded-2xl p-8 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4">
+          <ShieldAlert className="w-7 h-7 text-amber-600" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-900 mb-1.5">No SafetyCulture data synced</h3>
+        <p className="text-sm text-slate-500 max-w-md mx-auto mb-5">
+          Audit, incident and inspection data is not currently being pulled from SafetyCulture.
+          Once the integration is configured, audits, overdue actions and auditor breakdowns will appear here.
+        </p>
+        {onNavigate && (
+          <button
+            onClick={() => onNavigate('settings')}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2E5A1A] text-white rounded-xl text-sm font-semibold hover:bg-[#1c4a12] transition"
+          >
+            <Zap className="w-4 h-4" /> Configure Integration
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>
