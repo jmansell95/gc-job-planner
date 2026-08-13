@@ -485,6 +485,7 @@ export default function WeeklyRotaBuilder() {
       {/* Week Navigator + Stats + Filters — single compact strip */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-2.5 mb-3">
         {/* Row 1: week nav + stat pills */}
+        {/* Row 1: date picker + filters — all on one line */}
         <div className="flex flex-wrap items-center gap-2 mb-2">
           <div className="flex items-center gap-1 bg-slate-50 rounded-lg border border-slate-200 px-1.5 py-1 flex-shrink-0">
             <button onClick={goToPrevWeek} className="p-1 hover:bg-slate-200 rounded-md transition"><ChevronLeft className="w-4 h-4 text-slate-600" /></button>
@@ -501,61 +502,61 @@ export default function WeeklyRotaBuilder() {
               className="text-xs px-1.5 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-emerald-600 text-slate-600 w-[120px]" />
           </div>
 
-          {/* Compact stat pills */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs">
-              <Calendar className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="font-bold text-slate-900 tabular-nums">{totalAssignments}</span>
-              <span className="text-slate-500">Shifts</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs">
-              <Users className="w-3.5 h-3.5 text-blue-600" />
-              <span className="font-bold text-slate-900 tabular-nums">{staffWorking}</span>
-              <span className="text-slate-500">Crew</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-xs">
-              <Briefcase className="w-3.5 h-3.5 text-amber-600" />
-              <span className="font-bold text-slate-900 tabular-nums">{jobsActive}</span>
-              <span className="text-slate-500">Jobs</span>
-            </span>
-            {weekRecord && (
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs ${isPublished ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
-                {isPublished ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Clock className="w-3.5 h-3.5 text-amber-600" />}
-                <span className="font-bold text-slate-900">{isPublished ? 'Published' : 'Draft'}</span>
+          {/* Filters — right side of date picker */}
+          <div className="flex items-center gap-2 flex-wrap ml-auto">
+            <div className="flex items-center gap-2 bg-slate-50 rounded-lg border border-slate-200 px-2.5 py-1.5 min-w-[160px]">
+              <Search className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+              <input type="text" value={staffSearch} onChange={(e) => setStaffSearch(e.target.value)}
+                placeholder="Search staff..."
+                className="flex-1 text-sm focus:outline-none bg-transparent text-slate-700 placeholder:text-slate-400 w-[120px]" />
+              {staffSearch && (
+                <button onClick={() => setStaffSearch('')} className="text-slate-400 hover:text-slate-600">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg border border-slate-200 px-2.5 py-1.5">
+              <Filter className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+              <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}
+                className="text-sm focus:outline-none bg-transparent text-slate-700 font-medium">
+                <option value="">All Teams</option>
+                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <button onClick={() => setShowWeekends(v => !v)}
+              className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm font-medium transition ${showWeekends ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
+              <CalendarDays className="w-3.5 h-3.5" />
+              {showWeekends ? 'Mon–Sun' : 'Mon–Fri'}
+            </button>
+            {(teamFilter || staffSearch) && (
+              <span className="text-xs text-slate-500 self-center">
+                {filteredStaff.length} of {staff.length} staff
               </span>
             )}
           </div>
         </div>
 
-        {/* Row 2: filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 bg-slate-50 rounded-lg border border-slate-200 px-2.5 py-1.5 flex-1 min-w-[160px] max-w-xs">
-            <Search className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-            <input type="text" value={staffSearch} onChange={(e) => setStaffSearch(e.target.value)}
-              placeholder="Search staff..."
-              className="flex-1 text-sm focus:outline-none bg-transparent text-slate-700 placeholder:text-slate-400" />
-            {staffSearch && (
-              <button onClick={() => setStaffSearch('')} className="text-slate-400 hover:text-slate-600">
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg border border-slate-200 px-2.5 py-1.5">
-            <Filter className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-            <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}
-              className="text-sm focus:outline-none bg-transparent text-slate-700 font-medium">
-              <option value="">All Teams</option>
-              {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
-          </div>
-          <button onClick={() => setShowWeekends(v => !v)}
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm font-medium transition ${showWeekends ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
-            <CalendarDays className="w-3.5 h-3.5" />
-            {showWeekends ? 'Mon–Sun' : 'Mon–Fri'}
-          </button>
-          {(teamFilter || staffSearch) && (
-            <span className="text-xs text-slate-500 self-center">
-              {filteredStaff.length} of {staff.length} staff
+        {/* Row 2: stat pills */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs">
+            <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="font-bold text-slate-900 tabular-nums">{totalAssignments}</span>
+            <span className="text-slate-500">Shifts</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs">
+            <Users className="w-3.5 h-3.5 text-blue-600" />
+            <span className="font-bold text-slate-900 tabular-nums">{staffWorking}</span>
+            <span className="text-slate-500">Crew</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-xs">
+            <Briefcase className="w-3.5 h-3.5 text-amber-600" />
+            <span className="font-bold text-slate-900 tabular-nums">{jobsActive}</span>
+            <span className="text-slate-500">Jobs</span>
+          </span>
+          {weekRecord && (
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs ${isPublished ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+              {isPublished ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Clock className="w-3.5 h-3.5 text-amber-600" />}
+              <span className="font-bold text-slate-900">{isPublished ? 'Published' : 'Draft'}</span>
             </span>
           )}
         </div>
