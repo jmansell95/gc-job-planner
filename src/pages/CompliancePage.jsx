@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import {
   ShieldCheck, ShieldAlert, AlertTriangle, BarChart3, HardHat,
-  ClipboardCheck, CalendarDays, ExternalLink, Lock, Loader2,
-  TrendingUp, Users, FileText, Zap,
+  CalendarDays, ExternalLink, Lock,
+  TrendingUp,
 } from 'lucide-react';
+import SafetyCultureGate from '@/components/safety/SafetyCultureGate';
 import SafetyCultureCheckHub from '@/components/safety/SafetyCultureCheckHub';
 import IncidentReporter from '@/components/safety/IncidentReporter';
 import RIDDORStatsPanel from '@/components/safety/RIDDORStatsPanel';
@@ -32,18 +32,6 @@ export default function CompliancePage() {
 
   const role = resolveRole(profile) || 'field';
   const canAccess = role === 'admin' || role === 'super_admin' || role === 'management' || role === 'manager';
-
-  const { data: reports = [], isLoading: loadingReports } = useQuery({
-    queryKey: ['safety-reports', 'compliance-page'],
-    queryFn: () => base44.entities.SafetyReport.list('-created_date', 200),
-  });
-
-  const openReports = reports.filter(r => r.status === 'open');
-  const criticalReports = reports.filter(r => r.severity === 'critical' && r.status === 'open');
-  const now = new Date();
-  const overdueActions = reports
-    .filter(r => r.status === 'open')
-    .flatMap(r => (r.action_items || []).filter(a => a?.due_date && new Date(a.due_date) < now));
 
   const tabs = [
     { id: 'safety-hub', label: 'Safety Hub', icon: ShieldAlert },
@@ -105,26 +93,6 @@ export default function CompliancePage() {
               Open SafetyCulture
             </a>
           </div>
-
-          {/* Info banner — SafetyCulture not synced */}
-          <div className="mt-5 flex items-start gap-3 bg-white/10 backdrop-blur-md rounded-2xl p-4 ring-1 ring-white/15">
-            <div className="w-9 h-9 rounded-lg bg-amber-400/20 flex items-center justify-center flex-shrink-0">
-              <AlertTriangle className="w-4.5 h-4.5 text-amber-300" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-white">No SafetyCulture data synced</p>
-              <p className="text-xs text-white/70 mt-0.5">
-                Audit, incident and inspection data is not currently being pulled from SafetyCulture.
-                Configure the integration in Settings → Integrations → SafetyCulture to start syncing.
-              </p>
-            </div>
-            <button
-              onClick={() => navigate('/admin', { state: { section: 'settings' } })}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 text-white text-xs font-semibold hover:bg-white/25 transition flex-shrink-0"
-            >
-              <Zap className="w-3.5 h-3.5" /> Configure
-            </button>
-          </div>
         </div>
       </div>
 
@@ -151,85 +119,54 @@ export default function CompliancePage() {
         })}
       </div>
 
-      {/* ── Tab Content ── */}
+      {/* ── Tab Content — all gated by SafetyCulture connection status ── */}
       {tab === 'safety-hub' && (
-        <SafetyCultureCheckHub onNavigate={navToAdmin} />
+        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
+          <SafetyCultureCheckHub onNavigate={navToAdmin} />
+        </SafetyCultureGate>
       )}
 
       {tab === 'readiness' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <SiteReadinessGateWidget onNavigate={navToAdmin} />
-          <CrewCertificationPulseWidget onNavigate={navToAdmin} />
-        </div>
+        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <SiteReadinessGateWidget onNavigate={navToAdmin} />
+            <CrewCertificationPulseWidget onNavigate={navToAdmin} />
+          </div>
+        </SafetyCultureGate>
       )}
 
       {tab === 'incidents' && (
-        <div className="insight-card rounded-2xl p-4 md:p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-5 h-5 text-rose-600" />
-            <h3 className="text-lg font-bold text-slate-900">Incidents & Near-Miss Reports</h3>
-          </div>
-          <p className="text-sm text-slate-500 mb-4">
-            All incidents sync automatically from SafetyCulture. Report a new incident below or view the full audit trail in the Safety Hub.
-          </p>
+        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
           <IncidentReporter />
-        </div>
+        </SafetyCultureGate>
       )}
 
       {tab === 'stats' && (
-        <div className="insight-card rounded-2xl p-4 md:p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-5 h-5 text-[#2E5A1A]" />
-            <h3 className="text-lg font-bold text-slate-900">Health & Safety Statistics</h3>
-          </div>
-          <p className="text-sm text-slate-500 mb-4">
-            RIDDOR-reportable incidents, near-miss trends, and audit performance — sourced from SafetyCulture.
-          </p>
+        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
           <RIDDORStatsPanel />
-        </div>
+        </SafetyCultureGate>
       )}
 
       {tab === 'toolbox' && (
-        <div className="insight-card rounded-2xl p-4 md:p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <HardHat className="w-5 h-5 text-amber-600" />
-            <h3 className="text-lg font-bold text-slate-900">Toolbox Talks</h3>
-          </div>
-          <p className="text-sm text-slate-500 mb-4">
-            Schedule, deliver, and track toolbox talks with digital sign-off.
-          </p>
+        <SafetyCultureGate
+          onConfigure={() => navToAdmin('settings')}
+          message="SafetyCulture not connected. Toolbox talks are managed in-app below — SafetyCulture template sync will be available once the integration is configured."
+        >
           <ToolboxTalkManager />
-        </div>
+        </SafetyCultureGate>
       )}
 
       {tab === 'environmental' && (
-        <CarbonFootprintWidget onNavigate={navToAdmin} />
+        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
+          <CarbonFootprintWidget onNavigate={navToAdmin} />
+        </SafetyCultureGate>
       )}
 
       {tab === 'calendar' && (
-        <ComplianceCalendar />
+        <SafetyCultureGate onConfigure={() => navToAdmin('settings')}>
+          <ComplianceCalendar />
+        </SafetyCultureGate>
       )}
-
-      {/* ── SafetyCulture link footer ── */}
-      <div className="insight-card rounded-2xl p-4 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0 shadow-md">
-          <ShieldAlert className="w-5 h-5 text-white" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-slate-900">SafetyCulture is your safety engine</p>
-          <p className="text-xs text-slate-500">
-            All audits, inspections & incidents are synced from SafetyCulture (iAuditor).
-            Configure the connection in Settings → Integrations → SafetyCulture.
-          </p>
-        </div>
-        <button
-          onClick={() => navigate('/admin', { state: { section: 'settings' } })}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200 transition flex-shrink-0"
-        >
-          <Zap className="w-4 h-4" />
-          Configure
-        </button>
-      </div>
     </div>
   );
 }
