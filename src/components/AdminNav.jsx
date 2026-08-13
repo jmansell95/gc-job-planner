@@ -139,15 +139,15 @@ export default function AdminNav({ activeSection, setActiveSection, onSettingsTa
       <div className={`${collapsed ? 'px-1.5' : 'px-3'} pt-2 pb-2 border-t border-white/10 space-y-2`}>
         {!collapsed && <GlobalSearch />}
         <div className={`grid ${collapsed ? 'grid-cols-1 gap-1.5' : 'grid-cols-2 gap-2'}`}>
-          <button onClick={openDrillingIntelligence} type="button" title="Drilling Intelligence"
+          <button onClick={openDrillingIntelligence} type="button" title="Drilling AI"
             className="h-11 flex items-center justify-center gap-1.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <HardHat className="w-4 h-4 flex-shrink-0" />
-            {!collapsed && <span className="text-xs font-semibold">Drilling</span>}
+            {!collapsed && <span className="text-xs font-semibold">Drilling AI</span>}
           </button>
-          <button onClick={openChat} type="button" title="Ask Assistant"
+          <button onClick={openChat} type="button" title="AI Assistant"
             className="h-11 flex items-center justify-center gap-1.5 rounded-xl bg-white/10 text-white hover:bg-white/20 active:scale-[0.98] transition cursor-pointer touch-manipulation select-none ring-1 ring-white/15">
             <Sparkles className="w-4 h-4 flex-shrink-0" />
-            {!collapsed && <span className="text-xs font-semibold">Assistant</span>}
+            {!collapsed && <span className="text-xs font-semibold">AI Assistant</span>}
           </button>
         </div>
         <button onClick={toggleCollapsed} type="button" title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}

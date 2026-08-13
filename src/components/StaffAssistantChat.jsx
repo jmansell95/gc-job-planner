@@ -12,14 +12,16 @@ export function useStaffAssistant() {
 
 const SUGGESTIONS = [
   "What's my schedule today?",
+  "Create a rota for John Smith on the Cambridge job next week",
+  "What's the mileage and trip history for van registration MK23 ABC?",
+  "Show me today's deliveries for driver Tom",
   "I worked 8am to 4pm with a 30 min break on the Bishops Stortford job",
   "I need time off next Friday — it's a personal day",
-  "What van have I got assigned this week?",
 ];
 
 export function StaffAssistantProvider({ children }) {
   const { open, setOpen, messages, input, setInput, loading, sending, scrollRef, handleSend } =
-    useAgentChat(AGENT_NAME, 'Staff Assistant');
+    useAgentChat(AGENT_NAME, 'AI Assistant');
 
   return (
     <StaffAssistantContext.Provider value={{ openChat: () => setOpen(true) }}>
@@ -35,9 +37,9 @@ export function StaffAssistantProvider({ children }) {
         sending={sending}
         scrollRef={scrollRef}
         icon={Sparkles}
-        title="Staff Assistant"
-        subtitle="Speak any language — I'll handle the rest"
-        placeholder="Type in any language..."
+        title="AI Assistant"
+        subtitle="Your operations co-pilot — rotas, vehicles, deliveries & more"
+        placeholder="Ask about schedules, rotas, vehicles, deliveries…"
         suggestions={SUGGESTIONS}
         panelClass="max-w-md"
       />

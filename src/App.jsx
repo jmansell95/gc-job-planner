@@ -37,6 +37,7 @@ import SubcontractorOnboarding from './pages/SubcontractorOnboarding';
 import { StaffAssistantProvider } from '@/components/StaffAssistantChat';
 import { SchedulingAssistantProvider } from '@/components/SchedulingAssistantChat';
 import { DrillingIntelligenceProvider } from '@/components/DrillingIntelligenceChat';
+import { AIHubProvider } from '@/components/ai/AIHub';
 import AppBaseUrlSync from '@/components/AppBaseUrlSync';
 import AssetScannerPage from './pages/AssetScannerPage';
 import KioskScannerRedirect from '@/components/KioskScannerRedirect';
@@ -67,6 +68,7 @@ const AuthenticatedApp = () => {
     <StaffAssistantProvider>
       <SchedulingAssistantProvider>
         <DrillingIntelligenceProvider>
+        <AIHubProvider>
         <AppBaseUrlSync />
         <Routes>
         <Route path="/login" element={<Login />} />
@@ -114,6 +116,7 @@ const AuthenticatedApp = () => {
         <Route path="/subcontractor-onboarding/:token" element={<SubcontractorOnboarding />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
+        </AIHubProvider>
         </DrillingIntelligenceProvider>
       </SchedulingAssistantProvider>
     </StaffAssistantProvider>

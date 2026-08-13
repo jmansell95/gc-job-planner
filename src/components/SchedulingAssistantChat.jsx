@@ -19,7 +19,7 @@ const SUGGESTIONS = [
 
 export function SchedulingAssistantProvider({ children }) {
   const { open, setOpen, messages, input, setInput, loading, sending, scrollRef, handleSend } =
-    useAgentChat(AGENT_NAME, 'Scheduling Assistant');
+    useAgentChat(AGENT_NAME, 'Scheduling AI');
 
   return (
     <SchedulingContext.Provider value={{ openChat: () => setOpen(true) }}>
@@ -35,7 +35,7 @@ export function SchedulingAssistantProvider({ children }) {
         sending={sending}
         scrollRef={scrollRef}
         icon={BrainCircuit}
-        title="Scheduling Assistant"
+        title="Scheduling AI"
         subtitle="Helps you build rotas and find available crew"
         placeholder="Ask about staffing a job..."
         suggestions={SUGGESTIONS}

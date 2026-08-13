@@ -2,22 +2,40 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Send, Check, Loader2, ChevronDown, ChevronUp, Wrench,
-  Sparkles, AlertCircle,
+  Sparkles, AlertCircle, Mic,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 /**
- * Shared agent chat panel — modern, conversational UI used by all three
- * in-app AI assistants. Features: glassmorphic gradient header, AI avatar
- * with pulse ring, animated message bubbles, bouncing typing indicator,
- * visual suggestion cards, and styled markdown rendering.
+ * Shared agent chat panel — modern, conversational UI with dual layouts.
+ *
+ * MOBILE/TABLET (< lg): Full-screen immersive experience. Slides up from
+ *   bottom, takes 100% of viewport height. Optimised for on-site use.
+ *
+ * DESKTOP (>= lg): Right-side drawer panel. Slides in from the right,
+ *   full height, 480px wide. Sits alongside the dashboard content.
+ *
+ * Features: glassmorphic gradient header, AI avatar with pulse ring,
+ * animated message bubbles, bouncing typing indicator, visual suggestion
+ * cards, styled markdown rendering, and tool-call displays.
  */
 export default function AgentChatPanel({
   open, onClose, messages, input, setInput, onSend, loading, sending, scrollRef,
   icon: Icon, title, subtitle, placeholder, suggestions = [],
   brandClass = 'bg-[#2E5A1A]', brandRing = 'focus:ring-[#2E5A1A]/40',
-  panelClass = 'max-w-md', headerGradient = 'hero-gradient',
+  headerGradient = 'hero-vibrant',
 }) {
+  // Detect viewport for animation direction
+  const [isDesktop, setIsDesktop] = useState(
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : false
+  );
+
+  useEffect(() => {
+    const handler = () => setIsDesktop(window.innerWidth >= 1024);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
   return (
     <AnimatePresence>
       {open && (
@@ -25,21 +43,21 @@ export default function AgentChatPanel({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center sm:p-4"
+          className="fixed inset-0 z-[70] flex items-end lg:items-stretch justify-end"
         >
           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-md" onClick={onClose} />
           <motion.div
-            initial={{ y: '100%', opacity: 0, scale: 0.98 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: '100%', opacity: 0 }}
+            initial={isDesktop ? { x: '100%', opacity: 0 } : { y: '100%', opacity: 0, scale: 0.98 }}
+            animate={isDesktop ? { x: 0, opacity: 1 } : { y: 0, opacity: 1, scale: 1 }}
+            exit={isDesktop ? { x: '100%', opacity: 0 } : { y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-            className={`relative bg-slate-50 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full ${panelClass} h-[85vh] sm:h-[680px] flex flex-col overflow-hidden ring-1 ring-black/5`}
+            className="relative bg-slate-50 rounded-t-3xl lg:rounded-none lg:rounded-l-3xl shadow-2xl w-full lg:max-w-[480px] h-[100dvh] lg:h-screen flex flex-col overflow-hidden ring-1 ring-black/5"
           >
             {/* Header — glassmorphic gradient */}
-            <div className={`relative flex items-center justify-between px-4 py-3.5 border-b border-white/10 ${headerGradient} overflow-hidden`}>
+            <div className={`relative flex items-center justify-between px-4 py-3.5 border-b border-white/10 ${headerGradient} overflow-hidden flex-shrink-0`}>
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-              <div className="relative flex items-center gap-3">
-                <div className="relative">
+              <div className="relative flex items-center gap-3 min-w-0">
+                <div className="relative flex-shrink-0">
                   <div className="absolute inset-0 rounded-full bg-white/20 animate-ping opacity-60" style={{ animationDuration: '2.5s' }} />
                   <div className="relative w-10 h-10 rounded-full bg-white/15 flex items-center justify-center ring-1 ring-white/25 backdrop-blur-sm">
                     <Icon className="w-5 h-5 text-white" />
@@ -80,7 +98,7 @@ export default function AgentChatPanel({
             </div>
 
             {/* Input */}
-            <form onSubmit={(e) => onSend(e)} className="p-3 border-t border-slate-200 bg-white/90 backdrop-blur-sm flex items-end gap-2 safe-area-bottom">
+            <form onSubmit={(e) => onSend(e)} className="p-3 border-t border-slate-200 bg-white/90 backdrop-blur-sm flex items-end gap-2 safe-area-bottom flex-shrink-0">
               <div className="flex-1 relative">
                 <input
                   value={input}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, ScanLine, Home, User, Bell } from 'lucide-react';
+import { Calendar, ScanLine, Home, User, Sparkles } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 
 /**
@@ -22,7 +22,7 @@ export default function MobileBottomNav() {
     { id: 'home', label: 'Home', icon: Home, path: '/admin', section: 'overview' },
     { id: 'schedule', label: 'Schedule', icon: Calendar, path: '/staff-schedule' },
     { id: 'scan', label: 'Scan', icon: ScanLine, path: '/scanner', highlight: true },
-    { id: 'alerts', label: 'Alerts', icon: Bell, path: null, badge: notifCount },
+    { id: 'ai-hub', label: 'AI Hub', icon: Sparkles, path: null, isAIHub: true },
     { id: 'profile', label: 'Profile', icon: User, path: '/staff-profile' },
   ];
 
@@ -65,8 +65,8 @@ export default function MobileBottomNav() {
             <button
               key={item.id}
               onClick={() => {
-                if (item.id === 'alerts') {
-                  window.dispatchEvent(new CustomEvent('gc-open-notifications'));
+                if (item.id === 'ai-hub') {
+                  window.dispatchEvent(new CustomEvent('gc-open-ai-hub'));
                   return;
                 }
                 if (item.path) navigate(item.path);

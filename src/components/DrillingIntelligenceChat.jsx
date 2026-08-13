@@ -15,11 +15,13 @@ const SUGGESTIONS = [
   "Summarise the ground conditions for BH-01 at Battersea",
   "Which logs are awaiting my review?",
   "Any rigs on site with expired compliance?",
+  "What's the mileage for van registration MK23 ABC?",
+  "Staff the Cambridge drilling job for next Monday — suggest 3 crew",
 ];
 
 export function DrillingIntelligenceProvider({ children }) {
   const { open, setOpen, messages, input, setInput, loading, sending, scrollRef, handleSend } =
-    useAgentChat(AGENT_NAME, 'Drilling Intelligence');
+    useAgentChat(AGENT_NAME, 'Drilling AI');
 
   return (
     <DrillingIntelligenceContext.Provider value={{ openChat: () => setOpen(true) }}>
@@ -35,9 +37,9 @@ export function DrillingIntelligenceProvider({ children }) {
         sending={sending}
         scrollRef={scrollRef}
         icon={HardHat}
-        title="Drilling Intelligence"
-        subtitle="Hazard & log analysis across your jobs"
-        placeholder="Ask about hazards, strata, reviews…"
+        title="Drilling AI"
+        subtitle="Hazard analysis, strata logs, rotas & borehole intelligence"
+        placeholder="Ask about hazards, strata, reviews, rotas…"
         suggestions={SUGGESTIONS}
         panelClass="max-w-lg"
       />
