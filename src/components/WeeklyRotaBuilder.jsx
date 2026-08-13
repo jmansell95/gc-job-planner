@@ -19,8 +19,6 @@ import { getCurrentTimeStr, SITE_CLOSE_TIME } from '@/utils/siteHours';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { computeRotaWarnings } from '@/utils/rotaWarnings';
 import RotaWarningsPanel from '@/components/RotaWarningsPanel';
-import StatCard from '@/components/dashboard/StatCard';
-
 const jobTypeColors = {
   drilling: { bg: 'bg-amber-50', border: 'border-amber-400', text: 'text-amber-800', dot: 'bg-amber-500', badge: 'bg-amber-100 text-amber-700' },
   groundworks: { bg: 'bg-emerald-50', border: 'border-emerald-400', text: 'text-emerald-800', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
@@ -484,45 +482,54 @@ export default function WeeklyRotaBuilder() {
         </div>
       )}
 
-      {/* Week Navigator + Stats + Filters — all inline */}
-      <div className="flex flex-col gap-2.5 mb-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Week navigator */}
-          <div className="flex items-center gap-1.5 bg-white rounded-xl border border-slate-200 shadow-sm px-2.5 py-2 flex-shrink-0">
-            <button onClick={goToPrevWeek} className="p-1 hover:bg-slate-100 rounded-lg transition"><ChevronLeft className="w-4 h-4 text-slate-600" /></button>
-            <div className="text-sm font-semibold text-slate-900 min-w-[150px] text-center">
+      {/* Week Navigator + Stats + Filters — single compact strip */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-2.5 mb-3">
+        {/* Row 1: week nav + stat pills */}
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <div className="flex items-center gap-1 bg-slate-50 rounded-lg border border-slate-200 px-1.5 py-1 flex-shrink-0">
+            <button onClick={goToPrevWeek} className="p-1 hover:bg-slate-200 rounded-md transition"><ChevronLeft className="w-4 h-4 text-slate-600" /></button>
+            <div className="text-sm font-semibold text-slate-900 min-w-[140px] text-center">
               {format(weekStart, 'dd MMM')} — {format(addDays(weekStart, 6), 'dd MMM yyyy')}
             </div>
-            <button onClick={goToNextWeek} className="p-1 hover:bg-slate-100 rounded-lg transition"><ChevronRight className="w-4 h-4 text-slate-600" /></button>
+            <button onClick={goToNextWeek} className="p-1 hover:bg-slate-200 rounded-md transition"><ChevronRight className="w-4 h-4 text-slate-600" /></button>
             <div className="w-px h-5 bg-slate-200 mx-0.5" />
             <button onClick={() => setSelectedWeek(new Date())}
-              className={`px-2 py-1 rounded-lg text-xs font-semibold transition ${weekStartStr === format(new Date(), 'yyyy-MM-dd') ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+              className={`px-2 py-1 rounded-md text-xs font-semibold transition ${weekStartStr === format(new Date(), 'yyyy-MM-dd') ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>
               Today
             </button>
             <input type="date" value={weekStartStr} onChange={(e) => setSelectedWeek(new Date(e.target.value))}
-              className="text-xs px-2 py-1 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 text-slate-600 w-[130px]" />
+              className="text-xs px-1.5 py-1 border border-slate-200 rounded-md focus:outline-none focus:border-emerald-600 text-slate-600 w-[120px]" />
           </div>
 
-          {/* Stats — compact inline */}
+          {/* Compact stat pills */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <StatCard icon={Calendar} value={totalAssignments} label="Shifts" gradient="stat-gradient-emerald" />
-            <StatCard icon={Users} value={staffWorking} label="Crew" gradient="stat-gradient-blue" />
-            <StatCard icon={Briefcase} value={jobsActive} label="Jobs" gradient="stat-gradient-amber" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs">
+              <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="font-bold text-slate-900 tabular-nums">{totalAssignments}</span>
+              <span className="text-slate-500">Shifts</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs">
+              <Users className="w-3.5 h-3.5 text-blue-600" />
+              <span className="font-bold text-slate-900 tabular-nums">{staffWorking}</span>
+              <span className="text-slate-500">Crew</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-xs">
+              <Briefcase className="w-3.5 h-3.5 text-amber-600" />
+              <span className="font-bold text-slate-900 tabular-nums">{jobsActive}</span>
+              <span className="text-slate-500">Jobs</span>
+            </span>
             {weekRecord && (
-              <StatCard
-                icon={isPublished ? CheckCircle2 : Clock}
-                value={isPublished ? 'Published' : 'Draft'}
-                sub={isPublished ? (weekRecord.published_at ? format(new Date(weekRecord.published_at), 'dd MMM, HH:mm') : 'Sent') : 'In progress'}
-                label="Status"
-                gradient={isPublished ? 'stat-gradient-emerald' : 'stat-gradient-amber'}
-              />
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs ${isPublished ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}>
+                {isPublished ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Clock className="w-3.5 h-3.5 text-amber-600" />}
+                <span className="font-bold text-slate-900">{isPublished ? 'Published' : 'Draft'}</span>
+              </span>
             )}
           </div>
         </div>
 
-        {/* Filters — inline strip */}
+        {/* Row 2: filters */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 px-2.5 py-1.5 shadow-sm flex-1 min-w-[180px] max-w-xs">
+          <div className="flex items-center gap-2 bg-slate-50 rounded-lg border border-slate-200 px-2.5 py-1.5 flex-1 min-w-[160px] max-w-xs">
             <Search className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
             <input type="text" value={staffSearch} onChange={(e) => setStaffSearch(e.target.value)}
               placeholder="Search staff..."
@@ -533,7 +540,7 @@ export default function WeeklyRotaBuilder() {
               </button>
             )}
           </div>
-          <div className="flex items-center gap-1.5 bg-white rounded-lg border border-slate-200 px-2.5 py-1.5 shadow-sm">
+          <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg border border-slate-200 px-2.5 py-1.5">
             <Filter className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
             <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}
               className="text-sm focus:outline-none bg-transparent text-slate-700 font-medium">
@@ -542,7 +549,7 @@ export default function WeeklyRotaBuilder() {
             </select>
           </div>
           <button onClick={() => setShowWeekends(v => !v)}
-            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 shadow-sm text-sm font-medium transition ${showWeekends ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm font-medium transition ${showWeekends ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
             <CalendarDays className="w-3.5 h-3.5" />
             {showWeekends ? 'Mon–Sun' : 'Mon–Fri'}
           </button>
@@ -555,6 +562,90 @@ export default function WeeklyRotaBuilder() {
       </div>
 
       <RotaWarningsPanel warnings={rotaWarnings} />
+
+      {/* Today's Crew — collapsed toggle bar, sits right under the filters */}
+      {(() => {
+        const todayRotas = rotas.filter(r => r.assigned_date === todayStr && (!r.assignment_type || r.assignment_type === 'job' || r.assignment_type === 'yard_depot'));
+        const todayCrew = [...new Set(todayRotas.map(r => r.staff_id))];
+        const todayLeave = rotas.filter(r => r.assigned_date === todayStr && r.assignment_type && r.assignment_type !== 'job');
+        const byJob = {};
+        todayRotas.forEach(r => {
+          if (r.assignment_type === 'yard_depot') {
+            if (!byJob['depot']) byJob['depot'] = [];
+            byJob['depot'].push(r);
+          } else {
+            const jid = r.job_id || 'unassigned';
+            if (!byJob[jid]) byJob[jid] = [];
+            byJob[jid].push(r);
+          }
+        });
+        const jobGroups = Object.entries(byJob);
+        return (
+          <div className="mb-3 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <button
+              onClick={() => setTodayCrewExpanded(v => !v)}
+              className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200 hover:bg-slate-100/60 transition"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center">
+                  <Users className="w-3.5 h-3.5 text-white" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">Today's Crew</h3>
+                <span className="text-[11px] text-slate-400">{format(new Date(), 'EEEE dd MMM')}</span>
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-slate-500"><strong className="text-slate-900">{todayCrew.length}</strong> on site</span>
+                <span className="text-slate-500"><strong className="text-slate-900">{jobGroups.length}</strong> jobs</span>
+                {todayLeave.length > 0 && <span className="text-amber-600"><strong className="text-amber-700">{todayLeave.length}</strong> off</span>}
+                <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${todayCrewExpanded ? 'rotate-90' : ''}`} />
+              </div>
+            </button>
+            {todayCrewExpanded && (
+              todayRotas.length === 0 ? (
+                <div className="px-4 py-3 text-sm text-slate-400 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-slate-300" />
+                  No crew assigned for today — add shifts in the grid below or import from the planner.
+                </div>
+              ) : (
+                <div className="p-3 space-y-2">
+                  {jobGroups.map(([jid, group]) => {
+                    const job = jobs.find(j => j.id === jid);
+                    const colors = jobTypeColors[getJobPrimaryType(job, teams)] || jobTypeColors.depot;
+                    return (
+                      <div key={jid} className={`rounded-lg border ${colors.border} ${colors.bg} px-3 py-2`}>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className={`w-2 h-2 rounded-full ${colors.dot}`} />
+                          <p className="text-sm font-bold text-slate-800 truncate flex-1">{jid === 'depot' ? 'Depot Duty' : (job?.name || 'Unassigned')}</p>
+                          {job?.location && <span className="hidden sm:flex items-center gap-0.5 text-xs text-slate-400 truncate max-w-[140px]"><MapPin className="w-3 h-3" />{job.location}</span>}
+                          <span className="text-[10px] font-bold text-slate-500 bg-white/70 rounded-full px-1.5 py-0.5 flex-shrink-0">{group.length}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {group.map(a => {
+                            const member = staff.find(s => s.id === a.staff_id);
+                            const status = statusConfig[a.status || 'assigned'] || statusConfig.assigned;
+                            const StatusIcon = status.icon;
+                            return (
+                              <button key={a.id} onClick={() => handleEditAssignment(a)}
+                                className="inline-flex items-center gap-1.5 bg-white border border-slate-200 rounded-full pl-1 pr-2.5 py-1 hover:shadow-sm hover:border-emerald-300 transition group">
+                                <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-emerald-700 font-bold text-[10px]">{member?.name?.charAt(0) || '?'}</span>
+                                </span>
+                                <span className="text-xs font-medium text-slate-700 leading-none">{member?.name || 'Unknown'}</span>
+                                <StatusIcon className={`w-3 h-3 ${status.text}`} />
+                                {a.briefing_signed && <ClipboardCheck className="w-3 h-3 text-emerald-500" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            )}
+          </div>
+        );
+      })()}
 
       {/* Per-day capacity strip */}
       <div className="hidden lg:flex gap-2 mb-3 pl-[180px]">
@@ -848,90 +939,6 @@ export default function WeeklyRotaBuilder() {
                 );
                 })}
                 </div>
-
-                {/* Today's Crew Summary — collapsed by default, job-grouped view showing who's on site today */}
-                {(() => {
-                const todayRotas = rotas.filter(r => r.assigned_date === todayStr && (!r.assignment_type || r.assignment_type === 'job' || r.assignment_type === 'yard_depot'));
-                const todayCrew = [...new Set(todayRotas.map(r => r.staff_id))];
-                const todayLeave = rotas.filter(r => r.assigned_date === todayStr && r.assignment_type && r.assignment_type !== 'job');
-                const byJob = {};
-                todayRotas.forEach(r => {
-                if (r.assignment_type === 'yard_depot') {
-                if (!byJob['depot']) byJob['depot'] = [];
-                byJob['depot'].push(r);
-                } else {
-                const jid = r.job_id || 'unassigned';
-                if (!byJob[jid]) byJob[jid] = [];
-                byJob[jid].push(r);
-                }
-                });
-                const jobGroups = Object.entries(byJob);
-                return (
-                <div className="mt-4 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                <button
-                onClick={() => setTodayCrewExpanded(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200 hover:bg-slate-100/60 transition"
-                >
-                <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center">
-                 <Users className="w-3.5 h-3.5 text-white" />
-                </div>
-                <h3 className="text-sm font-bold text-slate-900">Today's Crew</h3>
-                <span className="text-[11px] text-slate-400">{format(new Date(), 'EEEE dd MMM')}</span>
-                </div>
-                <div className="flex items-center gap-3 text-xs">
-                <span className="text-slate-500"><strong className="text-slate-900">{todayCrew.length}</strong> on site</span>
-                <span className="text-slate-500"><strong className="text-slate-900">{jobGroups.length}</strong> jobs</span>
-                {todayLeave.length > 0 && <span className="text-amber-600"><strong className="text-amber-700">{todayLeave.length}</strong> off</span>}
-                <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${todayCrewExpanded ? 'rotate-90' : ''}`} />
-                </div>
-                </button>
-                {todayCrewExpanded && (
-                todayRotas.length === 0 ? (
-                <div className="px-4 py-3 text-sm text-slate-400 flex items-center gap-2">
-                 <Clock className="w-4 h-4 text-slate-300" />
-                 No crew assigned for today — add shifts in the grid above or import from the planner.
-                </div>
-                ) : (
-                <div className="p-3 space-y-2">
-                 {jobGroups.map(([jid, group]) => {
-                   const job = jobs.find(j => j.id === jid);
-                   const colors = jobTypeColors[getJobPrimaryType(job, teams)] || jobTypeColors.depot;
-                   return (
-                     <div key={jid} className={`rounded-lg border ${colors.border} ${colors.bg} px-3 py-2`}>
-                       <div className="flex items-center gap-1.5 mb-1.5">
-                         <span className={`w-2 h-2 rounded-full ${colors.dot}`} />
-                         <p className="text-sm font-bold text-slate-800 truncate flex-1">{jid === 'depot' ? 'Depot Duty' : (job?.name || 'Unassigned')}</p>
-                         {job?.location && <span className="hidden sm:flex items-center gap-0.5 text-xs text-slate-400 truncate max-w-[140px]"><MapPin className="w-3 h-3" />{job.location}</span>}
-                         <span className="text-[10px] font-bold text-slate-500 bg-white/70 rounded-full px-1.5 py-0.5 flex-shrink-0">{group.length}</span>
-                       </div>
-                       <div className="flex flex-wrap gap-1.5">
-                         {group.map(a => {
-                           const member = staff.find(s => s.id === a.staff_id);
-                           const status = statusConfig[a.status || 'assigned'] || statusConfig.assigned;
-                           const StatusIcon = status.icon;
-                           return (
-                             <button key={a.id} onClick={() => handleEditAssignment(a)}
-                               className="inline-flex items-center gap-1.5 bg-white border border-slate-200 rounded-full pl-1 pr-2.5 py-1 hover:shadow-sm hover:border-emerald-300 transition group">
-                               <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                                 <span className="text-emerald-700 font-bold text-[10px]">{member?.name?.charAt(0) || '?'}</span>
-                               </span>
-                               <span className="text-xs font-medium text-slate-700 leading-none">{member?.name || 'Unknown'}</span>
-                               <StatusIcon className={`w-3 h-3 ${status.text}`} />
-                               {a.briefing_signed && <ClipboardCheck className="w-3 h-3 text-emerald-500" />}
-                             </button>
-                           );
-                         })}
-                       </div>
-                     </div>
-                   );
-                 })}
-                </div>
-                )
-                )}
-                </div>
-                );
-                })()}
                 </div>
                 );
                 }
