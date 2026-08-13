@@ -52,6 +52,7 @@ const SERVICES = [
 ];
 
 export default function Microsoft365Hub() {
+  // Microsoft 365 Hub — unified Azure AD SSO, Outlook, Teams, OneDrive & SharePoint
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();

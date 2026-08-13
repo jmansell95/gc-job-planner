@@ -100,8 +100,6 @@ export default function SettingsHubOverview({ onNavigate }) {
       { id: 'planner-import', icon: FileSpreadsheet, label: 'Planner Import', value: '—', sub: 'Upload weekly rota spreadsheet', color: 'blue' },
       { id: 'incremental-import', icon: Layers, label: 'Incremental Import', value: '—', sub: 'Non-destructive smart imports', color: 'violet' },
       { id: 'system-guide', icon: BookOpen, label: 'System Logic Guide', value: 'PDF', sub: 'Every stat & rule explained', color: 'emerald' },
-      { id: 'custom-fields', icon: Settings2, label: 'Custom Field Builder', value: '—', sub: 'Add fields to any entity', color: 'slate' },
-      { id: 'dashboard-themes', icon: Palette, label: 'Dashboard Color Themes', value: '—', sub: 'Personalize accent colours', color: 'violet' },
       { id: 'backup-restore', icon: Database, label: 'Backup & Restore', value: '—', sub: 'Snapshot & reset', color: 'rose' },
     ]},
   ];
