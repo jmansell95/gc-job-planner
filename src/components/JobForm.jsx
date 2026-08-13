@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Briefcase, CalendarDays, Users, PoundSterling, StickyNote, FileText, Upload, Eye, Download, RefreshCw, X, Ruler, UsersRound, ChevronRight, ChevronLeft, Check, MapPin, Loader2 } from 'lucide-react';
+import { Briefcase, CalendarDays, Users, PoundSterling, StickyNote, FileText, Upload, Eye, Download, RefreshCw, X, Ruler, ChevronRight, ChevronLeft, Check, MapPin, Loader2 } from 'lucide-react';
 import { getJobDisciplines } from '@/utils/jobDisciplines';
 import EquipmentManager from '@/components/EquipmentManager';
 import FormSection from '@/components/forms/FormSection';
@@ -31,14 +31,8 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
   const { data: jobTypes = [] } = useQuery({ queryKey: ['job-types'], queryFn: () => base44.entities.JobType.list('-order') });
   const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: () => base44.entities.Project.list('-created_date', 200) });
 
-  const selectedTeamIds = Array.isArray(formData.required_team_ids) ? formData.required_team_ids : [];
   const disciplines = getJobDisciplines(formData);
   const showMeterage = disciplines.some(d => d.type === 'drilling');
-
-  const toggleTeam = (teamId) => {
-    const next = selectedTeamIds.includes(teamId) ? selectedTeamIds.filter(id => id !== teamId) : [...selectedTeamIds, teamId];
-    setFormData({ ...formData, required_team_ids: next });
-  };
 
   const stepValid = () => {
     if (step === 1) return !!formData.name?.trim() && !!formData.location?.trim();
@@ -119,27 +113,6 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
                 <input type="number" min="0" step="1" value={num('geofence_radius_override')} onChange={(e) => setNum('geofence_radius_override', e.target.value)} placeholder="e.g. 150" className={inputCls + ' max-w-[200px]'} />
               </div>
               <p className="text-[11px] text-slate-400 mt-1">Set the site's GPS coordinates to enable automatic arrival/departure detection from Geotab vehicle tracking. Override the radius for large sites.</p>
-            </Field>
-            <Field label="Required Teams" hint="Staff from these teams can be assigned" full>
-              {teams.length === 0 ? (
-                <p className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">No teams set up yet. Add teams in Settings first.</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {teams.map(t => {
-                    const selected = selectedTeamIds.includes(t.id);
-                    return (
-                      <button type="button" key={t.id} onClick={() => toggleTeam(t.id)}
-                        className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition font-medium ${selected ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700'}`}>
-                        <UsersRound className="w-3 h-3" />
-                        {t.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              {selectedTeamIds.length === 0 && teams.length > 0 && (
-                <p className="text-[11px] text-amber-600 mt-1.5">Select at least one team — staff outside these teams can still be assigned but managers will see a warning.</p>
-              )}
             </Field>
           </FormSection>
         )}
@@ -254,10 +227,12 @@ export default function JobForm({ formData, setFormData, onSubmit, onCancel, edi
               <ReviewRow label="Name" value={formData.name} />
               <ReviewRow label="Project" value={projects.find(p => p.id === formData.project_id)?.name} />
               <ReviewRow label="Location" value={formData.location} />
-              <ReviewRow label="Disciplines" value={disciplines.map(d => d.type).join(', ') || '—'} />
+              <ReviewRow label="Disciplines" value={disciplines.map(d => {
+                const teamCount = (d.required_team_ids || []).length;
+                return `${d.type}${teamCount ? ` (${teamCount} team${teamCount !== 1 ? 's' : ''})` : ''}`;
+              }).join(', ') || '—'} />
               <ReviewRow label="Schedule" value={formData.start_date && formData.end_date ? `${formData.start_date} → ${formData.end_date}` : ''} />
               <ReviewRow label="Client" value={clients.find(c => c.id === formData.client_id)?.name} />
-              <ReviewRow label="Teams" value={selectedTeamIds.map(id => teams.find(t => t.id === id)?.name).filter(Boolean).join(', ')} />
               <ReviewRow label="Meterage" value={num('meterage') ? `${num('meterage')}m` : 'Auto from logs'} />
               <ReviewRow label="Equipment items" value={(formData.equipment_items?.length || 0) + ' item(s)'} />
             </div>

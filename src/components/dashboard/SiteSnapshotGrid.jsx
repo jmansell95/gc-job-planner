@@ -283,15 +283,25 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
     return risks;
   };
 
+  const SectionHeader = () => (
+    <div className="mb-4 rounded-2xl bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] px-5 py-4 shadow-md overflow-hidden relative">
+      <div className="absolute right-0 top-0 bottom-0 w-32 opacity-10" style={{ background: 'radial-gradient(circle at 80% 50%, rgba(141,198,63,0.4), transparent 70%)' }} />
+      <div className="flex items-center gap-3 relative z-10">
+        <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0 ring-1 ring-white/20">
+          <Radio className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg font-bold text-white tracking-tight leading-tight">Top 3 Active Sites</h2>
+          <p className="text-xs text-white/70 mt-0.5">Live snapshot of your in-progress jobs — rigs, crew, gear and risk flags at a glance</p>
+        </div>
+      </div>
+    </div>
+  );
+
   if (isLoading) {
     return (
       <div className="mb-6">
-        <div className="flex items-center gap-2.5 mb-3 px-1">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm">
-            <Radio className="w-4 h-4 text-white" />
-          </div>
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Top 3 Active Sites</h2>
-        </div>
+        <SectionHeader />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map(i => <Skeleton key={i} className="h-52 rounded-2xl" />)}
         </div>
@@ -302,12 +312,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
   if (scopedJobs.length === 0) {
     return (
       <div className="mb-6">
-        <div className="flex items-center gap-2.5 mb-3 px-1">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm">
-            <Radio className="w-4 h-4 text-white" />
-          </div>
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Top 3 Active Sites</h2>
-        </div>
+        <SectionHeader />
         <div className="insight-card rounded-2xl p-10 text-center">
           <Radio className="w-10 h-10 text-slate-200 mx-auto mb-3" />
           <p className="text-slate-400 text-sm font-medium">No active sites right now</p>
@@ -322,12 +327,7 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="mb-6">
-      <div className="flex items-center gap-2.5 mb-3 px-1">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center shadow-sm">
-          <Radio className="w-4 h-4 text-white" />
-        </div>
-        <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Top 3 Active Sites</h2>
-      </div>
+      <SectionHeader />
 
       {/* Discipline filter strip */}
       {(() => {
@@ -336,7 +336,8 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
         const types = [...allDisciplines];
         if (types.length < 2) return null;
         return (
-          <div className="flex flex-wrap items-center gap-1.5 mb-3 px-1">
+          <div className="flex flex-wrap items-center gap-1.5 mb-4">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Discipline Filter</span>
             <button
               onClick={() => setDisciplineFilter('all')}
               className={`text-xs font-semibold px-3 py-1.5 rounded-full transition ${disciplineFilter === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
