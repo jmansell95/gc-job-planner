@@ -86,17 +86,15 @@ export default function ToolboxTalkManager() {
 
   return (
     <div className="space-y-4">
-      {/* SafetyCulture link */}
-      <div className="insight-card rounded-2xl p-3.5 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-          <ShieldAlert className="w-4.5 h-4.5 text-white" />
+      {/* SafetyCulture not connected note */}
+      <div className="insight-card rounded-2xl p-3.5 flex items-center gap-3 bg-amber-50/60 border-amber-200">
+        <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+          <ShieldAlert className="w-4.5 h-4.5 text-amber-600" />
         </div>
-        <p className="text-xs text-slate-500 flex-1 min-w-0">
-          Use <strong className="text-slate-700">SafetyCulture</strong> templates for digital toolbox talk delivery & sign-off.
+        <p className="text-xs text-slate-600 flex-1 min-w-0">
+          <strong className="text-slate-800">SafetyCulture not connected.</strong> Toolbox talks are managed in-app below —
+          SafetyCulture template sync will be available once the integration is configured.
         </p>
-        <a href="https://app.safetyculture.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-[#2E5A1A] hover:underline flex-shrink-0">
-          Open <ExternalLink className="w-3 h-3" />
-        </a>
       </div>
 
       {/* Stats */}

@@ -91,7 +91,7 @@ export default function CompliancePage() {
                   Safety & Compliance Hub
                 </h1>
                 <p className="text-white/80 text-sm font-medium mt-0.5">
-                  Powered by SafetyCulture — all audits, incidents & actions in one place
+                  SafetyCulture integration pending — configure in Settings to sync audits & incidents
                 </p>
               </div>
             </div>

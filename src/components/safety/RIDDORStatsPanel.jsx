@@ -58,6 +58,22 @@ export default function RIDDORStatsPanel() {
     return <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>;
   }
 
+  // No data synced — show info message instead of zero-value stats
+  if (reports.length === 0) {
+    return (
+      <div className="insight-card rounded-2xl p-8 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4">
+          <ShieldAlert className="w-7 h-7 text-amber-600" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-900 mb-1.5">No Safety Data Available</h3>
+        <p className="text-sm text-slate-500 max-w-md mx-auto">
+          Health & Safety statistics are pulled from SafetyCulture audits and incident reports.
+          Once the integration is configured, RIDDOR counts, incident breakdowns and audit performance will appear here.
+        </p>
+      </div>
+    );
+  }
+
   const TYPE_LABELS = { near_miss: 'Near Miss', incident: 'Incident', accident: 'Accident', dangerous_occurrence: 'Dangerous Occurrence', environmental: 'Environmental' };
   const SEVERITY_COLORS = { low: 'bg-sky-500', medium: 'bg-amber-500', high: 'bg-orange-500', critical: 'bg-rose-600' };
 

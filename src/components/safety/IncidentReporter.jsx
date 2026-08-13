@@ -64,17 +64,15 @@ export default function IncidentReporter() {
 
   return (
     <div className="space-y-4">
-      {/* SafetyCulture link */}
-      <div className="insight-card rounded-2xl p-3.5 flex items-center gap-3">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-          <ShieldAlert className="w-4.5 h-4.5 text-white" />
+      {/* SafetyCulture not synced banner */}
+      <div className="insight-card rounded-2xl p-3.5 flex items-center gap-3 bg-amber-50/60 border-amber-200">
+        <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+          <ShieldAlert className="w-4.5 h-4.5 text-amber-600" />
         </div>
-        <p className="text-xs text-slate-500 flex-1 min-w-0">
-          Incidents sync from <strong className="text-slate-700">SafetyCulture</strong>. Report directly in the app for the full audit trail.
+        <p className="text-xs text-slate-600 flex-1 min-w-0">
+          <strong className="text-slate-800">SafetyCulture not connected.</strong> Incidents can still be reported manually below —
+          sync from SafetyCulture will populate once the integration is configured.
         </p>
-        <a href="https://app.safetyculture.com" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-[#2E5A1A] hover:underline flex-shrink-0">
-          Open <ExternalLink className="w-3 h-3" />
-        </a>
       </div>
 
       {/* Summary + New button */}
@@ -285,8 +283,8 @@ function IncidentForm({ jobs, staff, onClose, onSaved }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white w-full sm:max-w-2xl sm:rounded-2xl shadow-2xl max-h-[95vh] flex flex-col overflow-hidden rounded-t-2xl">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
