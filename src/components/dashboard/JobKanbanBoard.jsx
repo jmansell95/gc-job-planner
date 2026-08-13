@@ -44,6 +44,12 @@ export default function JobKanbanBoard({ onSelectJob }) {
     return m;
   }, [clients]);
 
+  const parentClientMap = useMemo(() => {
+    const m = {};
+    clients.forEach(c => { m[c.id] = c; });
+    return m;
+  }, [clients]);
+
   const crewTodayByJob = useMemo(() => {
     const m = {};
     todayRotas.forEach(r => {
@@ -119,17 +125,34 @@ export default function JobKanbanBoard({ onSelectJob }) {
                   <GripVertical className="w-3 h-3 text-slate-300 flex-shrink-0 mt-0.5 cursor-grab" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-slate-900 leading-tight line-clamp-2">{job.name}</p>
-                    {partnerClientMap[job.client_id] && (
-                      <span
-                        className="inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wide"
-                        style={{
-                          backgroundColor: (partnerClientMap[job.client_id].partner_color || '#2563eb') + '15',
-                          color: partnerClientMap[job.client_id].partner_color || '#2563eb',
-                        }}
-                      >
-                        <Building2 className="w-2 h-2" /> {partnerClientMap[job.client_id].name}
-                      </span>
-                    )}
+                    {partnerClientMap[job.client_id] && (() => {
+                      const partner = partnerClientMap[job.client_id];
+                      const parent = partner.parent_client_id ? parentClientMap[partner.parent_client_id] : null;
+                      return (
+                        <div className="flex flex-wrap gap-0.5 mt-1">
+                          {parent && (
+                            <span
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wide"
+                              style={{
+                                backgroundColor: (parent.partner_color || partner.partner_color || '#2563eb') + '15',
+                                color: parent.partner_color || partner.partner_color || '#2563eb',
+                              }}
+                            >
+                              <Building2 className="w-2 h-2" /> {parent.name}
+                            </span>
+                          )}
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wide"
+                            style={{
+                              backgroundColor: (partner.partner_color || '#2563eb') + '15',
+                              color: partner.partner_color || '#2563eb',
+                            }}
+                          >
+                            {parent && <span className="opacity-40">↳</span>} <Building2 className="w-2 h-2" /> {partner.name}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
                 {job.location && (

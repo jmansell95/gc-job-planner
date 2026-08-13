@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Users, Briefcase, Grid3x3, Calendar, MapPin, Percent, ClipboardCheck, ShieldAlert } from 'lucide-react';
 import { format, startOfWeek, addDays } from 'date-fns';
 import { GLOBAL_ONLY_WIDGETS } from '@/components/dashboard/registry';
-import CustomizableWidgetGrid from '@/components/dashboard/CustomizableWidgetGrid';
+import CustomisableWidgetGrid from '@/components/dashboard/CustomisableWidgetGrid';
 import ExecutiveSnapshotWidget from '@/components/dashboard/ExecutiveSnapshotWidget';
 import GeotechnicalHeatmapWidget from '@/components/dashboard/GeotechnicalHeatmapWidget';
 import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
@@ -201,8 +201,8 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         <SiteSnapshotGrid onSelectJob={openJobDrawer} onNavigate={onNavigate} />
       )}
 
-      {/* Customizable widget grid — drag to reorder, toggle visibility */}
-      <CustomizableWidgetGrid renderWidget={renderWidget} canShowWidget={canShowWidget} />
+      {/* Customisable widget grid — drag to reorder, toggle visibility */}
+      <CustomisableWidgetGrid renderWidget={renderWidget} canShowWidget={canShowWidget} />
 
       {/* Job Quick Drawer — slide-out drill-down without leaving the dashboard */}
       <JobQuickDrawer job={drawerJob} onClose={() => setDrawerJob(null)} onOpenFullDetails={onSelectJob} />

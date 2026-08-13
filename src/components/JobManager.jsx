@@ -339,6 +339,7 @@ export default function JobManager({ onNavigateRota }) {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredJobs.map((job) => {
                 const client = clients.find(c => c.id === job.client_id);
+                const parentClient = client?.parent_client_id ? clients.find(c => c.id === client.parent_client_id) : null;
                 const project = projects.find(p => p.id === job.project_id);
                 const siblingCount = project ? jobs.filter(j => j.project_id === project.id).length : 0;
                 return (
@@ -346,6 +347,7 @@ export default function JobManager({ onNavigateRota }) {
                     key={job.id}
                     job={job}
                     client={client}
+                    parentClient={parentClient}
                     project={project}
                     siblingCount={siblingCount}
                     crewCount={crewCountByJob[job.id] || 0}

@@ -6,7 +6,7 @@ import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SearchFilterBar from '@/components/SearchFilterBar';
 
 const inputCls = 'w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm';
-const blank = { name: '', contact_name: '', contact_email: '', contact_phone: '', yard_address: '', lat: '', lng: '', geofence_radius_override: '', is_partner: false, partner_color: '' };
+const blank = { name: '', parent_client_id: '', is_holding: false, contact_name: '', contact_email: '', contact_phone: '', yard_address: '', lat: '', lng: '', geofence_radius_override: '', is_partner: false, partner_color: '' };
 
 export default function ClientManager() {
   const [showForm, setShowForm] = useState(false);
@@ -34,7 +34,8 @@ export default function ClientManager() {
 
   const handleEdit = (c) => {
     setFormData({
-      name: c.name || '', contact_name: c.contact_name || '', contact_email: c.contact_email || '',
+      name: c.name || '', parent_client_id: c.parent_client_id || '', is_holding: c.is_holding || false,
+      contact_name: c.contact_name || '', contact_email: c.contact_email || '',
       contact_phone: c.contact_phone || '', yard_address: c.yard_address || '',
       lat: c.lat ?? '', lng: c.lng ?? '', geofence_radius_override: c.geofence_radius_override ?? '',
       is_partner: c.is_partner || false, partner_color: c.partner_color || '',
@@ -70,6 +71,23 @@ export default function ClientManager() {
               <label className="block text-xs font-medium text-slate-600 mb-1">Company Name *</label>
               <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required
                 className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Parent Group</label>
+              <select
+                value={formData.parent_client_id || ''}
+                onChange={e => setFormData({ ...formData, parent_client_id: e.target.value })}
+                className={inputCls}
+              >
+                <option value="">— Standalone client —</option>
+                {clients
+                  .filter(c => c.id !== editingId && (c.is_holding || c.is_partner))
+                  .map(c => (
+                    <option key={c.id} value={c.id}>{c.name}{c.is_holding ? ' (Holding Group)' : ''}</option>
+                  ))
+                }
+              </select>
+              <p className="text-[11px] text-slate-400 mt-1">Link this operating entity to its parent holding group (e.g. link Concept to Phenna Group).</p>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Contact Name</label>
@@ -121,7 +139,7 @@ export default function ClientManager() {
                 <Star className="w-4 h-4 text-amber-500" /> Partner Client
                 <span className="text-xs text-slate-400 font-normal">(flag consultancy clients that subcontract work to us)</span>
               </label>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -130,6 +148,15 @@ export default function ClientManager() {
                     className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                   />
                   <span className="text-sm text-slate-700">This is a partner consultancy</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_holding || false}
+                    onChange={e => setFormData({ ...formData, is_holding: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm text-slate-700">This is a holding/parent group</span>
                 </label>
                 {formData.is_partner && (
                   <div className="flex items-center gap-2">
@@ -183,17 +210,32 @@ export default function ClientManager() {
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-bold text-slate-900 truncate">{c.name}</h3>
-                        {c.is_partner && (
-                          <span
-                            className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
-                            style={{
-                              backgroundColor: (c.partner_color || '#2563eb') + '15',
-                              color: c.partner_color || '#2563eb',
-                            }}
-                          >
-                            <Star className="w-3 h-3" /> Partner
-                          </span>
-                        )}
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {c.is_holding && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-slate-700 text-white">
+                              <Building2 className="w-3 h-3" /> Holding Group
+                            </span>
+                          )}
+                          {c.is_partner && (
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
+                              style={{
+                                backgroundColor: (c.partner_color || '#2563eb') + '15',
+                                color: c.partner_color || '#2563eb',
+                              }}
+                            >
+                              <Star className="w-3 h-3" /> Partner
+                            </span>
+                          )}
+                          {c.parent_client_id && (() => {
+                            const parent = clients.find(p => p.id === c.parent_client_id);
+                            return parent ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500">
+                                ↳ {parent.name}
+                              </span>
+                            ) : null;
+                          })()}
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-1 flex-shrink-0">

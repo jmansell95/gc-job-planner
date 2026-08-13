@@ -64,7 +64,7 @@ function DetailItem({ icon: Icon, label, value }) {
 }
 
 export default function JobSummaryCard({
-  job, client, project, siblingCount, crewCount, rigCount, jobTypes, teams, cloningId,
+  job, client, parentClient, project, siblingCount, crewCount, rigCount, jobTypes, teams, cloningId,
   onView, onEdit, onClone, onDelete, onProjectClick,
 }) {
   const duration = calcDuration(job.start_date, job.end_date);
@@ -73,6 +73,12 @@ export default function JobSummaryCard({
   const siteCount = Array.isArray(job.sites) ? job.sites.length : 0;
   const status = STATUS_META[job.status || 'planning'] || STATUS_META.planning;
   const StatusIcon = status.icon;
+
+  // Partner badge logic — shows parent group (e.g. Phenna Group) alongside the
+  // operating entity (e.g. Concept) so managers can instantly tell which group
+  // a partner job belongs to while still identifying the specific subsidiary.
+  const showPartnerBadge = client?.is_partner;
+  const partnerColor = client?.partner_color || '#2563eb';
 
   return (
     <div className="vibrant-card rounded-xl overflow-hidden flex flex-col group">
@@ -89,19 +95,36 @@ export default function JobSummaryCard({
               </span>
               <DisciplinePills job={job} size="sm" />
             </div>
-            {/* Partner badge — shown when the job's client is flagged as a partner consultancy */}
-            {client?.is_partner && (
-              <div
-                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold w-fit"
-                style={{
-                  backgroundColor: (client.partner_color || '#2563eb') + '15',
-                  color: client.partner_color || '#2563eb',
-                }}
-              >
-                <Building2 className="w-3.5 h-3.5" />
-                <span className="text-[10px] uppercase tracking-wide opacity-80 font-semibold">Partner</span>
-                <span className="opacity-30">·</span>
-                <span className="truncate">{client.name}</span>
+            {/* Partner badge — shows parent group + operating entity */}
+            {showPartnerBadge && (
+              <div className="flex flex-wrap gap-1">
+                {parentClient && (
+                  <div
+                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold w-fit"
+                    style={{
+                      backgroundColor: (parentClient.partner_color || partnerColor) + '15',
+                      color: parentClient.partner_color || partnerColor,
+                    }}
+                  >
+                    <Building2 className="w-3.5 h-3.5" />
+                    <span className="text-[10px] uppercase tracking-wide opacity-80 font-semibold">Group</span>
+                    <span className="opacity-30">·</span>
+                    <span className="truncate">{parentClient.name}</span>
+                  </div>
+                )}
+                <div
+                  className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold w-fit"
+                  style={{
+                    backgroundColor: partnerColor + '15',
+                    color: partnerColor,
+                  }}
+                >
+                  {parentClient && <span className="opacity-30">↳</span>}
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span className="text-[10px] uppercase tracking-wide opacity-80 font-semibold">Partner</span>
+                  <span className="opacity-30">·</span>
+                  <span className="truncate">{client.name}</span>
+                </div>
               </div>
             )}
             {/* Job Reference — prominent badge tucked just under the pills */}

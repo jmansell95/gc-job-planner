@@ -18,7 +18,11 @@ const TIER_GRADIENT = {
 
 // Size → Tailwind colspan class on large screens (4-col grid)
 // sm = quarter (1 col), md = half (2 cols), lg = full (4 cols) — all three distinct
-const SIZE_COLSPAN = { sm: 'lg:col-span-1', md: 'lg:col-span-2', lg: 'lg:col-span-4' };
+const SIZE_COLSPAN = {
+  sm: 'lg:col-span-1',
+  md: 'lg:col-span-2',
+  lg: 'lg:col-span-4',
+};
 const SIZE_ICON = { sm: Minimize2, md: Square, lg: Maximize2 };
 const SIZE_LABEL = { sm: 'Small', md: 'Medium', lg: 'Large' };
 
@@ -51,8 +55,8 @@ function loadSizesCache() {
   return {};
 }
 
-export default function CustomizableWidgetGrid({ renderWidget, canShowWidget }) {
-  const [customize, setCustomize] = useState(false);
+export default function CustomisableWidgetGrid({ renderWidget, canShowWidget }) {
+  const [customise, setCustomise] = useState(false);
   const [order, setOrder] = useState(loadOrderCache);
   const [hidden, setHidden] = useState(loadHiddenCache);
   const [sizes, setSizes] = useState(loadSizesCache);
@@ -169,7 +173,7 @@ export default function CustomizableWidgetGrid({ renderWidget, canShowWidget }) 
 
   return (
     <div className="mb-4">
-      {/* Customize bar */}
+      {/* Customise bar */}
       <div className="flex items-center justify-between mb-3 px-1">
         <div className="flex items-center gap-1.5">
           {saving && (
@@ -179,21 +183,21 @@ export default function CustomizableWidgetGrid({ renderWidget, canShowWidget }) 
           )}
         </div>
         <div className="flex items-center gap-2">
-          {customize && (
+          {customise && (
             <button onClick={resetLayout}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition">
               <RotateCcw className="w-3.5 h-3.5" /> Reset
             </button>
           )}
-          <button onClick={() => setCustomize(!customize)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition ${customize ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-            {customize ? <><Check className="w-4 h-4" /> Done</> : <><Settings2 className="w-4 h-4" /> Customize</>}
+          <button onClick={() => setCustomise(!customise)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition ${customise ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+            {customise ? <><Check className="w-4 h-4" /> Done</> : <><Settings2 className="w-4 h-4" /> Customise</>}
           </button>
         </div>
       </div>
 
-      {/* Visibility + size toggles — customize mode only */}
-      {customize && availableWidgets.length > 0 && (
+      {/* Visibility + size toggles — customise mode only */}
+      {customise && availableWidgets.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4 px-1">
           {availableWidgets.map(id => {
             const config = WIDGET_REGISTRY[id];
@@ -229,7 +233,7 @@ export default function CustomizableWidgetGrid({ renderWidget, canShowWidget }) 
                       <div className="flex-1 h-px bg-gradient-to-r from-slate-200 to-transparent" />
                       <span className="text-xs text-slate-400 font-medium">{widgets.length} {widgets.length === 1 ? 'widget' : 'widgets'}</span>
                     </div>
-                    {/* Widgets — sized by user preference, fullWidth config always spans both columns */}
+                    {/* Widgets — sized by user preference, fullWidth config always spans all columns */}
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                       {widgets.map((widgetId) => {
                         const content = renderWidget(widgetId);
@@ -239,19 +243,24 @@ export default function CustomizableWidgetGrid({ renderWidget, canShowWidget }) 
                         const colspanClass = config?.fullWidth ? 'lg:col-span-4' : (SIZE_COLSPAN[userSize] || 'lg:col-span-2');
                         const SizeIcon = SIZE_ICON[userSize] || Square;
                         return (
-                          <Draggable key={widgetId} draggableId={widgetId} index={visibleWidgets.indexOf(widgetId)} isDragDisabled={!customize}>
+                          <Draggable key={widgetId} draggableId={widgetId} index={visibleWidgets.indexOf(widgetId)} isDragDisabled={!customise}>
                             {(provided, snapshot) => (
-                              <div ref={provided.innerRef} {...provided.draggableProps}
-                                className={`${colspanClass} relative ${customize ? 'ring-2 ring-[#2E5A1A]/30 rounded-2xl pt-5' : ''} ${snapshot.isDragging ? 'z-50 shadow-2xl' : ''}`}>
-                                {customize && (
-                                  <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1">
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={`${colspanClass} relative ${customise ? 'ring-2 ring-[#2E5A1A]/30 rounded-2xl pt-6' : ''} ${snapshot.isDragging ? 'z-50 shadow-2xl' : ''}`}
+                              >
+                                {customise && (
+                                  <div className="absolute top-1 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1">
                                     <div {...provided.dragHandleProps}
                                       className="bg-[#2E5A1A] text-white px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg cursor-grab active:cursor-grabbing">
                                       <GripVertical className="w-3 h-3" /> Drag
                                     </div>
-                                    <button onClick={() => cycleSize(widgetId)}
-                                      className="bg-white text-[#2E5A1A] px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg ring-1 ring-[#2E5A1A]/20 hover:bg-[#2E5A1A]/5 transition"
-                                      title={`Size: ${SIZE_LABEL[userSize]} (click to change)`}>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); cycleSize(widgetId); }}
+                                      className="bg-white text-[#2E5A1A] px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg ring-1 ring-[#2E5A1A]/20 hover:bg-[#2E5A1A]/5 transition z-30 relative"
+                                      title={`Size: ${SIZE_LABEL[userSize]} (click to change)`}
+                                    >
                                       <SizeIcon className="w-3 h-3" /> {SIZE_LABEL[userSize]}
                                     </button>
                                   </div>

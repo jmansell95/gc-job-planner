@@ -6,6 +6,15 @@
       "type": "string",
       "description": "Client company name"
     },
+    "parent_client_id": {
+      "type": "string",
+      "description": "Parent group client ID \u2014 links operating entities (e.g. Concept Engineering, CGL) to their parent holding group (e.g. Phenna Group). When set, this client is displayed as a subsidiary of the parent group in job cards, workload widgets, and financial rollups. Blank for standalone clients and for the parent group record itself."
+    },
+    "is_holding": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this client is a parent/holding group (e.g. Phenna Group) that owns operating entities. Holding groups are not typically direct job clients \u2014 jobs are linked to their subsidiary operating entities. Used to distinguish the parent in the Workload Ownership widget and client hierarchy views."
+    },
     "contact_name": {
       "type": "string",
       "description": "Primary contact person"
