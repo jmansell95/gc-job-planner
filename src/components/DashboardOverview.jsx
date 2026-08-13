@@ -118,13 +118,9 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
               </div>
               <div className="min-w-0">
                 {isAllJobs ? (
-                  <>
-                    <h1 className="text-base sm:text-xl md:text-2xl font-bold text-slate-900 tracking-tight truncate">
-                      {greeting}{firstName ? `, ${firstName}` : ''}
-                    </h1>
-                    <p className="text-slate-600 text-xs mt-0.5">{format(new Date(), 'EEEE, do MMMM yyyy')}</p>
-                    <p className="text-slate-400 text-[11px] mt-0.5">{thisWeekRotas.length} {thisWeekRotas.length === 1 ? 'Shift' : 'Shifts'} This Week · Week of {format(weekStart, 'dd MMM yyyy')}</p>
-                  </>
+                  <h1 className="text-base sm:text-xl md:text-2xl font-bold text-slate-900 tracking-tight truncate">
+                    {greeting}{firstName ? `, ${firstName}` : ''}
+                  </h1>
                 ) : (
                   <>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -146,7 +142,22 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {!isAllJobs && (
+              {isAllJobs ? (
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="hidden sm:flex flex-col items-end leading-tight">
+                    <span className="text-sm font-bold text-slate-900">{format(new Date(), 'EEEE')}</span>
+                    <span className="text-[11px] text-slate-500 font-medium">{format(new Date(), 'do MMMM yyyy')}</span>
+                  </div>
+                  <div className="h-9 w-px bg-slate-200" />
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-br from-[#2E5A1A]/8 to-[#8DC63F]/8 border border-[#2E5A1A]/15">
+                    <Calendar className="w-4 h-4 text-[#2E5A1A]" />
+                    <div className="flex flex-col leading-tight">
+                      <span className="text-lg font-bold text-[#2E5A1A] tabular-nums">{thisWeekRotas.length}</span>
+                      <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">{thisWeekRotas.length === 1 ? 'Shift' : 'Shifts'} This Week</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
                 <div className="flex flex-wrap items-center gap-1.5">
                   {gbp(selectedJob?.budget_amount) && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200">

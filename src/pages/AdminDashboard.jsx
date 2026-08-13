@@ -15,6 +15,7 @@ import InvestigationHub from '@/components/investigation/InvestigationHub';
 import AdminDeliveryHub from '@/pages/AdminDeliveryHub';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import DashboardUserMenu from '@/components/DashboardUserMenu';
 import RedAlertBanner from '@/components/safety/RedAlertBanner';
 import { JobFilterProvider } from '@/components/dashboard/JobFilterContext';
 
@@ -117,7 +118,12 @@ export default function AdminDashboard() {
         <RedAlertBanner />
       <main className="flex-1 overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top)-25px)] xl:pt-0">
         <div className="px-4 pb-24 md:px-6 xl:pb-4 xl:pt-6 w-full">
-          <Breadcrumbs sectionLabel={SECTION_LABELS[activeSection]} />
+          <div className="flex items-center justify-between gap-3">
+            <Breadcrumbs sectionLabel={SECTION_LABELS[activeSection]} />
+            <div className="hidden xl:block">
+              <DashboardUserMenu />
+            </div>
+          </div>
           <motion.div
             key={activeSection}
             initial={{ opacity: 0, y: 8 }}
