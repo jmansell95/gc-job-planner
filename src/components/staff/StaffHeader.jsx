@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { LogOut, Phone, WifiOff, Wifi, ScanLine } from 'lucide-react';
+import { LogOut, Phone, WifiOff, Wifi } from 'lucide-react';
 import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
 import Logo from '@/components/Logo';
 import { base44 } from '@/api/base44Client';
 import UsefulNumbersModal from '@/components/UsefulNumbersModal';
@@ -10,7 +9,6 @@ import StaffMaintenanceReportModal from '@/components/staff/StaffMaintenanceRepo
 // Premium staff header — gradient brand bar with greeting, live clock,
 // connection status, and a quick scanner shortcut button.
 export default function StaffHeader({ staff, onShowSchedule }) {
-  const navigate = useNavigate();
   const [showNumbers, setShowNumbers] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -32,7 +30,7 @@ export default function StaffHeader({ staff, onShowSchedule }) {
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-3.5 md:py-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <Logo height={40} className="flex-shrink-0 brightness-0 invert" />
+            <Logo height={40} className="flex-shrink-0" />
             <div className="min-w-0">
               <p className="text-white font-bold text-sm leading-tight truncate">
                 {greeting}, {firstName}
@@ -47,10 +45,6 @@ export default function StaffHeader({ staff, onShowSchedule }) {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            <button onClick={() => navigate('/scanner')} type="button" aria-label="Asset Scanner"
-              className="w-11 h-11 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center justify-center active:scale-95 transition touch-manipulation">
-              <ScanLine className="w-5 h-5" />
-            </button>
             <button onClick={() => setShowNumbers(true)} type="button" aria-label="Useful Numbers"
               className="w-11 h-11 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center justify-center active:scale-95 transition touch-manipulation">
               <Phone className="w-5 h-5" />
