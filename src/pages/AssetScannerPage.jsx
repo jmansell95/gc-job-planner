@@ -81,6 +81,15 @@ export default function AssetScannerPage() {
       .slice(0, 12);
   }, [assets, searchQuery]);
 
+  // Quick stats for the scanner dashboard
+  const quickStats = useMemo(() => {
+    const active = assets.filter(a => a.is_active !== false);
+    const compliant = active.filter(a => a.compliance_status === 'compliant').length;
+    const issues = active.filter(a => a.compliance_status === 'expired' || a.compliance_status === 'expiring').length;
+    const rigs = active.filter(a => a.asset_type === 'rig').length;
+    return { total: active.length, compliant, issues, rigs };
+  }, [assets]);
+
   const handleScan = useCallback((val) => {
     const q = val.trim().toLowerCase();
     if (!q) return;
@@ -189,47 +198,51 @@ export default function AssetScannerPage() {
 
   return (
     <div className="fixed inset-0 bg-slate-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between flex-shrink-0 safe-area-top">
+      {/* Header — gradient brand bar */}
+      <header className="bg-gradient-to-r from-[#2E5A1A] to-[#1c4a12] px-4 py-3 flex items-center justify-between flex-shrink-0 safe-area-top shadow-md">
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-            <ScanLine className="w-5 h-5 text-emerald-700" />
+          <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
+            <ScanLine className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900 leading-tight">Asset Scanner</h1>
-            <p className="text-xs text-slate-400">{basket.length} item{basket.length !== 1 ? 's' : ''} in basket</p>
+            <h1 className="text-lg font-bold text-white leading-tight">Asset Scanner</h1>
+            <p className="text-xs text-white/70">{basket.length} item{basket.length !== 1 ? 's' : ''} in basket</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex bg-slate-100 rounded-xl p-1">
+          <div className="flex bg-white/10 backdrop-blur-sm rounded-xl p-1">
             <button
               onClick={() => setMode('assets')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition active:scale-95 ${mode === 'assets' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500'}`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition active:scale-95 ${mode === 'assets' ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-white/70'}`}
             >
               <ScanLine className="w-3.5 h-3.5" /> Assets
             </button>
-            <button
-              onClick={() => setMode('goods-in')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition active:scale-95 ${mode === 'goods-in' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500'}`}
-            >
-              <Store className="w-3.5 h-3.5" /> Goods In
-            </button>
+            {isHubAdmin && (
+              <button
+                onClick={() => setMode('goods-in')}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition active:scale-95 ${mode === 'goods-in' ? 'bg-white text-amber-700 shadow-sm' : 'text-white/70'}`}
+              >
+                <Store className="w-3.5 h-3.5" /> Goods In
+              </button>
+            )}
             <button
               onClick={() => setMode('site-collect')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition active:scale-95 ${mode === 'site-collect' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-500'}`}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition active:scale-95 ${mode === 'site-collect' ? 'bg-white text-blue-700 shadow-sm' : 'text-white/70'}`}
             >
               <PackageOpen className="w-3.5 h-3.5" /> Collect
             </button>
           </div>
-          <button
-            onClick={toggleKiosk}
-            className={`inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95 ${kioskLocked ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-200' : 'bg-slate-100 text-slate-600'}`}
-          >
-            {kioskLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-            <span className="hidden sm:inline">{kioskLocked ? 'Kiosk On' : 'Kiosk'}</span>
-          </button>
+          {isHubAdmin && (
+            <button
+              onClick={toggleKiosk}
+              className={`inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95 ${kioskLocked ? 'bg-amber-400/90 text-amber-900 ring-1 ring-amber-300' : 'bg-white/10 text-white/70'}`}
+            >
+              {kioskLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+              <span className="hidden sm:inline">{kioskLocked ? 'Kiosk On' : 'Kiosk'}</span>
+            </button>
+          )}
           {!kioskLocked && (
-            <button onClick={() => navigate('/admin')} className="p-2.5 text-slate-500 hover:bg-slate-100 rounded-xl transition active:scale-95">
+            <button onClick={() => navigate(isHubAdmin ? '/admin' : '/staff-schedule')} className="p-2.5 text-white/70 hover:bg-white/10 rounded-xl transition active:scale-95">
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
@@ -244,6 +257,37 @@ export default function AssetScannerPage() {
 
           {hubTab === 'scan' && (
             <>
+          {/* Quick stats */}
+          <div className="grid grid-cols-3 gap-2.5">
+            <div className="bg-white rounded-2xl border border-slate-200 p-3 flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <Package className="w-5 h-5 text-emerald-700" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-lg font-bold text-slate-900 leading-none tabular-nums">{quickStats.total}</p>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">Total Assets</p>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl border border-slate-200 p-3 flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <Layers className="w-5 h-5 text-blue-700" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-lg font-bold text-slate-900 leading-none tabular-nums">{quickStats.rigs}</p>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">Rigs</p>
+              </div>
+            </div>
+            <div className={`bg-white rounded-2xl border p-3 flex items-center gap-2.5 ${quickStats.issues > 0 ? 'border-amber-200' : 'border-slate-200'}`}>
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${quickStats.issues > 0 ? 'bg-amber-100' : 'bg-emerald-100'}`}>
+                <CheckCircle2 className={`w-5 h-5 ${quickStats.issues > 0 ? 'text-amber-600' : 'text-emerald-600'}`} />
+              </div>
+              <div className="min-w-0">
+                <p className={`text-lg font-bold leading-none tabular-nums ${quickStats.issues > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>{quickStats.issues > 0 ? quickStats.issues : '✓'}</p>
+                <p className="text-[10px] text-slate-400 font-medium mt-0.5">{quickStats.issues > 0 ? 'Issues' : 'All Clear'}</p>
+              </div>
+            </div>
+          </div>
+
           {/* Scanner card with live search */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 relative">
             <BarcodeScanner
@@ -308,6 +352,7 @@ export default function AssetScannerPage() {
               onBookToVehicle={(asset) => { setShowBook(true); }}
               onDriveAway={(asset) => { setDriveAwayAsset(asset); setScanResult(null); }}
               onOpenCommand={(asset) => { setCommandAsset(asset); setScanResult(null); }}
+              onReportFault={(asset) => { setFaultAsset(asset); setScanResult(null); }}
               onDismiss={() => setScanResult(null)}
             />
           )}
@@ -328,11 +373,11 @@ export default function AssetScannerPage() {
             </div>
           ) : (
             <div className="text-center py-16">
-              <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                <Package className="w-10 h-10 text-slate-300" />
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center mx-auto mb-4 ring-4 ring-emerald-50">
+                <ScanLine className="w-12 h-12 text-emerald-300" />
               </div>
-              <p className="text-slate-500 font-medium text-base">Scan or search to add items</p>
-              <p className="text-slate-400 text-sm mt-1">Point camera at a QR label or type a name like "shackle"</p>
+              <p className="text-slate-700 font-bold text-lg">Ready to Scan</p>
+              <p className="text-slate-400 text-sm mt-1">Point your camera at a QR code or type a name like "shackle"</p>
             </div>
           )}
             </>

@@ -750,6 +750,13 @@ export default function StaffDashboard() {
       {activeTab === 'more' && (
         <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-5 space-y-4">
           <div className="grid grid-cols-2 gap-3.5">
+            <button onClick={() => navigate('/scanner')} type="button"
+              className="bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] rounded-2xl flex flex-col items-center gap-3 p-5 hover:shadow-lg active:scale-95 transition touch-manipulation text-white">
+              <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center">
+                <ScanLine className="w-7 h-7 text-white" />
+              </div>
+              <span className="text-base font-bold">Asset Scanner</span>
+            </button>
             {staff.delivery_dashboard_enabled && (
               <button onClick={() => navigate('/deliveries')} type="button"
                 className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-blue-400 hover:shadow-md active:scale-95 transition touch-manipulation">
@@ -780,14 +787,7 @@ export default function StaffDashboard() {
                 </div>
                 <span className="text-base font-bold text-slate-800">Help Guides</span>
               </button>
-            <button onClick={() => navigate('/scanner')} type="button"
-              className="bg-white border border-slate-200 rounded-2xl flex flex-col items-center gap-3 p-5 hover:border-emerald-400 hover:shadow-md active:scale-95 transition touch-manipulation">
-                <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center">
-                  <ScanLine className="w-7 h-7 text-emerald-600" />
-                </div>
-                <span className="text-base font-bold text-slate-800">Asset Scanner</span>
-              </button>
-            </div>
+          </div>
 
         </div>
       )}

@@ -3,7 +3,7 @@ import { ScanLine, Wrench, CalendarDays, LayoutDashboard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 /**
- * Field Hub Tabs — the primary navigation dock for the mobile scanner hub.
+ * Field Hub Tabs — premium segmented navigation dock for the mobile scanner hub.
  * Three tabs for field staff: Scan (default), My Gear, My Today.
  * Super admins get a fourth "Manage" tab linking to the admin dashboard.
  */
@@ -18,7 +18,7 @@ export default function FieldHubTabs({ activeTab, onChange, isAdmin }) {
   const tabs = isAdmin ? [...TABS, { key: 'manage', label: 'Manage', Icon: LayoutDashboard }] : TABS;
 
   return (
-    <div className="flex bg-slate-100/80 rounded-xl p-1 gap-1">
+    <div className="flex bg-white rounded-2xl border border-slate-200 shadow-sm p-1.5 gap-1">
       {tabs.map(tab => {
         const Icon = tab.Icon;
         const active = activeTab === tab.key;
@@ -29,11 +29,13 @@ export default function FieldHubTabs({ activeTab, onChange, isAdmin }) {
               if (tab.key === 'manage') { navigate('/admin'); return; }
               onChange(tab.key);
             }}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 px-1 rounded-lg text-[11px] font-bold transition active:scale-95 ${
-              active ? 'bg-white text-[#2E5A1A] shadow-sm' : 'text-slate-500'
+            className={`flex-1 flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl text-[11px] font-bold transition-all active:scale-95 ${
+              active
+                ? 'bg-gradient-to-br from-[#2E5A1A] to-[#1c4a12] text-white shadow-md'
+                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
             }`}
           >
-            <Icon className="w-4 h-4" />
+            <Icon className={`w-4 h-4 ${active ? 'scale-110' : ''} transition-transform`} />
             {tab.label}
           </button>
         );
