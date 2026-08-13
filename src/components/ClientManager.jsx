@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Edit2, Building2, Mail, Phone, User, MapPin, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Building2, Mail, Phone, User, MapPin, Loader2, Star } from 'lucide-react';
 import SettingsSectionHeader from '@/components/SettingsSectionHeader';
 import SearchFilterBar from '@/components/SearchFilterBar';
 
 const inputCls = 'w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-600 text-sm';
-const blank = { name: '', contact_name: '', contact_email: '', contact_phone: '', yard_address: '', lat: '', lng: '', geofence_radius_override: '' };
+const blank = { name: '', contact_name: '', contact_email: '', contact_phone: '', yard_address: '', lat: '', lng: '', geofence_radius_override: '', is_partner: false, partner_color: '' };
 
 export default function ClientManager() {
   const [showForm, setShowForm] = useState(false);
@@ -37,6 +37,7 @@ export default function ClientManager() {
       name: c.name || '', contact_name: c.contact_name || '', contact_email: c.contact_email || '',
       contact_phone: c.contact_phone || '', yard_address: c.yard_address || '',
       lat: c.lat ?? '', lng: c.lng ?? '', geofence_radius_override: c.geofence_radius_override ?? '',
+      is_partner: c.is_partner || false, partner_color: c.partner_color || '',
     });
     setEditingId(c.id); setShowForm(true);
   };
@@ -113,6 +114,39 @@ export default function ClientManager() {
               </div>
               <p className="text-[11px] text-slate-400 mt-1">Set the client's yard GPS coordinates so Geotab can detect when vehicles arrive to collect or return gear. Override the radius for large yards.</p>
             </div>
+
+            {/* Partner Client toggle — flags this client as a partner consultancy (e.g. Concept Engineering) */}
+            <div className="sm:col-span-2 border-t border-slate-100 pt-4 mt-1">
+              <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700 mb-1.5">
+                <Star className="w-4 h-4 text-amber-500" /> Partner Client
+                <span className="text-xs text-slate-400 font-normal">(flag consultancy clients that subcontract work to us)</span>
+              </label>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_partner || false}
+                    onChange={e => setFormData({ ...formData, is_partner: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm text-slate-700">This is a partner consultancy</span>
+                </label>
+                {formData.is_partner && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-slate-500 font-medium">Badge colour:</label>
+                    <input
+                      type="color"
+                      value={formData.partner_color || '#2563eb'}
+                      onChange={e => setFormData({ ...formData, partner_color: e.target.value })}
+                      className="w-8 h-8 rounded border border-slate-200 cursor-pointer"
+                    />
+                  </div>
+                )}
+              </div>
+              {formData.is_partner && (
+                <p className="text-[11px] text-slate-400 mt-1.5">Partner jobs are visually differentiated on job cards, boards and the Workload Ownership dashboard widget with a distinct badge in this colour.</p>
+              )}
+            </div>
           </div>
           <div className="flex gap-2 mt-5">
             <button type="submit" className="px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition font-medium text-sm">
@@ -147,7 +181,20 @@ export default function ClientManager() {
                       <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
                         <Building2 className="w-5 h-5 text-emerald-700" />
                       </div>
-                      <h3 className="font-bold text-slate-900 truncate">{c.name}</h3>
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-slate-900 truncate">{c.name}</h3>
+                        {c.is_partner && (
+                          <span
+                            className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
+                            style={{
+                              backgroundColor: (c.partner_color || '#2563eb') + '15',
+                              color: c.partner_color || '#2563eb',
+                            }}
+                          >
+                            <Star className="w-3 h-3" /> Partner
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
                       <button onClick={() => handleEdit(c)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>

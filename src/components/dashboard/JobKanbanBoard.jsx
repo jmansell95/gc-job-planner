@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
-import { MapPin, Calendar, Users, GripVertical } from 'lucide-react';
+import { MapPin, Calendar, Users, GripVertical, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/StateViews';
 
@@ -33,6 +33,16 @@ export default function JobKanbanBoard({ onSelectJob }) {
     queryKey: ['rotas-today-kanban'],
     queryFn: () => base44.entities.RotaAssignment.filter({ assigned_date: format(new Date(), 'yyyy-MM-dd') }),
   });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients-kanban'],
+    queryFn: () => base44.entities.Client.list(),
+  });
+  const partnerClientMap = useMemo(() => {
+    const m = {};
+    clients.forEach(c => { if (c.is_partner) m[c.id] = c; });
+    return m;
+  }, [clients]);
 
   const crewTodayByJob = useMemo(() => {
     const m = {};
@@ -107,7 +117,20 @@ export default function JobKanbanBoard({ onSelectJob }) {
               >
                 <div className="flex items-start gap-1.5">
                   <GripVertical className="w-3 h-3 text-slate-300 flex-shrink-0 mt-0.5 cursor-grab" />
-                  <p className="text-xs font-semibold text-slate-900 leading-tight line-clamp-2 flex-1">{job.name}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-slate-900 leading-tight line-clamp-2">{job.name}</p>
+                    {partnerClientMap[job.client_id] && (
+                      <span
+                        className="inline-flex items-center gap-0.5 mt-1 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wide"
+                        style={{
+                          backgroundColor: (partnerClientMap[job.client_id].partner_color || '#2563eb') + '15',
+                          color: partnerClientMap[job.client_id].partner_color || '#2563eb',
+                        }}
+                      >
+                        <Building2 className="w-2 h-2" /> {partnerClientMap[job.client_id].name}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {job.location && (
                   <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-0.5 truncate">

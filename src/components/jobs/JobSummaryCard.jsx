@@ -2,7 +2,7 @@ import React from 'react';
 import {
   MapPin, CalendarClock, Users, Ruler, PoundSterling, Layers,
   FileText, Eye, Edit2, Copy, Trash2, FolderOpen, User, Phone, Mountain, Wrench, StickyNote,
-  TrendingUp, Clock, CheckCircle2, AlertTriangle, CircleDashed,
+  TrendingUp, Clock, CheckCircle2, AlertTriangle, CircleDashed, Building2,
 } from 'lucide-react';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
@@ -89,6 +89,21 @@ export default function JobSummaryCard({
               </span>
               <DisciplinePills job={job} size="sm" />
             </div>
+            {/* Partner badge — shown when the job's client is flagged as a partner consultancy */}
+            {client?.is_partner && (
+              <div
+                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold w-fit"
+                style={{
+                  backgroundColor: (client.partner_color || '#2563eb') + '15',
+                  color: client.partner_color || '#2563eb',
+                }}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span className="text-[10px] uppercase tracking-wide opacity-80 font-semibold">Partner</span>
+                <span className="opacity-30">·</span>
+                <span className="truncate">{client.name}</span>
+              </div>
+            )}
             {/* Job Reference — prominent badge tucked just under the pills */}
             {job.job_reference && (
               <div className="inline-flex items-center gap-1.5 bg-[#2E5A1A]/8 text-[#2E5A1A] rounded-md px-2.5 py-1 text-xs font-bold tracking-wide w-fit">

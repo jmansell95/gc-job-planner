@@ -1,4 +1,4 @@
-import { LayoutDashboard, AlertTriangle, AlertOctagon, MapPin, Sparkles, CloudSun, Drill, HeartPulse } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, AlertOctagon, MapPin, Sparkles, CloudSun, Drill, HeartPulse, Layers } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════
 //  STREAMLINED DASHBOARD REGISTRY
@@ -21,6 +21,7 @@ export const WIDGET_REGISTRY = {
   'site-weather': { title: 'Site Weather Conditions', icon: CloudSun },
   'geo-heatmap': { title: 'Geotechnical Risk', icon: MapPin },
   'system-health': { title: 'System Health & Integrity', icon: HeartPulse },
+  'workload-ownership': { title: 'Workload Ownership', icon: Layers },
 };
 
 // ═══════════════════════════════════════════════════════════════════
@@ -42,6 +43,7 @@ export const TIER_INSIGHTS = [
   'site-weather',
   'geo-heatmap',
   'system-health',
+  'workload-ownership',
 ];
 
 export const DEFAULT_WIDGETS = [

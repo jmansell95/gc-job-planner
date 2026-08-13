@@ -33,6 +33,15 @@
     "geofence_radius_override": {
       "type": "number",
       "description": "Per-client geofence radius override (metres). When set, this radius is used instead of the global default from the geofence config. Useful for large client yards that need a wider zone."
+    },
+    "is_partner": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this client is a partner consultancy that subcontracts work to us (e.g. Concept Engineering Consultants). Partner jobs are visually differentiated on cards, boards and dashboards with a distinct badge and workload split."
+    },
+    "partner_color": {
+      "type": "string",
+      "description": "Brand accent colour (hex) for this partner client's badges and dashboard widgets. Defaults to a brand-appropriate colour when not set."
     }
   },
   "required": [

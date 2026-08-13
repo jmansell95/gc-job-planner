@@ -16,6 +16,7 @@ import ExceptionMonitorWidget from '@/components/dashboard/ExceptionMonitorWidge
 import MissionControlWidget from '@/components/dashboard/MissionControlWidget';
 import BoreholeProgressWidget from '@/components/dashboard/BoreholeProgressWidget';
 import SystemHealthWidget from '@/components/dashboard/SystemHealthWidget';
+import WorkloadOwnershipWidget from '@/components/dashboard/WorkloadOwnershipWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import QuickActionBar from '@/components/dashboard/QuickActionBar';
@@ -96,6 +97,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
       case 'site-weather': return <SiteWeatherOverviewWidget onSelectJob={openJobDrawer} />;
       case 'geo-heatmap': return <GeotechnicalHeatmapWidget onNavigate={onNavigate} />;
       case 'system-health': return <SystemHealthWidget onNavigate={onNavigate} />;
+      case 'workload-ownership': return <WorkloadOwnershipWidget onNavigate={onNavigate} />;
       default: return null;
     }
   };
