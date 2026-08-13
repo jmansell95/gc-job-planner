@@ -72,7 +72,7 @@ export function defaultPermissions() {
   return p;
 }
 
-// Normalize a stored permissions object so every module key exists.
+// Normalise a stored permissions object so every module key exists.
 export function normalizePermissions(p) {
   const out = defaultPermissions();
   if (p && typeof p === 'object') {

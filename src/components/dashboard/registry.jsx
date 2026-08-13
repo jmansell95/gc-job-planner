@@ -52,7 +52,7 @@ export const DEFAULT_WIDGETS = [
 ];
 
 // By default, only the 4 At-a-Glance widgets are visible. All Insights
-// widgets start hidden — users enable them via the Customize button.
+// widgets start hidden — users enable them via the Customise button.
 export const DEFAULT_HIDDEN = [...TIER_INSIGHTS];
 
 // Tier metadata for section headers

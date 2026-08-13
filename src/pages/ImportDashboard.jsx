@@ -15,7 +15,7 @@ export default function ImportDashboard() {
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
+  const [analysing, setAnalysing] = useState(false);
   const [applying, setApplying] = useState(false);
   const [preview, setPreview] = useState(null);
   const [applyResult, setApplyResult] = useState(null);
@@ -64,7 +64,7 @@ export default function ImportDashboard() {
   };
 
   const runAnalysis = async () => {
-    setAnalyzing(true);
+    setAnalysing(true);
     setError(null);
     try {
       const res = await base44.functions.invoke('importPlannerSpreadsheet', { file, dry_run: true });
@@ -74,7 +74,7 @@ export default function ImportDashboard() {
       setError(msg);
       throw e;
     } finally {
-      setAnalyzing(false);
+      setAnalysing(false);
     }
   };
 
@@ -173,13 +173,13 @@ export default function ImportDashboard() {
           </label>
           <button
             onClick={handleUpload}
-            disabled={!file || uploading || analyzing}
+            disabled={!file || uploading || analysing}
             className="command-gradient text-white px-5 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition hover:shadow-lg"
           >
-            {uploading || analyzing ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> {uploading ? 'Uploading…' : 'Analyzing…'}</>
+            {uploading || analysing ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> {uploading ? 'Uploading…' : 'Analysing…'}</>
             ) : (
-              <><UploadCloud className="w-4 h-4" /> Upload &amp; Analyze</>
+              <><UploadCloud className="w-4 h-4" /> Upload &amp; Analyse</>
             )}
           </button>
         </div>
@@ -857,7 +857,7 @@ export default function ImportDashboard() {
       )}
 
       {/* How it works */}
-      {!preview && !analyzing && (
+      {!preview && !analysing && (
         <div className="insight-card rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-slate-800 mb-3">How it works</h2>
           <ol className="space-y-3 text-sm text-slate-600">

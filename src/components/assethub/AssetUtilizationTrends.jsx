@@ -116,7 +116,7 @@ export default function AssetUtilizationTrends() {
 
       {summary.topUtilized.length > 0 && (
         <div className="mt-4 pt-4 border-t border-slate-100">
-          <p className="text-xs font-semibold text-slate-500 mb-2">Top Utilized Assets</p>
+          <p className="text-xs font-semibold text-slate-500 mb-2">Top Utilised Assets</p>
           <div className="space-y-1.5">
             {summary.topUtilized.map(a => (
               <div key={a.id} className="flex items-center justify-between text-xs">

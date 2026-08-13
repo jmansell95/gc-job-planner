@@ -23,7 +23,7 @@ export default function BookToVehicleModal({ asset, assets: propAssets, onClose,
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Normalize to array — accept either `assets` (array) or `asset` (single)
+  // Normalise to array — accept either `assets` (array) or `asset` (single)
   const assets = useMemo(() => {
     if (propAssets && propAssets.length > 0) return propAssets;
     if (asset) return [asset];

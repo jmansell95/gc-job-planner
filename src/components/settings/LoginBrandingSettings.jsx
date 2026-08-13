@@ -158,7 +158,7 @@ export default function LoginBrandingSettings() {
 
   return (
     <div className="space-y-6">
-      <SettingsSectionHeader icon={Palette} title="Login Page Customizer" description="Customise the background, colours, logo and text on the staff login, register and password reset pages" />
+      <SettingsSectionHeader icon={Palette} title="Login Page Customiser" description="Customise the background, colours, logo and text on the staff login, register and password reset pages" />
 
       <div className="grid lg:grid-cols-2 gap-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {/* Left: Controls */}

@@ -30,7 +30,7 @@
         "other"
       ],
       "default": "other",
-      "description": "Standardized qualification type for filtering, badges, and special UI (e.g. CSCS front/back card display)"
+      "description": "Standardised qualification type for filtering, badges, and special UI (e.g. CSCS front/back card display)"
     },
     "reference_name": {
       "type": "string",

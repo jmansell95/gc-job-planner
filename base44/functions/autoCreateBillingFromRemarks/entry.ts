@@ -20,7 +20,7 @@ export default async function(req) {
       return Response.json({ created: 0, message: 'No significant remarks to analyze' });
     }
 
-    const prompt = `You are a drilling industry billing analyst. Analyze these driller diary remarks and identify any billable events that should be charged to the client.
+    const prompt = `You are a drilling industry billing analyst. Analyse these driller diary remarks and identify any billable events that should be charged to the client.
 
 Job: ${log.job_name || 'Unknown'}
 Date: ${log.log_date || 'Unknown'}

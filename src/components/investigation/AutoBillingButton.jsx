@@ -13,7 +13,7 @@ export default function AutoBillingButton({ logId }) {
   const [result, setResult] = useState(null);
   const { toast } = useToast();
 
-  const handleAnalyze = async () => {
+  const handleAnalyse = async () => {
     setLoading(true);
     setResult(null);
     try {
@@ -46,7 +46,7 @@ export default function AutoBillingButton({ logId }) {
   return (
     <div>
       <button
-        onClick={handleAnalyze}
+        onClick={handleAnalyse}
         disabled={loading || !logId}
         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-50 text-violet-700 text-[11px] font-medium border border-violet-200 hover:bg-violet-100 transition disabled:opacity-50"
       >

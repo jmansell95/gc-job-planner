@@ -45,7 +45,7 @@ export default function PhotoAutoTagger({ jobId, jobName, onUploaded }) {
 
       // Use InvokeLLM with vision to auto-tag the photo
       const res = await base44.integrations.Core.InvokeLLM({
-        prompt: `Analyze this construction/site photo and identify: 1) What equipment or machinery is visible (rigs, vans, tools), 2) What work activity is happening (drilling, groundworks, coring), 3) Site conditions (mud, weather, terrain), 4) Any safety equipment visible (PPE, barriers). Return as structured JSON.`,
+        prompt: `Analyse this construction/site photo and identify: 1) What equipment or machinery is visible (rigs, vans, tools), 2) What work activity is happening (drilling, groundworks, coring), 3) Site conditions (mud, weather, terrain), 4) Any safety equipment visible (PPE, barriers). Return as structured JSON.`,
         file_urls: [file_url],
         response_json_schema: {
           type: 'object',

@@ -174,7 +174,7 @@ export function categorizeNonJobCell(cellValue) {
   return null;
 }
 
-// Normalize a job/site name for project matching: strips references, noise
+// Normalise a job/site name for project matching: strips references, noise
 // suffixes (Window Sampling, Demob, Mob, Half Day, etc.) so that "Hayes -
 // Window Sampling" matches the "Hayes" project.
 export function normalizeForProjectMatching(name) {

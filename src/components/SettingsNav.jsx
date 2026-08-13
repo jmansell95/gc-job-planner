@@ -56,7 +56,7 @@ export const settingsGroups = [
       { id: 'job-types', label: 'Job Types', icon: Tag, desc: 'Manage job types and colours' },
       { id: 'dropdowns', label: 'Dropdown Manager', icon: ListChecks, desc: 'Add, rename, reorder or remove options in every dropdown — qualifications, asset types, revenue streams & more' },
       { id: 'global-branding', label: 'Global Branding', icon: Palette, desc: 'Default colours, banner and footer for all automated emails' },
-      { id: 'login-branding', label: 'Login Page Customizer', icon: Palette, desc: 'Customise the staff login page — background, colours, logo, welcome text & live preview', roles: ['admin'] },
+      { id: 'login-branding', label: 'Login Page Customiser', icon: Palette, desc: 'Customise the staff login page — background, colours, logo, welcome text & live preview', roles: ['admin'] },
       { id: 'portal-branding', label: 'Portal Branding Editor', icon: Palette, desc: 'Customise the client portal & sub-contractor onboarding portal — welcome text, logo, colours, support contacts & live preview', roles: ['admin'] },
       { id: 'email-templates', label: 'Email Templates', icon: Mail, desc: 'Manage branded email templates for portal invitations, schedules, billing & compliance notifications with {{variable}} token support' },
       { id: 'email-alerts', label: 'Email Alerts', icon: Mail, desc: 'Edit templates, recipients and timing for each automated email' },

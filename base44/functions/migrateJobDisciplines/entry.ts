@@ -33,7 +33,7 @@ export default async function(req) {
 
       // Determine discipline type from legacy job_type or drilling_method
       let disciplineType = job.job_type || 'groundworks';
-      // Normalize: if drilling_method is set and not not_applicable, it's drilling
+      // Normalise: if drilling_method is set and not not_applicable, it's drilling
       if (job.drilling_method && job.drilling_method !== 'not_applicable' && disciplineType !== 'drilling') {
         disciplineType = 'drilling';
       }

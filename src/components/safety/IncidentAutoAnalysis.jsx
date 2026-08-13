@@ -8,15 +8,15 @@ import { Brain, Loader2, Sparkles, CheckCircle2, AlertCircle, Lightbulb } from '
  * and standard RAMS protocols. Embedded in the IncidentReporter component.
  */
 export default function IncidentAutoAnalysis({ incident, onApplySuggestions }) {
-  const [analyzing, setAnalyzing] = useState(false);
+  const [analysing, setAnalysing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [error, setError] = useState(null);
 
-  const handleAnalyze = async () => {
-    setAnalyzing(true);
+  const handleAnalyse = async () => {
+    setAnalysing(true);
     setError(null);
     try {
-      const prompt = `You are a health and safety analyst for a UK geotechnical drilling and groundworks company. Analyze this incident and suggest corrective actions.
+      const prompt = `You are a health and safety analyst for a UK geotechnical drilling and groundworks company. Analyse this incident and suggest corrective actions.
 
 Incident Type: ${incident?.type || 'Unknown'}
 Severity: ${incident?.severity || 'Unknown'}
@@ -71,7 +71,7 @@ Return as JSON:
     } catch (e) {
       setError(e.message);
     } finally {
-      setAnalyzing(false);
+      setAnalysing(false);
     }
   };
 
@@ -88,11 +88,11 @@ Return as JSON:
 
   return (
     <div className="space-y-3">
-      {/* Analyze button */}
+      {/* Analyse button */}
       {!analysis && (
-        <button onClick={handleAnalyze} disabled={analyzing || !incident?.description}
+        <button onClick={handleAnalyse} disabled={analysing || !incident?.description}
           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl command-gradient text-white text-sm font-semibold disabled:opacity-50 transition active:scale-95">
-          {analyzing ? <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing incident...</> : <><Brain className="w-4 h-4" /> Auto-Analyze with AI</>}
+          {analysing ? <><Loader2 className="w-4 h-4 animate-spin" /> Analysing incident...</> : <><Brain className="w-4 h-4" /> Auto-Analyse with AI</>}
         </button>
       )}
 

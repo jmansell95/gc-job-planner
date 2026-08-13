@@ -26,7 +26,7 @@ const EVENT_META = {
  * one chronological timeline, with each event tagged with its asset name.
  */
 export default function AssetMovementHistory({ asset, assets: propAssets }) {
-  // Normalize to array — accept either `assets` (array) or `asset` (single)
+  // Normalise to array — accept either `assets` (array) or `asset` (single)
   const assets = React.useMemo(() => {
     if (propAssets && propAssets.length > 0) return propAssets;
     if (asset) return [asset];

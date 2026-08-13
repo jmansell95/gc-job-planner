@@ -119,7 +119,7 @@ export const dashboardPoints = [
   {
     title: 'Two-tier widget system',
     body: 'Widgets are grouped into "At a Glance" (live operational pulse — site readiness, mission control, yard status) and "Insights & Analysis" (AI predictions, benchmarks, geotechnical risk). Start with the six essential widgets and enable deeper analytics as needed — no clutter, just clarity.',
-    proof: 'Six curated widgets visible by default; 16 more available via the Customize button.',
+    proof: 'Six curated widgets visible by default; 16 more available via the Customise button.',
   },
   {
     title: 'Job-scoped dashboard',
@@ -323,7 +323,7 @@ export const roiPoints = [
 export const agenda = [
   { step: '01', title: 'Opening & Executive Summary', mins: '5 min', body: 'Set the scene: why we built this, what changes for the business. Read the two-outcome summary (safety + margin) and state the ask up front so the room knows where this is going.' },
   { step: '02', title: 'Integrations & Ecosystem', mins: '4 min', body: 'Show the connected system — SAP Concur, Bob HR, HMRC CIS, OpenGround, SafetyCulture, AssetPanda. Frame it as one platform replacing five disjointed tools and the reconciliation spreadsheets between them.' },
-  { step: '02b', title: 'Customisable Dashboard', mins: '3 min', body: 'Show the Customize button — drag a widget, resize it, toggle one on. Emphasise: the layout saves per-user and follows them across devices. Every manager gets their own dashboard.' },
+  { step: '02b', title: 'Customisable Dashboard', mins: '3 min', body: 'Show the Customise button — drag a widget, resize it, toggle one on. Emphasise: the layout saves per-user and follows them across devices. Every manager gets their own dashboard.' },
   { step: '03', title: 'Safety & Compliance Demo', mins: '8 min', body: 'Open the Safety Hub — critical alerts, open audits, overdue actions, all synced from SafetyCulture. Show the red alert banner. Then Log QC dashboard, an anomaly flag and a bulk approve. End on the hazard map.' },
   { step: '04', title: 'Field Crew Experience', mins: '4 min', body: 'Show the mobile daily workflow on a phone view — arrive, sign briefing, log, submit. Emphasise: the crew enters LESS, not more. The app removes admin, it does not add it.' },
   { step: '05', title: 'Financial Performance Demo', mins: '8 min', body: 'Open a drilling job → Site Logs (days logged + meterage) → Billing tab (calculated charge from the rate card). Run the one-click AGS export live. Connect site activity straight to the P&L.' },
@@ -375,7 +375,7 @@ export const script = [
   {
     phase: 'Section 2b — Customisable Dashboard (3 min)',
     items: [
-      { tag: 'Show', text: 'Click the Customize button on the dashboard. Drag a widget to a new position. Click the size button to make it full-width.' },
+      { tag: 'Show', text: 'Click the Customise button on the dashboard. Drag a widget to a new position. Click the size button to make it full-width.' },
       { tag: 'Say', text: '"Every manager builds their own dashboard. Drag widgets around, resize them, show or hide the ones you use. It saves automatically — log in on your phone tomorrow and your layout is there. No two managers need to see the same thing."' },
       { tag: 'Ask', text: '"How much time do you spend every morning opening different screens to get the information you need?"' },
     ],

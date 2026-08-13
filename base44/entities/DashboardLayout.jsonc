@@ -19,11 +19,11 @@
         "type": "string"
       },
       "default": [],
-      "description": "Widget IDs that are currently hidden via the Customize panel. These stay in widget_order so their position is preserved when toggled back on, but are not rendered."
+      "description": "Widget IDs that are currently hidden via the Customise panel. These stay in widget_order so their position is preserved when toggled back on, but are not rendered."
     },
     "widget_sizes": {
       "type": "object",
-      "description": "Map of widget ID to size ('sm', 'md', 'lg'). Controls how many grid columns each widget spans on large screens. 'sm' = half width, 'md' = half width (default), 'lg' = full width. Stored so each user's sizing preference persists across logins."
+      "description": "Map of widget ID to size ('sm', 'md', 'lg'). Controls how many grid columns each widget spans on large screens. 'sm' = quarter width (1 col), 'md' = half width (2 cols, default), 'lg' = full width (4 cols). Stored so each user's sizing preference persists across logins."
     }
   },
   "required": [
