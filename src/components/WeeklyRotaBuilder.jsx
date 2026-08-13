@@ -48,6 +48,7 @@ export default function WeeklyRotaBuilder() {
   const [showWeekends, setShowWeekends] = useState(false);
   const [complianceViolations, setComplianceViolations] = useState(null);
   const [swapAssignment, setSwapAssignment] = useState(null);
+  const [todayCrewExpanded, setTodayCrewExpanded] = useState(false);
 
   const queryClient = useQueryClient();
   const weekStart = startOfWeek(selectedWeek, { weekStartsOn: 1 });
@@ -483,153 +484,77 @@ export default function WeeklyRotaBuilder() {
         </div>
       )}
 
-      {/* Week Navigator + Stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
-        <div className="flex items-center gap-2 sm:gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-3 sm:px-4 py-2.5 w-full sm:w-fit flex-wrap sm:flex-nowrap">
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start">
-            <button onClick={goToPrevWeek} className="p-1.5 hover:bg-slate-100 rounded-lg transition"><ChevronLeft className="w-4 h-4 text-slate-600" /></button>
-            <div className="text-sm font-semibold text-slate-900 flex-1 sm:min-w-[160px] text-center">
+      {/* Week Navigator + Stats + Filters — all inline */}
+      <div className="flex flex-col gap-2.5 mb-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Week navigator */}
+          <div className="flex items-center gap-1.5 bg-white rounded-xl border border-slate-200 shadow-sm px-2.5 py-2 flex-shrink-0">
+            <button onClick={goToPrevWeek} className="p-1 hover:bg-slate-100 rounded-lg transition"><ChevronLeft className="w-4 h-4 text-slate-600" /></button>
+            <div className="text-sm font-semibold text-slate-900 min-w-[150px] text-center">
               {format(weekStart, 'dd MMM')} — {format(addDays(weekStart, 6), 'dd MMM yyyy')}
             </div>
-            <button onClick={goToNextWeek} className="p-1.5 hover:bg-slate-100 rounded-lg transition"><ChevronRight className="w-4 h-4 text-slate-600" /></button>
-          </div>
-          <button onClick={() => setSelectedWeek(new Date())}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${weekStartStr === format(new Date(), 'yyyy-MM-dd') ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
-            Today
-          </button>
-          <input type="date" value={weekStartStr} onChange={(e) => setSelectedWeek(new Date(e.target.value))}
-            className="text-xs px-2 py-1.5 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 text-slate-600 w-full sm:w-auto" />
-        </div>
-        <div className="flex gap-3 flex-wrap">
-          <StatCard icon={Calendar} value={totalAssignments} label="Shifts" gradient="stat-gradient-emerald" />
-          <StatCard icon={Users} value={staffWorking} label="Crew Working" gradient="stat-gradient-blue" />
-          <StatCard icon={Briefcase} value={jobsActive} label="Active Jobs" gradient="stat-gradient-amber" />
-          {weekRecord && (
-            <StatCard
-              icon={isPublished ? CheckCircle2 : Clock}
-              value={isPublished ? 'Published' : 'Draft'}
-              sub={isPublished ? (weekRecord.published_at ? format(new Date(weekRecord.published_at), 'dd MMM, HH:mm') : 'Sent') : 'In progress'}
-              label="Status"
-              gradient={isPublished ? 'stat-gradient-emerald' : 'stat-gradient-amber'}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 px-3 py-2 shadow-sm flex-1 max-w-xs">
-          <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
-          <input type="text" value={staffSearch} onChange={(e) => setStaffSearch(e.target.value)}
-            placeholder="Search staff..."
-            className="flex-1 text-sm focus:outline-none bg-transparent text-slate-700 placeholder:text-slate-400" />
-          {staffSearch && (
-            <button onClick={() => setStaffSearch('')} className="text-slate-400 hover:text-slate-600">
-              <X className="w-3.5 h-3.5" />
+            <button onClick={goToNextWeek} className="p-1 hover:bg-slate-100 rounded-lg transition"><ChevronRight className="w-4 h-4 text-slate-600" /></button>
+            <div className="w-px h-5 bg-slate-200 mx-0.5" />
+            <button onClick={() => setSelectedWeek(new Date())}
+              className={`px-2 py-1 rounded-lg text-xs font-semibold transition ${weekStartStr === format(new Date(), 'yyyy-MM-dd') ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+              Today
             </button>
+            <input type="date" value={weekStartStr} onChange={(e) => setSelectedWeek(new Date(e.target.value))}
+              className="text-xs px-2 py-1 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 text-slate-600 w-[130px]" />
+          </div>
+
+          {/* Stats — compact inline */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <StatCard icon={Calendar} value={totalAssignments} label="Shifts" gradient="stat-gradient-emerald" />
+            <StatCard icon={Users} value={staffWorking} label="Crew" gradient="stat-gradient-blue" />
+            <StatCard icon={Briefcase} value={jobsActive} label="Jobs" gradient="stat-gradient-amber" />
+            {weekRecord && (
+              <StatCard
+                icon={isPublished ? CheckCircle2 : Clock}
+                value={isPublished ? 'Published' : 'Draft'}
+                sub={isPublished ? (weekRecord.published_at ? format(new Date(weekRecord.published_at), 'dd MMM, HH:mm') : 'Sent') : 'In progress'}
+                label="Status"
+                gradient={isPublished ? 'stat-gradient-emerald' : 'stat-gradient-amber'}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Filters — inline strip */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 px-2.5 py-1.5 shadow-sm flex-1 min-w-[180px] max-w-xs">
+            <Search className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+            <input type="text" value={staffSearch} onChange={(e) => setStaffSearch(e.target.value)}
+              placeholder="Search staff..."
+              className="flex-1 text-sm focus:outline-none bg-transparent text-slate-700 placeholder:text-slate-400" />
+            {staffSearch && (
+              <button onClick={() => setStaffSearch('')} className="text-slate-400 hover:text-slate-600">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 bg-white rounded-lg border border-slate-200 px-2.5 py-1.5 shadow-sm">
+            <Filter className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+            <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}
+              className="text-sm focus:outline-none bg-transparent text-slate-700 font-medium">
+              <option value="">All Teams</option>
+              {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+          <button onClick={() => setShowWeekends(v => !v)}
+            className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 shadow-sm text-sm font-medium transition ${showWeekends ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+            <CalendarDays className="w-3.5 h-3.5" />
+            {showWeekends ? 'Mon–Sun' : 'Mon–Fri'}
+          </button>
+          {(teamFilter || staffSearch) && (
+            <span className="text-xs text-slate-500 self-center">
+              {filteredStaff.length} of {staff.length} staff
+            </span>
           )}
         </div>
-        <div className="flex items-center gap-2 bg-white rounded-lg border border-slate-200 px-3 py-2 shadow-sm">
-          <Filter className="w-4 h-4 text-slate-400 flex-shrink-0" />
-          <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}
-            className="text-sm focus:outline-none bg-transparent text-slate-700 font-medium">
-            <option value="">All Teams</option>
-            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-        </div>
-        <button onClick={() => setShowWeekends(v => !v)}
-          className={`flex items-center gap-2 rounded-lg border px-3 py-2 shadow-sm text-sm font-medium transition ${showWeekends ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-          <CalendarDays className="w-4 h-4" />
-          {showWeekends ? 'Mon–Sun' : 'Mon–Fri'}
-          <span className="text-[11px] text-slate-400">{showWeekends ? 'incl. weekends' : '+ weekends'}</span>
-        </button>
-        {(teamFilter || staffSearch) && (
-          <span className="text-xs text-slate-500 self-center">
-            Showing {filteredStaff.length} of {staff.length} staff
-          </span>
-        )}
       </div>
 
       <RotaWarningsPanel warnings={rotaWarnings} />
-
-      {/* Today's Crew Summary — compact job-grouped view showing who's on site today */}
-      {(() => {
-        const todayRotas = rotas.filter(r => r.assigned_date === todayStr && (!r.assignment_type || r.assignment_type === 'job' || r.assignment_type === 'yard_depot'));
-        const todayCrew = [...new Set(todayRotas.map(r => r.staff_id))];
-        const todayLeave = rotas.filter(r => r.assigned_date === todayStr && r.assignment_type && r.assignment_type !== 'job');
-        // Group rotas by job for a compact grouped layout
-        const byJob = {};
-        todayRotas.forEach(r => {
-          if (r.assignment_type === 'yard_depot') {
-            if (!byJob['depot']) byJob['depot'] = [];
-            byJob['depot'].push(r);
-          } else {
-            const jid = r.job_id || 'unassigned';
-            if (!byJob[jid]) byJob[jid] = [];
-            byJob[jid].push(r);
-          }
-        });
-        const jobGroups = Object.entries(byJob);
-        return (
-          <div className="mb-4 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center">
-                  <Users className="w-3.5 h-3.5 text-white" />
-                </div>
-                <h3 className="text-sm font-bold text-slate-900">Today's Crew</h3>
-                <span className="text-[11px] text-slate-400">{format(new Date(), 'EEEE dd MMM')}</span>
-              </div>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="text-slate-500"><strong className="text-slate-900">{todayCrew.length}</strong> on site</span>
-                <span className="text-slate-500"><strong className="text-slate-900">{jobGroups.length}</strong> jobs</span>
-                {todayLeave.length > 0 && <span className="text-amber-600"><strong className="text-amber-700">{todayLeave.length}</strong> off</span>}
-              </div>
-            </div>
-            {todayRotas.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-slate-400 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-slate-300" />
-                No crew assigned for today — add shifts in the grid below or import from the planner.
-              </div>
-            ) : (
-              <div className="p-3 space-y-2">
-                {jobGroups.map(([jid, group]) => {
-                  const job = jobs.find(j => j.id === jid);
-                  const colors = jobTypeColors[getJobPrimaryType(job, teams)] || jobTypeColors.depot;
-                  return (
-                    <div key={jid} className={`rounded-lg border ${colors.border} ${colors.bg} px-3 py-2`}>
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className={`w-2 h-2 rounded-full ${colors.dot}`} />
-                        <p className="text-sm font-bold text-slate-800 truncate flex-1">{jid === 'depot' ? 'Depot Duty' : (job?.name || 'Unassigned')}</p>
-                        {job?.location && <span className="hidden sm:flex items-center gap-0.5 text-xs text-slate-400 truncate max-w-[140px]"><MapPin className="w-3 h-3" />{job.location}</span>}
-                        <span className="text-[10px] font-bold text-slate-500 bg-white/70 rounded-full px-1.5 py-0.5 flex-shrink-0">{group.length}</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {group.map(a => {
-                          const member = staff.find(s => s.id === a.staff_id);
-                          const status = statusConfig[a.status || 'assigned'] || statusConfig.assigned;
-                          const StatusIcon = status.icon;
-                          return (
-                            <button key={a.id} onClick={() => handleEditAssignment(a)}
-                              className="inline-flex items-center gap-1.5 bg-white border border-slate-200 rounded-full pl-1 pr-2.5 py-1 hover:shadow-sm hover:border-emerald-300 transition group">
-                              <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                                <span className="text-emerald-700 font-bold text-[10px]">{member?.name?.charAt(0) || '?'}</span>
-                              </span>
-                              <span className="text-xs font-medium text-slate-700 leading-none">{member?.name || 'Unknown'}</span>
-                              <StatusIcon className={`w-3 h-3 ${status.text}`} />
-                              {a.briefing_signed && <ClipboardCheck className="w-3 h-3 text-emerald-500" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })()}
 
       {/* Per-day capacity strip */}
       <div className="hidden lg:flex gap-2 mb-3 pl-[180px]">
@@ -918,11 +843,95 @@ export default function WeeklyRotaBuilder() {
                     );
                   })}
                 </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+                )}
+                </div>
+                );
+                })}
+                </div>
+
+                {/* Today's Crew Summary — collapsed by default, job-grouped view showing who's on site today */}
+                {(() => {
+                const todayRotas = rotas.filter(r => r.assigned_date === todayStr && (!r.assignment_type || r.assignment_type === 'job' || r.assignment_type === 'yard_depot'));
+                const todayCrew = [...new Set(todayRotas.map(r => r.staff_id))];
+                const todayLeave = rotas.filter(r => r.assigned_date === todayStr && r.assignment_type && r.assignment_type !== 'job');
+                const byJob = {};
+                todayRotas.forEach(r => {
+                if (r.assignment_type === 'yard_depot') {
+                if (!byJob['depot']) byJob['depot'] = [];
+                byJob['depot'].push(r);
+                } else {
+                const jid = r.job_id || 'unassigned';
+                if (!byJob[jid]) byJob[jid] = [];
+                byJob[jid].push(r);
+                }
+                });
+                const jobGroups = Object.entries(byJob);
+                return (
+                <div className="mt-4 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <button
+                onClick={() => setTodayCrewExpanded(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200 hover:bg-slate-100/60 transition"
+                >
+                <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#2E5A1A] to-[#5A8C1E] flex items-center justify-center">
+                 <Users className="w-3.5 h-3.5 text-white" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">Today's Crew</h3>
+                <span className="text-[11px] text-slate-400">{format(new Date(), 'EEEE dd MMM')}</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs">
+                <span className="text-slate-500"><strong className="text-slate-900">{todayCrew.length}</strong> on site</span>
+                <span className="text-slate-500"><strong className="text-slate-900">{jobGroups.length}</strong> jobs</span>
+                {todayLeave.length > 0 && <span className="text-amber-600"><strong className="text-amber-700">{todayLeave.length}</strong> off</span>}
+                <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${todayCrewExpanded ? 'rotate-90' : ''}`} />
+                </div>
+                </button>
+                {todayCrewExpanded && (
+                todayRotas.length === 0 ? (
+                <div className="px-4 py-3 text-sm text-slate-400 flex items-center gap-2">
+                 <Clock className="w-4 h-4 text-slate-300" />
+                 No crew assigned for today — add shifts in the grid above or import from the planner.
+                </div>
+                ) : (
+                <div className="p-3 space-y-2">
+                 {jobGroups.map(([jid, group]) => {
+                   const job = jobs.find(j => j.id === jid);
+                   const colors = jobTypeColors[getJobPrimaryType(job, teams)] || jobTypeColors.depot;
+                   return (
+                     <div key={jid} className={`rounded-lg border ${colors.border} ${colors.bg} px-3 py-2`}>
+                       <div className="flex items-center gap-1.5 mb-1.5">
+                         <span className={`w-2 h-2 rounded-full ${colors.dot}`} />
+                         <p className="text-sm font-bold text-slate-800 truncate flex-1">{jid === 'depot' ? 'Depot Duty' : (job?.name || 'Unassigned')}</p>
+                         {job?.location && <span className="hidden sm:flex items-center gap-0.5 text-xs text-slate-400 truncate max-w-[140px]"><MapPin className="w-3 h-3" />{job.location}</span>}
+                         <span className="text-[10px] font-bold text-slate-500 bg-white/70 rounded-full px-1.5 py-0.5 flex-shrink-0">{group.length}</span>
+                       </div>
+                       <div className="flex flex-wrap gap-1.5">
+                         {group.map(a => {
+                           const member = staff.find(s => s.id === a.staff_id);
+                           const status = statusConfig[a.status || 'assigned'] || statusConfig.assigned;
+                           const StatusIcon = status.icon;
+                           return (
+                             <button key={a.id} onClick={() => handleEditAssignment(a)}
+                               className="inline-flex items-center gap-1.5 bg-white border border-slate-200 rounded-full pl-1 pr-2.5 py-1 hover:shadow-sm hover:border-emerald-300 transition group">
+                               <span className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                                 <span className="text-emerald-700 font-bold text-[10px]">{member?.name?.charAt(0) || '?'}</span>
+                               </span>
+                               <span className="text-xs font-medium text-slate-700 leading-none">{member?.name || 'Unknown'}</span>
+                               <StatusIcon className={`w-3 h-3 ${status.text}`} />
+                               {a.briefing_signed && <ClipboardCheck className="w-3 h-3 text-emerald-500" />}
+                             </button>
+                           );
+                         })}
+                       </div>
+                     </div>
+                   );
+                 })}
+                </div>
+                )
+                )}
+                </div>
+                );
+                })()}
+                </div>
+                );
+                }
