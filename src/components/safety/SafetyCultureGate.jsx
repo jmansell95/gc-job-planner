@@ -60,7 +60,7 @@ export default function SafetyCultureGate({ children, onConfigure, message }) {
             <p className="text-sm font-bold text-slate-900">SafetyCulture not connected</p>
             <p className="text-xs text-slate-600 mt-0.5">
               {message ||
-                'No data is being synced from SafetyCulture. Configure the integration in Settings → Integrations to start syncing audits, incidents and inspections.'}
+                'SafetyCulture sync is not connected. Once the integration is configured, data will appear here automatically.'}
             </p>
           </div>
           {onConfigure && (
