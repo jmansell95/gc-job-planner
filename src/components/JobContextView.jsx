@@ -213,7 +213,7 @@ function SetupChecklist({ job, rotas, hotelBookings }) {
  * Duplicate info already shown in the hero header (location, dates, budget,
  * status, type, name) is omitted here.
  */
-export default function JobContextView({ job, primaryType, assignedStaff, rotas, allStaff, client, contractor, suppliers, vehicles, hotelBookings, canSeeCosts, isDrillingJob, colors, statusBadge: sb, statusLabels: sl, startDate, endDate, jobProject, siblingJobs, onProjectClick, jobTypes }) {
+export default function JobContextView({ job, primaryType, assignedStaff, rotas, allStaff, client, contractor, suppliers, vehicles, hotelBookings, canSeeCosts, isDrillingJob, colors, statusBadge: sb, statusLabels: sl, startDate, endDate, jobProject, siblingJobs, onProjectClick, jobTypes, subTab = 'overview' }) {
   const [activeActivity, setActiveActivity] = useState('all');
   const [showProjectJobs, setShowProjectJobs] = useState(false);
   const [showAssignStaff, setShowAssignStaff] = useState(false);
@@ -282,6 +282,8 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
 
   return (
     <div className="space-y-3">
+      {subTab === 'overview' && (
+      <>
       {/* Setup checklist for planning jobs */}
       {job.status === 'planning' && (
         <SetupChecklist job={job} rotas={rotas} hotelBookings={hotelBookings} />
@@ -604,8 +606,11 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
           </div>
         </div>
       </div>
+      </>
+      )}
 
-      {/* Merged overview content — project link, log review, portal */}
+      {subTab === 'links' && (
+      <>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {jobProject && (
           <button onClick={() => setShowProjectJobs(true)} className="flex items-center gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 hover:shadow-md transition text-left">
@@ -630,6 +635,8 @@ export default function JobContextView({ job, primaryType, assignedStaff, rotas,
           </div>
           <p className="text-sm text-slate-600 whitespace-pre-wrap">{job.notes}</p>
         </div>
+      )}
+      </>
       )}
 
       {/* Project jobs dialog */}

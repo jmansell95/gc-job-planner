@@ -103,6 +103,7 @@ export default function InvestigationHub({ onNavigate }) {
   const maxDepth = logs.reduce((max, l) => l.depth_to != null ? Math.max(max, l.depth_to) : max, 0);
   const boreholeCount = new Set(logs.filter(l => l.borehole_ref).map(l => l.borehole_ref)).size;
   const latestDate = logs.length > 0 ? logs[0].date : null;
+  const hasNoLogs = !isLoading && logs.length === 0;
 
   const toggleBulkSelect = (id) => {
     setBulkSelected(prev => {
@@ -178,10 +179,26 @@ export default function InvestigationHub({ onNavigate }) {
         </div>
       </div>
 
-      {/* OpenGround export — approved logs can be downloaded or pushed */}
-      <OpenGroundExportBar logs={logs} jobs={jobs} />
+      {/* Empty state — no logs in the system */}
+      {hasNoLogs && (
+        <div className="insight-card rounded-2xl p-8 mb-4 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-4">
+            <Tablet className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-900 mb-2">No logs in the system</h3>
+          <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+            All site log data comes from <span className="font-semibold text-slate-700">KeyLogBook Sync</span>.
+            If KeyLogBook is unavailable, you can fall back to manual entry in the app.
+            Once data is synced, logs will appear here for review.
+          </p>
+        </div>
+      )}
 
-      {/* 3-column workspace */}
+      {/* OpenGround export — approved logs can be downloaded or pushed */}
+      {!hasNoLogs && <OpenGroundExportBar logs={logs} jobs={jobs} />}
+
+      {/* 3-column workspace — hidden when no logs exist */}
+      {!hasNoLogs && (
       <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_320px] gap-4">
         {/* Left: Log list with filters */}
         <div className="insight-card rounded-2xl overflow-hidden flex flex-col xl:h-[calc(100vh-220px)] xl:sticky xl:top-4">
@@ -277,6 +294,7 @@ export default function InvestigationHub({ onNavigate }) {
           )}
         </div>
       </div>
+      )}
       {bulkMode && bulkSelected.size > 0 && (
         <BulkApproveBar
           selectedIds={Array.from(bulkSelected)}

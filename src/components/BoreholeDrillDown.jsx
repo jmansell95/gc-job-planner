@@ -91,8 +91,8 @@ export default function BoreholeDrillDown({ job, jobType }) {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
         <EmptyState
           icon={Mountain}
-          title="No borehole data yet"
-          message="Borehole data is imported from KeyLogBook AGS files. Upload an AGS file via Settings → AGS Import to populate this view."
+          title="No borehole data"
+          message="There is no borehole data in the system. Borehole data comes from KeyLogBook Sync or by uploading an AGS file via Settings → AGS Import."
         />
       </div>
     );
