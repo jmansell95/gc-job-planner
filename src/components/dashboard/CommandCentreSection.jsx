@@ -25,9 +25,9 @@ export default function CommandCentreSection({ monitors, onNavigate }) {
     const burnRate = totalBudget > 0 ? Math.round((totalActualCost / totalBudget) * 100) : 0;
     const pendingInvoices = invoices.filter(i => i.status === 'draft' || i.status === 'sent').length;
     const overdueInvoices = invoices.filter(i => i.status === 'overdue').length;
-    const totalInvoiceValue = invoices
-      .filter(i => i.status !== 'paid' && i.status !== 'cancelled')
-      .reduce((s, i) => s + (Number(i.total_amount) || 0), 0);
+    // Outstanding = sent + overdue (matches FinancialOverviewWidget on billing page)
+    const outstandingInvoices = invoices.filter(i => i.status === 'sent' || i.status === 'overdue');
+    const totalInvoiceValue = outstandingInvoices.reduce((s, i) => s + (Number(i.gross_total) || 0), 0);
     const pendingTs = timesheets.filter(t => t.status === 'submitted').length;
     const openSafety = safetyReports.length;
     const criticalSafety = safetyReports.filter(r => r.severity === 'critical' || r.severity === 'high').length;
@@ -43,8 +43,8 @@ export default function CommandCentreSection({ monitors, onNavigate }) {
     const delayedPct = activeJobs.length > 0 ? Math.round((jobsWithDelays / activeJobs.length) * 100) : 0;
     const projectHealth = delayedPct === 0 ? 'green' : delayedPct < 30 ? 'amber' : 'red';
 
-    // Paid revenue
-    const paidRevenue = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + (Number(i.gross_total) || 0), 0);
+    // Paid revenue — uses net_total to match FinancialOverviewWidget on billing page
+    const paidRevenue = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + (Number(i.net_total) || 0), 0);
 
     const issues = [];
     if (overdueInvoices > 0) issues.push(`${overdueInvoices} overdue invoice${overdueInvoices > 1 ? 's' : ''}`);

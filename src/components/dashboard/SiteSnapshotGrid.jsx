@@ -13,6 +13,45 @@ import { hasDiscipline, getJobDisciplines, getDisciplineConfig } from '@/utils/j
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
 import { Skeleton } from '@/components/StateViews';
 import { WEATHER_CODE_MAP, LEVEL_STYLES, assessConditions, fetchWeather } from '@/utils/siteWeather';
+import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+
+// Fix default marker icon for Leaflet in Vite
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+const STATUS_MAP_COLORS = {
+  planning: '#3b82f6',
+  in_progress: '#10b981',
+  decommissioning: '#f59e0b',
+  completed: '#6b7280',
+  on_hold: '#a855f7',
+  cancelled: '#ef4444',
+};
+
+function MiniSiteMap({ job }) {
+  if (job.site_lat == null || job.site_lng == null || isNaN(job.site_lat) || isNaN(job.site_lng)) return null;
+  const color = STATUS_MAP_COLORS[job.status] || '#6b7280';
+  return (
+    <div className="rounded-xl overflow-hidden border border-slate-200 mb-3 pl-2" style={{ height: '120px' }} onClick={(e) => e.stopPropagation()}>
+      <MapContainer center={[job.site_lat, job.site_lng]} zoom={13} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false} dragging={false} doubleClickZoom={false} attributionControl={false}>
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <CircleMarker center={[job.site_lat, job.site_lng]} radius={10} pathOptions={{ color, fillColor: color, fillOpacity: 0.7, weight: 2 }}>
+          <Popup>
+            <div className="text-sm">
+              <p className="font-bold text-slate-900">{job.name}</p>
+              <p className="text-xs text-slate-600 mt-0.5">{job.location}</p>
+            </div>
+          </Popup>
+        </CircleMarker>
+      </MapContainer>
+    </div>
+  );
+}
 
 const complianceConfig = {
   compliant: { icon: ShieldCheck, cls: 'text-emerald-600 bg-emerald-50 ring-emerald-200', dot: 'bg-emerald-500', label: 'Compliant' },
@@ -404,6 +443,9 @@ export default function SiteSnapshotGrid({ onSelectJob, onNavigate }) {
                 </div>
                 <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-[#2E5A1A] group-hover:translate-x-0.5 transition flex-shrink-0 mt-1" />
               </div>
+
+              {/* Mini site map — integrated from the former Live Site Map widget */}
+              <MiniSiteMap job={job} />
 
               {/* Stats row — subtle tinted tiles */}
               <div className="grid grid-cols-2 gap-2 mb-3 pl-2">

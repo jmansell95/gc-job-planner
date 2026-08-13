@@ -113,32 +113,29 @@ export default function CustomisableWidgetGrid({ renderWidget, canShowWidget }) 
 
   return (
     <div className="mb-4">
-      {/* Customise bar */}
-      <div className="flex items-center justify-between mb-3 px-1">
-        <div className="flex items-center gap-1.5">
-          {saving && (
+      {/* Customise bar — full-width button */}
+      <div className="mb-3 space-y-2">
+        <div className="flex items-center justify-between px-1">
+          {saving ? (
             <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 font-medium">
               <Cloud className="w-3 h-3 animate-pulse" /> Saving…
             </span>
-          )}
-          {customise && (
-            <span className="text-[11px] text-slate-400 font-medium hidden sm:block">
+          ) : customise ? (
+            <span className="text-[11px] text-slate-400 font-medium">
               Drag to reorder · click size to resize
             </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
+          ) : <span />}
           {customise && (
             <button onClick={resetLayout}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition">
               <RotateCcw className="w-3.5 h-3.5" /> Reset
             </button>
           )}
-          <button onClick={() => setCustomise(!customise)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition ${customise ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-            {customise ? <><Check className="w-4 h-4" /> Done</> : <><Settings2 className="w-4 h-4" /> Customise</>}
-          </button>
         </div>
+        <button onClick={() => setCustomise(!customise)}
+          className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition ${customise ? 'bg-[#2E5A1A] text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-[#2E5A1A]/30'}`}>
+          {customise ? <><Check className="w-4 h-4" /> Done Customising</> : <><Settings2 className="w-4 h-4" /> Customise Dashboard</>}
+        </button>
       </div>
 
       {/* Visibility toggles — customise mode only */}

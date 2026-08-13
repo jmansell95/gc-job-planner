@@ -13,6 +13,7 @@ import JobKanbanBoard from '@/components/dashboard/JobKanbanBoard';
 import { getJobPrimaryType, getJobTypeColor, getJobTypeLabel } from '@/utils/jobTeams';
 import DisciplinePills from '@/components/disciplines/DisciplinePills';
 import JobSummaryCard from '@/components/jobs/JobSummaryCard';
+import WorkloadOwnershipPanel from '@/components/jobs/WorkloadOwnershipPanel';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 
 const fmtDate = (d) => {
@@ -272,6 +273,11 @@ export default function JobManager({ onNavigateRota }) {
           onSelectJob={(job) => setSelectedJob(job)}
           onAddJob={handleAddJobToProject}
         />
+      )}
+
+      {/* Workload Ownership — Direct vs Partner split (Jobs view only) */}
+      {view === 'jobs' && jobs.length > 0 && (
+        <WorkloadOwnershipPanel />
       )}
 
       {/* Status buttons + search — only in Jobs view */}

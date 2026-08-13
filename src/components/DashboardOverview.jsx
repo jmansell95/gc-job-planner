@@ -8,10 +8,8 @@ import { GLOBAL_ONLY_WIDGETS } from '@/components/dashboard/registry';
 import CustomisableWidgetGrid from '@/components/dashboard/CustomisableWidgetGrid';
 import AiInsightsWidget from '@/components/dashboard/AiInsightsWidget';
 import FieldPrioritiesWidget from '@/components/dashboard/FieldPrioritiesWidget';
-import LiveSiteMapWidget from '@/components/dashboard/LiveSiteMapWidget';
 import ExceptionMonitorWidget from '@/components/dashboard/ExceptionMonitorWidget';
 import CommandCentreSection from '@/components/dashboard/CommandCentreSection';
-import WorkloadOwnershipWidget from '@/components/dashboard/WorkloadOwnershipWidget';
 import { useJobFilter } from '@/components/dashboard/JobFilterContext';
 import JobSelectorBar from '@/components/dashboard/JobSelectorBar';
 import QuickActionBar from '@/components/dashboard/QuickActionBar';
@@ -83,9 +81,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
     switch (widgetId) {
       case 'field-priorities': return <FieldPrioritiesWidget onNavigate={onNavigate} />;
       case 'exception-monitor': return <ExceptionMonitorWidget onNavigate={onNavigate} />;
-      case 'live-site-map': return <LiveSiteMapWidget onNavigate={onNavigate} />;
       case 'ai-insights': return <AiInsightsWidget onNavigate={onNavigate} />;
-      case 'workload-ownership': return <WorkloadOwnershipWidget onNavigate={onNavigate} />;
       default: return null;
     }
   };
@@ -192,7 +188,7 @@ export default function DashboardOverview({ onNavigate, onSelectJob }) {
         />
       )}
 
-      <JobSelectorBar />
+      <JobSelectorBar onSelectJob={onSelectJob} />
 
       {/* Live Site Activity — visual snapshot grid of active sites */}
       {isAllJobs && (

@@ -13,7 +13,6 @@ import SupplierManager from '@/components/SupplierManager';
 import OvertimeRatesManager from '@/components/OvertimeRatesManager';
 import BusinessConfigManager from '@/components/BusinessConfigManager';
 import AutomationCenter from '@/components/AutomationCenter';
-import JobTypeManager from '@/components/JobTypeManager';
 import BillingRulesManager from '@/components/BillingRulesManager';
 import EquipmentLibraryManager from '@/components/EquipmentLibraryManager';
 import CrewTypeCommand from '@/components/CrewTypeCommand';
@@ -144,7 +143,6 @@ export default function SettingsPage({ initialTab, onSelectJob, standalone }) {
       case 'login-branding': return <LoginBrandingSettings />;
       case 'portal-branding': return <PortalBrandingEditor />;
       case 'automations': return <AutomationCenter />;
-      case 'job-types': return <JobTypeManager />;
       case 'dropdowns': return <DropdownConfigManager />;
       case 'rate-card': return <RateCardManager />;
       case 'billing': return <BillingRulesManager />;

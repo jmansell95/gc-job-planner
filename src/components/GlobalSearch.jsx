@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
-import { Briefcase, Users, Truck, Search } from 'lucide-react';
+import { Briefcase, Users, Truck, Search, MapPin, Hash } from 'lucide-react';
 
 export default function GlobalSearch({ compact = false }) {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handler = (e) => {
@@ -34,8 +36,9 @@ export default function GlobalSearch({ compact = false }) {
     enabled: open,
   });
 
-  const navigate = (detail) => {
-    window.dispatchEvent(new CustomEvent('app-navigate', { detail }));
+  // Navigate straight to the entity's page
+  const goTo = (path, state) => {
+    navigate(path, state ? { state } : undefined);
     setOpen(false);
   };
 
@@ -51,18 +54,28 @@ export default function GlobalSearch({ compact = false }) {
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Search jobs, crew, vehicles…" />
+        <div className="px-3 pt-3 pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <Search className="w-3.5 h-3.5" />
+            <span>Global Search — jump straight to any record</span>
+          </div>
+        </div>
+        <CommandInput placeholder="Type a job name, crew member, or vehicle…" />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
 
           {jobs.length > 0 && (
-            <CommandGroup heading="Jobs">
-              {jobs.slice(0, 8).map(job => (
-                <CommandItem key={job.id} value={`job ${job.name} ${job.location || ''}`} onSelect={() => navigate({ section: 'job-detail', job })}>
+            <CommandGroup heading="Jobs — click to open job detail">
+              {jobs.slice(0, 10).map(job => (
+                <CommandItem
+                  key={job.id}
+                  value={`job ${job.name} ${job.location || ''} ${job.job_reference || ''}`}
+                  onSelect={() => goTo('/admin', { state: { section: 'job-detail', job } })}
+                >
                   <Briefcase className="w-4 h-4 text-emerald-600" />
                   <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">{job.name}</p>
-                    {job.location && <p className="text-xs text-slate-400 truncate">{job.location}</p>}
+                    {job.location && <p className="text-xs text-slate-400 truncate flex items-center gap-1"><MapPin className="w-3 h-3" />{job.location}</p>}
                   </div>
                 </CommandItem>
               ))}
@@ -70,9 +83,13 @@ export default function GlobalSearch({ compact = false }) {
           )}
 
           {staff.length > 0 && (
-            <CommandGroup heading="Crew">
-              {staff.slice(0, 8).map(member => (
-                <CommandItem key={member.id} value={`staff ${member.name} ${member.email || ''}`} onSelect={() => navigate({ section: 'settings', settingsTab: 'staff' })}>
+            <CommandGroup heading="Crew — click to open staff page">
+              {staff.slice(0, 10).map(member => (
+                <CommandItem
+                  key={member.id}
+                  value={`staff ${member.name} ${member.email || ''}`}
+                  onSelect={() => goTo('/staff')}
+                >
                   <Users className="w-4 h-4 text-blue-600" />
                   <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">{member.name}</p>
@@ -84,13 +101,17 @@ export default function GlobalSearch({ compact = false }) {
           )}
 
           {vehicles.length > 0 && (
-            <CommandGroup heading="Vehicles">
-              {vehicles.slice(0, 8).map(v => (
-                <CommandItem key={v.id} value={`vehicle ${v.name} ${v.registration_number || ''}`} onSelect={() => navigate({ section: 'assets' })}>
+            <CommandGroup heading="Vehicles — click to open fleet page">
+              {vehicles.slice(0, 10).map(v => (
+                <CommandItem
+                  key={v.id}
+                  value={`vehicle ${v.name} ${v.registration_number || ''}`}
+                  onSelect={() => goTo('/fleet')}
+                >
                   <Truck className="w-4 h-4 text-amber-600" />
                   <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">{v.name}</p>
-                    {v.registration_number && <p className="text-xs text-slate-400 truncate font-mono">{v.registration_number}</p>}
+                    {v.registration_number && <p className="text-xs text-slate-400 truncate font-mono flex items-center gap-1"><Hash className="w-3 h-3" />{v.registration_number}</p>}
                   </div>
                 </CommandItem>
               ))}

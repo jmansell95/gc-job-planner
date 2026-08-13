@@ -1,8 +1,11 @@
-import { AlertTriangle, AlertOctagon, MapPin, Sparkles, Layers } from 'lucide-react';
+import { AlertTriangle, AlertOctagon, Sparkles } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════
 //  STREAMLINED DASHBOARD REGISTRY
 //  Only widgets that DON'T have a dedicated hub live on the dashboard.
+//  Removed:
+//   - live-site-map → integrated into Site Snapshot Grid (active job cards)
+//   - workload-ownership → integrated into Manage Jobs page
 //  Moved to dedicated hubs:
 //   - borehole-progress, geo-heatmap → Investigation Hub
 //   - site-weather → Compliance Hub
@@ -12,17 +15,13 @@ import { AlertTriangle, AlertOctagon, MapPin, Sparkles, Layers } from 'lucide-re
 export const WIDGET_REGISTRY = {
   'field-priorities': { title: 'Field Priorities', icon: AlertTriangle },
   'exception-monitor': { title: 'Needs Attention', icon: AlertOctagon },
-  'live-site-map': { title: 'Live Site Map', icon: MapPin },
   'ai-insights': { title: 'AI Weekly Insights', icon: Sparkles },
-  'workload-ownership': { title: 'Workload Ownership', icon: Layers },
 };
 
 export const DEFAULT_WIDGETS = [
   'field-priorities',
   'exception-monitor',
-  'live-site-map',
   'ai-insights',
-  'workload-ownership',
 ];
 
 export const DEFAULT_HIDDEN = [];
@@ -30,8 +29,7 @@ export const DEFAULT_HIDDEN = [];
 // Widgets that show company-wide data (not specific to a job).
 // Hidden when the dashboard is focused on a single job.
 export const GLOBAL_ONLY_WIDGETS = [
-  'field-priorities', 'exception-monitor',
-  'live-site-map', 'ai-insights',
+  'field-priorities', 'exception-monitor', 'ai-insights',
 ];
 
 // Backward compat — kept for any code still importing these
